@@ -1,6 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { FontFamily, Spacing, Type } from '@/constants/theme';
+
 export default function Dashboard() {
   return (
     <SafeAreaView style={styles.safe}>
@@ -18,18 +20,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 24,
+    padding: Spacing.xl,
   },
   title: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 20,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.headline,
     color: '#D4A44C',
   },
   subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 14,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
-    marginTop: 12,
+    marginTop: Spacing.sm,
     textAlign: 'center',
+    lineHeight: Math.round(Type.body * 1.4),
   },
 });

@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useAccountStore } from '@/store/accountStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
@@ -51,7 +52,7 @@ export default function ReadyScreen() {
           entering={ZoomIn.springify().damping(10).stiffness(100)}
           style={styles.checkWrap}
         >
-          <MaterialCommunityIcons name="check-circle" size={54} color="#4CAF82" />
+          <MaterialCommunityIcons name="check-circle" size={Size.iconHero} color="#4CAF82" />
         </Animated.View>
 
         <Animated.Text entering={FadeInUp.delay(200).duration(400)} style={styles.headline}>
@@ -100,39 +101,40 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
   },
   checkWrap: {
-    marginBottom: 14,
+    marginBottom: Spacing.md,
   },
   headline: {
-    fontFamily: 'Sora_800ExtraBold',
-    fontSize: 17,
+    fontFamily: FontFamily.soraExtra,
+    fontSize: Type.headline,
     color: '#F0EBE3',
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: Spacing.xxs,
   },
   subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: Spacing.md,
+    lineHeight: Math.round(Type.body * 1.4),
   },
   summary: {
     width: '100%',
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
-    borderRadius: 11,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 3.5,
+    paddingVertical: Spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: '#243044',
   },
@@ -140,35 +142,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   summaryLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
   },
   summaryValue: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 9,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
 });

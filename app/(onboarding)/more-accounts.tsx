@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
 
@@ -137,7 +138,11 @@ function AccountRow({
           isFirst ? styles.iconContainerActive : styles.iconContainerInactive,
         ]}
       >
-        <MaterialCommunityIcons name={icon} size={14} color={isFirst ? '#C9973A' : '#6B7F99'} />
+        <MaterialCommunityIcons
+          name={icon}
+          size={Size.iconBack}
+          color={isFirst ? '#C9973A' : '#6B7F99'}
+        />
       </View>
 
       <View style={styles.rowMiddle}>
@@ -155,49 +160,50 @@ function AccountRow({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0F1923' },
   header: {
-    height: 42,
+    height: Size.headerHeight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
   },
   headerSpacer: {
-    width: 26,
-    height: 26,
+    width: Size.backBtn,
+    height: Size.backBtn,
   },
   headerTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
   subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
-    paddingTop: 6,
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    lineHeight: Math.round(Type.body * 1.4),
   },
   listContent: {
-    paddingHorizontal: 12,
-    paddingBottom: 12,
-    gap: 6,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    gap: Spacing.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 9,
-    paddingVertical: 8,
-    paddingHorizontal: 9,
-    borderRadius: 9,
+    gap: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
   },
   iconContainer: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: Size.typeIconBox,
+    height: Size.typeIconBox,
+    borderRadius: Radius.sm,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -212,21 +218,21 @@ const styles = StyleSheet.create({
   },
   rowMiddle: {
     flex: 1,
-    gap: 2,
+    gap: Spacing.xxs,
   },
   rowName: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
   rowType: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 8,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.caption,
     color: '#6B7F99',
   },
   rowBalance: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#4CAF82',
     marginLeft: 'auto',
   },
@@ -234,62 +240,62 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    padding: 9,
-    marginTop: 6,
-    borderRadius: 9,
+    gap: Spacing.xs,
+    padding: Spacing.sm,
+    marginTop: Spacing.xs,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: '#2A3A4F',
   },
   addAnotherPlus: {
-    width: 20,
-    height: 20,
-    borderRadius: 6,
+    width: Size.iconLg,
+    height: Size.iconLg,
+    borderRadius: Radius.sm,
     backgroundColor: 'rgba(201,151,58,0.12)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   addAnotherPlusText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.headline,
     color: '#C9973A',
-    lineHeight: 14,
+    lineHeight: Math.round(Type.headline * 1.1),
   },
   addAnotherLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
   },
   hint: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 8,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
     color: '#4A5568',
     textAlign: 'center',
-    paddingHorizontal: 12,
-    paddingBottom: 4,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.xxs,
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
 });

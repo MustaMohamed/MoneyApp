@@ -1,10 +1,14 @@
 import { StyleSheet, View } from 'react-native';
 import Svg, { Circle, Defs, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 
+import { Size } from '@/constants/theme';
+
 export function GeoIllustration() {
+  const s = Size.illustration;
+  // Internal SVG draws on a fixed 88-unit grid; viewBox scales it to s.
   return (
-    <View style={styles.wrapper}>
-      <Svg width={88} height={88} viewBox="0 0 88 88">
+    <View style={[styles.wrapper, { width: s, height: s }]}>
+      <Svg width={s} height={s} viewBox="0 0 88 88">
         <Defs>
           <RadialGradient id="orb" cx="50%" cy="50%" r="50%">
             <Stop offset="0%" stopColor="#C9973A" stopOpacity={0.22} />
@@ -35,8 +39,6 @@ export function GeoIllustration() {
 
 const styles = StyleSheet.create({
   wrapper: {
-    width: 88,
-    height: 88,
     alignItems: 'center',
     justifyContent: 'center',
   },
