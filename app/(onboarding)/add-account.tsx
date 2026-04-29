@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated, {
   FadeInDown,
@@ -10,6 +10,7 @@ import Animated, {
   useSharedValue,
   withSequence,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,8 +18,70 @@ import { MockStatusBar } from '@/components/MockStatusBar';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
-import { type AccountType } from '@/store/accountStore';
-import { type Currency } from '@/store/onboardingStore';
+import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
+import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
+
+type ValidationValues = {
+  name: string;
+  balance: string;
+  type: AccountType;
+  creditLimit: string;
+  interestTracking: boolean;
+  apr: string;
+};
+
+type FieldErrors = Partial<Record<'name' | 'balance' | 'creditLimit' | 'apr', string>>;
+
+function validateAccountForm(values: ValidationValues, existingAccounts: Account[]): FieldErrors {
+  const errors: FieldErrors = {};
+
+  // Name
+  const trimmedName = values.name.trim();
+  if (trimmedName === '') {
+    errors.name = Strings.errNameRequired;
+  } else if (values.name.length > 30) {
+    errors.name = Strings.errNameTooLong;
+  } else {
+    const lower = trimmedName.toLowerCase();
+    const dup = existingAccounts.some((a) => a.name.trim().toLowerCase() === lower);
+    if (dup) {
+      errors.name = Strings.errNameDuplicate;
+    }
+  }
+
+  // Balance
+  const balanceTrimmed = values.balance.trim();
+  if (balanceTrimmed === '') {
+    errors.balance = Strings.errBalanceInvalid;
+  } else {
+    const parsed = Number(balanceTrimmed);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      errors.balance = Strings.errBalanceInvalid;
+    }
+  }
+
+  // Credit limit (only credit_card)
+  if (values.type === 'credit_card') {
+    const limitTrimmed = values.creditLimit.trim();
+    if (limitTrimmed === '') {
+      errors.creditLimit = Strings.errCreditLimitRequired;
+    } else {
+      const parsed = Number(limitTrimmed);
+      if (!Number.isFinite(parsed) || parsed <= 0) {
+        errors.creditLimit = Strings.errCreditLimitRequired;
+      }
+    }
+
+    // APR (only when interest tracking is on)
+    if (values.interestTracking) {
+      if (values.apr.trim() === '') {
+        errors.apr = Strings.errAprRequired;
+      }
+    }
+  }
+
+  return errors;
+}
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -41,6 +104,11 @@ const CURRENCY_OPTIONS: Currency[] = ['EGP', 'USD'];
 
 export default function AddAccountScreen() {
   const router = useRouter();
+  const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
+
+  const accounts = useAccountStore((s) => s.accounts);
+  const addAccount = useAccountStore((s) => s.addAccount);
+  const setStep = useOnboardingStore((s) => s.setStep);
 
   const [selectedType, setSelectedType] = useState<AccountType>('bank');
   const [name, setName] = useState('');
@@ -54,11 +122,72 @@ export default function AddAccountScreen() {
   const [interestTracking, setInterestTracking] = useState(false);
   const [apr, setApr] = useState('');
 
+  const [errors, setErrors] = useState<FieldErrors>({});
+
   const isCreditCard = selectedType === 'credit_card';
   const ctaDisabled = name.trim() === '';
 
-  const onSave = () => {
-    // TODO: Day 8 — validation + save
+  const btnScale = useSharedValue(1);
+  const btnAnim = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }));
+
+  // Load accounts on mount so the duplicate-name check works on first entry.
+  useEffect(() => {
+    useAccountStore.getState().loadAccounts();
+  }, []);
+
+  const clearError = (key: keyof FieldErrors) => {
+    setErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    btnScale.value = withSequence(
+      withTiming(0.97, { duration: 80 }),
+      withSpring(1.0, { damping: 10 }),
+    );
+
+    const validationErrors = validateAccountForm(
+      { name, balance, type: selectedType, creditLimit, interestTracking, apr },
+      accounts,
+    );
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    setErrors({});
+
+    const isCC = selectedType === 'credit_card';
+    const accountData = {
+      name: name.trim(),
+      type: selectedType,
+      currency,
+      opening_balance: parseFloat(balance),
+      current_balance: parseFloat(balance),
+      color: selectedColor,
+      interest_tracking: (interestTracking ? 1 : 0) as 0 | 1,
+      is_archived: 0 as const,
+      sort_order: accounts.length,
+      credit_limit: isCC ? parseFloat(creditLimit) : null,
+      revolving_balance: isCC ? parseFloat(revolvingBalance) || 0 : null,
+      minimum_payment: isCC && minPayment ? parseFloat(minPayment) : null,
+      statement_due_day: isCC && dueDay ? parseInt(dueDay, 10) : null,
+      apr: isCC && interestTracking && apr ? parseFloat(apr) : null,
+    };
+
+    await addAccount(accountData);
+
+    if (isAddingMore) {
+      router.back();
+    } else {
+      await setStep('O5');
+      router.push('/(onboarding)/more-accounts');
+    }
   };
 
   return (
@@ -98,12 +227,24 @@ export default function AddAccountScreen() {
           <Text style={styles.sectionLabel}>{Strings.o4SectionName}</Text>
           <TextInput
             value={name}
-            onChangeText={setName}
+            onChangeText={(text) => {
+              setName(text);
+              clearError('name');
+            }}
             placeholder={Strings.o4NamePlaceholder}
             placeholderTextColor="#4A5568"
             maxLength={30}
             style={styles.input}
           />
+          {errors.name ? (
+            <Animated.Text
+              entering={FadeInDown.duration(150)}
+              exiting={FadeOutUp.duration(100)}
+              style={styles.errorText}
+            >
+              {errors.name}
+            </Animated.Text>
+          ) : null}
         </View>
 
         {/* Currency */}
@@ -137,12 +278,24 @@ export default function AddAccountScreen() {
           <Text style={styles.sectionLabel}>{Strings.o4SectionBalance}</Text>
           <TextInput
             value={balance}
-            onChangeText={setBalance}
+            onChangeText={(text) => {
+              setBalance(text);
+              clearError('balance');
+            }}
             placeholder={Strings.o4BalancePlaceholder}
             placeholderTextColor="#4A5568"
             keyboardType="decimal-pad"
             style={styles.input}
           />
+          {errors.balance ? (
+            <Animated.Text
+              entering={FadeInDown.duration(150)}
+              exiting={FadeOutUp.duration(100)}
+              style={styles.errorText}
+            >
+              {errors.balance}
+            </Animated.Text>
+          ) : null}
         </View>
 
         {/* Color presets */}
@@ -193,12 +346,24 @@ export default function AddAccountScreen() {
               <Text style={styles.sectionLabel}>{Strings.o4SectionLimit}</Text>
               <TextInput
                 value={creditLimit}
-                onChangeText={setCreditLimit}
+                onChangeText={(text) => {
+                  setCreditLimit(text);
+                  clearError('creditLimit');
+                }}
                 placeholder={Strings.o4CreditLimitPlaceholder}
                 placeholderTextColor="#4A5568"
                 keyboardType="decimal-pad"
                 style={styles.input}
               />
+              {errors.creditLimit ? (
+                <Animated.Text
+                  entering={FadeInDown.duration(150)}
+                  exiting={FadeOutUp.duration(100)}
+                  style={styles.errorText}
+                >
+                  {errors.creditLimit}
+                </Animated.Text>
+              ) : null}
             </View>
 
             <View style={styles.fieldGroup}>
@@ -252,12 +417,24 @@ export default function AddAccountScreen() {
                 <Text style={styles.sectionLabel}>{Strings.o4SectionApr}</Text>
                 <TextInput
                   value={apr}
-                  onChangeText={setApr}
+                  onChangeText={(text) => {
+                    setApr(text);
+                    clearError('apr');
+                  }}
                   placeholder={Strings.o4AprPlaceholder}
                   placeholderTextColor="#4A5568"
                   keyboardType="decimal-pad"
                   style={styles.input}
                 />
+                {errors.apr ? (
+                  <Animated.Text
+                    entering={FadeInDown.duration(150)}
+                    exiting={FadeOutUp.duration(100)}
+                    style={styles.errorText}
+                  >
+                    {errors.apr}
+                  </Animated.Text>
+                ) : null}
               </Animated.View>
             )}
           </Animated.View>
@@ -265,20 +442,21 @@ export default function AddAccountScreen() {
       </ScrollView>
 
       <View style={styles.ctaBar}>
-        <Pressable
-          onPress={onSave}
-          disabled={ctaDisabled}
-          style={[styles.ctaPress, ctaDisabled && styles.ctaPressDisabled]}
-        >
-          <LinearGradient
-            colors={['#C9973A', '#D4A44C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cta}
+        <Animated.View style={btnAnim}>
+          <Pressable
+            onPress={handleSave}
+            style={[styles.ctaPress, ctaDisabled && styles.ctaPressDisabled]}
           >
-            <Text style={styles.ctaText}>{Strings.o4Cta}</Text>
-          </LinearGradient>
-        </Pressable>
+            <LinearGradient
+              colors={['#C9973A', '#D4A44C']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.cta}
+            >
+              <Text style={styles.ctaText}>{Strings.o4Cta}</Text>
+            </LinearGradient>
+          </Pressable>
+        </Animated.View>
       </View>
     </SafeAreaView>
   );
@@ -499,5 +677,11 @@ const styles = StyleSheet.create({
     fontFamily: 'Sora_700Bold',
     fontSize: 12,
     color: '#1B2B4B',
+  },
+  errorText: {
+    color: '#E05A42',
+    fontFamily: 'Inter_400Regular',
+    fontSize: 9,
+    marginTop: 3,
   },
 });
