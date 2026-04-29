@@ -96,7 +96,7 @@ export default function SecurityScreen() {
         <View style={styles.back} />
       </View>
 
-      <ProgressDots activeIndex={2} />
+      <ProgressDots totalSteps={6} currentStep={3} />
 
       <View style={styles.content}>
         <View style={styles.headerCard}>

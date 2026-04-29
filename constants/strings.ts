@@ -79,20 +79,24 @@ export const Strings = {
   typeCreditCard: 'Credit Card',
 
   // O5 More Accounts
-  o5Title: 'Add More Accounts',
+  o5Title: 'Your Accounts',
   o5Subtitle: 'Got other accounts? Add them now — or skip and do it later.',
-  o5AddAnother: '+ Add Another Account',
-  o5Cta: "I'm Done",
+  o5SubtitleSuffix: ' added. Add more or continue.',
+  o5AddAnother: 'Add another account',
+  o5SettingsHint: 'You can always add more from Settings',
+  o5Cta: "I'm done",
 
   // O6 Ready
   o6Title: "You're all set!",
-  o6Subtitle: 'Your accounts are ready. Start tracking your money with full control.',
+  o6Subtitle: "Your MoneyApp is configured. Here's your summary.",
   o6Cta: 'Open My Dashboard',
   o6Currency: 'Base Currency',
   o6Security: 'Security',
   o6Accounts: 'Accounts',
+  o6TotalBalance: 'Total Balance',
   o6SecurityPin: 'PIN Code',
   o6SecurityBiometric: 'Biometrics',
+  o6SecurityEnabled: 'Enabled',
   o6SecuritySkipped: 'Not set',
 
   // Placeholder dashboard
