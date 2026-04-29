@@ -1,2 +1,2 @@
-// Placeholder — implemented on Day 3
+// implemented Day 3
 export {};
