@@ -38,6 +38,9 @@ yarn-error.*
 
 app-example
 
+# Claude Code agent worktrees (local tooling state)
+.claude/
+
 # generated native folders
 /ios
 /android
