@@ -20,6 +20,7 @@ export default function OnboardingLayout() {
       screenOptions={{
         headerShown: false,
         animation: 'slide_from_right',
+        animationTypeForReplace: 'pop',
         contentStyle: { backgroundColor: '#0F1923' },
       }}
     >
