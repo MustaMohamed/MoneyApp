@@ -5,7 +5,6 @@ import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GeoIllustration } from '@/components/GeoIllustration';
-import { MockStatusBar } from '@/components/MockStatusBar';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { useOnboardingStore } from '@/store/onboardingStore';
@@ -20,8 +19,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <MockStatusBar />
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ProgressDots totalSteps={6} currentStep={1} />
 
       <View style={styles.body}>
