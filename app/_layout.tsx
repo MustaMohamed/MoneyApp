@@ -8,6 +8,7 @@ import {
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
 import { initDatabase } from '@/db/init';
@@ -44,5 +45,15 @@ export default function RootLayout() {
 
   if (!fontsLoaded || !ready) return null;
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <StatusBar style="light" />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: '#0F1923' },
+        }}
+      />
+    </>
+  );
 }

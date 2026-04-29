@@ -4,7 +4,6 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MockStatusBar } from '@/components/MockStatusBar';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/accountStore';
@@ -45,7 +44,6 @@ export default function ReadyScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <MockStatusBar />
       <ProgressDots totalSteps={6} currentStep={6} />
 
       <View style={styles.body}>

@@ -6,7 +6,6 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { MockStatusBar } from '@/components/MockStatusBar';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
@@ -64,8 +63,6 @@ export default function MoreAccountsScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
-      <MockStatusBar />
-
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>{Strings.o5Title}</Text>

@@ -16,7 +16,13 @@ export default function OnboardingLayout() {
   if (complete) return <Redirect href="/dashboard" />;
 
   return (
-    <Stack screenOptions={{ headerShown: false, animation: 'slide_from_right' }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: 'slide_from_right',
+        contentStyle: { backgroundColor: '#0F1923' },
+      }}
+    >
       <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
     </Stack>
   );
