@@ -1,0 +1,53 @@
+// Mocks for native modules used across tests. Individual test files can
+// override these or supply richer fakes via jest.mock().
+
+jest.mock('expo-secure-store', () => {
+  const store = new Map();
+  return {
+    setItemAsync: jest.fn(async (k, v) => {
+      store.set(k, v);
+    }),
+    getItemAsync: jest.fn(async (k) => (store.has(k) ? store.get(k) : null)),
+    deleteItemAsync: jest.fn(async (k) => {
+      store.delete(k);
+    }),
+    __reset: () => store.clear(),
+  };
+});
+
+jest.mock('expo-sqlite', () => {
+  // Tests that need real SQL should override this mock with better-sqlite3
+  // (see __tests__/setup/sqliteFake.ts). Default is a thin call-recording
+  // mock so unit tests don't crash if they incidentally touch the DB.
+  const calls = [];
+  const fakeDb = {
+    execAsync: jest.fn(async (sql) => {
+      calls.push({ method: 'execAsync', sql });
+    }),
+    runAsync: jest.fn(async (...args) => {
+      calls.push({ method: 'runAsync', args });
+      return { changes: 1, lastInsertRowId: 1 };
+    }),
+    getAllAsync: jest.fn(async () => []),
+    getFirstAsync: jest.fn(async () => null),
+  };
+  return {
+    openDatabaseAsync: jest.fn(async () => fakeDb),
+    __fakeDb: fakeDb,
+    __calls: calls,
+    __reset: () => {
+      calls.length = 0;
+      fakeDb.execAsync.mockClear();
+      fakeDb.runAsync.mockClear();
+      fakeDb.getAllAsync.mockClear();
+      fakeDb.getFirstAsync.mockClear();
+    },
+  };
+});
+
+jest.mock('react-native-uuid', () => ({
+  __esModule: true,
+  default: {
+    v4: () => '00000000-0000-4000-8000-000000000000',
+  },
+}));

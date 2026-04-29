@@ -1,5 +1,37 @@
 import * as SQLite from 'expo-sqlite';
 
+/**
+ * Schema DDL — exported so the test suite can run it through better-sqlite3
+ * and assert column shape + CHECK constraint enforcement (TC-15).
+ */
+export const SCHEMA_SQL = `
+  CREATE TABLE IF NOT EXISTS accounts (
+    id                TEXT PRIMARY KEY,
+    name              TEXT NOT NULL,
+    type              TEXT NOT NULL
+                        CHECK(type IN ('bank','smart_wallet','physical_wallet','physical_savings','credit_card')),
+    currency          TEXT NOT NULL CHECK(currency IN ('EGP','USD')),
+    opening_balance   REAL NOT NULL DEFAULT 0,
+    current_balance   REAL NOT NULL DEFAULT 0,
+    color             TEXT,
+    credit_limit      REAL,
+    revolving_balance REAL,
+    minimum_payment   REAL,
+    statement_due_day INTEGER,
+    interest_tracking INTEGER NOT NULL DEFAULT 0,
+    apr               REAL,
+    is_archived       INTEGER NOT NULL DEFAULT 0,
+    sort_order        INTEGER NOT NULL DEFAULT 0,
+    created_at        TEXT NOT NULL,
+    updated_at        TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+`;
+
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
@@ -12,33 +44,7 @@ export async function getDb(): Promise<SQLite.SQLiteDatabase> {
 
 export async function initDatabase(): Promise<void> {
   const db = await getDb();
-  await db.execAsync(`
-    CREATE TABLE IF NOT EXISTS accounts (
-      id                TEXT PRIMARY KEY,
-      name              TEXT NOT NULL,
-      type              TEXT NOT NULL
-                          CHECK(type IN ('bank','smart_wallet','physical_wallet','physical_savings','credit_card')),
-      currency          TEXT NOT NULL CHECK(currency IN ('EGP','USD')),
-      opening_balance   REAL NOT NULL DEFAULT 0,
-      current_balance   REAL NOT NULL DEFAULT 0,
-      color             TEXT,
-      credit_limit      REAL,
-      revolving_balance REAL,
-      minimum_payment   REAL,
-      statement_due_day INTEGER,
-      interest_tracking INTEGER NOT NULL DEFAULT 0,
-      apr               REAL,
-      is_archived       INTEGER NOT NULL DEFAULT 0,
-      sort_order        INTEGER NOT NULL DEFAULT 0,
-      created_at        TEXT NOT NULL,
-      updated_at        TEXT NOT NULL
-    );
-
-    CREATE TABLE IF NOT EXISTS app_settings (
-      key   TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-  `);
+  await db.execAsync(SCHEMA_SQL);
 }
 
 async function verifySchema(): Promise<void> {

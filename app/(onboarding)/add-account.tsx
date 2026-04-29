@@ -25,9 +25,10 @@ import {
   TouchSize,
   Type,
 } from '@/constants/theme';
-import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
+import { type AccountType, useAccountStore } from '@/store/accountStore';
 import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
 import { backOrReplace } from '@/utils/onboardingNav';
+import { validateAccountForm, type FieldErrors } from '@/utils/validation';
 
 const hitSlop = {
   top: TouchSize.min / 4,
@@ -35,68 +36,6 @@ const hitSlop = {
   left: TouchSize.min / 4,
   right: TouchSize.min / 4,
 };
-
-type ValidationValues = {
-  name: string;
-  balance: string;
-  type: AccountType;
-  creditLimit: string;
-  interestTracking: boolean;
-  apr: string;
-};
-
-type FieldErrors = Partial<Record<'name' | 'balance' | 'creditLimit' | 'apr', string>>;
-
-function validateAccountForm(values: ValidationValues, existingAccounts: Account[]): FieldErrors {
-  const errors: FieldErrors = {};
-
-  // Name
-  const trimmedName = values.name.trim();
-  if (trimmedName === '') {
-    errors.name = Strings.errNameRequired;
-  } else if (values.name.length > 30) {
-    errors.name = Strings.errNameTooLong;
-  } else {
-    const lower = trimmedName.toLowerCase();
-    const dup = existingAccounts.some((a) => a.name.trim().toLowerCase() === lower);
-    if (dup) {
-      errors.name = Strings.errNameDuplicate;
-    }
-  }
-
-  // Balance
-  const balanceTrimmed = values.balance.trim();
-  if (balanceTrimmed === '') {
-    errors.balance = Strings.errBalanceInvalid;
-  } else {
-    const parsed = Number(balanceTrimmed);
-    if (!Number.isFinite(parsed) || parsed < 0) {
-      errors.balance = Strings.errBalanceInvalid;
-    }
-  }
-
-  // Credit limit (only credit_card)
-  if (values.type === 'credit_card') {
-    const limitTrimmed = values.creditLimit.trim();
-    if (limitTrimmed === '') {
-      errors.creditLimit = Strings.errCreditLimitRequired;
-    } else {
-      const parsed = Number(limitTrimmed);
-      if (!Number.isFinite(parsed) || parsed <= 0) {
-        errors.creditLimit = Strings.errCreditLimitRequired;
-      }
-    }
-
-    // APR (only when interest tracking is on)
-    if (values.interestTracking) {
-      if (values.apr.trim() === '') {
-        errors.apr = Strings.errAprRequired;
-      }
-    }
-  }
-
-  return errors;
-}
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
