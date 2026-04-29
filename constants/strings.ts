@@ -1,13 +1,17 @@
 export const Strings = {
   // O1 Welcome
-  o1Headline: 'Your money,\nyour rules.',
-  o1Subtext: 'Track every pound and dollar — no banks, no sync, just clarity.',
+  o1Headline: 'Your money.\nFinally clear.',
+  o1Subtext: 'Track everything. Plan with confidence.\nNo bank access needed.',
   o1Cta: 'Get Started',
+  o1SignIn: 'Already set up? Sign in',
 
   // O2 Currency
   o2Title: 'Base Currency',
-  o2Subtitle: 'Pick your main currency. You can still add accounts in any currency.',
+  o2Heading: 'Choose your currency',
+  o2Subtitle: 'Used for all net worth and budget calculations.',
   o2Cta: 'Continue',
+  o2NoteLabel: 'Note:',
+  o2NoteBody: ' This is your reporting currency. Individual accounts can still be in any currency.',
   currencyEGP: 'Egyptian Pound',
   currencyUSD: 'US Dollar',
   currencyEGPCode: 'EGP',
