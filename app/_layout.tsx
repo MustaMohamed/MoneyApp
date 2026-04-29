@@ -1,2 +1,5 @@
-// Placeholder — implemented on Day 4
-export {};
+import { View } from 'react-native';
+
+export default function Layout() {
+  return <View />;
+}

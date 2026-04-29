@@ -1,2 +1,5 @@
-// Placeholder — implemented Days 5–9
-export {};
+import { View } from 'react-native';
+
+export default function O3Security() {
+  return <View />;
+}

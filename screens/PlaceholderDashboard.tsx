@@ -1,2 +1,5 @@
-// Placeholder — implemented Day 9
-export {};
+import { View } from 'react-native';
+
+export default function PlaceholderDashboard() {
+  return <View />;
+}
