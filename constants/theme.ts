@@ -1,3 +1,14 @@
+import { ms, msFont } from '@/utils/responsive';
+
+/**
+ * Design tokens for the Cairo Nights system.
+ *
+ * Numeric values (Spacing, Radius, Type, Size) are scaled responsively
+ * from the iPhone 14 baseline (390pt). See utils/responsive.ts.
+ *
+ * See docs/design-system.md for the full reference + before/after table.
+ */
+
 export const Colors = {
   dark: {
     bg: '#0F1923',
@@ -6,6 +17,7 @@ export const Colors = {
     border: '#2A3A4F',
     text1: '#F0EBE3',
     text2: '#6B7F99',
+    text3: '#4A5568',
     gold: '#D4A44C',
     positive: '#4CAF82',
     negative: '#E05A42',
@@ -17,6 +29,7 @@ export const Colors = {
     border: '#E3DDD5',
     text1: '#1B2B4B',
     text2: '#8A8178',
+    text3: '#C4BDB7',
     gold: '#C9973A',
     positive: '#3D7A5F',
     negative: '#C0442A',
@@ -27,25 +40,79 @@ export const Colors = {
   },
 } as const;
 
-export const Spacing = {
-  xs: 8,
-  sm: 12,
-  md: 16,
-  lg: 24,
-} as const;
-
-export const Radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 28,
-} as const;
-
 export const FontFamily = {
-  sora: 'Sora',
+  soraRegular: 'Sora_400Regular',
+  soraSemi: 'Sora_600SemiBold',
   soraBold: 'Sora_700Bold',
-  inter: 'Inter',
+  soraExtra: 'Sora_800ExtraBold',
   interRegular: 'Inter_400Regular',
+  interMedium: 'Inter_500Medium',
+  interSemi: 'Inter_600SemiBold',
+} as const;
+
+/** Typography scale — font sizes only. Use FontFamily separately. */
+export const Type = {
+  micro: msFont(11),
+  caption: msFont(12),
+  body: msFont(14),
+  bodyStrong: msFont(15),
+  subhead: msFont(16),
+  title: msFont(18),
+  headline: msFont(22),
+  hero: msFont(28),
+} as const;
+
+/** Vertical / horizontal spacing scale. */
+export const Spacing = {
+  xxs: ms(4),
+  xs: ms(8),
+  sm: ms(12),
+  md: ms(16),
+  lg: ms(20),
+  xl: ms(24),
+  xxl: ms(32),
+} as const;
+
+/** Border radius scale. */
+export const Radius = {
+  sm: ms(8),
+  md: ms(12),
+  lg: ms(16),
+  xl: ms(28),
+  pill: ms(11),
+  cta: ms(13),
+} as const;
+
+/**
+ * Component-level sizes (heights, icon containers, dot diameters, etc.).
+ * Touch targets fall through to TouchSize so they don't shrink below
+ * platform-recommended minimums.
+ */
+export const Size = {
+  ctaHeight: ms(52),
+  headerHeight: ms(56),
+  backBtn: ms(40),
+  iconBack: ms(20),
+  iconSm: ms(18),
+  iconMd: ms(22),
+  iconLg: ms(26),
+  iconHero: ms(64),
+  typeIconBox: ms(36),
+  securityIconBox: ms(40),
+  flagBox: ms(36),
+  shieldBox: ms(48),
+  colorDot: ms(20),
+  progressDot: ms(4),
+  checkCircle: ms(20),
+  illustration: ms(120),
+} as const;
+
+/**
+ * Touch-target floor. Apple HIG recommends 44pt; Material 48dp. We pick
+ * 44 as the cross-platform floor and never scale it below that.
+ */
+export const TouchSize = {
+  min: 44,
 } as const;
 
 export const AccountColors = [

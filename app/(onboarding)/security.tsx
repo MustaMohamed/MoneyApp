@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
 import { type SecurityChoice, useOnboardingStore } from '@/store/onboardingStore';
 import { backOrReplace } from '@/utils/onboardingNav';
 
@@ -69,6 +70,13 @@ const PILLS: PillConfig[] = [
   },
 ];
 
+const hitSlop = {
+  top: TouchSize.min / 4,
+  bottom: TouchSize.min / 4,
+  left: TouchSize.min / 4,
+  right: TouchSize.min / 4,
+};
+
 export default function SecurityScreen() {
   const router = useRouter();
   const setStep = useOnboardingStore((s) => s.setStep);
@@ -90,8 +98,9 @@ export default function SecurityScreen() {
         <Pressable
           onPress={() => backOrReplace(router, '/(onboarding)/currency')}
           style={styles.back}
+          hitSlop={hitSlop}
         >
-          <MaterialCommunityIcons name="chevron-left" size={16} color="#6B7F99" />
+          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o3Title}</Text>
         <View style={styles.back} />
@@ -102,7 +111,7 @@ export default function SecurityScreen() {
       <View style={styles.content}>
         <View style={styles.headerCard}>
           <View style={styles.shieldWrap}>
-            <MaterialCommunityIcons name="shield-account" size={22} color="#C9973A" />
+            <MaterialCommunityIcons name="shield-account" size={Size.iconLg} color="#C9973A" />
           </View>
           <View style={styles.headerCardText}>
             <Text style={styles.headerCardTitle}>{Strings.o3HeaderTitle}</Text>
@@ -176,7 +185,7 @@ function SecurityPill({
     <Animated.View style={[styles.pill, pillAnim]}>
       <Pressable onPress={onSelect} style={styles.pillInner}>
         <Animated.View style={[styles.iconWrap, { backgroundColor: pill.iconBg }, iconAnim]}>
-          <MaterialCommunityIcons name={pill.icon} size={18} color={pill.iconColor} />
+          <MaterialCommunityIcons name={pill.icon} size={Size.iconMd} color={pill.iconColor} />
         </Animated.View>
         <View style={styles.pillText}>
           <Text style={[styles.pillLabel, { color: pill.labelColor }]}>{pill.label}</Text>
@@ -195,16 +204,16 @@ function SecurityPill({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0F1923' },
   header: {
-    height: 42,
+    height: Size.headerHeight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
   },
   back: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
+    width: Size.backBtn,
+    height: Size.backBtn,
+    borderRadius: Spacing.sm,
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
@@ -212,103 +221,103 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
-  content: { flex: 1, padding: 12 },
+  content: { flex: 1, padding: Spacing.sm },
   headerCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    marginBottom: 12,
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
   },
   shieldWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
+    width: Size.shieldBox,
+    height: Size.shieldBox,
+    borderRadius: Spacing.sm,
     backgroundColor: 'rgba(201,151,58,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(201,151,58,0.20)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCardText: { flex: 1, gap: 2 },
+  headerCardText: { flex: 1, gap: Spacing.xxs },
   headerCardTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
   headerCardSub: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
   },
   pill: {
-    borderRadius: 10,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
-    marginBottom: 8,
+    marginBottom: Spacing.xs,
   },
   pillInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 10,
-    borderRadius: 10,
+    gap: Spacing.sm,
+    padding: Spacing.sm,
+    borderRadius: Radius.md,
   },
   iconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 9,
+    width: Size.securityIconBox,
+    height: Size.securityIconBox,
+    borderRadius: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillText: { flex: 1, gap: 2 },
+  pillText: { flex: 1, gap: Spacing.xxs },
   pillLabel: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
   },
   pillSub: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 8,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.caption,
   },
   badge: {
     backgroundColor: 'rgba(201,151,58,0.12)',
     borderWidth: 1,
     borderColor: 'rgba(201,151,58,0.30)',
-    borderRadius: 5,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
+    borderRadius: Radius.sm / 2,
+    paddingVertical: Spacing.xxs,
+    paddingHorizontal: Spacing.xs,
   },
   badgeText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 8,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.micro,
     color: '#D4A44C',
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   ctaPressDisabled: {
     opacity: 0.5,
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
 });

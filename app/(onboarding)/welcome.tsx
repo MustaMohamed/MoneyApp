@@ -7,11 +7,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GeoIllustration } from '@/components/GeoIllustration';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useFirstMountEntering } from '@/utils/useFirstMountEntering';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const setStep = useOnboardingStore((s) => s.setStep);
+  const playEntering = useFirstMountEntering('welcome');
 
   const onGetStarted = async () => {
     await setStep('O2');
@@ -23,17 +26,23 @@ export default function WelcomeScreen() {
       <ProgressDots totalSteps={6} currentStep={1} />
 
       <View style={styles.body}>
-        <Animated.View entering={FadeInDown.duration(600)}>
+        <Animated.View entering={playEntering ? FadeInDown.duration(600) : undefined}>
           <GeoIllustration />
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.headlineWrap}>
+        <Animated.View
+          entering={playEntering ? FadeInUp.delay(400).duration(500) : undefined}
+          style={styles.headlineWrap}
+        >
           <Text style={styles.headline}>{Strings.o1Headline}</Text>
           <Text style={styles.subtext}>{Strings.o1Subtext}</Text>
         </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(600).duration(400)} style={styles.ctaBar}>
+      <Animated.View
+        entering={playEntering ? FadeInUp.delay(600).duration(400) : undefined}
+        style={styles.ctaBar}
+      >
         <Pressable onPress={onGetStarted} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
@@ -56,52 +65,52 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 18,
-    gap: 18,
+    paddingHorizontal: Spacing.lg,
+    gap: Spacing.lg,
   },
-  headlineWrap: { alignItems: 'center', gap: 8 },
+  headlineWrap: { alignItems: 'center', gap: Spacing.xs },
   headline: {
-    fontFamily: 'Sora_800ExtraBold',
-    fontSize: 18,
-    lineHeight: 22,
+    fontFamily: FontFamily.soraExtra,
+    fontSize: Type.hero,
+    lineHeight: Math.round(Type.hero * 1.2),
     color: '#F0EBE3',
     textAlign: 'center',
   },
   subtext: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
     textAlign: 'center',
-    lineHeight: 14,
+    lineHeight: Math.round(Type.body * 1.4),
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
   signIn: {
-    marginTop: 7,
+    marginTop: Spacing.xs,
     textAlign: 'center',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 10,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.caption,
     color: '#4A5568',
   },
 });

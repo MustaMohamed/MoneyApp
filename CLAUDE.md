@@ -290,18 +290,28 @@ midnightBlue: #1B2B4B   (Primary CTA text color)
 - **Sora** — all numbers, headings, CTAs, account names, balances
 - **Inter** — all body copy, labels, descriptions, secondary text
 
-### Spacing scale: 8 · 12 · 16 · 24
-### Border radius: sm=8 · md=12 · lg=16 · xl=28
+### Spacing scale: `Spacing.xxs/xs/sm/md/lg/xl/xxl` = 4 · 8 · 12 · 16 · 20 · 24 · 32
+### Border radius: `Radius.sm/md/lg/xl/pill/cta` = 8 · 12 · 16 · 28 · 11 · 13
 
 ### CTA Button Pattern (all screens)
-- Height: 40px
-- Border radius: 13px
-- Font: Sora 700
-- Font size: 12px
-- Background: #C9973A (light) / linear-gradient(135deg, #C9973A, #D4A44C) (dark)
-- Text color: #fff (light) / #1B2B4B (dark)
+- Height: 52 (`Size.ctaHeight`) — was 40 in early specs; bumped for mobile readability
+- Border radius: 13 (`Radius.cta`)
+- Font: Sora 700 (`FontFamily.soraBold`)
+- Font size: 15 (`Type.bodyStrong`)
+- Background: `#C9973A` (light) / linear-gradient(135deg, `#C9973A`, `#D4A44C`) (dark)
+- Text color: `#fff` (light) / `#1B2B4B` (dark)
 - Fixed to bottom with `padding: 8px 12px 14px`
 - Border top: `1px solid #1A2535` (dark) / `1px solid #E3DDD5` (light)
+
+> **Sizing & responsiveness.** All numeric values above (and across the
+> rest of this spec) are now sourced from `constants/theme.ts` and
+> scaled responsively by `ms()` / `msFont()` in `utils/responsive.ts`.
+> The original Figma values were calibrated at a small mockup width and
+> rendered as compact on real devices; the bumped values target
+> mobile-conventional sizes (Apple HIG, Material 3) while preserving
+> visual hierarchy. See [`docs/design-system.md`](docs/design-system.md)
+> for the full token reference, before/after table, and conventions for
+> adding screens. **Don't hardcode numbers — import tokens.**
 
 ---
 

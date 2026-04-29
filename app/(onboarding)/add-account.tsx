@@ -16,10 +16,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
-import { AccountColors } from '@/constants/theme';
+import {
+  AccountColors,
+  FontFamily,
+  Radius,
+  Size,
+  Spacing,
+  TouchSize,
+  Type,
+} from '@/constants/theme';
 import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
 import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
 import { backOrReplace } from '@/utils/onboardingNav';
+
+const hitSlop = {
+  top: TouchSize.min / 4,
+  bottom: TouchSize.min / 4,
+  left: TouchSize.min / 4,
+  right: TouchSize.min / 4,
+};
 
 type ValidationValues = {
   name: string;
@@ -196,8 +211,9 @@ export default function AddAccountScreen() {
         <Pressable
           onPress={() => backOrReplace(router, '/(onboarding)/security')}
           style={styles.back}
+          hitSlop={hitSlop}
         >
-          <MaterialCommunityIcons name="chevron-left" size={16} color="#6B7F99" />
+          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o4Title}</Text>
         <View style={styles.back} />
@@ -500,7 +516,7 @@ function TypePill({
         onPress={handlePress}
         style={[styles.typePill, isSelected ? styles.pillActive : styles.pillInactive]}
       >
-        <MaterialCommunityIcons name={option.icon} size={16} color={iconColor} />
+        <MaterialCommunityIcons name={option.icon} size={Size.iconSm} color={iconColor} />
         <Text style={[styles.typePillText, { color: iconColor }]}>{option.label}</Text>
       </Pressable>
     </Animated.View>
@@ -510,16 +526,16 @@ function TypePill({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0F1923' },
   header: {
-    height: 42,
+    height: Size.headerHeight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
   },
   back: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
+    width: Size.backBtn,
+    height: Size.backBtn,
+    borderRadius: Spacing.sm,
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
@@ -527,28 +543,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 12, paddingBottom: 16 },
+  scrollContent: { paddingHorizontal: Spacing.sm, paddingBottom: Spacing.md },
   sectionLabel: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 8,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.micro,
     color: '#C9973A',
     letterSpacing: 1,
-    paddingTop: 6,
-    paddingBottom: 7,
+    paddingTop: Spacing.xs,
+    paddingBottom: Spacing.xs,
     paddingHorizontal: 0,
   },
   typeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: Spacing.xs,
   },
   typePillWrap: {
-    borderRadius: 9,
+    borderRadius: Radius.md,
   },
   typePillHalf: {
     width: '48.5%',
@@ -559,10 +575,10 @@ const styles = StyleSheet.create({
   typePill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 7,
-    paddingHorizontal: 8,
-    borderRadius: 9,
+    gap: Spacing.xs,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
   },
   pillActive: {
@@ -574,52 +590,52 @@ const styles = StyleSheet.create({
     backgroundColor: '#1A2535',
   },
   typePillText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.body,
   },
   fieldGroup: {
-    paddingTop: 4,
+    paddingTop: Spacing.xxs,
   },
   input: {
-    fontFamily: 'Sora_600SemiBold',
-    fontSize: 11,
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
     color: '#F0EBE3',
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
-    borderRadius: 9,
-    paddingVertical: 7,
-    paddingHorizontal: 9,
+    borderRadius: Radius.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
   },
   currencyRow: {
     flexDirection: 'row',
-    gap: 6,
+    gap: Spacing.xs,
   },
   currencyPill: {
     flex: 1,
-    paddingVertical: 7,
-    paddingHorizontal: 8,
-    borderRadius: 9,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   currencyText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 10,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.body,
   },
   colorRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 5,
+    gap: Spacing.xs,
   },
   colorDotWrap: {
-    padding: 3,
+    padding: Spacing.xxs,
   },
   colorDot: {
-    width: 13,
-    height: 13,
-    borderRadius: 6.5,
+    width: Size.colorDot,
+    height: Size.colorDot,
+    borderRadius: Size.colorDot / 2,
   },
   colorDotSelected: {
     borderWidth: 2,
@@ -627,62 +643,62 @@ const styles = StyleSheet.create({
     transform: [{ scale: 1.1 }],
   },
   ccBlock: {
-    paddingTop: 2,
+    paddingTop: Spacing.xxs,
   },
   interestRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 10,
+    paddingTop: Spacing.sm,
   },
   interestLabel: {
-    fontFamily: 'Inter_600SemiBold',
-    fontSize: 10,
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.body,
     color: '#F0EBE3',
   },
   togglePill: {
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 9,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    borderRadius: Radius.md,
     borderWidth: 1.5,
-    minWidth: 48,
+    minWidth: Size.backBtn + Spacing.xs,
     alignItems: 'center',
   },
   toggleText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 9,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.caption,
     letterSpacing: 0.5,
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   ctaPressDisabled: {
     opacity: 0.5,
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
   errorText: {
     color: '#E05A42',
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
-    marginTop: 3,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.caption,
+    marginTop: Spacing.xxs,
   },
 });

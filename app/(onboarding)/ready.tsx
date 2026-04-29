@@ -6,8 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useAccountStore } from '@/store/accountStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useFirstMountEntering } from '@/utils/useFirstMountEntering';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
@@ -16,6 +18,7 @@ export default function ReadyScreen() {
   const securityChoice = useOnboardingStore((s) => s.securityChoice);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
+  const playEntering = useFirstMountEntering('ready');
 
   const total = accounts.reduce((sum, a) => sum + a.opening_balance, 0);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -48,17 +51,23 @@ export default function ReadyScreen() {
 
       <View style={styles.body}>
         <Animated.View
-          entering={ZoomIn.springify().damping(10).stiffness(100)}
+          entering={playEntering ? ZoomIn.springify().damping(10).stiffness(100) : undefined}
           style={styles.checkWrap}
         >
-          <MaterialCommunityIcons name="check-circle" size={54} color="#4CAF82" />
+          <MaterialCommunityIcons name="check-circle" size={Size.iconHero} color="#4CAF82" />
         </Animated.View>
 
-        <Animated.Text entering={FadeInUp.delay(200).duration(400)} style={styles.headline}>
+        <Animated.Text
+          entering={playEntering ? FadeInUp.delay(200).duration(400) : undefined}
+          style={styles.headline}
+        >
           {Strings.o6Title}
         </Animated.Text>
 
-        <Animated.Text entering={FadeInUp.delay(300).duration(350)} style={styles.subtitle}>
+        <Animated.Text
+          entering={playEntering ? FadeInUp.delay(300).duration(350) : undefined}
+          style={styles.subtitle}
+        >
           {Strings.o6Subtitle}
         </Animated.Text>
 
@@ -66,7 +75,7 @@ export default function ReadyScreen() {
           {rows.map((row, index) => (
             <Animated.View
               key={row.label}
-              entering={FadeInUp.delay(400 + index * 80).duration(300)}
+              entering={playEntering ? FadeInUp.delay(400 + index * 80).duration(300) : undefined}
               style={[styles.summaryRow, index === rows.length - 1 ? styles.summaryRowLast : null]}
             >
               <Text style={styles.summaryLabel}>{row.label}</Text>
@@ -78,7 +87,10 @@ export default function ReadyScreen() {
         </View>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(700).duration(400)} style={styles.ctaBar}>
+      <Animated.View
+        entering={playEntering ? FadeInUp.delay(700).duration(400) : undefined}
+        style={styles.ctaBar}
+      >
         <Pressable onPress={handleComplete} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
@@ -100,39 +112,40 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
   },
   checkWrap: {
-    marginBottom: 14,
+    marginBottom: Spacing.md,
   },
   headline: {
-    fontFamily: 'Sora_800ExtraBold',
-    fontSize: 17,
+    fontFamily: FontFamily.soraExtra,
+    fontSize: Type.headline,
     color: '#F0EBE3',
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: Spacing.xxs,
   },
   subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: Spacing.md,
+    lineHeight: Math.round(Type.body * 1.4),
   },
   summary: {
     width: '100%',
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
-    borderRadius: 11,
-    paddingVertical: 9,
-    paddingHorizontal: 10,
+    borderRadius: Radius.md,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
   },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 3.5,
+    paddingVertical: Spacing.xs,
     borderBottomWidth: 1,
     borderBottomColor: '#243044',
   },
@@ -140,35 +153,35 @@ const styles = StyleSheet.create({
     borderBottomWidth: 0,
   },
   summaryLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
   },
   summaryValue: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 9,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
 });

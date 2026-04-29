@@ -9,6 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { Size, Spacing } from '@/constants/theme';
+
 type Props = { totalSteps: number; currentStep: number };
 
 export function ProgressDots({ totalSteps, currentStep }: Props) {
@@ -44,15 +46,15 @@ function Dot({ isActive }: { isActive: boolean }) {
 
 const styles = StyleSheet.create({
   row: {
-    height: 20,
-    paddingHorizontal: 12,
+    height: Size.progressDot * 5,
+    paddingHorizontal: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: Spacing.xxs,
   },
   dot: {
     flex: 1,
-    height: 3,
-    borderRadius: 2,
+    height: Size.progressDot,
+    borderRadius: Size.progressDot / 2,
   },
 });

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
 import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
 import { backOrReplace } from '@/utils/onboardingNav';
 
@@ -59,8 +60,9 @@ export default function CurrencyScreen() {
         <Pressable
           onPress={() => backOrReplace(router, '/(onboarding)/welcome')}
           style={styles.back}
+          hitSlop={hitSlop}
         >
-          <MaterialCommunityIcons name="chevron-left" size={16} color="#6B7F99" />
+          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o2Title}</Text>
         <View style={styles.back} />
@@ -106,6 +108,13 @@ export default function CurrencyScreen() {
     </SafeAreaView>
   );
 }
+
+const hitSlop = {
+  top: TouchSize.min / 4,
+  bottom: TouchSize.min / 4,
+  left: TouchSize.min / 4,
+  right: TouchSize.min / 4,
+};
 
 function CurrencyRow({
   row,
@@ -160,7 +169,7 @@ function CurrencyRow({
         <View style={styles.checkWrap}>
           <View style={styles.checkOutline} />
           <Animated.View style={[styles.checkFill, checkAnim]}>
-            <MaterialCommunityIcons name="check" size={10} color="#1B2B4B" />
+            <MaterialCommunityIcons name="check" size={Size.iconSm * 0.6} color="#1B2B4B" />
           </Animated.View>
         </View>
       </Pressable>
@@ -171,16 +180,16 @@ function CurrencyRow({
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0F1923' },
   header: {
-    height: 42,
+    height: Size.headerHeight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
+    paddingHorizontal: Spacing.sm,
   },
   back: {
-    width: 26,
-    height: 26,
-    borderRadius: 7,
+    width: Size.backBtn,
+    height: Size.backBtn,
+    borderRadius: Spacing.sm,
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
@@ -188,121 +197,122 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
   content: { flex: 1 },
   heading: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 13,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.headline,
     color: '#F0EBE3',
-    paddingTop: 6,
-    paddingHorizontal: 12,
-    paddingBottom: 4,
+    paddingTop: Spacing.sm,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.xxs,
   },
   subtitle: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 9,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
     color: '#6B7F99',
-    paddingHorizontal: 12,
-    paddingBottom: 12,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.sm,
+    lineHeight: Math.round(Type.body * 1.4),
   },
-  rows: { paddingHorizontal: 12, gap: 8 },
+  rows: { paddingHorizontal: Spacing.sm, gap: Spacing.xs },
   rowAnimated: {
-    borderRadius: 11,
+    borderRadius: Radius.pill,
     borderWidth: 1.5,
   },
   row: {
-    padding: 10,
+    padding: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#1A2535',
-    borderRadius: 11,
-    gap: 10,
+    borderRadius: Radius.pill,
+    gap: Spacing.sm,
   },
   flagWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: Size.flagBox,
+    height: Size.flagBox,
+    borderRadius: Spacing.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  flag: { fontSize: 15 },
-  rowText: { flex: 1, gap: 2 },
+  flag: { fontSize: Type.subhead },
+  rowText: { flex: 1, gap: Spacing.xxs },
   rowCode: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 11,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
     color: '#F0EBE3',
   },
   rowLabel: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 8,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.caption,
     color: '#6B7F99',
   },
   checkWrap: {
-    width: 16,
-    height: 16,
+    width: Size.checkCircle,
+    height: Size.checkCircle,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkOutline: {
     position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: Size.checkCircle,
+    height: Size.checkCircle,
+    borderRadius: Size.checkCircle / 2,
     borderWidth: 1.2,
     borderColor: '#2A3A4F',
   },
   checkFill: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: Size.checkCircle,
+    height: Size.checkCircle,
+    borderRadius: Size.checkCircle / 2,
     backgroundColor: '#C9973A',
     alignItems: 'center',
     justifyContent: 'center',
   },
   note: {
-    marginHorizontal: 12,
-    marginTop: 12,
+    marginHorizontal: Spacing.sm,
+    marginTop: Spacing.sm,
     backgroundColor: '#1A2535',
     borderWidth: 1,
     borderColor: '#2A3A4F',
-    borderRadius: 8,
-    paddingVertical: 7,
-    paddingHorizontal: 9,
+    borderRadius: Radius.sm,
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
   },
   noteText: {
-    fontFamily: 'Inter_400Regular',
-    fontSize: 8.5,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.caption,
     color: '#6B7F99',
-    lineHeight: 13,
+    lineHeight: Math.round(Type.caption * 1.45),
   },
   noteLabel: {
     color: '#D4A44C',
-    fontFamily: 'Inter_600SemiBold',
+    fontFamily: FontFamily.interSemi,
   },
   ctaBar: {
     borderTopWidth: 1,
     borderTopColor: '#1A2535',
-    paddingTop: 8,
-    paddingHorizontal: 12,
-    paddingBottom: 14,
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
   },
   ctaPress: {
     width: '100%',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
     overflow: 'hidden',
   },
   cta: {
-    height: 40,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 13,
+    borderRadius: Radius.cta,
   },
   ctaText: {
-    fontFamily: 'Sora_700Bold',
-    fontSize: 12,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
 });
