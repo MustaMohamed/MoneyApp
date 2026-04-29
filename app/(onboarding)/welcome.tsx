@@ -19,7 +19,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ProgressDots totalSteps={6} currentStep={1} />
 
       <View style={styles.body}>

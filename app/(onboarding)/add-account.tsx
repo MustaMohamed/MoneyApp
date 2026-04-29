@@ -191,7 +191,7 @@ export default function AddAccountScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable
           onPress={() => backOrReplace(router, '/(onboarding)/security')}

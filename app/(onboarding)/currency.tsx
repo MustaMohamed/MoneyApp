@@ -54,7 +54,7 @@ export default function CurrencyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable
           onPress={() => backOrReplace(router, '/(onboarding)/welcome')}

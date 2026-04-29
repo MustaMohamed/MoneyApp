@@ -43,7 +43,7 @@ export default function ReadyScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['bottom']}>
+    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ProgressDots totalSteps={6} currentStep={6} />
 
       <View style={styles.body}>
