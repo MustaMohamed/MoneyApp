@@ -20,6 +20,7 @@ import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
 import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
 import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
+import { backOrReplace } from '@/utils/onboardingNav';
 
 type ValidationValues = {
   name: string;
@@ -183,7 +184,7 @@ export default function AddAccountScreen() {
     await addAccount(accountData);
 
     if (isAddingMore) {
-      router.back();
+      backOrReplace(router, '/(onboarding)/more-accounts');
     } else {
       await setStep('O5');
       router.push('/(onboarding)/more-accounts');
@@ -195,7 +196,10 @@ export default function AddAccountScreen() {
       <MockStatusBar />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back}>
+        <Pressable
+          onPress={() => backOrReplace(router, '/(onboarding)/security')}
+          style={styles.back}
+        >
           <MaterialCommunityIcons name="chevron-left" size={16} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o4Title}</Text>
