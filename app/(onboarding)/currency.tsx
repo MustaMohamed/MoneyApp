@@ -65,7 +65,7 @@ export default function CurrencyScreen() {
         <View style={styles.back} />
       </View>
 
-      <ProgressDots activeIndex={1} />
+      <ProgressDots totalSteps={6} currentStep={2} />
 
       <View style={styles.content}>
         <Text style={styles.heading}>{Strings.o2Heading}</Text>

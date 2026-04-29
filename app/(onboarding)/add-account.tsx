@@ -202,7 +202,7 @@ export default function AddAccountScreen() {
         <View style={styles.back} />
       </View>
 
-      <ProgressDots activeIndex={3} />
+      <ProgressDots totalSteps={6} currentStep={4} />
 
       <ScrollView
         style={styles.scroll}
