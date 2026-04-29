@@ -21,6 +21,11 @@ export default function OnboardingLayout() {
         headerShown: false,
         animation: 'slide_from_right',
         animationTypeForReplace: 'pop',
+        // Keep blurred screens alive during the transition. Mitigates the
+        // Fabric flicker on Android with the new architecture (RN screens
+        // tracked under software-mansion/react-native-screens#2605, #3483
+        // and expo/expo#33647).
+        freezeOnBlur: true,
         contentStyle: { backgroundColor: '#0F1923' },
       }}
     >
