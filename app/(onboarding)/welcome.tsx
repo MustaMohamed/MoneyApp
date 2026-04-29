@@ -9,10 +9,12 @@ import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useFirstMountEntering } from '@/utils/useFirstMountEntering';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const setStep = useOnboardingStore((s) => s.setStep);
+  const playEntering = useFirstMountEntering('welcome');
 
   const onGetStarted = async () => {
     await setStep('O2');
@@ -24,17 +26,23 @@ export default function WelcomeScreen() {
       <ProgressDots totalSteps={6} currentStep={1} />
 
       <View style={styles.body}>
-        <Animated.View entering={FadeInDown.duration(600)}>
+        <Animated.View entering={playEntering ? FadeInDown.duration(600) : undefined}>
           <GeoIllustration />
         </Animated.View>
 
-        <Animated.View entering={FadeInUp.delay(400).duration(500)} style={styles.headlineWrap}>
+        <Animated.View
+          entering={playEntering ? FadeInUp.delay(400).duration(500) : undefined}
+          style={styles.headlineWrap}
+        >
           <Text style={styles.headline}>{Strings.o1Headline}</Text>
           <Text style={styles.subtext}>{Strings.o1Subtext}</Text>
         </Animated.View>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(600).duration(400)} style={styles.ctaBar}>
+      <Animated.View
+        entering={playEntering ? FadeInUp.delay(600).duration(400) : undefined}
+        style={styles.ctaBar}
+      >
         <Pressable onPress={onGetStarted} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}

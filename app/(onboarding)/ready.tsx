@@ -9,6 +9,7 @@ import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useAccountStore } from '@/store/accountStore';
 import { useOnboardingStore } from '@/store/onboardingStore';
+import { useFirstMountEntering } from '@/utils/useFirstMountEntering';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
@@ -17,6 +18,7 @@ export default function ReadyScreen() {
   const securityChoice = useOnboardingStore((s) => s.securityChoice);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
+  const playEntering = useFirstMountEntering('ready');
 
   const total = accounts.reduce((sum, a) => sum + a.opening_balance, 0);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -49,17 +51,23 @@ export default function ReadyScreen() {
 
       <View style={styles.body}>
         <Animated.View
-          entering={ZoomIn.springify().damping(10).stiffness(100)}
+          entering={playEntering ? ZoomIn.springify().damping(10).stiffness(100) : undefined}
           style={styles.checkWrap}
         >
           <MaterialCommunityIcons name="check-circle" size={Size.iconHero} color="#4CAF82" />
         </Animated.View>
 
-        <Animated.Text entering={FadeInUp.delay(200).duration(400)} style={styles.headline}>
+        <Animated.Text
+          entering={playEntering ? FadeInUp.delay(200).duration(400) : undefined}
+          style={styles.headline}
+        >
           {Strings.o6Title}
         </Animated.Text>
 
-        <Animated.Text entering={FadeInUp.delay(300).duration(350)} style={styles.subtitle}>
+        <Animated.Text
+          entering={playEntering ? FadeInUp.delay(300).duration(350) : undefined}
+          style={styles.subtitle}
+        >
           {Strings.o6Subtitle}
         </Animated.Text>
 
@@ -67,7 +75,7 @@ export default function ReadyScreen() {
           {rows.map((row, index) => (
             <Animated.View
               key={row.label}
-              entering={FadeInUp.delay(400 + index * 80).duration(300)}
+              entering={playEntering ? FadeInUp.delay(400 + index * 80).duration(300) : undefined}
               style={[styles.summaryRow, index === rows.length - 1 ? styles.summaryRowLast : null]}
             >
               <Text style={styles.summaryLabel}>{row.label}</Text>
@@ -79,7 +87,10 @@ export default function ReadyScreen() {
         </View>
       </View>
 
-      <Animated.View entering={FadeInUp.delay(700).duration(400)} style={styles.ctaBar}>
+      <Animated.View
+        entering={playEntering ? FadeInUp.delay(700).duration(400) : undefined}
+        style={styles.ctaBar}
+      >
         <Pressable onPress={handleComplete} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
