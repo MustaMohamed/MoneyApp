@@ -18,14 +18,15 @@ export const Strings = {
   currencyUSDCode: 'USD',
 
   // O3 Security
-  o3Title: 'Secure Your App',
-  o3Subtitle: 'Choose how you want to protect MoneyApp.',
-  o3PinLabel: 'PIN Code',
-  o3PinSub: 'Set a 4-digit PIN on next launch',
-  o3BiometricLabel: 'Face ID / Fingerprint',
-  o3BiometricSub: 'Use biometrics to unlock',
+  o3Title: 'Security',
+  o3HeaderTitle: 'Protect your data',
+  o3HeaderSub: 'Stays on your device only.',
+  o3PinLabel: 'Set PIN',
+  o3PinSub: '4 or 6 digit code',
+  o3BiometricLabel: 'Biometric',
+  o3BiometricSub: 'Face ID or fingerprint',
   o3SkipLabel: 'Skip for now',
-  o3SkipSub: 'You can set this up later in Settings',
+  o3SkipSub: 'Enable later in Settings',
   o3BestBadge: 'Best',
   o3Cta: 'Continue',
 
