@@ -31,8 +31,18 @@ export const Strings = {
   o3Cta: 'Continue',
 
   // O4 Add Account
-  o4Title: 'Add Your First Account',
+  o4Title: 'Add Account',
   o4Subtitle: 'Start by adding one account — you can add more next.',
+  o4SectionType: 'ACCOUNT TYPE',
+  o4SectionName: 'ACCOUNT NAME',
+  o4SectionCurrency: 'CURRENCY',
+  o4SectionBalance: 'BALANCE',
+  o4SectionColor: 'COLOR — 12 PRESETS',
+  o4SectionRevolving: 'REVOLVING BALANCE',
+  o4SectionLimit: 'CREDIT LIMIT',
+  o4SectionMinPayment: 'MIN. PAYMENT',
+  o4SectionDueDay: 'DUE DAY',
+  o4SectionApr: 'APR (%)',
   o4NameLabel: 'Account Name',
   o4NamePlaceholder: 'e.g. CIB Savings',
   o4BalanceLabel: 'Opening Balance',
@@ -47,9 +57,11 @@ export const Strings = {
   o4DueDayLabel: 'Statement Due Day',
   o4DueDayPlaceholder: 'e.g. 15',
   o4InterestLabel: 'Track Interest',
+  o4InterestOn: 'ON',
+  o4InterestOff: 'OFF',
   o4AprLabel: 'Annual Percentage Rate (APR %)',
   o4AprPlaceholder: 'e.g. 2.99',
-  o4Cta: 'Save & Continue',
+  o4Cta: 'Save Account',
 
   // O4 validation errors
   errNameRequired: 'Account name is required',
@@ -60,10 +72,10 @@ export const Strings = {
   errAprRequired: "Please enter your card's APR",
 
   // Account types
-  typeBank: 'Bank Account',
+  typeBank: 'Bank',
   typeSmartWallet: 'Smart Wallet',
-  typePhysicalWallet: 'Cash Wallet',
-  typePhysicalSavings: 'Savings Jar',
+  typePhysicalWallet: 'Phys. Wallet',
+  typePhysicalSavings: 'Savings',
   typeCreditCard: 'Credit Card',
 
   // O5 More Accounts
