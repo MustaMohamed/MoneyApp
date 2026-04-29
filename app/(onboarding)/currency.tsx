@@ -17,6 +17,7 @@ import { MockStatusBar } from '@/components/MockStatusBar';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
+import { backOrReplace } from '@/utils/onboardingNav';
 
 type RowConfig = {
   code: Currency;
@@ -58,7 +59,10 @@ export default function CurrencyScreen() {
       <MockStatusBar />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back}>
+        <Pressable
+          onPress={() => backOrReplace(router, '/(onboarding)/welcome')}
+          style={styles.back}
+        >
           <MaterialCommunityIcons name="chevron-left" size={16} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o2Title}</Text>

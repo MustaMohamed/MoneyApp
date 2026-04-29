@@ -18,6 +18,7 @@ import { MockStatusBar } from '@/components/MockStatusBar';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { type SecurityChoice, useOnboardingStore } from '@/store/onboardingStore';
+import { backOrReplace } from '@/utils/onboardingNav';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -89,7 +90,10 @@ export default function SecurityScreen() {
       <MockStatusBar />
 
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.back}>
+        <Pressable
+          onPress={() => backOrReplace(router, '/(onboarding)/currency')}
+          style={styles.back}
+        >
           <MaterialCommunityIcons name="chevron-left" size={16} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o3Title}</Text>
