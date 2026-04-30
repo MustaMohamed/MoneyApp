@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 import { LinearGradient } from 'expo-linear-gradient'
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
-import Animated from 'react-native-reanimated'
+import Animated, { type EntryOrExitLayoutType } from 'react-native-reanimated'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { ProgressDots } from '@/components/progress_dots'
@@ -94,7 +94,7 @@ function AccountRow({
 }: {
   account: Account
   index: number
-  entering: object | undefined
+  entering: EntryOrExitLayoutType | undefined
 }) {
   const isFirst = index === 0
   const icon = TYPE_ICONS[account.type]
