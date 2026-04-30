@@ -13,7 +13,7 @@ import type { Currency } from '@/store/onboarding_store'
 export function createAddAccountSchema(accounts: Account[]) {
   return z
     .object({
-      name: z.string().min(1).max(30),
+      name: z.string().min(1, Strings.errNameRequired).max(30, Strings.errNameTooLong),
       balance: z.string().refine(
         (v) => { const n = parseFloat(v); return Number.isFinite(n) && n >= 0 },
         { message: Strings.errBalanceInvalid },

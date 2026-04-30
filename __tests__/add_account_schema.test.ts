@@ -41,12 +41,12 @@ function fieldErrors(
 
 describe('createAddAccountSchema — add_account Zod schema', () => {
   describe('name', () => {
-    it('empty name → errRequired', () => {
-      expect(fieldErrors(baseData({ name: '' })).name).toBe(Strings.errRequired)
+    it('empty name → errNameRequired', () => {
+      expect(fieldErrors(baseData({ name: '' })).name).toBe(Strings.errNameRequired)
     })
 
-    it('name > 30 chars → errTooLong', () => {
-      expect(fieldErrors(baseData({ name: 'a'.repeat(31) })).name).toBe(Strings.errTooLong)
+    it('name > 30 chars → errNameTooLong', () => {
+      expect(fieldErrors(baseData({ name: 'a'.repeat(31) })).name).toBe(Strings.errNameTooLong)
     })
 
     it('name exactly 30 chars → valid', () => {

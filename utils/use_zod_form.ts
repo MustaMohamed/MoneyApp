@@ -20,7 +20,7 @@ export function useZodForm<T extends FieldValues>(
     // Cast: schema produces T at runtime; the Input=unknown default is a Zod v4
     // quirk that confuses @hookform/resolvers. We assert Input=T to satisfy the
     // overload while leaving runtime behaviour unchanged.
-    resolver: zodResolver(schemaRef.current as unknown as $ZodType<T, T>) as Resolver<T>,
+    resolver: ((values, ctx, opts) => zodResolver(schemaRef.current as unknown as $ZodType<T, T>)(values, ctx, opts)) as Resolver<T>,
     ...options,
   })
 }
