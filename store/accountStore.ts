@@ -40,56 +40,66 @@ export const useAccountStore = create<AccountState>((set, get) => ({
   accounts: [],
 
   loadAccounts: async () => {
-    const db = await getDb();
-    const rows = await db.getAllAsync<Account>(
-      'SELECT * FROM accounts WHERE is_archived = 0 ORDER BY sort_order ASC, created_at ASC',
-    );
-    set({ accounts: rows });
+    try {
+      const db = await getDb();
+      const rows = await db.getAllAsync<Account>(
+        'SELECT * FROM accounts WHERE is_archived = 0 ORDER BY sort_order ASC, created_at ASC',
+      );
+      set({ accounts: rows });
+    } catch (err) {
+      console.error('[accountStore] loadAccounts failed:', err);
+      throw err;
+    }
   },
 
   addAccount: async (data) => {
-    const db = await getDb();
-    const id = uuid.v4() as string;
-    const now = new Date().toISOString();
+    try {
+      const db = await getDb();
+      const id = uuid.v4() as string;
+      const now = new Date().toISOString();
 
-    await db.runAsync(
-      `INSERT INTO accounts (
-        id, name, type, currency,
-        opening_balance, current_balance,
-        color, credit_limit, revolving_balance, minimum_payment,
-        statement_due_day, interest_tracking, apr,
-        is_archived, sort_order, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+      await db.runAsync(
+        `INSERT INTO accounts (
+          id, name, type, currency,
+          opening_balance, current_balance,
+          color, credit_limit, revolving_balance, minimum_payment,
+          statement_due_day, interest_tracking, apr,
+          is_archived, sort_order, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          data.name,
+          data.type,
+          data.currency,
+          data.opening_balance,
+          data.opening_balance,
+          data.color,
+          data.credit_limit,
+          data.revolving_balance,
+          data.minimum_payment,
+          data.statement_due_day,
+          data.interest_tracking,
+          data.apr,
+          0,
+          data.sort_order,
+          now,
+          now,
+        ],
+      );
+
+      await get().loadAccounts();
+
+      return {
+        ...data,
         id,
-        data.name,
-        data.type,
-        data.currency,
-        data.opening_balance,
-        data.opening_balance,
-        data.color,
-        data.credit_limit,
-        data.revolving_balance,
-        data.minimum_payment,
-        data.statement_due_day,
-        data.interest_tracking,
-        data.apr,
-        0,
-        data.sort_order,
-        now,
-        now,
-      ],
-    );
-
-    await get().loadAccounts();
-
-    return {
-      ...data,
-      id,
-      current_balance: data.opening_balance,
-      is_archived: 0,
-      created_at: now,
-      updated_at: now,
-    };
+        current_balance: data.opening_balance,
+        is_archived: 0,
+        created_at: now,
+        updated_at: now,
+      };
+    } catch (err) {
+      console.error('[accountStore] addAccount failed:', err);
+      throw err;
+    }
   },
 }));

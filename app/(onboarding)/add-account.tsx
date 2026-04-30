@@ -77,9 +77,14 @@ export default function AddAccountScreen() {
   const [apr, setApr] = useState('');
 
   const [errors, setErrors] = useState<FieldErrors>({});
+  const [saving, setSaving] = useState(false);
 
   const isCreditCard = selectedType === 'credit_card';
-  const ctaDisabled = name.trim() === '';
+  const ctaDisabled =
+    saving ||
+    name.trim() === '' ||
+    balance.trim() === '' ||
+    (isCreditCard && creditLimit.trim() === '');
 
   const btnScale = useSharedValue(1);
   const btnAnim = useAnimatedStyle(() => ({ transform: [{ scale: btnScale.value }] }));
@@ -99,6 +104,8 @@ export default function AddAccountScreen() {
   };
 
   const handleSave = async () => {
+    if (saving) return;
+
     btnScale.value = withSequence(
       withTiming(0.97, { duration: 80 }),
       withSpring(1.0, { damping: 10 }),
@@ -115,32 +122,37 @@ export default function AddAccountScreen() {
     }
 
     setErrors({});
+    setSaving(true);
 
-    const isCC = selectedType === 'credit_card';
-    const accountData = {
-      name: name.trim(),
-      type: selectedType,
-      currency,
-      opening_balance: parseFloat(balance),
-      current_balance: parseFloat(balance),
-      color: selectedColor,
-      interest_tracking: (interestTracking ? 1 : 0) as 0 | 1,
-      is_archived: 0 as const,
-      sort_order: accounts.length,
-      credit_limit: isCC ? parseFloat(creditLimit) : null,
-      revolving_balance: isCC ? parseFloat(revolvingBalance) || 0 : null,
-      minimum_payment: isCC && minPayment ? parseFloat(minPayment) : null,
-      statement_due_day: isCC && dueDay ? parseInt(dueDay, 10) : null,
-      apr: isCC && interestTracking && apr ? parseFloat(apr) : null,
-    };
+    try {
+      const isCC = selectedType === 'credit_card';
+      const accountData = {
+        name: name.trim(),
+        type: selectedType,
+        currency,
+        opening_balance: parseFloat(balance),
+        current_balance: parseFloat(balance),
+        color: selectedColor,
+        interest_tracking: (interestTracking ? 1 : 0) as 0 | 1,
+        is_archived: 0 as const,
+        sort_order: accounts.length,
+        credit_limit: isCC ? parseFloat(creditLimit) : null,
+        revolving_balance: isCC ? parseFloat(revolvingBalance) || 0 : null,
+        minimum_payment: isCC && minPayment ? parseFloat(minPayment) : null,
+        statement_due_day: isCC && dueDay ? parseInt(dueDay, 10) : null,
+        apr: isCC && interestTracking && apr ? parseFloat(apr) : null,
+      };
 
-    await addAccount(accountData);
+      await addAccount(accountData);
 
-    if (isAddingMore) {
-      backOrReplace(router, '/(onboarding)/more-accounts');
-    } else {
-      await setStep('O5');
-      router.push('/(onboarding)/more-accounts');
+      if (isAddingMore) {
+        backOrReplace(router, '/(onboarding)/more-accounts');
+      } else {
+        await setStep('O5');
+        router.push('/(onboarding)/more-accounts');
+      }
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -148,7 +160,12 @@ export default function AddAccountScreen() {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Pressable
-          onPress={() => backOrReplace(router, '/(onboarding)/security')}
+          onPress={() =>
+            backOrReplace(
+              router,
+              isAddingMore ? '/(onboarding)/more-accounts' : '/(onboarding)/security',
+            )
+          }
           style={styles.back}
           hitSlop={hitSlop}
         >
@@ -401,6 +418,7 @@ export default function AddAccountScreen() {
         <Animated.View style={btnAnim}>
           <Pressable
             onPress={handleSave}
+            disabled={ctaDisabled}
             style={[styles.ctaPress, ctaDisabled && styles.ctaPressDisabled]}
           >
             <LinearGradient

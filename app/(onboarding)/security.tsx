@@ -81,7 +81,8 @@ export default function SecurityScreen() {
   const router = useRouter();
   const setStep = useOnboardingStore((s) => s.setStep);
   const setSecurityChoice = useOnboardingStore((s) => s.setSecurityChoice);
-  const [selected, setSelected] = useState<SecurityChoice | null>(null);
+  const savedChoice = useOnboardingStore((s) => s.securityChoice);
+  const [selected, setSelected] = useState<SecurityChoice | null>(savedChoice);
 
   const onContinue = async () => {
     if (selected === null) return;
