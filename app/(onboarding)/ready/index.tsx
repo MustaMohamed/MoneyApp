@@ -1,81 +1,35 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
+import { LinearGradient } from 'expo-linear-gradient'
+import { Pressable, StyleSheet, Text, View } from 'react-native'
+import Animated from 'react-native-reanimated'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { ProgressDots } from '@/components/progress_dots';
-import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useAccountStore } from '@/store/account_store';
-import { useOnboardingStore } from '@/store/onboarding_store';
-import { useFirstMountEntering } from '@/utils/use_first_mount_entering';
-
-type SummaryRow = { label: string; value: string; gold: boolean };
+import { ProgressDots } from '@/components/progress_dots'
+import { Strings } from '@/constants/strings'
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme'
+import { useReady } from './ready.hook'
+import { useReadyAnim } from './ready.anim'
 
 export default function ReadyScreen() {
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
-  const securityChoice = useOnboardingStore((s) => s.securityChoice);
-  const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
-  const accounts = useAccountStore((s) => s.accounts);
-  const playEntering = useFirstMountEntering('ready');
-  const [completing, setCompleting] = useState(false);
-
-  const total = accounts.reduce((sum, a) => sum + a.opening_balance, 0);
-  const formattedTotal = new Intl.NumberFormat('en-US').format(total);
-
-  const securityValue =
-    securityChoice === null || securityChoice === 'skip'
-      ? Strings.o6SecuritySkipped
-      : Strings.o6SecurityEnabled;
-
-  const rows: SummaryRow[] = [
-    { label: Strings.o6Currency, value: baseCurrency, gold: true },
-    { label: Strings.o6Accounts, value: `${accounts.length} accounts`, gold: false },
-    {
-      label: Strings.o6TotalBalance,
-      value: `${formattedTotal} ${baseCurrency}`,
-      gold: true,
-    },
-    { label: Strings.o6Security, value: securityValue, gold: false },
-  ];
-
-  const handleComplete = async () => {
-    if (completing) return;
-    setCompleting(true);
-    try {
-      // Layout subscribes to `complete`; the (onboarding) layout will redirect
-      // to /dashboard automatically. Don't call router.replace here.
-      await completeOnboarding();
-    } finally {
-      setCompleting(false);
-    }
-  };
+  const { rows, completing, handleComplete } = useReady()
+  const {
+    checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering,
+  } = useReadyAnim()
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <ProgressDots totalSteps={6} currentStep={6} />
 
       <View style={styles.body}>
-        <Animated.View
-          entering={playEntering ? ZoomIn.springify().damping(10).stiffness(100) : undefined}
-          style={styles.checkWrap}
-        >
+        <Animated.View entering={checkEntering} style={styles.checkWrap}>
           <MaterialCommunityIcons name="check-circle" size={Size.iconHero} color="#4CAF82" />
         </Animated.View>
 
-        <Animated.Text
-          entering={playEntering ? FadeInUp.delay(200).duration(400) : undefined}
-          style={styles.headline}
-        >
+        <Animated.Text entering={headlineEntering} style={styles.headline}>
           {Strings.o6Title}
         </Animated.Text>
 
-        <Animated.Text
-          entering={playEntering ? FadeInUp.delay(300).duration(350) : undefined}
-          style={styles.subtitle}
-        >
+        <Animated.Text entering={subtitleEntering} style={styles.subtitle}>
           {Strings.o6Subtitle}
         </Animated.Text>
 
@@ -83,7 +37,7 @@ export default function ReadyScreen() {
           {rows.map((row, index) => (
             <Animated.View
               key={row.label}
-              entering={playEntering ? FadeInUp.delay(400 + index * 80).duration(300) : undefined}
+              entering={rowEntering(index)}
               style={[styles.summaryRow, index === rows.length - 1 ? styles.summaryRowLast : null]}
             >
               <Text style={styles.summaryLabel}>{row.label}</Text>
@@ -95,10 +49,7 @@ export default function ReadyScreen() {
         </View>
       </View>
 
-      <Animated.View
-        entering={playEntering ? FadeInUp.delay(700).duration(400) : undefined}
-        style={styles.ctaBar}
-      >
+      <Animated.View entering={ctaEntering} style={styles.ctaBar}>
         <Pressable onPress={handleComplete} disabled={completing} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
@@ -111,7 +62,7 @@ export default function ReadyScreen() {
         </Pressable>
       </Animated.View>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -192,4 +143,4 @@ const styles = StyleSheet.create({
     fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
-});
+})
