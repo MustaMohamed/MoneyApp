@@ -1,40 +1,6 @@
-# MoneyApp — Claude Code Project Context
+# MoneyApp — Project Reference
 
-## Coding Conventions
-
-- **null vs undefined:** `null` only for DB-mapped nullable columns. Use `undefined` for all other absent values in TypeScript.
-- **Enums:** All domain enums live in `constants/enums.ts` as TypeScript string enums (not `const enum` — Babel/Expo incompatible; not string union types). Validate with `z.nativeEnum()`.
-- **SecureStore keys:** Always use `SecureStoreKeys.*` from `constants/secure_store_keys.ts` — never bare string literals.
-- **File naming:** `snake_case` for all filenames. TypeScript identifiers (functions, hooks, types) stay `camelCase`.
-- **No hardcoded numbers:** Import all sizing/spacing/color tokens from `constants/theme.ts`.
-- **No hardcoded strings:** All user-visible copy lives in `constants/strings.ts`.
-- **Form validation:** Use `useZodForm` from `utils/use_zod_form.hook.ts` — never import `zodResolver` directly. Zod global error map is registered once in `utils/zod_config.ts`, imported in `app/_layout.hook.ts`.
-
----
-
-## What This Project Is
-
-MoneyApp is a React Native (Expo) personal finance app. It helps users track
-expenses, accounts, budgets, bills, debt, and saving goals — without connecting
-to or controlling real bank accounts. All data is stored locally on device.
-
----
-
-## Current Build Scope — M1 Onboarding ONLY
-
-**You are building the onboarding flow and nothing else.**
-
-M1 scope = screens O1 through O6:
-- O1 — Welcome
-- O2 — Base Currency selection
-- O3 — Security setup (UI only — no actual PIN logic)
-- O4 — Add First Account (form + validation + SQLite write)
-- O5 — Add More Accounts (list + add another + done)
-- O6 — Ready (summary + completion)
-
-After O6, the user lands on a `PlaceholderDashboard` screen.
-**Do not build any dashboard, transaction, budget, bill, or settings screens.**
-Those are M1.5 scope — a separate module that has not started yet.
+MoneyApp is a React Native (Expo) personal finance app for tracking expenses, accounts, budgets, bills, debt, and saving goals. All data is stored locally on device — no bank connections.
 
 ---
 
@@ -54,8 +20,6 @@ Those are M1.5 scope — a separate module that has not started yet.
 | Icons | MaterialCommunityIcons via @expo/vector-icons |
 | UUID | react-native-uuid |
 
-**Not used in M1:** axios, expo-local-authentication, expo-notifications, ExchangeRate-API. Do not install or import these.
-
 ---
 
 ## Project Structure
@@ -65,11 +29,11 @@ app/
   _layout.tsx                  # Expo Router root layout — useFonts, SafeAreaProvider
   _layout.hook.ts              # DB init, zod_config import, onboarding rehydration
   _layout.store.ts             # { ready, setReady }
-  index.tsx                    # Thin redirect — reads global store, no local state
+  index.tsx                    # Thin redirect — reads global store
   dashboard/
-    index.tsx                  # PlaceholderDashboard — no changes until M1.5
+    index.tsx                  # PlaceholderDashboard
   (onboarding)/
-    _layout.tsx                # Thin redirect on complete; reads global store only
+    _layout.tsx
     welcome/
       index.tsx
       welcome.anim.ts
@@ -88,7 +52,7 @@ app/
       components/security_pill.tsx
     add_account/
       index.tsx
-      add_account.hook.ts      # RHF + Zod schema factory, handleSave
+      add_account.hook.ts
       add_account.anim.ts
       components/type_pill.tsx
     more_accounts/
@@ -101,7 +65,7 @@ app/
       ready.hook.ts
       ready.store.ts
       ready.anim.ts
-      ready.helpers.ts         # computeTotalBalance, resolveSecurityLabel
+      ready.helpers.ts
 
 components/
   progress_dots/
@@ -111,37 +75,53 @@ components/
     index.tsx
 
 constants/
-  enums.ts                     # All domain enums — single source of truth
-  secure_store_keys.ts         # SecureStoreKeys as const object
+  enums.ts                     # All domain enums
+  secure_store_keys.ts         # SecureStoreKeys as const
   strings.ts                   # All user-visible copy
   theme.ts                     # Cairo Nights design tokens
 
 store/
-  onboarding.store.ts          # Step tracking, currency, security choice
-  account.store.ts             # addAccount + loadAccounts
+  onboarding.store.ts
+  account.store.ts
 
 db/
-  init.ts                      # Opens DB, creates accounts + app_settings tables
+  init.ts
 
 utils/
-  onboarding_nav.ts            # backOrReplace helper
-  responsive.ts                # ms(), msFont() scaling utilities
+  onboarding_nav.ts
+  responsive.ts                # ms(), msFont() scaling
   use_first_mount_entering.hook.ts
-  use_zod_form.hook.ts         # Wraps useForm + zodResolver — use this, not zodResolver directly
-  zod_config.ts                # Global Zod error map
+  use_zod_form.hook.ts         # useForm + zodResolver wrapper
+  zod_config.ts                # Global Zod error map (imported once in _layout.hook.ts)
 
-__tests__/                     # All test files in snake_case
+__tests__/                     # snake_case filenames
 ```
 
 ### Component anatomy
 
-Each screen folder follows a strict four-file split:
+Each screen folder has up to four files with strict responsibilities:
 
-- **`index.tsx`** — UI template only. No `useState`, no `useSharedValue`. Imports from co-located `*.hook.ts` and `*.anim.ts`.
-- **`<name>.hook.ts`** — Logic, RHF/Zod schema, store wiring, navigation. Calls `useZodForm`, never `zodResolver` directly.
-- **`<name>.store.ts`** — Zustand for local non-form UI state. Created only when needed (`add_account` has no store — everything is in RHF). Always includes `reset()`.
-- **`<name>.anim.ts`** — Reanimated shared values + animated styles only. No business logic.
-- **`components/`** — Sub-components used only by this screen (colocated, not in global `components/`).
+- **`index.tsx`** — UI template. No `useState`, no `useSharedValue`. Wires together hook and anim outputs.
+- **`<name>.hook.ts`** — Logic, RHF/Zod schema, store reads, navigation. Uses `useZodForm` from `utils/use_zod_form.hook.ts`.
+- **`<name>.store.ts`** — Zustand for local non-form UI state only. Includes `reset()`. Omitted when not needed (`add_account` has none — form state lives entirely in RHF).
+- **`<name>.anim.ts`** — Reanimated shared values and animated styles. No business logic.
+- **`components/`** — Sub-components used only by this screen, colocated here rather than in global `components/`.
+
+File naming is `snake_case`. TypeScript identifiers are `camelCase`.
+
+---
+
+## Conventions
+
+**null vs undefined:** `null` is used only for DB-mapped nullable columns. Everywhere else in TypeScript code, absent values are `undefined`.
+
+**Enums:** All domain enums are TypeScript string enums in `constants/enums.ts` (regular `enum`, not `const enum` — Babel/Expo incompatible). Enum values match SQLite CHECK constraint strings exactly. Zod validation uses `z.nativeEnum()`.
+
+**SecureStore keys:** All key strings are centralised in `constants/secure_store_keys.ts` as a typed `as const` object.
+
+**Tokens:** All sizing, spacing, radius, and color values come from `constants/theme.ts`, scaled by `ms()` / `msFont()` in `utils/responsive.ts`.
+
+**Strings:** All user-visible copy lives in `constants/strings.ts`.
 
 ---
 
@@ -161,8 +141,6 @@ export enum SecurityChoice { Pin='pin', Biometric='biometric', Skip='skip' }
 export enum Currency { EGP='EGP', USD='USD' }
 ```
 
-Enum values match SQLite CHECK constraints exactly. Always use enum members (`AccountType.Bank`), never bare strings.
-
 ---
 
 ## SecureStore Keys (`constants/secure_store_keys.ts`)
@@ -177,15 +155,15 @@ export const SecureStoreKeys = {
 } as const;
 ```
 
-**Critical rule:** `OnboardingComplete` is set to `'true'` ONLY when the user taps "Open My Dashboard" on O6. Never set it earlier.
+`OnboardingComplete` is set to `'true'` only when the user taps "Open My Dashboard" on O6.
 
-**Resume logic:** On app launch, if `OnboardingComplete !== 'true'`, read `OnboardingStep` and navigate to that screen. The user resumes exactly where they left off after a force-close.
+On app launch, if `OnboardingComplete !== 'true'`, the app reads `OnboardingStep` and resumes from that screen.
 
 ---
 
-## Database — M1 Tables Only
+## Database Schema
 
-M1 creates exactly **two tables**. Do not create any other tables in M1.
+Two tables. WAL mode and foreign keys enabled on open.
 
 ```sql
 CREATE TABLE IF NOT EXISTS accounts (
@@ -215,90 +193,95 @@ CREATE TABLE IF NOT EXISTS app_settings (
 );
 ```
 
-**Rules:**
-- `current_balance` = `opening_balance` on account creation
-- `is_archived` = 0 on creation
-- `id` = UUID v4 (react-native-uuid)
-- `created_at` / `updated_at` = ISO 8601 string (`new Date().toISOString()`)
-- Enable WAL mode and foreign keys on DB open
+On account creation: `current_balance = opening_balance`, `is_archived = 0`, `id` = UUID v4, timestamps = `new Date().toISOString()`.
 
 ---
 
-## Account Form — O4 Validation Rules
+## Account Form — Validation Rules
 
-| Field | Rule | Error message key |
+| Field | Rule | Error key |
 |---|---|---|
 | name | Required | `Strings.errNameRequired` |
 | name | Max 30 chars | `Strings.errNameTooLong` |
-| name | Unique across all accounts | `Strings.errNameDuplicate` |
+| name | Unique across accounts | `Strings.errNameDuplicate` |
 | balance | Required, >= 0 | `Strings.errInvalidAmount` |
-| credit_limit | Required if type = credit_card | `Strings.errCreditLimitRequired` |
-| apr | Required if interest_tracking = true | `Strings.errAprRequired` |
+| credit_limit | Required when `type = CreditCard` | `Strings.errCreditLimitRequired` |
+| apr | Required when `interest_tracking = true` | `Strings.errAprRequired` |
 
-**CC conditional fields** (only shown when type = `AccountType.CreditCard`):
-`revolving_balance`, `credit_limit`, `minimum_payment`, `statement_due_day`, `interest_tracking` toggle, `apr` (only shown when `interest_tracking` is true)
+CC-only fields (visible when `type = AccountType.CreditCard`): `revolving_balance`, `credit_limit`, `minimum_payment`, `statement_due_day`, `interest_tracking` toggle. `apr` additionally requires `interest_tracking = true`.
 
-Schema factory pattern — schema is rebuilt when `accounts` list changes (duplicate-name check):
+Schema factory — rebuilt when `accounts` list changes (duplicate-name check):
 
 ```typescript
-const accounts = useAccountStore(s => s.accounts);
 const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 const form = useZodForm(schema, { defaultValues: { ... } });
 ```
 
 ---
 
-## Design System — Cairo Nights
+## Business Rules
 
-### Dark Mode Colors
-```
-bg:        #0F1923   (Midnight background)
-surface:   #1A2535   (Card/input surface)
-surfaceEl: #243044   (Elevated element)
-border:    #2A3A4F   (Border / divider)
-text1:     #F0EBE3   (Primary text)
-text2:     #6B7F99   (Secondary / muted text)
-gold:      #D4A44C   (Dark mode gold — display values)
-positive:  #4CAF82   (Positive amounts, success)
-negative:  #E05A42   (Negative, error, debt)
-```
-
-### Shared
-```
-cairoGold:    #C9973A   (Primary CTA background, active states)
-midnightBlue: #1B2B4B   (Primary CTA text color)
-```
-
-### Fonts
-- **Sora** — all numbers, headings, CTAs, account names, balances
-- **Inter** — all body copy, labels, descriptions, secondary text
-
-### Spacing scale: `Spacing.xxs/xs/sm/md/lg/xl/xxl` = 4 · 8 · 12 · 16 · 20 · 24 · 32
-### Border radius: `Radius.sm/md/lg/xl/pill/cta` = 8 · 12 · 16 · 28 · 11 · 13
-
-### CTA Button Pattern (all screens)
-- Height: 52 (`Size.ctaHeight`)
-- Border radius: 13 (`Radius.cta`)
-- Font: Sora Bold (`FontFamily.soraBold`), size 15 (`Type.bodyStrong`)
-- Background: linear-gradient(`#C9973A` → `#D4A44C`)
-- Text color: `#1B2B4B`
-- Fixed to bottom: `paddingTop: Spacing.xs`, `paddingHorizontal: Spacing.sm`, `paddingBottom: Spacing.md`
-- Border top: `1px solid #1A2535`
-
-All numeric values are sourced from `constants/theme.ts` and scaled via `ms()` / `msFont()` in `utils/responsive.ts`. **Never hardcode numbers — import tokens.**
+1. `OnboardingComplete` set only on O6 "Open My Dashboard" tap
+2. Force-close at any step → resume from that step on relaunch
+3. O4 requires saving at least 1 account before proceeding
+4. O5 is skippable once O4 has written an account
+5. EGP is pre-selected on O2
+6. O3 security setup is UI only — no actual PIN or biometric logic
+7. `current_balance = opening_balance` at creation
+8. Credit card accounts are liabilities (negative net worth contribution)
+9. Account names are unique across all accounts
 
 ---
 
-## Animation Reference — Per Screen
+## Design System — Cairo Nights
 
-### O1 Welcome — Entrance sequence
+### Colors
+```
+bg:          #0F1923   Midnight background
+surface:     #1A2535   Card / input surface
+surfaceEl:   #243044   Elevated element
+border:      #2A3A4F   Border / divider
+text1:       #F0EBE3   Primary text
+text2:       #6B7F99   Secondary / muted text
+gold:        #D4A44C   Display values
+cairoGold:   #C9973A   CTAs, active states
+positive:    #4CAF82   Positive amounts
+negative:    #E05A42   Errors, debt
+midnightBlue:#1B2B4B   CTA text
+```
+
+### Typography
+- **Sora** — numbers, headings, CTAs, account names, balances
+- **Inter** — body copy, labels, descriptions, secondary text
+
+### Scale
+- Spacing: `xxs/xs/sm/md/lg/xl/xxl` = 4 · 8 · 12 · 16 · 20 · 24 · 32
+- Radius: `sm/md/lg/xl/pill/cta` = 8 · 12 · 16 · 28 · 11 · 13
+
+### CTA Button
+- Height: `Size.ctaHeight` (52)
+- Radius: `Radius.cta` (13)
+- Font: `FontFamily.soraBold`, `Type.bodyStrong` (15)
+- Background: `linear-gradient(#C9973A → #D4A44C)`
+- Text: `#1B2B4B`
+- Bottom bar: `paddingTop: Spacing.xs`, `paddingHorizontal: Spacing.sm`, `paddingBottom: Spacing.md`, `borderTopColor: #1A2535`
+
+### Number formatting
+All amounts use `en-US` comma formatting: `Intl.NumberFormat('en-US', { style: 'decimal' })`.
+`122300 → 122,300` ✅ `1,22,300` ❌
+
+---
+
+## Animation Reference
+
+### O1 Welcome
 ```typescript
 // Illustration: FadeInDown.duration(600)
 // Headline + subtext: FadeInUp.delay(400).duration(500)
-// CTA button: FadeInUp.delay(600).duration(400)
+// CTA: FadeInUp.delay(600).duration(400)
 ```
 
-### O2 Currency — Row selection
+### O2 Currency — row selection
 ```typescript
 // Row tap: scale 1.0 → 1.02 → 1.0 via withSequence(withTiming, withTiming)
 // Gold border: withTiming(1, { duration: 200 })
@@ -306,72 +289,73 @@ All numeric values are sourced from `constants/theme.ts` and scaled via `ms()` /
 // Deselect: withTiming(0, { duration: 150 })
 ```
 
-### O3 Security — Pill selection
+### O3 Security — pill selection
 ```typescript
 // Icon scale: withSequence(withSpring(1.08), withSpring(1.0))
-// Border color: interpolateColor #2A3A4F → #C9973A via withTiming(200ms)
+// Border color: interpolateColor #2A3A4F → #C9973A, withTiming(200ms)
 // "Best" badge: FadeIn.delay(300).duration(250)
 ```
 
-### O4 Add Account — Conditional fields + feedback
+### O4 Add Account
 ```typescript
 // Type pill tap: scale 1.0 → 1.03 → 1.0 via withSpring
-// CC fields appear: entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(200)}
+// CC fields: entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(200)}
 // APR field: entering={FadeInDown.duration(200)} exiting={FadeOutUp.duration(150)}
-// Validation errors: entering={FadeInDown.duration(150)} exiting={FadeOutUp.duration(100)}
-// Save button press: scale 1.0 → 0.97 → 1.0 via withSequence(withTiming(80ms), withSpring)
+// Errors: entering={FadeInDown.duration(150)} exiting={FadeOutUp.duration(100)}
+// Save press: scale 1.0 → 0.97 → 1.0 via withSequence(withTiming(80ms), withSpring)
 ```
 
-### O5 More Accounts — Stagger entrance
+### O5 More Accounts
 ```typescript
-// Each row: FadeInRight.delay(index * 80).duration(300)
-// New row added: FadeInRight.duration(250) — no delay
+// Existing rows: FadeInRight.delay(index * 80).duration(300)
+// New row: FadeInRight.duration(250)
 ```
 
-### O6 Ready — Completion sequence
+### O6 Ready
 ```typescript
-// Checkmark ring: ZoomIn.springify().damping(10).stiffness(100)
+// Checkmark: ZoomIn.springify().damping(10).stiffness(100)
 // Headline: FadeInUp.delay(200).duration(400)
 // Subtitle: FadeInUp.delay(300).duration(350)
 // Summary rows: FadeInUp.delay(400 + index * 80).duration(300)
-// CTA button: FadeInUp.delay(700).duration(400)
-// Total sequence: ~1.4 seconds
+// CTA: FadeInUp.delay(700).duration(400)
 ```
 
-### Progress Dots — On activation
+### Progress Dots
 ```typescript
 // Scale: withSequence(withSpring(1.3, {damping:8}), withSpring(1.0, {damping:12}))
-// Color: interpolateColor [#243044 → #C9973A] via withTiming(200ms)
+// Color: interpolateColor [#243044 → #C9973A], withTiming(200ms)
 ```
 
-### Navigation — O1 special case
+### Navigation
 ```typescript
-// O1 → O2: animation: 'fade' (not slide_from_right)
-// All other screens: default slide_from_right
+// O1 → O2: animation: 'fade'
+// All other transitions: default slide_from_right
 ```
 
 ---
 
-## Icons — MaterialCommunityIcons (filled style)
+## Icons — MaterialCommunityIcons (filled)
 
-| Location | Icon name | Color |
+| Location | Icon | Color |
 |---|---|---|
-| O3 — Security header | `shield-account` | #C9973A |
-| O3 — PIN option | `lock` | #C9973A |
-| O3 — Biometric option | `fingerprint` | #378ADD |
-| O3 — Skip option | `chevron-right` | #6B7F99 |
-| O4 — Bank type | `bank` | #C9973A (active) / #6B7F99 |
-| O4 — Smart Wallet | `cellphone-nfc` | #6B7F99 |
-| O4 — Physical Wallet | `wallet` | #6B7F99 |
-| O4 — Physical Savings | `piggy-bank` | #6B7F99 |
-| O4 — Credit Card | `credit-card` | #6B7F99 |
-| O5 — Account rows | type-matched icon | #C9973A (first) / #6B7F99 |
-| O6 — Ready checkmark | `check-circle` | #4CAF82 |
-| Nav — back arrow | `chevron-left` | #6B7F99 |
+| O3 header | `shield-account` | #C9973A |
+| O3 PIN | `lock` | #C9973A |
+| O3 Biometric | `fingerprint` | #378ADD |
+| O3 Skip | `chevron-right` | #6B7F99 |
+| O4 Bank | `bank` | #C9973A active / #6B7F99 |
+| O4 Smart Wallet | `cellphone-nfc` | #6B7F99 |
+| O4 Physical Wallet | `wallet` | #6B7F99 |
+| O4 Physical Savings | `piggy-bank` | #6B7F99 |
+| O4 Credit Card | `credit-card` | #6B7F99 |
+| O5 rows | type-matched | #C9973A first / #6B7F99 |
+| O6 checkmark | `check-circle` | #4CAF82 |
+| Back arrow | `chevron-left` | #6B7F99 |
 
 ---
 
-## 12 Account Color Presets (`AccountColors` in `constants/theme.ts`)
+## Account Color Presets
+
+`AccountColors` in `constants/theme.ts` — 12 values, index 0 is the default:
 
 ```
 #1B2B4B  #C9973A  #3D7A5F  #C0442A
@@ -379,72 +363,13 @@ All numeric values are sourced from `constants/theme.ts` and scaled via `ms()` /
 #7B3F8C  #C45C2A  #4A6FA5  #7A8B3C
 ```
 
-Index 0 is the default. Selected state: 2px solid `#C9973A` border + scale 1.1.
-
----
-
-## Number Formatting Rule
-
-**ALL amounts must use `en-US` comma formatting.**
-
-```
-122300  →  122,300    ✅
-1500000 →  1,500,000  ✅
-1,22,300            ❌  NEVER
-```
-
-Use `Intl.NumberFormat('en-US', { style: 'decimal' })` for all balance displays.
-
----
-
-## Key Business Rules
-
-1. `OnboardingComplete` set ONLY on O6 "Open My Dashboard" tap
-2. Force-close at any step → resume from that step on relaunch
-3. O4 cannot be skipped — must save at least 1 account
-4. O5 is fully skippable after O4 has written at least 1 account
-5. EGP is pre-selected on O2 — Continue always valid
-6. Security screen (O3) is UI only — no PIN entry, no biometric auth in M1
-7. `current_balance` = `opening_balance` at creation time
-8. Credit card = liability (negative net worth) — not calculated in M1
-9. Duplicate account names are not allowed — validate in Zod schema via `superRefine`
+Selected state: 2px `#C9973A` border, scale 1.1.
 
 ---
 
 ## Testing
 
-- All test files in `__tests__/` use `snake_case` naming
-- Test the pure logic layer: `*.helpers.ts`, stores, `utils/responsive.ts`
-- Do not test hooks via `renderHook` or UI screens — high mocking cost, deferred to M1.5
-- Run coverage: `npm run test:coverage` (thresholds: 80% lines, 95% functions, 100% branches on the logic layer)
-
----
-
-## Definition of Done — M1
-
-Do not tag `m1-complete` until ALL of these pass on both Android and iOS:
-
-- [ ] O1→O6 full flow completes without errors
-- [ ] Force-close at each step → relaunch → resumes from correct step
-- [ ] O6 CTA sets `onboarding_complete = true` in SecureStore AND app_settings DB
-- [ ] Relaunch after O6 → PlaceholderDashboard (onboarding never shown again)
-- [ ] All 5 account types can be added with correct fields
-- [ ] All validation errors show inline below the correct field
-- [ ] CC fields show/hide correctly based on type + interest toggle
-- [ ] 12 color dots visible on O4
-- [ ] O5 account rows show type icons (not colored dots)
-- [ ] `accounts` and `app_settings` tables exist with correct schema
-- [ ] All amounts formatted as 122,300 — never 1,22,300
-- [ ] No hardcoded strings (all copy in `constants/strings.ts`)
-- [ ] O1 entrance sequence plays on mount
-- [ ] O2 row selection: scale pulse + gold border + checkmark spring
-- [ ] O3 pill selection: border color interpolation + icon scale
-- [ ] O4 CC fields animate in/out on type change
-- [ ] O4 validation errors animate in/out inline
-- [ ] O5 account rows stagger in on mount
-- [ ] O6 completion sequence plays fully end-to-end
-- [ ] Progress dots scale + interpolate color on step advance
-- [ ] All animations run at 60fps on mid-range Android
+Test files live in `__tests__/` with `snake_case` names. The test layer covers pure logic: `*.helpers.ts`, stores, and `utils/responsive.ts`. Coverage: `npm run test:coverage` — thresholds 80% lines / 95% functions / 100% branches on the logic layer.
 
 ---
 
