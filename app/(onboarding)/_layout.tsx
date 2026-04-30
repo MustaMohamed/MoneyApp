@@ -1,6 +1,6 @@
 import { Redirect, Stack } from 'expo-router';
 
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 export type OnboardingStackParams = {
   welcome: undefined;

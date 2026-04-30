@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useCurrencyStore } from './currency.store';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
-import type { Currency } from '@/store/onboarding_store';
+import type { Currency } from '@/store/onboarding.store';
 
 export function useCurrency() {
   const router = useRouter();

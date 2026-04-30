@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SecurityChoice } from '@/store/onboarding_store';
+import type { SecurityChoice } from '@/store/onboarding.store';
 
 interface SecurityStore {
   selected: SecurityChoice | null;

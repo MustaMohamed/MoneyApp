@@ -1,7 +1,8 @@
-import { useAccountStore } from '@/store/account_store';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useAccountStore } from '@/store/account.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 import { useReadyStore } from './ready.store';
 import { Strings } from '@/constants/strings';
+import { computeTotalBalance, resolveSecurityLabel } from './ready.helpers';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
@@ -13,17 +14,17 @@ export function useReady() {
   const completing = useReadyStore((s) => s.completing);
   const setCompleting = useReadyStore((s) => s.setCompleting);
 
-  const total = accounts.reduce((sum, a) => sum + a.opening_balance, 0);
+  const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
-
-  const securityValue =
-    securityChoice === null || securityChoice === 'skip'
-      ? Strings.o6SecuritySkipped
-      : Strings.o6SecurityEnabled;
+  const securityValue = resolveSecurityLabel(securityChoice);
 
   const rows: SummaryRow[] = [
     { label: Strings.o6Currency, value: baseCurrency, gold: true },
-    { label: Strings.o6Accounts, value: `${accounts.length} accounts`, gold: false },
+    {
+      label: Strings.o6Accounts,
+      value: `${accounts.length} ${Strings.o6AccountsUnit}`,
+      gold: false,
+    },
     { label: Strings.o6TotalBalance, value: `${formattedTotal} ${baseCurrency}`, gold: true },
     { label: Strings.o6Security, value: securityValue, gold: false },
   ];

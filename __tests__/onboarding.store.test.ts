@@ -5,7 +5,7 @@
 import * as SecureStore from 'expo-secure-store';
 import * as SQLite from 'expo-sqlite';
 
-import { loadOnboardingState, useOnboardingStore } from '@/store/onboarding_store';
+import { loadOnboardingState, useOnboardingStore } from '@/store/onboarding.store';
 
 const sqlite = SQLite as unknown as {
   __fakeDb: { runAsync: jest.Mock; execAsync: jest.Mock };

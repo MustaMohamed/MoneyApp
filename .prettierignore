@@ -7,3 +7,5 @@ package-lock.json
 yarn.lock
 *.md
 assets/
+.claude/
+coverage/

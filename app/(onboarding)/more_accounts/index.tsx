@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { type Account, type AccountType } from '@/store/account_store';
+import { type Account, type AccountType } from '@/store/account.store';
 import { useMoreAccounts } from './more_accounts.hook';
 import { useMoreAccountsAnim } from './more_accounts.anim';
 

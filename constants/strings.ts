@@ -104,6 +104,7 @@ export const Strings = {
   o6SecurityBiometric: 'Biometrics',
   o6SecurityEnabled: 'Enabled',
   o6SecuritySkipped: 'Not set',
+  o6AccountsUnit: 'accounts',
 
   // Placeholder dashboard
   placeholderTitle: 'Dashboard coming soon',
