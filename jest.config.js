@@ -17,4 +17,14 @@ module.exports = {
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
   ],
+  collectCoverageFrom: [
+    'store/**/*.ts',
+    'db/**/*.ts',
+    'utils/responsive.ts',
+    'app/**/*.helpers.ts',
+    '!**/__mocks__/**',
+  ],
+  coverageThreshold: {
+    global: { lines: 75, functions: 75, branches: 70 },
+  },
 };
