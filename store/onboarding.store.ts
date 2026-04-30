@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 import { getDb } from '@/db/init';
 import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
+import { SecureStoreKeys } from '@/constants/secure_store_keys';
 
 interface OnboardingState {
   complete: boolean;
@@ -23,7 +24,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
   setStep: async (step) => {
     try {
-      await SecureStore.setItemAsync('onboarding_step', step);
+      await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
       set({ currentStep: step });
     } catch (err) {
       console.error('[onboardingStore] setStep failed:', err);
@@ -33,7 +34,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
   setBaseCurrency: async (currency) => {
     try {
-      await SecureStore.setItemAsync('base_currency', currency);
+      await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
       const db = await getDb();
       await db.runAsync(
         'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
@@ -49,9 +50,9 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
   setSecurityChoice: async (choice) => {
     try {
-      await SecureStore.setItemAsync('security_choice', choice);
+      await SecureStore.setItemAsync(SecureStoreKeys.SecurityChoice, choice);
       await SecureStore.setItemAsync(
-        'security_setup_skipped',
+        SecureStoreKeys.SecuritySetupSkipped,
         String(choice === SecurityChoice.Skip),
       );
       set({ securityChoice: choice });
@@ -63,7 +64,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
   completeOnboarding: async () => {
     try {
-      await SecureStore.setItemAsync('onboarding_complete', 'true');
+      await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
       const db = await getDb();
       await db.runAsync(
         'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
@@ -83,10 +84,10 @@ export async function loadOnboardingState(): Promise<{
   step: OnboardingStep;
 }> {
   const [completeRaw, stepRaw, currencyRaw, securityRaw] = await Promise.all([
-    SecureStore.getItemAsync('onboarding_complete'),
-    SecureStore.getItemAsync('onboarding_step'),
-    SecureStore.getItemAsync('base_currency'),
-    SecureStore.getItemAsync('security_choice'),
+    SecureStore.getItemAsync(SecureStoreKeys.OnboardingComplete),
+    SecureStore.getItemAsync(SecureStoreKeys.OnboardingStep),
+    SecureStore.getItemAsync(SecureStoreKeys.BaseCurrency),
+    SecureStore.getItemAsync(SecureStoreKeys.SecurityChoice),
   ]);
 
   const complete = completeRaw === 'true';
