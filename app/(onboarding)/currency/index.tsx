@@ -35,16 +35,12 @@ const ROWS: RowConfig[] = [
 ];
 
 export default function CurrencyScreen() {
-  const { selected, setSelected, onContinue, onBack } = useCurrency()
+  const { selected, setSelected, onContinue, onBack } = useCurrency();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
-          onPress={onBack}
-          style={styles.back}
-          hitSlop={hitSlop}
-        >
+        <Pressable onPress={onBack} style={styles.back} hitSlop={hitSlop}>
           <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o2Title}</Text>
@@ -108,12 +104,12 @@ function CurrencyRow({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const { rowAnim, checkAnim, triggerRowTap } = useCurrencyRowAnim(isSelected)
+  const { rowAnim, checkAnim, triggerRowTap } = useCurrencyRowAnim(isSelected);
 
   const handlePress = () => {
-    triggerRowTap()
-    onSelect()
-  }
+    triggerRowTap();
+    onSelect();
+  };
 
   return (
     <Animated.View style={[styles.rowAnimated, rowAnim]}>

@@ -1,10 +1,10 @@
-import { StyleSheet, View } from 'react-native'
-import Animated from 'react-native-reanimated'
+import { StyleSheet, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { Size, Spacing } from '@/constants/theme'
-import { useDotAnim } from './progress_dots.anim'
+import { Size, Spacing } from '@/constants/theme';
+import { useDotAnim } from './progress_dots.anim';
 
-type Props = { totalSteps: number; currentStep: number }
+type Props = { totalSteps: number; currentStep: number };
 
 export function ProgressDots({ totalSteps, currentStep }: Props) {
   return (
@@ -13,12 +13,12 @@ export function ProgressDots({ totalSteps, currentStep }: Props) {
         <Dot key={i} isActive={i < currentStep} />
       ))}
     </View>
-  )
+  );
 }
 
 function Dot({ isActive }: { isActive: boolean }) {
-  const { animStyle } = useDotAnim(isActive)
-  return <Animated.View style={[styles.dot, animStyle]} />
+  const { animStyle } = useDotAnim(isActive);
+  return <Animated.View style={[styles.dot, animStyle]} />;
 }
 
 const styles = StyleSheet.create({
@@ -34,4 +34,4 @@ const styles = StyleSheet.create({
     height: Size.progressDot,
     borderRadius: Size.progressDot / 2,
   },
-})
+});

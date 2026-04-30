@@ -1,8 +1,8 @@
-import { FadeInUp, ZoomIn } from 'react-native-reanimated'
-import { useFirstMountEntering } from '@/utils/use_first_mount_entering'
+import { FadeInUp, ZoomIn } from 'react-native-reanimated';
+import { useFirstMountEntering } from '@/utils/use_first_mount_entering';
 
 export function useReadyAnim() {
-  const play = useFirstMountEntering('ready')
+  const play = useFirstMountEntering('ready');
 
   return {
     checkEntering: play ? ZoomIn.springify().damping(10).stiffness(100) : undefined,
@@ -11,5 +11,5 @@ export function useReadyAnim() {
     rowEntering: (index: number) =>
       play ? FadeInUp.delay(400 + index * 80).duration(300) : undefined,
     ctaEntering: play ? FadeInUp.delay(700).duration(400) : undefined,
-  }
+  };
 }

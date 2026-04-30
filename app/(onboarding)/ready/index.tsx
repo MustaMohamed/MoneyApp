@@ -1,20 +1,19 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
-import { LinearGradient } from 'expo-linear-gradient'
-import { Pressable, StyleSheet, Text, View } from 'react-native'
-import Animated from 'react-native-reanimated'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ProgressDots } from '@/components/progress_dots'
-import { Strings } from '@/constants/strings'
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme'
-import { useReady } from './ready.hook'
-import { useReadyAnim } from './ready.anim'
+import { ProgressDots } from '@/components/progress_dots';
+import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { useReady } from './ready.hook';
+import { useReadyAnim } from './ready.anim';
 
 export default function ReadyScreen() {
-  const { rows, completing, handleComplete } = useReady()
-  const {
-    checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering,
-  } = useReadyAnim()
+  const { rows, completing, handleComplete } = useReady();
+  const { checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering } =
+    useReadyAnim();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -62,7 +61,7 @@ export default function ReadyScreen() {
         </Pressable>
       </Animated.View>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -143,4 +142,4 @@ const styles = StyleSheet.create({
     fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
-})
+});

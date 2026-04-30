@@ -1,24 +1,20 @@
-import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-} from '@expo-google-fonts/inter'
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
   Sora_400Regular,
   Sora_600SemiBold,
   Sora_700Bold,
   Sora_800ExtraBold,
-} from '@expo-google-fonts/sora'
-import { useFonts } from 'expo-font'
-import { Stack } from 'expo-router'
-import * as SplashScreen from 'expo-splash-screen'
-import { StatusBar } from 'expo-status-bar'
-import { useEffect } from 'react'
+} from '@expo-google-fonts/sora';
+import { useFonts } from 'expo-font';
+import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 
-import { useLayoutStore } from './_layout.store'
-import { useLayoutInit } from './_layout.hook'
+import { useLayoutStore } from './_layout.store';
+import { useLayoutInit } from './_layout.hook';
 
-SplashScreen.preventAutoHideAsync()
+SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
@@ -29,18 +25,18 @@ export default function RootLayout() {
     Sora_600SemiBold,
     Sora_700Bold,
     Sora_800ExtraBold,
-  })
+  });
 
-  const ready = useLayoutStore((s) => s.ready)
-  useLayoutInit()
+  const ready = useLayoutStore((s) => s.ready);
+  useLayoutInit();
 
   useEffect(() => {
     if (fontsLoaded && ready) {
-      SplashScreen.hideAsync()
+      SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, ready])
+  }, [fontsLoaded, ready]);
 
-  if (!fontsLoaded || !ready) return null
+  if (!fontsLoaded || !ready) return null;
 
   return (
     <>
@@ -52,5 +48,5 @@ export default function RootLayout() {
         }}
       />
     </>
-  )
+  );
 }
