@@ -1,5 +1,11 @@
 # MoneyApp — Project Reference
 
+## Workflow Rules
+
+- **Always create a new git branch before starting any new work.** Never commit directly to `main`. Every feature, refactor, or fix gets its own branch (e.g., `refactor/database-module`, `feat/transactions`). Create and switch to the branch before making any file changes.
+
+---
+
 MoneyApp is a React Native (Expo) personal finance app for tracking expenses, accounts, budgets, bills, debt, and saving goals. All data is stored locally on device — no bank connections.
 
 ---
@@ -84,8 +90,17 @@ store/
   onboarding.store.ts
   account.store.ts
 
-db/
-  init.ts
+database/
+  migrations/
+    001_create_accounts.ts       # { version: 1, up: 'CREATE TABLE IF NOT EXISTS accounts ...' }
+    002_create_app_settings.ts   # { version: 2, up: 'CREATE TABLE IF NOT EXISTS app_settings ...' }
+    index.ts                     # export const MIGRATIONS = [migration001, migration002]
+  entities/
+    account.entity.ts            # Account interface (DB column representation)
+    app_setting.entity.ts        # AppSetting interface
+  accounts.ts                    # getAccounts(db), addAccount(db, data)
+  app_settings.ts                # getSetting(db, key), setSetting(db, key, value)
+  client.ts                      # getDb(), runMigrations(db)
 
 utils/
   onboarding_nav.ts
@@ -122,6 +137,56 @@ File naming is `snake_case`. TypeScript identifiers are `camelCase`.
 **Tokens:** All sizing, spacing, radius, and color values come from `constants/theme.ts`, scaled by `ms()` / `msFont()` in `utils/responsive.ts`.
 
 **Strings:** All user-visible copy lives in `constants/strings.ts`.
+
+---
+
+## Database Layer Conventions
+
+### Migrations (`database/migrations/`)
+
+- One file per DDL operation. Naming: `NNN_<description>.ts` (zero-padded, e.g. `001`, `002`).
+- Every migration exports `{ version: number, up: string }`.
+- Every `CREATE TABLE` statement must use `IF NOT EXISTS` — migrations are idempotent.
+- `migrations/index.ts` exports `MIGRATIONS` as an ordered array — append new entries here when adding a migration.
+- The migration runner (`client.ts`) tracks applied versions in a `schema_migrations` table (`version` INTEGER PK, `applied_at` TEXT).
+- Never edit an already-shipped migration. Add a new numbered file instead.
+
+```typescript
+// migrations/001_create_accounts.ts
+export const migration001 = {
+  version: 1,
+  up: `CREATE TABLE IF NOT EXISTS accounts (...);`,
+};
+```
+
+### Entities (`database/entities/`)
+
+- Type definitions only — no logic, no functions.
+- No imports from other `database/` files. May import from `@/constants/enums`.
+- File naming: `<domain>.entity.ts` (e.g. `account.entity.ts`).
+- These are the DB representation layer — fields and types mirror the SQLite columns exactly.
+
+### Query Executor Files (`database/<domain>.ts`)
+
+- Each file owns all SQL for one domain table (e.g. `accounts.ts` → `accounts` table).
+- Functions receive `db: SQLiteDatabase` as their first parameter — no internal `getDb()` calls.
+- Verb convention:
+
+| Verb | SQL operation |
+|---|---|
+| `get*` | SELECT |
+| `add*` | INSERT |
+| `set*` | INSERT OR REPLACE / UPDATE |
+| `update*` | UPDATE |
+| `delete*` | DELETE |
+
+- These are **not** repositories. They execute SQL and return typed results. Business logic lives in the store layer (or a future repository layer).
+
+### Client (`database/client.ts`)
+
+- Owns the `getDb()` singleton and `runMigrations(db)`.
+- `getDb()` opens `moneyapp.db`, enables WAL mode and foreign keys, returns the same promise on repeat calls.
+- `runMigrations(db)` is called once at app startup in `_layout.hook.ts`.
 
 ---
 

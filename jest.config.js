@@ -12,6 +12,7 @@ module.exports = {
     '/android/',
     '/ios/',
     '/.claude/',
+    '/.worktrees/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],
   transformIgnorePatterns: [
@@ -21,10 +22,12 @@ module.exports = {
   // utilities require renderHook + expo-router mocks — deferred to M1.5.
   collectCoverageFrom: [
     'store/**/*.ts',
-    'db/**/*.ts',
+    'database/**/*.ts',
     'utils/responsive.ts',
     'app/**/*.helpers.ts',
     '!**/__mocks__/**',
+    '!database/entities/**',
+    '!database/client.ts',
   ],
   coverageThreshold: {
     global: { lines: 80, functions: 95, branches: 100 },

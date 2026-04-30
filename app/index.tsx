@@ -1,9 +1,9 @@
-import { Redirect } from 'expo-router';
+import { type Href, Redirect } from 'expo-router';
 
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { type OnboardingStep } from '@/constants/enums';
 
-const STEP_HREF: Record<OnboardingStep, string> = {
+const STEP_HREF: Record<OnboardingStep, Href> = {
   O1: '/(onboarding)/welcome',
   O2: '/(onboarding)/currency',
   O3: '/(onboarding)/security',
