@@ -5,7 +5,9 @@
  * Called by the "typecheck" npm script. The generated file is gitignored.
  */
 
-const { getTypedRoutesDeclarationFile } = require('../node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/build/typed-routes/generate.js');
+const {
+  getTypedRoutesDeclarationFile,
+} = require('../node_modules/expo/node_modules/@expo/cli/node_modules/@expo/router-server/build/typed-routes/generate.js');
 const fs = require('fs');
 const path = require('path');
 
