@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
-import { getDb } from '@/db/init';
+import { setSetting } from '@/database/app_settings';
+import { getDb } from '@/database/client';
 import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
 import { SecureStoreKeys } from '@/constants/secure_store_keys';
 
@@ -36,11 +37,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     try {
       await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
       const db = await getDb();
-      await db.runAsync(
-        'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
-        'base_currency',
-        currency,
-      );
+      await setSetting(db, 'base_currency', currency);
       set({ baseCurrency: currency });
     } catch (err) {
       console.error('[onboardingStore] setBaseCurrency failed:', err);
@@ -66,11 +63,7 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
     try {
       await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
       const db = await getDb();
-      await db.runAsync(
-        'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
-        'onboarding_complete',
-        'true',
-      );
+      await setSetting(db, 'onboarding_complete', 'true');
       set({ complete: true });
     } catch (err) {
       console.error('[onboardingStore] completeOnboarding failed:', err);
