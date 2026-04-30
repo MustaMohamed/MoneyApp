@@ -6,7 +6,7 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { SCHEMA_SQL } from '@/db/init';
+import { MIGRATIONS } from '@/database/migrations';
 import { useAccountStore } from '@/store/account.store';
 import { AccountType, Currency } from '@/constants/enums';
 
@@ -16,7 +16,7 @@ let realDb: ReturnType<typeof Database>;
 
 beforeAll(() => {
   realDb = new Database(':memory:');
-  realDb.exec(SCHEMA_SQL);
+  realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
 
   // Wire the mocked expo-sqlite db over to better-sqlite3 so addAccount's
   // runAsync(...) calls actually persist and we can SELECT them back.
