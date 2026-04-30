@@ -36,6 +36,9 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
+# test coverage output
+coverage/
+
 app-example
 
 # Claude Code agent worktrees (local tooling state)
