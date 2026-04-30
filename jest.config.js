@@ -12,6 +12,7 @@ module.exports = {
     '/android/',
     '/ios/',
     '/.claude/',
+    '/.worktrees/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],
   transformIgnorePatterns: [

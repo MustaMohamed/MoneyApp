@@ -65,7 +65,7 @@ Adding a future migration = create a new numbered file + append to this array.
 
 ### `entities/`
 
-Type definitions only. No logic, no imports from other `database/` files.
+Type definitions only. No logic, no imports from other `database/` files. May import from `@/constants/enums` (e.g. `AccountType`, `Currency`).
 
 **`account.entity.ts`** — `Account` interface moved from `store/account.store.ts`:
 
