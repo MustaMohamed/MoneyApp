@@ -17,8 +17,8 @@ Replace React primitive state (`useState`, `useContext`) throughout the codebase
 
 - Every screen and shared component lives in its own folder.
 - The folder's `index.tsx` is the Expo Router entry point (or the component export).
-- Sibling files use short names: `hook.ts`, `store.ts`, `anim.ts`.
-- Only create a file if it has content — screens with no local state skip `store.ts`; screens with no logic skip `hook.ts`; screens with no animations skip `anim.ts`.
+- Sibling files are named after their screen/component: `<name>.hook.ts`, `<name>.store.ts`, `<name>.anim.ts`.
+- Only create a file if it has content — screens with no local state skip `<name>.store.ts`; screens with no logic skip `<name>.hook.ts`; screens with no animations skip `<name>.anim.ts`.
 - `_layout.tsx` files must remain files (Expo Router requirement). Their hook/store live as siblings with the `_layout.` prefix.
 - `app/index.tsx` remains a file — moving it to a folder changes the route from `/` to `/index`.
 - Filenames are **snake_case**. TypeScript identifiers (hooks, functions, types) stay **camelCase** per JS/TS convention.
@@ -37,35 +37,35 @@ app/
     _layout.tsx                      ← thin redirect on complete; reads global store only
     welcome/
       index.tsx                      ← JSX template
-      anim.ts                        ← entrance sequence shared values + animated styles
+      welcome.anim.ts                ← entrance sequence shared values + animated styles
     currency/
       index.tsx
-      hook.ts                        ← onContinue, init selected from global store
-      store.ts                       ← { selected, setSelected }
-      anim.ts                        ← row tap scale, gold border, checkmark spring
+      currency.hook.ts               ← onContinue, init selected from global store
+      currency.store.ts              ← { selected, setSelected }
+      currency.anim.ts               ← row tap scale, gold border, checkmark spring
     security/
       index.tsx
-      hook.ts                        ← onContinue
-      store.ts                       ← { selected, setSelected }
-      anim.ts                        ← pill border interpolation, icon scale
+      security.hook.ts               ← onContinue
+      security.store.ts              ← { selected, setSelected }
+      security.anim.ts               ← pill border interpolation, icon scale
     add_account/
       index.tsx                      ← route: /(onboarding)/add_account
-      hook.ts                        ← RHF via useZodForm, schema factory, handleSave
-      anim.ts                        ← type pill scale, CC fields enter/exit, error enter/exit, btn scale
+      add_account.hook.ts            ← RHF via useZodForm, schema factory, handleSave
+      add_account.anim.ts            ← type pill scale, CC fields enter/exit, error enter/exit, btn scale
     more_accounts/
       index.tsx                      ← route: /(onboarding)/more_accounts
-      hook.ts                        ← handleAddAnother, handleDone
-      anim.ts                        ← row stagger entrance
+      more_accounts.hook.ts          ← handleAddAnother, handleDone
+      more_accounts.anim.ts          ← row stagger entrance
     ready/
       index.tsx
-      hook.ts                        ← handleComplete, summary row derivation
-      store.ts                       ← { completing }
-      anim.ts                        ← checkmark ZoomIn, headline/subtitle/rows/CTA FadeInUp
+      ready.hook.ts                  ← handleComplete, summary row derivation
+      ready.store.ts                 ← { completing }
+      ready.anim.ts                  ← checkmark ZoomIn, headline/subtitle/rows/CTA FadeInUp
 
 components/
   progress_dots/
     index.tsx                        ← JSX template, receives props
-    anim.ts                          ← dot scale + color interpolation
+    progress_dots.anim.ts            ← dot scale + color interpolation
   geo_illustration/
     index.tsx                        ← pure SVG, no state, no animations
 
@@ -79,10 +79,10 @@ utils/
   use_first_mount_entering.ts        ← renamed from useFirstMountEntering.ts
   use_zod_form.ts                    ← NEW: wraps useForm with zodResolver pre-wired
   zod_config.ts                      ← NEW: global Zod error map, imported once in _layout.hook.ts
-  (validation.ts deleted)            ← all rules move into Zod schemas in hook.ts files
+  (validation.ts deleted)            ← all rules move into Zod schemas in add_account.hook.ts files
 ```
 
-**`add_account` has no `store.ts`** — all form inputs (including `selected_type`, `selected_color`, `currency`) live in RHF; `formState.isSubmitting` replaces the `saving` flag.
+**`add_account` has no `add_account.store.ts`** — all form inputs (including `selected_type`, `selected_color`, `currency`) live in RHF; `formState.isSubmitting` replaces the `saving` flag.
 
 ---
 
@@ -92,13 +92,13 @@ Each folder follows a strict responsibility split across up to four files.
 
 ### `index.tsx` — UI template
 
-- Imports from co-located `hook.ts` and `anim.ts` only.
+- Imports from co-located `<name>.hook.ts` and `<name>.anim.ts` only.
 - No business logic, no `useState`, no `useSharedValue`.
 - Coordinates hook and anim on user events (e.g. calls `form.setValue` and `triggerPillTap` on a single tap).
 - Uses `useWatch` / `Controller` from RHF to read form values reactively.
 
 ```tsx
-// add_account/index.tsx
+// add_account/index.tsx — imports from add_account.hook.ts and add_account.anim.ts
 export default function AddAccountScreen() {
   const { form, handleSave } = useAddAccount()
   const { triggerPillTap, btnAnim, ccEntering, ccExiting } = useAddAccountAnim()
@@ -133,7 +133,7 @@ export default function AddAccountScreen() {
 }
 ```
 
-### `hook.ts` — logic, RHF, store wiring, navigation
+### `<name>.hook.ts` — logic, RHF, store wiring, navigation
 
 - Owns the Zod schema (via schema factory when cross-field context is needed).
 - Calls `useZodForm(schema, options)` — never imports `zodResolver` directly.
@@ -141,14 +141,14 @@ export default function AddAccountScreen() {
 - Reads from global stores (`useOnboardingStore`, `useAccountStore`).
 - Handles navigation via `useRouter`.
 
-### `store.ts` — Zustand store for local non-form state
+### `<name>.store.ts` — Zustand store for local non-form state
 
 - Holds only what RHF does not cover: UI selections, loading/completion flags.
 - Always includes a `reset()` action for clean navigation teardown.
-- Created only when there is actual non-form state (skipped for `add_account`).
+- Created only when there is actual non-form state (skipped for `add_account` — no `add_account.store.ts`).
 
 ```ts
-// security/store.ts
+// security/security.store.ts
 interface SecurityStore {
   selected: SecurityChoice | null
   setSelected: (choice: SecurityChoice) => void
@@ -162,14 +162,14 @@ export const useSecurityStore = create<SecurityStore>((set) => ({
 }))
 ```
 
-### `anim.ts` — Reanimated shared values + animated styles
+### `<name>.anim.ts` — Reanimated shared values + animated styles
 
 - Returns shared values and animated style objects only.
 - No business logic, no store reads.
 - Exposes trigger functions (e.g. `triggerPillTap`) so `index.tsx` can fire animations on events.
 
 ```ts
-// add_account/anim.ts
+// add_account/add_account.anim.ts
 export function useAddAccountAnim() {
   const btnScale = useSharedValue(1)
 
@@ -318,7 +318,7 @@ Two routes renamed due to snake_case file structure:
 | `/(onboarding)/add-account` | `/(onboarding)/add_account` |
 | `/(onboarding)/more-accounts` | `/(onboarding)/more_accounts` |
 
-All `router.push`, `router.replace`, `backOrReplace`, and `Redirect href` calls referencing these routes updated in: `add_account/hook.ts`, `more_accounts/hook.ts`, `security/hook.ts`, `currency/hook.ts`, `ready/hook.ts`, `app/index.tsx`, `utils/onboarding_nav.ts`.
+All `router.push`, `router.replace`, `backOrReplace`, and `Redirect href` calls referencing these routes updated in: `add_account/add_account.hook.ts`, `more_accounts/more_accounts.hook.ts`, `security/security.hook.ts`, `currency/currency.hook.ts`, `ready/ready.hook.ts`, `app/index.tsx`, `utils/onboarding_nav.ts`.
 
 Expo Router regenerates `.expo/types` automatically on next `expo start`.
 
@@ -328,7 +328,7 @@ Expo Router regenerates `.expo/types` automatically on next `expo start`.
 
 | File | Reason |
 |---|---|
-| `utils/validation.ts` | All rules move into Zod schemas inside each `hook.ts` |
+| `utils/validation.ts` | All rules move into Zod schemas inside each `<name>.hook.ts` |
 
 ---
 
@@ -337,5 +337,5 @@ Expo Router regenerates `.expo/types` automatically on next `expo start`.
 - `constants/theme.ts`, `constants/strings.ts` — untouched
 - `db/init.ts` — untouched
 - All business logic in the global stores — only filenames change
-- Animation specs per screen — same values, same timing, moved to `anim.ts`
+- Animation specs per screen — same values, same timing, moved to `<name>.anim.ts`
 - SQLite schema, SecureStore keys, business rules — all unchanged
