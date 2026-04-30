@@ -1,6 +1,6 @@
 import { Redirect } from 'expo-router';
 
-import { type OnboardingStep, useOnboardingStore } from '@/store/onboardingStore';
+import { type OnboardingStep, useOnboardingStore } from '@/store/onboarding_store';
 
 const STEP_HREF: Record<OnboardingStep, string> = {
   O1: '/(onboarding)/welcome',

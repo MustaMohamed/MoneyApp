@@ -8,9 +8,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useAccountStore } from '@/store/accountStore';
-import { useOnboardingStore } from '@/store/onboardingStore';
-import { useFirstMountEntering } from '@/utils/useFirstMountEntering';
+import { useAccountStore } from '@/store/account_store';
+import { useOnboardingStore } from '@/store/onboarding_store';
+import { useFirstMountEntering } from '@/utils/use_first_mount_entering';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 

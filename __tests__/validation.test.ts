@@ -1,5 +1,5 @@
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/store/accountStore';
+import type { Account } from '@/store/account_store';
 import { validateAccountForm, type ValidationValues } from '@/utils/validation';
 
 const baseValues = (overrides: Partial<ValidationValues> = {}): ValidationValues => ({

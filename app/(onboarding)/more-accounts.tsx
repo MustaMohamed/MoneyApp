@@ -9,8 +9,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { type Account, type AccountType, useAccountStore } from '@/store/accountStore';
-import { useOnboardingStore } from '@/store/onboardingStore';
+import { type Account, type AccountType, useAccountStore } from '@/store/account_store';
+import { useOnboardingStore } from '@/store/onboarding_store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

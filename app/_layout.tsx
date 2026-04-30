@@ -12,7 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
 import { initDatabase } from '@/db/init';
-import { loadOnboardingState } from '@/store/onboardingStore';
+import { loadOnboardingState } from '@/store/onboarding_store';
 
 SplashScreen.preventAutoHideAsync();
 

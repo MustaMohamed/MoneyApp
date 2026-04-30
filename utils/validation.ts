@@ -1,5 +1,5 @@
 import { Strings } from '@/constants/strings';
-import type { Account, AccountType } from '@/store/accountStore';
+import type { Account, AccountType } from '@/store/account_store';
 
 export type ValidationValues = {
   name: string;

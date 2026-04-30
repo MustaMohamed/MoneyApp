@@ -8,8 +8,8 @@ import { GeoIllustration } from '@/components/GeoIllustration';
 import { ProgressDots } from '@/components/ProgressDots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useOnboardingStore } from '@/store/onboardingStore';
-import { useFirstMountEntering } from '@/utils/useFirstMountEntering';
+import { useOnboardingStore } from '@/store/onboarding_store';
+import { useFirstMountEntering } from '@/utils/use_first_mount_entering';
 
 export default function WelcomeScreen() {
   const router = useRouter();

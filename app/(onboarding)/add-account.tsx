@@ -25,9 +25,9 @@ import {
   TouchSize,
   Type,
 } from '@/constants/theme';
-import { type AccountType, useAccountStore } from '@/store/accountStore';
-import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
-import { backOrReplace } from '@/utils/onboardingNav';
+import { type AccountType, useAccountStore } from '@/store/account_store';
+import { type Currency, useOnboardingStore } from '@/store/onboarding_store';
+import { backOrReplace } from '@/utils/onboarding_nav';
 import { validateAccountForm, type FieldErrors } from '@/utils/validation';
 
 const hitSlop = {
