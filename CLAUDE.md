@@ -1,5 +1,11 @@
 # MoneyApp — Project Reference
 
+## Workflow Rules
+
+- **Always create a new git branch before starting any new work.** Never commit directly to `main`. Every feature, refactor, or fix gets its own branch (e.g., `refactor/database-module`, `feat/transactions`). Create and switch to the branch before making any file changes.
+
+---
+
 MoneyApp is a React Native (Expo) personal finance app for tracking expenses, accounts, budgets, bills, debt, and saving goals. All data is stored locally on device — no bank connections.
 
 ---
