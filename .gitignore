@@ -54,4 +54,7 @@ app-example
 # git worktrees
 .worktrees/
 
+# Superpowers brainstorming sessions
+.superpowers/
+
 /.vscode
