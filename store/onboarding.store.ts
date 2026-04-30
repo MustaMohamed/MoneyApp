@@ -1,10 +1,12 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
-import { setSetting } from '@/database/app_settings';
-import { getDb } from '@/database/client';
 import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
 import { SecureStoreKeys } from '@/constants/secure_store_keys';
+import {
+  AppSettingsRepository,
+  type IAppSettingsRepository,
+} from '@/repositories/app_settings.repository';
 
 interface OnboardingState {
   complete: boolean;
@@ -17,60 +19,62 @@ interface OnboardingState {
   completeOnboarding: () => Promise<void>;
 }
 
-export const useOnboardingStore = create<OnboardingState>((set) => ({
-  complete: false,
-  currentStep: OnboardingStep.O1,
-  baseCurrency: Currency.EGP,
-  securityChoice: undefined,
+export function createOnboardingStore(repo: IAppSettingsRepository) {
+  return create<OnboardingState>((set) => ({
+    complete: false,
+    currentStep: OnboardingStep.O1,
+    baseCurrency: Currency.EGP,
+    securityChoice: undefined,
 
-  setStep: async (step) => {
-    try {
-      await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
-      set({ currentStep: step });
-    } catch (err) {
-      console.error('[onboardingStore] setStep failed:', err);
-      throw err;
-    }
-  },
+    setStep: async (step) => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
+        set({ currentStep: step });
+      } catch (err) {
+        console.error('[onboardingStore] setStep failed:', err);
+        throw err;
+      }
+    },
 
-  setBaseCurrency: async (currency) => {
-    try {
-      await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
-      const db = await getDb();
-      await setSetting(db, 'base_currency', currency);
-      set({ baseCurrency: currency });
-    } catch (err) {
-      console.error('[onboardingStore] setBaseCurrency failed:', err);
-      throw err;
-    }
-  },
+    setBaseCurrency: async (currency) => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
+        await repo.set('base_currency', currency);
+        set({ baseCurrency: currency });
+      } catch (err) {
+        console.error('[onboardingStore] setBaseCurrency failed:', err);
+        throw err;
+      }
+    },
 
-  setSecurityChoice: async (choice) => {
-    try {
-      await SecureStore.setItemAsync(SecureStoreKeys.SecurityChoice, choice);
-      await SecureStore.setItemAsync(
-        SecureStoreKeys.SecuritySetupSkipped,
-        String(choice === SecurityChoice.Skip),
-      );
-      set({ securityChoice: choice });
-    } catch (err) {
-      console.error('[onboardingStore] setSecurityChoice failed:', err);
-      throw err;
-    }
-  },
+    setSecurityChoice: async (choice) => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.SecurityChoice, choice);
+        await SecureStore.setItemAsync(
+          SecureStoreKeys.SecuritySetupSkipped,
+          String(choice === SecurityChoice.Skip),
+        );
+        set({ securityChoice: choice });
+      } catch (err) {
+        console.error('[onboardingStore] setSecurityChoice failed:', err);
+        throw err;
+      }
+    },
 
-  completeOnboarding: async () => {
-    try {
-      await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
-      const db = await getDb();
-      await setSetting(db, 'onboarding_complete', 'true');
-      set({ complete: true });
-    } catch (err) {
-      console.error('[onboardingStore] completeOnboarding failed:', err);
-      throw err;
-    }
-  },
-}));
+    completeOnboarding: async () => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
+        await repo.set('onboarding_complete', 'true');
+        set({ complete: true });
+      } catch (err) {
+        console.error('[onboardingStore] completeOnboarding failed:', err);
+        throw err;
+      }
+    },
+  }));
+}
+
+export const useOnboardingStore = createOnboardingStore(new AppSettingsRepository());
 
 export async function loadOnboardingState(): Promise<{
   complete: boolean;

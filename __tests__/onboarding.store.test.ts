@@ -1,26 +1,32 @@
-// TC-05 / TC-06 / TC-13 — onboardingStore writes to SecureStore (and DB
-// app_settings where applicable) before flipping the in-memory state, and
-// loadOnboardingState rehydrates the four persisted keys on launch.
+// TC-03 / TC-05 / TC-06 / TC-13 — onboarding store writes to SecureStore
+// (and repo for DB-backed settings). loadOnboardingState rehydrates from SecureStore.
 
 import * as SecureStore from 'expo-secure-store';
-import * as SQLite from 'expo-sqlite';
 
-import { loadOnboardingState, useOnboardingStore } from '@/store/onboarding.store';
+import {
+  createOnboardingStore,
+  loadOnboardingState,
+  useOnboardingStore,
+} from '@/store/onboarding.store';
+import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
 
-const sqlite = SQLite as unknown as {
-  __fakeDb: { runAsync: jest.Mock; execAsync: jest.Mock };
-  __reset: () => void;
-};
 const secure = SecureStore as unknown as {
   setItemAsync: jest.Mock;
   getItemAsync: jest.Mock;
   __reset: () => void;
 };
 
+function makeRepo(): IAppSettingsRepository {
+  return {
+    get: jest.fn().mockResolvedValue(null),
+    set: jest.fn().mockResolvedValue(undefined),
+  };
+}
+
 beforeEach(() => {
-  sqlite.__reset();
   secure.__reset();
+  jest.clearAllMocks();
   useOnboardingStore.setState({
     complete: false,
     currentStep: OnboardingStep.O1,
@@ -31,63 +37,67 @@ beforeEach(() => {
 
 describe('onboardingStore.setStep — TC-03', () => {
   it('writes onboarding_step to SecureStore then updates state', async () => {
-    await useOnboardingStore.getState().setStep(OnboardingStep.O3);
-
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().setStep(OnboardingStep.O3);
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'O3');
-    expect(useOnboardingStore.getState().currentStep).toBe(OnboardingStep.O3);
+    expect(store.getState().currentStep).toBe(OnboardingStep.O3);
   });
 });
 
 describe('onboardingStore.setBaseCurrency — TC-05', () => {
-  it('writes both SecureStore and app_settings DB before updating state', async () => {
-    await useOnboardingStore.getState().setBaseCurrency(Currency.USD);
-
+  it('writes SecureStore and repo.set before updating state', async () => {
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().setBaseCurrency(Currency.USD);
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'USD');
-    expect(sqlite.__fakeDb.runAsync).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT OR REPLACE INTO app_settings'),
-      'base_currency',
-      'USD',
-    );
-    expect(useOnboardingStore.getState().baseCurrency).toBe(Currency.USD);
+    expect(repo.set).toHaveBeenCalledWith('base_currency', 'USD');
+    expect(store.getState().baseCurrency).toBe(Currency.USD);
   });
 
   it('persists EGP on the same path', async () => {
-    await useOnboardingStore.getState().setBaseCurrency(Currency.EGP);
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().setBaseCurrency(Currency.EGP);
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'EGP');
+    expect(repo.set).toHaveBeenCalledWith('base_currency', 'EGP');
   });
 });
 
 describe('onboardingStore.setSecurityChoice — TC-06', () => {
   it('PIN choice → security_setup_skipped is "false"', async () => {
-    await useOnboardingStore.getState().setSecurityChoice(SecurityChoice.Pin);
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().setSecurityChoice(SecurityChoice.Pin);
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_choice', 'pin');
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'false');
-    expect(useOnboardingStore.getState().securityChoice).toBe(SecurityChoice.Pin);
+    expect(store.getState().securityChoice).toBe(SecurityChoice.Pin);
   });
 
   it('biometric choice → security_setup_skipped is "false"', async () => {
-    await useOnboardingStore.getState().setSecurityChoice(SecurityChoice.Biometric);
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().setSecurityChoice(SecurityChoice.Biometric);
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'false');
   });
 
   it('skip choice → security_setup_skipped is "true"', async () => {
-    await useOnboardingStore.getState().setSecurityChoice(SecurityChoice.Skip);
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().setSecurityChoice(SecurityChoice.Skip);
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'true');
-    expect(useOnboardingStore.getState().securityChoice).toBe(SecurityChoice.Skip);
+    expect(store.getState().securityChoice).toBe(SecurityChoice.Skip);
   });
 });
 
 describe('onboardingStore.completeOnboarding — TC-13', () => {
-  it('writes SecureStore + app_settings DB then sets complete=true', async () => {
-    await useOnboardingStore.getState().completeOnboarding();
-
+  it('writes SecureStore + repo.set then sets complete=true', async () => {
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    await store.getState().completeOnboarding();
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_complete', 'true');
-    expect(sqlite.__fakeDb.runAsync).toHaveBeenCalledWith(
-      expect.stringContaining('INSERT OR REPLACE INTO app_settings'),
-      'onboarding_complete',
-      'true',
-    );
-    expect(useOnboardingStore.getState().complete).toBe(true);
+    expect(repo.set).toHaveBeenCalledWith('onboarding_complete', 'true');
+    expect(store.getState().complete).toBe(true);
   });
 });
 
@@ -118,10 +128,9 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
     });
   });
 
-  it('returns complete:true and skips dashboard when onboarding_complete=true', async () => {
+  it('returns complete:true when onboarding_complete=true', async () => {
     await secure.setItemAsync('onboarding_complete', 'true');
     await secure.setItemAsync('onboarding_step', 'O6');
-
     const result = await loadOnboardingState();
     expect(result.complete).toBe(true);
   });
