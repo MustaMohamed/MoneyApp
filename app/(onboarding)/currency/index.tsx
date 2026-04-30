@@ -1,23 +1,16 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ProgressDots } from '@/components/ProgressDots';
+import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import { type Currency, useOnboardingStore } from '@/store/onboardingStore';
-import { backOrReplace } from '@/utils/onboardingNav';
+import type { Currency } from '@/store/onboarding_store';
+
+import { useCurrencyRowAnim } from './currency.anim';
+import { useCurrency } from './currency.hook';
 
 type RowConfig = {
   code: Currency;
@@ -42,26 +35,12 @@ const ROWS: RowConfig[] = [
 ];
 
 export default function CurrencyScreen() {
-  const router = useRouter();
-  const setStep = useOnboardingStore((s) => s.setStep);
-  const setBaseCurrency = useOnboardingStore((s) => s.setBaseCurrency);
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
-  const [selected, setSelected] = useState<Currency>(baseCurrency);
-
-  const onContinue = async () => {
-    await setBaseCurrency(selected);
-    await setStep('O3');
-    router.push('/(onboarding)/security');
-  };
+  const { selected, setSelected, onContinue, onBack } = useCurrency();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
-          onPress={() => backOrReplace(router, '/(onboarding)/welcome')}
-          style={styles.back}
-          hitSlop={hitSlop}
-        >
+        <Pressable onPress={onBack} style={styles.back} hitSlop={hitSlop}>
           <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o2Title}</Text>
@@ -125,36 +104,12 @@ function CurrencyRow({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const scale = useSharedValue(1);
-  const borderProgress = useSharedValue(isSelected ? 1 : 0);
-  const checkScale = useSharedValue(isSelected ? 1 : 0);
-
-  useEffect(() => {
-    if (isSelected) {
-      borderProgress.value = withTiming(1, { duration: 200 });
-      checkScale.value = withSpring(1, { damping: 12, stiffness: 180 });
-    } else {
-      borderProgress.value = withTiming(0, { duration: 150 });
-      checkScale.value = withTiming(0, { duration: 120 });
-    }
-  }, [isSelected, borderProgress, checkScale]);
+  const { rowAnim, checkAnim, triggerRowTap } = useCurrencyRowAnim(isSelected);
 
   const handlePress = () => {
-    scale.value = withSequence(
-      withTiming(1.02, { duration: 80 }),
-      withTiming(1.0, { duration: 120 }),
-    );
+    triggerRowTap();
     onSelect();
   };
-
-  const rowAnim = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    borderColor: interpolateColor(borderProgress.value, [0, 1], ['#2A3A4F', '#C9973A']),
-  }));
-
-  const checkAnim = useAnimatedStyle(() => ({
-    transform: [{ scale: checkScale.value }],
-  }));
 
   return (
     <Animated.View style={[styles.rowAnimated, rowAnim]}>

@@ -1,15 +1,8 @@
-import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import { Size, Spacing } from '@/constants/theme';
+import { useDotAnim } from './progress_dots.anim';
 
 type Props = { totalSteps: number; currentStep: number };
 
@@ -24,23 +17,7 @@ export function ProgressDots({ totalSteps, currentStep }: Props) {
 }
 
 function Dot({ isActive }: { isActive: boolean }) {
-  const scale = useSharedValue(1);
-  const colorProgress = useSharedValue(isActive ? 1 : 0);
-
-  useEffect(() => {
-    if (isActive) {
-      scale.value = withSequence(withSpring(1.3, { damping: 8 }), withSpring(1.0, { damping: 12 }));
-      colorProgress.value = withTiming(1, { duration: 200 });
-    } else {
-      colorProgress.value = withTiming(0, { duration: 200 });
-    }
-  }, [isActive, scale, colorProgress]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    backgroundColor: interpolateColor(colorProgress.value, [0, 1], ['#243044', '#C9973A']),
-  }));
-
+  const { animStyle } = useDotAnim(isActive);
   return <Animated.View style={[styles.dot, animStyle]} />;
 }
 

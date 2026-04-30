@@ -71,6 +71,12 @@ export const Strings = {
   errCreditLimitRequired: 'Credit limit is required for credit cards',
   errAprRequired: "Please enter your card's APR",
 
+  // Generic Zod error map fallbacks
+  errRequired: 'This field is required',
+  errTooShort: 'Too short',
+  errTooLong: 'Too long',
+  errInvalid: 'Invalid value',
+
   // Account types
   typeBank: 'Bank',
   typeSmartWallet: 'Smart Wallet',

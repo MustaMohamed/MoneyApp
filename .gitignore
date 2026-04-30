@@ -46,3 +46,6 @@ app-example
 /android
 
 /.idea
+
+# git worktrees
+.worktrees/

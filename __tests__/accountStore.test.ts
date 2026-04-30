@@ -7,7 +7,7 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { SCHEMA_SQL } from '@/db/init';
-import { useAccountStore } from '@/store/accountStore';
+import { useAccountStore } from '@/store/account_store';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 

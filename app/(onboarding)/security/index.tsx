@@ -1,24 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, {
-  FadeIn,
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ProgressDots } from '@/components/ProgressDots';
+import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import { type SecurityChoice, useOnboardingStore } from '@/store/onboardingStore';
-import { backOrReplace } from '@/utils/onboardingNav';
+import type { SecurityChoice } from '@/store/onboarding_store';
+import { useSecurity } from './security.hook';
+import { useSecurityPillAnim } from './security.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -78,29 +69,13 @@ const hitSlop = {
 };
 
 export default function SecurityScreen() {
-  const router = useRouter();
-  const setStep = useOnboardingStore((s) => s.setStep);
-  const setSecurityChoice = useOnboardingStore((s) => s.setSecurityChoice);
-  const savedChoice = useOnboardingStore((s) => s.securityChoice);
-  const [selected, setSelected] = useState<SecurityChoice | null>(savedChoice);
-
-  const onContinue = async () => {
-    if (selected === null) return;
-    await setSecurityChoice(selected);
-    await setStep('O4');
-    router.push('/(onboarding)/add-account');
-  };
-
+  const { selected, setSelected, onContinue, onBack } = useSecurity();
   const ctaDisabled = selected === null;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable
-          onPress={() => backOrReplace(router, '/(onboarding)/currency')}
-          style={styles.back}
-          hitSlop={hitSlop}
-        >
+        <Pressable onPress={onBack} style={styles.back} hitSlop={hitSlop}>
           <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.o3Title}</Text>
@@ -159,28 +134,7 @@ function SecurityPill({
   isSelected: boolean;
   onSelect: () => void;
 }) {
-  const borderProgress = useSharedValue(isSelected ? 1 : 0);
-  const iconScale = useSharedValue(1);
-
-  useEffect(() => {
-    if (isSelected) {
-      borderProgress.value = withTiming(1, { duration: 200 });
-      iconScale.value = withSequence(
-        withSpring(1.08, { damping: 6, stiffness: 200 }),
-        withSpring(1.0, { damping: 10 }),
-      );
-    } else {
-      borderProgress.value = withTiming(0, { duration: 150 });
-    }
-  }, [isSelected, borderProgress, iconScale]);
-
-  const pillAnim = useAnimatedStyle(() => ({
-    borderColor: interpolateColor(borderProgress.value, [0, 1], ['#2A3A4F', '#C9973A']),
-  }));
-
-  const iconAnim = useAnimatedStyle(() => ({
-    transform: [{ scale: iconScale.value }],
-  }));
+  const { pillAnim, iconAnim } = useSecurityPillAnim(isSelected);
 
   return (
     <Animated.View style={[styles.pill, pillAnim]}>

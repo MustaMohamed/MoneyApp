@@ -9,10 +9,10 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-import { initDatabase } from '@/db/init';
-import { loadOnboardingState } from '@/store/onboardingStore';
+import { useLayoutStore } from './_layout.store';
+import { useLayoutInit } from './_layout.hook';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -27,21 +27,8 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        await initDatabase();
-        await loadOnboardingState();
-      } catch {
-        // DB or SecureStore failure — surface splash and let the app render
-        // in a degraded state rather than hanging forever on a blank screen.
-      } finally {
-        setReady(true);
-      }
-    })();
-  }, []);
+  const ready = useLayoutStore((s) => s.ready);
+  useLayoutInit();
 
   useEffect(() => {
     if (fontsLoaded && ready) {

@@ -1,13 +1,13 @@
 import { Redirect, Stack } from 'expo-router';
 
-import { useOnboardingStore } from '@/store/onboardingStore';
+import { useOnboardingStore } from '@/store/onboarding_store';
 
 export type OnboardingStackParams = {
   welcome: undefined;
   currency: undefined;
   security: undefined;
-  'add-account': { isAddingMore?: boolean };
-  'more-accounts': undefined;
+  add_account: { isAddingMore?: boolean };
+  more_accounts: undefined;
   ready: undefined;
 };
 
