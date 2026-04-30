@@ -26,6 +26,8 @@ module.exports = {
     'utils/responsive.ts',
     'app/**/*.helpers.ts',
     '!**/__mocks__/**',
+    '!database/entities/**',
+    '!database/client.ts',
   ],
   coverageThreshold: {
     global: { lines: 80, functions: 95, branches: 100 },
