@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useSecurityStore } from './security.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
-import type { SecurityChoice } from '@/store/onboarding.store';
+import { OnboardingStep, SecurityChoice } from '@/constants/enums';
 import { canProceed } from './security.helpers';
 
 export function useSecurity() {
@@ -14,12 +14,12 @@ export function useSecurity() {
   const setSelected = useSecurityStore((s) => s.setSelected);
 
   // Fall back to globally saved choice on cold start / resume
-  const selected: SecurityChoice | null = storeSelected ?? savedChoice;
+  const selected: SecurityChoice | undefined = storeSelected ?? savedChoice;
 
   const onContinue = async () => {
     if (!canProceed(selected)) return;
     await setSecurityChoice(selected);
-    await setStep('O4');
+    await setStep(OnboardingStep.O4);
     router.push('/(onboarding)/add_account');
   };
 

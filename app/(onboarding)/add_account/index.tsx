@@ -16,8 +16,7 @@ import {
   TouchSize,
   Type,
 } from '@/constants/theme';
-import type { AccountType } from '@/store/account.store';
-import type { Currency } from '@/store/onboarding.store';
+import { AccountType, Currency } from '@/constants/enums';
 import { useAddAccount } from './add_account.hook';
 import { useAddAccountAnim, useTypePillAnim } from './add_account.anim';
 
@@ -25,14 +24,19 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 type TypeOption = { type: AccountType; icon: IconName; label: string; fullWidth?: boolean };
 
 const TYPE_OPTIONS: TypeOption[] = [
-  { type: 'bank', icon: 'bank', label: Strings.typeBank },
-  { type: 'smart_wallet', icon: 'cellphone-nfc', label: Strings.typeSmartWallet },
-  { type: 'physical_wallet', icon: 'wallet', label: Strings.typePhysicalWallet },
-  { type: 'physical_savings', icon: 'piggy-bank', label: Strings.typePhysicalSavings },
-  { type: 'credit_card', icon: 'credit-card', label: Strings.typeCreditCard, fullWidth: true },
+  { type: AccountType.Bank, icon: 'bank', label: Strings.typeBank },
+  { type: AccountType.SmartWallet, icon: 'cellphone-nfc', label: Strings.typeSmartWallet },
+  { type: AccountType.PhysicalWallet, icon: 'wallet', label: Strings.typePhysicalWallet },
+  { type: AccountType.PhysicalSavings, icon: 'piggy-bank', label: Strings.typePhysicalSavings },
+  {
+    type: AccountType.CreditCard,
+    icon: 'credit-card',
+    label: Strings.typeCreditCard,
+    fullWidth: true,
+  },
 ];
 
-const CURRENCY_OPTIONS: Currency[] = ['EGP', 'USD'];
+const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
 
 const hitSlop = {
   top: TouchSize.min / 4,
@@ -61,7 +65,7 @@ export default function AddAccountScreen() {
   const selectedColor = useWatch({ control, name: 'selected_color' });
   const selectedCurrency = useWatch({ control, name: 'currency' });
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
-  const isCreditCard = selectedType === 'credit_card';
+  const isCreditCard = selectedType === AccountType.CreditCard;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -137,7 +141,7 @@ export default function AddAccountScreen() {
                     { color: selectedCurrency === code ? '#C9973A' : '#6B7F99' },
                   ]}
                 >
-                  {code === 'EGP' ? Strings.currencyEGPCode : Strings.currencyUSDCode}
+                  {code === Currency.EGP ? Strings.currencyEGPCode : Strings.currencyUSDCode}
                 </Text>
               </Pressable>
             ))}

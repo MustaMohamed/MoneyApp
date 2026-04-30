@@ -2,6 +2,7 @@ import { useCallback, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
+import { OnboardingStep } from '@/constants/enums';
 
 export function useMoreAccounts() {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function useMoreAccounts() {
   };
 
   const handleDone = async () => {
-    await setStep('O6');
+    await setStep(OnboardingStep.O6);
     router.push('/(onboarding)/ready');
   };
 

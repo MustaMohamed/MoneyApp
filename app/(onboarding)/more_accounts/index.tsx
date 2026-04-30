@@ -7,26 +7,27 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { type Account, type AccountType } from '@/store/account.store';
+import { AccountType } from '@/constants/enums';
+import type { Account } from '@/store/account.store';
 import { useMoreAccounts } from './more_accounts.hook';
 import { useMoreAccountsAnim } from './more_accounts.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const TYPE_ICONS: Record<AccountType, IconName> = {
-  bank: 'bank',
-  smart_wallet: 'cellphone-nfc',
-  physical_wallet: 'wallet',
-  physical_savings: 'piggy-bank',
-  credit_card: 'credit-card',
+  [AccountType.Bank]: 'bank',
+  [AccountType.SmartWallet]: 'cellphone-nfc',
+  [AccountType.PhysicalWallet]: 'wallet',
+  [AccountType.PhysicalSavings]: 'piggy-bank',
+  [AccountType.CreditCard]: 'credit-card',
 };
 
 const TYPE_LABELS: Record<AccountType, string> = {
-  bank: Strings.typeBank,
-  smart_wallet: Strings.typeSmartWallet,
-  physical_wallet: Strings.typePhysicalWallet,
-  physical_savings: Strings.typePhysicalSavings,
-  credit_card: Strings.typeCreditCard,
+  [AccountType.Bank]: Strings.typeBank,
+  [AccountType.SmartWallet]: Strings.typeSmartWallet,
+  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet,
+  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings,
+  [AccountType.CreditCard]: Strings.typeCreditCard,
 };
 
 export default function MoreAccountsScreen() {
@@ -126,7 +127,7 @@ function AccountRow({
       <Text
         style={[
           styles.rowBalance,
-          { color: account.type === 'credit_card' ? '#E05A42' : '#4CAF82' },
+          { color: account.type === AccountType.CreditCard ? '#E05A42' : '#4CAF82' },
         ]}
       >
         {formattedBalance}

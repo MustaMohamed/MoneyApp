@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import type { Currency } from '@/store/onboarding.store';
+import { Currency } from '@/constants/enums';
 
 import { useCurrencyRowAnim } from './currency.anim';
 import { useCurrency } from './currency.hook';
@@ -21,13 +21,13 @@ type RowConfig = {
 
 const ROWS: RowConfig[] = [
   {
-    code: 'EGP',
+    code: Currency.EGP,
     label: Strings.currencyEGP,
     flag: '🇪🇬',
     flagBg: 'rgba(201,151,58,0.12)',
   },
   {
-    code: 'USD',
+    code: Currency.USD,
     label: Strings.currencyUSD,
     flag: '🇺🇸',
     flagBg: 'rgba(55,138,221,0.10)',

@@ -6,6 +6,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as SQLite from 'expo-sqlite';
 
 import { loadOnboardingState, useOnboardingStore } from '@/store/onboarding.store';
+import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
 
 const sqlite = SQLite as unknown as {
   __fakeDb: { runAsync: jest.Mock; execAsync: jest.Mock };
@@ -22,24 +23,24 @@ beforeEach(() => {
   secure.__reset();
   useOnboardingStore.setState({
     complete: false,
-    currentStep: 'O1',
-    baseCurrency: 'EGP',
-    securityChoice: null,
+    currentStep: OnboardingStep.O1,
+    baseCurrency: Currency.EGP,
+    securityChoice: undefined,
   });
 });
 
 describe('onboardingStore.setStep — TC-03', () => {
   it('writes onboarding_step to SecureStore then updates state', async () => {
-    await useOnboardingStore.getState().setStep('O3');
+    await useOnboardingStore.getState().setStep(OnboardingStep.O3);
 
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'O3');
-    expect(useOnboardingStore.getState().currentStep).toBe('O3');
+    expect(useOnboardingStore.getState().currentStep).toBe(OnboardingStep.O3);
   });
 });
 
 describe('onboardingStore.setBaseCurrency — TC-05', () => {
   it('writes both SecureStore and app_settings DB before updating state', async () => {
-    await useOnboardingStore.getState().setBaseCurrency('USD');
+    await useOnboardingStore.getState().setBaseCurrency(Currency.USD);
 
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'USD');
     expect(sqlite.__fakeDb.runAsync).toHaveBeenCalledWith(
@@ -47,32 +48,32 @@ describe('onboardingStore.setBaseCurrency — TC-05', () => {
       'base_currency',
       'USD',
     );
-    expect(useOnboardingStore.getState().baseCurrency).toBe('USD');
+    expect(useOnboardingStore.getState().baseCurrency).toBe(Currency.USD);
   });
 
   it('persists EGP on the same path', async () => {
-    await useOnboardingStore.getState().setBaseCurrency('EGP');
+    await useOnboardingStore.getState().setBaseCurrency(Currency.EGP);
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'EGP');
   });
 });
 
 describe('onboardingStore.setSecurityChoice — TC-06', () => {
   it('PIN choice → security_setup_skipped is "false"', async () => {
-    await useOnboardingStore.getState().setSecurityChoice('pin');
+    await useOnboardingStore.getState().setSecurityChoice(SecurityChoice.Pin);
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_choice', 'pin');
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'false');
-    expect(useOnboardingStore.getState().securityChoice).toBe('pin');
+    expect(useOnboardingStore.getState().securityChoice).toBe(SecurityChoice.Pin);
   });
 
   it('biometric choice → security_setup_skipped is "false"', async () => {
-    await useOnboardingStore.getState().setSecurityChoice('biometric');
+    await useOnboardingStore.getState().setSecurityChoice(SecurityChoice.Biometric);
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'false');
   });
 
   it('skip choice → security_setup_skipped is "true"', async () => {
-    await useOnboardingStore.getState().setSecurityChoice('skip');
+    await useOnboardingStore.getState().setSecurityChoice(SecurityChoice.Skip);
     expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'true');
-    expect(useOnboardingStore.getState().securityChoice).toBe('skip');
+    expect(useOnboardingStore.getState().securityChoice).toBe(SecurityChoice.Skip);
   });
 });
 
@@ -93,12 +94,12 @@ describe('onboardingStore.completeOnboarding — TC-13', () => {
 describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await loadOnboardingState();
-    expect(result).toEqual({ complete: false, step: 'O1' });
+    expect(result).toEqual({ complete: false, step: OnboardingStep.O1 });
     expect(useOnboardingStore.getState()).toMatchObject({
       complete: false,
-      currentStep: 'O1',
-      baseCurrency: 'EGP',
-      securityChoice: null,
+      currentStep: OnboardingStep.O1,
+      baseCurrency: Currency.EGP,
+      securityChoice: undefined,
     });
   });
 
@@ -108,12 +109,12 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
     await secure.setItemAsync('security_choice', 'biometric');
 
     const result = await loadOnboardingState();
-    expect(result).toEqual({ complete: false, step: 'O4' });
+    expect(result).toEqual({ complete: false, step: OnboardingStep.O4 });
     expect(useOnboardingStore.getState()).toMatchObject({
       complete: false,
-      currentStep: 'O4',
-      baseCurrency: 'USD',
-      securityChoice: 'biometric',
+      currentStep: OnboardingStep.O4,
+      baseCurrency: Currency.USD,
+      securityChoice: SecurityChoice.Biometric,
     });
   });
 
@@ -131,11 +132,11 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
     await secure.setItemAsync('security_choice', 'face_id');
 
     const result = await loadOnboardingState();
-    expect(result.step).toBe('O1');
+    expect(result.step).toBe(OnboardingStep.O1);
     expect(useOnboardingStore.getState()).toMatchObject({
-      currentStep: 'O1',
-      baseCurrency: 'EGP',
-      securityChoice: null,
+      currentStep: OnboardingStep.O1,
+      baseCurrency: Currency.EGP,
+      securityChoice: undefined,
     });
   });
 });

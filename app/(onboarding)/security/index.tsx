@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import type { SecurityChoice } from '@/store/onboarding.store';
+import { SecurityChoice } from '@/constants/enums';
 import { useSecurity } from './security.hook';
 import { useSecurityPillAnim } from './security.anim';
 
@@ -27,7 +27,7 @@ type PillConfig = {
 
 const PILLS: PillConfig[] = [
   {
-    choice: 'pin',
+    choice: SecurityChoice.Pin,
     icon: 'lock',
     iconBg: 'rgba(201,151,58,0.12)',
     iconColor: '#C9973A',
@@ -38,7 +38,7 @@ const PILLS: PillConfig[] = [
     showBadge: true,
   },
   {
-    choice: 'biometric',
+    choice: SecurityChoice.Biometric,
     icon: 'fingerprint',
     iconBg: 'rgba(55,138,221,0.10)',
     iconColor: '#378ADD',
@@ -49,7 +49,7 @@ const PILLS: PillConfig[] = [
     showBadge: false,
   },
   {
-    choice: 'skip',
+    choice: SecurityChoice.Skip,
     icon: 'chevron-right',
     iconBg: '#243044',
     iconColor: '#6B7F99',
@@ -70,7 +70,7 @@ const hitSlop = {
 
 export default function SecurityScreen() {
   const { selected, setSelected, onContinue, onBack } = useSecurity();
-  const ctaDisabled = selected === null;
+  const ctaDisabled = selected === undefined;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

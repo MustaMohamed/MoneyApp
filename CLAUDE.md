@@ -1,5 +1,11 @@
 # MoneyApp — Claude Code Project Context
 
+## Coding Conventions
+
+- Use `null` only for DB-mapped nullable columns. Use `undefined` for all other absent values in TypeScript code.
+
+---
+
 ## What This Project Is
 
 MoneyApp is a React Native (Expo) personal finance app. It helps users track
