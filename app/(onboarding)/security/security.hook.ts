@@ -3,6 +3,7 @@ import { useSecurityStore } from './security.store';
 import { useOnboardingStore } from '@/store/onboarding_store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import type { SecurityChoice } from '@/store/onboarding_store';
+import { canProceed } from './security.helpers';
 
 export function useSecurity() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export function useSecurity() {
   const selected: SecurityChoice | null = storeSelected ?? savedChoice;
 
   const onContinue = async () => {
-    if (selected === null) return;
+    if (!canProceed(selected)) return;
     await setSecurityChoice(selected);
     await setStep('O4');
     router.push('/(onboarding)/add_account');
