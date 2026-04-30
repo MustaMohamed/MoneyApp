@@ -1,6 +1,8 @@
 import Database from 'better-sqlite3';
 
-import { SCHEMA_SQL } from '@/db/init';
+import { MIGRATIONS } from '@/database/migrations';
+
+const SCHEMA_SQL = MIGRATIONS.map((m) => m.up).join('\n');
 
 // TC-15 — verify the DDL we ship in production produces the expected
 // table shape and that the CHECK constraints actually reject invalid
