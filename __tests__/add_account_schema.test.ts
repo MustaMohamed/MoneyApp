@@ -2,7 +2,7 @@
 import '@/utils/zod_config';
 import { createAddAccountSchema } from '@/app/(onboarding)/add_account/add_account.hook';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/store/account_store';
+import type { Account } from '@/store/account.store';
 
 const emptyAccounts: Account[] = [];
 

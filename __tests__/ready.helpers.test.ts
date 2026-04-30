@@ -1,6 +1,6 @@
 import { computeTotalBalance, resolveSecurityLabel } from '@/app/(onboarding)/ready/ready.helpers';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/store/account_store';
+import type { Account } from '@/store/account.store';
 
 const account = (opening_balance: number): Account => ({
   id: '1',

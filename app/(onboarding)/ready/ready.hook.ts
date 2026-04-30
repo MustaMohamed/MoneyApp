@@ -1,5 +1,5 @@
-import { useAccountStore } from '@/store/account_store';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useAccountStore } from '@/store/account.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 import { useReadyStore } from './ready.store';
 import { Strings } from '@/constants/strings';
 import { computeTotalBalance, resolveSecurityLabel } from './ready.helpers';

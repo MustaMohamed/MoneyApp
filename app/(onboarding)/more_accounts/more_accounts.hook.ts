@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useAccountStore } from '@/store/account_store';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useAccountStore } from '@/store/account.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 export function useMoreAccounts() {
   const router = useRouter();

@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import type { Currency } from '@/store/onboarding_store';
+import type { Currency } from '@/store/onboarding.store';
 
 import { useCurrencyRowAnim } from './currency.anim';
 import { useCurrency } from './currency.hook';

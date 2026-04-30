@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Currency } from '@/store/onboarding_store';
+import type { Currency } from '@/store/onboarding.store';
 
 interface CurrencyStore {
   selected: Currency | null;

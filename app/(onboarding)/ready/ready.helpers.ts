@@ -1,6 +1,6 @@
 import { Strings } from '@/constants/strings';
-import type { SecurityChoice } from '@/store/onboarding_store';
-import type { Account } from '@/store/account_store';
+import type { SecurityChoice } from '@/store/onboarding.store';
+import type { Account } from '@/store/account.store';
 
 export function computeTotalBalance(accounts: Account[]): number {
   return accounts.reduce((sum, a) => sum + a.opening_balance, 0);

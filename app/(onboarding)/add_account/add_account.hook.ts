@@ -1,14 +1,14 @@
 import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { z } from 'zod';
-import { useAccountStore } from '@/store/account_store';
-import { useOnboardingStore } from '@/store/onboarding_store';
-import { useZodForm } from '@/utils/use_zod_form';
+import { useAccountStore } from '@/store/account.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
+import { useZodForm } from '@/utils/use_zod_form.hook';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import { AccountColors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
-import type { Account, AccountType } from '@/store/account_store';
-import type { Currency } from '@/store/onboarding_store';
+import type { Account, AccountType } from '@/store/account.store';
+import type { Currency } from '@/store/onboarding.store';
 
 export function createAddAccountSchema(accounts: Account[]) {
   return z

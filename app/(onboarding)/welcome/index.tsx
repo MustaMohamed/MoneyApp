@@ -8,7 +8,7 @@ import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 import { useWelcomeAnim } from './welcome.anim';
 
 export default function WelcomeScreen() {

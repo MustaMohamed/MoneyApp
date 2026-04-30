@@ -1,8 +1,8 @@
 import { useRouter } from 'expo-router';
 import { useSecurityStore } from './security.store';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
-import type { SecurityChoice } from '@/store/onboarding_store';
+import type { SecurityChoice } from '@/store/onboarding.store';
 import { canProceed } from './security.helpers';
 
 export function useSecurity() {

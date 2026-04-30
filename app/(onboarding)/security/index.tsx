@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import type { SecurityChoice } from '@/store/onboarding_store';
+import type { SecurityChoice } from '@/store/onboarding.store';
 import { useSecurity } from './security.hook';
 import { useSecurityPillAnim } from './security.anim';
 

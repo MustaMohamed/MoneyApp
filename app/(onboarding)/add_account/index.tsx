@@ -16,8 +16,8 @@ import {
   TouchSize,
   Type,
 } from '@/constants/theme';
-import type { AccountType } from '@/store/account_store';
-import type { Currency } from '@/store/onboarding_store';
+import type { AccountType } from '@/store/account.store';
+import type { Currency } from '@/store/onboarding.store';
 import { useAddAccount } from './add_account.hook';
 import { useAddAccountAnim, useTypePillAnim } from './add_account.anim';
 
