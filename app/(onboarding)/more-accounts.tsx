@@ -152,7 +152,14 @@ function AccountRow({
         <Text style={styles.rowType}>{typeLabel}</Text>
       </View>
 
-      <Text style={styles.rowBalance}>{formattedBalance}</Text>
+      <Text
+        style={[
+          styles.rowBalance,
+          { color: account.type === 'credit_card' ? '#E05A42' : '#4CAF82' },
+        ]}
+      >
+        {formattedBalance}
+      </Text>
     </Animated.View>
   );
 }

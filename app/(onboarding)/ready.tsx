@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ export default function ReadyScreen() {
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
   const playEntering = useFirstMountEntering('ready');
+  const [completing, setCompleting] = useState(false);
 
   const total = accounts.reduce((sum, a) => sum + a.opening_balance, 0);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -40,9 +42,15 @@ export default function ReadyScreen() {
   ];
 
   const handleComplete = async () => {
-    // Layout subscribes to `complete`; the (onboarding) layout will redirect
-    // to /dashboard automatically. Don't call router.replace here.
-    await completeOnboarding();
+    if (completing) return;
+    setCompleting(true);
+    try {
+      // Layout subscribes to `complete`; the (onboarding) layout will redirect
+      // to /dashboard automatically. Don't call router.replace here.
+      await completeOnboarding();
+    } finally {
+      setCompleting(false);
+    }
   };
 
   return (
@@ -91,7 +99,7 @@ export default function ReadyScreen() {
         entering={playEntering ? FadeInUp.delay(700).duration(400) : undefined}
         style={styles.ctaBar}
       >
-        <Pressable onPress={handleComplete} style={styles.ctaPress}>
+        <Pressable onPress={handleComplete} disabled={completing} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
             start={{ x: 0, y: 0 }}

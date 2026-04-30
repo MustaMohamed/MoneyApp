@@ -25,36 +25,56 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   securityChoice: null,
 
   setStep: async (step) => {
-    await SecureStore.setItemAsync('onboarding_step', step);
-    set({ currentStep: step });
+    try {
+      await SecureStore.setItemAsync('onboarding_step', step);
+      set({ currentStep: step });
+    } catch (err) {
+      console.error('[onboardingStore] setStep failed:', err);
+      throw err;
+    }
   },
 
   setBaseCurrency: async (currency) => {
-    await SecureStore.setItemAsync('base_currency', currency);
-    const db = await getDb();
-    await db.runAsync(
-      'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
-      'base_currency',
-      currency,
-    );
-    set({ baseCurrency: currency });
+    try {
+      await SecureStore.setItemAsync('base_currency', currency);
+      const db = await getDb();
+      await db.runAsync(
+        'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
+        'base_currency',
+        currency,
+      );
+      set({ baseCurrency: currency });
+    } catch (err) {
+      console.error('[onboardingStore] setBaseCurrency failed:', err);
+      throw err;
+    }
   },
 
   setSecurityChoice: async (choice) => {
-    await SecureStore.setItemAsync('security_choice', choice);
-    await SecureStore.setItemAsync('security_setup_skipped', String(choice === 'skip'));
-    set({ securityChoice: choice });
+    try {
+      await SecureStore.setItemAsync('security_choice', choice);
+      await SecureStore.setItemAsync('security_setup_skipped', String(choice === 'skip'));
+      set({ securityChoice: choice });
+    } catch (err) {
+      console.error('[onboardingStore] setSecurityChoice failed:', err);
+      throw err;
+    }
   },
 
   completeOnboarding: async () => {
-    await SecureStore.setItemAsync('onboarding_complete', 'true');
-    const db = await getDb();
-    await db.runAsync(
-      'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
-      'onboarding_complete',
-      'true',
-    );
-    set({ complete: true });
+    try {
+      await SecureStore.setItemAsync('onboarding_complete', 'true');
+      const db = await getDb();
+      await db.runAsync(
+        'INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)',
+        'onboarding_complete',
+        'true',
+      );
+      set({ complete: true });
+    } catch (err) {
+      console.error('[onboardingStore] completeOnboarding failed:', err);
+      throw err;
+    }
   },
 }));
 

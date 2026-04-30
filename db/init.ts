@@ -32,14 +32,17 @@ export const SCHEMA_SQL = `
   );
 `;
 
-let dbInstance: SQLite.SQLiteDatabase | null = null;
+let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
-export async function getDb(): Promise<SQLite.SQLiteDatabase> {
-  if (dbInstance) return dbInstance;
-  const db = await SQLite.openDatabaseAsync('moneyapp.db');
-  await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-  dbInstance = db;
-  return dbInstance;
+export function getDb(): Promise<SQLite.SQLiteDatabase> {
+  if (!dbPromise) {
+    dbPromise = (async () => {
+      const db = await SQLite.openDatabaseAsync('moneyapp.db');
+      await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+      return db;
+    })();
+  }
+  return dbPromise;
 }
 
 export async function initDatabase(): Promise<void> {
@@ -47,13 +50,3 @@ export async function initDatabase(): Promise<void> {
   await db.execAsync(SCHEMA_SQL);
 }
 
-async function verifySchema(): Promise<void> {
-  const db = await getDb();
-  const rows = await db.getAllAsync<{ name: string }>(
-    "SELECT name FROM sqlite_master WHERE type='table'",
-  );
-  console.log(
-    'Tables:',
-    rows.map((r) => r.name),
-  );
-}

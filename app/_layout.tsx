@@ -31,9 +31,15 @@ export default function RootLayout() {
 
   useEffect(() => {
     (async () => {
-      await initDatabase();
-      await loadOnboardingState();
-      setReady(true);
+      try {
+        await initDatabase();
+        await loadOnboardingState();
+      } catch {
+        // DB or SecureStore failure — surface splash and let the app render
+        // in a degraded state rather than hanging forever on a blank screen.
+      } finally {
+        setReady(true);
+      }
     })();
   }, []);
 
