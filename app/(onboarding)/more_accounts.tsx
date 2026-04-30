@@ -52,7 +52,7 @@ export default function MoreAccountsScreen() {
 
   const handleAddAnother = () => {
     router.push({
-      pathname: '/(onboarding)/add-account',
+      pathname: '/(onboarding)/add_account',
       params: { isAddingMore: 'true' },
     });
   };
