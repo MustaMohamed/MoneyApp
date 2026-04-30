@@ -19,7 +19,7 @@ export function useSecurity() {
     if (selected === null) return
     await setSecurityChoice(selected)
     await setStep('O4')
-    router.push('/(onboarding)/add-account')
+    router.push('/(onboarding)/add_account')
   }
 
   const onBack = () => backOrReplace(router, '/(onboarding)/currency')
