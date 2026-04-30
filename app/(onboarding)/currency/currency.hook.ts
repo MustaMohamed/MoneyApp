@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useCurrencyStore } from './currency.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
-import type { Currency } from '@/store/onboarding.store';
+import { Currency, OnboardingStep } from '@/constants/enums';
 
 export function useCurrency() {
   const router = useRouter();
@@ -17,7 +17,7 @@ export function useCurrency() {
 
   const onContinue = async () => {
     await setBaseCurrency(selected);
-    await setStep('O3');
+    await setStep(OnboardingStep.O3);
     router.push('/(onboarding)/security');
   };
 

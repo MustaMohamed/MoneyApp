@@ -1,5 +1,5 @@
-import type { SecurityChoice } from '@/store/onboarding.store';
+import type { SecurityChoice } from '@/constants/enums';
 
-export function canProceed(selected: SecurityChoice | null): selected is SecurityChoice {
-  return selected !== null;
+export function canProceed(selected: SecurityChoice | undefined): selected is SecurityChoice {
+  return selected !== undefined;
 }

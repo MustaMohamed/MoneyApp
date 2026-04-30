@@ -2,19 +2,13 @@ import uuid from 'react-native-uuid';
 import { create } from 'zustand';
 
 import { getDb } from '@/db/init';
-
-export type AccountType =
-  | 'bank'
-  | 'smart_wallet'
-  | 'physical_wallet'
-  | 'physical_savings'
-  | 'credit_card';
+import { AccountType, Currency } from '@/constants/enums';
 
 export interface Account {
   id: string;
   name: string;
   type: AccountType;
-  currency: 'EGP' | 'USD';
+  currency: Currency;
   opening_balance: number;
   current_balance: number;
   color: string | null;

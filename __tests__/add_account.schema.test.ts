@@ -1,6 +1,7 @@
 // Run zod_config side-effect before any test so the global error map is set
 import '@/utils/zod_config';
 import { createAddAccountSchema } from '@/app/(onboarding)/add_account/add_account.hook';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/store/account.store';
 
@@ -9,8 +10,8 @@ const emptyAccounts: Account[] = [];
 const accountFixture = (name: string): Account => ({
   id: name,
   name,
-  type: 'bank',
-  currency: 'EGP',
+  type: AccountType.Bank,
+  currency: Currency.EGP,
   opening_balance: 0,
   current_balance: 0,
   color: null,
@@ -29,9 +30,9 @@ const accountFixture = (name: string): Account => ({
 const baseData = (overrides: Record<string, unknown> = {}) => ({
   name: 'My Account',
   balance: '1000',
-  selected_type: 'bank',
+  selected_type: AccountType.Bank,
   selected_color: '#1B2B4B',
-  currency: 'EGP',
+  currency: Currency.EGP,
   interest_tracking: false,
   credit_limit: '',
   apr: '',
@@ -95,25 +96,29 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
 
   describe('credit card fields', () => {
     it('CC type + empty credit_limit → errCreditLimitRequired', () => {
-      const errs = fieldErrors(baseData({ selected_type: 'credit_card', credit_limit: '' }));
+      const errs = fieldErrors(
+        baseData({ selected_type: AccountType.CreditCard, credit_limit: '' }),
+      );
       expect(errs.credit_limit).toBe(Strings.errCreditLimitRequired);
     });
 
     it('CC type + non-empty credit_limit → valid', () => {
-      const errs = fieldErrors(baseData({ selected_type: 'credit_card', credit_limit: '5000' }));
+      const errs = fieldErrors(
+        baseData({ selected_type: AccountType.CreditCard, credit_limit: '5000' }),
+      );
       expect(errs.credit_limit).toBeUndefined();
     });
 
     it('non-CC type + empty credit_limit → valid', () => {
       expect(
-        fieldErrors(baseData({ selected_type: 'bank', credit_limit: '' })).credit_limit,
+        fieldErrors(baseData({ selected_type: AccountType.Bank, credit_limit: '' })).credit_limit,
       ).toBeUndefined();
     });
 
     it('CC + interest ON + empty APR → errAprRequired', () => {
       const errs = fieldErrors(
         baseData({
-          selected_type: 'credit_card',
+          selected_type: AccountType.CreditCard,
           credit_limit: '5000',
           interest_tracking: true,
           apr: '',
@@ -125,7 +130,7 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     it('CC + interest OFF + empty APR → valid', () => {
       const errs = fieldErrors(
         baseData({
-          selected_type: 'credit_card',
+          selected_type: AccountType.CreditCard,
           credit_limit: '5000',
           interest_tracking: false,
           apr: '',
@@ -137,7 +142,7 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     it('CC + interest ON + provided APR → valid', () => {
       const errs = fieldErrors(
         baseData({
-          selected_type: 'credit_card',
+          selected_type: AccountType.CreditCard,
           credit_limit: '5000',
           interest_tracking: true,
           apr: '24.99',

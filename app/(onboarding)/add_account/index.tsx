@@ -16,23 +16,12 @@ import {
   TouchSize,
   Type,
 } from '@/constants/theme';
-import type { AccountType } from '@/store/account.store';
-import type { Currency } from '@/store/onboarding.store';
+import { AccountType, Currency } from '@/constants/enums';
 import { useAddAccount } from './add_account.hook';
-import { useAddAccountAnim, useTypePillAnim } from './add_account.anim';
+import { useAddAccountAnim } from './add_account.anim';
+import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-type TypeOption = { type: AccountType; icon: IconName; label: string; fullWidth?: boolean };
-
-const TYPE_OPTIONS: TypeOption[] = [
-  { type: 'bank', icon: 'bank', label: Strings.typeBank },
-  { type: 'smart_wallet', icon: 'cellphone-nfc', label: Strings.typeSmartWallet },
-  { type: 'physical_wallet', icon: 'wallet', label: Strings.typePhysicalWallet },
-  { type: 'physical_savings', icon: 'piggy-bank', label: Strings.typePhysicalSavings },
-  { type: 'credit_card', icon: 'credit-card', label: Strings.typeCreditCard, fullWidth: true },
-];
-
-const CURRENCY_OPTIONS: Currency[] = ['EGP', 'USD'];
+const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
 
 const hitSlop = {
   top: TouchSize.min / 4,
@@ -61,7 +50,7 @@ export default function AddAccountScreen() {
   const selectedColor = useWatch({ control, name: 'selected_color' });
   const selectedCurrency = useWatch({ control, name: 'currency' });
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
-  const isCreditCard = selectedType === 'credit_card';
+  const isCreditCard = selectedType === AccountType.CreditCard;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -137,7 +126,7 @@ export default function AddAccountScreen() {
                     { color: selectedCurrency === code ? '#C9973A' : '#6B7F99' },
                   ]}
                 >
-                  {code === 'EGP' ? Strings.currencyEGPCode : Strings.currencyUSDCode}
+                  {code === Currency.EGP ? Strings.currencyEGPCode : Strings.currencyUSDCode}
                 </Text>
               </Pressable>
             ))}
@@ -352,40 +341,6 @@ export default function AddAccountScreen() {
   );
 }
 
-function TypePill({
-  option,
-  isSelected,
-  onSelect,
-}: {
-  option: TypeOption;
-  isSelected: boolean;
-  onSelect: () => void;
-}) {
-  const { pillAnim, triggerPillTap } = useTypePillAnim();
-  const iconColor = isSelected ? '#C9973A' : '#6B7F99';
-
-  return (
-    <Animated.View
-      style={[
-        styles.typePillWrap,
-        option.fullWidth ? styles.typePillFull : styles.typePillHalf,
-        pillAnim,
-      ]}
-    >
-      <Pressable
-        onPress={() => {
-          triggerPillTap();
-          onSelect();
-        }}
-        style={[styles.typePill, isSelected ? styles.pillActive : styles.pillInactive]}
-      >
-        <MaterialCommunityIcons name={option.icon} size={Size.iconSm} color={iconColor} />
-        <Text style={[styles.typePillText, { color: iconColor }]}>{option.label}</Text>
-      </Pressable>
-    </Animated.View>
-  );
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#0F1923' },
   header: {
@@ -418,21 +373,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 0,
   },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs },
-  typePillWrap: { borderRadius: Radius.md },
-  typePillHalf: { width: '48.5%' },
-  typePillFull: { width: '100%' },
-  typePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-  },
   pillActive: { borderColor: '#C9973A', backgroundColor: 'rgba(201,151,58,0.08)' },
   pillInactive: { borderColor: '#2A3A4F', backgroundColor: '#1A2535' },
-  typePillText: { fontFamily: FontFamily.soraBold, fontSize: Type.body },
   fieldGroup: { paddingTop: Spacing.xxs },
   input: {
     fontFamily: FontFamily.soraSemi,

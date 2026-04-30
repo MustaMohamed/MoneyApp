@@ -9,6 +9,7 @@ import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useOnboardingStore } from '@/store/onboarding.store';
+import { OnboardingStep } from '@/constants/enums';
 import { useWelcomeAnim } from './welcome.anim';
 
 export default function WelcomeScreen() {
@@ -17,7 +18,7 @@ export default function WelcomeScreen() {
   const { illustrationEntering, headlineEntering, ctaEntering } = useWelcomeAnim();
 
   const onGetStarted = async () => {
-    await setStep('O2');
+    await setStep(OnboardingStep.O2);
     router.push('/(onboarding)/currency');
   };
 

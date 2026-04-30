@@ -8,6 +8,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { SCHEMA_SQL } from '@/db/init';
 import { useAccountStore } from '@/store/account.store';
+import { AccountType, Currency } from '@/constants/enums';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 
@@ -55,8 +56,8 @@ afterAll(() => {
 
 const baseInput = {
   name: 'CIB Savings',
-  type: 'bank' as const,
-  currency: 'EGP' as const,
+  type: AccountType.Bank,
+  currency: Currency.EGP,
   opening_balance: 12500,
   current_balance: 12500,
   color: '#1B2B4B',
@@ -110,23 +111,25 @@ describe('accountStore.addAccount — TC-09', () => {
     expect(row.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
   });
 
-  it.each(['bank', 'smart_wallet', 'physical_wallet', 'physical_savings', 'credit_card'] as const)(
-    'saves type %s exactly',
-    async (type) => {
-      realDb.exec('DELETE FROM accounts');
-      await useAccountStore.getState().addAccount({
-        ...baseInput,
-        name: `acct-${type}`,
-        type,
-        // CC requires credit_limit to satisfy the schema; bank types ignore it
-        credit_limit: type === 'credit_card' ? 5000 : null,
-      });
-      const row = realDb.prepare('SELECT type FROM accounts').get() as {
-        type: string;
-      };
-      expect(row.type).toBe(type);
-    },
-  );
+  it.each([
+    AccountType.Bank,
+    AccountType.SmartWallet,
+    AccountType.PhysicalWallet,
+    AccountType.PhysicalSavings,
+    AccountType.CreditCard,
+  ])('saves type %s exactly', async (type) => {
+    realDb.exec('DELETE FROM accounts');
+    await useAccountStore.getState().addAccount({
+      ...baseInput,
+      name: `acct-${type}`,
+      type,
+      credit_limit: type === AccountType.CreditCard ? 5000 : null,
+    });
+    const row = realDb.prepare('SELECT type FROM accounts').get() as {
+      type: string;
+    };
+    expect(row.type).toBe(type);
+  });
 
   it('reloads accounts state after insert', async () => {
     await useAccountStore.getState().addAccount(baseInput);
@@ -140,7 +143,7 @@ describe('accountStore.addAccount credit-card fields — TC-10', () => {
     await useAccountStore.getState().addAccount({
       ...baseInput,
       name: 'Visa Card',
-      type: 'credit_card',
+      type: AccountType.CreditCard,
       revolving_balance: 5000,
       credit_limit: 20000,
       minimum_payment: null,
@@ -150,7 +153,7 @@ describe('accountStore.addAccount credit-card fields — TC-10', () => {
     });
 
     const row = realDb.prepare('SELECT * FROM accounts').get() as Record<string, unknown>;
-    expect(row.type).toBe('credit_card');
+    expect(row.type).toBe(AccountType.CreditCard);
     expect(row.interest_tracking).toBe(0);
     expect(row.apr).toBeNull();
     expect(row.revolving_balance).toBe(5000);
@@ -161,7 +164,7 @@ describe('accountStore.addAccount credit-card fields — TC-10', () => {
     await useAccountStore.getState().addAccount({
       ...baseInput,
       name: 'Visa Plus',
-      type: 'credit_card',
+      type: AccountType.CreditCard,
       revolving_balance: 0,
       credit_limit: 30000,
       minimum_payment: 500,
@@ -205,8 +208,8 @@ describe('accountStore.loadAccounts ordering — TC-12', () => {
     insert.run(
       'a',
       'Third',
-      'bank',
-      'EGP',
+      AccountType.Bank,
+      Currency.EGP,
       0,
       0,
       null,
@@ -224,8 +227,8 @@ describe('accountStore.loadAccounts ordering — TC-12', () => {
     insert.run(
       'b',
       'First',
-      'bank',
-      'EGP',
+      AccountType.Bank,
+      Currency.EGP,
       0,
       0,
       null,
@@ -243,8 +246,8 @@ describe('accountStore.loadAccounts ordering — TC-12', () => {
     insert.run(
       'c',
       'Second',
-      'bank',
-      'EGP',
+      AccountType.Bank,
+      Currency.EGP,
       0,
       0,
       null,
@@ -262,8 +265,8 @@ describe('accountStore.loadAccounts ordering — TC-12', () => {
     insert.run(
       'd',
       'Hidden',
-      'bank',
-      'EGP',
+      AccountType.Bank,
+      Currency.EGP,
       0,
       0,
       null,

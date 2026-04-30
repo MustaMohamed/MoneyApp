@@ -7,8 +7,8 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import { AccountColors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
-import type { Account, AccountType } from '@/store/account.store';
-import type { Currency } from '@/store/onboarding.store';
+import { AccountType, Currency, OnboardingStep } from '@/constants/enums';
+import type { Account } from '@/store/account.store';
 
 export function createAddAccountSchema(accounts: Account[]) {
   return z
@@ -21,15 +21,9 @@ export function createAddAccountSchema(accounts: Account[]) {
         },
         { message: Strings.errBalanceInvalid },
       ),
-      selected_type: z.enum([
-        'bank',
-        'smart_wallet',
-        'physical_wallet',
-        'physical_savings',
-        'credit_card',
-      ] as [AccountType, ...AccountType[]]),
+      selected_type: z.nativeEnum(AccountType),
       selected_color: z.string(),
-      currency: z.enum(['EGP', 'USD'] as [Currency, ...Currency[]]),
+      currency: z.nativeEnum(Currency),
       interest_tracking: z.boolean(),
       credit_limit: z.string().optional(),
       apr: z.string().optional(),
@@ -41,7 +35,7 @@ export function createAddAccountSchema(accounts: Account[]) {
       if (accounts.some((a) => a.name.trim().toLowerCase() === data.name.trim().toLowerCase())) {
         ctx.addIssue({ code: 'custom', path: ['name'], message: Strings.errNameDuplicate });
       }
-      if (data.selected_type === 'credit_card' && !data.credit_limit?.trim()) {
+      if (data.selected_type === AccountType.CreditCard && !data.credit_limit?.trim()) {
         ctx.addIssue({
           code: 'custom',
           path: ['credit_limit'],
@@ -76,9 +70,9 @@ export function useAddAccount() {
     defaultValues: {
       name: '',
       balance: '',
-      selected_type: 'bank' as AccountType,
+      selected_type: AccountType.Bank,
       selected_color: AccountColors[0],
-      currency: baseCurrency as Currency,
+      currency: baseCurrency,
       interest_tracking: false,
       credit_limit: '',
       apr: '',
@@ -89,7 +83,7 @@ export function useAddAccount() {
   });
 
   const onSubmit = async (data: AddAccountFormData) => {
-    const isCC = data.selected_type === 'credit_card';
+    const isCC = data.selected_type === AccountType.CreditCard;
     await addAccount({
       name: data.name.trim(),
       type: data.selected_type,
@@ -110,7 +104,7 @@ export function useAddAccount() {
     if (isAddingMore) {
       backOrReplace(router, '/(onboarding)/more_accounts');
     } else {
-      await setStep('O5');
+      await setStep(OnboardingStep.O5);
       router.push('/(onboarding)/more_accounts');
     }
   };

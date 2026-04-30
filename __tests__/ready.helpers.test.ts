@@ -1,12 +1,13 @@
 import { computeTotalBalance, resolveSecurityLabel } from '@/app/(onboarding)/ready/ready.helpers';
+import { AccountType, Currency, SecurityChoice } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/store/account.store';
 
 const account = (opening_balance: number): Account => ({
   id: '1',
   name: 'Test',
-  type: 'bank',
-  currency: 'EGP',
+  type: AccountType.Bank,
+  currency: Currency.EGP,
   opening_balance,
   current_balance: opening_balance,
   color: null,
@@ -37,19 +38,19 @@ describe('computeTotalBalance', () => {
 });
 
 describe('resolveSecurityLabel', () => {
-  it('null → Strings.o6SecuritySkipped', () => {
-    expect(resolveSecurityLabel(null)).toBe(Strings.o6SecuritySkipped);
+  it('undefined → Strings.o6SecuritySkipped', () => {
+    expect(resolveSecurityLabel(undefined)).toBe(Strings.o6SecuritySkipped);
   });
 
-  it('"skip" → Strings.o6SecuritySkipped', () => {
-    expect(resolveSecurityLabel('skip')).toBe(Strings.o6SecuritySkipped);
+  it('SecurityChoice.Skip → Strings.o6SecuritySkipped', () => {
+    expect(resolveSecurityLabel(SecurityChoice.Skip)).toBe(Strings.o6SecuritySkipped);
   });
 
-  it('"pin" → Strings.o6SecurityEnabled', () => {
-    expect(resolveSecurityLabel('pin')).toBe(Strings.o6SecurityEnabled);
+  it('SecurityChoice.Pin → Strings.o6SecurityEnabled', () => {
+    expect(resolveSecurityLabel(SecurityChoice.Pin)).toBe(Strings.o6SecurityEnabled);
   });
 
-  it('"biometric" → Strings.o6SecurityEnabled', () => {
-    expect(resolveSecurityLabel('biometric')).toBe(Strings.o6SecurityEnabled);
+  it('SecurityChoice.Biometric → Strings.o6SecurityEnabled', () => {
+    expect(resolveSecurityLabel(SecurityChoice.Biometric)).toBe(Strings.o6SecurityEnabled);
   });
 });

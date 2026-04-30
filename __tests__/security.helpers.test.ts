@@ -1,19 +1,20 @@
 import { canProceed } from '@/app/(onboarding)/security/security.helpers';
+import { SecurityChoice } from '@/constants/enums';
 
 describe('canProceed', () => {
   it('returns false when no choice has been made', () => {
-    expect(canProceed(null)).toBe(false);
+    expect(canProceed(undefined)).toBe(false);
   });
 
   it('returns true for "pin"', () => {
-    expect(canProceed('pin')).toBe(true);
+    expect(canProceed(SecurityChoice.Pin)).toBe(true);
   });
 
   it('returns true for "biometric"', () => {
-    expect(canProceed('biometric')).toBe(true);
+    expect(canProceed(SecurityChoice.Biometric)).toBe(true);
   });
 
   it('returns true for "skip"', () => {
-    expect(canProceed('skip')).toBe(true);
+    expect(canProceed(SecurityChoice.Skip)).toBe(true);
   });
 });
