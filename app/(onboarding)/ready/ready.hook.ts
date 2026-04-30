@@ -20,7 +20,11 @@ export function useReady() {
 
   const rows: SummaryRow[] = [
     { label: Strings.o6Currency, value: baseCurrency, gold: true },
-    { label: Strings.o6Accounts, value: `${accounts.length} accounts`, gold: false },
+    {
+      label: Strings.o6Accounts,
+      value: `${accounts.length} ${Strings.o6AccountsUnit}`,
+      gold: false,
+    },
     { label: Strings.o6TotalBalance, value: `${formattedTotal} ${baseCurrency}`, gold: true },
     { label: Strings.o6Security, value: securityValue, gold: false },
   ];
