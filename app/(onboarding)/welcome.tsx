@@ -4,8 +4,8 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { GeoIllustration } from '@/components/GeoIllustration';
-import { ProgressDots } from '@/components/ProgressDots';
+import { GeoIllustration } from '@/components/geo_illustration';
+import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useOnboardingStore } from '@/store/onboarding_store';

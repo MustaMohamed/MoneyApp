@@ -13,7 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { ProgressDots } from '@/components/ProgressDots';
+import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
 import { type Currency, useOnboardingStore } from '@/store/onboarding_store';
