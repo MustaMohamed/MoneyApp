@@ -22,6 +22,7 @@ module.exports = {
   // utilities require renderHook + expo-router mocks — deferred to M1.5.
   collectCoverageFrom: [
     'store/**/*.ts',
+    'repositories/**/*.ts',
     'database/**/*.ts',
     'utils/responsive.ts',
     'app/**/*.helpers.ts',

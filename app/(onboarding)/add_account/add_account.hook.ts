@@ -89,10 +89,8 @@ export function useAddAccount() {
       type: data.selected_type,
       currency: data.currency,
       opening_balance: parseFloat(data.balance),
-      current_balance: parseFloat(data.balance),
       color: data.selected_color,
       interest_tracking: (data.interest_tracking ? 1 : 0) as 0 | 1,
-      is_archived: 0 as const,
       sort_order: accounts.length,
       credit_limit: isCC && data.credit_limit?.trim() ? parseFloat(data.credit_limit) : null,
       revolving_balance:
