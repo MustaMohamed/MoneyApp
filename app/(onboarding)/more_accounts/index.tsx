@@ -1,18 +1,17 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInRight } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
+import { LinearGradient } from 'expo-linear-gradient'
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native'
+import Animated from 'react-native-reanimated'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
-import { ProgressDots } from '@/components/progress_dots';
-import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { type Account, type AccountType, useAccountStore } from '@/store/account_store';
-import { useOnboardingStore } from '@/store/onboarding_store';
+import { ProgressDots } from '@/components/progress_dots'
+import { Strings } from '@/constants/strings'
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme'
+import { type Account, type AccountType } from '@/store/account_store'
+import { useMoreAccounts } from './more_accounts.hook'
+import { useMoreAccountsAnim } from './more_accounts.anim'
 
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name']
 
 const TYPE_ICONS: Record<AccountType, IconName> = {
   bank: 'bank',
@@ -20,7 +19,7 @@ const TYPE_ICONS: Record<AccountType, IconName> = {
   physical_wallet: 'wallet',
   physical_savings: 'piggy-bank',
   credit_card: 'credit-card',
-};
+}
 
 const TYPE_LABELS: Record<AccountType, string> = {
   bank: Strings.typeBank,
@@ -28,39 +27,11 @@ const TYPE_LABELS: Record<AccountType, string> = {
   physical_wallet: Strings.typePhysicalWallet,
   physical_savings: Strings.typePhysicalSavings,
   credit_card: Strings.typeCreditCard,
-};
+}
 
 export default function MoreAccountsScreen() {
-  const router = useRouter();
-  const accounts = useAccountStore((s) => s.accounts);
-  const setStep = useOnboardingStore((s) => s.setStep);
-
-  // Track previous accounts length so the row stagger only plays for the
-  // initial mount snapshot. Newly added rows (returning from O4) get an
-  // immediate FadeInRight without the index*80 stagger delay.
-  const initialCountRef = useRef<number | null>(null);
-  if (initialCountRef.current === null) {
-    initialCountRef.current = accounts.length;
-  }
-  const initialCount = initialCountRef.current;
-
-  useFocusEffect(
-    useCallback(() => {
-      useAccountStore.getState().loadAccounts();
-    }, []),
-  );
-
-  const handleAddAnother = () => {
-    router.push({
-      pathname: '/(onboarding)/add_account',
-      params: { isAddingMore: 'true' },
-    });
-  };
-
-  const handleDone = async () => {
-    await setStep('O6');
-    router.push('/(onboarding)/ready');
-  };
+  const { accounts, initialCount, handleAddAnother, handleDone } = useMoreAccounts()
+  const { rowEntering } = useMoreAccountsAnim()
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -82,7 +53,11 @@ export default function MoreAccountsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         renderItem={({ item, index }) => (
-          <AccountRow account={item} index={index} isInitialMount={index < initialCount} />
+          <AccountRow
+            account={item}
+            index={index}
+            entering={rowEntering(index, index < initialCount)}
+          />
         )}
         ListFooterComponent={
           <Pressable onPress={handleAddAnother} style={styles.addAnother}>
@@ -109,26 +84,22 @@ export default function MoreAccountsScreen() {
         </Pressable>
       </View>
     </SafeAreaView>
-  );
+  )
 }
 
 function AccountRow({
   account,
   index,
-  isInitialMount,
+  entering,
 }: {
-  account: Account;
-  index: number;
-  isInitialMount: boolean;
+  account: Account
+  index: number
+  entering: object | undefined
 }) {
-  const isFirst = index === 0;
-  const icon = TYPE_ICONS[account.type];
-  const typeLabel = `${TYPE_LABELS[account.type]} · ${account.currency}`;
-  const formattedBalance = new Intl.NumberFormat('en-US').format(account.opening_balance);
-
-  const entering = isInitialMount
-    ? FadeInRight.delay(index * 80).duration(300)
-    : FadeInRight.duration(250);
+  const isFirst = index === 0
+  const icon = TYPE_ICONS[account.type]
+  const typeLabel = `${TYPE_LABELS[account.type]} · ${account.currency}`
+  const formattedBalance = new Intl.NumberFormat('en-US').format(account.opening_balance)
 
   return (
     <Animated.View entering={entering} style={styles.row}>
@@ -161,7 +132,7 @@ function AccountRow({
         {formattedBalance}
       </Text>
     </Animated.View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -305,4 +276,4 @@ const styles = StyleSheet.create({
     fontSize: Type.bodyStrong,
     color: '#1B2B4B',
   },
-});
+})
