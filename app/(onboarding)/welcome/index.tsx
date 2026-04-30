@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { GeoIllustration } from '@/components/geo_illustration';
@@ -9,12 +9,12 @@ import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useOnboardingStore } from '@/store/onboarding_store';
-import { useFirstMountEntering } from '@/utils/use_first_mount_entering';
+import { useWelcomeAnim } from './welcome.anim';
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const setStep = useOnboardingStore((s) => s.setStep);
-  const playEntering = useFirstMountEntering('welcome');
+  const { illustrationEntering, headlineEntering, ctaEntering } = useWelcomeAnim();
 
   const onGetStarted = async () => {
     await setStep('O2');
@@ -26,23 +26,17 @@ export default function WelcomeScreen() {
       <ProgressDots totalSteps={6} currentStep={1} />
 
       <View style={styles.body}>
-        <Animated.View entering={playEntering ? FadeInDown.duration(600) : undefined}>
+        <Animated.View entering={illustrationEntering}>
           <GeoIllustration />
         </Animated.View>
 
-        <Animated.View
-          entering={playEntering ? FadeInUp.delay(400).duration(500) : undefined}
-          style={styles.headlineWrap}
-        >
+        <Animated.View entering={headlineEntering} style={styles.headlineWrap}>
           <Text style={styles.headline}>{Strings.o1Headline}</Text>
           <Text style={styles.subtext}>{Strings.o1Subtext}</Text>
         </Animated.View>
       </View>
 
-      <Animated.View
-        entering={playEntering ? FadeInUp.delay(600).duration(400) : undefined}
-        style={styles.ctaBar}
-      >
+      <Animated.View entering={ctaEntering} style={styles.ctaBar}>
         <Pressable onPress={onGetStarted} style={styles.ctaPress}>
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
