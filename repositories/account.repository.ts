@@ -22,7 +22,7 @@ export class AccountRepository implements IAccountRepository {
 
   async add(data: NewAccountInput): Promise<Account> {
     const db = await getDb();
-    const id = uuid.v4() as string;
+    const id = String(uuid.v4());
     const now = new Date().toISOString();
     const account: Account = {
       ...data,
