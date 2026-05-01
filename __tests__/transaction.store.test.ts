@@ -211,6 +211,17 @@ describe('transactionStore.getById', () => {
   });
 });
 
+describe('transactionStore — error handling', () => {
+  it('clears the loading flag and rethrows when the repo errors', async () => {
+    const repo = makeRepo();
+    repo.getAll = jest.fn().mockRejectedValue(new Error('db down'));
+    const useStore = createTransactionStore(repo);
+
+    await expect(useStore.getState().setQuery({})).rejects.toThrow('db down');
+    expect(useStore.getState().loading).toBe(false);
+  });
+});
+
 describe('transactionStore — race guard', () => {
   it('drops out-of-order responses from rapid setQuery calls', async () => {
     const repo = makeRepo();
