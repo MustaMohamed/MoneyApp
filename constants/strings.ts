@@ -109,4 +109,63 @@ export const Strings = {
   // Placeholder dashboard
   placeholderTitle: 'Dashboard coming soon',
   placeholderSubtitle: 'M1 complete — M1.5 next.',
+
+  // Dashboard (U2)
+  dashAvailableToSpend: 'Available to Spend',
+  dashNetWorthTitle: 'Net Worth',
+  dashAssetsLabel: 'Assets',
+  dashLiabilitiesLabel: 'Liabilities',
+  dashMonthSpentTitle: 'Spent This Month',
+  dashSeeAll: 'See all',
+
+  // Account Detail (U3)
+  accountDetailEdit: 'Edit',
+  accountDetailSave: 'Save',
+  accountDetailCancel: 'Cancel',
+  accountDetailMore: 'More',
+  accountDetailBalance: 'Current Balance',
+  accountDetailAdjustBalance: 'Adjust Balance',
+  accountDetailArchive: 'Archive',
+  accountDetailArchiveTitle: 'Archive Account?',
+  accountDetailArchiveBody: 'This account will be hidden from your dashboard and all calculations.',
+  accountDetailArchiveCCWarning: 'Outstanding credit card balance will still affect net worth.',
+  accountDetailArchiveConfirm: 'Archive',
+
+  // Add Account screen (U4 — main app)
+  u4Title: 'Add Account',
+  u4Cta: 'Save Account',
+
+  // Adjust Balance sheet
+  adjustBalanceTitle: 'Adjust Balance',
+  adjustBalanceLabel: 'New Balance',
+  adjustBalanceSave: 'Save Balance',
+  adjustBalanceCancel: 'Cancel',
+
+  // Settings Main (U23)
+  settingsTitle: 'Settings',
+  settingsCurrencyRow: 'Currency',
+  settingsCurrencyDesc: 'USD / EGP exchange rate',
+
+  // Settings Currency (U26)
+  currencyScreenTitle: 'Currency',
+  currencyRateLabel: 'Exchange Rate',
+  currencyRateSub: 'EGP per 1 USD',
+  currencyLastFetched: 'Last updated',
+  currencyNeverFetched: 'Never fetched',
+  currencyManualLabel: 'Manual Override',
+  currencyManualSub: 'Set your own rate',
+  currencyFetchCta: 'Refresh Rate',
+  currencySaveCta: 'Save Rate',
+
+  // Empty States
+  emptyAccountsTitle: 'No accounts yet',
+  emptyAccountsSub: 'Add your first account to get started.',
+  emptyTransactionsTitle: 'No transactions yet',
+  emptyTransactionsSub: 'Transactions will appear here.',
+  emptyBillsTitle: 'No bills yet',
+  emptyBillsSub: 'Bills will appear here.',
+  emptyGoalsTitle: 'No goals set',
+  emptyGoalsSub: 'Goals will appear here.',
+  emptyBudgetTitle: 'No budget set',
+  emptyBudgetSub: 'Your budget will appear here.',
 } as const;
