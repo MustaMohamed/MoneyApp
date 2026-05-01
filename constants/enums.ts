@@ -25,3 +25,8 @@ export enum Currency {
   EGP = 'EGP',
   USD = 'USD',
 }
+
+export enum CategoryType {
+  Expense = 'expense',
+  Income = 'income',
+}
