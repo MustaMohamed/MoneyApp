@@ -1,0 +1,78 @@
+import { create } from 'zustand';
+
+import type { Category } from '@/database/entities/category.entity';
+import {
+  CategoryRepository,
+  type ICategoryRepository,
+  type NewCategoryInput,
+  type UpdateCategoryInput,
+} from '@/repositories/category.repository';
+
+export type { Category, NewCategoryInput, UpdateCategoryInput };
+
+interface CategoryState {
+  categories: Category[];
+  loadCategories: () => Promise<void>;
+  addCategory: (data: NewCategoryInput) => Promise<void>;
+  updateCategory: (id: string, data: UpdateCategoryInput) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  reassignAndDelete: (fromId: string, toId: string) => Promise<void>;
+}
+
+export function createCategoryStore(repo: ICategoryRepository) {
+  return create<CategoryState>((set, get) => ({
+    categories: [],
+
+    loadCategories: async () => {
+      try {
+        const categories = await repo.getAll();
+        set({ categories });
+      } catch (err) {
+        console.error('[categoryStore] loadCategories failed:', err);
+        throw err;
+      }
+    },
+
+    addCategory: async (data) => {
+      try {
+        await repo.add(data);
+        await get().loadCategories();
+      } catch (err) {
+        console.error('[categoryStore] addCategory failed:', err);
+        throw err;
+      }
+    },
+
+    updateCategory: async (id, data) => {
+      try {
+        await repo.update(id, data);
+        await get().loadCategories();
+      } catch (err) {
+        console.error('[categoryStore] updateCategory failed:', err);
+        throw err;
+      }
+    },
+
+    deleteCategory: async (id) => {
+      try {
+        await repo.delete(id);
+        await get().loadCategories();
+      } catch (err) {
+        console.error('[categoryStore] deleteCategory failed:', err);
+        throw err;
+      }
+    },
+
+    reassignAndDelete: async (fromId, toId) => {
+      try {
+        await repo.reassignAndDelete(fromId, toId);
+        await get().loadCategories();
+      } catch (err) {
+        console.error('[categoryStore] reassignAndDelete failed:', err);
+        throw err;
+      }
+    },
+  }));
+}
+
+export const useCategoryStore = createCategoryStore(new CategoryRepository());
