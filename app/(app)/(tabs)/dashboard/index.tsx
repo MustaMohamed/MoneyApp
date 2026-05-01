@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty_states';
 import { AccountType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useDashboard } from './dashboard.hook';
 import { useDashboardAnim } from './dashboard.anim';
@@ -22,6 +23,14 @@ const TYPE_ORDER: AccountType[] = [
   AccountType.PhysicalSavings,
   AccountType.CreditCard,
 ];
+
+const SECTION_TITLES: Record<AccountType, string> = {
+  [AccountType.Bank]: Strings.typeBank.toUpperCase(),
+  [AccountType.SmartWallet]: Strings.typeSmartWallet.toUpperCase(),
+  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet.toUpperCase(),
+  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings.toUpperCase(),
+  [AccountType.CreditCard]: Strings.typeCreditCard.toUpperCase(),
+};
 
 export default function DashboardScreen() {
   const {
@@ -55,7 +64,11 @@ export default function DashboardScreen() {
       </View>
 
       {!hasAccounts ? (
-        <EmptyState variant="accounts" onAction={goToAddAccount} />
+        <EmptyState
+          variant="accounts"
+          onAction={goToAddAccount}
+          actionLabel={Strings.emptyAccountsCta}
+        />
       ) : (
         <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
           <Animated.View style={heroStyle}>
@@ -74,7 +87,7 @@ export default function DashboardScreen() {
 
           {visibleTypes.map((type, index) => (
             <Animated.View key={type} entering={sectionEntering(index)}>
-              <SectionHeader title={type.replace(/_/g, ' ').toUpperCase()} />
+              <SectionHeader title={SECTION_TITLES[type]} />
               <AccountCarousel
                 type={type}
                 accounts={groupedAccounts[type] ?? []}

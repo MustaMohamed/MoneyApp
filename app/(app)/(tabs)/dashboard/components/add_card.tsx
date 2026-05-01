@@ -22,7 +22,9 @@ export function AddCard({ type, onPress }: AddCardProps) {
   return (
     <Pressable onPress={onPress} style={styles.card}>
       <MaterialCommunityIcons name="plus" size={22} color={Colors.dark.text2} />
-      <Text style={styles.label}>Add {TYPE_LABEL[type]}</Text>
+      <Text style={styles.label}>
+        {Strings.dashAddPrefix} {TYPE_LABEL[type]}
+      </Text>
     </Pressable>
   );
 }

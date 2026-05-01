@@ -111,6 +111,7 @@ export const Strings = {
   placeholderSubtitle: 'M1 complete — M1.5 next.',
 
   // Dashboard (U2)
+  dashAddPrefix: 'Add',
   dashAvailableToSpend: 'Available to Spend',
   dashNetWorthTitle: 'Net Worth',
   dashAssetsLabel: 'Assets',
@@ -160,6 +161,7 @@ export const Strings = {
   // Empty States
   emptyAccountsTitle: 'No accounts yet',
   emptyAccountsSub: 'Add your first account to get started.',
+  emptyAccountsCta: 'Add Account',
   emptyTransactionsTitle: 'No transactions yet',
   emptyTransactionsSub: 'Transactions will appear here.',
   emptyBillsTitle: 'No bills yet',

@@ -40,9 +40,10 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, { icon: IconName; title: string;
 interface EmptyStateProps {
   variant: EmptyStateVariant;
   onAction?: () => void;
+  actionLabel?: string;
 }
 
-export function EmptyState({ variant, onAction }: EmptyStateProps) {
+export function EmptyState({ variant, onAction, actionLabel }: EmptyStateProps) {
   const config = VARIANT_CONFIG[variant];
 
   return (
@@ -60,7 +61,7 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
             end={{ x: 1, y: 1 }}
             style={styles.cta}
           >
-            <Text style={styles.ctaText}>Add Account</Text>
+            <Text style={styles.ctaText}>{actionLabel}</Text>
           </LinearGradient>
         </Pressable>
       )}
