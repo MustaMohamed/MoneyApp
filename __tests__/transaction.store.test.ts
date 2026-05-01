@@ -1,16 +1,17 @@
 import { Currency, TransactionType } from '@/constants/enums';
-import { createTransactionStore } from '@/store/transaction.store';
+import { createTransactionStore, PAGE_SIZE } from '@/store/transaction.store';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import type {
   ITransactionRepository,
   NewTransactionInput,
+  TransactionListQuery,
 } from '@/repositories/transaction.repository';
 
 const NOW = '2026-05-01T12:00:00.000Z';
 
 function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   return {
-    id: 'tx-1',
+    id: overrides.id ?? 'tx',
     type: TransactionType.Expense,
     amount: 100,
     currency: Currency.EGP,
@@ -28,91 +29,207 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-function makeRepo(transactions: Transaction[] = []): ITransactionRepository {
-  const store = [...transactions];
+function deferred<T>() {
+  let resolve!: (v: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
+}
+
+function makeRepo(initial: Transaction[] = []): ITransactionRepository {
+  let store = [...initial];
   return {
-    getAll: jest.fn(async () => [...store]),
+    getAll: jest.fn(async (query: TransactionListQuery = {}) => {
+      let rows = store;
+      if (query.type) rows = rows.filter((t) => t.type === query.type);
+      const limit = query.limit ?? 30;
+      const offset = query.offset ?? 0;
+      return rows.slice(offset, offset + limit);
+    }),
     getByAccount: jest.fn(async () => []),
     getById: jest.fn(async (id) => store.find((t) => t.id === id) ?? null),
     add: jest.fn(async (data: NewTransactionInput) => {
       const tx = makeTransaction({ id: 'tx-new', ...data });
-      store.push(tx);
+      store = [tx, ...store];
       return tx;
     }),
     delete: jest.fn(async (id: string) => {
-      const idx = store.findIndex((t) => t.id === id);
-      if (idx !== -1) store.splice(idx, 1);
+      store = store.filter((t) => t.id !== id);
     }),
   };
 }
 
-describe('transactionStore.loadTransactions', () => {
-  it('populates transactions from repo', async () => {
-    const repo = makeRepo([makeTransaction()]);
+describe('transactionStore.setQuery', () => {
+  it('replaces the list with the page-1 result for the new query', async () => {
+    const txs = Array.from({ length: 5 }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
     const useStore = createTransactionStore(repo);
-    await useStore.getState().loadTransactions();
-    expect(useStore.getState().transactions).toHaveLength(1);
+
+    await useStore.getState().setQuery({});
+    expect(useStore.getState().transactions).toHaveLength(5);
+    expect(useStore.getState().query).toEqual({});
   });
 
-  it('throws and re-throws on repo error', async () => {
-    const repo = makeRepo();
-    repo.getAll = jest.fn().mockRejectedValue(new Error('db down'));
+  it('sets hasMore=true at exactly PAGE_SIZE rows', async () => {
+    const txs = Array.from({ length: PAGE_SIZE }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
     const useStore = createTransactionStore(repo);
-    await expect(useStore.getState().loadTransactions()).rejects.toThrow('db down');
+    await useStore.getState().setQuery({});
+    expect(useStore.getState().hasMore).toBe(true);
+  });
+
+  it('sets hasMore=false when fewer than PAGE_SIZE rows return', async () => {
+    const repo = makeRepo([makeTransaction({ id: 't1' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    expect(useStore.getState().hasMore).toBe(false);
+  });
+
+  it('toggles loading true during fetch and false on completion', async () => {
+    const repo = makeRepo();
+    const def = deferred<Transaction[]>();
+    repo.getAll = jest.fn(() => def.promise);
+    const useStore = createTransactionStore(repo);
+
+    const inFlight = useStore.getState().setQuery({});
+    expect(useStore.getState().loading).toBe(true);
+    def.resolve([]);
+    await inFlight;
+    expect(useStore.getState().loading).toBe(false);
   });
 });
 
-describe('transactionStore.addTransaction', () => {
-  it('adds and reloads transactions', async () => {
-    const repo = makeRepo();
+describe('transactionStore.loadMore', () => {
+  it('appends the next page and bumps the offset', async () => {
+    const txs = Array.from({ length: PAGE_SIZE + 5 }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
     const useStore = createTransactionStore(repo);
 
-    const input: NewTransactionInput = {
+    await useStore.getState().setQuery({});
+    expect(useStore.getState().transactions).toHaveLength(PAGE_SIZE);
+    await useStore.getState().loadMore();
+    expect(useStore.getState().transactions).toHaveLength(PAGE_SIZE + 5);
+    expect(useStore.getState().hasMore).toBe(false);
+    expect(repo.getAll).toHaveBeenLastCalledWith({ limit: PAGE_SIZE, offset: PAGE_SIZE });
+  });
+
+  it('is a no-op when hasMore is false', async () => {
+    const repo = makeRepo([makeTransaction({ id: 't1' })]);
+    const useStore = createTransactionStore(repo);
+
+    await useStore.getState().setQuery({});
+    (repo.getAll as jest.Mock).mockClear();
+    await useStore.getState().loadMore();
+    expect(repo.getAll).not.toHaveBeenCalled();
+  });
+
+  it('is a no-op when already loading', async () => {
+    const txs = Array.from({ length: PAGE_SIZE * 2 }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
+    const def = deferred<Transaction[]>();
+    const useStore = createTransactionStore(repo);
+
+    await useStore.getState().setQuery({});
+    repo.getAll = jest.fn(() => def.promise);
+    const first = useStore.getState().loadMore();
+    const second = useStore.getState().loadMore();
+    def.resolve([]);
+    await Promise.all([first, second]);
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('transactionStore.refresh', () => {
+  it('re-fetches page 1 with the current query', async () => {
+    const txs = Array.from({ length: 3 }, (_, i) =>
+      makeTransaction({ id: `t${i}`, type: TransactionType.Income, category_id: 'cat_salary' }),
+    );
+    txs.push(makeTransaction({ id: 'expense-1' }));
+    const repo = makeRepo(txs);
+    const useStore = createTransactionStore(repo);
+
+    await useStore.getState().setQuery({ type: TransactionType.Income });
+    (repo.getAll as jest.Mock).mockClear();
+    await useStore.getState().refresh();
+    expect(repo.getAll).toHaveBeenCalledWith({
+      type: TransactionType.Income,
+      limit: PAGE_SIZE,
+      offset: 0,
+    });
+  });
+});
+
+describe('transactionStore.addTransaction / deleteTransaction', () => {
+  it('addTransaction calls repo.add then refresh()', async () => {
+    const repo = makeRepo();
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+
+    await useStore.getState().addTransaction({
       type: TransactionType.Expense,
       amount: 50,
       currency: Currency.EGP,
       egp_amount: 50,
       account_id: 'acc-1',
       category_id: 'cat_food',
-    };
+    });
 
-    const tx = await useStore.getState().addTransaction(input);
-    expect(tx.id).toBe('tx-new');
+    expect(repo.add).toHaveBeenCalled();
     expect(useStore.getState().transactions).toHaveLength(1);
   });
 
-  it('returns the created transaction', async () => {
-    const repo = makeRepo();
-    const useStore = createTransactionStore(repo);
-    const tx = await useStore.getState().addTransaction({
-      type: TransactionType.Income,
-      amount: 1000,
-      currency: Currency.EGP,
-      egp_amount: 1000,
-      account_id: 'acc-1',
-      category_id: 'cat_salary',
-    });
-    expect(tx.type).toBe(TransactionType.Income);
-    expect(tx.amount).toBe(1000);
-  });
-});
-
-describe('transactionStore.deleteTransaction', () => {
-  it('removes transaction and reloads', async () => {
+  it('deleteTransaction calls repo.delete then refresh()', async () => {
     const repo = makeRepo([makeTransaction({ id: 'tx-del' })]);
     const useStore = createTransactionStore(repo);
-    await useStore.getState().loadTransactions();
+    await useStore.getState().setQuery({});
     expect(useStore.getState().transactions).toHaveLength(1);
 
     await useStore.getState().deleteTransaction('tx-del');
+    expect(repo.delete).toHaveBeenCalledWith('tx-del');
     expect(useStore.getState().transactions).toHaveLength(0);
   });
+});
 
-  it('calls repo.delete with the correct id', async () => {
-    const repo = makeRepo([makeTransaction({ id: 'tx-x' })]);
+describe('transactionStore.getById', () => {
+  it('passes through to repo.getById without touching list state', async () => {
+    const tx = makeTransaction({ id: 'one' });
+    const repo = makeRepo([tx]);
     const useStore = createTransactionStore(repo);
-    await useStore.getState().loadTransactions();
-    await useStore.getState().deleteTransaction('tx-x');
-    expect(repo.delete).toHaveBeenCalledWith('tx-x');
+    const before = useStore.getState().transactions;
+
+    const got = await useStore.getState().getById('one');
+    expect(got?.id).toBe('one');
+    expect(useStore.getState().transactions).toBe(before);
+  });
+
+  it('returns null for a missing id', async () => {
+    const repo = makeRepo();
+    const useStore = createTransactionStore(repo);
+    const got = await useStore.getState().getById('missing');
+    expect(got).toBeNull();
+  });
+});
+
+describe('transactionStore — race guard', () => {
+  it('drops out-of-order responses from rapid setQuery calls', async () => {
+    const repo = makeRepo();
+    const firstDef = deferred<Transaction[]>();
+    const secondDef = deferred<Transaction[]>();
+    let call = 0;
+    repo.getAll = jest.fn(() => (call++ === 0 ? firstDef.promise : secondDef.promise));
+
+    const useStore = createTransactionStore(repo);
+    const slow = useStore.getState().setQuery({ search: 'a' });
+    const fast = useStore.getState().setQuery({ search: 'ab' });
+
+    // Resolve the fresher request first, then the stale one.
+    secondDef.resolve([makeTransaction({ id: 'fresh' })]);
+    await fast;
+    firstDef.resolve([makeTransaction({ id: 'stale' })]);
+    await slow;
+
+    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
+    expect(useStore.getState().query).toEqual({ search: 'ab' });
   });
 });

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import type { TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import {
   TransactionRepository,
@@ -8,50 +9,92 @@ import {
   type TransactionListQuery,
 } from '@/repositories/transaction.repository';
 
-export type { Transaction, NewTransactionInput };
+export type { Transaction, NewTransactionInput, TransactionListQuery };
+
+export const PAGE_SIZE = 30;
+
+export interface TransactionListFilters {
+  type?: TransactionType;
+  search?: string;
+}
 
 interface TransactionState {
   transactions: Transaction[];
-  loadTransactions: (query?: TransactionListQuery) => Promise<void>;
+  hasMore: boolean;
+  loading: boolean;
+  query: TransactionListFilters;
+
+  setQuery: (q: TransactionListFilters) => Promise<void>;
+  refresh: () => Promise<void>;
+  loadMore: () => Promise<void>;
+
+  getById: (id: string) => Promise<Transaction | null>;
   addTransaction: (data: NewTransactionInput) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
 }
 
 export function createTransactionStore(repo: ITransactionRepository) {
-  return create<TransactionState>((set, get) => ({
-    transactions: [],
+  // Module-scoped to this store instance — race guard for setQuery / loadMore / refresh.
+  let requestId = 0;
 
-    loadTransactions: async (query) => {
+  return create<TransactionState>((set, get) => {
+    async function fetchPage(
+      filters: TransactionListFilters,
+      offset: number,
+      mode: 'replace' | 'append',
+    ) {
+      const myId = ++requestId;
+      set({ loading: true });
       try {
-        const transactions = await repo.getAll(query);
-        set({ transactions });
+        const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
+        if (myId !== requestId) return; // stale — newer request superseded us
+        const hasMore = rows.length === PAGE_SIZE;
+        if (mode === 'replace') {
+          set({ transactions: rows, hasMore, loading: false, query: filters });
+        } else {
+          set({
+            transactions: [...get().transactions, ...rows],
+            hasMore,
+            loading: false,
+          });
+        }
       } catch (err) {
-        console.error('[transactionStore] loadTransactions failed:', err);
+        if (myId === requestId) set({ loading: false });
+        console.error('[transactionStore] fetch failed:', err);
         throw err;
       }
-    },
+    }
 
-    addTransaction: async (data) => {
-      try {
-        const transaction = await repo.add(data);
-        await get().loadTransactions();
-        return transaction;
-      } catch (err) {
-        console.error('[transactionStore] addTransaction failed:', err);
-        throw err;
-      }
-    },
+    return {
+      transactions: [],
+      hasMore: false,
+      loading: false,
+      query: {},
 
-    deleteTransaction: async (id) => {
-      try {
+      setQuery: (q) => fetchPage(q, 0, 'replace'),
+
+      refresh: () => fetchPage(get().query, 0, 'replace'),
+
+      loadMore: async () => {
+        const { hasMore, loading, query, transactions } = get();
+        if (!hasMore || loading) return;
+        await fetchPage(query, transactions.length, 'append');
+      },
+
+      getById: async (id) => repo.getById(id),
+
+      addTransaction: async (data) => {
+        const tx = await repo.add(data);
+        await get().refresh();
+        return tx;
+      },
+
+      deleteTransaction: async (id) => {
         await repo.delete(id);
-        await get().loadTransactions();
-      } catch (err) {
-        console.error('[transactionStore] deleteTransaction failed:', err);
-        throw err;
-      }
-    },
-  }));
+        await get().refresh();
+      },
+    };
+  });
 }
 
 export const useTransactionStore = createTransactionStore(new TransactionRepository());
