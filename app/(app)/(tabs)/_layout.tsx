@@ -12,7 +12,6 @@ function tabIcon(name: MCIName, color: string) {
 export default function TabsLayout() {
   return (
     <Tabs
-      initialRouteName="dashboard"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.shared.cairoGold,
