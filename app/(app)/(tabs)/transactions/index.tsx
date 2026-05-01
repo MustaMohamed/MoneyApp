@@ -9,6 +9,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+import { useTransactionStore } from '@/store/transaction.store';
 import { AddTransactionSheet } from './add_transaction';
 import { useAddTransactionStore } from './add_transaction/add_transaction.store';
 import { DateHeader } from './components/date_header';
@@ -25,10 +26,19 @@ export default function TransactionsScreen() {
   const close = useAddTransactionStore((s) => s.close);
   const visible = useAddTransactionStore((s) => s.visible);
 
-  // Reset filter + search when leaving the tab.
+  // On tab blur: reset both screen-local UI (chip + search) AND the global
+  // query, so the data array is unfiltered before the user returns. Without
+  // the global reset, returning to the tab would briefly show the stale
+  // filtered list until the auto-fired setQuery({}) resolves.
   useFocusEffect(
     useCallback(() => {
-      return () => useTransactionsScreenStore.getState().reset();
+      return () => {
+        useTransactionsScreenStore.getState().reset();
+        useTransactionStore
+          .getState()
+          .setQuery({})
+          .catch(() => {});
+      };
     }, []),
   );
 
@@ -65,6 +75,7 @@ export default function TransactionsScreen() {
           onEndReached={t.onEndReached}
           onEndReachedThreshold={0.5}
           ListFooterComponent={t.loading && t.hasMore ? <LoadingFooter /> : null}
+          contentContainerStyle={styles.listContent}
         />
       )}
 
@@ -92,6 +103,8 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   body: { flex: 1 },
+  // Bottom padding clears the floating FAB so the last row stays tappable.
+  listContent: { paddingBottom: Spacing.xxl + ms(56) },
   fab: {
     position: 'absolute',
     bottom: Spacing.xl,
