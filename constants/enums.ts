@@ -30,3 +30,10 @@ export enum CategoryType {
   Expense = 'expense',
   Income = 'income',
 }
+
+export enum TransactionType {
+  Expense = 'expense',
+  Income = 'income',
+  Transfer = 'transfer',
+  CCPayment = 'cc_payment',
+}

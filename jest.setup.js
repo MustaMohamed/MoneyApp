@@ -30,6 +30,7 @@ jest.mock('expo-sqlite', () => {
     }),
     getAllAsync: jest.fn(async () => []),
     getFirstAsync: jest.fn(async () => null),
+    withTransactionAsync: jest.fn(async (fn) => fn()),
   };
   return {
     openDatabaseAsync: jest.fn(async () => fakeDb),
@@ -41,6 +42,7 @@ jest.mock('expo-sqlite', () => {
       fakeDb.runAsync.mockClear();
       fakeDb.getAllAsync.mockClear();
       fakeDb.getFirstAsync.mockClear();
+      fakeDb.withTransactionAsync.mockClear();
     },
   };
 });

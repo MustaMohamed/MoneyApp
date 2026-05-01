@@ -50,10 +50,12 @@ export async function deleteCategory(db: SQLiteDatabase, id: string): Promise<vo
 }
 
 export async function reassignCategory(
-  _db: SQLiteDatabase,
-  _fromId: string,
-  _toId: string,
+  db: SQLiteDatabase,
+  fromId: string,
+  toId: string,
 ): Promise<void> {
-  // Transactions table is created in M2b.
-  // Replace with: UPDATE transactions SET category_id = ? WHERE category_id = ?
+  await db.runAsync('UPDATE transactions SET category_id = ? WHERE category_id = ?', [
+    toId,
+    fromId,
+  ]);
 }
