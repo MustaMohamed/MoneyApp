@@ -1,27 +1,19 @@
-import { useEffect, useMemo } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useAccountStore } from '@/store/account.store';
-import { useOnboardingStore } from '@/store/onboarding.store';
-import { useZodForm } from '@/utils/use_zod_form.hook';
-import { backOrReplace } from '@/utils/onboarding_nav';
+import { useMemo } from 'react';
+import { useRouter } from 'expo-router';
+
 import { AccountColors } from '@/constants/theme';
-import { AccountType, OnboardingStep } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
+import { useAccountStore } from '@/store/account.store';
+import { useZodForm } from '@/utils/use_zod_form.hook';
 import {
   createAddAccountSchema,
   type AddAccountFormData,
 } from '@/utils/schemas/add_account.schema';
 
-export function useAddAccount() {
+export function useAddAccountApp() {
   const router = useRouter();
-  const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
   const accounts = useAccountStore((s) => s.accounts);
   const addAccount = useAccountStore((s) => s.addAccount);
-  const setStep = useOnboardingStore((s) => s.setStep);
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
-
-  useEffect(() => {
-    useAccountStore.getState().loadAccounts();
-  }, []);
 
   const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 
@@ -33,7 +25,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AccountColors[0],
-      currency: baseCurrency,
+      currency: Currency.EGP,
       interest_tracking: false,
       credit_limit: '',
       apr: '',
@@ -60,16 +52,10 @@ export function useAddAccount() {
       statement_due_day: isCC && data.due_day?.trim() ? parseInt(data.due_day, 10) : null,
       apr: isCC && data.interest_tracking && data.apr?.trim() ? parseFloat(data.apr) : null,
     });
-    if (isAddingMore) {
-      backOrReplace(router, '/(onboarding)/more_accounts');
-    } else {
-      await setStep(OnboardingStep.O5);
-      router.push('/(onboarding)/more_accounts');
-    }
+    router.back();
   };
 
-  const onBack = () =>
-    backOrReplace(router, isAddingMore ? '/(onboarding)/more_accounts' : '/(onboarding)/security');
+  const onBack = () => router.back();
 
   return { form, handleSave: form.handleSubmit(onSubmit), onBack };
 }

@@ -1,0 +1,54 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Pressable, StyleSheet, Text } from 'react-native';
+
+import { AccountType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { CARD_HEIGHT } from './account_card';
+
+const TYPE_LABEL: Record<AccountType, string> = {
+  [AccountType.Bank]: Strings.typeBank,
+  [AccountType.SmartWallet]: Strings.typeSmartWallet,
+  [AccountType.PhysicalWallet]: Strings.typePhysicalWallet,
+  [AccountType.PhysicalSavings]: Strings.typePhysicalSavings,
+  [AccountType.CreditCard]: Strings.typeCreditCard,
+};
+
+interface AddCardProps {
+  type: AccountType;
+  onPress: () => void;
+}
+
+export function AddCard({ type, onPress }: AddCardProps) {
+  return (
+    <Pressable onPress={onPress} style={styles.card}>
+      <MaterialCommunityIcons name="plus" size={Size.iconMd} color={Colors.dark.text2} />
+      <Text style={styles.label}>
+        {Strings.dashAddPrefix} {TYPE_LABEL[type]}
+      </Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  card: {
+    width: 80,
+    minHeight: CARD_HEIGHT,
+    backgroundColor: 'transparent',
+    borderRadius: Radius.md,
+    borderWidth: 1.5,
+    borderColor: Colors.dark.border,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: Spacing.xs,
+    gap: Spacing.xxs,
+    padding: Spacing.sm,
+  },
+  label: {
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.micro,
+    color: Colors.dark.text2,
+    textAlign: 'center',
+  },
+});

@@ -38,3 +38,40 @@ export async function addAccount(db: SQLiteDatabase, account: Account): Promise<
     ],
   );
 }
+
+export async function updateAccount(
+  db: SQLiteDatabase,
+  id: string,
+  data: { name: string; color: string | null; updated_at: string },
+): Promise<void> {
+  await db.runAsync('UPDATE accounts SET name = ?, color = ?, updated_at = ? WHERE id = ?', [
+    data.name,
+    data.color,
+    data.updated_at,
+    id,
+  ]);
+}
+
+export async function archiveAccount(
+  db: SQLiteDatabase,
+  id: string,
+  updated_at: string,
+): Promise<void> {
+  await db.runAsync('UPDATE accounts SET is_archived = 1, updated_at = ? WHERE id = ?', [
+    updated_at,
+    id,
+  ]);
+}
+
+export async function setAccountBalance(
+  db: SQLiteDatabase,
+  id: string,
+  newBalance: number,
+  updated_at: string,
+): Promise<void> {
+  await db.runAsync('UPDATE accounts SET current_balance = ?, updated_at = ? WHERE id = ?', [
+    newBalance,
+    updated_at,
+    id,
+  ]);
+}
