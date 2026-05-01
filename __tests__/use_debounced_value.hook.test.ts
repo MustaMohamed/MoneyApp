@@ -7,14 +7,14 @@ describe('useDebouncedValue', () => {
   afterEach(() => jest.useRealTimers());
 
   it('returns the initial value synchronously', () => {
-    const { result } = renderHook(({ v }) => useDebouncedValue(v, 300), {
+    const { result } = renderHook(({ v }: { v: string }) => useDebouncedValue(v, 300), {
       initialProps: { v: 'hello' },
     });
     expect(result.current).toBe('hello');
   });
 
   it('updates after the delay', () => {
-    const { result, rerender } = renderHook(({ v }) => useDebouncedValue(v, 300), {
+    const { result, rerender } = renderHook(({ v }: { v: string }) => useDebouncedValue(v, 300), {
       initialProps: { v: 'a' },
     });
     rerender({ v: 'b' });
@@ -30,7 +30,7 @@ describe('useDebouncedValue', () => {
   });
 
   it('collapses rapid updates to the last value', () => {
-    const { result, rerender } = renderHook(({ v }) => useDebouncedValue(v, 300), {
+    const { result, rerender } = renderHook(({ v }: { v: string }) => useDebouncedValue(v, 300), {
       initialProps: { v: '' },
     });
     rerender({ v: 'a' });
@@ -53,7 +53,7 @@ describe('useDebouncedValue', () => {
   });
 
   it('cleans up the timer on unmount', () => {
-    const { rerender, unmount } = renderHook(({ v }) => useDebouncedValue(v, 300), {
+    const { rerender, unmount } = renderHook(({ v }: { v: string }) => useDebouncedValue(v, 300), {
       initialProps: { v: 'a' },
     });
     rerender({ v: 'b' });
