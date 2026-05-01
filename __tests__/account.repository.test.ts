@@ -239,6 +239,24 @@ describe('AccountRepository.archive — TC-M15-02', () => {
     const all = await repo.getAll();
     expect(all.find((a) => a.id === id)).toBeUndefined();
   });
+
+  it('updates updated_at timestamp on archive', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    const before = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+    await new Promise((r) => setTimeout(r, 10));
+    await repo.archive(id);
+    const after = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+    expect(after).not.toBe(before);
+  });
 });
 
 describe('AccountRepository.adjustBalance — TC-M15-03', () => {
@@ -262,6 +280,24 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
       opening_balance: number;
     };
     expect(row.opening_balance).toBe(1000);
+  });
+
+  it('updates updated_at timestamp on adjustBalance', async () => {
+    await repo.add({ ...baseInput, opening_balance: 500 });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    const before = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+    await new Promise((r) => setTimeout(r, 10));
+    await repo.adjustBalance(id, 999);
+    const after = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+    expect(after).not.toBe(before);
   });
 });
 
