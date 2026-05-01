@@ -7,7 +7,7 @@ import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/the
 import { useSettings } from './settings.hook';
 
 export default function SettingsScreen() {
-  const { goToCurrency, goBack } = useSettings();
+  const { goToCurrency, goToCategories, goBack } = useSettings();
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -36,6 +36,29 @@ export default function SettingsScreen() {
             <View>
               <Text style={styles.rowTitle}>{Strings.settingsCurrencyRow}</Text>
               <Text style={styles.rowSub}>{Strings.settingsCurrencyDesc}</Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={Size.iconSm}
+            color={Colors.dark.text2}
+          />
+        </Pressable>
+
+        <View style={styles.divider} />
+
+        <Pressable onPress={goToCategories} style={styles.row}>
+          <View style={styles.rowLeft}>
+            <View style={styles.iconBox}>
+              <MaterialCommunityIcons
+                name="tag-multiple"
+                size={Size.iconSm}
+                color={Colors.shared.cairoGold}
+              />
+            </View>
+            <View>
+              <Text style={styles.rowTitle}>{Strings.settingsCategoriesRow}</Text>
+              <Text style={styles.rowSub}>{Strings.settingsCategoriesDesc}</Text>
             </View>
           </View>
           <MaterialCommunityIcons
@@ -81,6 +104,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.dark.border,
     overflow: 'hidden',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.dark.border,
+    marginLeft: Spacing.md + Size.typeIconBox + Spacing.sm,
   },
   row: {
     flexDirection: 'row',

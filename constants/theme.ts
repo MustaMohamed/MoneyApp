@@ -93,6 +93,7 @@ export const Size = {
   headerHeight: ms(56),
   backBtn: ms(40),
   iconBack: ms(20),
+  iconXs: ms(16),
   iconSm: ms(18),
   iconMd: ms(22),
   iconLg: ms(26),
