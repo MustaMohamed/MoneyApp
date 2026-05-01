@@ -176,6 +176,95 @@ describe('AccountRepository.add color — TC-11', () => {
   });
 });
 
+describe('AccountRepository.update — TC-M15-01', () => {
+  it('updates name and color', async () => {
+    await repo.add({ ...baseInput, name: 'Before' });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+
+    await repo.update(id, { name: 'After', color: '#3D7A5F' });
+
+    const row = realDb.prepare('SELECT name, color FROM accounts WHERE id = ?').get(id) as {
+      name: string;
+      color: string;
+    };
+    expect(row.name).toBe('After');
+    expect(row.color).toBe('#3D7A5F');
+  });
+
+  it('updates updated_at timestamp', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    const before = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+
+    await new Promise((r) => setTimeout(r, 10));
+    await repo.update(id, { name: 'X', color: null });
+
+    const after = (
+      realDb.prepare('SELECT updated_at FROM accounts WHERE id = ?').get(id) as {
+        updated_at: string;
+      }
+    ).updated_at;
+    expect(after).not.toBe(before);
+  });
+});
+
+describe('AccountRepository.archive — TC-M15-02', () => {
+  it('sets is_archived = 1', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+
+    await repo.archive(id);
+
+    const row = realDb.prepare('SELECT is_archived FROM accounts WHERE id = ?').get(id) as {
+      is_archived: number;
+    };
+    expect(row.is_archived).toBe(1);
+  });
+
+  it('does not delete the row', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await repo.archive(id);
+    expect(realDb.prepare('SELECT id FROM accounts WHERE id = ?').get(id)).toBeDefined();
+  });
+
+  it('getAll no longer returns archived account', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await repo.archive(id);
+    const all = await repo.getAll();
+    expect(all.find((a) => a.id === id)).toBeUndefined();
+  });
+});
+
+describe('AccountRepository.adjustBalance — TC-M15-03', () => {
+  it('updates current_balance to the new value', async () => {
+    await repo.add({ ...baseInput, opening_balance: 1000 });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+
+    await repo.adjustBalance(id, 9999);
+
+    const row = realDb.prepare('SELECT current_balance FROM accounts WHERE id = ?').get(id) as {
+      current_balance: number;
+    };
+    expect(row.current_balance).toBe(9999);
+  });
+
+  it('does not change opening_balance', async () => {
+    await repo.add({ ...baseInput, opening_balance: 1000 });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await repo.adjustBalance(id, 500);
+    const row = realDb.prepare('SELECT opening_balance FROM accounts WHERE id = ?').get(id) as {
+      opening_balance: number;
+    };
+    expect(row.opening_balance).toBe(1000);
+  });
+});
+
 describe('AccountRepository.getAll ordering — TC-12', () => {
   it('returns non-archived rows ordered by sort_order asc, created_at asc', async () => {
     const insert = realDb.prepare(`
