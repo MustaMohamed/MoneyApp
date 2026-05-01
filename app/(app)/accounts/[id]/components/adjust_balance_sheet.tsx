@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -25,6 +25,13 @@ export function AdjustBalanceSheet({
 }: AdjustBalanceSheetProps) {
   const [input, setInput] = useState(String(currentBalance));
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (visible) {
+      setInput(String(currentBalance));
+      setError('');
+    }
+  }, [visible, currentBalance]);
 
   const handleSave = () => {
     const n = parseFloat(input);

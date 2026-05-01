@@ -1,6 +1,5 @@
 import {
   FadeInDown,
-  FadeInUp,
   FadeOutUp,
   useAnimatedStyle,
   useSharedValue,
@@ -26,7 +25,6 @@ export function useAccountDetailAnim() {
   return {
     headerStyle,
     triggerEditToggle,
-    contentEntering: FadeInUp.duration(300),
     fieldEntering: FadeInDown.duration(200),
     fieldExiting: FadeOutUp.duration(150),
     errorEntering: FadeInDown.duration(150),

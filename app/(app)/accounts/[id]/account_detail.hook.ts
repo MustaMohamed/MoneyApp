@@ -63,7 +63,7 @@ export function useAccountDetail() {
     if (account) {
       form.reset({ name: account.name, color: account.color ?? AccountColors[0] });
     }
-  }, [account]);
+  }, [account, form]);
 
   const handleSave = form.handleSubmit(async (data) => {
     if (!id) return;
