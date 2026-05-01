@@ -31,10 +31,12 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
 
 function deferred<T>() {
   let resolve!: (v: T) => void;
-  const promise = new Promise<T>((r) => {
-    resolve = r;
+  let reject!: (err: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
   });
-  return { promise, resolve };
+  return { promise, resolve, reject };
 }
 
 function makeRepo(initial: Transaction[] = []): ITransactionRepository {
@@ -242,5 +244,32 @@ describe('transactionStore — race guard', () => {
 
     expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
     expect(useStore.getState().query).toEqual({ search: 'ab' });
+  });
+
+  it('a stale request that errors does not clear loading set by a newer request', async () => {
+    const repo = makeRepo();
+    const firstDef = deferred<Transaction[]>();
+    const secondDef = deferred<Transaction[]>();
+    let call = 0;
+    repo.getAll = jest.fn(() => (call++ === 0 ? firstDef.promise : secondDef.promise));
+
+    const useStore = createTransactionStore(repo);
+    const stale = useStore.getState().setQuery({ search: 'a' });
+    const fresh = useStore.getState().setQuery({ search: 'ab' });
+
+    // The newer request resolves first and clears loading.
+    secondDef.resolve([makeTransaction({ id: 'fresh' })]);
+    await fresh;
+    expect(useStore.getState().loading).toBe(false);
+
+    // Now have the older request reject (e.g. its DB call timed out). The
+    // catch path's `if (myId === requestId)` guard must be FALSE, so it
+    // must NOT touch loading or transactions — those belong to the newer
+    // request that already settled.
+    firstDef.reject(new Error('stale db error'));
+    await expect(stale).rejects.toThrow('stale db error');
+
+    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
   });
 });

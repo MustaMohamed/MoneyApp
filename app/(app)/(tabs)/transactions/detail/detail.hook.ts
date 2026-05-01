@@ -17,11 +17,11 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 export type DetailState = 'loading' | 'notFound' | 'ready';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  bank: 'Bank',
-  smart_wallet: 'Smart Wallet',
-  physical_wallet: 'Physical Wallet',
-  physical_savings: 'Physical Savings',
-  credit_card: 'Credit Card',
+  bank: Strings.typeBank,
+  smart_wallet: Strings.typeSmartWallet,
+  physical_wallet: Strings.typePhysicalWallet,
+  physical_savings: Strings.typePhysicalSavings,
+  credit_card: Strings.typeCreditCard,
 };
 
 const TYPE_BADGE: Record<TransactionType, string> = {

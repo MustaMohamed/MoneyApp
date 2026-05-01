@@ -85,13 +85,22 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
       addTransaction: async (data) => {
         const tx = await repo.add(data);
-        await get().refresh();
+        // Swallow refresh errors: the add succeeded; a follow-up list-refresh
+        // failure shouldn't trick the caller into thinking the add failed.
+        // The list will catch up on the next setQuery / refresh.
+        await get()
+          .refresh()
+          .catch((err) => console.error('[transactionStore] post-add refresh failed:', err));
         return tx;
       },
 
       deleteTransaction: async (id) => {
         await repo.delete(id);
-        await get().refresh();
+        // Same reasoning as addTransaction: don't surface a refresh failure
+        // as if the delete itself failed.
+        await get()
+          .refresh()
+          .catch((err) => console.error('[transactionStore] post-delete refresh failed:', err));
       },
     };
   });
