@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 
-import { Currency, TransactionType } from '@/constants/enums';
+import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -64,6 +64,23 @@ function createSchema(type: TransactionType, accounts: Account[]) {
         });
       }
       const account = accounts.find((a) => a.id === data.accountId);
+      if (type === TransactionType.CCPayment) {
+        if (account && account.type === AccountType.CreditCard) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrCcPaymentSourceMustBeAsset,
+            path: ['accountId'],
+          });
+        }
+        const toAccount = accounts.find((a) => a.id === data.toAccountId);
+        if (toAccount && toAccount.type !== AccountType.CreditCard) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrCcPaymentTargetMustBeCC,
+            path: ['toAccountId'],
+          });
+        }
+      }
       if (account?.currency === Currency.USD) {
         if (!data.exchangeRate) {
           ctx.addIssue({
@@ -155,6 +172,23 @@ export function useAddTransaction(onClose: () => void) {
     [categories, type],
   );
 
+  // For CC payment: source must be a non-CC account, destination must be a CC account.
+  // For other types: all accounts are valid.
+  const accountsForFrom = useMemo(
+    () =>
+      type === TransactionType.CCPayment
+        ? accounts.filter((a) => a.type !== AccountType.CreditCard)
+        : accounts,
+    [accounts, type],
+  );
+  const accountsForTo = useMemo(
+    () =>
+      type === TransactionType.CCPayment
+        ? accounts.filter((a) => a.type === AccountType.CreditCard)
+        : accounts,
+    [accounts, type],
+  );
+
   const errors = {
     amount: form.formState.errors.amount?.message,
     account: form.formState.errors.accountId?.message,
@@ -169,9 +203,11 @@ export function useAddTransaction(onClose: () => void) {
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
   }, [amountStr]);
 
-  // Reset form fields when type changes (store already resets amountStr in setType)
+  // Clear only the type-dependent fields when type changes; preserve note/date/time/exchangeRate.
+  // (store already resets amountStr in setType)
   useEffect(() => {
-    form.reset(buildDefaults(currentRate));
+    form.setValue('toAccountId', '');
+    form.setValue('categoryId', '');
   }, [type]);
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -242,6 +278,8 @@ export function useAddTransaction(onClose: () => void) {
     errors,
     saving,
     accounts,
+    accountsForFrom,
+    accountsForTo,
     visibleCategories,
     showAccountPicker,
     setShowAccountPicker,

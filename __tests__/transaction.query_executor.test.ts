@@ -246,7 +246,7 @@ describe('getTransactionById', () => {
 });
 
 describe('deleteTransaction', () => {
-  it('removes the row and reverses the balance', async () => {
+  it('removes the row and reverses an expense balance', async () => {
     await addTransaction(mockDb, makeTx({ egp_amount: 100 }));
     const balanceAfterAdd = (
       realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'").get() as {
@@ -264,6 +264,119 @@ describe('deleteTransaction', () => {
     expect(balanceAfterDelete).toBe(1000);
     const row = realDb.prepare("SELECT * FROM transactions WHERE id = 'tx-1'").get();
     expect(row).toBeUndefined();
+  });
+
+  it('reverses an income credit', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({ id: 'tx-inc', type: TransactionType.Income, egp_amount: 500 }),
+    );
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(1500);
+
+    await deleteTransaction(mockDb, 'tx-inc');
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(1000);
+  });
+
+  it('reverses a transfer on both accounts', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-tr',
+        type: TransactionType.Transfer,
+        egp_amount: 300,
+        category_id: null,
+        to_account_id: 'acc_cc',
+      }),
+    );
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(700);
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(800);
+
+    await deleteTransaction(mockDb, 'tx-tr');
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(1000);
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(500);
+  });
+
+  it('reverses a cc_payment, restoring revolving_balance and current_balance', async () => {
+    // Initial: acc_asset=1000, acc_cc current=500/revolving=300/min=200
+    // Payment 350 → asset=650, cc current=150, revolving=150 (200 to installment, 150 to revolving)
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc',
+        type: TransactionType.CCPayment,
+        egp_amount: 350,
+        category_id: null,
+        to_account_id: 'acc_cc',
+      }),
+    );
+    await deleteTransaction(mockDb, 'tx-cc');
+
+    const asset = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    const cc = realDb
+      .prepare("SELECT current_balance, revolving_balance FROM accounts WHERE id = 'acc_cc'")
+      .get() as { current_balance: number; revolving_balance: number };
+    expect(asset.current_balance).toBe(1000);
+    expect(cc.current_balance).toBe(500);
+    expect(cc.revolving_balance).toBe(300);
+  });
+
+  it('reverses a cc_payment that only covered installment (revolving stayed unchanged on add)', async () => {
+    // Payment 100 against installment_due 200 → no revolving reduction on add
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc2',
+        type: TransactionType.CCPayment,
+        egp_amount: 100,
+        category_id: null,
+        to_account_id: 'acc_cc',
+      }),
+    );
+    await deleteTransaction(mockDb, 'tx-cc2');
+
+    const cc = realDb
+      .prepare("SELECT current_balance, revolving_balance FROM accounts WHERE id = 'acc_cc'")
+      .get() as { current_balance: number; revolving_balance: number };
+    expect(cc.current_balance).toBe(500);
+    expect(cc.revolving_balance).toBe(300);
   });
 
   it('is a no-op for unknown id', async () => {

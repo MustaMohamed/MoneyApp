@@ -145,13 +145,27 @@ export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise
         [tx.egp_amount, now, tx.to_account_id],
       );
     } else if (tx.type === 'cc_payment') {
+      // Reverse asset debit
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [tx.egp_amount, now, tx.account_id],
       );
+      // Recompute the installment-first split that addTransaction performed,
+      // and restore both current_balance and revolving_balance on the CC account.
+      const [cc] = await db.getAllAsync<{ minimum_payment: number | null }>(
+        'SELECT minimum_payment FROM accounts WHERE id = ?',
+        [tx.to_account_id],
+      );
+      const installmentDue = cc?.minimum_payment ?? 0;
+      const installmentCovered = Math.min(tx.egp_amount, installmentDue);
+      const revolvingRestore = Math.max(0, tx.egp_amount - installmentCovered);
       await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [tx.egp_amount, now, tx.to_account_id],
+        `UPDATE accounts
+           SET current_balance   = current_balance + ?,
+               revolving_balance = revolving_balance + ?,
+               updated_at        = ?
+         WHERE id = ?`,
+        [tx.egp_amount, revolvingRestore, now, tx.to_account_id],
       );
     }
   });

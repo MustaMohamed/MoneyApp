@@ -221,7 +221,7 @@ export function AddTransactionSheet({ visible, onClose }: Props) {
         <AccountPickerSheet
           visible={hook.showAccountPicker}
           title={isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle}
-          accounts={hook.accounts}
+          accounts={hook.accountsForFrom}
           selectedId={hook.accountId}
           onSelect={hook.selectAccount}
           onClose={() => hook.setShowAccountPicker(false)}
@@ -231,7 +231,7 @@ export function AddTransactionSheet({ visible, onClose }: Props) {
         <AccountPickerSheet
           visible={hook.showToPicker}
           title={Strings.addTxPickToTitle}
-          accounts={hook.accounts}
+          accounts={hook.accountsForTo}
           selectedId={hook.toAccountId}
           excludeId={hook.accountId}
           onSelect={hook.selectToAccount}
