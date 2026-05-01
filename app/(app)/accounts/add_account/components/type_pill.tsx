@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
 import { AccountType } from '@/constants/enums';
 import { useTypePillAnim } from '../add_account.anim';
@@ -39,7 +39,7 @@ export function TypePill({
   onSelect: () => void;
 }) {
   const { pillAnim, triggerPillTap } = useTypePillAnim();
-  const iconColor = isSelected ? '#C9973A' : '#6B7F99';
+  const iconColor = isSelected ? Colors.shared.cairoGold : Colors.dark.text2;
 
   return (
     <Animated.View style={[styles.wrap, option.fullWidth ? styles.full : styles.half, pillAnim]}>
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     borderWidth: 1.5,
   },
-  active: { borderColor: '#C9973A', backgroundColor: 'rgba(201,151,58,0.08)' },
-  inactive: { borderColor: '#2A3A4F', backgroundColor: '#1A2535' },
+  active: { borderColor: Colors.shared.cairoGold, backgroundColor: 'rgba(201,151,58,0.08)' },
+  inactive: { borderColor: Colors.dark.border, backgroundColor: Colors.dark.surface },
   label: { fontFamily: FontFamily.soraBold, fontSize: Type.body },
 });

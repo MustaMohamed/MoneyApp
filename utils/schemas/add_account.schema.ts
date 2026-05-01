@@ -36,7 +36,11 @@ export function createAddAccountSchema(accounts: Account[]) {
           message: Strings.errCreditLimitRequired,
         });
       }
-      if (data.interest_tracking && !data.apr?.trim()) {
+      if (
+        data.selected_type === AccountType.CreditCard &&
+        data.interest_tracking &&
+        !data.apr?.trim()
+      ) {
         ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRequired });
       }
     });
