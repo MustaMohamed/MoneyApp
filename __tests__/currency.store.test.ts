@@ -59,13 +59,18 @@ describe('currencyStore.loadRate', () => {
 });
 
 describe('currencyStore.fetchRate', () => {
+  let originalFetch: typeof global.fetch;
+
   beforeEach(() => {
+    originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.25 } }),
     } as unknown as Response);
   });
 
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
 
   it('updates state with fetched EGP rate', async () => {
     const store = createCurrencyStore(makeRepo());
