@@ -10,6 +10,7 @@ import {
   reassignCategory,
   updateCategory,
 } from '@/database/categories';
+import { CategoryType } from '@/constants/enums';
 import type { Category } from '@/database/entities/category.entity';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
@@ -61,7 +62,7 @@ const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Paramete
 const customRow: Omit<Category, 'created_at' | 'updated_at'> = {
   id: 'test-custom-1',
   name: 'My Custom',
-  type: 'expense',
+  type: CategoryType.Expense,
   icon: 'star',
   color: '#C9973A',
   is_default: 0,

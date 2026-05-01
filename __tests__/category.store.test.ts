@@ -1,3 +1,4 @@
+import { CategoryType } from '@/constants/enums';
 import { createCategoryStore } from '@/store/category.store';
 import type { ICategoryRepository } from '@/repositories/category.repository';
 import type { Category } from '@/database/entities/category.entity';
@@ -5,7 +6,7 @@ import type { Category } from '@/database/entities/category.entity';
 const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'cat-1',
   name: 'Travel',
-  type: 'expense',
+  type: CategoryType.Expense,
   icon: 'airplane',
   color: '#185FA5',
   is_default: 0,
@@ -57,10 +58,10 @@ describe('categoryStore.addCategory', () => {
     const useStore = createCategoryStore(repo);
     await useStore
       .getState()
-      .addCategory({ name: 'X', type: 'expense', icon: 'star', color: '#fff' });
+      .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' });
     expect(repo.add).toHaveBeenCalledWith({
       name: 'X',
-      type: 'expense',
+      type: CategoryType.Expense,
       icon: 'star',
       color: '#fff',
     });
@@ -71,7 +72,7 @@ describe('categoryStore.addCategory', () => {
     const useStore = createCategoryStore(repo);
     await useStore
       .getState()
-      .addCategory({ name: 'X', type: 'expense', icon: 'star', color: '#fff' });
+      .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' });
     expect(repo.getAll).toHaveBeenCalled();
   });
 });

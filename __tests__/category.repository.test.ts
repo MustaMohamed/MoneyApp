@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
+import { CategoryType } from '@/constants/enums';
 import { CategoryRepository, type NewCategoryInput } from '@/repositories/category.repository';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
@@ -50,7 +51,7 @@ const repo = new CategoryRepository();
 
 const baseInput: NewCategoryInput = {
   name: 'Travel',
-  type: 'expense',
+  type: CategoryType.Expense,
   icon: 'airplane',
   color: '#185FA5',
 };

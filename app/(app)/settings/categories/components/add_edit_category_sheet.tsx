@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useController } from 'react-hook-form';
+import { type Control, useController } from 'react-hook-form';
 import {
   FlatList,
   Modal,
@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { z } from 'zod/v4';
 
+import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
@@ -88,7 +89,7 @@ export function AddEditCategorySheet({
   const { categories } = useCategoryStore();
   const isEditing = editingCategory !== null;
 
-  const [type, setType] = useState<'expense' | 'income'>(activeTab);
+  const [type, setType] = useState<CategoryType>(activeTab as CategoryType);
   const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
   const [selectedColor, setSelectedColor] = useState<string>(AccountColors[0]);
   const [iconError, setIconError] = useState('');
@@ -113,7 +114,7 @@ export function AddEditCategorySheet({
         setSelectedColor(editingCategory.color);
       } else {
         reset({ name: '' });
-        setType(activeTab);
+        setType(activeTab as CategoryType);
         setSelectedIcon(null);
         setSelectedColor(AccountColors[0]);
       }
@@ -167,7 +168,7 @@ export function AddEditCategorySheet({
                   {(['expense', 'income'] as const).map((t) => (
                     <Pressable
                       key={t}
-                      onPress={() => setType(t)}
+                      onPress={() => setType(t as CategoryType)}
                       style={[styles.typePill, type === t && styles.typePillActive]}
                     >
                       <Text style={[styles.typePillText, type === t && styles.typePillTextActive]}>
@@ -241,7 +242,7 @@ function NameField({
   placeholder,
   error,
 }: {
-  control: ReturnType<typeof useZodForm>['control'];
+  control: Control<{ name: string }>;
   placeholder: string;
   error?: string;
 }) {

@@ -185,7 +185,7 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: Colors.shared.midnightBlue,
-    fontFamily: FontFamily.soraSemiBold,
+    fontFamily: FontFamily.soraSemi,
   },
   list: {
     paddingHorizontal: Spacing.sm,
