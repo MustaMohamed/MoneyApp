@@ -111,6 +111,15 @@ export const Strings = {
   placeholderSubtitle: 'M1 complete — M1.5 next.',
 
   // Dashboard (U2)
+  // Account card info rows
+  cardLimitLabel: 'Limit',
+  cardAvailableLabel: 'Available',
+  cardMinPayLabel: 'Min Pay',
+  cardOverLimit: 'Over Limit',
+  cardTypeLabel: 'Type',
+  cardCurrencyLabel: 'Currency',
+  cardOpeningLabel: 'Opening',
+
   dashAddPrefix: 'Add',
   dashAvailableToSpend: 'Available to Spend',
   dashNetWorthTitle: 'Net Worth',

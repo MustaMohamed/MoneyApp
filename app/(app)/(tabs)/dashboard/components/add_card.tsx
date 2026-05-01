@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { CARD_HEIGHT } from './account_card';
 
 const TYPE_LABEL: Record<AccountType, string> = {
   [AccountType.Bank]: Strings.typeBank,
@@ -31,8 +32,8 @@ export function AddCard({ type, onPress }: AddCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 120,
-    minHeight: 80,
+    width: 80,
+    minHeight: CARD_HEIGHT,
     backgroundColor: 'transparent',
     borderRadius: Radius.md,
     borderWidth: 1.5,

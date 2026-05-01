@@ -25,6 +25,58 @@ const TYPE_LABELS: Record<AccountType, string> = {
   [AccountType.CreditCard]: Strings.typeCreditCard,
 };
 
+function availableCreditColor(available: number, limit: number): string {
+  if (limit <= 0) return Colors.dark.text2;
+  const pct = available / limit;
+  if (pct > 0.5) return Colors.dark.positive;
+  if (pct >= 0.2) return '#D4830A';
+  return Colors.dark.negative;
+}
+
+interface InfoRow {
+  label: string;
+  value: string;
+  valueColor?: string;
+}
+
+function buildInfoRows(account: Account, rate: number): InfoRow[] {
+  const toEgp = (n: number) => (account.currency === Currency.USD ? n * rate : n);
+
+  if (account.type === AccountType.CreditCard) {
+    const limit = account.credit_limit ?? 0;
+    const balance = account.current_balance;
+    const available = Math.max(0, limit - balance);
+    const isOverLimit = balance > limit && limit > 0;
+    const availColor = availableCreditColor(available, limit);
+    const minPay = account.minimum_payment;
+
+    return [
+      {
+        label: Strings.cardLimitLabel,
+        value: `${formatAmount(toEgp(limit))} EGP`,
+      },
+      {
+        label: Strings.cardAvailableLabel,
+        value: isOverLimit ? Strings.cardOverLimit : `${formatAmount(toEgp(available))} EGP`,
+        valueColor: availColor,
+      },
+      {
+        label: Strings.cardMinPayLabel,
+        value: minPay != null && minPay > 0 ? `${formatAmount(toEgp(minPay))} EGP` : '—',
+      },
+    ];
+  }
+
+  return [
+    { label: Strings.cardTypeLabel, value: TYPE_LABELS[account.type] },
+    { label: Strings.cardCurrencyLabel, value: account.currency },
+    {
+      label: Strings.cardOpeningLabel,
+      value: `${formatAmount(account.opening_balance)} ${account.currency}`,
+    },
+  ];
+}
+
 interface AccountCardProps {
   account: Account;
   rate: number;
@@ -39,36 +91,54 @@ export function AccountCard({ account, rate, onPress }: AccountCardProps) {
   const isCreditCard = account.type === AccountType.CreditCard;
   const balanceColor = isCreditCard ? Colors.dark.negative : Colors.dark.gold;
   const icon = TYPE_ICONS[account.type];
-  const typeLabel = TYPE_LABELS[account.type];
+  const infoRows = buildInfoRows(account, rate);
 
   return (
     <Pressable onPress={onPress} style={styles.card}>
-      <View style={[styles.colorBar, { backgroundColor: color }]} />
+      <View style={[styles.accentBar, { backgroundColor: color }]} />
       <View style={styles.body}>
-        <View
-          style={[styles.iconBox, { backgroundColor: color + '22', borderColor: color + '55' }]}
-        >
-          <MaterialCommunityIcons name={icon} size={Size.iconSm} color={color} />
+        <View style={styles.topRow}>
+          <Text style={styles.name} numberOfLines={1}>
+            {account.name}
+          </Text>
+          <View style={[styles.currencyPill, { borderColor: color + '55' }]}>
+            <Text style={styles.currencyPillText}>{account.currency}</Text>
+          </View>
         </View>
-        <Text style={styles.name} numberOfLines={1}>
-          {account.name}
-        </Text>
-        <Text style={styles.typeLabel}>{typeLabel}</Text>
+
         <View style={styles.balanceRow}>
-          <Text style={[styles.balance, { color: balanceColor }]}>{formatAmount(balanceEgp)}</Text>
-          <Text style={styles.currency}> EGP</Text>
+          <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
+            <MaterialCommunityIcons name={icon} size={14} color={color} />
+          </View>
+          <Text style={[styles.balance, { color: balanceColor }]} numberOfLines={1}>
+            {formatAmount(balanceEgp)}
+          </Text>
         </View>
-        {account.currency === Currency.USD && (
-          <Text style={styles.sub}>{formatAmount(account.current_balance, 2)} USD</Text>
-        )}
+
+        <View style={styles.divider} />
+
+        {infoRows.map((row, i) => (
+          <View key={i} style={styles.infoRow}>
+            <Text style={styles.infoLabel}>{row.label}</Text>
+            <Text
+              style={[styles.infoValue, row.valueColor ? { color: row.valueColor } : undefined]}
+              numberOfLines={1}
+            >
+              {row.value}
+            </Text>
+          </View>
+        ))}
       </View>
     </Pressable>
   );
 }
 
+export const CARD_HEIGHT = Size.typeIconBox * 4 + Spacing.xxl + 6;
+
 const styles = StyleSheet.create({
   card: {
-    width: 160,
+    width: 190,
+    minHeight: CARD_HEIGHT,
     backgroundColor: Colors.dark.surfaceEl,
     borderRadius: Radius.md,
     borderWidth: 1,
@@ -76,46 +146,74 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginLeft: Spacing.xs,
   },
-  colorBar: { height: 4, width: '100%' },
-  body: { padding: Spacing.sm },
-  iconBox: {
-    width: Size.typeIconBox,
-    height: Size.typeIconBox,
-    borderRadius: Radius.sm,
-    borderWidth: 1,
+  accentBar: { height: 3, width: '100%' },
+  body: {
+    flex: 1,
+    padding: Spacing.sm,
+    gap: Spacing.xs,
+  },
+  topRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xs,
+    justifyContent: 'space-between',
+    gap: Spacing.xxs,
   },
   name: {
+    flex: 1,
     fontFamily: FontFamily.soraBold,
-    fontSize: Type.body,
+    fontSize: Type.caption,
     color: Colors.dark.text1,
   },
-  typeLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.caption,
+  currencyPill: {
+    borderWidth: 1,
+    borderRadius: 3,
+    paddingHorizontal: Spacing.xxs + 2,
+    paddingVertical: 2,
+  },
+  currencyPillText: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.micro,
     color: Colors.dark.text2,
-    marginTop: Spacing.xxs,
   },
   balanceRow: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: Spacing.xs,
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  iconBox: {
+    width: 30,
+    height: 30,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   balance: {
+    flex: 1,
     fontFamily: FontFamily.soraBold,
     fontSize: Type.subhead,
   },
-  currency: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
+  divider: {
+    height: 1,
+    backgroundColor: Colors.dark.border,
   },
-  sub: {
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  infoLabel: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,
-    marginTop: Spacing.xxs,
+    flexShrink: 0,
+  },
+  infoValue: {
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.micro,
+    color: Colors.dark.text1,
+    textAlign: 'right',
+    flex: 1,
   },
 });
