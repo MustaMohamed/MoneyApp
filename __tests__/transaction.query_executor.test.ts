@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import {
   addTransaction,
   deleteTransaction,
@@ -88,7 +88,7 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     id: 'tx-1',
     type: TransactionType.Expense,
     amount: 100,
-    currency: 'EGP' as const,
+    currency: Currency.EGP,
     egp_amount: 100,
     exchange_rate: null,
     account_id: 'acc_asset',
