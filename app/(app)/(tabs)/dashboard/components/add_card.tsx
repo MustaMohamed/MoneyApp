@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 
 const TYPE_LABEL: Record<AccountType, string> = {
   [AccountType.Bank]: Strings.typeBank,
@@ -21,7 +21,7 @@ interface AddCardProps {
 export function AddCard({ type, onPress }: AddCardProps) {
   return (
     <Pressable onPress={onPress} style={styles.card}>
-      <MaterialCommunityIcons name="plus" size={22} color={Colors.dark.text2} />
+      <MaterialCommunityIcons name="plus" size={Size.iconMd} color={Colors.dark.text2} />
       <Text style={styles.label}>
         {Strings.dashAddPrefix} {TYPE_LABEL[type]}
       </Text>

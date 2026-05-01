@@ -56,7 +56,7 @@ export function EmptyState({ variant, onAction, actionLabel }: EmptyStateProps) 
       {onAction && (
         <Pressable onPress={onAction} style={styles.ctaPress}>
           <LinearGradient
-            colors={['#C9973A', '#D4A44C']}
+            colors={[Colors.shared.cairoGold, Colors.dark.gold]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.cta}
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   cta: {
-    height: 52,
+    height: Size.ctaHeight,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radius.cta,

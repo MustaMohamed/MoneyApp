@@ -9,7 +9,6 @@ export function useDashboard() {
   const router = useRouter();
   const accounts = useAccountStore((s) => s.accounts);
   const rate = useCurrencyStore((s) => s.rate);
-  const lastFetched = useCurrencyStore((s) => s.lastFetched);
   const isManualOverride = useCurrencyStore((s) => s.isManualOverride);
 
   const [isBreakdownVisible, setBreakdownVisible] = useState(false);
@@ -24,7 +23,6 @@ export function useDashboard() {
   return {
     accounts,
     rate,
-    lastFetched,
     isManualOverride,
     netWorth,
     groupedAccounts,

@@ -29,36 +29,40 @@ export function NetWorthBreakdownSheet({
       animationType="slide"
       statusBarTranslucent
     >
-      <Pressable style={styles.backdrop} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>{Strings.dashNetWorthTitle}</Text>
+      <View style={styles.container}>
+        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
+        <View style={styles.sheet}>
+          <View style={styles.handle} />
+          <Text style={styles.title}>{Strings.dashNetWorthTitle}</Text>
 
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{Strings.dashAssetsLabel}</Text>
-          <Text style={[styles.rowValue, styles.positive]}>{formatAmount(assetsEgp)} EGP</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>{Strings.dashLiabilitiesLabel}</Text>
-          <Text style={[styles.rowValue, styles.negative]}>{formatAmount(liabilitiesEgp)} EGP</Text>
-        </View>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>{Strings.dashAssetsLabel}</Text>
+            <Text style={[styles.rowValue, styles.positive]}>{formatAmount(assetsEgp)} EGP</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.rowLabel}>{Strings.dashLiabilitiesLabel}</Text>
+            <Text style={[styles.rowValue, styles.negative]}>
+              {formatAmount(liabilitiesEgp)} EGP
+            </Text>
+          </View>
 
-        <View style={styles.divider} />
+          <View style={styles.divider} />
 
-        <View style={styles.row}>
-          <Text style={[styles.rowLabel, styles.totalLabel]}>{Strings.dashNetWorthTitle}</Text>
-          <Text style={[styles.rowValue, styles.totalValue, netWorthEgp < 0 && styles.negative]}>
-            {formatAmount(netWorthEgp)} EGP
-          </Text>
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, styles.totalLabel]}>{Strings.dashNetWorthTitle}</Text>
+            <Text style={[styles.rowValue, styles.totalValue, netWorthEgp < 0 && styles.negative]}>
+              {formatAmount(netWorthEgp)} EGP
+            </Text>
+          </View>
+          <Text style={styles.usdLine}>≈ {formatAmount(netWorthUsd, 0)} USD</Text>
         </View>
-        <Text style={styles.usdLine}>≈ {formatAmount(netWorthUsd, 0)} USD</Text>
       </View>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.55)' },
+  container: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
