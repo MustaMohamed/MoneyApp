@@ -1,0 +1,158 @@
+import Database from 'better-sqlite3';
+import * as SQLite from 'expo-sqlite';
+
+import { MIGRATIONS } from '@/database/migrations';
+import {
+  addCategory,
+  deleteCategory,
+  getCategories,
+  getCategoriesByType,
+  reassignCategory,
+  updateCategory,
+} from '@/database/categories';
+import { CategoryType } from '@/constants/enums';
+import type { Category } from '@/database/entities/category.entity';
+
+const sqlite = SQLite as unknown as { __reset: () => void };
+let realDb: ReturnType<typeof Database>;
+
+beforeAll(() => {
+  realDb = new Database(':memory:');
+  realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
+
+  const mocked = (
+    SQLite as unknown as {
+      __fakeDb: {
+        runAsync: jest.Mock;
+        getAllAsync: jest.Mock;
+        execAsync: jest.Mock;
+      };
+    }
+  ).__fakeDb;
+
+  mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
+    realDb.prepare(sql).run(...(params as never[]));
+    return { changes: 1, lastInsertRowId: 1 };
+  });
+
+  mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
+    return realDb.prepare(sql).all(...(params as never[]));
+  });
+
+  mocked.execAsync.mockImplementation(async (sql: string) => {
+    realDb.exec(sql);
+  });
+});
+
+beforeEach(() => {
+  realDb.exec('DELETE FROM categories WHERE is_default = 0');
+});
+
+afterAll(() => {
+  realDb.close();
+  sqlite.__reset();
+});
+
+const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
+  typeof getCategories
+>[0];
+
+const customRow: Omit<Category, 'created_at' | 'updated_at'> = {
+  id: 'test-custom-1',
+  name: 'My Custom',
+  type: CategoryType.Expense,
+  icon: 'star',
+  color: '#C9973A',
+  is_default: 0,
+  sort_order: 99,
+};
+
+describe('getCategories', () => {
+  it('returns all 27 default rows', async () => {
+    const rows = await getCategories(mockDb);
+    expect(rows).toHaveLength(27);
+  });
+
+  it('orders by type then sort_order', async () => {
+    const rows = await getCategories(mockDb);
+    const expenseRows = rows.filter((r) => r.type === 'expense');
+    const incomeRows = rows.filter((r) => r.type === 'income');
+    expect(expenseRows[0].id).toBe('cat_housing');
+    expect(incomeRows[0].id).toBe('cat_salary');
+  });
+});
+
+describe('getCategoriesByType', () => {
+  it('returns 22 expense categories', async () => {
+    const rows = await getCategoriesByType(mockDb, 'expense');
+    expect(rows).toHaveLength(22);
+    expect(rows.every((r) => r.type === 'expense')).toBe(true);
+  });
+
+  it('returns 5 income categories', async () => {
+    const rows = await getCategoriesByType(mockDb, 'income');
+    expect(rows).toHaveLength(5);
+    expect(rows.every((r) => r.type === 'income')).toBe(true);
+  });
+});
+
+describe('addCategory', () => {
+  it('inserts a new row', async () => {
+    const now = new Date().toISOString();
+    await addCategory(mockDb, { ...customRow, created_at: now, updated_at: now });
+    const row = realDb.prepare("SELECT * FROM categories WHERE id = 'test-custom-1'").get();
+    expect(row).toBeDefined();
+  });
+
+  it('persists all fields correctly', async () => {
+    const now = new Date().toISOString();
+    await addCategory(mockDb, { ...customRow, created_at: now, updated_at: now });
+    const row = realDb
+      .prepare("SELECT * FROM categories WHERE id = 'test-custom-1'")
+      .get() as Category;
+    expect(row.name).toBe('My Custom');
+    expect(row.type).toBe('expense');
+    expect(row.icon).toBe('star');
+    expect(row.color).toBe('#C9973A');
+    expect(row.is_default).toBe(0);
+  });
+});
+
+describe('updateCategory', () => {
+  it('updates name, icon, and color', async () => {
+    const now = new Date().toISOString();
+    await addCategory(mockDb, { ...customRow, created_at: now, updated_at: now });
+    await updateCategory(mockDb, 'test-custom-1', {
+      name: 'Updated',
+      icon: 'heart',
+      color: '#4CAF82',
+      updated_at: new Date().toISOString(),
+    });
+    const row = realDb
+      .prepare("SELECT * FROM categories WHERE id = 'test-custom-1'")
+      .get() as Category;
+    expect(row.name).toBe('Updated');
+    expect(row.icon).toBe('heart');
+    expect(row.color).toBe('#4CAF82');
+  });
+});
+
+describe('deleteCategory', () => {
+  it('removes the row', async () => {
+    const now = new Date().toISOString();
+    await addCategory(mockDb, { ...customRow, created_at: now, updated_at: now });
+    await deleteCategory(mockDb, 'test-custom-1');
+    const row = realDb.prepare("SELECT * FROM categories WHERE id = 'test-custom-1'").get();
+    expect(row).toBeUndefined();
+  });
+});
+
+describe('reassignCategory', () => {
+  it('is a no-op in M2a (transactions table does not exist yet)', async () => {
+    await expect(
+      reassignCategory(mockDb, 'cat_housing', 'cat_other_expense'),
+    ).resolves.toBeUndefined();
+  });
+});
