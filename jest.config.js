@@ -20,15 +20,25 @@ module.exports = {
   ],
   // Covers the pure logic layer only. Hooks (*.hook.ts) and router/form
   // utilities require renderHook + expo-router mocks — deferred to M1.5.
+  // Trivial UI-only Zustand stores (pure setters, no business logic) are
+  // excluded via coveragePathIgnorePatterns to keep thresholds meaningful.
   collectCoverageFrom: [
     'store/**/*.ts',
     'repositories/**/*.ts',
     'database/**/*.ts',
     'utils/responsive.ts',
+    'utils/format_amount.ts',
     'app/**/*.helpers.ts',
+    'app/**/*.store.ts',
     '!**/__mocks__/**',
     '!database/entities/**',
     '!database/client.ts',
+  ],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    'app/_layout\\.store\\.ts',
+    'app/\\(onboarding\\)/.+\\.store\\.ts',
+    'app/\\(app\\)/settings/.+\\.store\\.ts',
   ],
   coverageThreshold: {
     global: { lines: 80, functions: 95, branches: 100 },
