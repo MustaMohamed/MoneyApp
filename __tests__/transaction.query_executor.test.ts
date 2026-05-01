@@ -216,8 +216,8 @@ describe('getTransactions', () => {
     for (let i = 1; i <= 5; i++) {
       await addTransaction(mockDb, makeTx({ id: `tx-${i}`, egp_amount: i * 10 }));
     }
-    const page1 = await getTransactions(mockDb, 2, 0);
-    const page2 = await getTransactions(mockDb, 2, 2);
+    const page1 = await getTransactions(mockDb, { limit: 2, offset: 0 });
+    const page2 = await getTransactions(mockDb, { limit: 2, offset: 2 });
     expect(page1).toHaveLength(2);
     expect(page2).toHaveLength(2);
     expect(page1[0].id).not.toBe(page2[0].id);
@@ -381,5 +381,162 @@ describe('deleteTransaction', () => {
 
   it('is a no-op for unknown id', async () => {
     await expect(deleteTransaction(mockDb, 'ghost')).resolves.toBeUndefined();
+  });
+});
+
+describe('getTransactions — filter + search', () => {
+  beforeEach(async () => {
+    realDb.exec('DELETE FROM transactions');
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO categories (id,name,type,icon,color,is_default,sort_order,created_at,updated_at)
+         VALUES ('cat_food','Food & Dining','expense','food','#C9973A',1,0,?,?)`,
+      )
+      .run(NOW, NOW);
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO categories (id,name,type,icon,color,is_default,sort_order,created_at,updated_at)
+         VALUES ('cat_salary','Salary','income','briefcase','#4CAF82',1,0,?,?)`,
+      )
+      .run(NOW, NOW);
+  });
+
+  async function insert(overrides: Partial<Transaction> = {}) {
+    const tx: Transaction = {
+      id: overrides.id ?? `tx-${Math.random().toString(36).slice(2, 9)}`,
+      type: TransactionType.Expense,
+      amount: 10,
+      currency: Currency.EGP,
+      egp_amount: 10,
+      exchange_rate: null,
+      account_id: 'acc_asset',
+      to_account_id: null,
+      category_id: 'cat_food',
+      note: null,
+      transaction_date: DATE,
+      transaction_time: TIME,
+      created_at: NOW,
+      updated_at: NOW,
+      ...overrides,
+    };
+    await addTransaction(mockDb, tx);
+    return tx;
+  }
+
+  it('returns all transactions ordered DESC when no filter is provided', async () => {
+    await insert({ id: 'a', transaction_date: '2026-04-30', transaction_time: '10:00:00' });
+    await insert({ id: 'b', transaction_date: '2026-05-01', transaction_time: '10:00:00' });
+
+    const out = await getTransactions(mockDb, {});
+    expect(out.map((t) => t.id)).toEqual(['b', 'a']);
+  });
+
+  it('filters by type', async () => {
+    await insert({ id: 'e', type: TransactionType.Expense });
+    await insert({ id: 'i', type: TransactionType.Income, category_id: 'cat_salary' });
+
+    const out = await getTransactions(mockDb, {
+      type: TransactionType.Expense,
+    });
+    expect(out).toHaveLength(1);
+    expect(out[0].id).toBe('e');
+  });
+
+  it('searches by note', async () => {
+    await insert({ id: 'with', note: 'Lunch with team' });
+    await insert({ id: 'without', note: 'Coffee' });
+
+    const out = await getTransactions(mockDb, { search: 'lunch' });
+    expect(out.map((t) => t.id)).toEqual(['with']);
+  });
+
+  it('searches by category name (case-insensitive)', async () => {
+    await insert({ id: 'food-tx', category_id: 'cat_food' });
+    await insert({ id: 'salary-tx', type: TransactionType.Income, category_id: 'cat_salary' });
+
+    const out = await getTransactions(mockDb, { search: 'FOOD' });
+    expect(out.map((t) => t.id)).toEqual(['food-tx']);
+  });
+
+  it('searches by source account name', async () => {
+    await insert({ id: 'on-checking' }); // account_id = acc_asset, name 'Checking'
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO accounts
+         (id,name,type,currency,opening_balance,current_balance,
+          interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('acc_other','Vodafone','smart_wallet','EGP',0,0,0,0,2,?,?)`,
+      )
+      .run(NOW, NOW);
+    await insert({ id: 'on-vodafone', account_id: 'acc_other' });
+
+    const out = await getTransactions(mockDb, { search: 'check' });
+    expect(out.map((t) => t.id)).toEqual(['on-checking']);
+  });
+
+  it('searches by destination account name on transfers', async () => {
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO accounts
+         (id,name,type,currency,opening_balance,current_balance,
+          interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('acc_dst','Vault','physical_savings','EGP',0,0,0,0,3,?,?)`,
+      )
+      .run(NOW, NOW);
+
+    await insert({
+      id: 'xfer',
+      type: TransactionType.Transfer,
+      to_account_id: 'acc_dst',
+      category_id: null,
+    });
+
+    const out = await getTransactions(mockDb, { search: 'vault' });
+    expect(out.map((t) => t.id)).toEqual(['xfer']);
+  });
+
+  it('combines filter + search (AND)', async () => {
+    await insert({ id: 'expense-food', note: 'Lunch' });
+    await insert({
+      id: 'income-lunch',
+      type: TransactionType.Income,
+      category_id: 'cat_salary',
+      note: 'Lunch reimbursement',
+    });
+
+    const out = await getTransactions(mockDb, {
+      search: 'lunch',
+      type: TransactionType.Expense,
+    });
+    expect(out.map((t) => t.id)).toEqual(['expense-food']);
+  });
+
+  it('treats empty / whitespace search as no filter', async () => {
+    await insert({ id: 'a' });
+    await insert({ id: 'b' });
+
+    const out = await getTransactions(mockDb, { search: '   ' });
+    expect(out).toHaveLength(2);
+  });
+
+  it('escapes LIKE wildcards so a literal "%" does not match every row', async () => {
+    await insert({ id: 'plain', note: 'Coffee' });
+    await insert({ id: 'literal', note: '50% tip' });
+
+    const out = await getTransactions(mockDb, { search: '50%' });
+    expect(out.map((t) => t.id)).toEqual(['literal']);
+  });
+
+  it('paginates with LIMIT/OFFSET', async () => {
+    for (let i = 0; i < 35; i++) {
+      const day = String(i + 1).padStart(2, '0');
+      await insert({ id: `p${i}`, transaction_date: `2026-03-${day}` });
+    }
+
+    const page1 = await getTransactions(mockDb, { limit: 30, offset: 0 });
+    const page2 = await getTransactions(mockDb, { limit: 30, offset: 30 });
+    expect(page1).toHaveLength(30);
+    expect(page2).toHaveLength(5);
+    expect(page1[0].id).not.toBe(page2[0].id);
   });
 });
