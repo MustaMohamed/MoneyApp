@@ -11,8 +11,6 @@ import {
   type AddAccountFormData,
 } from '@/utils/schemas/add_account.schema';
 
-export { createAddAccountSchema, type AddAccountFormData };
-
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
