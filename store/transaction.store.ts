@@ -5,13 +5,14 @@ import {
   TransactionRepository,
   type ITransactionRepository,
   type NewTransactionInput,
+  type TransactionListQuery,
 } from '@/repositories/transaction.repository';
 
 export type { Transaction, NewTransactionInput };
 
 interface TransactionState {
   transactions: Transaction[];
-  loadTransactions: (limit?: number, offset?: number) => Promise<void>;
+  loadTransactions: (query?: TransactionListQuery) => Promise<void>;
   addTransaction: (data: NewTransactionInput) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
 }
@@ -20,9 +21,9 @@ export function createTransactionStore(repo: ITransactionRepository) {
   return create<TransactionState>((set, get) => ({
     transactions: [],
 
-    loadTransactions: async (limit = 30, offset = 0) => {
+    loadTransactions: async (query) => {
       try {
-        const transactions = await repo.getAll(limit, offset);
+        const transactions = await repo.getAll(query);
         set({ transactions });
       } catch (err) {
         console.error('[transactionStore] loadTransactions failed:', err);

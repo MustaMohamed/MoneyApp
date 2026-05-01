@@ -7,9 +7,12 @@ import {
   getTransactionById,
   getTransactions,
   getTransactionsByAccount,
+  type TransactionListQuery,
 } from '@/database/transactions';
 import { getDb } from '@/database/client';
 import type { Transaction } from '@/database/entities/transaction.entity';
+
+export type { TransactionListQuery };
 
 export interface NewTransactionInput {
   type: TransactionType;
@@ -32,7 +35,7 @@ export interface NewTransactionInput {
 }
 
 export interface ITransactionRepository {
-  getAll(limit?: number, offset?: number): Promise<Transaction[]>;
+  getAll(query?: TransactionListQuery): Promise<Transaction[]>;
   getByAccount(accountId: string, limit?: number, offset?: number): Promise<Transaction[]>;
   getById(id: string): Promise<Transaction | null>;
   add(data: NewTransactionInput): Promise<Transaction>;
@@ -40,9 +43,9 @@ export interface ITransactionRepository {
 }
 
 export class TransactionRepository implements ITransactionRepository {
-  async getAll(limit = 30, offset = 0): Promise<Transaction[]> {
+  async getAll(query: TransactionListQuery = {}): Promise<Transaction[]> {
     const db = await getDb();
-    return getTransactions(db, limit, offset);
+    return getTransactions(db, query);
   }
 
   async getByAccount(accountId: string, limit = 30, offset = 0): Promise<Transaction[]> {
