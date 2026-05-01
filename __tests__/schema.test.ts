@@ -26,12 +26,17 @@ const VALID_INSERT = `
 `;
 
 describe('database schema — TC-15', () => {
-  it('creates exactly the M1+M2a tables and no others', () => {
+  it('creates exactly the M1+M2b tables and no others', () => {
     const db = withDb();
     const rows = db
       .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
       .all() as { name: string }[];
-    expect(rows.map((r) => r.name)).toEqual(['accounts', 'app_settings', 'categories']);
+    expect(rows.map((r) => r.name)).toEqual([
+      'accounts',
+      'app_settings',
+      'categories',
+      'transactions',
+    ]);
   });
 
   it('accounts table has exactly 17 columns in the spec order', () => {

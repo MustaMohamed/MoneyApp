@@ -150,9 +150,28 @@ describe('deleteCategory', () => {
 });
 
 describe('reassignCategory', () => {
-  it('is a no-op in M2a (transactions table does not exist yet)', async () => {
-    await expect(
-      reassignCategory(mockDb, 'cat_housing', 'cat_other_expense'),
-    ).resolves.toBeUndefined();
+  it('updates category_id on all matching transactions', async () => {
+    const now = new Date().toISOString();
+    realDb
+      .prepare(
+        `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,
+       interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('acc1','Bank','bank','EGP',0,0,0,0,0,?,?)`,
+      )
+      .run(now, now);
+    realDb
+      .prepare(
+        `INSERT INTO transactions (id,type,amount,currency,egp_amount,account_id,
+       category_id,transaction_date,transaction_time,created_at,updated_at)
+       VALUES ('tx1','expense',100,'EGP',100,'acc1','cat_housing','2026-01-01','12:00:00',?,?)`,
+      )
+      .run(now, now);
+
+    await reassignCategory(mockDb, 'cat_housing', 'cat_other_expense');
+
+    const row = realDb.prepare("SELECT category_id FROM transactions WHERE id = 'tx1'").get() as {
+      category_id: string;
+    };
+    expect(row.category_id).toBe('cat_other_expense');
   });
 });
