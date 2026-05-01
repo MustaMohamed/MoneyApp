@@ -23,26 +23,26 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="dashboard"
+        name="dashboard/index"
         options={{ title: 'Home', tabBarIcon: ({ color }) => tabIcon('home', color) }}
       />
       <Tabs.Screen
-        name="transactions"
+        name="transactions/index"
         options={{
           title: 'Transactions',
           tabBarIcon: ({ color }) => tabIcon('swap-horizontal', color),
         }}
       />
       <Tabs.Screen
-        name="bills"
+        name="bills/index"
         options={{ title: 'Bills', tabBarIcon: ({ color }) => tabIcon('calendar-clock', color) }}
       />
       <Tabs.Screen
-        name="goals"
+        name="goals/index"
         options={{ title: 'Goals', tabBarIcon: ({ color }) => tabIcon('target', color) }}
       />
       <Tabs.Screen
-        name="budget"
+        name="budget/index"
         options={{ title: 'Budget', tabBarIcon: ({ color }) => tabIcon('chart-pie', color) }}
       />
     </Tabs>
