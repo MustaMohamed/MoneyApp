@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,9 +6,12 @@ import { EmptyState } from '@/components/empty_states';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { AddTransactionSheet } from './add_transaction';
+import { useAddTransactionStore } from './add_transaction/add_transaction.store';
 
 export default function TransactionsScreen() {
-  const [showSheet, setShowSheet] = useState(false);
+  const open = useAddTransactionStore((s) => s.open);
+  const close = useAddTransactionStore((s) => s.close);
+  const visible = useAddTransactionStore((s) => s.visible);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -21,14 +23,11 @@ export default function TransactionsScreen() {
         <EmptyState variant="transactions" />
       </View>
 
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={() => setShowSheet(true)}
-      >
+      <Pressable style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]} onPress={open}>
         <MaterialCommunityIcons name="plus" size={ms(28)} color={Colors.shared.midnightBlue} />
       </Pressable>
 
-      <AddTransactionSheet visible={showSheet} onClose={() => setShowSheet(false)} />
+      <AddTransactionSheet visible={visible} onClose={close} />
     </SafeAreaView>
   );
 }
