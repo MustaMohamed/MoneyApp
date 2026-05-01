@@ -76,7 +76,6 @@ database/transactions.ts                  # extend getTransactions with search +
 constants/strings.ts                      # add U5 + U7 copy block
 constants/theme.ts                        # add transferBlue, ccPlum, heroGrad1/2/3, dangerBg
 components/empty_states/...               # add transactionsNoResults variant
-app/_layout.tsx                           # load Sora_800ExtraBold for U7 hero amount
 ```
 
 ---
@@ -630,9 +629,9 @@ typeBadgeTransfer:             'Transfer',
 typeBadgeCcPayment:            'CC Payment',
 ```
 
-### 7.3 `app/_layout.tsx` — font load
+### 7.3 Font load — already in place
 
-Add `Sora_800ExtraBold` to the `useFonts` map alongside the existing `Sora_400/600/700`.
+`Sora_800ExtraBold` is already loaded in `app/_layout.tsx:7,27` and exposed as `FontFamily.soraExtra` in `constants/theme.ts:47`. No changes needed.
 
 ---
 
