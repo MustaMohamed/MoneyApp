@@ -6,8 +6,12 @@ interface CurrencyScreenState {
   reset: () => void;
 }
 
-export const useCurrencyScreenStore = create<CurrencyScreenState>((set) => ({
-  isManualPanelOpen: false,
-  setManualPanelOpen: (v) => set({ isManualPanelOpen: v }),
-  reset: () => set({ isManualPanelOpen: false }),
-}));
+export function createCurrencyScreenStore() {
+  return create<CurrencyScreenState>((set) => ({
+    isManualPanelOpen: false,
+    setManualPanelOpen: (v) => set({ isManualPanelOpen: v }),
+    reset: () => set({ isManualPanelOpen: false }),
+  }));
+}
+
+export const useCurrencyScreenStore = createCurrencyScreenStore();

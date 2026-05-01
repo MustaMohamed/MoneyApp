@@ -1,6 +1,5 @@
 import {
   computeNetWorth,
-  formatAmount,
   groupAccountsByType,
 } from '@/app/(app)/(tabs)/dashboard/dashboard.helpers';
 import { AccountType, Currency } from '@/constants/enums';
@@ -101,23 +100,5 @@ describe('groupAccountsByType', () => {
     const groups = groupAccountsByType([a1, a2]);
     expect(groups[AccountType.Bank]![0].name).toBe('First');
     expect(groups[AccountType.Bank]![1].name).toBe('Second');
-  });
-});
-
-describe('formatAmount', () => {
-  it('formats integer with comma separator', () => {
-    expect(formatAmount(10500)).toBe('10,500');
-  });
-
-  it('formats with decimals when specified', () => {
-    expect(formatAmount(10500.5, 1)).toBe('10,500.5');
-  });
-
-  it('returns "0" for zero', () => {
-    expect(formatAmount(0)).toBe('0');
-  });
-
-  it('formats negative amounts', () => {
-    expect(formatAmount(-5000)).toBe('-5,000');
   });
 });

@@ -10,7 +10,7 @@ export default function AppLayout() {
   const fetchRate = useCurrencyStore((s) => s.fetchRate);
 
   useEffect(() => {
-    loadAccounts();
+    loadAccounts().catch(() => {});
     loadRate()
       .then(() => fetchRate())
       .catch(() => {});

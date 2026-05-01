@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Currency } from '@/constants/enums';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Account } from '@/store/account.store';
-import { formatAmount } from '../dashboard.helpers';
+import { formatAmount } from '@/utils/format_amount';
 
 interface AccountCardProps {
   account: Account;

@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { formatAmount } from '../dashboard.helpers';
+import { formatAmount } from '@/utils/format_amount';
 
 interface HeroCardProps {
   assetsEgp: number;

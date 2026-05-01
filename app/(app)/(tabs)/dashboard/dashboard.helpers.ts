@@ -34,10 +34,3 @@ export function groupAccountsByType(accounts: Account[]): Partial<Record<Account
   }
   return groups;
 }
-
-export function formatAmount(value: number, decimals = 0): string {
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(value);
-}

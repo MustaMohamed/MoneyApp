@@ -1,6 +1,3 @@
-import { act } from 'react';
-import { create } from 'zustand';
-
 import { createAccountDetailStore } from '@/app/(app)/accounts/[id]/account_detail.store';
 
 jest.mock('zustand', () => ({ create: jest.requireActual('zustand').create }));
