@@ -1,5 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import { ms, msFont } from '@/utils/responsive';
@@ -11,6 +13,18 @@ interface Props {
 
 export function FilterButton({ count, onPress }: Props) {
   const active = count > 0;
+  const badgeScale = useSharedValue(1);
+
+  useEffect(() => {
+    if (count > 0) {
+      badgeScale.value = 1.2;
+      badgeScale.value = withSpring(1.0, { damping: 10, stiffness: 180 });
+    }
+  }, [count]);
+
+  const badgeStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: badgeScale.value }],
+  }));
 
   return (
     <Pressable
@@ -24,9 +38,9 @@ export function FilterButton({ count, onPress }: Props) {
         color={active ? Colors.shared.cairoGold : Colors.dark.text2}
       />
       {active && (
-        <View style={styles.badge}>
+        <Animated.View style={[styles.badge, badgeStyle]}>
           <Text style={styles.badgeText}>{count}</Text>
-        </View>
+        </Animated.View>
       )}
     </Pressable>
   );

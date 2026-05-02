@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
@@ -17,7 +17,8 @@ import { FilterSectionRow } from './components/filter_section_row';
 
 export function FilterDrawer() {
   const f = useFilterDrawer();
-  const { sheetStyle, overlayStyle, openSheet, closeSheet } = useFilterDrawerAnim();
+  const { sheetStyle, overlayStyle, openSheet, closeSheet, applyStyle, triggerApply } =
+    useFilterDrawerAnim();
 
   useEffect(() => {
     if (f.visible) openSheet();
@@ -53,53 +54,62 @@ export function FilterDrawer() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.rowWrap}>
+          <Animated.View entering={FadeInDown.duration(250)} style={styles.rowWrap}>
             <FilterSectionRow
               label={Strings.filterSectionAccounts}
               summary={f.selectedAccountSummary}
               isActive={f.draft.accountIds.length > 0}
               onPress={() => f.setAccountPickerVisible(true)}
             />
-          </View>
+          </Animated.View>
 
-          <View style={styles.rowWrap}>
+          <Animated.View entering={FadeInDown.delay(80).duration(250)} style={styles.rowWrap}>
             <FilterSectionRow
               label={Strings.filterSectionCategories}
               summary={f.selectedCategorySummary}
               isActive={f.draft.categoryIds.length > 0}
               onPress={() => f.setCategoryPickerVisible(true)}
             />
-          </View>
+          </Animated.View>
 
-          <FilterDateSection
-            preset={f.draft.datePreset}
-            customFrom={f.draft.customDateFrom}
-            customTo={f.draft.customDateTo}
-            onSelectPreset={f.setDatePreset}
-            onOpenCustomPicker={() => f.setCustomDatePickerVisible(true)}
-          />
+          <Animated.View entering={FadeInDown.delay(160).duration(250)}>
+            <FilterDateSection
+              preset={f.draft.datePreset}
+              customFrom={f.draft.customDateFrom}
+              customTo={f.draft.customDateTo}
+              onSelectPreset={f.setDatePreset}
+              onOpenCustomPicker={() => f.setCustomDatePickerVisible(true)}
+            />
+          </Animated.View>
 
-          <FilterAmountSection
-            currency={f.draft.amountCurrency}
-            min={f.draft.amountMin}
-            max={f.draft.amountMax}
-            onChangeCurrency={f.setAmountCurrency}
-            onChangeMin={f.setAmountMin}
-            onChangeMax={f.setAmountMax}
-          />
+          <Animated.View entering={FadeInDown.delay(240).duration(250)}>
+            <FilterAmountSection
+              currency={f.draft.amountCurrency}
+              min={f.draft.amountMin}
+              max={f.draft.amountMax}
+              onChangeCurrency={f.setAmountCurrency}
+              onChangeMin={f.setAmountMin}
+              onChangeMax={f.setAmountMax}
+            />
+          </Animated.View>
         </ScrollView>
 
         <View style={styles.footer}>
-          <Pressable
-            onPress={f.applyDraft}
-            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-          >
-            <Text style={styles.ctaLabel}>
-              {f.draftActiveCount > 0
-                ? Strings.filterApplyWithCount(f.draftActiveCount)
-                : Strings.filterApply}
-            </Text>
-          </Pressable>
+          <Animated.View style={applyStyle}>
+            <Pressable
+              onPress={() => {
+                triggerApply();
+                f.applyDraft();
+              }}
+              style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+            >
+              <Text style={styles.ctaLabel}>
+                {f.draftActiveCount > 0
+                  ? Strings.filterApplyWithCount(f.draftActiveCount)
+                  : Strings.filterApply}
+              </Text>
+            </Pressable>
+          </Animated.View>
         </View>
 
         <FilterAccountPicker

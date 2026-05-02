@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { Currency } from '@/constants/enums';
@@ -32,6 +32,14 @@ export function FilterAmountSection({
   // Local string state lets the user type freely (commas, decimals) before committing.
   const [minStr, setMinStr] = useState<string>(formatAmount(min));
   const [maxStr, setMaxStr] = useState<string>(formatAmount(max));
+
+  // Sync display when the parent resets (e.g. drawer Reset button clears the draft).
+  useEffect(() => {
+    setMinStr(formatAmount(min));
+  }, [min]);
+  useEffect(() => {
+    setMaxStr(formatAmount(max));
+  }, [max]);
 
   return (
     <View style={styles.container}>

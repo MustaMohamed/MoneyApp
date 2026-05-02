@@ -1,6 +1,6 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
@@ -44,6 +44,15 @@ export function FilterDateCustomPicker({
   const [to, setTo] = useState<Date | undefined>(isoToDate(initialTo));
   const [showFromPicker, setShowFromPicker] = useState(false);
   const [showToPicker, setShowToPicker] = useState(false);
+
+  // Re-initialize from props each time the picker opens so Reset is reflected correctly.
+  useEffect(() => {
+    if (!visible) return;
+    setFrom(isoToDate(initialFrom));
+    setTo(isoToDate(initialTo));
+    setShowFromPicker(false);
+    setShowToPicker(false);
+  }, [visible, initialFrom, initialTo]);
 
   const canConfirm = !!from && !!to && from <= to;
 

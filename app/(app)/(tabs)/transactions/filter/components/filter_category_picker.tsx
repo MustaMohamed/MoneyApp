@@ -50,6 +50,7 @@ export function FilterCategoryPicker({
                 onPress={() => onToggle(item.id)}
                 style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               >
+                {/* item.color is always a 6-char #RRGGBB from AccountColors constants */}
                 <View style={[styles.iconBox, { backgroundColor: item.color + '33' }]}>
                   <MaterialCommunityIcons
                     name={item.icon as MCIName}

@@ -159,6 +159,8 @@ export async function getTransactions(
       AND (
         ? = 1
         OR t.category_id IN (${categoryIn})
+        -- NULL category_id rows (transfers, CC payments) are intentionally excluded
+        -- when a category filter is active. This is by design per spec §6.3.
       )
       AND (? IS NULL OR t.transaction_date >= ?)
       AND (? IS NULL OR t.transaction_date <= ?)

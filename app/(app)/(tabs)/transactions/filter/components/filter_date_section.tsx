@@ -14,14 +14,14 @@ interface Props {
   onOpenCustomPicker: () => void;
 }
 
-const PRESETS: { value: DatePreset; labelKey: keyof typeof Strings }[] = [
-  { value: DatePreset.Today, labelKey: 'datePresetToday' },
-  { value: DatePreset.ThisWeek, labelKey: 'datePresetThisWeek' },
-  { value: DatePreset.ThisMonth, labelKey: 'datePresetThisMonth' },
-  { value: DatePreset.LastMonth, labelKey: 'datePresetLastMonth' },
-  { value: DatePreset.Last30Days, labelKey: 'datePresetLast30Days' },
-  { value: DatePreset.ThisYear, labelKey: 'datePresetThisYear' },
-  { value: DatePreset.AllTime, labelKey: 'datePresetAllTime' },
+const PRESETS: { value: DatePreset; label: string }[] = [
+  { value: DatePreset.Today, label: Strings.datePresetToday },
+  { value: DatePreset.ThisWeek, label: Strings.datePresetThisWeek },
+  { value: DatePreset.ThisMonth, label: Strings.datePresetThisMonth },
+  { value: DatePreset.LastMonth, label: Strings.datePresetLastMonth },
+  { value: DatePreset.Last30Days, label: Strings.datePresetLast30Days },
+  { value: DatePreset.ThisYear, label: Strings.datePresetThisYear },
+  { value: DatePreset.AllTime, label: Strings.datePresetAllTime },
 ];
 
 function formatRange(from: string | undefined, to: string | undefined): string {
@@ -52,7 +52,7 @@ export function FilterDateSection({
         {PRESETS.map((p) => (
           <PresetRow
             key={p.value}
-            label={Strings[p.labelKey] as string}
+            label={p.label}
             isActive={preset === p.value}
             onPress={() => onSelectPreset(p.value)}
           />
