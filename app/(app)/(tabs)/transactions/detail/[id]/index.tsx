@@ -1,11 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { EditTransactionSheet } from '../../transaction_form';
 
 import { ActionRow } from '../components/action_row';
 import { DeleteConfirmDialog } from '../components/delete_confirm_dialog';
@@ -18,6 +20,7 @@ import { useTransactionDetail } from '../detail.hook';
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const d = useTransactionDetail(id);
+  const [editVisible, setEditVisible] = useState(false);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -87,7 +90,7 @@ export default function TransactionDetailScreen() {
               />
             </DetailRowsCard>
 
-            <ActionRow onDelete={d.openDeleteConfirm} />
+            <ActionRow onEdit={() => setEditVisible(true)} onDelete={d.openDeleteConfirm} />
           </ScrollView>
 
           <DeleteConfirmDialog
@@ -95,6 +98,15 @@ export default function TransactionDetailScreen() {
             busy={d.deleting}
             onCancel={d.closeDeleteConfirm}
             onConfirm={d.confirmDelete}
+          />
+
+          <EditTransactionSheet
+            visible={editVisible}
+            tx={d.tx ?? null}
+            onClose={() => {
+              setEditVisible(false);
+              d.reload();
+            }}
           />
         </>
       )}

@@ -47,6 +47,7 @@ export function useTransactionDetail(id: string) {
   const [tx, setTx] = useState<Transaction | null | undefined>(undefined);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore((s) => s.categories);
@@ -66,7 +67,7 @@ export function useTransactionDetail(id: string) {
     return () => {
       cancelled = true;
     };
-  }, [id, getById]);
+  }, [id, getById, reloadKey]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
@@ -120,6 +121,8 @@ export function useTransactionDetail(id: string) {
     }
   }, [tx, deleteTransaction]);
 
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+
   return {
     state,
     tx,
@@ -129,5 +132,6 @@ export function useTransactionDetail(id: string) {
     openDeleteConfirm,
     closeDeleteConfirm,
     confirmDelete,
+    reload,
   };
 }
