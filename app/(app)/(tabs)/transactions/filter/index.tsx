@@ -21,7 +21,7 @@ export function FilterDrawer() {
 
   useEffect(() => {
     if (f.visible) openSheet();
-  }, [f.visible]);
+  }, [f.visible, openSheet]);
 
   if (!f.visible) return null;
 
