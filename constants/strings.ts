@@ -299,8 +299,6 @@ export const Strings = {
 
   filterAllAccounts: 'All accounts',
   filterAllCategories: 'All categories',
-  filterAccountsCount: (n: number) => `${n} selected`,
-  filterCategoriesCount: (n: number) => `${n} selected`,
 
   datePresetToday: 'Today',
   datePresetThisWeek: 'This week',
