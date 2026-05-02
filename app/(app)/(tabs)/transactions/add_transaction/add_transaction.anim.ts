@@ -1,4 +1,10 @@
-import { useSharedValue, useAnimatedStyle, withTiming, withSpring } from 'react-native-reanimated';
+import {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 
 export function useAddTransactionAnim() {
   const sheetY = useSharedValue(1000);
@@ -19,8 +25,13 @@ export function useAddTransactionAnim() {
 
   function closeSheet(onDone?: () => void) {
     overlay.value = withTiming(0, { duration: 200 });
+    // The completion callback runs on the UI worklet thread. To call back into
+    // a JS-side closure (e.g. onClose from the parent), bridge via runOnJS.
     sheetY.value = withTiming(1000, { duration: 260 }, (finished) => {
-      if (finished && onDone) onDone();
+      'worklet';
+      if (finished && onDone) {
+        runOnJS(onDone)();
+      }
     });
   }
 
