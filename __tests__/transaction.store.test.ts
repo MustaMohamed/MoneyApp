@@ -5,6 +5,7 @@ import type {
   ITransactionRepository,
   NewTransactionInput,
   TransactionListQuery,
+  UpdateTransactionInput,
 } from '@/repositories/transaction.repository';
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -58,6 +59,22 @@ function makeRepo(initial: Transaction[] = []): ITransactionRepository {
     }),
     delete: jest.fn(async (id: string) => {
       store = store.filter((t) => t.id !== id);
+    }),
+    update: jest.fn(async (id: string, data: UpdateTransactionInput) => {
+      const idx = store.findIndex((t) => t.id === id);
+      if (idx >= 0) {
+        store[idx] = {
+          ...store[idx],
+          amount: data.amount,
+          currency: data.currency,
+          egp_amount: data.egp_amount,
+          exchange_rate: data.exchange_rate ?? null,
+          category_id: data.category_id ?? null,
+          note: data.note ?? null,
+          transaction_date: data.transaction_date,
+          transaction_time: data.transaction_time,
+        };
+      }
     }),
   };
 }
