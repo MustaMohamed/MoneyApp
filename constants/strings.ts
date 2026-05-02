@@ -273,7 +273,6 @@ export const Strings = {
   detailNoteEmpty: 'No note',
   capturedBadge: 'Captured',
   editTransaction: 'Edit Transaction',
-  editComingSoon: 'Coming in M2d',
   editTxTitle: 'Edit Transaction',
   deleteTransaction: 'Delete',
   deleteConfirmTitle: 'Delete this transaction?',
