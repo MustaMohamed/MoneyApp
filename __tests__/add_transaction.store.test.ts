@@ -98,6 +98,13 @@ describe('useAddTransactionStore.handleNumpad', () => {
     useAddTransactionStore.getState().handleNumpad('digit', '3');
     expect(useAddTransactionStore.getState().amountStr).toBe('5.12');
   });
+
+  it('digit action without value argument defaults to empty string (covers ?? "" branch)', () => {
+    // When value is undefined, digit ?? '' = '' — pressing digit with no value is a no-op on non-zero
+    useAddTransactionStore.getState().handleNumpad('digit', '5');
+    useAddTransactionStore.getState().handleNumpad('digit'); // value = undefined → digit = ''
+    expect(useAddTransactionStore.getState().amountStr).toBe('5'); // '' appended → '5'
+  });
 });
 
 describe('useAddTransactionStore pickers and saving', () => {

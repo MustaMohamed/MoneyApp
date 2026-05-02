@@ -103,6 +103,80 @@ async function seedTx(overrides: Partial<Transaction> = {}) {
   return tx;
 }
 
+describe('updateTransaction — custom mock db (unknown type and missing CC account)', () => {
+  function makeCustomDb(
+    fakeTxRow: Transaction,
+    ccRows: unknown[] = [],
+  ): Parameters<typeof updateTransaction>[0] {
+    const runAsync = jest.fn().mockResolvedValue({ changes: 1, lastInsertRowId: 1 });
+    let getAllCallCount = 0;
+    const getAllAsync = jest.fn().mockImplementation(async (sql: string) => {
+      // First call: fetch the existing transaction row
+      if (sql.includes('SELECT * FROM transactions')) return [fakeTxRow];
+      // Subsequent calls within the transaction: return ccRows for CC account lookup
+      getAllCallCount++;
+      return ccRows;
+    });
+    const withTransactionAsync = jest.fn().mockImplementation(async (fn: () => Promise<void>) => {
+      await fn();
+    });
+    return { runAsync, getAllAsync, withTransactionAsync } as unknown as Parameters<
+      typeof updateTransaction
+    >[0];
+  }
+
+  it('updates row without balance changes for unknown type', async () => {
+    const fakeTx = makeTx({ id: 'tx-unk', type: 'unknown_type' as TransactionType });
+    const db = makeCustomDb(fakeTx);
+
+    await updateTransaction(db, 'tx-unk', {
+      amount: 75,
+      currency: Currency.EGP,
+      egp_amount: 75,
+      exchange_rate: null,
+      category_id: null,
+      note: null,
+      transaction_date: DATE,
+      transaction_time: TIME,
+    });
+
+    const accountUpdateCalls = (db.runAsync as jest.Mock).mock.calls.filter(([sql]: [string]) =>
+      sql.includes('UPDATE accounts'),
+    );
+    expect(accountUpdateCalls).toHaveLength(0);
+  });
+
+  it('cc_payment update with missing CC account (ccForApply undefined) covers ?. false branch on line 297', async () => {
+    // fakeTx is a cc_payment, but the CC account lookup (ccForApply) returns empty → ccForApply is undefined
+    // This covers the `ccForApply?.revolving_balance` undefined branch
+    const fakeTx = makeTx({
+      id: 'tx-cc-ghost',
+      type: TransactionType.CCPayment,
+      to_account_id: 'acc_ghost',
+      category_id: null,
+    });
+    // ccRows: first ccForReverse call returns empty, ccForApply call also returns empty
+    const db = makeCustomDb(fakeTx, []);
+
+    await updateTransaction(db, 'tx-cc-ghost', {
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      exchange_rate: null,
+      category_id: null,
+      note: null,
+      transaction_date: DATE,
+      transaction_time: TIME,
+    });
+
+    // The update should complete without throwing — undefined cc treated as {minimum_payment: 0, revolving_balance: 0}
+    const txUpdateCalls = (db.runAsync as jest.Mock).mock.calls.filter(([sql]: [string]) =>
+      sql.includes('UPDATE transactions'),
+    );
+    expect(txUpdateCalls.length).toBeGreaterThan(0);
+  });
+});
+
 describe('updateTransaction — no-op for unknown id', () => {
   it('resolves without error when id does not exist', async () => {
     await expect(
@@ -335,5 +409,51 @@ describe('updateTransaction — cc_payment', () => {
     expect(asset.current_balance).toBe(900);
     expect(cc.current_balance).toBe(400);
     expect(cc.revolving_balance).toBe(300);
+  });
+
+  it('handles cc_payment update when cc account has null minimum_payment and revolving_balance (covers ?? 0 branches)', async () => {
+    // Seed a CC account with NULL revolving_balance and minimum_payment
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO accounts
+         (id,name,type,currency,opening_balance,current_balance,
+          interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('acc_cc_null','CC Null Fields','credit_card','EGP',0,800,0,0,5,?,?)`,
+      )
+      .run(NOW, NOW);
+
+    // Add a cc_payment where minimum_payment=NULL → treated as 0
+    // Amount=200: installment=0, revolving reduction=200, revolving=max(0,0-200)=0
+    await seedTx({
+      egp_amount: 200,
+      type: TransactionType.CCPayment,
+      category_id: null,
+      to_account_id: 'acc_cc_null',
+    });
+
+    // Update: reverse old (minimum_payment=NULL → old installment=0, revolvingRestore=200)
+    //         apply new 300: installment=0, revolving_reduction=300, revolving=max(0,0-300)=0
+    await updateTransaction(mockDb, 'tx-1', {
+      amount: 300,
+      currency: Currency.EGP,
+      egp_amount: 300,
+      exchange_rate: null,
+      category_id: null,
+      note: null,
+      transaction_date: DATE,
+      transaction_time: TIME,
+    });
+
+    const asset = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    const cc = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc_null'")
+      .get() as { current_balance: number };
+
+    // asset: 1000 - 200 (seed) → reversed: 1000, then - 300 (new apply) → 700
+    expect(asset.current_balance).toBe(700);
+    // cc_null: 800 - 200 (seed) → reversed: 800, then - 300 (new apply) → 500
+    expect(cc.current_balance).toBe(500);
   });
 });

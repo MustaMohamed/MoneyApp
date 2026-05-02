@@ -122,4 +122,13 @@ describe('currencyStore.setManualRate', () => {
     await store.getState().setManualRate(48.5);
     expect(store.getState().lastFetched).toBeNull();
   });
+
+  it('propagates repo errors', async () => {
+    const repo = makeRepo();
+    (repo.set as jest.Mock).mockRejectedValue(new Error('set fail'));
+    const store = createCurrencyStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(store.getState().setManualRate(48.5)).rejects.toThrow('set fail');
+    consoleSpy.mockRestore();
+  });
 });

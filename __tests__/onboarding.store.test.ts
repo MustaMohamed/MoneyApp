@@ -101,6 +101,46 @@ describe('onboardingStore.completeOnboarding — TC-13', () => {
   });
 });
 
+describe('onboardingStore — error branches', () => {
+  it('setStep propagates SecureStore errors', async () => {
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    secure.setItemAsync.mockRejectedValueOnce(new Error('secure fail'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(store.getState().setStep(OnboardingStep.O3)).rejects.toThrow('secure fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('setBaseCurrency propagates errors', async () => {
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    secure.setItemAsync.mockRejectedValueOnce(new Error('base fail'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(store.getState().setBaseCurrency(Currency.USD)).rejects.toThrow('base fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('setSecurityChoice propagates errors', async () => {
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    secure.setItemAsync.mockRejectedValueOnce(new Error('security fail'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(store.getState().setSecurityChoice(SecurityChoice.Pin)).rejects.toThrow(
+      'security fail',
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('completeOnboarding propagates errors', async () => {
+    const repo = makeRepo();
+    const store = createOnboardingStore(repo);
+    secure.setItemAsync.mockRejectedValueOnce(new Error('complete fail'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(store.getState().completeOnboarding()).rejects.toThrow('complete fail');
+    consoleSpy.mockRestore();
+  });
+});
+
 describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await loadOnboardingState();

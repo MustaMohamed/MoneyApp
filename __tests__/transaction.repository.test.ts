@@ -115,6 +115,22 @@ describe('TransactionRepository.add', () => {
     expect(tx.exchange_rate).toBeNull();
     expect(tx.to_account_id).toBeNull();
   });
+
+  it('stores null for category_id when omitted', async () => {
+    const { category_id: _cat, ...withoutCategory } = baseInput;
+    const tx = await repo.add(withoutCategory);
+    expect(tx.category_id).toBeNull();
+  });
+
+  it('defaults transaction_time to current time when omitted', async () => {
+    const { transaction_time: _time, ...withoutTime } = baseInput;
+    const before = new Date().toISOString().slice(11, 19);
+    const tx = await repo.add(withoutTime);
+    const after = new Date().toISOString().slice(11, 19);
+    // The stored time string should be between before and after (inclusive)
+    expect(tx.transaction_time >= before).toBe(true);
+    expect(tx.transaction_time <= after).toBe(true);
+  });
 });
 
 describe('TransactionRepository.getAll', () => {
