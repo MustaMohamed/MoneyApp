@@ -36,8 +36,6 @@ describe('useEditTransactionStore initial state', () => {
     expect(s.editingTx).toBeNull();
     expect(s.amountStr).toBe('0');
     expect(s.saving).toBe(false);
-    expect(s.showAccountPicker).toBe(false);
-    expect(s.showToPicker).toBe(false);
     expect(s.showCategoryPicker).toBe(false);
   });
 });
@@ -147,20 +145,6 @@ describe('useEditTransactionStore.handleNumpad', () => {
 });
 
 describe('useEditTransactionStore pickers', () => {
-  it('setShowAccountPicker sets the flag', () => {
-    useEditTransactionStore.getState().setShowAccountPicker(true);
-    expect(useEditTransactionStore.getState().showAccountPicker).toBe(true);
-    useEditTransactionStore.getState().setShowAccountPicker(false);
-    expect(useEditTransactionStore.getState().showAccountPicker).toBe(false);
-  });
-
-  it('setShowToPicker sets the flag', () => {
-    useEditTransactionStore.getState().setShowToPicker(true);
-    expect(useEditTransactionStore.getState().showToPicker).toBe(true);
-    useEditTransactionStore.getState().setShowToPicker(false);
-    expect(useEditTransactionStore.getState().showToPicker).toBe(false);
-  });
-
   it('setShowCategoryPicker sets the flag', () => {
     useEditTransactionStore.getState().setShowCategoryPicker(true);
     expect(useEditTransactionStore.getState().showCategoryPicker).toBe(true);
@@ -174,14 +158,12 @@ describe('useEditTransactionStore.reset', () => {
     const tx = makeTx();
     useEditTransactionStore.getState().open(tx);
     useEditTransactionStore.getState().setSaving(true);
-    useEditTransactionStore.getState().setShowAccountPicker(true);
+    useEditTransactionStore.getState().setShowCategoryPicker(true);
     useEditTransactionStore.getState().reset();
     const s = useEditTransactionStore.getState();
     expect(s.editingTx).toBeNull();
     expect(s.amountStr).toBe('0');
     expect(s.saving).toBe(false);
-    expect(s.showAccountPicker).toBe(false);
-    expect(s.showToPicker).toBe(false);
     expect(s.showCategoryPicker).toBe(false);
   });
 });

@@ -9,15 +9,11 @@ interface EditTransactionState {
   editingTx: Transaction | null;
   amountStr: string;
   saving: boolean;
-  showAccountPicker: boolean;
-  showToPicker: boolean;
   showCategoryPicker: boolean;
   open: (tx: Transaction) => void;
   close: () => void;
   setSaving: (v: boolean) => void;
   handleNumpad: (action: NumpadAction, value?: string) => void;
-  setShowAccountPicker: (v: boolean) => void;
-  setShowToPicker: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   reset: () => void;
 }
@@ -26,8 +22,6 @@ const INITIAL_STATE = {
   editingTx: null as Transaction | null,
   amountStr: '0',
   saving: false,
-  showAccountPicker: false,
-  showToPicker: false,
   showCategoryPicker: false,
 };
 
@@ -61,8 +55,6 @@ export const useEditTransactionStore = create<EditTransactionState>((set) => ({
       return { amountStr: prev + digit };
     }),
 
-  setShowAccountPicker: (v) => set({ showAccountPicker: v }),
-  setShowToPicker: (v) => set({ showToPicker: v }),
   setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
 
   reset: () => set({ ...INITIAL_STATE }),
