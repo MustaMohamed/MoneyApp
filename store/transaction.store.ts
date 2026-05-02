@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import type { TransactionType } from '@/constants/enums';
+import { Currency, type TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import {
   TransactionRepository,
@@ -17,6 +17,13 @@ export const PAGE_SIZE = 30;
 export interface TransactionListFilters {
   type?: TransactionType;
   search?: string;
+  accountIds?: string[];
+  categoryIds?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+  amountCurrency?: Currency;
 }
 
 interface TransactionState {

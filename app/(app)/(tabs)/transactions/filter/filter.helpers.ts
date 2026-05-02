@@ -1,5 +1,6 @@
 import { DatePreset } from '@/constants/enums';
 import type { AdvancedFilters } from './filter.store';
+import type { TransactionListFilters } from '@/store/transaction.store';
 
 export function countActiveFilters(f: AdvancedFilters): number {
   let n = 0;
@@ -81,11 +82,7 @@ export function formatSelectionSummary(names: string[], allLabel: string): strin
   return `${names[0]}, ${names[1]} +${names.length - 2}`;
 }
 
-// NOTE: Return type is temporarily Record<string, unknown> because
-// TransactionListFilters does not yet have the new filter fields
-// (accountIds, categoryIds, dateFrom, dateTo, amountMin, amountMax, amountCurrency).
-// This is tightened to Partial<TransactionListFilters> in Part 2 Task 7.
-export function toQueryFilters(applied: AdvancedFilters): Record<string, unknown> {
+export function toQueryFilters(applied: AdvancedFilters): Partial<TransactionListFilters> {
   const out: Record<string, unknown> = {};
 
   if (applied.accountIds.length > 0) out.accountIds = applied.accountIds;

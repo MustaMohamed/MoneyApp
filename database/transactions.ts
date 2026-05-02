@@ -85,6 +85,13 @@ export interface TransactionListQuery {
   offset?: number;
   type?: TransactionType;
   search?: string;
+  accountIds?: string[];
+  categoryIds?: string[];
+  dateFrom?: string;
+  dateTo?: string;
+  amountMin?: number;
+  amountMax?: number;
+  amountCurrency?: Currency;
 }
 
 const PAGE_SIZE_DEFAULT = 30;
