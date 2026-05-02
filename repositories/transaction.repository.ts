@@ -7,12 +7,14 @@ import {
   getTransactionById,
   getTransactions,
   getTransactionsByAccount,
+  updateTransaction,
   type TransactionListQuery,
+  type UpdateTransactionInput,
 } from '@/database/transactions';
 import { getDb } from '@/database/client';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
-export type { TransactionListQuery };
+export type { TransactionListQuery, UpdateTransactionInput };
 
 export interface NewTransactionInput {
   type: TransactionType;
@@ -40,6 +42,7 @@ export interface ITransactionRepository {
   getById(id: string): Promise<Transaction | null>;
   add(data: NewTransactionInput): Promise<Transaction>;
   delete(id: string): Promise<void>;
+  update(id: string, data: UpdateTransactionInput): Promise<void>;
 }
 
 export class TransactionRepository implements ITransactionRepository {
@@ -89,5 +92,10 @@ export class TransactionRepository implements ITransactionRepository {
   async delete(id: string): Promise<void> {
     const db = await getDb();
     await deleteTransaction(db, id);
+  }
+
+  async update(id: string, data: UpdateTransactionInput): Promise<void> {
+    const db = await getDb();
+    await updateTransaction(db, id, data);
   }
 }

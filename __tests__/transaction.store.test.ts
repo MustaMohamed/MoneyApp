@@ -5,6 +5,7 @@ import type {
   ITransactionRepository,
   NewTransactionInput,
   TransactionListQuery,
+  UpdateTransactionInput,
 } from '@/repositories/transaction.repository';
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -58,6 +59,22 @@ function makeRepo(initial: Transaction[] = []): ITransactionRepository {
     }),
     delete: jest.fn(async (id: string) => {
       store = store.filter((t) => t.id !== id);
+    }),
+    update: jest.fn(async (id: string, data: UpdateTransactionInput) => {
+      const idx = store.findIndex((t) => t.id === id);
+      if (idx >= 0) {
+        store[idx] = {
+          ...store[idx],
+          amount: data.amount,
+          currency: data.currency,
+          egp_amount: data.egp_amount,
+          exchange_rate: data.exchange_rate ?? null,
+          category_id: data.category_id ?? null,
+          note: data.note ?? null,
+          transaction_date: data.transaction_date,
+          transaction_time: data.transaction_time,
+        };
+      }
     }),
   };
 }
@@ -190,6 +207,94 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     await useStore.getState().deleteTransaction('tx-del');
     expect(repo.delete).toHaveBeenCalledWith('tx-del');
     expect(useStore.getState().transactions).toHaveLength(0);
+  });
+
+  it('addTransaction swallows a refresh failure and still returns the new transaction', async () => {
+    const repo = makeRepo();
+    const tx = makeTransaction({ id: 'tx-new' });
+    repo.add = jest.fn(async () => tx);
+    // First call (setQuery) succeeds; subsequent calls (post-add refresh) reject.
+    let callCount = 0;
+    repo.getAll = jest.fn(async () => {
+      if (callCount++ === 0) return [];
+      throw new Error('refresh failed');
+    });
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const result = await useStore.getState().addTransaction({
+      type: TransactionType.Expense,
+      amount: 50,
+      currency: Currency.EGP,
+      egp_amount: 50,
+      account_id: 'acc-1',
+    });
+    consoleSpy.mockRestore();
+
+    expect(result.id).toBe('tx-new');
+  });
+
+  it('deleteTransaction swallows a refresh failure and still resolves', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'tx-del2' })]);
+    let callCount = 0;
+    const originalGetAll = repo.getAll as jest.Mock;
+    repo.getAll = jest.fn(async (query: TransactionListQuery = {}) => {
+      if (callCount++ === 0) return originalGetAll(query);
+      throw new Error('refresh failed after delete');
+    });
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(useStore.getState().deleteTransaction('tx-del2')).resolves.toBeUndefined();
+    consoleSpy.mockRestore();
+  });
+});
+
+describe('transactionStore.updateTransaction', () => {
+  it('calls repo.update then refreshes the list', async () => {
+    const tx = makeTransaction({ id: 'tx-upd', amount: 100 });
+    const repo = makeRepo([tx]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    expect(useStore.getState().transactions[0].amount).toBe(100);
+
+    await useStore.getState().updateTransaction('tx-upd', {
+      amount: 250,
+      currency: Currency.EGP,
+      egp_amount: 250,
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(repo.update).toHaveBeenCalledWith('tx-upd', expect.objectContaining({ amount: 250 }));
+    expect(useStore.getState().transactions[0].amount).toBe(250);
+  });
+
+  it('swallows a refresh failure after update and still resolves', async () => {
+    const tx = makeTransaction({ id: 'tx-upd2' });
+    const repo = makeRepo([tx]);
+    let callCount = 0;
+    const originalGetAll = repo.getAll as jest.Mock;
+    repo.getAll = jest.fn(async (query: TransactionListQuery = {}) => {
+      if (callCount++ === 0) return originalGetAll(query);
+      throw new Error('refresh failed after update');
+    });
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(
+      useStore.getState().updateTransaction('tx-upd2', {
+        amount: 99,
+        currency: Currency.EGP,
+        egp_amount: 99,
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).resolves.toBeUndefined();
+    consoleSpy.mockRestore();
   });
 });
 

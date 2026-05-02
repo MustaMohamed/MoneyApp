@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-
+import { EditTransactionSheet } from '../../transaction_form';
+import { useEditTransactionStore } from '../../transaction_form/edit_transaction.store';
 import { ActionRow } from '../components/action_row';
 import { DeleteConfirmDialog } from '../components/delete_confirm_dialog';
 import { DetailHero } from '../components/detail_hero';
@@ -18,6 +19,21 @@ import { useTransactionDetail } from '../detail.hook';
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const d = useTransactionDetail(id);
+
+  const editVisible = useEditTransactionStore((s) => s.visible);
+  const editingTx = useEditTransactionStore((s) => s.editingTx);
+  const closeEdit = useEditTransactionStore((s) => s.close);
+
+  function handleEdit() {
+    if (d.tx) {
+      useEditTransactionStore.getState().open(d.tx);
+    }
+  }
+
+  function handleEditClose() {
+    closeEdit();
+    d.reload();
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -87,7 +103,7 @@ export default function TransactionDetailScreen() {
               />
             </DetailRowsCard>
 
-            <ActionRow onDelete={d.openDeleteConfirm} />
+            <ActionRow onEdit={handleEdit} onDelete={d.openDeleteConfirm} />
           </ScrollView>
 
           <DeleteConfirmDialog
@@ -96,6 +112,8 @@ export default function TransactionDetailScreen() {
             onCancel={d.closeDeleteConfirm}
             onConfirm={d.confirmDelete}
           />
+
+          <EditTransactionSheet visible={editVisible} onClose={handleEditClose} tx={editingTx} />
         </>
       )}
     </SafeAreaView>

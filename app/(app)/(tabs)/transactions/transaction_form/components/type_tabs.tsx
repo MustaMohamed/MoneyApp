@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 
 const TABS: { type: TransactionType; label: string; color: string }[] = [
   { type: TransactionType.Expense, label: Strings.addTxTypeExpense, color: Colors.dark.negative },
@@ -14,9 +14,10 @@ const TABS: { type: TransactionType; label: string; color: string }[] = [
 interface Props {
   active: TransactionType;
   onSelect: (type: TransactionType) => void;
+  disabled?: boolean;
 }
 
-export function TypeTabs({ active, onSelect }: Props) {
+export function TypeTabs({ active, onSelect, disabled }: Props) {
   return (
     <View style={styles.row}>
       {TABS.map(({ type, label, color }) => {
@@ -24,11 +25,23 @@ export function TypeTabs({ active, onSelect }: Props) {
         return (
           <Pressable
             key={type}
-            style={[styles.tab, isActive && { borderBottomColor: color, borderBottomWidth: 2 }]}
-            onPress={() => onSelect(type)}
+            style={[
+              styles.tab,
+              isActive && { borderBottomColor: color, borderBottomWidth: 2 },
+              disabled && !isActive && styles.tabDisabled,
+            ]}
+            onPress={() => !disabled && onSelect(type)}
             hitSlop={4}
           >
-            <Text style={[styles.label, isActive && { color }]}>{label}</Text>
+            <Text
+              style={[
+                styles.label,
+                isActive && { color },
+                disabled && !isActive && styles.labelDisabled,
+              ]}
+            >
+              {label}
+            </Text>
           </Pressable>
         );
       })}
@@ -51,9 +64,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: 'transparent',
   },
+  tabDisabled: {
+    opacity: 0.3,
+  },
   label: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.caption,
+    color: Colors.dark.text2,
+  },
+  labelDisabled: {
     color: Colors.dark.text2,
   },
 });

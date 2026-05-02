@@ -115,6 +115,22 @@ describe('TransactionRepository.add', () => {
     expect(tx.exchange_rate).toBeNull();
     expect(tx.to_account_id).toBeNull();
   });
+
+  it('stores null for category_id when omitted', async () => {
+    const { category_id: _cat, ...withoutCategory } = baseInput;
+    const tx = await repo.add(withoutCategory);
+    expect(tx.category_id).toBeNull();
+  });
+
+  it('defaults transaction_time to current time when omitted', async () => {
+    const { transaction_time: _time, ...withoutTime } = baseInput;
+    const before = new Date().toISOString().slice(11, 19);
+    const tx = await repo.add(withoutTime);
+    const after = new Date().toISOString().slice(11, 19);
+    // The stored time string should be between before and after (inclusive)
+    expect(tx.transaction_time >= before).toBe(true);
+    expect(tx.transaction_time <= after).toBe(true);
+  });
 });
 
 describe('TransactionRepository.getAll', () => {
@@ -160,6 +176,71 @@ describe('TransactionRepository.getById', () => {
     const tx = await repo.add(baseInput);
     const found = await repo.getById(tx.id);
     expect(found?.id).toBe(tx.id);
+  });
+});
+
+describe('TransactionRepository.getByAccount', () => {
+  it('returns transactions for the given account', async () => {
+    await repo.add(baseInput);
+    await repo.add({ ...baseInput, amount: 50, egp_amount: 50 });
+    const rows = await repo.getByAccount('acc1');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    rows.forEach((r) => expect(r.account_id).toBe('acc1'));
+  });
+
+  it('returns an empty array when account has no transactions', async () => {
+    const rows = await repo.getByAccount('unknown-account');
+    expect(rows).toHaveLength(0);
+  });
+
+  it('respects limit and offset parameters', async () => {
+    await repo.add(baseInput);
+    await repo.add({ ...baseInput, amount: 50, egp_amount: 50 });
+    await repo.add({ ...baseInput, amount: 75, egp_amount: 75 });
+
+    const page1 = await repo.getByAccount('acc1', 2, 0);
+    expect(page1).toHaveLength(2);
+
+    const page2 = await repo.getByAccount('acc1', 2, 2);
+    expect(page2).toHaveLength(1);
+  });
+});
+
+describe('TransactionRepository.update', () => {
+  it('updates the transaction fields in the database', async () => {
+    const tx = await repo.add(baseInput);
+
+    await repo.update(tx.id, {
+      amount: 999,
+      currency: Currency.EGP,
+      egp_amount: 999,
+      category_id: 'cat_bills',
+      note: 'updated note',
+      transaction_date: '2026-05-02',
+      transaction_time: '14:30:00',
+    });
+
+    const row = realDb.prepare('SELECT * FROM transactions WHERE id = ?').get(tx.id) as {
+      amount: number;
+      note: string;
+      transaction_date: string;
+    };
+    expect(row.amount).toBe(999);
+    expect(row.note).toBe('updated note');
+    expect(row.transaction_date).toBe('2026-05-02');
+  });
+
+  it('resolves without error when update succeeds', async () => {
+    const tx = await repo.add(baseInput);
+    await expect(
+      repo.update(tx.id, {
+        amount: 300,
+        currency: Currency.EGP,
+        egp_amount: 300,
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).resolves.toBeUndefined();
   });
 });
 

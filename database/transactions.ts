@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { TransactionType } from '@/constants/enums';
+import type { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from './entities/transaction.entity';
 
 export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promise<void> {
@@ -206,5 +206,127 @@ export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise
         [tx.egp_amount, revolvingRestore, now, tx.to_account_id],
       );
     }
+  });
+}
+
+export interface UpdateTransactionInput {
+  amount: number;
+  currency: Currency;
+  egp_amount: number;
+  exchange_rate?: number | null;
+  category_id?: string | null;
+  note?: string | null;
+  transaction_date: string;
+  transaction_time: string;
+}
+
+export async function updateTransaction(
+  db: SQLiteDatabase,
+  id: string,
+  updates: UpdateTransactionInput,
+): Promise<void> {
+  const rows = await db.getAllAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [id]);
+  const existing = rows[0];
+  if (!existing) return;
+
+  const now = new Date().toISOString();
+
+  await db.withTransactionAsync(async () => {
+    if (existing.type === 'expense') {
+      const delta = updates.egp_amount - existing.egp_amount;
+      await db.runAsync(
+        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
+        [delta, now, existing.account_id],
+      );
+    } else if (existing.type === 'income') {
+      const delta = updates.egp_amount - existing.egp_amount;
+      await db.runAsync(
+        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
+        [delta, now, existing.account_id],
+      );
+    } else if (existing.type === 'transfer') {
+      const delta = updates.egp_amount - existing.egp_amount;
+      await db.runAsync(
+        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
+        [delta, now, existing.account_id],
+      );
+      await db.runAsync(
+        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
+        [delta, now, existing.to_account_id],
+      );
+    } else if (existing.type === 'cc_payment') {
+      // For CC payment, simple delta math is incorrect because the installment-first
+      // split means the old amount affected revolving_balance non-linearly.
+      // Strategy: reverse the old payment (same logic as deleteTransaction for cc_payment),
+      // then apply the new payment (same logic as addTransaction for cc_payment).
+
+      // --- Reverse old payment ---
+      await db.runAsync(
+        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
+        [existing.egp_amount, now, existing.account_id],
+      );
+      const [ccForReverse] = await db.getAllAsync<{
+        minimum_payment: number | null;
+        revolving_balance: number | null;
+      }>('SELECT minimum_payment, revolving_balance FROM accounts WHERE id = ?', [
+        existing.to_account_id,
+      ]);
+      const oldInstallmentDue = ccForReverse?.minimum_payment ?? 0;
+      const oldInstallmentCovered = Math.min(existing.egp_amount, oldInstallmentDue);
+      const oldRevolvingRestore = Math.max(0, existing.egp_amount - oldInstallmentCovered);
+      await db.runAsync(
+        `UPDATE accounts
+           SET current_balance   = current_balance + ?,
+               revolving_balance = revolving_balance + ?,
+               updated_at        = ?
+         WHERE id = ?`,
+        [existing.egp_amount, oldRevolvingRestore, now, existing.to_account_id],
+      );
+
+      // --- Apply new payment ---
+      await db.runAsync(
+        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
+        [updates.egp_amount, now, existing.account_id],
+      );
+      const [ccForApply] = await db.getAllAsync<{
+        revolving_balance: number | null;
+        minimum_payment: number | null;
+      }>('SELECT revolving_balance, minimum_payment FROM accounts WHERE id = ?', [
+        existing.to_account_id,
+      ]);
+      const newRevolving = ccForApply?.revolving_balance ?? 0;
+      const newInstallmentDue = ccForApply?.minimum_payment ?? 0;
+      const newInstallmentCovered = Math.min(updates.egp_amount, newInstallmentDue);
+      const newRevolvingReduction = Math.max(0, updates.egp_amount - newInstallmentCovered);
+      const finalRevolving = Math.max(0, newRevolving - newRevolvingReduction);
+      await db.runAsync(
+        `UPDATE accounts
+           SET current_balance   = current_balance - ?,
+               revolving_balance = ?,
+               updated_at        = ?
+         WHERE id = ?`,
+        [updates.egp_amount, finalRevolving, now, existing.to_account_id],
+      );
+    }
+
+    await db.runAsync(
+      `UPDATE transactions
+         SET amount = ?, currency = ?, egp_amount = ?, exchange_rate = ?,
+             category_id = ?, note = ?, transaction_date = ?, transaction_time = ?,
+             updated_at = ?
+       WHERE id = ?`,
+      [
+        updates.amount,
+        updates.currency,
+        updates.egp_amount,
+        updates.exchange_rate ?? null,
+        updates.category_id ?? null,
+        updates.note ?? null,
+        updates.transaction_date,
+        updates.transaction_time,
+        now,
+        id,
+      ],
+    );
   });
 }

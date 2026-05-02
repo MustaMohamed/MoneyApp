@@ -1,0 +1,358 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+
+import { TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
+import { ExchangeRateRow } from './components/exchange_rate_row';
+import { Numpad } from './components/numpad';
+import { TypeTabs } from './components/type_tabs';
+import type { Account } from '@/database/entities/account.entity';
+import type { Category } from '@/database/entities/category.entity';
+
+function formatAmount(str: string): string {
+  const [integer, decimal] = str.split('.');
+  const formatted = new Intl.NumberFormat('en-US', { style: 'decimal' }).format(
+    parseInt(integer || '0', 10),
+  );
+  return decimal !== undefined ? `${formatted}.${decimal}` : formatted;
+}
+
+interface TransactionFormBodyProps {
+  title: string;
+  locked: boolean;
+  type: TransactionType;
+  onSelectType: (t: TransactionType) => void;
+  amountStr: string;
+  handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
+  amountError?: string;
+  selectedAccount: Account | null;
+  onOpenAccountPicker: () => void;
+  accountError?: string;
+  selectedToAccount: Account | null;
+  onOpenToPicker: () => void;
+  toAccountError?: string;
+  selectedCategory: Category | null;
+  onOpenCategoryPicker: () => void;
+  categoryError?: string;
+  isUSD: boolean;
+  exchangeRate: string;
+  setExchangeRate: (v: string) => void;
+  rateError?: string;
+  note: string;
+  setNote: (v: string) => void;
+  saving: boolean;
+  onClose: () => void;
+  handleSave: () => void;
+}
+
+export function TransactionFormBody({
+  title,
+  locked,
+  type,
+  onSelectType,
+  amountStr,
+  handleNumpad,
+  amountError,
+  selectedAccount,
+  onOpenAccountPicker,
+  accountError,
+  selectedToAccount,
+  onOpenToPicker,
+  toAccountError,
+  selectedCategory,
+  onOpenCategoryPicker,
+  categoryError,
+  isUSD,
+  exchangeRate,
+  setExchangeRate,
+  rateError,
+  note,
+  setNote,
+  saving,
+  onClose,
+  handleSave,
+}: TransactionFormBodyProps) {
+  const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+
+  const amountColor =
+    type === TransactionType.Income
+      ? Colors.dark.positive
+      : type === TransactionType.Transfer
+        ? '#4A9EE0'
+        : type === TransactionType.CCPayment
+          ? '#9B73D4'
+          : Colors.dark.negative;
+
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={styles.kav}
+    >
+      <View style={styles.handle} />
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{title}</Text>
+        <Pressable onPress={onClose} hitSlop={8}>
+          <MaterialCommunityIcons name="close" size={Size.iconMd} color={Colors.dark.text2} />
+        </Pressable>
+      </View>
+
+      <TypeTabs active={type} onSelect={onSelectType} disabled={locked} />
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.amountRow}>
+          <Text style={[styles.amountText, { color: amountColor }]}>{formatAmount(amountStr)}</Text>
+        </View>
+        {amountError ? <Text style={styles.err}>{amountError}</Text> : null}
+
+        {/* Account (from/single) */}
+        {locked ? (
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>
+              {isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
+            </Text>
+            <View style={styles.fieldValue}>
+              {selectedAccount && (
+                <View
+                  style={[
+                    styles.dot,
+                    { backgroundColor: selectedAccount.color ?? Colors.dark.border },
+                  ]}
+                />
+              )}
+              <Text style={styles.fieldValueText}>
+                {selectedAccount?.name ??
+                  (isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle)}
+              </Text>
+              <MaterialCommunityIcons name="lock-outline" size={ms(18)} color={Colors.dark.text2} />
+            </View>
+          </View>
+        ) : (
+          <Pressable style={styles.field} onPress={onOpenAccountPicker}>
+            <Text style={styles.fieldLabel}>
+              {isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
+            </Text>
+            <View style={styles.fieldValue}>
+              {selectedAccount ? (
+                <>
+                  <View
+                    style={[
+                      styles.dot,
+                      { backgroundColor: selectedAccount.color ?? Colors.dark.border },
+                    ]}
+                  />
+                  <Text style={styles.fieldValueText}>{selectedAccount.name}</Text>
+                </>
+              ) : (
+                <Text style={styles.fieldPlaceholder}>
+                  {isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle}
+                </Text>
+              )}
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={ms(18)}
+                color={Colors.dark.text2}
+              />
+            </View>
+          </Pressable>
+        )}
+        {accountError ? <Text style={styles.err}>{accountError}</Text> : null}
+
+        {/* To account */}
+        {isTransferOrCC && (
+          <>
+            {locked ? (
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>{Strings.addTxToLabel}</Text>
+                <View style={styles.fieldValue}>
+                  {selectedToAccount && (
+                    <View
+                      style={[
+                        styles.dot,
+                        { backgroundColor: selectedToAccount.color ?? Colors.dark.border },
+                      ]}
+                    />
+                  )}
+                  <Text style={styles.fieldValueText}>
+                    {selectedToAccount?.name ?? Strings.addTxPickToTitle}
+                  </Text>
+                  <MaterialCommunityIcons
+                    name="lock-outline"
+                    size={ms(18)}
+                    color={Colors.dark.text2}
+                  />
+                </View>
+              </View>
+            ) : (
+              <Pressable style={styles.field} onPress={onOpenToPicker}>
+                <Text style={styles.fieldLabel}>{Strings.addTxToLabel}</Text>
+                <View style={styles.fieldValue}>
+                  {selectedToAccount ? (
+                    <>
+                      <View
+                        style={[
+                          styles.dot,
+                          { backgroundColor: selectedToAccount.color ?? Colors.dark.border },
+                        ]}
+                      />
+                      <Text style={styles.fieldValueText}>{selectedToAccount.name}</Text>
+                    </>
+                  ) : (
+                    <Text style={styles.fieldPlaceholder}>{Strings.addTxPickToTitle}</Text>
+                  )}
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={ms(18)}
+                    color={Colors.dark.text2}
+                  />
+                </View>
+              </Pressable>
+            )}
+            {toAccountError ? <Text style={styles.err}>{toAccountError}</Text> : null}
+          </>
+        )}
+
+        {/* Category */}
+        {!isTransferOrCC && (
+          <>
+            <Pressable style={styles.field} onPress={onOpenCategoryPicker}>
+              <Text style={styles.fieldLabel}>{Strings.addTxCategoryLabel}</Text>
+              <View style={styles.fieldValue}>
+                {selectedCategory ? (
+                  <Text style={styles.fieldValueText}>{selectedCategory.name}</Text>
+                ) : (
+                  <Text style={styles.fieldPlaceholder}>{Strings.addTxPickCategoryTitle}</Text>
+                )}
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={ms(18)}
+                  color={Colors.dark.text2}
+                />
+              </View>
+            </Pressable>
+            {categoryError ? <Text style={styles.err}>{categoryError}</Text> : null}
+          </>
+        )}
+
+        {isUSD && (
+          <ExchangeRateRow value={exchangeRate} onChange={setExchangeRate} error={rateError} />
+        )}
+
+        <View style={styles.field}>
+          <Text style={styles.fieldLabel}>{Strings.addTxNoteLabel}</Text>
+          <TextInput
+            style={styles.noteInput}
+            value={note}
+            onChangeText={setNote}
+            placeholder={Strings.addTxNotePlaceholder}
+            placeholderTextColor={Colors.dark.text2}
+          />
+        </View>
+
+        <Numpad onPress={handleNumpad} />
+
+        <Pressable
+          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+          onPress={handleSave}
+          disabled={saving}
+        >
+          <Text style={styles.ctaLabel}>{Strings.addTxSaveCta}</Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  kav: { flex: 1 },
+  handle: {
+    width: ms(36),
+    height: ms(4),
+    borderRadius: ms(2),
+    backgroundColor: Colors.dark.border,
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  headerTitle: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.subhead,
+    color: Colors.dark.text1,
+  },
+  scroll: { flex: 1, paddingHorizontal: Spacing.md },
+  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.xxl },
+  amountRow: { alignItems: 'center', paddingVertical: Spacing.md },
+  amountText: { fontFamily: FontFamily.soraExtra, fontSize: ms(40) },
+  field: {
+    backgroundColor: Colors.dark.surfaceEl,
+    borderRadius: Radius.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    gap: Spacing.xxs,
+  },
+  fieldLabel: {
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.caption,
+    color: Colors.dark.text2,
+  },
+  fieldValue: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
+  fieldValueText: {
+    flex: 1,
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+  },
+  fieldPlaceholder: {
+    flex: 1,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
+    color: Colors.dark.text2,
+  },
+  dot: { width: ms(10), height: ms(10), borderRadius: ms(5) },
+  noteInput: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+    paddingVertical: 0,
+  },
+  err: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    color: Colors.dark.negative,
+    marginTop: -Spacing.xxs,
+  },
+  cta: {
+    height: Size.ctaHeight,
+    backgroundColor: Colors.shared.cairoGold,
+    borderRadius: Radius.cta,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaPressed: { opacity: 0.8 },
+  ctaLabel: {
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
+    color: Colors.shared.midnightBlue,
+  },
+});

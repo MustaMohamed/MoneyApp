@@ -7,9 +7,10 @@ import {
   type ITransactionRepository,
   type NewTransactionInput,
   type TransactionListQuery,
+  type UpdateTransactionInput,
 } from '@/repositories/transaction.repository';
 
-export type { Transaction, NewTransactionInput, TransactionListQuery };
+export type { Transaction, NewTransactionInput, TransactionListQuery, UpdateTransactionInput };
 
 export const PAGE_SIZE = 30;
 
@@ -31,6 +32,7 @@ interface TransactionState {
   getById: (id: string) => Promise<Transaction | null>;
   addTransaction: (data: NewTransactionInput) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
+  updateTransaction: (id: string, data: UpdateTransactionInput) => Promise<void>;
 }
 
 export function createTransactionStore(repo: ITransactionRepository) {
@@ -101,6 +103,13 @@ export function createTransactionStore(repo: ITransactionRepository) {
         await get()
           .refresh()
           .catch((err) => console.error('[transactionStore] post-delete refresh failed:', err));
+      },
+
+      updateTransaction: async (id, data) => {
+        await repo.update(id, data);
+        await get()
+          .refresh()
+          .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));
       },
     };
   });

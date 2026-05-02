@@ -124,3 +124,55 @@ describe('categoryStore.reassignAndDelete', () => {
     expect(repo.getAll).toHaveBeenCalled();
   });
 });
+
+describe('categoryStore — error branches', () => {
+  it('loadCategories propagates repo errors', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db fail')) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(useStore.getState().loadCategories()).rejects.toThrow('db fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('addCategory propagates errors', async () => {
+    const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('add fail')) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(
+      useStore
+        .getState()
+        .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' }),
+    ).rejects.toThrow('add fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('updateCategory propagates errors', async () => {
+    const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update fail')) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(
+      useStore.getState().updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' }),
+    ).rejects.toThrow('update fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('deleteCategory propagates errors', async () => {
+    const repo = makeRepo({ delete: jest.fn().mockRejectedValue(new Error('delete fail')) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(useStore.getState().deleteCategory('cat-1')).rejects.toThrow('delete fail');
+    consoleSpy.mockRestore();
+  });
+
+  it('reassignAndDelete propagates errors', async () => {
+    const repo = makeRepo({
+      reassignAndDelete: jest.fn().mockRejectedValue(new Error('reassign fail')),
+    });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(
+      useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense'),
+    ).rejects.toThrow('reassign fail');
+    consoleSpy.mockRestore();
+  });
+});

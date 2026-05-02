@@ -197,6 +197,42 @@ describe('addTransaction — cc_payment', () => {
       .get() as { revolving_balance: number };
     expect(cc.revolving_balance).toBe(300); // unchanged
   });
+
+  it('treats null revolving_balance and minimum_payment as 0 (covers ?? 0 branches)', async () => {
+    // Seed a CC account with NULL revolving_balance and minimum_payment
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO accounts
+         (id,name,type,currency,opening_balance,current_balance,
+          interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('acc_cc_null','CC Null Fields','credit_card','EGP',0,800,0,0,5,?,?)`,
+      )
+      .run(NOW, NOW);
+    // Both revolving_balance and minimum_payment are NULL (not set)
+
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc-null',
+        type: TransactionType.CCPayment,
+        egp_amount: 200,
+        category_id: null,
+        to_account_id: 'acc_cc_null',
+      }),
+    );
+
+    const asset = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    const cc = realDb
+      .prepare("SELECT current_balance, revolving_balance FROM accounts WHERE id = 'acc_cc_null'")
+      .get() as { current_balance: number; revolving_balance: number | null };
+
+    // minimum_payment=NULL → installmentDue=0, installmentCovered=0, revolvingReduction=200
+    // revolving_balance=NULL → revolving=0, newRevolving = max(0, 0-200) = 0
+    expect(asset.current_balance).toBe(800); // 1000 - 200
+    expect(cc.current_balance).toBe(600); // 800 - 200
+  });
 });
 
 describe('getTransactions', () => {
@@ -381,6 +417,79 @@ describe('deleteTransaction', () => {
 
   it('is a no-op for unknown id', async () => {
     await expect(deleteTransaction(mockDb, 'ghost')).resolves.toBeUndefined();
+  });
+
+  it('reverses cc_payment when cc account has null minimum_payment (covers ?? 0 branch)', async () => {
+    // Seed a CC account with NULL revolving_balance and minimum_payment
+    realDb
+      .prepare(
+        `INSERT OR IGNORE INTO accounts
+         (id,name,type,currency,opening_balance,current_balance,
+          interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('acc_cc_null2','CC Null2','credit_card','EGP',0,800,0,0,6,?,?)`,
+      )
+      .run(NOW, NOW);
+
+    // Add a cc_payment against this CC account (minimum_payment=NULL → treated as 0)
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc-null2',
+        type: TransactionType.CCPayment,
+        egp_amount: 150,
+        category_id: null,
+        to_account_id: 'acc_cc_null2',
+      }),
+    );
+
+    // Now delete: deleteTransaction should restore the balance
+    // With minimum_payment=NULL, installmentDue=0, revolvingRestore=150
+    await deleteTransaction(mockDb, 'tx-cc-null2');
+
+    const cc = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc_null2'")
+      .get() as { current_balance: number };
+    expect(cc.current_balance).toBe(800); // fully restored
+  });
+});
+
+describe('addTransaction / deleteTransaction — unknown type (covers else-if false branch on cc_payment)', () => {
+  // These tests use a pure in-memory mock db that does NOT enforce the SQLite CHECK constraint,
+  // so we can pass an unknown transaction type to exercise the dead "else-if false" branches.
+  function makeCustomMockDb(fakeTxRow: Transaction | null = null) {
+    const runAsync = jest.fn().mockResolvedValue({ changes: 1, lastInsertRowId: 1 });
+    const getAllAsync = jest.fn().mockImplementation(async (sql: string) => {
+      if (sql.includes('SELECT * FROM transactions') && fakeTxRow) return [fakeTxRow];
+      return [];
+    });
+    const withTransactionAsync = jest.fn().mockImplementation(async (fn: () => Promise<void>) => {
+      await fn();
+    });
+    return { runAsync, getAllAsync, withTransactionAsync } as unknown as Parameters<
+      typeof addTransaction
+    >[0];
+  }
+
+  it('addTransaction with unknown type inserts row without balance update', async () => {
+    const db = makeCustomMockDb();
+    const tx = makeTx({ id: 'tx-unk', type: 'unknown_type' as TransactionType });
+    await addTransaction(db, tx);
+    // Only the INSERT runAsync should fire; no account UPDATE
+    const updateCalls = (db.runAsync as jest.Mock).mock.calls.filter(([sql]: [string]) =>
+      sql.includes('UPDATE accounts'),
+    );
+    expect(updateCalls).toHaveLength(0);
+  });
+
+  it('deleteTransaction with unknown-type transaction does not touch account balances', async () => {
+    const fakeTx = makeTx({ id: 'tx-unk', type: 'unknown_type' as TransactionType });
+    const db = makeCustomMockDb(fakeTx);
+    await deleteTransaction(db, 'tx-unk');
+    // DELETE runs, but no UPDATE accounts
+    const updateCalls = (db.runAsync as jest.Mock).mock.calls.filter(([sql]: [string]) =>
+      sql.includes('UPDATE accounts'),
+    );
+    expect(updateCalls).toHaveLength(0);
   });
 });
 

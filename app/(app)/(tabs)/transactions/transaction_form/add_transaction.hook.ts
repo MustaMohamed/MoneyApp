@@ -307,6 +307,7 @@ export function useAddTransaction(onClose: () => void) {
     exchangeRate,
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
     isUSD,
+    isTransferOrCC,
     errors,
     saving,
     accounts,
