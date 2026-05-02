@@ -67,7 +67,10 @@ export function AddTransactionSheet({ visible, onClose }: Props) {
       </Animated.View>
 
       <Animated.View style={[styles.sheet, sheetStyle]}>
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.kav}
+        >
           {/* Handle + header */}
           <View style={styles.handle} />
           <View style={styles.header}>
@@ -289,7 +292,8 @@ const styles = StyleSheet.create({
     fontSize: Type.subhead,
     color: Colors.dark.text1,
   },
-  scroll: { paddingHorizontal: Spacing.md },
+  kav: { flex: 1 },
+  scroll: { flex: 1, paddingHorizontal: Spacing.md },
   scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.xxl },
   amountRow: {
     alignItems: 'center',
