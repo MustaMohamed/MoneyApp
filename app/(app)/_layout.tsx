@@ -11,12 +11,12 @@ export default function AppLayout() {
   const loadCategories = useCategoryStore((s) => s.loadCategories);
   const loadRate = useCurrencyStore((s) => s.loadRate);
   const fetchRate = useCurrencyStore((s) => s.fetchRate);
-  const loadTransactions = useTransactionStore((s) => s.loadTransactions);
+  const setTransactionQuery = useTransactionStore((s) => s.setQuery);
 
   useEffect(() => {
     loadAccounts().catch(() => {});
     loadCategories().catch(() => {});
-    loadTransactions().catch(() => {});
+    setTransactionQuery({}).catch(() => {});
     loadRate()
       .then(() => fetchRate())
       .catch(() => {});

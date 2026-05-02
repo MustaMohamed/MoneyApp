@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import type { TransactionType } from '@/constants/enums';
 import type { Transaction } from './entities/transaction.entity';
 
 export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promise<void> {
@@ -79,16 +80,53 @@ export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promi
   });
 }
 
+export interface TransactionListQuery {
+  limit?: number;
+  offset?: number;
+  type?: TransactionType;
+  search?: string;
+}
+
+const PAGE_SIZE_DEFAULT = 30;
+
+function escapeLike(input: string): string {
+  // Escape SQL LIKE wildcards so user input can't act as a wildcard.
+  // \ is the escape char declared by the ESCAPE clause below.
+  return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+}
+
 export async function getTransactions(
   db: SQLiteDatabase,
-  limit = 30,
-  offset = 0,
+  query: TransactionListQuery = {},
 ): Promise<Transaction[]> {
+  const limit = query.limit ?? PAGE_SIZE_DEFAULT;
+  const offset = query.offset ?? 0;
+
+  const typeParam: string | null = query.type ?? null;
+  const trimmed = query.search?.trim();
+  const searchParam: string | null = trimmed && trimmed.length > 0 ? trimmed : null;
+  const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
+
   return db.getAllAsync<Transaction>(
-    `SELECT * FROM transactions
-     ORDER BY transaction_date DESC, transaction_time DESC
+    `SELECT t.* FROM transactions t
+     WHERE (? IS NULL OR t.type = ?)
+       AND (
+         ? IS NULL
+         OR t.note LIKE ? ESCAPE '\\' COLLATE NOCASE
+         OR EXISTS (
+           SELECT 1 FROM accounts a
+           WHERE a.id IN (t.account_id, t.to_account_id)
+             AND a.name LIKE ? ESCAPE '\\' COLLATE NOCASE
+         )
+         OR EXISTS (
+           SELECT 1 FROM categories c
+           WHERE c.id = t.category_id
+             AND c.name LIKE ? ESCAPE '\\' COLLATE NOCASE
+         )
+       )
+     ORDER BY t.transaction_date DESC, t.transaction_time DESC
      LIMIT ? OFFSET ?`,
-    [limit, offset],
+    [typeParam, typeParam, searchParam, likePattern, likePattern, likePattern, limit, offset],
   );
 }
 

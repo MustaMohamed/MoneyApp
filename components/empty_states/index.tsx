@@ -5,7 +5,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 
-export type EmptyStateVariant = 'accounts' | 'transactions' | 'bills' | 'goals' | 'budget';
+export type EmptyStateVariant =
+  | 'accounts'
+  | 'transactions'
+  | 'transactionsNoResults'
+  | 'bills'
+  | 'goals'
+  | 'budget';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -19,6 +25,11 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, { icon: IconName; title: string;
     icon: 'swap-horizontal',
     title: Strings.emptyTransactionsTitle,
     sub: Strings.emptyTransactionsSub,
+  },
+  transactionsNoResults: {
+    icon: 'magnify-close',
+    title: Strings.noResultsHeadline,
+    sub: Strings.noResultsSubtext,
   },
   bills: {
     icon: 'calendar-clock-outline',

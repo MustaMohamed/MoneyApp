@@ -7,6 +7,7 @@ import {
   TransactionRepository,
   type NewTransactionInput,
 } from '@/repositories/transaction.repository';
+import * as transactionsModule from '@/database/transactions';
 
 // Override global UUID mock with a counter so each add() gets a unique id
 let mockUuidCounter = 0;
@@ -14,6 +15,8 @@ jest.mock('react-native-uuid', () => ({
   __esModule: true,
   default: { v4: () => `tx-repo-${++mockUuidCounter}` },
 }));
+
+const getTransactions = jest.spyOn(transactionsModule, 'getTransactions');
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -115,6 +118,10 @@ describe('TransactionRepository.add', () => {
 });
 
 describe('TransactionRepository.getAll', () => {
+  beforeEach(() => {
+    getTransactions.mockClear();
+  });
+
   it('returns empty array when no transactions', async () => {
     const rows = await repo.getAll();
     expect(rows).toHaveLength(0);
@@ -125,6 +132,21 @@ describe('TransactionRepository.getAll', () => {
     await repo.add({ ...baseInput, amount: 50, egp_amount: 50 });
     const rows = await repo.getAll();
     expect(rows.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('passes limit, offset, type, and search through to the executor', async () => {
+    await repo.getAll({ limit: 10, offset: 5, type: TransactionType.Income, search: 'food' });
+    expect(getTransactions).toHaveBeenCalledWith(expect.anything(), {
+      limit: 10,
+      offset: 5,
+      type: TransactionType.Income,
+      search: 'food',
+    });
+  });
+
+  it('defaults to an empty query object when no args are given', async () => {
+    await repo.getAll();
+    expect(getTransactions).toHaveBeenCalledWith(expect.anything(), {});
   });
 });
 

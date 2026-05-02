@@ -21,6 +21,7 @@ export const Colors = {
     gold: '#D4A44C',
     positive: '#4CAF82',
     negative: '#E05A42',
+    dangerBg: 'rgba(224, 90, 66, 0.12)',
   },
   light: {
     bg: '#F7F4EF',
@@ -37,6 +38,11 @@ export const Colors = {
   shared: {
     cairoGold: '#C9973A',
     midnightBlue: '#1B2B4B',
+    transferBlue: '#4A7ABF',
+    ccPlum: '#5A2D55',
+    heroGrad1: '#1A2948',
+    heroGrad2: '#223060',
+    heroGrad3: '#192A4A',
   },
 } as const;
 
