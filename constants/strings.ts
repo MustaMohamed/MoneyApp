@@ -285,4 +285,40 @@ export const Strings = {
   typeBadgeIncome: 'Income',
   typeBadgeTransfer: 'Transfer',
   typeBadgeCcPayment: 'CC Payment',
+
+  // U31 Advanced Filter Drawer
+  filterTitle: 'Filters',
+  filterReset: 'Reset',
+  filterApply: 'Apply',
+  filterApplyWithCount: (n: number) => `Apply (${n})`,
+
+  filterSectionAccounts: 'Accounts',
+  filterSectionCategories: 'Categories',
+  filterSectionDate: 'Date',
+  filterSectionAmount: 'Amount',
+
+  filterAllAccounts: 'All accounts',
+  filterAllCategories: 'All categories',
+
+  datePresetToday: 'Today',
+  datePresetThisWeek: 'This week',
+  datePresetThisMonth: 'This month',
+  datePresetLastMonth: 'Last month',
+  datePresetLast30Days: 'Last 30 days',
+  datePresetThisYear: 'This year',
+  datePresetAllTime: 'All time',
+  datePresetCustom: 'Custom...',
+  filterCustomDateRangeTitle: 'Custom date range',
+  filterCustomFromLabel: 'From',
+  filterCustomToLabel: 'To',
+
+  filterPickAccountsTitle: 'Select Accounts',
+  filterPickCategoriesTitle: 'Select Categories',
+  filterPickerDone: 'Done',
+
+  filterAmountFromPlaceholder: 'Min',
+  filterAmountToPlaceholder: 'Max',
+
+  filterCategoryTypeExpense: 'Expense',
+  filterCategoryTypeIncome: 'Income',
 } as const;

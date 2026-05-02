@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -9,11 +9,12 @@ interface Props {
   value: string;
   onChange: (v: string) => void;
   onClear: () => void;
+  style?: ViewStyle;
 }
 
-export function SearchBar({ value, onChange, onClear }: Props) {
+export function SearchBar({ value, onChange, onClear, style }: Props) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <MaterialCommunityIcons
         name="magnify"
         size={ms(18)}
@@ -48,14 +49,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.dark.border,
     borderRadius: Radius.sm,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
     paddingHorizontal: Spacing.sm,
   },
   leadIcon: { marginRight: Spacing.xs },
   input: {
     flex: 1,
-    // Stretch to the container's fixed height so textAlignVertical: 'center' has room to act.
     alignSelf: 'stretch',
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,
