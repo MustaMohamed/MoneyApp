@@ -81,6 +81,27 @@ function createSchema(type: TransactionType, accounts: Account[]) {
           });
         }
       }
+      if (type === TransactionType.Transfer) {
+        // Transfers move money between asset accounts. Anything involving a
+        // credit card belongs in a CC Payment instead — keep the two flows
+        // separate so the resulting transaction type accurately reflects the
+        // operation (and so the CC revolving/installment math is correct).
+        if (account && account.type === AccountType.CreditCard) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrTransferNoCc,
+            path: ['accountId'],
+          });
+        }
+        const toAccount = accounts.find((a) => a.id === data.toAccountId);
+        if (toAccount && toAccount.type === AccountType.CreditCard) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrTransferNoCc,
+            path: ['toAccountId'],
+          });
+        }
+      }
       if (account?.currency === Currency.USD) {
         if (!data.exchangeRate) {
           ctx.addIssue({
@@ -172,22 +193,25 @@ export function useAddTransaction(onClose: () => void) {
     [categories, type],
   );
 
-  // For CC payment: source must be a non-CC account, destination must be a CC account.
-  // For other types: all accounts are valid.
-  const accountsForFrom = useMemo(
-    () =>
-      type === TransactionType.CCPayment
-        ? accounts.filter((a) => a.type !== AccountType.CreditCard)
-        : accounts,
-    [accounts, type],
-  );
-  const accountsForTo = useMemo(
-    () =>
-      type === TransactionType.CCPayment
-        ? accounts.filter((a) => a.type === AccountType.CreditCard)
-        : accounts,
-    [accounts, type],
-  );
+  // Picker eligibility:
+  //   CC payment: source = non-CC asset, target = CC.
+  //   Transfer:   neither side may be a CC (CC moves go through cc_payment).
+  //   Expense / Income: any account.
+  const accountsForFrom = useMemo(() => {
+    if (type === TransactionType.CCPayment || type === TransactionType.Transfer) {
+      return accounts.filter((a) => a.type !== AccountType.CreditCard);
+    }
+    return accounts;
+  }, [accounts, type]);
+  const accountsForTo = useMemo(() => {
+    if (type === TransactionType.CCPayment) {
+      return accounts.filter((a) => a.type === AccountType.CreditCard);
+    }
+    if (type === TransactionType.Transfer) {
+      return accounts.filter((a) => a.type !== AccountType.CreditCard);
+    }
+    return accounts;
+  }, [accounts, type]);
 
   const errors = {
     amount: form.formState.errors.amount?.message,

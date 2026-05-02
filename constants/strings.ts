@@ -237,6 +237,7 @@ export const Strings = {
   addTxErrCategoryRequired: 'Select a category',
   addTxErrCcPaymentSourceMustBeAsset: 'Pay from an asset account',
   addTxErrCcPaymentTargetMustBeCC: 'Pay to a credit card account',
+  addTxErrTransferNoCc: 'Use Credit Pay for credit card moves',
   addTxErrRateRequired: 'Enter the exchange rate',
   addTxErrRateInvalid: 'Rate must be greater than 0',
   addTxInsufficientBalance: (name: string) => `Insufficient balance in ${name}`,

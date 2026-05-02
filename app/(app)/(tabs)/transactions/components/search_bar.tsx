@@ -58,7 +58,11 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,
     color: Colors.dark.text1,
+    // Strip Android's implicit padding so the text actually sits in the middle
+    // of the 40-dp tall pill (otherwise it floats toward the top on Android).
     paddingVertical: 0,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   clearBtn: { marginLeft: Spacing.xs },
 });

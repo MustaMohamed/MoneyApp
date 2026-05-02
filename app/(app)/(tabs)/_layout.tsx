@@ -27,7 +27,7 @@ export default function TabsLayout() {
         options={{ title: 'Home', tabBarIcon: ({ color }) => tabIcon('home', color) }}
       />
       <Tabs.Screen
-        name="transactions/index"
+        name="transactions"
         options={{
           title: 'Transactions',
           tabBarIcon: ({ color }) => tabIcon('swap-horizontal', color),
