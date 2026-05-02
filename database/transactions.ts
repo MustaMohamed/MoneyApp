@@ -102,6 +102,10 @@ function escapeLike(input: string): string {
   return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
 
+function buildInClause(n: number): string {
+  return Array(n).fill('?').join(',');
+}
+
 export async function getTransactions(
   db: SQLiteDatabase,
   query: TransactionListQuery = {},
@@ -114,27 +118,81 @@ export async function getTransactions(
   const searchParam: string | null = trimmed && trimmed.length > 0 ? trimmed : null;
   const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
 
-  return db.getAllAsync<Transaction>(
-    `SELECT t.* FROM transactions t
-     WHERE (? IS NULL OR t.type = ?)
-       AND (
-         ? IS NULL
-         OR t.note LIKE ? ESCAPE '\\' COLLATE NOCASE
-         OR EXISTS (
-           SELECT 1 FROM accounts a
-           WHERE a.id IN (t.account_id, t.to_account_id)
-             AND a.name LIKE ? ESCAPE '\\' COLLATE NOCASE
-         )
-         OR EXISTS (
-           SELECT 1 FROM categories c
-           WHERE c.id = t.category_id
-             AND c.name LIKE ? ESCAPE '\\' COLLATE NOCASE
-         )
-       )
-     ORDER BY t.transaction_date DESC, t.transaction_time DESC
-     LIMIT ? OFFSET ?`,
-    [typeParam, typeParam, searchParam, likePattern, likePattern, likePattern, limit, offset],
-  );
+  const accountIds = query.accountIds ?? [];
+  const categoryIds = query.categoryIds ?? [];
+  const accountListEmpty = accountIds.length === 0 ? 1 : 0;
+  const categoryListEmpty = categoryIds.length === 0 ? 1 : 0;
+  const accountIn = buildInClause(Math.max(accountIds.length, 1));
+  const categoryIn = buildInClause(Math.max(categoryIds.length, 1));
+  const accountParams = accountIds.length === 0 ? [''] : accountIds;
+  const categoryParams = categoryIds.length === 0 ? [''] : categoryIds;
+
+  const dateFrom = query.dateFrom ?? null;
+  const dateTo = query.dateTo ?? null;
+
+  const amountMin = query.amountMin ?? null;
+  const amountMax = query.amountMax ?? null;
+  const amountCurrency = query.amountCurrency ?? null;
+
+  const sql = `
+    SELECT t.* FROM transactions t
+    WHERE (? IS NULL OR t.type = ?)
+      AND (
+        ? IS NULL
+        OR t.note LIKE ? ESCAPE '\\' COLLATE NOCASE
+        OR EXISTS (
+          SELECT 1 FROM accounts a
+          WHERE a.id IN (t.account_id, t.to_account_id)
+            AND a.name LIKE ? ESCAPE '\\' COLLATE NOCASE
+        )
+        OR EXISTS (
+          SELECT 1 FROM categories c
+          WHERE c.id = t.category_id
+            AND c.name LIKE ? ESCAPE '\\' COLLATE NOCASE
+        )
+      )
+      AND (
+        ? = 1
+        OR t.account_id    IN (${accountIn})
+        OR t.to_account_id IN (${accountIn})
+      )
+      AND (
+        ? = 1
+        OR t.category_id IN (${categoryIn})
+      )
+      AND (? IS NULL OR t.transaction_date >= ?)
+      AND (? IS NULL OR t.transaction_date <= ?)
+      AND (? IS NULL OR (t.currency = ? AND t.amount >= ?))
+      AND (? IS NULL OR (t.currency = ? AND t.amount <= ?))
+    ORDER BY t.transaction_date DESC, t.transaction_time DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  return db.getAllAsync<Transaction>(sql, [
+    typeParam,
+    typeParam,
+    searchParam,
+    likePattern,
+    likePattern,
+    likePattern,
+    accountListEmpty,
+    ...accountParams,
+    ...accountParams,
+    categoryListEmpty,
+    ...categoryParams,
+    dateFrom,
+    dateFrom,
+    dateTo,
+    dateTo,
+    amountMin,
+    amountCurrency,
+    amountMin,
+    amountMax,
+    amountCurrency,
+    amountMax,
+    limit,
+    offset,
+  ]);
 }
 
 export async function getTransactionsByAccount(
