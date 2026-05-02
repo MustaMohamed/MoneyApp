@@ -55,11 +55,11 @@ const styles = StyleSheet.create({
   leadIcon: { marginRight: Spacing.xs },
   input: {
     flex: 1,
+    // Stretch to the container's fixed height so textAlignVertical: 'center' has room to act.
+    alignSelf: 'stretch',
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,
     color: Colors.dark.text1,
-    // Strip Android's implicit padding so the text actually sits in the middle
-    // of the 40-dp tall pill (otherwise it floats toward the top on Android).
     paddingVertical: 0,
     includeFontPadding: false,
     textAlignVertical: 'center',
