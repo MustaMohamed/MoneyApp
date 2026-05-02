@@ -274,6 +274,7 @@ export const Strings = {
   capturedBadge: 'Captured',
   editTransaction: 'Edit Transaction',
   editComingSoon: 'Coming in M2d',
+  editTxTitle: 'Edit Transaction',
   deleteTransaction: 'Delete',
   deleteConfirmTitle: 'Delete this transaction?',
   deleteConfirmBody: 'The account balance will be restored. This cannot be undone.',
