@@ -83,7 +83,7 @@ export function formatSelectionSummary(names: string[], allLabel: string): strin
 }
 
 export function toQueryFilters(applied: AdvancedFilters): Partial<TransactionListFilters> {
-  const out: Record<string, unknown> = {};
+  const out: Partial<TransactionListFilters> = {};
 
   if (applied.accountIds.length > 0) out.accountIds = applied.accountIds;
   if (applied.categoryIds.length > 0) out.categoryIds = applied.categoryIds;
