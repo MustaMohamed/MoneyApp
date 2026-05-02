@@ -1,10 +1,25 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import type { Account } from '@/database/entities/account.entity';
+
+type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const ACCOUNT_TYPE_ICON: Record<AccountType, MCIName> = {
+  [AccountType.Bank]: 'bank',
+  [AccountType.SmartWallet]: 'cellphone-nfc',
+  [AccountType.PhysicalWallet]: 'wallet',
+  [AccountType.PhysicalSavings]: 'piggy-bank',
+  [AccountType.CreditCard]: 'credit-card',
+};
+
+function iconForAccountType(type: AccountType): MCIName {
+  return ACCOUNT_TYPE_ICON[type] ?? 'bank';
+}
 
 interface Props {
   visible: boolean;
@@ -41,9 +56,13 @@ export function FilterAccountPicker({ visible, accounts, selectedIds, onToggle, 
                 onPress={() => onToggle(item.id)}
                 style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
               >
-                <View
-                  style={[styles.dot, { backgroundColor: item.color ?? Colors.dark.surfaceEl }]}
-                />
+                <View style={styles.iconContainer}>
+                  <MaterialCommunityIcons
+                    name={iconForAccountType(item.type as AccountType)}
+                    size={ms(20)}
+                    color={checked ? Colors.shared.cairoGold : Colors.dark.text2}
+                  />
+                </View>
                 <View style={styles.info}>
                   <Text style={styles.name}>{item.name}</Text>
                   <Text style={styles.balance}>
@@ -114,7 +133,7 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   rowPressed: { opacity: 0.7 },
-  dot: { width: ms(12), height: ms(12), borderRadius: ms(6) },
+  iconContainer: { width: ms(24), alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },
   name: {
     fontFamily: FontFamily.soraSemi,
