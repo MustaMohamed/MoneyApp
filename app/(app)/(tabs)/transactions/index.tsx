@@ -10,8 +10,8 @@ import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 import { useTransactionStore } from '@/store/transaction.store';
-import { AddTransactionSheet } from './add_transaction';
-import { useAddTransactionStore } from './add_transaction/add_transaction.store';
+import { AddTransactionSheet } from './transaction_form';
+import { useAddTransactionStore } from './transaction_form/add_transaction.store';
 import { DateHeader } from './components/date_header';
 import { FilterChips } from './components/filter_chips';
 import { LoadingFooter } from './components/loading_footer';

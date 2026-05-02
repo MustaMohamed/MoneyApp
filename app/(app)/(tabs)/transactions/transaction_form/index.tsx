@@ -16,7 +16,7 @@ import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-import { useAddTransactionAnim } from './add_transaction.anim';
+import { useAddTransactionAnim } from './transaction_form.anim';
 import { useAddTransaction } from './add_transaction.hook';
 import { AccountPickerSheet } from './components/account_picker_sheet';
 import { CategoryPickerSheet } from './components/category_picker_sheet';
