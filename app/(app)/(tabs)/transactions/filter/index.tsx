@@ -1,0 +1,201 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useEffect } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Animated from 'react-native-reanimated';
+
+import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
+import { useFilterDrawer } from './filter.hook';
+import { useFilterDrawerAnim } from './filter.anim';
+import { FilterAccountPicker } from './components/filter_account_picker';
+import { FilterAmountSection } from './components/filter_amount_section';
+import { FilterCategoryPicker } from './components/filter_category_picker';
+import { FilterDateCustomPicker } from './components/filter_date_custom_picker';
+import { FilterDateSection } from './components/filter_date_section';
+import { FilterSectionRow } from './components/filter_section_row';
+
+export function FilterDrawer() {
+  const f = useFilterDrawer();
+  const { sheetStyle, overlayStyle, openSheet, closeSheet } = useFilterDrawerAnim();
+
+  useEffect(() => {
+    if (f.visible) openSheet();
+  }, [f.visible]);
+
+  if (!f.visible) return null;
+
+  function handleClose() {
+    closeSheet(f.close);
+  }
+
+  return (
+    <>
+      <Animated.View style={[styles.overlay, overlayStyle]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+      </Animated.View>
+
+      <Animated.View style={[styles.sheet, sheetStyle]}>
+        <View style={styles.handle} />
+
+        <View style={styles.header}>
+          <Pressable onPress={handleClose} hitSlop={8}>
+            <MaterialCommunityIcons name="close" size={Size.iconMd} color={Colors.dark.text2} />
+          </Pressable>
+          <Text style={styles.title}>{Strings.filterTitle}</Text>
+          <Pressable onPress={f.resetDraft} hitSlop={8}>
+            <Text style={styles.resetLabel}>{Strings.filterReset}</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.rowWrap}>
+            <FilterSectionRow
+              label={Strings.filterSectionAccounts}
+              summary={f.selectedAccountSummary}
+              isActive={f.draft.accountIds.length > 0}
+              onPress={() => f.setAccountPickerVisible(true)}
+            />
+          </View>
+
+          <View style={styles.rowWrap}>
+            <FilterSectionRow
+              label={Strings.filterSectionCategories}
+              summary={f.selectedCategorySummary}
+              isActive={f.draft.categoryIds.length > 0}
+              onPress={() => f.setCategoryPickerVisible(true)}
+            />
+          </View>
+
+          <FilterDateSection
+            preset={f.draft.datePreset}
+            customFrom={f.draft.customDateFrom}
+            customTo={f.draft.customDateTo}
+            onSelectPreset={f.setDatePreset}
+            onOpenCustomPicker={() => f.setCustomDatePickerVisible(true)}
+          />
+
+          <FilterAmountSection
+            currency={f.draft.amountCurrency}
+            min={f.draft.amountMin}
+            max={f.draft.amountMax}
+            onChangeCurrency={f.setAmountCurrency}
+            onChangeMin={f.setAmountMin}
+            onChangeMax={f.setAmountMax}
+          />
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <Pressable
+            onPress={f.applyDraft}
+            style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
+          >
+            <Text style={styles.ctaLabel}>
+              {f.draftActiveCount > 0
+                ? Strings.filterApplyWithCount(f.draftActiveCount)
+                : Strings.filterApply}
+            </Text>
+          </Pressable>
+        </View>
+
+        <FilterAccountPicker
+          visible={f.accountPickerVisible}
+          accounts={f.pickerAccounts}
+          selectedIds={f.draft.accountIds}
+          onToggle={f.toggleAccountId}
+          onClose={() => f.setAccountPickerVisible(false)}
+        />
+
+        <FilterCategoryPicker
+          visible={f.categoryPickerVisible}
+          categories={f.pickerCategories}
+          selectedIds={f.draft.categoryIds}
+          onToggle={f.toggleCategoryId}
+          onClose={() => f.setCategoryPickerVisible(false)}
+        />
+
+        <FilterDateCustomPicker
+          visible={f.customDatePickerVisible}
+          initialFrom={f.draft.customDateFrom}
+          initialTo={f.draft.customDateTo}
+          onClose={() => f.setCustomDatePickerVisible(false)}
+          onConfirm={(from, to) => {
+            f.setCustomDateRange(from, to);
+            f.setCustomDatePickerVisible(false);
+          }}
+        />
+      </Animated.View>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    zIndex: 10,
+  },
+  sheet: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: Colors.dark.surface,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    zIndex: 11,
+    maxHeight: '85%',
+  },
+  handle: {
+    width: ms(36),
+    height: ms(4),
+    borderRadius: ms(2),
+    backgroundColor: Colors.dark.border,
+    alignSelf: 'center',
+    marginTop: Spacing.sm,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  title: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.subhead,
+    color: Colors.dark.text1,
+  },
+  resetLabel: {
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.body,
+    color: Colors.shared.cairoGold,
+  },
+  scroll: { flex: 1 },
+  scrollContent: { gap: Spacing.md, paddingBottom: Spacing.xl, paddingTop: Spacing.xs },
+  rowWrap: { paddingHorizontal: Spacing.md },
+  footer: {
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.surface,
+  },
+  cta: {
+    height: Size.ctaHeight,
+    backgroundColor: Colors.shared.cairoGold,
+    borderRadius: Radius.cta,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ctaPressed: { opacity: 0.85 },
+  ctaLabel: {
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.bodyStrong,
+    color: Colors.shared.midnightBlue,
+  },
+});
