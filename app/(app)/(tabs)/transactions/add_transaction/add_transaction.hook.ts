@@ -147,6 +147,7 @@ export function useAddTransaction(onClose: () => void) {
   const {
     type,
     amountStr,
+    visible,
     saving,
     setSaving,
     showAccountPicker,
@@ -233,6 +234,13 @@ export function useAddTransaction(onClose: () => void) {
     form.setValue('toAccountId', '');
     form.setValue('categoryId', '');
   }, [type]);
+
+  // When the sheet closes, reset the form so the next open starts clean.
+  useEffect(() => {
+    if (!visible) {
+      form.reset(buildDefaults(currentRate));
+    }
+  }, [visible]);
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
