@@ -37,3 +37,14 @@ export enum TransactionType {
   Transfer = 'transfer',
   CCPayment = 'cc_payment',
 }
+
+export enum DatePreset {
+  Today = 'today',
+  ThisWeek = 'this_week',
+  ThisMonth = 'this_month',
+  LastMonth = 'last_month',
+  Last30Days = 'last_30_days',
+  ThisYear = 'this_year',
+  AllTime = 'all_time',
+  Custom = 'custom',
+}
