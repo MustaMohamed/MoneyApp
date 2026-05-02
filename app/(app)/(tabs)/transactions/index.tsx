@@ -13,10 +13,13 @@ import { useTransactionStore } from '@/store/transaction.store';
 import { AddTransactionSheet } from './transaction_form';
 import { useAddTransactionStore } from './transaction_form/add_transaction.store';
 import { DateHeader } from './components/date_header';
+import { FilterButton } from './components/filter_button';
 import { FilterChips } from './components/filter_chips';
 import { LoadingFooter } from './components/loading_footer';
 import { SearchBar } from './components/search_bar';
 import { TransactionRow } from './components/transaction_row';
+import { FilterDrawer } from './filter';
+import { useFilterDrawerStore } from './filter/filter.store';
 import { useTransactions } from './transactions.hook';
 import { useTransactionsScreenStore } from './transactions.store';
 
@@ -26,14 +29,14 @@ export default function TransactionsScreen() {
   const close = useAddTransactionStore((s) => s.close);
   const visible = useAddTransactionStore((s) => s.visible);
 
-  // On tab blur: reset both screen-local UI (chip + search) AND the global
-  // query, so the data array is unfiltered before the user returns. Without
-  // the global reset, returning to the tab would briefly show the stale
-  // filtered list until the auto-fired setQuery({}) resolves.
+  // On tab blur: reset both screen-local UI (chip + search + applied filters)
+  // AND the global query so the data array is unfiltered before the user
+  // returns. Also dismiss the filter drawer if it's open.
   useFocusEffect(
     useCallback(() => {
       return () => {
         useTransactionsScreenStore.getState().reset();
+        useFilterDrawerStore.getState().close();
         useTransactionStore
           .getState()
           .setQuery({})
@@ -48,7 +51,16 @@ export default function TransactionsScreen() {
         <Text style={styles.title}>{Strings.transactions}</Text>
       </View>
 
-      <SearchBar value={t.searchQuery} onChange={t.setSearchQuery} onClear={t.clearSearch} />
+      <View style={styles.searchRow}>
+        <SearchBar
+          style={styles.searchBar}
+          value={t.searchQuery}
+          onChange={t.setSearchQuery}
+          onClear={t.clearSearch}
+        />
+        <FilterButton count={t.activeFilterCount} onPress={t.openFilter} />
+      </View>
+
       <FilterChips active={t.activeFilter} onChange={t.setActiveFilter} />
 
       {t.emptyVariant !== 'none' ? (
@@ -84,6 +96,7 @@ export default function TransactionsScreen() {
       </Pressable>
 
       <AddTransactionSheet visible={visible} onClose={close} />
+      <FilterDrawer />
     </SafeAreaView>
   );
 }
@@ -102,8 +115,15 @@ const styles = StyleSheet.create({
     fontSize: Type.title,
     color: Colors.dark.text1,
   },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.sm,
+  },
+  searchBar: { flex: 1 },
   body: { flex: 1 },
-  // Bottom padding clears the floating FAB so the last row stays tappable.
   listContent: { paddingBottom: Spacing.xxl + ms(56) },
   fab: {
     position: 'absolute',
