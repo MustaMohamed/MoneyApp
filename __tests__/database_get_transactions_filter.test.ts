@@ -90,6 +90,8 @@ async function insert(overrides: Partial<Transaction> = {}) {
     currency: Currency.EGP,
     egp_amount: 50,
     exchange_rate: null,
+    to_amount: null,
+    minimum_payment_snapshot: null,
     account_id: 'acc_a',
     to_account_id: null,
     category_id: 'cat_food',

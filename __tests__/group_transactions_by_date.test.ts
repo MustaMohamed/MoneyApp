@@ -12,6 +12,8 @@ function tx(date: string, time = '10:00:00', id = `tx-${date}-${time}`): Transac
     currency: Currency.EGP,
     egp_amount: 10,
     exchange_rate: null,
+    to_amount: null,
+    minimum_payment_snapshot: null,
     account_id: 'acc-1',
     to_account_id: null,
     category_id: null,

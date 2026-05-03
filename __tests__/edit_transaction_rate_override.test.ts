@@ -24,6 +24,8 @@ function makeEGPTx(overrides: Partial<Transaction> = {}): Transaction {
     currency: Currency.EGP,
     egp_amount: 150,
     exchange_rate: null,
+    to_amount: null,
+    minimum_payment_snapshot: null,
     account_id: 'acc-egp',
     to_account_id: null,
     category_id: 'cat-food',

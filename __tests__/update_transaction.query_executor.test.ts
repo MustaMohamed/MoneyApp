@@ -473,3 +473,69 @@ describe('updateTransaction — cc_payment', () => {
     expect(cc.current_balance).toBe(500);
   });
 });
+
+describe('updateTransaction — transfer null to_amount fallback (legacy row)', () => {
+  beforeEach(() => {
+    realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc_asset'").run();
+    realDb
+      .prepare(
+        "UPDATE accounts SET current_balance = 500, revolving_balance = 300 WHERE id = 'acc_cc'",
+      )
+      .run();
+    realDb.exec('DELETE FROM transactions');
+  });
+
+  it('uses egp_amount when existing.to_amount and updates.to_amount are both null', async () => {
+    // Legacy transfer: to_amount=null, so toAmt falls back to egp_amount=200
+    await seedTx({
+      type: TransactionType.Transfer,
+      amount: 200,
+      egp_amount: 200,
+      to_amount: null, // legacy row
+      account_id: 'acc_asset',
+      to_account_id: 'acc_cc',
+      category_id: null,
+      minimum_payment_snapshot: null,
+    });
+    // acc_asset: 1000-200=800, acc_cc: 500+200=700 (using egp_amount fallback)
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(800);
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(700);
+
+    // Update: new amount=150, to_amount still null → uses egp_amount=150 fallback
+    await updateTransaction(mockDb, 'tx-1', {
+      amount: 150,
+      currency: Currency.EGP,
+      egp_amount: 150,
+      to_amount: null, // still no to_amount
+      exchange_rate: null,
+      category_id: null,
+      note: null,
+      transaction_date: DATE,
+      transaction_time: TIME,
+    });
+
+    const asset = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    const ccAcc = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'")
+      .get() as { current_balance: number };
+
+    // deltaFrom = 150 - 200 = -50 → asset: 800 - (-50) = 850
+    expect(asset.current_balance).toBe(850);
+    // deltaTo = 150 - 200 = -50 → cc: 700 + (-50) = 650
+    expect(ccAcc.current_balance).toBe(650);
+  });
+});

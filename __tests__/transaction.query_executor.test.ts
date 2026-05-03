@@ -894,3 +894,81 @@ describe('getTransactions — filter + search', () => {
     expect(page1[0].id).not.toBe(page2[0].id);
   });
 });
+
+describe('addTransaction — cc_payment null to_amount fallback (legacy row)', () => {
+  it('falls back to egp_amount when to_amount is null', async () => {
+    // Legacy cc_payment row with no to_amount — should use egp_amount for CC balance update.
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc-legacy',
+        type: TransactionType.CCPayment,
+        amount: 300,
+        currency: Currency.EGP,
+        egp_amount: 300,
+        account_id: 'acc_asset',
+        to_account_id: 'acc_cc',
+        category_id: null,
+        minimum_payment_snapshot: 200,
+        to_amount: null, // legacy: no to_amount stored
+      }),
+    );
+    const cc = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+      current_balance: number;
+    };
+    // 300 applied to CC (same as egp_amount), balance should decrease by 300
+    expect(cc.current_balance).toBe(200); // 500 - 300
+  });
+});
+
+describe('deleteTransaction — transfer null to_amount fallback (legacy row)', () => {
+  it('uses egp_amount when to_amount is null on the stored transaction', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-transfer-legacy',
+        type: TransactionType.Transfer,
+        amount: 200,
+        currency: Currency.EGP,
+        egp_amount: 200,
+        account_id: 'acc_asset',
+        to_account_id: 'acc_usd',
+        category_id: null,
+        minimum_payment_snapshot: null,
+        to_amount: null, // legacy: no to_amount
+      }),
+    );
+    // After add, usd account gained egp_amount=200 (fallback path)
+    await deleteTransaction(mockDb, 'tx-transfer-legacy');
+    // After delete, both accounts should be restored
+    const egp = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    expect(egp.current_balance).toBe(1000);
+  });
+});
+
+describe('deleteTransaction — cc_payment null to_amount fallback (legacy row)', () => {
+  it('uses egp_amount for cc reversal when to_amount is null', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc-del-legacy',
+        type: TransactionType.CCPayment,
+        amount: 200,
+        currency: Currency.EGP,
+        egp_amount: 200,
+        account_id: 'acc_asset',
+        to_account_id: 'acc_cc',
+        category_id: null,
+        minimum_payment_snapshot: 200,
+        to_amount: null, // legacy: no to_amount
+      }),
+    );
+    await deleteTransaction(mockDb, 'tx-cc-del-legacy');
+    const asset = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    expect(asset.current_balance).toBe(1000);
+  });
+});
