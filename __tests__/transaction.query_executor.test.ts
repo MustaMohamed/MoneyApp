@@ -27,9 +27,10 @@ function seedAccounts() {
         interest_tracking,is_archived,sort_order,created_at,updated_at)
      VALUES
        ('acc_asset','Checking','bank','EGP',1000,1000,0,0,0,?,?),
-       ('acc_cc','Credit Card','credit_card','EGP',0,500,0,0,1,?,?)`,
+       ('acc_usd','USD Wallet','bank','USD',100,100,0,0,1,?,?),
+       ('acc_cc','Credit Card','credit_card','EGP',0,500,0,0,2,?,?)`,
     )
-    .run(NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW);
 }
 
 beforeAll(() => {
@@ -67,6 +68,7 @@ beforeEach(() => {
   realDb.exec('DELETE FROM transactions');
   // Reset account balances
   realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc_asset'").run();
+  realDb.prepare("UPDATE accounts SET current_balance = 100 WHERE id = 'acc_usd'").run();
   realDb
     .prepare(
       "UPDATE accounts SET current_balance = 500, revolving_balance = 300, minimum_payment = 200 WHERE id = 'acc_cc'",
@@ -91,6 +93,8 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     currency: Currency.EGP,
     egp_amount: 100,
     exchange_rate: null,
+    to_amount: null,
+    minimum_payment_snapshot: null,
     account_id: 'acc_asset',
     to_account_id: null,
     category_id: 'cat_food',
@@ -111,7 +115,7 @@ describe('addTransaction — expense', () => {
   });
 
   it('debits the account balance', async () => {
-    await addTransaction(mockDb, makeTx({ egp_amount: 200 }));
+    await addTransaction(mockDb, makeTx({ amount: 200, egp_amount: 200 }));
     const acc = realDb
       .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
       .get() as { current_balance: number };
@@ -123,7 +127,7 @@ describe('addTransaction — income', () => {
   it('credits the account balance', async () => {
     await addTransaction(
       mockDb,
-      makeTx({ id: 'tx-income', type: TransactionType.Income, egp_amount: 500 }),
+      makeTx({ id: 'tx-income', type: TransactionType.Income, amount: 500, egp_amount: 500 }),
     );
     const acc = realDb
       .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
@@ -139,7 +143,9 @@ describe('addTransaction — transfer', () => {
       makeTx({
         id: 'tx-transfer',
         type: TransactionType.Transfer,
+        amount: 300,
         egp_amount: 300,
+        to_amount: 300,
         category_id: null,
         to_account_id: 'acc_cc',
       }),
@@ -164,7 +170,10 @@ describe('addTransaction — cc_payment', () => {
       makeTx({
         id: 'tx-cc',
         type: TransactionType.CCPayment,
+        amount: 350,
         egp_amount: 350,
+        to_amount: 350,
+        minimum_payment_snapshot: 200,
         category_id: null,
         to_account_id: 'acc_cc',
       }),
@@ -187,7 +196,10 @@ describe('addTransaction — cc_payment', () => {
       makeTx({
         id: 'tx-cc2',
         type: TransactionType.CCPayment,
+        amount: 100,
         egp_amount: 100,
+        to_amount: 100,
+        minimum_payment_snapshot: 200,
         category_id: null,
         to_account_id: 'acc_cc',
       }),
@@ -215,7 +227,10 @@ describe('addTransaction — cc_payment', () => {
       makeTx({
         id: 'tx-cc-null',
         type: TransactionType.CCPayment,
+        amount: 200,
         egp_amount: 200,
+        to_amount: 200,
+        minimum_payment_snapshot: null,
         category_id: null,
         to_account_id: 'acc_cc_null',
       }),
@@ -228,7 +243,7 @@ describe('addTransaction — cc_payment', () => {
       .prepare("SELECT current_balance, revolving_balance FROM accounts WHERE id = 'acc_cc_null'")
       .get() as { current_balance: number; revolving_balance: number | null };
 
-    // minimum_payment=NULL → installmentDue=0, installmentCovered=0, revolvingReduction=200
+    // minimum_payment_snapshot=null → installmentDue=0, installmentCovered=0, revolvingReduction=200
     // revolving_balance=NULL → revolving=0, newRevolving = max(0, 0-200) = 0
     expect(asset.current_balance).toBe(800); // 1000 - 200
     expect(cc.current_balance).toBe(600); // 800 - 200
@@ -305,7 +320,7 @@ describe('deleteTransaction', () => {
   it('reverses an income credit', async () => {
     await addTransaction(
       mockDb,
-      makeTx({ id: 'tx-inc', type: TransactionType.Income, egp_amount: 500 }),
+      makeTx({ id: 'tx-inc', type: TransactionType.Income, amount: 500, egp_amount: 500 }),
     );
     expect(
       (
@@ -331,7 +346,9 @@ describe('deleteTransaction', () => {
       makeTx({
         id: 'tx-tr',
         type: TransactionType.Transfer,
+        amount: 300,
         egp_amount: 300,
+        to_amount: 300,
         category_id: null,
         to_account_id: 'acc_cc',
       }),
@@ -376,7 +393,10 @@ describe('deleteTransaction', () => {
       makeTx({
         id: 'tx-cc',
         type: TransactionType.CCPayment,
+        amount: 350,
         egp_amount: 350,
+        to_amount: 350,
+        minimum_payment_snapshot: 200,
         category_id: null,
         to_account_id: 'acc_cc',
       }),
@@ -401,7 +421,10 @@ describe('deleteTransaction', () => {
       makeTx({
         id: 'tx-cc2',
         type: TransactionType.CCPayment,
+        amount: 100,
         egp_amount: 100,
+        to_amount: 100,
+        minimum_payment_snapshot: 200,
         category_id: null,
         to_account_id: 'acc_cc',
       }),
@@ -436,7 +459,10 @@ describe('deleteTransaction', () => {
       makeTx({
         id: 'tx-cc-null2',
         type: TransactionType.CCPayment,
+        amount: 150,
         egp_amount: 150,
+        to_amount: 150,
+        minimum_payment_snapshot: null,
         category_id: null,
         to_account_id: 'acc_cc_null2',
       }),
@@ -493,6 +519,222 @@ describe('addTransaction / deleteTransaction — unknown type (covers else-if fa
   });
 });
 
+describe('addTransaction — USD expense (Bug 1 regression)', () => {
+  it('debits USD account by face-value amount, not egp_amount', async () => {
+    // $50 expense at rate 50 → egp_amount=2500, but USD balance should drop from 100 to 50
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-usd-exp',
+        type: TransactionType.Expense,
+        amount: 50,
+        currency: Currency.USD,
+        egp_amount: 2500,
+        exchange_rate: 50,
+        account_id: 'acc_usd',
+        to_account_id: null,
+        to_amount: null,
+        minimum_payment_snapshot: null,
+        category_id: 'cat_food',
+      }),
+    );
+    const acc = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+    expect(acc.current_balance).toBe(50);
+  });
+});
+
+describe('addTransaction — USD income (Bug 1 regression)', () => {
+  it('credits USD account by face-value amount, not egp_amount', async () => {
+    // $200 income at rate 50 → egp_amount=10000, but USD balance should go from 100 to 300
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-usd-inc',
+        type: TransactionType.Income,
+        amount: 200,
+        currency: Currency.USD,
+        egp_amount: 10000,
+        exchange_rate: 50,
+        account_id: 'acc_usd',
+        to_account_id: null,
+        to_amount: null,
+        minimum_payment_snapshot: null,
+        category_id: 'cat_food',
+      }),
+    );
+    const acc = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+    expect(acc.current_balance).toBe(300);
+  });
+});
+
+describe('addTransaction — USD → EGP transfer (Bug 1 + Bug 2 regression)', () => {
+  it('debits USD FROM by amount and credits EGP TO by to_amount', async () => {
+    // $50 from USD account → EGP account at rate 50 → to_amount = 2500 EGP
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-usd-egp',
+        type: TransactionType.Transfer,
+        amount: 50,
+        currency: Currency.USD,
+        egp_amount: 2500,
+        exchange_rate: 50,
+        account_id: 'acc_usd',
+        to_account_id: 'acc_asset',
+        category_id: null,
+        to_amount: 2500,
+        minimum_payment_snapshot: null,
+      }),
+    );
+    const usd = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+    const egp = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    expect(usd.current_balance).toBe(50); // 100 - 50
+    expect(egp.current_balance).toBe(3500); // 1000 + 2500
+  });
+});
+
+describe('addTransaction — EGP → USD transfer (Bug 2 regression)', () => {
+  it('debits EGP FROM by amount and credits USD TO by to_amount', async () => {
+    // 5000 EGP → USD account at rate 50 → to_amount = 100 USD
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-egp-usd',
+        type: TransactionType.Transfer,
+        amount: 5000,
+        currency: Currency.EGP,
+        egp_amount: 5000,
+        exchange_rate: 50,
+        account_id: 'acc_asset',
+        to_account_id: 'acc_usd',
+        category_id: null,
+        to_amount: 100,
+        minimum_payment_snapshot: null,
+      }),
+    );
+    const egp = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    const usd = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+    expect(egp.current_balance).toBe(-4000); // 1000 - 5000
+    expect(usd.current_balance).toBe(200); // 100 + 100
+  });
+});
+
+describe('deleteTransaction — USD expense reversal (Bug 1 regression)', () => {
+  it('restores USD balance by face-value amount', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-del-usd',
+        type: TransactionType.Expense,
+        amount: 50,
+        currency: Currency.USD,
+        egp_amount: 2500,
+        exchange_rate: 50,
+        account_id: 'acc_usd',
+        to_account_id: null,
+        category_id: 'cat_food',
+        to_amount: null,
+        minimum_payment_snapshot: null,
+      }),
+    );
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(50);
+
+    await deleteTransaction(mockDb, 'tx-del-usd');
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(100);
+  });
+});
+
+describe('deleteTransaction — EGP → USD transfer reversal (Bug 2 regression)', () => {
+  it('reverses both sides using native amounts', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-del-egp-usd',
+        type: TransactionType.Transfer,
+        amount: 5000,
+        currency: Currency.EGP,
+        egp_amount: 5000,
+        exchange_rate: 50,
+        account_id: 'acc_asset',
+        to_account_id: 'acc_usd',
+        category_id: null,
+        to_amount: 100,
+        minimum_payment_snapshot: null,
+      }),
+    );
+    await deleteTransaction(mockDb, 'tx-del-egp-usd');
+    const egp = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
+      .get() as { current_balance: number };
+    const usd = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+    expect(egp.current_balance).toBe(1000);
+    expect(usd.current_balance).toBe(100);
+  });
+});
+
+describe('addTransaction — cc_payment uses minimum_payment_snapshot (Bug 3 regression)', () => {
+  it('uses minimum_payment_snapshot for revolving logic; reversal is immune to later changes', async () => {
+    // Snapshot = 200 at time of payment. Add the payment, then change minimum_payment on
+    // the account, then delete — reversal must use the snapshot (200), not the new value (500).
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-cc-snap',
+        type: TransactionType.CCPayment,
+        amount: 350,
+        currency: Currency.EGP,
+        egp_amount: 350,
+        exchange_rate: null,
+        account_id: 'acc_asset',
+        to_account_id: 'acc_cc',
+        category_id: null,
+        to_amount: 350,
+        minimum_payment_snapshot: 200,
+      }),
+    );
+
+    // Simulate the user changing minimum_payment after the transaction was saved.
+    realDb.prepare("UPDATE accounts SET minimum_payment = 500 WHERE id = 'acc_cc'").run();
+
+    await deleteTransaction(mockDb, 'tx-cc-snap');
+
+    const cc = realDb
+      .prepare("SELECT current_balance, revolving_balance FROM accounts WHERE id = 'acc_cc'")
+      .get() as { current_balance: number; revolving_balance: number };
+
+    // Original add with snapshot=200: installment_covered=200, revolving_reduction=150 → revolving=150
+    // Reversal with snapshot=200: revolving_restore=max(0,350-200)=150 → revolving back to 300
+    expect(cc.current_balance).toBe(500);
+    expect(cc.revolving_balance).toBe(300);
+  });
+});
+
 describe('getTransactions — filter + search', () => {
   beforeEach(async () => {
     realDb.exec('DELETE FROM transactions');
@@ -518,6 +760,8 @@ describe('getTransactions — filter + search', () => {
       currency: Currency.EGP,
       egp_amount: 10,
       exchange_rate: null,
+      to_amount: null,
+      minimum_payment_snapshot: null,
       account_id: 'acc_asset',
       to_account_id: null,
       category_id: 'cat_food',
@@ -596,6 +840,7 @@ describe('getTransactions — filter + search', () => {
     await insert({
       id: 'xfer',
       type: TransactionType.Transfer,
+      to_amount: 10,
       to_account_id: 'acc_dst',
       category_id: null,
     });

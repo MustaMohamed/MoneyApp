@@ -85,6 +85,8 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     currency: Currency.EGP,
     egp_amount: 100,
     exchange_rate: null,
+    to_amount: null,
+    minimum_payment_snapshot: null,
     account_id: 'acc_asset',
     to_account_id: null,
     category_id: 'cat_food',
@@ -319,7 +321,9 @@ describe('updateTransaction — transfer', () => {
   it('delta-applies both accounts', async () => {
     // Add transfer 300: asset 700, cc 800. Update to 400: delta=+100 → asset 600, cc 900
     await seedTx({
+      amount: 300,
       egp_amount: 300,
+      to_amount: 300,
       type: TransactionType.Transfer,
       category_id: null,
       to_account_id: 'acc_cc',
@@ -328,6 +332,7 @@ describe('updateTransaction — transfer', () => {
       amount: 400,
       currency: Currency.EGP,
       egp_amount: 400,
+      to_amount: 400,
       exchange_rate: null,
       category_id: null,
       note: null,
@@ -353,7 +358,10 @@ describe('updateTransaction — cc_payment', () => {
     //                apply 450: inst_covered=200, revolving_reduction=250 → revolving=50
     //                           asset=550, cc current=50
     await seedTx({
+      amount: 350,
       egp_amount: 350,
+      to_amount: 350,
+      minimum_payment_snapshot: 200,
       type: TransactionType.CCPayment,
       category_id: null,
       to_account_id: 'acc_cc',
@@ -362,6 +370,7 @@ describe('updateTransaction — cc_payment', () => {
       amount: 450,
       currency: Currency.EGP,
       egp_amount: 450,
+      to_amount: 450,
       exchange_rate: null,
       category_id: null,
       note: null,
@@ -385,7 +394,10 @@ describe('updateTransaction — cc_payment', () => {
     //                apply 100: inst_covered=100, revolving_reduction=0 → revolving stays 300
     //                           asset=900, cc current=400
     await seedTx({
+      amount: 350,
       egp_amount: 350,
+      to_amount: 350,
+      minimum_payment_snapshot: 200,
       type: TransactionType.CCPayment,
       category_id: null,
       to_account_id: 'acc_cc',
@@ -394,6 +406,7 @@ describe('updateTransaction — cc_payment', () => {
       amount: 100,
       currency: Currency.EGP,
       egp_amount: 100,
+      to_amount: 100,
       exchange_rate: null,
       category_id: null,
       note: null,
@@ -425,7 +438,10 @@ describe('updateTransaction — cc_payment', () => {
     // Add a cc_payment where minimum_payment=NULL → treated as 0
     // Amount=200: installment=0, revolving reduction=200, revolving=max(0,0-200)=0
     await seedTx({
+      amount: 200,
       egp_amount: 200,
+      to_amount: 200,
+      minimum_payment_snapshot: null,
       type: TransactionType.CCPayment,
       category_id: null,
       to_account_id: 'acc_cc_null',
