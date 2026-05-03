@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { MIGRATIONS } from '@/database/migrations';
 import { migration004 } from '@/database/migrations/004_create_transactions';
+import { migration005 } from '@/database/migrations/005_add_transaction_native_amounts';
 
 let db: ReturnType<typeof Database>;
 
@@ -58,5 +59,43 @@ describe('migration004 — transactions table', () => {
          VALUES ('t2','expense',-10,'EGP',-10,'acc1','2026-01-01','12:00:00',?,?)`,
       ).run(now, now);
     }).toThrow();
+  });
+});
+
+describe('migration005 — to_amount and minimum_payment_snapshot columns', () => {
+  it('adds to_amount column to transactions', () => {
+    const cols = db.prepare("PRAGMA table_info('transactions')").all() as { name: string }[];
+    const names = cols.map((c) => c.name);
+    expect(names).toContain('to_amount');
+  });
+
+  it('adds minimum_payment_snapshot column to transactions', () => {
+    const cols = db.prepare("PRAGMA table_info('transactions')").all() as { name: string }[];
+    const names = cols.map((c) => c.name);
+    expect(names).toContain('minimum_payment_snapshot');
+  });
+
+  it('has version 5', () => {
+    expect(migration005.version).toBe(5);
+  });
+
+  it('allows inserting a transaction row with the new columns', () => {
+    // Verify the columns exist and accept values.
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,
+       interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('acc_m5','Test','bank','EGP',0,0,0,0,0,?,?)`,
+    ).run(now, now);
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO transactions
+         (id,type,amount,currency,egp_amount,to_amount,minimum_payment_snapshot,
+          account_id,transaction_date,transaction_time,created_at,updated_at)
+         VALUES ('t_m5','expense',100,'EGP',100,NULL,NULL,'acc_m5','2026-01-01','12:00:00',?,?)`,
+        )
+        .run(now, now),
+    ).not.toThrow();
   });
 });
