@@ -10,11 +10,13 @@ interface EditTransactionState {
   amountStr: string;
   saving: boolean;
   showCategoryPicker: boolean;
+  rateOverride: boolean;
   open: (tx: Transaction) => void;
   close: () => void;
   setSaving: (v: boolean) => void;
   handleNumpad: (action: NumpadAction, value?: string) => void;
   setShowCategoryPicker: (v: boolean) => void;
+  setRateOverride: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -23,6 +25,7 @@ const INITIAL_STATE = {
   amountStr: '0',
   saving: false,
   showCategoryPicker: false,
+  rateOverride: false,
 };
 
 export const useEditTransactionStore = create<EditTransactionState>((set) => ({
@@ -33,6 +36,7 @@ export const useEditTransactionStore = create<EditTransactionState>((set) => ({
     set({
       visible: true,
       editingTx: tx,
+      rateOverride: tx.exchange_rate !== null,
       // Format amount: remove trailing ".0" for integers so numpad starts clean
       amountStr: tx.amount % 1 === 0 ? String(Math.floor(tx.amount)) : String(tx.amount),
     }),
@@ -56,6 +60,7 @@ export const useEditTransactionStore = create<EditTransactionState>((set) => ({
     }),
 
   setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
+  setRateOverride: (v) => set({ rateOverride: v }),
 
   reset: () => set({ ...INITIAL_STATE }),
 }));

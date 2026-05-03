@@ -63,6 +63,8 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     showCategoryPicker,
     setShowCategoryPicker,
     handleNumpad,
+    rateOverride,
+    setRateOverride,
   } = useEditTransactionStore();
 
   const type = initialTx.type;
@@ -94,6 +96,8 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   );
 
   const isUSD = selectedAccount?.currency === Currency.USD;
+  const isToUSD = selectedToAccount?.currency === Currency.USD;
+  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
 
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,
@@ -117,24 +121,45 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
   }, [amountStr]);
 
-  // When the sheet closes, reset the form to the original tx values
+  // When the sheet closes, reset the form and override flag to the original tx values
   useEffect(() => {
     if (!visible) {
       form.reset(buildDefaults(initialTx, currentRate));
+      setRateOverride(initialTx.exchange_rate !== null);
     }
   }, [visible]);
 
   async function onValid(data: EditTransactionFormValues) {
     setSaving(true);
     try {
-      const rate = isUSD && data.exchangeRate ? parseFloat(data.exchangeRate) : undefined;
-      const egp_amount = isUSD && rate ? data.amount * rate : data.amount;
+      const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
+      const toCurrency = selectedToAccount?.currency;
+      const parsedRate =
+        data.exchangeRate && requiresRate ? parseFloat(data.exchangeRate) : undefined;
+
+      const egp_amount =
+        fromCurrency === Currency.USD && parsedRate ? data.amount * parsedRate : data.amount;
+
+      let to_amount: number | undefined;
+      if (isTransferOrCC && toCurrency !== undefined) {
+        if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
+          to_amount = data.amount / parsedRate; // EGP → USD
+        } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
+          to_amount = egp_amount; // USD → EGP
+        } else {
+          to_amount = data.amount; // same-currency
+        }
+        if (type === TransactionType.CCPayment) {
+          to_amount = egp_amount; // CC debt is always EGP-denominated
+        }
+      }
 
       const updateInput: UpdateTransactionInput = {
         amount: data.amount,
-        currency: selectedAccount?.currency ?? Currency.EGP,
+        currency: fromCurrency,
         egp_amount,
-        exchange_rate: rate ?? null,
+        to_amount: to_amount ?? null,
+        exchange_rate: parsedRate ?? null,
         category_id: !isTransferOrCC ? data.categoryId : null,
         note: data.note.trim() || null,
         transaction_date: data.date,
@@ -148,6 +173,14 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
       // error logged by store
     } finally {
       setSaving(false);
+    }
+  }
+
+  function toggleRateOverride() {
+    const next = !rateOverride;
+    setRateOverride(next);
+    if (!next) {
+      form.setValue('exchangeRate', String(currentRate));
     }
   }
 
@@ -169,7 +202,9 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     setNote: (v: string) => form.setValue('note', v),
     exchangeRate,
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
-    isUSD,
+    rateOverride,
+    toggleRateOverride,
+    isUSD: requiresRate,
     isTransferOrCC,
     errors,
     saving,

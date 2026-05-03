@@ -56,6 +56,8 @@ export function AddTransactionSheet({ visible, onClose }: AddProps) {
           isUSD={hook.isUSD}
           exchangeRate={hook.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
+          rateOverride={hook.rateOverride}
+          toggleRateOverride={hook.toggleRateOverride}
           rateError={hook.errors.rate}
           note={hook.note}
           setNote={hook.setNote}
@@ -165,6 +167,8 @@ function EditSheetInner({
           isUSD={hook.isUSD}
           exchangeRate={hook.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
+          rateOverride={hook.rateOverride}
+          toggleRateOverride={hook.toggleRateOverride}
           rateError={hook.errors.rate}
           note={hook.note}
           setNote={hook.setNote}
@@ -197,10 +201,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
+    height: '92%',
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     zIndex: 11,
-    maxHeight: '92%',
   },
 });

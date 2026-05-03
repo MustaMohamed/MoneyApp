@@ -28,10 +28,14 @@ function seedAccount() {
     .prepare(
       `INSERT OR IGNORE INTO accounts
        (id,name,type,currency,opening_balance,current_balance,
+        revolving_balance,minimum_payment,
         interest_tracking,is_archived,sort_order,created_at,updated_at)
-     VALUES ('acc1','Bank','bank','EGP',5000,5000,0,0,0,?,?)`,
+     VALUES
+       ('acc1','Bank','bank','EGP',5000,5000,NULL,NULL,0,0,0,?,?),
+       ('acc_cc','CC','credit_card','EGP',0,1000,500,200,0,0,1,?,?),
+       ('acc_cc_no_min','CC2','credit_card','EGP',0,1000,500,NULL,0,0,2,?,?)`,
     )
-    .run(NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW);
 }
 
 beforeAll(() => {
@@ -241,6 +245,38 @@ describe('TransactionRepository.update', () => {
         transaction_time: '10:00:00',
       }),
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('TransactionRepository.add — cc_payment minimum_payment_snapshot', () => {
+  it('captures minimum_payment_snapshot from CC account', async () => {
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 200,
+      currency: Currency.EGP,
+      egp_amount: 200,
+      to_amount: 200,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc', // minimum_payment = 200
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    expect(tx.minimum_payment_snapshot).toBe(200);
+  });
+
+  it('stores null snapshot when CC account has no minimum_payment', async () => {
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      to_amount: 100,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_no_min', // minimum_payment = NULL
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    expect(tx.minimum_payment_snapshot).toBeNull();
   });
 });
 

@@ -20,9 +20,20 @@ export interface NewTransactionInput {
   type: TransactionType;
   amount: number;
   currency: Currency;
-  /** EGP equivalent — pass amount directly for EGP accounts, or amount * rate for USD. */
+  /** EGP equivalent — amount for EGP accounts, amount × rate for USD accounts. */
   egp_amount: number;
-  /** Required when currency is USD. */
+  /**
+   * Amount received by the TO account in its native currency.
+   * Required for transfer and cc_payment; omit for expense and income.
+   *
+   *   EGP → EGP: amount
+   *   USD → EGP: egp_amount
+   *   EGP → USD: amount / rate
+   *   USD → USD: amount
+   *   cc_payment: egp_amount (CC debt is EGP-denominated)
+   */
+  to_amount?: number;
+  /** Required when a USD↔EGP conversion is involved. */
   exchange_rate?: number;
   account_id: string;
   /** Required for transfer and cc_payment. */
@@ -68,6 +79,17 @@ export class TransactionRepository implements ITransactionRepository {
     const today = now.slice(0, 10);
     const time = now.slice(11, 19);
 
+    // Snapshot the CC account's minimum_payment at save time so reversals remain accurate
+    // even if the user later changes the CC account's minimum_payment.
+    let minimumPaymentSnapshot: number | null = null;
+    if (data.type === TransactionType.CCPayment && data.to_account_id) {
+      const rows = await db.getAllAsync<{ minimum_payment: number | null }>(
+        'SELECT minimum_payment FROM accounts WHERE id = ?',
+        [data.to_account_id],
+      );
+      minimumPaymentSnapshot = rows[0]?.minimum_payment ?? null;
+    }
+
     const transaction: Transaction = {
       id,
       type: data.type,
@@ -75,6 +97,8 @@ export class TransactionRepository implements ITransactionRepository {
       currency: data.currency,
       egp_amount: data.egp_amount,
       exchange_rate: data.exchange_rate ?? null,
+      to_amount: data.to_amount ?? null,
+      minimum_payment_snapshot: minimumPaymentSnapshot,
       account_id: data.account_id,
       to_account_id: data.to_account_id ?? null,
       category_id: data.category_id ?? null,

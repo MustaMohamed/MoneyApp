@@ -48,6 +48,8 @@ interface TransactionFormBodyProps {
   isUSD: boolean;
   exchangeRate: string;
   setExchangeRate: (v: string) => void;
+  rateOverride: boolean;
+  toggleRateOverride: () => void;
   rateError?: string;
   note: string;
   setNote: (v: string) => void;
@@ -76,6 +78,8 @@ export function TransactionFormBody({
   isUSD,
   exchangeRate,
   setExchangeRate,
+  rateOverride,
+  toggleRateOverride,
   rateError,
   note,
   setNote,
@@ -96,7 +100,7 @@ export function TransactionFormBody({
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.kav}
     >
       <View style={styles.handle} />
@@ -250,7 +254,13 @@ export function TransactionFormBody({
         )}
 
         {isUSD && (
-          <ExchangeRateRow value={exchangeRate} onChange={setExchangeRate} error={rateError} />
+          <ExchangeRateRow
+            value={exchangeRate}
+            onChange={setExchangeRate}
+            overrideEnabled={rateOverride}
+            onToggleOverride={toggleRateOverride}
+            error={rateError}
+          />
         )}
 
         <View style={styles.field}>
@@ -265,7 +275,10 @@ export function TransactionFormBody({
         </View>
 
         <Numpad onPress={handleNumpad} />
+      </ScrollView>
 
+      {/* CTA lives outside the ScrollView so it is always visible */}
+      <View style={styles.footer}>
         <Pressable
           style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
           onPress={handleSave}
@@ -273,7 +286,7 @@ export function TransactionFormBody({
         >
           <Text style={styles.ctaLabel}>{Strings.addTxSaveCta}</Text>
         </Pressable>
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -301,7 +314,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   scroll: { flex: 1, paddingHorizontal: Spacing.md },
-  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.xxl },
+  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md },
   amountRow: { alignItems: 'center', paddingVertical: Spacing.md },
   amountText: { fontFamily: FontFamily.soraExtra, fontSize: ms(40) },
   field: {
@@ -341,6 +354,13 @@ const styles = StyleSheet.create({
     fontSize: Type.micro,
     color: Colors.dark.negative,
     marginTop: -Spacing.xxs,
+  },
+  footer: {
+    paddingTop: Spacing.xs,
+    paddingHorizontal: Spacing.sm,
+    paddingBottom: Spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: Colors.dark.surface,
   },
   cta: {
     height: Size.ctaHeight,
