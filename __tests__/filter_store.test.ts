@@ -2,7 +2,7 @@ import { Currency, DatePreset } from '@/constants/enums';
 import {
   EMPTY_FILTERS,
   useFilterDrawerStore,
-} from '@/app/(app)/(tabs)/transactions/filter/filter.store';
+} from '@/app/(app)/(tabs)/transactions/_filter/filter.store';
 
 beforeEach(() => {
   useFilterDrawerStore.setState({

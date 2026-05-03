@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
-import { useEditTransaction } from '@/app/(app)/(tabs)/transactions/transaction_form/edit_transaction.hook';
-import { useEditTransactionStore } from '@/app/(app)/(tabs)/transactions/transaction_form/edit_transaction.store';
+import { useEditTransaction } from '@/app/(app)/(tabs)/transactions/_transaction_form/edit_transaction.hook';
+import { useEditTransactionStore } from '@/app/(app)/(tabs)/transactions/_transaction_form/edit_transaction.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
