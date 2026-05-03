@@ -26,6 +26,9 @@
       [
         "expo-splash-screen",
         {
+          "image": "./assets/splash.png",
+          "imageWidth": 100,
+          "resizeMode": "contain",
           "backgroundColor": "#0F1923",
           "dark": {
             "backgroundColor": "#0F1923"
