@@ -12,6 +12,7 @@ interface AddTransactionState {
   showAccountPicker: boolean;
   showToPicker: boolean;
   showCategoryPicker: boolean;
+  rateOverride: boolean;
   open: () => void;
   close: () => void;
   setType: (type: TransactionType) => void;
@@ -20,6 +21,7 @@ interface AddTransactionState {
   setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
+  setRateOverride: (v: boolean) => void;
   reset: () => void;
 }
 
@@ -30,6 +32,7 @@ const INITIAL_STATE = {
   showAccountPicker: false,
   showToPicker: false,
   showCategoryPicker: false,
+  rateOverride: false,
 };
 
 export const useAddTransactionStore = create<AddTransactionState>((set) => ({
@@ -59,6 +62,7 @@ export const useAddTransactionStore = create<AddTransactionState>((set) => ({
   setShowAccountPicker: (v) => set({ showAccountPicker: v }),
   setShowToPicker: (v) => set({ showToPicker: v }),
   setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
+  setRateOverride: (v) => set({ rateOverride: v }),
 
   reset: () => set({ ...INITIAL_STATE }),
 }));

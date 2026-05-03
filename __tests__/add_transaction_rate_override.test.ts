@@ -45,13 +45,13 @@ beforeEach(() => {
   useAccountStore.setState({ accounts: [] });
   useCategoryStore.setState({ categories: [] });
 
-  // Open the add-transaction sheet so the hook's close-effect doesn't fire on mount.
+  // Open the sheet so the hook's close-effect doesn't fire on mount.
   useAddTransactionStore.getState().reset();
-  useAddTransactionStore.setState({ visible: true });
+  useAddTransactionStore.getState().open();
 });
 
 afterEach(() => {
-  useAddTransactionStore.setState({ visible: false });
+  useAddTransactionStore.getState().close();
 });
 
 // ─── Initial state ────────────────────────────────────────────────────────────
@@ -189,7 +189,7 @@ describe('useAddTransaction sheet close', () => {
     expect(result.current.rateOverride).toBe(true);
 
     act(() => {
-      useAddTransactionStore.setState({ visible: false });
+      useAddTransactionStore.getState().close();
     });
 
     expect(result.current.rateOverride).toBe(false);
@@ -204,7 +204,7 @@ describe('useAddTransaction sheet close', () => {
     });
 
     act(() => {
-      useAddTransactionStore.setState({ visible: false });
+      useAddTransactionStore.getState().close();
     });
 
     expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));

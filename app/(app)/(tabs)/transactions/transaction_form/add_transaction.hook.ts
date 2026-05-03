@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
@@ -144,8 +144,6 @@ export function useAddTransaction(onClose: () => void) {
   const addTransaction = useTransactionStore((s) => s.addTransaction);
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
 
-  const [rateOverride, setRateOverride] = useState(false);
-
   const {
     type,
     amountStr,
@@ -160,6 +158,8 @@ export function useAddTransaction(onClose: () => void) {
     setShowCategoryPicker,
     setType,
     handleNumpad,
+    rateOverride,
+    setRateOverride,
   } = useAddTransactionStore();
 
   const schema = useMemo(() => createSchema(type, accounts), [type, accounts]);

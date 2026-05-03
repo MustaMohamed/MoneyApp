@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -63,11 +63,9 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     showCategoryPicker,
     setShowCategoryPicker,
     handleNumpad,
+    rateOverride,
+    setRateOverride,
   } = useEditTransactionStore();
-
-  // In edit mode, the transaction always has a stored rate for USD accounts.
-  // Start with override ON so the user sees and can edit that stored rate.
-  const [rateOverride, setRateOverride] = useState(initialTx.exchange_rate !== null);
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;

@@ -11,7 +11,13 @@ interface Props {
   error?: string;
 }
 
-export function ExchangeRateRow({ value, onChange, overrideEnabled, onToggleOverride, error }: Props) {
+export function ExchangeRateRow({
+  value,
+  onChange,
+  overrideEnabled,
+  onToggleOverride,
+  error,
+}: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.row}>
