@@ -11,7 +11,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
-import { useLayoutStore } from './_layout.store';
+import { useReadyStore } from '@/store/ready.store';
 import { useLayoutInit } from './_layout.hook';
 
 SplashScreen.preventAutoHideAsync();
@@ -27,7 +27,7 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const ready = useLayoutStore((s) => s.ready);
+  const ready = useReadyStore((s) => s.ready);
   useLayoutInit();
 
   useEffect(() => {

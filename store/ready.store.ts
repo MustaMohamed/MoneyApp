@@ -1,11 +1,11 @@
 import { create } from 'zustand';
 
-interface LayoutStore {
+interface ReadyStore {
   ready: boolean;
   setReady: (ready: boolean) => void;
 }
 
-export const useLayoutStore = create<LayoutStore>((set) => ({
+export const useReadyStore = create<ReadyStore>((set) => ({
   ready: false,
   setReady: (ready) => set({ ready }),
 }));

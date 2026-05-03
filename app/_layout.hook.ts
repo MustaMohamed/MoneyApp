@@ -2,10 +2,10 @@ import '@/utils/zod_config';
 import { useEffect } from 'react';
 import { getDb, runMigrations } from '@/database/client';
 import { loadOnboardingState } from '@/store/onboarding.store';
-import { useLayoutStore } from './_layout.store';
+import { useReadyStore } from '@/store/ready.store';
 
 export function useLayoutInit() {
-  const setReady = useLayoutStore((s) => s.setReady);
+  const setReady = useReadyStore((s) => s.setReady);
 
   useEffect(() => {
     (async () => {
