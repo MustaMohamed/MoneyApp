@@ -56,6 +56,8 @@ export function AddTransactionSheet({ visible, onClose }: AddProps) {
           isUSD={hook.isUSD}
           exchangeRate={hook.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
+          rateOverride={hook.rateOverride}
+          toggleRateOverride={hook.toggleRateOverride}
           rateError={hook.errors.rate}
           note={hook.note}
           setNote={hook.setNote}
@@ -165,6 +167,8 @@ function EditSheetInner({
           isUSD={hook.isUSD}
           exchangeRate={hook.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
+          rateOverride={hook.rateOverride}
+          toggleRateOverride={hook.toggleRateOverride}
           rateError={hook.errors.rate}
           note={hook.note}
           setNote={hook.setNote}

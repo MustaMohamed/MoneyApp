@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
@@ -144,6 +144,8 @@ export function useAddTransaction(onClose: () => void) {
   const addTransaction = useTransactionStore((s) => s.addTransaction);
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
 
+  const [rateOverride, setRateOverride] = useState(false);
+
   const {
     type,
     amountStr,
@@ -235,10 +237,11 @@ export function useAddTransaction(onClose: () => void) {
     form.setValue('categoryId', '');
   }, [type]);
 
-  // When the sheet closes, reset the form so the next open starts clean.
+  // When the sheet closes, reset the form and override flag so the next open starts clean.
   useEffect(() => {
     if (!visible) {
       form.reset(buildDefaults(currentRate));
+      setRateOverride(false);
     }
   }, [visible]);
 
@@ -272,10 +275,19 @@ export function useAddTransaction(onClose: () => void) {
     }
   }
 
+  function toggleRateOverride() {
+    const next = !rateOverride;
+    setRateOverride(next);
+    if (!next) {
+      form.setValue('exchangeRate', String(currentRate));
+    }
+  }
+
   function selectAccount(account: Account) {
     form.setValue('accountId', account.id);
     if (account.currency === Currency.USD) {
       form.setValue('exchangeRate', String(currentRate));
+      setRateOverride(false);
     }
     setShowAccountPicker(false);
   }
@@ -306,6 +318,8 @@ export function useAddTransaction(onClose: () => void) {
     setNote: (v: string) => form.setValue('note', v),
     exchangeRate,
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
+    rateOverride,
+    toggleRateOverride,
     isUSD,
     isTransferOrCC,
     errors,

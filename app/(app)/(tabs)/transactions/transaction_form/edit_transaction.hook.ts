@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -65,6 +65,10 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     handleNumpad,
   } = useEditTransactionStore();
 
+  // In edit mode, the transaction always has a stored rate for USD accounts.
+  // Start with override ON so the user sees and can edit that stored rate.
+  const [rateOverride, setRateOverride] = useState(initialTx.exchange_rate !== null);
+
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
@@ -117,10 +121,11 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
   }, [amountStr]);
 
-  // When the sheet closes, reset the form to the original tx values
+  // When the sheet closes, reset the form and override flag to the original tx values
   useEffect(() => {
     if (!visible) {
       form.reset(buildDefaults(initialTx, currentRate));
+      setRateOverride(initialTx.exchange_rate !== null);
     }
   }, [visible]);
 
@@ -151,6 +156,14 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     }
   }
 
+  function toggleRateOverride() {
+    const next = !rateOverride;
+    setRateOverride(next);
+    if (!next) {
+      form.setValue('exchangeRate', String(currentRate));
+    }
+  }
+
   function selectCategory(category: Category) {
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
@@ -169,6 +182,8 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     setNote: (v: string) => form.setValue('note', v),
     exchangeRate,
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
+    rateOverride,
+    toggleRateOverride,
     isUSD,
     isTransferOrCC,
     errors,
