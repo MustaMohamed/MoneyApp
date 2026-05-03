@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 
-import { TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -94,6 +94,8 @@ export function useTransactionDetail(id: string) {
         ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
         : (account?.name ?? Strings.unknownAccount),
       accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
+      originalAmountText:
+        tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
       exchangeRateText:
         tx.exchange_rate !== null ? `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP` : undefined,
       noteText: tx.note?.trim() || Strings.detailNoteEmpty,

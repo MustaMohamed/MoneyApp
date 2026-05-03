@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -41,6 +41,8 @@ export default function DashboardScreen() {
     isBreakdownVisible,
     setBreakdownVisible,
     isManualOverride,
+    refreshing,
+    refresh,
     goToAccount,
     goToAddAccount,
     goToSettings,
@@ -70,7 +72,17 @@ export default function DashboardScreen() {
           actionLabel={Strings.emptyAccountsCta}
         />
       ) : (
-        <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={refresh}
+              tintColor={Colors.shared.cairoGold}
+            />
+          }
+        >
           <Animated.View style={heroStyle}>
             <HeroCard
               assetsEgp={netWorth.assetsEgp}

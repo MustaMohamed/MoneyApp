@@ -1,7 +1,8 @@
-import { StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 
 interface Props {
   value: string;
@@ -91,13 +92,15 @@ const styles = StyleSheet.create({
     fontSize: Type.body,
     color: '#D4830A',
     textAlign: 'right',
+    textAlignVertical: 'center',
     minWidth: 80,
+    height: ms(36),
     backgroundColor: Colors.dark.surface,
     borderWidth: 1,
     borderColor: '#D4830A',
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
+    paddingVertical: Platform.OS === 'ios' ? 0 : Spacing.xxs,
   },
   switchWrap: {
     alignItems: 'center',

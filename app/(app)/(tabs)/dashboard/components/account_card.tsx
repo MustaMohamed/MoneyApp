@@ -84,9 +84,6 @@ interface AccountCardProps {
 }
 
 export function AccountCard({ account, rate, onPress }: AccountCardProps) {
-  const balanceEgp =
-    account.currency === Currency.USD ? account.current_balance * rate : account.current_balance;
-
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
   const balanceColor = isCreditCard ? Colors.dark.negative : Colors.dark.gold;
@@ -97,37 +94,40 @@ export function AccountCard({ account, rate, onPress }: AccountCardProps) {
     <Pressable onPress={onPress} style={styles.card}>
       <View style={[styles.accentBar, { backgroundColor: color }]} />
       <View style={styles.body}>
-        <View style={styles.topRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {account.name}
-          </Text>
-          <View style={[styles.currencyPill, { borderColor: color + '55' }]}>
-            <Text style={styles.currencyPillText}>{account.currency}</Text>
+        <View style={styles.cardTop}>
+          <View style={styles.topRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {account.name}
+            </Text>
+            <View style={[styles.currencyPill, { borderColor: color + '55' }]}>
+              <Text style={styles.currencyPillText}>{account.currency}</Text>
+            </View>
           </View>
-        </View>
-
-        <View style={styles.balanceRow}>
-          <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
-            <MaterialCommunityIcons name={icon} size={14} color={color} />
+          <View style={styles.balanceRow}>
+            <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
+              <MaterialCommunityIcons name={icon} size={14} color={color} />
+            </View>
+            <Text style={[styles.balance, { color: balanceColor }]} numberOfLines={1}>
+              {formatAmount(account.current_balance)} {account.currency}
+            </Text>
           </View>
-          <Text style={[styles.balance, { color: balanceColor }]} numberOfLines={1}>
-            {formatAmount(balanceEgp)}
-          </Text>
         </View>
 
         <View style={styles.divider} />
 
-        {infoRows.map((row, i) => (
-          <View key={i} style={styles.infoRow}>
-            <Text style={styles.infoLabel}>{row.label}</Text>
-            <Text
-              style={[styles.infoValue, row.valueColor ? { color: row.valueColor } : undefined]}
-              numberOfLines={1}
-            >
-              {row.value}
-            </Text>
-          </View>
-        ))}
+        <View style={styles.infoSection}>
+          {infoRows.map((row, i) => (
+            <View key={i} style={styles.infoRow}>
+              <Text style={styles.infoLabel}>{row.label}</Text>
+              <Text
+                style={[styles.infoValue, row.valueColor ? { color: row.valueColor } : undefined]}
+                numberOfLines={1}
+              >
+                {row.value}
+              </Text>
+            </View>
+          ))}
+        </View>
       </View>
     </Pressable>
   );
@@ -150,7 +150,13 @@ const styles = StyleSheet.create({
   body: {
     flex: 1,
     padding: Spacing.sm,
+    justifyContent: 'space-between',
+  },
+  cardTop: {
     gap: Spacing.xs,
+  },
+  infoSection: {
+    gap: Spacing.xxs,
   },
   topRow: {
     flexDirection: 'row',

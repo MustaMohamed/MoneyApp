@@ -113,17 +113,17 @@ export function TransactionFormBody({
 
       <TypeTabs active={type} onSelect={onSelectType} disabled={locked} />
 
+      <View style={styles.amountRow}>
+        <Text style={[styles.amountText, { color: amountColor }]}>{formatAmount(amountStr)}</Text>
+      </View>
+      {amountError ? <Text style={styles.amountErr}>{amountError}</Text> : null}
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.amountRow}>
-          <Text style={[styles.amountText, { color: amountColor }]}>{formatAmount(amountStr)}</Text>
-        </View>
-        {amountError ? <Text style={styles.err}>{amountError}</Text> : null}
-
         {/* Account (from/single) */}
         {locked ? (
           <View style={styles.field}>
@@ -314,9 +314,18 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   scroll: { flex: 1, paddingHorizontal: Spacing.md },
-  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md },
-  amountRow: { alignItems: 'center', paddingVertical: Spacing.md },
+  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md, paddingTop: Spacing.xs },
+  amountRow: { alignItems: 'center', paddingVertical: Spacing.sm },
   amountText: { fontFamily: FontFamily.soraExtra, fontSize: ms(40) },
+  amountErr: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    color: Colors.dark.negative,
+    textAlign: 'center',
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+  },
   field: {
     backgroundColor: Colors.dark.surfaceEl,
     borderRadius: Radius.md,

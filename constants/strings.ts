@@ -270,6 +270,7 @@ export const Strings = {
   detailCategory: 'CATEGORY',
   detailAccount: 'ACCOUNT',
   detailDateTime: 'DATE & TIME',
+  detailOriginalAmount: 'ORIGINAL AMOUNT',
   detailExchangeRate: 'EXCHANGE RATE',
   detailNote: 'NOTE',
   detailNoteEmpty: 'No note',
