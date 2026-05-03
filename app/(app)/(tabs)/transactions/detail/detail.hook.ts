@@ -88,7 +88,11 @@ export function useTransactionDetail(id: string) {
       title,
       amountText: signedAmount(tx),
       dateTimeText: `${dateLong} · ${time}`,
-      categoryLabel: category?.name ?? Strings.uncategorized,
+      categoryLabel:
+        category?.name ??
+        (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment
+          ? TYPE_BADGE[tx.type]
+          : Strings.uncategorized),
       categoryBadge: TYPE_BADGE[tx.type],
       accountLabel: toAccount
         ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`

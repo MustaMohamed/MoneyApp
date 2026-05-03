@@ -3,7 +3,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -70,14 +69,12 @@ export default function TransactionDetailScreen() {
             />
 
             <DetailRowsCard>
-              {(d.tx.type === TransactionType.Expense || d.tx.type === TransactionType.Income) && (
-                <DetailRow
-                  icon="shape"
-                  label={Strings.detailCategory}
-                  value={d.derived.categoryLabel}
-                  badge={d.derived.categoryBadge}
-                />
-              )}
+              <DetailRow
+                icon="shape"
+                label={Strings.detailCategory}
+                value={d.derived.categoryLabel}
+                badge={d.derived.categoryBadge}
+              />
               <DetailRow
                 icon="card-bulleted-outline"
                 label={Strings.detailAccount}

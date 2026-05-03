@@ -1,4 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -51,6 +53,8 @@ interface TransactionFormBodyProps {
   rateOverride: boolean;
   toggleRateOverride: () => void;
   rateError?: string;
+  date: string;
+  setDate: (v: string) => void;
   note: string;
   setNote: (v: string) => void;
   saving: boolean;
@@ -81,13 +85,38 @@ export function TransactionFormBody({
   rateOverride,
   toggleRateOverride,
   rateError,
+  date,
+  setDate,
   note,
   setNote,
   saving,
   onClose,
   handleSave,
 }: TransactionFormBodyProps) {
+  const [showIosPicker, setShowIosPicker] = useState(false);
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+
+  const dateAsDate = new Date(date + 'T00:00:00');
+  const formattedDate = dateAsDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
+  function openDatePicker() {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: dateAsDate,
+        mode: 'date',
+        maximumDate: new Date(),
+        onChange: (_, d) => {
+          if (d) setDate(d.toISOString().slice(0, 10));
+        },
+      });
+    } else {
+      setShowIosPicker((v) => !v);
+    }
+  }
 
   const amountColor =
     type === TransactionType.Income
@@ -260,6 +289,27 @@ export function TransactionFormBody({
             overrideEnabled={rateOverride}
             onToggleOverride={toggleRateOverride}
             error={rateError}
+          />
+        )}
+
+        {/* Date */}
+        <Pressable style={styles.field} onPress={openDatePicker}>
+          <Text style={styles.fieldLabel}>{Strings.addTxDateLabel}</Text>
+          <View style={styles.fieldValue}>
+            <Text style={styles.fieldValueText}>{formattedDate}</Text>
+            <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
+          </View>
+        </Pressable>
+        {showIosPicker && (
+          <DateTimePicker
+            value={dateAsDate}
+            mode="date"
+            display="spinner"
+            maximumDate={new Date()}
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) setDate(d.toISOString().slice(0, 10));
+            }}
           />
         )}
 
