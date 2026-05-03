@@ -64,6 +64,7 @@ function createSchema(type: TransactionType, accounts: Account[]) {
         });
       }
       const account = accounts.find((a) => a.id === data.accountId);
+      const toAccount = accounts.find((a) => a.id === data.toAccountId);
       if (type === TransactionType.CCPayment) {
         if (account && account.type === AccountType.CreditCard) {
           ctx.addIssue({
@@ -72,7 +73,6 @@ function createSchema(type: TransactionType, accounts: Account[]) {
             path: ['accountId'],
           });
         }
-        const toAccount = accounts.find((a) => a.id === data.toAccountId);
         if (toAccount && toAccount.type !== AccountType.CreditCard) {
           ctx.addIssue({
             code: 'custom',
@@ -93,7 +93,6 @@ function createSchema(type: TransactionType, accounts: Account[]) {
             path: ['accountId'],
           });
         }
-        const toAccount = accounts.find((a) => a.id === data.toAccountId);
         if (toAccount && toAccount.type === AccountType.CreditCard) {
           ctx.addIssue({
             code: 'custom',
@@ -102,7 +101,11 @@ function createSchema(type: TransactionType, accounts: Account[]) {
           });
         }
       }
-      if (account?.currency === Currency.USD) {
+      // Rate is required when either account is USD (any conversion involves EGP↔USD).
+      const needsRate =
+        account?.currency === Currency.USD ||
+        (isTransferOrCC && toAccount?.currency === Currency.USD);
+      if (needsRate) {
         if (!data.exchangeRate) {
           ctx.addIssue({
             code: 'custom',
@@ -246,19 +249,41 @@ export function useAddTransaction(onClose: () => void) {
   }, [visible]);
 
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+  const isToUSD = selectedToAccount?.currency === Currency.USD;
+  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
 
   async function onValid(data: AddTransactionFormValues) {
     setSaving(true);
     try {
-      const rate = isUSD && data.exchangeRate ? parseFloat(data.exchangeRate) : undefined;
-      const egp_amount = isUSD && rate ? data.amount * rate : data.amount;
+      const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
+      const toCurrency = selectedToAccount?.currency;
+      const parsedRate =
+        data.exchangeRate && requiresRate ? parseFloat(data.exchangeRate) : undefined;
+
+      const egp_amount =
+        fromCurrency === Currency.USD && parsedRate ? data.amount * parsedRate : data.amount;
+
+      let to_amount: number | undefined;
+      if (isTransferOrCC && toCurrency !== undefined) {
+        if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
+          to_amount = data.amount / parsedRate; // EGP → USD
+        } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
+          to_amount = egp_amount; // USD → EGP (EGP received = egp_amount)
+        } else {
+          to_amount = data.amount; // same-currency (EGP→EGP or USD→USD)
+        }
+        if (type === TransactionType.CCPayment) {
+          to_amount = egp_amount; // CC debt is always EGP-denominated
+        }
+      }
 
       await addTransaction({
         type,
         amount: data.amount,
-        currency: selectedAccount?.currency ?? Currency.EGP,
+        currency: fromCurrency,
         egp_amount,
-        exchange_rate: rate,
+        to_amount,
+        exchange_rate: parsedRate,
         account_id: data.accountId,
         to_account_id: isTransferOrCC ? data.toAccountId : undefined,
         category_id: !isTransferOrCC ? data.categoryId : undefined,
@@ -294,6 +319,10 @@ export function useAddTransaction(onClose: () => void) {
 
   function selectToAccount(account: Account) {
     form.setValue('toAccountId', account.id);
+    if (account.currency === Currency.USD && selectedAccount?.currency === Currency.EGP) {
+      form.setValue('exchangeRate', String(currentRate));
+      setRateOverride(false);
+    }
     setShowToPicker(false);
   }
 
@@ -320,7 +349,7 @@ export function useAddTransaction(onClose: () => void) {
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
     rateOverride,
     toggleRateOverride,
-    isUSD,
+    isUSD: requiresRate,
     isTransferOrCC,
     errors,
     saving,
