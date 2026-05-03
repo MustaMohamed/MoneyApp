@@ -105,7 +105,7 @@ export function AccountCard({ account, rate, onPress }: AccountCardProps) {
           </View>
           <View style={styles.balanceRow}>
             <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
-              <MaterialCommunityIcons name={icon} size={14} color={color} />
+              <MaterialCommunityIcons name={icon} size={12} color={color} />
             </View>
             <Text style={[styles.balance, { color: balanceColor }]} numberOfLines={1}>
               {formatAmount(account.current_balance)} {account.currency}
@@ -133,12 +133,11 @@ export function AccountCard({ account, rate, onPress }: AccountCardProps) {
   );
 }
 
-export const CARD_HEIGHT = Size.typeIconBox * 4 + Spacing.xxl + 6;
+export const CARD_HEIGHT = Size.typeIconBox * 3 + Spacing.xl + 6;
 
 const styles = StyleSheet.create({
   card: {
-    width: 190,
-    minHeight: CARD_HEIGHT,
+    width: 180,
     backgroundColor: Colors.dark.surfaceEl,
     borderRadius: Radius.md,
     borderWidth: 1,
@@ -148,15 +147,14 @@ const styles = StyleSheet.create({
   },
   accentBar: { height: 3, width: '100%' },
   body: {
-    flex: 1,
-    padding: Spacing.sm,
-    justifyContent: 'space-between',
-  },
-  cardTop: {
+    padding: Spacing.xs,
     gap: Spacing.xs,
   },
+  cardTop: {
+    gap: 4,
+  },
   infoSection: {
-    gap: Spacing.xxs,
+    gap: 2,
   },
   topRow: {
     flexDirection: 'row',
@@ -187,9 +185,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   iconBox: {
-    width: 30,
-    height: 30,
-    borderRadius: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 5,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -197,7 +195,7 @@ const styles = StyleSheet.create({
   balance: {
     flex: 1,
     fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
+    fontSize: Type.body,
   },
   divider: {
     height: 1,
