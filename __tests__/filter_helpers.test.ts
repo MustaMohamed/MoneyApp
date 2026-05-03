@@ -1,15 +1,12 @@
 import { Currency, DatePreset } from '@/constants/enums';
-import {
-  EMPTY_FILTERS,
-  type AdvancedFilters,
-} from '@/app/(app)/(tabs)/transactions/filter/filter.store';
+import { EMPTY_FILTERS, type AdvancedFilters } from '@/screens/transactions/filter/filter.store';
 import {
   countActiveFilters,
   formatSelectionSummary,
   parseAmountInput,
   resolveDateRange,
   toQueryFilters,
-} from '@/app/(app)/(tabs)/transactions/filter/filter.helpers';
+} from '@/screens/transactions/filter/filter.helpers';
 
 describe('countActiveFilters', () => {
   it('returns 0 for EMPTY_FILTERS', () => {

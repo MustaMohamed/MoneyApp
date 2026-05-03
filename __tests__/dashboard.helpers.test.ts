@@ -1,7 +1,4 @@
-import {
-  computeNetWorth,
-  groupAccountsByType,
-} from '@/app/(app)/(tabs)/dashboard/dashboard.helpers';
+import { computeNetWorth, groupAccountsByType } from '@/screens/dashboard/dashboard.helpers';
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/store/account.store';
 

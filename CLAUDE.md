@@ -30,97 +30,115 @@ MoneyApp is a React Native (Expo) personal finance app for tracking expenses, ac
 
 ## Project Structure
 
+The codebase splits "where Expo Router looks" from "where screen code lives." `app/` contains only routing (layouts + thin index wrappers); every screen's UI, hooks, stores, animations, helpers, and sub-components live in a parallel `screens/` tree. This keeps Expo Router's `require.context` from scooping up colocated `.ts` files as routes.
+
 ```
-app/
-  _layout.tsx                  # Expo Router root layout — useFonts, SafeAreaProvider
-  _layout.hook.ts              # DB init, zod_config import, onboarding rehydration
-  _layout.store.ts             # { ready, setReady }
-  index.tsx                    # Thin redirect — reads global store
-  dashboard/
-    index.tsx                  # PlaceholderDashboard
+app/                                  # ROUTING ONLY — Expo Router scans here
+  _layout.tsx                          # Root layout (useFonts, SafeAreaProvider)
+  index.tsx                            # Redirect — onboarding vs dashboard
   (onboarding)/
     _layout.tsx
-    welcome/
-      index.tsx
-      welcome.anim.ts
-    currency/
-      index.tsx
-      currency.hook.ts
-      currency.store.ts
-      currency.anim.ts
-      components/currency_row.tsx
-    security/
-      index.tsx
-      security.hook.ts
-      security.store.ts
-      security.anim.ts
-      security.helpers.ts
-      components/security_pill.tsx
-    add_account/
-      index.tsx
-      add_account.hook.ts
-      add_account.anim.ts
-      components/type_pill.tsx
-    more_accounts/
-      index.tsx
-      more_accounts.hook.ts
-      more_accounts.anim.ts
-      components/account_row.tsx
-    ready/
-      index.tsx
-      ready.hook.ts
-      ready.store.ts
-      ready.anim.ts
-      ready.helpers.ts
+    welcome/index.tsx                  # wrapper → @/screens/onboarding/welcome
+    currency/index.tsx                 # wrapper → @/screens/onboarding/currency
+    security/index.tsx                 # wrapper → @/screens/onboarding/security
+    add_account/index.tsx              # wrapper → @/screens/onboarding/add_account
+    more_accounts/index.tsx            # wrapper → @/screens/onboarding/more_accounts
+    ready/index.tsx                    # wrapper → @/screens/onboarding/ready
+  (app)/
+    _layout.tsx                        # bootstraps stores
+    (tabs)/
+      _layout.tsx                      # Tabs nav
+      bills/index.tsx | budget/index.tsx | goals/index.tsx   # placeholder leaves
+      dashboard/
+        _layout.tsx                    # Stack
+        index.tsx                      # wrapper → @/screens/dashboard
+      transactions/
+        _layout.tsx                    # Stack
+        index.tsx                      # wrapper → @/screens/transactions
+        detail/[id]/index.tsx          # wrapper → @/screens/transactions/detail
+    accounts/
+      [id]/index.tsx                   # wrapper → @/screens/accounts/detail
+      add_account/index.tsx            # wrapper → @/screens/accounts/add_account
+    settings/
+      index.tsx                        # wrapper → @/screens/settings
+      categories/index.tsx             # wrapper → @/screens/settings/categories
+      currency/index.tsx               # wrapper → @/screens/settings/currency
 
-components/
-  progress_dots/
-    index.tsx
-    progress_dots.anim.ts
-  geo_illustration/
-    index.tsx
+screens/                              # SCREEN CODE — never scanned by Expo Router
+  onboarding/
+    welcome/{index.tsx, welcome.anim.ts}
+    currency/{index.tsx, currency.{hook,store,anim}.ts, components/currency_row.tsx}
+    security/{index.tsx, security.{hook,store,anim,helpers}.ts, components/security_pill.tsx}
+    add_account/{index.tsx, add_account.{hook,anim}.ts, components/type_pill.tsx}
+    more_accounts/{index.tsx, more_accounts.{hook,anim}.ts, components/account_row.tsx}
+    ready/{index.tsx, ready.{hook,store,anim,helpers}.ts}
+  dashboard/{index.tsx, dashboard.{hook,anim,helpers}.ts, components/*.tsx}
+  transactions/
+    {index.tsx, transactions.{hook,store,anim}.ts, components/*.tsx}
+    filter/{index.tsx, filter.{hook,store,anim,helpers}.ts, components/*.tsx}
+    transaction_form/{index.tsx, add_transaction.{hook,store}.ts, edit_transaction.{hook,store,helpers}.ts, transaction_form.anim.ts, transaction_form_body.tsx, components/*.tsx}
+    detail/{index.tsx, detail.{hook,anim}.ts, components/*.tsx}
+  accounts/
+    detail/{index.tsx, account_detail.{hook,store,anim}.ts, components/*.tsx}
+    add_account/{index.tsx, add_account.{hook,anim}.ts, components/type_pill.tsx}
+  settings/
+    {index.tsx, settings.hook.ts}
+    categories/{index.tsx, categories.{hook,store,anim}.ts, components/*.tsx}
+    currency/{index.tsx, currency.{hook,store,anim}.ts}
+
+components/                           # GLOBAL shared components
+  progress_dots/{index.tsx, progress_dots.anim.ts}
+  geo_illustration/index.tsx
+  empty_states/...
 
 constants/
-  enums.ts                     # All domain enums
-  secure_store_keys.ts         # SecureStoreKeys as const
-  strings.ts                   # All user-visible copy
-  theme.ts                     # Cairo Nights design tokens
+  enums.ts                            # All domain enums
+  secure_store_keys.ts                # SecureStoreKeys as const
+  strings.ts                          # All user-visible copy
+  theme.ts                            # Cairo Nights design tokens
 
 store/
-  onboarding.store.ts
-  account.store.ts
+  onboarding.store.ts | account.store.ts | category.store.ts | currency.store.ts | transaction.store.ts | ready.store.ts
 
 database/
   migrations/
-    001_create_accounts.ts       # { version: 1, up: 'CREATE TABLE IF NOT EXISTS accounts ...' }
-    002_create_app_settings.ts   # { version: 2, up: 'CREATE TABLE IF NOT EXISTS app_settings ...' }
-    index.ts                     # export const MIGRATIONS = [migration001, migration002]
-  entities/
-    account.entity.ts            # Account interface (DB column representation)
-    app_setting.entity.ts        # AppSetting interface
-  accounts.ts                    # getAccounts(db), addAccount(db, data)
-  app_settings.ts                # getSetting(db, key), setSetting(db, key, value)
-  client.ts                      # getDb(), runMigrations(db)
+    001_create_accounts.ts            # { version: 1, up: 'CREATE TABLE IF NOT EXISTS accounts ...' }
+    002_create_app_settings.ts
+    NNN_*.ts                          # one file per DDL change
+    index.ts                          # exports MIGRATIONS as ordered array
+  entities/<domain>.entity.ts         # type-only DB column representation
+  <domain>.ts                         # query executors (getX, addX, setX, updateX, deleteX)
+  client.ts                           # getDb(), runMigrations(db)
 
 utils/
   onboarding_nav.ts
-  responsive.ts                # ms(), msFont() scaling
+  responsive.ts                       # ms(), msFont() scaling
   use_first_mount_entering.hook.ts
-  use_zod_form.hook.ts         # useForm + zodResolver wrapper
-  zod_config.ts                # Global Zod error map (imported once in _layout.hook.ts)
+  use_layout_init.hook.ts             # DB init + onboarding rehydration; called by app/_layout.tsx
+  use_zod_form.hook.ts                # useForm + zodResolver wrapper
+  zod_config.ts                       # Global Zod error map
 
-__tests__/                     # snake_case filenames
+__tests__/                            # snake_case filenames; import from @/screens/... or @/utils/... etc.
 ```
 
-### Component anatomy
+### Routing convention (`app/`)
 
-Each screen folder has up to four files with strict responsibilities:
+- **Only** `_layout.tsx` and `index.tsx` files live under `app/`. The lone exception is dynamic-segment folders like `[id]/` whose `index.tsx` is the route.
+- Every `index.tsx` in `app/` is a **one-line wrapper**: `export { default } from '@/screens/<path>';`
+- **Never** colocate `*.hook.ts` / `*.anim.ts` / `*.store.ts` / `*.helpers.ts` / `components/*.tsx` next to a route file. Expo Router's `require.context` will register every `.ts`/`.tsx` file in `app/` as a route, and any without a default export becomes an undefined-component crash waiting to happen.
+- **Never** name a sibling of `app/_layout.tsx` like `_layout.<anything>.ts`. Expo Router parses filenames by stripping the extension and splitting on `.`, so `_layout.hook.ts` → `_layout` → treated as a layout file → conflicts with `_layout.tsx`. Layout-related hooks/stores live in `utils/` or `store/`.
 
-- **`index.tsx`** — UI template. No `useState`, no `useSharedValue`. Wires together hook and anim outputs.
+### Screen anatomy (`screens/`)
+
+Each screen folder has up to four files with strict responsibilities, plus a `components/` subfolder:
+
+- **`index.tsx`** — UI template with `export default function ScreenName()`. No `useState`, no `useSharedValue`. Wires together hook and anim outputs.
 - **`<name>.hook.ts`** — Logic, RHF/Zod schema, store reads, navigation. Uses `useZodForm` from `utils/use_zod_form.hook.ts`.
-- **`<name>.store.ts`** — Zustand for local non-form UI state only. Includes `reset()`. Omitted when not needed (`add_account` has none — form state lives entirely in RHF).
+- **`<name>.store.ts`** — Zustand for local non-form UI state only. Includes `reset()`. Omitted when not needed (e.g. `add_account` has none — form state lives entirely in RHF).
 - **`<name>.anim.ts`** — Reanimated shared values and animated styles. No business logic.
-- **`components/`** — Sub-components used only by this screen, colocated here rather than in global `components/`.
+- **`components/`** — Sub-components used only by this screen.
+
+Sub-screens that aren't separate routes (e.g. drawers like `transactions/filter/` and `transactions/transaction_form/`) follow the same anatomy; they're imported as components from their parent screen's `index.tsx`.
 
 File naming is `snake_case`. TypeScript identifiers are `camelCase`.
 

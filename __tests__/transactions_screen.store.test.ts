@@ -1,6 +1,6 @@
 import { DatePreset, TransactionType } from '@/constants/enums';
-import { useTransactionsScreenStore } from '@/app/(app)/(tabs)/transactions/transactions.store';
-import { EMPTY_FILTERS } from '@/app/(app)/(tabs)/transactions/filter/filter.store';
+import { useTransactionsScreenStore } from '@/screens/transactions/transactions.store';
+import { EMPTY_FILTERS } from '@/screens/transactions/filter/filter.store';
 
 describe('transactionsScreenStore', () => {
   beforeEach(() => useTransactionsScreenStore.getState().reset());

@@ -2,7 +2,7 @@ import {
   computeBalanceDelta,
   computeCCPaymentForward,
   computeCCPaymentReversal,
-} from '@/app/(app)/(tabs)/transactions/transaction_form/edit_transaction.helpers';
+} from '@/screens/transactions/transaction_form/edit_transaction.helpers';
 
 describe('computeBalanceDelta', () => {
   it('returns positive delta when new amount is larger', () => {

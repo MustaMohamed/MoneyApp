@@ -1,5 +1,5 @@
 import { Currency, TransactionType } from '@/constants/enums';
-import { useEditTransactionStore } from '@/app/(app)/(tabs)/transactions/transaction_form/edit_transaction.store';
+import { useEditTransactionStore } from '@/screens/transactions/transaction_form/edit_transaction.store';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
 const NOW = '2026-05-01T12:00:00.000Z';
