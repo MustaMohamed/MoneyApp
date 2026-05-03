@@ -61,6 +61,8 @@ export function AddTransactionSheet({ visible, onClose }: AddProps) {
           rateError={hook.errors.rate}
           date={hook.date}
           setDate={hook.setDate}
+          time={hook.time}
+          setTime={hook.setTime}
           note={hook.note}
           setNote={hook.setNote}
           saving={hook.saving}
@@ -174,6 +176,8 @@ function EditSheetInner({
           rateError={hook.errors.rate}
           date={hook.date}
           setDate={hook.setDate}
+          time={hook.time}
+          setTime={hook.setTime}
           note={hook.note}
           setNote={hook.setNote}
           saving={hook.saving}

@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -23,6 +24,12 @@ export default function TransactionDetailScreen() {
   const editVisible = useEditTransactionStore((s) => s.visible);
   const editingTx = useEditTransactionStore((s) => s.editingTx);
   const closeEdit = useEditTransactionStore((s) => s.close);
+
+  useEffect(() => {
+    return () => {
+      useEditTransactionStore.getState().close();
+    };
+  }, []);
 
   function handleEdit() {
     if (d.tx) {

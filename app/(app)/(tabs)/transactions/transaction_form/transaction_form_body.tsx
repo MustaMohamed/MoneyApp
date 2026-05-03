@@ -16,6 +16,7 @@ import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { formatTime12h } from '@/utils/format_time_12h';
 import { ExchangeRateRow } from './components/exchange_rate_row';
 import { Numpad } from './components/numpad';
 import { TypeTabs } from './components/type_tabs';
@@ -55,6 +56,8 @@ interface TransactionFormBodyProps {
   rateError?: string;
   date: string;
   setDate: (v: string) => void;
+  time: string;
+  setTime: (v: string) => void;
   note: string;
   setNote: (v: string) => void;
   saving: boolean;
@@ -87,23 +90,28 @@ export function TransactionFormBody({
   rateError,
   date,
   setDate,
+  time,
+  setTime,
   note,
   setNote,
   saving,
   onClose,
   handleSave,
 }: TransactionFormBodyProps) {
-  const [showIosPicker, setShowIosPicker] = useState(false);
+  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
+  const [showIosTimePicker, setShowIosTimePicker] = useState(false);
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
-  const dateAsDate = new Date(date + 'T00:00:00');
+  const dateAsDate = new Date(date + 'T' + time);
   const formattedDate = dateAsDate.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+  const formattedTime = formatTime12h(time);
 
   function openDatePicker() {
+    setShowIosTimePicker(false);
     if (Platform.OS === 'android') {
       DateTimePickerAndroid.open({
         value: dateAsDate,
@@ -114,7 +122,27 @@ export function TransactionFormBody({
         },
       });
     } else {
-      setShowIosPicker((v) => !v);
+      setShowIosDatePicker((v) => !v);
+    }
+  }
+
+  function openTimePicker() {
+    setShowIosDatePicker(false);
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: dateAsDate,
+        mode: 'time',
+        is24Hour: false,
+        onChange: (_, d) => {
+          if (d) {
+            const hh = d.getHours().toString().padStart(2, '0');
+            const mm = d.getMinutes().toString().padStart(2, '0');
+            setTime(`${hh}:${mm}:00`);
+          }
+        },
+      });
+    } else {
+      setShowIosTimePicker((v) => !v);
     }
   }
 
@@ -292,15 +320,28 @@ export function TransactionFormBody({
           />
         )}
 
-        {/* Date */}
-        <Pressable style={styles.field} onPress={openDatePicker}>
-          <Text style={styles.fieldLabel}>{Strings.addTxDateLabel}</Text>
-          <View style={styles.fieldValue}>
-            <Text style={styles.fieldValueText}>{formattedDate}</Text>
-            <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
-          </View>
-        </Pressable>
-        {showIosPicker && (
+        {/* Date + Time */}
+        <View style={styles.dateTimeRow}>
+          <Pressable style={[styles.field, styles.dateTimeField]} onPress={openDatePicker}>
+            <Text style={styles.fieldLabel}>{Strings.addTxDateLabel}</Text>
+            <View style={styles.fieldValue}>
+              <Text style={styles.fieldValueText}>{formattedDate}</Text>
+              <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
+            </View>
+          </Pressable>
+          <Pressable style={[styles.field, styles.dateTimeField]} onPress={openTimePicker}>
+            <Text style={styles.fieldLabel}>{Strings.addTxTimeLabel}</Text>
+            <View style={styles.fieldValue}>
+              <Text style={styles.fieldValueText}>{formattedTime}</Text>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={ms(18)}
+                color={Colors.dark.text2}
+              />
+            </View>
+          </Pressable>
+        </View>
+        {showIosDatePicker && (
           <DateTimePicker
             value={dateAsDate}
             mode="date"
@@ -309,6 +350,21 @@ export function TransactionFormBody({
             themeVariant="dark"
             onChange={(_, d) => {
               if (d) setDate(d.toISOString().slice(0, 10));
+            }}
+          />
+        )}
+        {showIosTimePicker && (
+          <DateTimePicker
+            value={dateAsDate}
+            mode="time"
+            display="spinner"
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) {
+                const hh = d.getHours().toString().padStart(2, '0');
+                const mm = d.getMinutes().toString().padStart(2, '0');
+                setTime(`${hh}:${mm}:00`);
+              }
             }}
           />
         )}
@@ -402,6 +458,8 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
   },
   dot: { width: ms(10), height: ms(10), borderRadius: ms(5) },
+  dateTimeRow: { flexDirection: 'row', gap: Spacing.sm },
+  dateTimeField: { flex: 1 },
   noteInput: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,

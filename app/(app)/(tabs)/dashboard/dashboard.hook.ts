@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 
+import { getDb } from '@/database/client';
+import { getAccountsStats, type AccountStats } from '@/database/account_stats';
 import { useAccountStore } from '@/store/account.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
@@ -14,6 +16,25 @@ export function useDashboard() {
 
   const [isBreakdownVisible, setBreakdownVisible] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [statsMap, setStatsMap] = useState<Record<string, AccountStats>>({});
+
+  const loadStats = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) {
+      setStatsMap({});
+      return;
+    }
+    try {
+      const db = await getDb();
+      const result = await getAccountsStats(db, ids);
+      setStatsMap(result);
+    } catch (err) {
+      console.error('[dashboard] loadStats failed:', err);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStats(accounts.map((a) => a.id));
+  }, [accounts]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -37,6 +58,7 @@ export function useDashboard() {
     isManualOverride,
     netWorth,
     groupedAccounts,
+    statsMap,
     isBreakdownVisible,
     setBreakdownVisible,
     refreshing,

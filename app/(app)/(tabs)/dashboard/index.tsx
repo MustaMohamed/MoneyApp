@@ -38,6 +38,7 @@ export default function DashboardScreen() {
     rate,
     netWorth,
     groupedAccounts,
+    statsMap,
     isBreakdownVisible,
     setBreakdownVisible,
     isManualOverride,
@@ -104,6 +105,7 @@ export default function DashboardScreen() {
                 type={type}
                 accounts={groupedAccounts[type] ?? []}
                 rate={rate}
+                statsMap={statsMap}
                 onAccountPress={goToAccount}
                 onAddPress={goToAddAccount}
               />
