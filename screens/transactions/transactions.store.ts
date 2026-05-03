@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
 import { TransactionType } from '@/constants/enums';
-import { EMPTY_FILTERS, type AdvancedFilters } from './_filter/filter.store';
+import { EMPTY_FILTERS, type AdvancedFilters } from './filter/filter.store';
 
 export type TransactionFilter = TransactionType | 'all';
 

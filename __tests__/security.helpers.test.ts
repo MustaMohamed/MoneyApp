@@ -1,4 +1,4 @@
-import { canProceed } from '@/app/(onboarding)/security/security.helpers';
+import { canProceed } from '@/screens/onboarding/security/security.helpers';
 import { SecurityChoice } from '@/constants/enums';
 
 describe('canProceed', () => {

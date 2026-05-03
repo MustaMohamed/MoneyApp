@@ -1,4 +1,4 @@
-import { createAccountDetailStore } from '@/app/(app)/accounts/[id]/account_detail.store';
+import { createAccountDetailStore } from '@/screens/accounts/detail/account_detail.store';
 
 jest.mock('zustand', () => ({ create: jest.requireActual('zustand').create }));
 

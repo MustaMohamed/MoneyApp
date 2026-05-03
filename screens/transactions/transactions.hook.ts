@@ -6,8 +6,8 @@ import { useTransactionStore } from '@/store/transaction.store';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
-import { countActiveFilters, toQueryFilters } from './_filter/filter.helpers';
-import { useFilterDrawerStore } from './_filter/filter.store';
+import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
+import { useFilterDrawerStore } from './filter/filter.store';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
