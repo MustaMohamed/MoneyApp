@@ -12,7 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
 import { useReadyStore } from '@/store/ready.store';
-import { useLayoutInit } from './_layout.hook';
+import { useLayoutInit } from '@/utils/use_layout_init.hook';
 
 SplashScreen.preventAutoHideAsync();
 
