@@ -92,6 +92,12 @@ const styles = StyleSheet.create({
     color: '#D4830A',
     textAlign: 'right',
     minWidth: 80,
+    backgroundColor: Colors.dark.surface,
+    borderWidth: 1,
+    borderColor: '#D4830A',
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
   },
   switchWrap: {
     alignItems: 'center',
