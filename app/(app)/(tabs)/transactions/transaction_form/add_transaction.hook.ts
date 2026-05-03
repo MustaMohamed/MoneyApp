@@ -177,6 +177,8 @@ export function useAddTransaction(onClose: () => void) {
   const toAccountId = form.watch('toAccountId');
   const categoryId = form.watch('categoryId');
   const note = form.watch('note');
+  const date = form.watch('date');
+  const time = form.watch('time');
   const exchangeRate = form.watch('exchangeRate');
 
   const selectedAccount = useMemo(
@@ -343,6 +345,10 @@ export function useAddTransaction(onClose: () => void) {
     selectedToAccount,
     categoryId,
     selectedCategory,
+    date,
+    setDate: (v: string) => form.setValue('date', v),
+    time,
+    setTime: (v: string) => form.setValue('time', v),
     note,
     setNote: (v: string) => form.setValue('note', v),
     exchangeRate,

@@ -1,4 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -14,6 +16,7 @@ import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { formatTime12h } from '@/utils/format_time_12h';
 import { ExchangeRateRow } from './components/exchange_rate_row';
 import { Numpad } from './components/numpad';
 import { TypeTabs } from './components/type_tabs';
@@ -51,6 +54,10 @@ interface TransactionFormBodyProps {
   rateOverride: boolean;
   toggleRateOverride: () => void;
   rateError?: string;
+  date: string;
+  setDate: (v: string) => void;
+  time: string;
+  setTime: (v: string) => void;
   note: string;
   setNote: (v: string) => void;
   saving: boolean;
@@ -81,13 +88,63 @@ export function TransactionFormBody({
   rateOverride,
   toggleRateOverride,
   rateError,
+  date,
+  setDate,
+  time,
+  setTime,
   note,
   setNote,
   saving,
   onClose,
   handleSave,
 }: TransactionFormBodyProps) {
+  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
+  const [showIosTimePicker, setShowIosTimePicker] = useState(false);
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+
+  const dateAsDate = new Date(date + 'T' + time);
+  const formattedDate = dateAsDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+  const formattedTime = formatTime12h(time);
+
+  function openDatePicker() {
+    setShowIosTimePicker(false);
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: dateAsDate,
+        mode: 'date',
+        maximumDate: new Date(),
+        onChange: (_, d) => {
+          if (d) setDate(d.toISOString().slice(0, 10));
+        },
+      });
+    } else {
+      setShowIosDatePicker((v) => !v);
+    }
+  }
+
+  function openTimePicker() {
+    setShowIosDatePicker(false);
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: dateAsDate,
+        mode: 'time',
+        is24Hour: false,
+        onChange: (_, d) => {
+          if (d) {
+            const hh = d.getHours().toString().padStart(2, '0');
+            const mm = d.getMinutes().toString().padStart(2, '0');
+            setTime(`${hh}:${mm}:00`);
+          }
+        },
+      });
+    } else {
+      setShowIosTimePicker((v) => !v);
+    }
+  }
 
   const amountColor =
     type === TransactionType.Income
@@ -113,17 +170,17 @@ export function TransactionFormBody({
 
       <TypeTabs active={type} onSelect={onSelectType} disabled={locked} />
 
+      <View style={styles.amountRow}>
+        <Text style={[styles.amountText, { color: amountColor }]}>{formatAmount(amountStr)}</Text>
+      </View>
+      {amountError ? <Text style={styles.amountErr}>{amountError}</Text> : null}
+
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.amountRow}>
-          <Text style={[styles.amountText, { color: amountColor }]}>{formatAmount(amountStr)}</Text>
-        </View>
-        {amountError ? <Text style={styles.err}>{amountError}</Text> : null}
-
         {/* Account (from/single) */}
         {locked ? (
           <View style={styles.field}>
@@ -263,6 +320,55 @@ export function TransactionFormBody({
           />
         )}
 
+        {/* Date + Time */}
+        <View style={styles.dateTimeRow}>
+          <Pressable style={[styles.field, styles.dateTimeField]} onPress={openDatePicker}>
+            <Text style={styles.fieldLabel}>{Strings.addTxDateLabel}</Text>
+            <View style={styles.fieldValue}>
+              <Text style={styles.fieldValueText}>{formattedDate}</Text>
+              <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
+            </View>
+          </Pressable>
+          <Pressable style={[styles.field, styles.dateTimeField]} onPress={openTimePicker}>
+            <Text style={styles.fieldLabel}>{Strings.addTxTimeLabel}</Text>
+            <View style={styles.fieldValue}>
+              <Text style={styles.fieldValueText}>{formattedTime}</Text>
+              <MaterialCommunityIcons
+                name="clock-outline"
+                size={ms(18)}
+                color={Colors.dark.text2}
+              />
+            </View>
+          </Pressable>
+        </View>
+        {showIosDatePicker && (
+          <DateTimePicker
+            value={dateAsDate}
+            mode="date"
+            display="spinner"
+            maximumDate={new Date()}
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) setDate(d.toISOString().slice(0, 10));
+            }}
+          />
+        )}
+        {showIosTimePicker && (
+          <DateTimePicker
+            value={dateAsDate}
+            mode="time"
+            display="spinner"
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) {
+                const hh = d.getHours().toString().padStart(2, '0');
+                const mm = d.getMinutes().toString().padStart(2, '0');
+                setTime(`${hh}:${mm}:00`);
+              }
+            }}
+          />
+        )}
+
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>{Strings.addTxNoteLabel}</Text>
           <TextInput
@@ -314,9 +420,18 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   scroll: { flex: 1, paddingHorizontal: Spacing.md },
-  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md },
-  amountRow: { alignItems: 'center', paddingVertical: Spacing.md },
+  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md, paddingTop: Spacing.xs },
+  amountRow: { alignItems: 'center', paddingVertical: Spacing.sm },
   amountText: { fontFamily: FontFamily.soraExtra, fontSize: ms(40) },
+  amountErr: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    color: Colors.dark.negative,
+    textAlign: 'center',
+    marginTop: -Spacing.xs,
+    marginBottom: Spacing.xxs,
+    paddingHorizontal: Spacing.md,
+  },
   field: {
     backgroundColor: Colors.dark.surfaceEl,
     borderRadius: Radius.md,
@@ -343,6 +458,8 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
   },
   dot: { width: ms(10), height: ms(10), borderRadius: ms(5) },
+  dateTimeRow: { flexDirection: 'row', gap: Spacing.sm },
+  dateTimeField: { flex: 1 },
   noteInput: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,

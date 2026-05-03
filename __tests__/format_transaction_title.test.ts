@@ -36,7 +36,7 @@ describe('formatTransactionTitle — expense / income', () => {
       category: catFood,
     });
     expect(out.title).toBe('Lunch with team');
-    expect(out.subtitle).toBe('CIB Savings · 2:30 PM');
+    expect(out.subtitle).toBe('CIB Savings');
   });
 
   it('falls back to category name when note is empty', () => {
@@ -61,7 +61,7 @@ describe('formatTransactionTitle — expense / income', () => {
       tx: baseTx,
       category: catFood,
     });
-    expect(out.subtitle).toBe('Unknown account · 2:30 PM');
+    expect(out.subtitle).toBe('Unknown account');
   });
 
   it('income behaves like expense', () => {
@@ -71,7 +71,7 @@ describe('formatTransactionTitle — expense / income', () => {
       category: { id: 'cat_salary', name: 'Salary' } as Category,
     });
     expect(out.title).toBe('Monthly salary');
-    expect(out.subtitle).toBe('CIB Savings · 2:30 PM');
+    expect(out.subtitle).toBe('CIB Savings');
   });
 });
 
@@ -83,14 +83,14 @@ describe('formatTransactionTitle — transfer', () => {
     to_account_id: 'acc-vf',
   };
 
-  it('uses note when present and shows source → target · time', () => {
+  it('uses note when present and shows source → target', () => {
     const out = formatTransactionTitle({
       tx: { ...transferTx, note: 'Move spending money' },
       account: accCib,
       toAccount: accVf,
     });
     expect(out.title).toBe('Move spending money');
-    expect(out.subtitle).toBe('CIB Savings → Vodafone Cash · 2:30 PM');
+    expect(out.subtitle).toBe('CIB Savings → Vodafone Cash');
   });
 
   it('falls back to "Transfer" title when no note', () => {
@@ -107,7 +107,7 @@ describe('formatTransactionTitle — transfer', () => {
       tx: transferTx,
       account: accCib,
     });
-    expect(out.subtitle).toBe('CIB Savings → Unknown account · 2:30 PM');
+    expect(out.subtitle).toBe('CIB Savings → Unknown account');
   });
 });
 
@@ -127,7 +127,7 @@ describe('formatTransactionTitle — cc_payment', () => {
       toAccount: accCc,
     });
     expect(out.title).toBe('April statement');
-    expect(out.subtitle).toBe('CIB Savings → CIB Credit · 2:30 PM');
+    expect(out.subtitle).toBe('CIB Savings → CIB Credit');
   });
 
   it('falls back to "Credit Card Payment" title', () => {

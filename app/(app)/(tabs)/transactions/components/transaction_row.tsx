@@ -76,6 +76,10 @@ export function TransactionRow({ tx, account, toAccount, category, onPress }: Pr
   const iconBg = bgFor(t.color, category?.color);
   const amountText = `${t.prefix}${numberFmt.format(tx.egp_amount)} EGP`;
   const time = formatTime12h(tx.transaction_time);
+  const currencyLine =
+    tx.exchange_rate !== null
+      ? `${tx.currency} · ${numberFmt.format(tx.exchange_rate)}`
+      : tx.currency;
 
   return (
     <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
@@ -88,7 +92,7 @@ export function TransactionRow({ tx, account, toAccount, category, onPress }: Pr
             {title}
           </Text>
           <Text style={styles.subtitle} numberOfLines={1}>
-            {subtitle}
+            {subtitle} · {currencyLine}
           </Text>
         </View>
         <View style={styles.right}>

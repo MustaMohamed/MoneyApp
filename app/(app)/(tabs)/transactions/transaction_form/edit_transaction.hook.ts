@@ -80,6 +80,8 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
 
   const categoryId = form.watch('categoryId');
   const note = form.watch('note');
+  const date = form.watch('date');
+  const time = form.watch('time');
   const exchangeRate = form.watch('exchangeRate');
 
   // Locked account (cannot be changed during edit)
@@ -198,6 +200,10 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     selectedToAccount,
     categoryId,
     selectedCategory,
+    date,
+    setDate: (v: string) => form.setValue('date', v),
+    time,
+    setTime: (v: string) => form.setValue('time', v),
     note,
     setNote: (v: string) => form.setValue('note', v),
     exchangeRate,

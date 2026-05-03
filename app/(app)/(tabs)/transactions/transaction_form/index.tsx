@@ -59,6 +59,10 @@ export function AddTransactionSheet({ visible, onClose }: AddProps) {
           rateOverride={hook.rateOverride}
           toggleRateOverride={hook.toggleRateOverride}
           rateError={hook.errors.rate}
+          date={hook.date}
+          setDate={hook.setDate}
+          time={hook.time}
+          setTime={hook.setTime}
           note={hook.note}
           setNote={hook.setNote}
           saving={hook.saving}
@@ -170,6 +174,10 @@ function EditSheetInner({
           rateOverride={hook.rateOverride}
           toggleRateOverride={hook.toggleRateOverride}
           rateError={hook.errors.rate}
+          date={hook.date}
+          setDate={hook.setDate}
+          time={hook.time}
+          setTime={hook.setTime}
           note={hook.note}
           setNote={hook.setNote}
           saving={hook.saving}
