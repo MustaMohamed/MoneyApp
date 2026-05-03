@@ -26,8 +26,6 @@
       [
         "expo-splash-screen",
         {
-          "imageWidth": 200,
-          "resizeMode": "contain",
           "backgroundColor": "#0F1923",
           "dark": {
             "backgroundColor": "#0F1923"
@@ -38,6 +36,13 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "f93a540c-546b-40f5-9850-e44fe29f85ef"
+      }
+    },
+    "owner": "mustamohamed"
   }
 }
