@@ -7,7 +7,6 @@ import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 import { ms, msFont } from '@/utils/responsive';
 import { useRowPressScale } from '../transactions.anim';
@@ -75,7 +74,10 @@ export function TransactionRow({ tx, account, toAccount, category, onPress }: Pr
   const t = styleForType(tx, category);
   const iconBg = bgFor(t.color, category?.color);
   const amountText = `${t.prefix}${numberFmt.format(tx.egp_amount)} EGP`;
-  const time = formatTime12h(tx.transaction_time);
+  const currencyLine =
+    tx.exchange_rate !== null
+      ? `${tx.currency} · ${numberFmt.format(tx.exchange_rate)}`
+      : tx.currency;
 
   return (
     <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
@@ -93,7 +95,7 @@ export function TransactionRow({ tx, account, toAccount, category, onPress }: Pr
         </View>
         <View style={styles.right}>
           <Text style={[styles.amount, { color: t.color }]}>{amountText}</Text>
-          <Text style={styles.time}>{time}</Text>
+          <Text style={styles.time}>{currencyLine}</Text>
         </View>
       </Animated.View>
     </Pressable>
