@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -103,6 +104,9 @@ export function TransactionFormBody({
   const showIosTimePicker = useTransactionFormBodyState((s) => s.state.showIosTimePicker);
   const setShowIosTimePicker = useTransactionFormBodyState((s) => s.setShowIosTimePicker);
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+
+  // Reset on unmount so the iOS picker flags don't leak between sheet opens.
+  useEffect(() => () => useTransactionFormBodyState.getState().reset(), []);
 
   const dateAsDate = new Date(date + 'T' + time);
   const formattedDate = dateAsDate.toLocaleDateString('en-US', {

@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useEffect } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
@@ -27,6 +28,11 @@ export function ReassignCategorySheet({
   const isLoading = useReassignCategorySheetState((s) => s.state.isLoading);
   const setSelectedId = useReassignCategorySheetState((s) => s.setSelectedId);
   const setIsLoading = useReassignCategorySheetState((s) => s.setIsLoading);
+
+  // Reset draft state when the sheet hides — handles dismiss-without-confirm.
+  useEffect(() => {
+    if (!visible) useReassignCategorySheetState.getState().reset();
+  }, [visible]);
 
   const handleConfirm = async () => {
     if (!selectedId) return;

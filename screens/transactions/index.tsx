@@ -12,6 +12,7 @@ import { ms } from '@/utils/responsive';
 import { useTransactionStore } from '@/store/transaction.store';
 import { AddTransactionSheet } from './transaction_form';
 import { useAddTransactionState } from './transaction_form/add_transaction.state';
+import { useAddTransactionStore } from './transaction_form/add_transaction.store';
 import { DateHeader } from './components/date_header';
 import { FilterButton } from './components/filter_button';
 import { FilterChips } from './components/filter_chips';
@@ -26,17 +27,26 @@ import { useTransactionsScreenStore } from './transactions.store';
 export default function TransactionsScreen() {
   const t = useTransactions();
   const open = useAddTransactionState((s) => s.open);
-  const close = useAddTransactionState((s) => s.close);
   const visible = useAddTransactionState((s) => s.state.visible);
+
+  // Closing the sheet must reset BOTH the UI state (visibility + flags) and the
+  // data store (form draft: type + amountStr) so the next FAB tap starts clean.
+  const handleClose = useCallback(() => {
+    useAddTransactionState.getState().close();
+    useAddTransactionStore.getState().reset();
+  }, []);
 
   // On tab blur: reset both screen-local UI (chip + search + applied filters)
   // AND the global query so the data array is unfiltered before the user
-  // returns. Also dismiss the filter drawer if it's open.
+  // returns. Also dismiss the filter drawer and the add-transaction sheet
+  // (both UI flags + data draft) if they're open.
   useFocusEffect(
     useCallback(() => {
       return () => {
         useTransactionsScreenStore.getState().reset();
         useFilterDrawerState.getState().close();
+        useAddTransactionState.getState().close();
+        useAddTransactionStore.getState().reset();
         useTransactionStore
           .getState()
           .setQuery({})
@@ -97,7 +107,7 @@ export default function TransactionsScreen() {
         <MaterialCommunityIcons name="plus" size={ms(28)} color={Colors.shared.midnightBlue} />
       </Pressable>
 
-      <AddTransactionSheet visible={visible} onClose={close} />
+      <AddTransactionSheet visible={visible} onClose={handleClose} />
       <FilterDrawer />
     </SafeAreaView>
   );
