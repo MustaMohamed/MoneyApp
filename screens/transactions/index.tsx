@@ -11,7 +11,7 @@ import { ms } from '@/utils/responsive';
 
 import { useTransactionStore } from '@/store/transaction.store';
 import { AddTransactionSheet } from './transaction_form';
-import { useAddTransactionStore } from './transaction_form/add_transaction.store';
+import { useAddTransactionState } from './transaction_form/add_transaction.state';
 import { DateHeader } from './components/date_header';
 import { FilterButton } from './components/filter_button';
 import { FilterChips } from './components/filter_chips';
@@ -25,9 +25,9 @@ import { useTransactionsScreenStore } from './transactions.store';
 
 export default function TransactionsScreen() {
   const t = useTransactions();
-  const open = useAddTransactionStore((s) => s.open);
-  const close = useAddTransactionStore((s) => s.close);
-  const visible = useAddTransactionStore((s) => s.visible);
+  const open = useAddTransactionState((s) => s.open);
+  const close = useAddTransactionState((s) => s.close);
+  const visible = useAddTransactionState((s) => s.state.visible);
 
   // On tab blur: reset both screen-local UI (chip + search + applied filters)
   // AND the global query so the data array is unfiltered before the user

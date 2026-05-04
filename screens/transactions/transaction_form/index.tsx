@@ -39,59 +39,61 @@ export function AddTransactionSheet({ visible, onClose }: AddProps) {
         <TransactionFormBody
           title={Strings.addTxTitle}
           locked={false}
-          type={hook.type}
+          type={hook.state.type}
           onSelectType={hook.setType}
-          amountStr={hook.amountStr}
+          amountStr={hook.state.amountStr}
           handleNumpad={hook.handleNumpad}
-          amountError={hook.errors.amount}
-          selectedAccount={hook.selectedAccount}
+          amountError={hook.state.errors.amount}
+          selectedAccount={hook.state.selectedAccount}
           onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
-          accountError={hook.errors.account}
-          selectedToAccount={hook.selectedToAccount}
+          accountError={hook.state.errors.account}
+          selectedToAccount={hook.state.selectedToAccount}
           onOpenToPicker={() => hook.setShowToPicker(true)}
-          toAccountError={hook.errors.toAccount}
-          selectedCategory={hook.selectedCategory}
+          toAccountError={hook.state.errors.toAccount}
+          selectedCategory={hook.state.selectedCategory}
           onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-          categoryError={hook.errors.category}
-          isUSD={hook.isUSD}
-          exchangeRate={hook.exchangeRate}
+          categoryError={hook.state.errors.category}
+          isUSD={hook.state.isUSD}
+          exchangeRate={hook.state.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
-          rateOverride={hook.rateOverride}
+          rateOverride={hook.state.rateOverride}
           toggleRateOverride={hook.toggleRateOverride}
-          rateError={hook.errors.rate}
-          date={hook.date}
+          rateError={hook.state.errors.rate}
+          date={hook.state.date}
           setDate={hook.setDate}
-          time={hook.time}
+          time={hook.state.time}
           setTime={hook.setTime}
-          note={hook.note}
+          note={hook.state.note}
           setNote={hook.setNote}
-          saving={hook.saving}
+          saving={hook.state.saving}
           onClose={() => closeSheet(onClose)}
           handleSave={hook.handleSave}
         />
 
         <AccountPickerSheet
-          visible={hook.showAccountPicker}
-          title={hook.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle}
-          accounts={hook.accountsForFrom}
-          selectedId={hook.accountId}
+          visible={hook.state.showAccountPicker}
+          title={
+            hook.state.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle
+          }
+          accounts={hook.state.accountsForFrom}
+          selectedId={hook.state.accountId}
           onSelect={hook.selectAccount}
           onClose={() => hook.setShowAccountPicker(false)}
         />
         <AccountPickerSheet
-          visible={hook.showToPicker}
+          visible={hook.state.showToPicker}
           title={Strings.addTxPickToTitle}
-          accounts={hook.accountsForTo}
-          selectedId={hook.toAccountId}
-          excludeId={hook.accountId}
+          accounts={hook.state.accountsForTo}
+          selectedId={hook.state.toAccountId}
+          excludeId={hook.state.accountId}
           onSelect={hook.selectToAccount}
           onClose={() => hook.setShowToPicker(false)}
         />
         <CategoryPickerSheet
-          visible={hook.showCategoryPicker}
+          visible={hook.state.showCategoryPicker}
           title={Strings.addTxPickCategoryTitle}
-          categories={hook.visibleCategories}
-          selectedId={hook.categoryId}
+          categories={hook.state.visibleCategories}
+          selectedId={hook.state.categoryId}
           onSelect={hook.selectCategory}
           onClose={() => hook.setShowCategoryPicker(false)}
         />

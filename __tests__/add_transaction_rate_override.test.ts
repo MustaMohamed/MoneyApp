@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { useAddTransaction } from '@/screens/transactions/transaction_form/add_transaction.hook';
+import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/screens/transactions/transaction_form/add_transaction.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -47,11 +48,12 @@ beforeEach(() => {
 
   // Open the sheet so the hook's close-effect doesn't fire on mount.
   useAddTransactionStore.getState().reset();
-  useAddTransactionStore.getState().open();
+  useAddTransactionState.getState().reset();
+  useAddTransactionState.getState().open();
 });
 
 afterEach(() => {
-  useAddTransactionStore.getState().close();
+  useAddTransactionState.getState().close();
 });
 
 // ─── Initial state ────────────────────────────────────────────────────────────
@@ -59,12 +61,12 @@ afterEach(() => {
 describe('useAddTransaction rateOverride — initial state', () => {
   it('starts as false', () => {
     const { result } = renderHook(() => useAddTransaction(() => {}));
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('initialises exchangeRate from the global rate', () => {
     const { result } = renderHook(() => useAddTransaction(() => {}));
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 });
 
@@ -78,18 +80,18 @@ describe('useAddTransaction toggleRateOverride', () => {
       result.current.toggleRateOverride();
     });
 
-    expect(result.current.rateOverride).toBe(true);
+    expect(result.current.state.rateOverride).toBe(true);
   });
 
   it('does not change exchangeRate when toggling ON', () => {
     const { result } = renderHook(() => useAddTransaction(() => {}));
-    const before = result.current.exchangeRate;
+    const before = result.current.state.exchangeRate;
 
     act(() => {
       result.current.toggleRateOverride();
     });
 
-    expect(result.current.exchangeRate).toBe(before);
+    expect(result.current.state.exchangeRate).toBe(before);
   });
 
   it('toggles back to false on second call', () => {
@@ -102,7 +104,7 @@ describe('useAddTransaction toggleRateOverride', () => {
       result.current.toggleRateOverride();
     });
 
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('resets exchangeRate to the global rate when toggling OFF', () => {
@@ -113,15 +115,15 @@ describe('useAddTransaction toggleRateOverride', () => {
       result.current.toggleRateOverride();
       result.current.setExchangeRate('99.5');
     });
-    expect(result.current.exchangeRate).toBe('99.5');
+    expect(result.current.state.exchangeRate).toBe('99.5');
 
     // Toggle OFF → rate must revert to global.
     act(() => {
       result.current.toggleRateOverride();
     });
 
-    expect(result.current.rateOverride).toBe(false);
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.rateOverride).toBe(false);
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 
   it('keeps exchangeRate at global rate when toggling ON after a previous reset', () => {
@@ -138,8 +140,8 @@ describe('useAddTransaction toggleRateOverride', () => {
       result.current.toggleRateOverride(); // false → true (rate stays at GLOBAL_RATE)
     });
 
-    expect(result.current.rateOverride).toBe(true);
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.rateOverride).toBe(true);
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 });
 
@@ -152,13 +154,13 @@ describe('useAddTransaction selectAccount', () => {
     act(() => {
       result.current.toggleRateOverride(); // → true
     });
-    expect(result.current.rateOverride).toBe(true);
+    expect(result.current.state.rateOverride).toBe(true);
 
     act(() => {
       result.current.selectAccount(makeUSDAccount());
     });
 
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('resets exchangeRate to global rate when a USD account is selected', () => {
@@ -173,7 +175,7 @@ describe('useAddTransaction selectAccount', () => {
       result.current.selectAccount(makeUSDAccount());
     });
 
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 });
 
@@ -186,13 +188,13 @@ describe('useAddTransaction sheet close', () => {
     act(() => {
       result.current.toggleRateOverride(); // → true
     });
-    expect(result.current.rateOverride).toBe(true);
+    expect(result.current.state.rateOverride).toBe(true);
 
     act(() => {
-      useAddTransactionStore.getState().close();
+      useAddTransactionState.getState().close();
     });
 
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('resets exchangeRate to global rate when the sheet closes', () => {
@@ -204,9 +206,9 @@ describe('useAddTransaction sheet close', () => {
     });
 
     act(() => {
-      useAddTransactionStore.getState().close();
+      useAddTransactionState.getState().close();
     });
 
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 });

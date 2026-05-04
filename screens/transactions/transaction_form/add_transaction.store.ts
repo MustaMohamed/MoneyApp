@@ -4,65 +4,51 @@ import { TransactionType } from '@/constants/enums';
 
 type NumpadAction = 'digit' | 'decimal' | 'backspace';
 
-interface AddTransactionState {
-  visible: boolean;
+interface AddTransactionStoreShape {
   type: TransactionType;
   amountStr: string;
-  saving: boolean;
-  showAccountPicker: boolean;
-  showToPicker: boolean;
-  showCategoryPicker: boolean;
-  rateOverride: boolean;
-  open: () => void;
-  close: () => void;
+}
+
+interface AddTransactionStore {
+  state: AddTransactionStoreShape;
   setType: (type: TransactionType) => void;
   handleNumpad: (action: NumpadAction, value?: string) => void;
-  setSaving: (v: boolean) => void;
-  setShowAccountPicker: (v: boolean) => void;
-  setShowToPicker: (v: boolean) => void;
-  setShowCategoryPicker: (v: boolean) => void;
-  setRateOverride: (v: boolean) => void;
   reset: () => void;
 }
 
-const INITIAL_STATE = {
+const INITIAL_STATE: AddTransactionStoreShape = {
   type: TransactionType.Expense,
   amountStr: '0',
-  saving: false,
-  showAccountPicker: false,
-  showToPicker: false,
-  showCategoryPicker: false,
-  rateOverride: false,
 };
 
-export const useAddTransactionStore = create<AddTransactionState>((set) => ({
-  visible: false,
-  ...INITIAL_STATE,
+export const useAddTransactionStore = create<AddTransactionStore>((set) => ({
+  state: INITIAL_STATE,
 
-  open: () => set({ visible: true }),
-  close: () => set({ visible: false, ...INITIAL_STATE }),
-
-  setType: (type) => set({ type, amountStr: '0' }),
+  setType: (type) => set((s) => ({ state: { ...s.state, type, amountStr: '0' } })),
 
   handleNumpad: (action, value) =>
     set((s) => {
-      const prev = s.amountStr;
-      if (action === 'backspace') return { amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
-      if (action === 'decimal') return { amountStr: prev.includes('.') ? prev : prev + '.' };
+      const prev = s.state.amountStr;
+      if (action === 'backspace') {
+        return {
+          state: { ...s.state, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) },
+        };
+      }
+      if (action === 'decimal') {
+        return {
+          state: { ...s.state, amountStr: prev.includes('.') ? prev : prev + '.' },
+        };
+      }
       const digit = value ?? '';
-      if (prev === '0') return { amountStr: digit === '0' ? '0' : digit };
+      if (prev === '0') {
+        return { state: { ...s.state, amountStr: digit === '0' ? '0' : digit } };
+      }
       if (prev.includes('.')) {
         const parts = prev.split('.');
         if (parts[1].length >= 2) return {};
       }
-      return { amountStr: prev + digit };
+      return { state: { ...s.state, amountStr: prev + digit } };
     }),
 
-  setSaving: (saving) => set({ saving }),
-  setShowAccountPicker: (v) => set({ showAccountPicker: v }),
-  setShowToPicker: (v) => set({ showToPicker: v }),
-  setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
-  setRateOverride: (v) => set({ rateOverride: v }),
-
-  reset: () => set({ ...INITIAL_STATE }),
+  reset: () => set({ state: INITIAL_STATE }),
 }));
