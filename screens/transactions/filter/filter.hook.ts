@@ -5,24 +5,26 @@ import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useTransactionsScreenStore } from '../transactions.store';
 import { countActiveFilters, formatSelectionSummary } from './filter.helpers';
+import { useFilterDrawerState } from './filter.state';
 import { useFilterDrawerStore } from './filter.store';
 
 /**
- * Orchestrates the filter drawer:
- *   - exposes draft state and setters from useFilterDrawerStore
- *   - reads account / category lists for sub-pickers
- *   - exposes derived display strings (selection summaries, active count)
- *   - provides applyDraft() which commits draft → applied + closes the sheet
+ * Orchestrates the filter drawer. Visibility lives in `useFilterDrawerState`
+ * (UI), draft data in `useFilterDrawerStore` (data). The hook composes the two.
  */
 export function useFilterDrawer() {
-  // Drawer store
-  const visible = useFilterDrawerStore((s) => s.visible);
-  const draft = useFilterDrawerStore((s) => s.draft);
-  const accountPickerVisible = useFilterDrawerStore((s) => s.accountPickerVisible);
-  const categoryPickerVisible = useFilterDrawerStore((s) => s.categoryPickerVisible);
-  const customDatePickerVisible = useFilterDrawerStore((s) => s.customDatePickerVisible);
+  // UI state
+  const visible = useFilterDrawerState((s) => s.state.visible);
+  const accountPickerVisible = useFilterDrawerState((s) => s.state.accountPickerVisible);
+  const categoryPickerVisible = useFilterDrawerState((s) => s.state.categoryPickerVisible);
+  const customDatePickerVisible = useFilterDrawerState((s) => s.state.customDatePickerVisible);
+  const closeUi = useFilterDrawerState((s) => s.close);
+  const setAccountPickerVisible = useFilterDrawerState((s) => s.setAccountPickerVisible);
+  const setCategoryPickerVisible = useFilterDrawerState((s) => s.setCategoryPickerVisible);
+  const setCustomDatePickerVisible = useFilterDrawerState((s) => s.setCustomDatePickerVisible);
 
-  const close = useFilterDrawerStore((s) => s.close);
+  // Data
+  const draft = useFilterDrawerStore((s) => s.state.draft);
   const resetDraft = useFilterDrawerStore((s) => s.resetDraft);
   const toggleAccountId = useFilterDrawerStore((s) => s.toggleAccountId);
   const toggleCategoryId = useFilterDrawerStore((s) => s.toggleCategoryId);
@@ -31,9 +33,6 @@ export function useFilterDrawer() {
   const setAmountMin = useFilterDrawerStore((s) => s.setAmountMin);
   const setAmountMax = useFilterDrawerStore((s) => s.setAmountMax);
   const setAmountCurrency = useFilterDrawerStore((s) => s.setAmountCurrency);
-  const setAccountPickerVisible = useFilterDrawerStore((s) => s.setAccountPickerVisible);
-  const setCategoryPickerVisible = useFilterDrawerStore((s) => s.setCategoryPickerVisible);
-  const setCustomDatePickerVisible = useFilterDrawerStore((s) => s.setCustomDatePickerVisible);
 
   // Domain data (filtered to non-archived accounts; categories shown in full)
   const allAccounts = useAccountStore((s) => s.accounts);
@@ -47,9 +46,14 @@ export function useFilterDrawer() {
 
   // Apply commits draft → applied
   const setAppliedFilters = useTransactionsScreenStore((s) => s.setAppliedFilters);
+
   function applyDraft() {
     setAppliedFilters(draft);
-    close();
+    closeUi();
+  }
+
+  function close() {
+    closeUi();
   }
 
   // Derived display values
@@ -70,14 +74,18 @@ export function useFilterDrawer() {
   const draftActiveCount = useMemo(() => countActiveFilters(draft), [draft]);
 
   return {
-    // visibility
-    visible,
-    accountPickerVisible,
-    categoryPickerVisible,
-    customDatePickerVisible,
-
-    // draft + setters
-    draft,
+    state: {
+      visible,
+      accountPickerVisible,
+      categoryPickerVisible,
+      customDatePickerVisible,
+      draft,
+      pickerAccounts,
+      pickerCategories,
+      selectedAccountSummary,
+      selectedCategorySummary,
+      draftActiveCount,
+    },
     toggleAccountId,
     toggleCategoryId,
     setDatePreset,
@@ -88,19 +96,8 @@ export function useFilterDrawer() {
     setAccountPickerVisible,
     setCategoryPickerVisible,
     setCustomDatePickerVisible,
-
-    // lifecycle
     close,
     resetDraft,
     applyDraft,
-
-    // domain data for sub-pickers
-    pickerAccounts,
-    pickerCategories,
-
-    // derived
-    selectedAccountSummary,
-    selectedCategorySummary,
-    draftActiveCount,
   };
 }
