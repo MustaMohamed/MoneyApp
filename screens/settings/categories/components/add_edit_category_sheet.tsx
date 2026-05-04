@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { type Control, useController } from 'react-hook-form';
 import {
@@ -19,6 +19,8 @@ import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
+
+import { useAddEditCategorySheetState } from './add_edit_category_sheet.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -89,11 +91,17 @@ export function AddEditCategorySheet({
   const { categories } = useCategoryStore();
   const isEditing = editingCategory !== null;
 
-  const [type, setType] = useState<CategoryType>(activeTab as CategoryType);
-  const [selectedIcon, setSelectedIcon] = useState<IconName | null>(null);
-  const [selectedColor, setSelectedColor] = useState<string>(AccountColors[0]);
-  const [iconError, setIconError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const type = useAddEditCategorySheetState((s) => s.state.type);
+  const selectedIcon = useAddEditCategorySheetState((s) => s.state.selectedIcon);
+  const selectedColor = useAddEditCategorySheetState((s) => s.state.selectedColor);
+  const iconError = useAddEditCategorySheetState((s) => s.state.iconError);
+  const isLoading = useAddEditCategorySheetState((s) => s.state.isLoading);
+  const setType = useAddEditCategorySheetState((s) => s.setType);
+  const setSelectedIcon = useAddEditCategorySheetState((s) => s.setSelectedIcon);
+  const setSelectedColor = useAddEditCategorySheetState((s) => s.setSelectedColor);
+  const setIconError = useAddEditCategorySheetState((s) => s.setIconError);
+  const setIsLoading = useAddEditCategorySheetState((s) => s.setIsLoading);
+  const initialize = useAddEditCategorySheetState((s) => s.initialize);
 
   const schema = createCategorySchema(categories, editingCategory?.id);
   const {
@@ -109,16 +117,19 @@ export function AddEditCategorySheet({
     if (visible) {
       if (editingCategory) {
         reset({ name: editingCategory.name });
-        setType(editingCategory.type);
-        setSelectedIcon(editingCategory.icon as IconName);
-        setSelectedColor(editingCategory.color);
+        initialize({
+          type: editingCategory.type,
+          icon: editingCategory.icon as IconName,
+          color: editingCategory.color,
+        });
       } else {
         reset({ name: '' });
-        setType(activeTab as CategoryType);
-        setSelectedIcon(null);
-        setSelectedColor(AccountColors[0]);
+        initialize({
+          type: activeTab as CategoryType,
+          icon: null,
+          color: AccountColors[0],
+        });
       }
-      setIconError('');
     }
   }, [visible, editingCategory, activeTab]);
 
