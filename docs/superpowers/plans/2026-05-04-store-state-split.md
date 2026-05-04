@@ -35,6 +35,85 @@ Verification command, run after each task: `npm run test:coverage`. Use `npx jes
 
 ---
 
+## Return Shape Convention (applies to EVERY task)
+
+All Zustand stores in this refactor (`.store.ts` and `.state.ts`) and all screen hooks follow a strict convention: **values live under a single `state` object; actions stay flat.** This applies even where the literal code blocks below show a flat shape — **the convention overrides individual code blocks**. Task 1 is shown fully converted as the canonical example; apply the same transformation everywhere.
+
+### Store / state file shape
+
+Interface:
+
+```ts
+interface XStore {
+  state: {
+    field1: T1;
+    field2: T2;
+  };
+  setField1: (v: T1) => void;
+  setField2: (v: T2) => void;
+  reset: () => void;
+}
+```
+
+Implementation:
+
+```ts
+const INITIAL_STATE = {
+  field1: defaultValue1,
+  field2: defaultValue2,
+};
+
+export const useXStore = create<XStore>((set) => ({
+  state: INITIAL_STATE,
+  setField1: (v) => set((s) => ({ state: { ...s.state, field1: v } })),
+  setField2: (v) => set((s) => ({ state: { ...s.state, field2: v } })),
+  reset: () => set({ state: INITIAL_STATE }),
+}));
+```
+
+Compound actions update multiple fields with `set((s) => ({ state: { ...s.state, a, b } }))`. Factory functions (`createXxxState()` for `account_detail` and `settings/currency`) apply the same shape inside the factory.
+
+### Test access patterns
+
+Reads:
+
+```ts
+expect(useXStore.getState().state.field1).toBe(defaultValue1);
+```
+
+Seeding multiple fields for a test fixture — call the actions, or replace the state object explicitly:
+
+```ts
+useXStore.setState({ state: { ...useXStore.getState().state, field1: a, field2: b } });
+```
+
+Never write `useXStore.setState({ field1: a })` — that breaks the wrap.
+
+### Hook selectors
+
+Replace `useXStore((s) => s.field)` with `useXStore((s) => s.state.field)`. Actions stay flat: `useXStore((s) => s.setField)`.
+
+### Hook return shape
+
+```ts
+return {
+  state: {
+    /* every reactive value (from stores + derived) */
+  },
+  /* every action / handler / navigator, flat */
+};
+```
+
+Consumers destructure as `const { state, action1, action2 } = useXxx();` and access values via `state.field`.
+
+### What this convention does NOT touch
+
+- Global stores under `/store/*.store.ts` (account, category, currency, transaction, onboarding, ready) keep their existing flat shape — out of scope per spec.
+- Action signatures (parameter lists) are unchanged.
+- File names, the data/UI bucket split, and import paths are exactly as the spec describes.
+
+---
+
 ## File Inventory
 
 | Phase | File(s) Touched | Action |
@@ -81,13 +160,17 @@ Then write `screens/accounts/detail/account_detail.state.ts`:
 ```ts
 import { create } from 'zustand';
 
-interface AccountDetailState {
+interface AccountDetailStateShape {
   isEditing: boolean;
   isAdjustVisible: boolean;
   isArchiveVisible: boolean;
   isSaving: boolean;
   isAdjusting: boolean;
   isArchiving: boolean;
+}
+
+interface AccountDetailState {
+  state: AccountDetailStateShape;
   setEditing: (v: boolean) => void;
   setAdjustVisible: (v: boolean) => void;
   setArchiveVisible: (v: boolean) => void;
@@ -97,7 +180,7 @@ interface AccountDetailState {
   reset: () => void;
 }
 
-const INITIAL = {
+const INITIAL_STATE: AccountDetailStateShape = {
   isEditing: false,
   isAdjustVisible: false,
   isArchiveVisible: false,
@@ -108,14 +191,14 @@ const INITIAL = {
 
 export function createAccountDetailState() {
   return create<AccountDetailState>((set) => ({
-    ...INITIAL,
-    setEditing: (v) => set({ isEditing: v }),
-    setAdjustVisible: (v) => set({ isAdjustVisible: v }),
-    setArchiveVisible: (v) => set({ isArchiveVisible: v }),
-    setSaving: (v) => set({ isSaving: v }),
-    setAdjusting: (v) => set({ isAdjusting: v }),
-    setArchiving: (v) => set({ isArchiving: v }),
-    reset: () => set(INITIAL),
+    state: INITIAL_STATE,
+    setEditing: (v) => set((s) => ({ state: { ...s.state, isEditing: v } })),
+    setAdjustVisible: (v) => set((s) => ({ state: { ...s.state, isAdjustVisible: v } })),
+    setArchiveVisible: (v) => set((s) => ({ state: { ...s.state, isArchiveVisible: v } })),
+    setSaving: (v) => set((s) => ({ state: { ...s.state, isSaving: v } })),
+    setAdjusting: (v) => set((s) => ({ state: { ...s.state, isAdjusting: v } })),
+    setArchiving: (v) => set((s) => ({ state: { ...s.state, isArchiving: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
   }));
 }
 
@@ -146,17 +229,12 @@ export function useAccountDetail() {
   const archiveAccount = useAccountStore((s) => s.archiveAccount);
   const adjustBalance = useAccountStore((s) => s.adjustBalance);
 
-  const isEditing = useAccountDetailState((s) => s.isEditing);
+  const detailState = useAccountDetailState((s) => s.state);
   const setEditing = useAccountDetailState((s) => s.setEditing);
-  const isAdjustVisible = useAccountDetailState((s) => s.isAdjustVisible);
   const setAdjustVisible = useAccountDetailState((s) => s.setAdjustVisible);
-  const isArchiveVisible = useAccountDetailState((s) => s.isArchiveVisible);
   const setArchiveVisible = useAccountDetailState((s) => s.setArchiveVisible);
-  const isSaving = useAccountDetailState((s) => s.isSaving);
   const setSaving = useAccountDetailState((s) => s.setSaving);
-  const isAdjusting = useAccountDetailState((s) => s.isAdjusting);
   const setAdjusting = useAccountDetailState((s) => s.setAdjusting);
-  const isArchiving = useAccountDetailState((s) => s.isArchiving);
   const setArchiving = useAccountDetailState((s) => s.setArchiving);
   const reset = useAccountDetailState((s) => s.reset);
 
@@ -233,24 +311,28 @@ export function useAccountDetail() {
   const onBack = () => router.back();
 
   return {
-    account,
+    state: {
+      account,
+      isEditing: detailState.isEditing,
+      isAdjustVisible: detailState.isAdjustVisible,
+      isArchiveVisible: detailState.isArchiveVisible,
+      isSaving: detailState.isSaving,
+      isAdjusting: detailState.isAdjusting,
+      isArchiving: detailState.isArchiving,
+    },
     form,
-    isEditing,
     setEditing,
     handleSave,
-    isSaving,
-    isAdjustVisible,
     setAdjustVisible,
     handleAdjustBalance,
-    isAdjusting,
-    isArchiveVisible,
     setArchiveVisible,
     handleArchive,
-    isArchiving,
     onBack,
   };
 }
 ```
+
+Consumers of this hook (e.g. `screens/accounts/detail/index.tsx`) currently destructure `account, isEditing, ...` flat. Update each one to destructure `state` and read fields off it: `const { state, setEditing, handleSave, ... } = useAccountDetail();` then `state.account`, `state.isEditing`, etc. Run `grep -rn "useAccountDetail" screens app` to find every call site.
 
 - [ ] **Step 3: Update and rename the test file**
 
@@ -268,7 +350,7 @@ jest.mock('zustand', () => ({ create: jest.requireActual('zustand').create }));
 describe('accountDetailState initial state', () => {
   it('starts with all booleans false', () => {
     const store = createAccountDetailState();
-    const s = store.getState();
+    const s = store.getState().state;
     expect(s.isEditing).toBe(false);
     expect(s.isAdjustVisible).toBe(false);
     expect(s.isArchiveVisible).toBe(false);
@@ -282,47 +364,47 @@ describe('accountDetailState setters', () => {
   it('setEditing toggles', () => {
     const store = createAccountDetailState();
     store.getState().setEditing(true);
-    expect(store.getState().isEditing).toBe(true);
+    expect(store.getState().state.isEditing).toBe(true);
     store.getState().setEditing(false);
-    expect(store.getState().isEditing).toBe(false);
+    expect(store.getState().state.isEditing).toBe(false);
   });
 
   it('setAdjustVisible toggles', () => {
     const store = createAccountDetailState();
     store.getState().setAdjustVisible(true);
-    expect(store.getState().isAdjustVisible).toBe(true);
+    expect(store.getState().state.isAdjustVisible).toBe(true);
     store.getState().setAdjustVisible(false);
-    expect(store.getState().isAdjustVisible).toBe(false);
+    expect(store.getState().state.isAdjustVisible).toBe(false);
   });
 
   it('setArchiveVisible toggles', () => {
     const store = createAccountDetailState();
     store.getState().setArchiveVisible(true);
-    expect(store.getState().isArchiveVisible).toBe(true);
+    expect(store.getState().state.isArchiveVisible).toBe(true);
   });
 
   it('setSaving toggles', () => {
     const store = createAccountDetailState();
     store.getState().setSaving(true);
-    expect(store.getState().isSaving).toBe(true);
+    expect(store.getState().state.isSaving).toBe(true);
     store.getState().setSaving(false);
-    expect(store.getState().isSaving).toBe(false);
+    expect(store.getState().state.isSaving).toBe(false);
   });
 
   it('setAdjusting toggles', () => {
     const store = createAccountDetailState();
     store.getState().setAdjusting(true);
-    expect(store.getState().isAdjusting).toBe(true);
+    expect(store.getState().state.isAdjusting).toBe(true);
     store.getState().setAdjusting(false);
-    expect(store.getState().isAdjusting).toBe(false);
+    expect(store.getState().state.isAdjusting).toBe(false);
   });
 
   it('setArchiving toggles', () => {
     const store = createAccountDetailState();
     store.getState().setArchiving(true);
-    expect(store.getState().isArchiving).toBe(true);
+    expect(store.getState().state.isArchiving).toBe(true);
     store.getState().setArchiving(false);
-    expect(store.getState().isArchiving).toBe(false);
+    expect(store.getState().state.isArchiving).toBe(false);
   });
 });
 
@@ -336,7 +418,7 @@ describe('accountDetailState reset', () => {
     store.getState().setAdjusting(true);
     store.getState().setArchiving(true);
     store.getState().reset();
-    const s = store.getState();
+    const s = store.getState().state;
     expect(s.isEditing).toBe(false);
     expect(s.isAdjustVisible).toBe(false);
     expect(s.isArchiveVisible).toBe(false);
