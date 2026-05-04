@@ -16,20 +16,22 @@ const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
 export default function AccountDetailScreen() {
   const {
-    account,
+    state: {
+      account,
+      isEditing,
+      isAdjustVisible,
+      isArchiveVisible,
+      isSaving,
+      isAdjusting,
+      isArchiving,
+    },
     form,
-    isEditing,
     setEditing,
     handleSave,
-    isSaving,
-    isAdjustVisible,
     setAdjustVisible,
     handleAdjustBalance,
-    isAdjusting,
-    isArchiveVisible,
     setArchiveVisible,
     handleArchive,
-    isArchiving,
     onBack,
   } = useAccountDetail();
   const {
