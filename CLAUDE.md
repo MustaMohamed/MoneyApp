@@ -1,196 +1,85 @@
 # MoneyApp — Project Reference
 
+MoneyApp is a React Native (Expo) personal finance app — local-only data, no bank connections. Tracks expenses, accounts, budgets, bills, debt, and saving goals.
+
 ## Workflow Rules
 
-- **Always create a new git branch before starting any new work.** Never commit directly to `main`. Every feature, refactor, or fix gets its own branch (e.g., `refactor/database-module`, `feat/transactions`). Create and switch to the branch before making any file changes.
-
----
-
-MoneyApp is a React Native (Expo) personal finance app for tracking expenses, accounts, budgets, bills, debt, and saving goals. All data is stored locally on device — no bank connections.
-
----
+- **Always create a new git branch before any new work.** Never commit to `main`. One branch per feature/refactor/fix (e.g. `feat/transactions`, `refactor/database-module`).
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | React Native via Expo (managed workflow) |
-| Language | TypeScript (strict) |
-| Navigation | Expo Router v3 (file-based routing under `app/`) |
-| Local DB | expo-sqlite |
-| State | Zustand v5 |
-| Form | React Hook Form v7 + Zod v4 + @hookform/resolvers |
-| Secure storage | expo-secure-store |
-| Animation | react-native-reanimated |
-| Fonts | Sora + Inter via @expo-google-fonts |
-| Icons | MaterialCommunityIcons via @expo/vector-icons |
-| UUID | react-native-uuid |
+Expo (managed) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · React Hook Form v7 + Zod v4 · expo-secure-store · react-native-reanimated · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid`.
 
 ---
 
 ## Project Structure
 
-The codebase splits "where Expo Router looks" from "where screen code lives." `app/` contains only routing (layouts + thin index wrappers); every screen's UI, hooks, stores, animations, helpers, and sub-components live in a parallel `screens/` tree. This keeps Expo Router's `require.context` from scooping up colocated `.ts` files as routes.
+The codebase splits **routing** from **screen code**. `app/` is what Expo Router scans; `screens/` is where the actual UI lives. This prevents Expo Router's `require.context` from registering colocated `.ts` files as routes.
 
 ```
-app/                                  # ROUTING ONLY — Expo Router scans here
-  _layout.tsx                          # Root layout (useFonts, SafeAreaProvider)
-  index.tsx                            # Redirect — onboarding vs dashboard
-  (onboarding)/
-    _layout.tsx
-    welcome/index.tsx                  # wrapper → @/screens/onboarding/welcome
-    currency/index.tsx                 # wrapper → @/screens/onboarding/currency
-    security/index.tsx                 # wrapper → @/screens/onboarding/security
-    add_account/index.tsx              # wrapper → @/screens/onboarding/add_account
-    more_accounts/index.tsx            # wrapper → @/screens/onboarding/more_accounts
-    ready/index.tsx                    # wrapper → @/screens/onboarding/ready
-  (app)/
-    _layout.tsx                        # bootstraps stores
-    (tabs)/
-      _layout.tsx                      # Tabs nav
-      bills/index.tsx | budget/index.tsx | goals/index.tsx   # placeholder leaves
-      dashboard/
-        _layout.tsx                    # Stack
-        index.tsx                      # wrapper → @/screens/dashboard
-      transactions/
-        _layout.tsx                    # Stack
-        index.tsx                      # wrapper → @/screens/transactions
-        detail/[id]/index.tsx          # wrapper → @/screens/transactions/detail
-    accounts/
-      [id]/index.tsx                   # wrapper → @/screens/accounts/detail
-      add_account/index.tsx            # wrapper → @/screens/accounts/add_account
-    settings/
-      index.tsx                        # wrapper → @/screens/settings
-      categories/index.tsx             # wrapper → @/screens/settings/categories
-      currency/index.tsx               # wrapper → @/screens/settings/currency
-
-screens/                              # SCREEN CODE — never scanned by Expo Router
-  onboarding/
-    welcome/{index.tsx, welcome.anim.ts}
-    currency/{index.tsx, currency.{hook,store,anim}.ts, components/currency_row.tsx}
-    security/{index.tsx, security.{hook,store,anim,helpers}.ts, components/security_pill.tsx}
-    add_account/{index.tsx, add_account.{hook,anim}.ts, components/type_pill.tsx}
-    more_accounts/{index.tsx, more_accounts.{hook,anim}.ts, components/account_row.tsx}
-    ready/{index.tsx, ready.{hook,store,anim,helpers}.ts}
-  dashboard/{index.tsx, dashboard.{hook,anim,helpers}.ts, components/*.tsx}
-  transactions/
-    {index.tsx, transactions.{hook,store,anim}.ts, components/*.tsx}
-    filter/{index.tsx, filter.{hook,store,anim,helpers}.ts, components/*.tsx}
-    transaction_form/{index.tsx, add_transaction.{hook,store}.ts, edit_transaction.{hook,store,helpers}.ts, transaction_form.anim.ts, transaction_form_body.tsx, components/*.tsx}
-    detail/{index.tsx, detail.{hook,anim}.ts, components/*.tsx}
-  accounts/
-    detail/{index.tsx, account_detail.{hook,store,anim}.ts, components/*.tsx}
-    add_account/{index.tsx, add_account.{hook,anim}.ts, components/type_pill.tsx}
-  settings/
-    {index.tsx, settings.hook.ts}
-    categories/{index.tsx, categories.{hook,store,anim}.ts, components/*.tsx}
-    currency/{index.tsx, currency.{hook,store,anim}.ts}
-
-components/                           # GLOBAL shared components
-  progress_dots/{index.tsx, progress_dots.anim.ts}
-  geo_illustration/index.tsx
-  empty_states/...
-
-constants/
-  enums.ts                            # All domain enums
-  secure_store_keys.ts                # SecureStoreKeys as const
-  strings.ts                          # All user-visible copy
-  theme.ts                            # Cairo Nights design tokens
-
-store/
-  onboarding.store.ts | account.store.ts | category.store.ts | currency.store.ts | transaction.store.ts | ready.store.ts
-
-database/
-  migrations/
-    001_create_accounts.ts            # { version: 1, up: 'CREATE TABLE IF NOT EXISTS accounts ...' }
-    002_create_app_settings.ts
-    NNN_*.ts                          # one file per DDL change
-    index.ts                          # exports MIGRATIONS as ordered array
-  entities/<domain>.entity.ts         # type-only DB column representation
-  <domain>.ts                         # query executors (getX, addX, setX, updateX, deleteX)
-  client.ts                           # getDb(), runMigrations(db)
-
-utils/
-  onboarding_nav.ts
-  responsive.ts                       # ms(), msFont() scaling
-  use_first_mount_entering.hook.ts
-  use_layout_init.hook.ts             # DB init + onboarding rehydration; called by app/_layout.tsx
-  use_zod_form.hook.ts                # useForm + zodResolver wrapper
-  zod_config.ts                       # Global Zod error map
-
-__tests__/                            # snake_case filenames; import from @/screens/... or @/utils/... etc.
+app/        ROUTING ONLY — only _layout.tsx and index.tsx files
+screens/    UI, hooks, stores, anims, helpers, components per screen
+components/ globally shared components
+constants/  enums.ts · secure_store_keys.ts · strings.ts · theme.ts
+store/      Zustand stores (one per domain)
+database/   client.ts · migrations/ · entities/ · <domain>.ts query files
+utils/      responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
+__tests__/  snake_case test files for the logic layer
 ```
 
 ### Routing convention (`app/`)
 
-- **Only** `_layout.tsx` and `index.tsx` files live under `app/`. The lone exception is dynamic-segment folders like `[id]/` whose `index.tsx` is the route.
-- Every `index.tsx` in `app/` is a **one-line wrapper**: `export { default } from '@/screens/<path>';`
-- **Never** colocate `*.hook.ts` / `*.anim.ts` / `*.store.ts` / `*.helpers.ts` / `components/*.tsx` next to a route file. Expo Router's `require.context` will register every `.ts`/`.tsx` file in `app/` as a route, and any without a default export becomes an undefined-component crash waiting to happen.
-- **Never** name a sibling of `app/_layout.tsx` like `_layout.<anything>.ts`. Expo Router parses filenames by stripping the extension and splitting on `.`, so `_layout.hook.ts` → `_layout` → treated as a layout file → conflicts with `_layout.tsx`. Layout-related hooks/stores live in `utils/` or `store/`.
+- **Only** `_layout.tsx` and `index.tsx` files live under `app/`. Dynamic segments like `[id]/index.tsx` are the one exception.
+- Every `index.tsx` in `app/` is a one-line wrapper: `export { default } from '@/screens/<path>';`
+- **Never** colocate `*.hook.ts` / `*.anim.ts` / `*.store.ts` / `*.helpers.ts` / `components/*.tsx` next to a route. Expo Router's `require.context` registers every `.ts`/`.tsx` in `app/` as a route — files without a default export crash.
+- **Never** name a sibling of `_layout.tsx` like `_layout.<anything>.ts`. Expo Router strips the extension and splits on `.`, so `_layout.hook.ts` is treated as a layout file and silently overwrites `_layout.tsx` in production builds. Layout helpers go in `utils/` or `store/`.
 
 ### Screen anatomy (`screens/`)
 
-Each screen folder has up to four files with strict responsibilities, plus a `components/` subfolder:
+Each screen folder has up to four files plus a `components/` subfolder:
 
-- **`index.tsx`** — UI template with `export default function ScreenName()`. No `useState`, no `useSharedValue`. Wires together hook and anim outputs.
+- **`index.tsx`** — UI template. `export default function ScreenName()`. No `useState`, no `useSharedValue`. Wires together hook + anim outputs.
 - **`<name>.hook.ts`** — Logic, RHF/Zod schema, store reads, navigation. Uses `useZodForm` from `utils/use_zod_form.hook.ts`.
-- **`<name>.store.ts`** — Zustand for local non-form UI state only. Includes `reset()`. Omitted when not needed (e.g. `add_account` has none — form state lives entirely in RHF).
-- **`<name>.anim.ts`** — Reanimated shared values and animated styles. No business logic.
+- **`<name>.store.ts`** — Zustand for local non-form UI state only. Includes `reset()`. Omitted when not needed (form state lives in RHF).
+- **`<name>.anim.ts`** — Reanimated shared values + animated styles. No business logic.
 - **`components/`** — Sub-components used only by this screen.
 
-Sub-screens that aren't separate routes (e.g. drawers like `transactions/filter/` and `transactions/transaction_form/`) follow the same anatomy; they're imported as components from their parent screen's `index.tsx`.
+Sub-screens that aren't separate routes (drawers like `transactions/filter/`, `transactions/transaction_form/`) follow the same anatomy and are imported from their parent's `index.tsx`.
 
-File naming is `snake_case`. TypeScript identifiers are `camelCase`.
+Files are `snake_case`. TypeScript identifiers are `camelCase`.
 
 ---
 
 ## Conventions
 
-**null vs undefined:** `null` is used only for DB-mapped nullable columns. Everywhere else in TypeScript code, absent values are `undefined`.
-
-**Enums:** All domain enums are TypeScript string enums in `constants/enums.ts` (regular `enum`, not `const enum` — Babel/Expo incompatible). Enum values match SQLite CHECK constraint strings exactly. Zod validation uses `z.nativeEnum()`.
-
-**SecureStore keys:** All key strings are centralised in `constants/secure_store_keys.ts` as a typed `as const` object.
-
-**Tokens:** All sizing, spacing, radius, and color values come from `constants/theme.ts`, scaled by `ms()` / `msFont()` in `utils/responsive.ts`.
-
-**Strings:** All user-visible copy lives in `constants/strings.ts`.
+- **null vs undefined:** `null` is reserved for DB-mapped nullable columns. Everywhere else, absent values are `undefined`.
+- **Enums:** TypeScript string enums in `constants/enums.ts` — regular `enum`, not `const enum` (Babel/Expo incompatible). Values match SQLite CHECK constraint strings exactly. Validate with `z.nativeEnum()`.
+- **SecureStore keys:** All keys centralised in `constants/secure_store_keys.ts` as a typed `as const` object.
+- **Tokens:** All sizing, spacing, radius, color values come from `constants/theme.ts`, scaled by `ms()` / `msFont()` from `utils/responsive.ts`.
+- **Strings:** All user-visible copy lives in `constants/strings.ts`.
 
 ---
 
-## Database Layer Conventions
+## Database Layer
 
 ### Migrations (`database/migrations/`)
 
-- One file per DDL operation. Naming: `NNN_<description>.ts` (zero-padded, e.g. `001`, `002`).
-- Every migration exports `{ version: number, up: string }`.
-- Every `CREATE TABLE` statement must use `IF NOT EXISTS` — migrations are idempotent.
-- `migrations/index.ts` exports `MIGRATIONS` as an ordered array — append new entries here when adding a migration.
-- The migration runner (`client.ts`) tracks applied versions in a `schema_migrations` table (`version` INTEGER PK, `applied_at` TEXT).
-- Never edit an already-shipped migration. Add a new numbered file instead.
-
-```typescript
-// migrations/001_create_accounts.ts
-export const migration001 = {
-  version: 1,
-  up: `CREATE TABLE IF NOT EXISTS accounts (...);`,
-};
-```
+- One file per DDL change. Naming `NNN_<description>.ts` (zero-padded).
+- Each migration exports `{ version: number, up: string }`.
+- Every `CREATE TABLE` uses `IF NOT EXISTS` — migrations are idempotent.
+- `migrations/index.ts` exports `MIGRATIONS` as an ordered array — append new entries here.
+- Runner tracks applied versions in `schema_migrations` (`version` PK INTEGER, `applied_at` TEXT).
+- **Never edit a shipped migration.** Add a new numbered file.
 
 ### Entities (`database/entities/`)
 
-- Type definitions only — no logic, no functions.
-- No imports from other `database/` files. May import from `@/constants/enums`.
-- File naming: `<domain>.entity.ts` (e.g. `account.entity.ts`).
-- These are the DB representation layer — fields and types mirror the SQLite columns exactly.
+Type-only DB representation. No logic, no functions, no imports from other `database/` files. May import from `@/constants/enums`. One `<domain>.entity.ts` per table.
 
-### Query Executor Files (`database/<domain>.ts`)
+### Query executors (`database/<domain>.ts`)
 
-- Each file owns all SQL for one domain table (e.g. `accounts.ts` → `accounts` table).
-- Functions receive `db: SQLiteDatabase` as their first parameter — no internal `getDb()` calls.
-- Verb convention:
+Each file owns the SQL for one table. Functions take `db: SQLiteDatabase` as the first parameter — no internal `getDb()` calls. Verb convention:
 
-| Verb | SQL operation |
+| Verb | SQL |
 |---|---|
 | `get*` | SELECT |
 | `add*` | INSERT |
@@ -198,267 +87,55 @@ export const migration001 = {
 | `update*` | UPDATE |
 | `delete*` | DELETE |
 
-- These are **not** repositories. They execute SQL and return typed results. Business logic lives in the store layer (or a future repository layer).
+These are not repositories — they execute SQL and return typed results. Business logic lives in stores.
 
 ### Client (`database/client.ts`)
 
-- Owns the `getDb()` singleton and `runMigrations(db)`.
-- `getDb()` opens `moneyapp.db`, enables WAL mode and foreign keys, returns the same promise on repeat calls.
-- `runMigrations(db)` is called once at app startup in `_layout.hook.ts`.
+`getDb()` is a singleton — opens `moneyapp.db`, enables WAL + foreign keys, returns the same promise on repeat calls. `runMigrations(db)` is called once at startup from `utils/use_layout_init.hook.ts`.
 
----
+### Account row defaults at creation
 
-## Domain Enums (`constants/enums.ts`)
-
-```typescript
-export enum AccountType {
-  Bank            = 'bank',
-  SmartWallet     = 'smart_wallet',
-  PhysicalWallet  = 'physical_wallet',
-  PhysicalSavings = 'physical_savings',
-  CreditCard      = 'credit_card',
-}
-
-export enum OnboardingStep { O1='O1', O2='O2', O3='O3', O4='O4', O5='O5', O6='O6' }
-export enum SecurityChoice { Pin='pin', Biometric='biometric', Skip='skip' }
-export enum Currency { EGP='EGP', USD='USD' }
-```
-
----
-
-## SecureStore Keys (`constants/secure_store_keys.ts`)
-
-```typescript
-export const SecureStoreKeys = {
-  OnboardingComplete:   'onboarding_complete',
-  OnboardingStep:       'onboarding_step',
-  BaseCurrency:         'base_currency',
-  SecurityChoice:       'security_choice',
-  SecuritySetupSkipped: 'security_setup_skipped',
-} as const;
-```
-
-`OnboardingComplete` is set to `'true'` only when the user taps "Open My Dashboard" on O6.
-
-On app launch, if `OnboardingComplete !== 'true'`, the app reads `OnboardingStep` and resumes from that screen.
-
----
-
-## Database Schema
-
-Two tables. WAL mode and foreign keys enabled on open.
-
-```sql
-CREATE TABLE IF NOT EXISTS accounts (
-  id                TEXT PRIMARY KEY,
-  name              TEXT NOT NULL,
-  type              TEXT NOT NULL
-                      CHECK(type IN ('bank','smart_wallet','physical_wallet','physical_savings','credit_card')),
-  currency          TEXT NOT NULL CHECK(currency IN ('EGP','USD')),
-  opening_balance   REAL NOT NULL DEFAULT 0,
-  current_balance   REAL NOT NULL DEFAULT 0,
-  color             TEXT,
-  credit_limit      REAL,
-  revolving_balance REAL,
-  minimum_payment   REAL,
-  statement_due_day INTEGER,
-  interest_tracking INTEGER NOT NULL DEFAULT 0,
-  apr               REAL,
-  is_archived       INTEGER NOT NULL DEFAULT 0,
-  sort_order        INTEGER NOT NULL DEFAULT 0,
-  created_at        TEXT NOT NULL,
-  updated_at        TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS app_settings (
-  key   TEXT PRIMARY KEY,
-  value TEXT NOT NULL
-);
-```
-
-On account creation: `current_balance = opening_balance`, `is_archived = 0`, `id` = UUID v4, timestamps = `new Date().toISOString()`.
-
----
-
-## Account Form — Validation Rules
-
-| Field | Rule | Error key |
-|---|---|---|
-| name | Required | `Strings.errNameRequired` |
-| name | Max 30 chars | `Strings.errNameTooLong` |
-| name | Unique across accounts | `Strings.errNameDuplicate` |
-| balance | Required, >= 0 | `Strings.errInvalidAmount` |
-| credit_limit | Required when `type = CreditCard` | `Strings.errCreditLimitRequired` |
-| apr | Required when `interest_tracking = true` | `Strings.errAprRequired` |
-
-CC-only fields (visible when `type = AccountType.CreditCard`): `revolving_balance`, `credit_limit`, `minimum_payment`, `statement_due_day`, `interest_tracking` toggle. `apr` additionally requires `interest_tracking = true`.
-
-Schema factory — rebuilt when `accounts` list changes (duplicate-name check):
-
-```typescript
-const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
-const form = useZodForm(schema, { defaultValues: { ... } });
-```
+`current_balance = opening_balance`, `is_archived = 0`, `id = uuidv4()`, `created_at = updated_at = new Date().toISOString()`.
 
 ---
 
 ## Business Rules
 
-1. `OnboardingComplete` set only on O6 "Open My Dashboard" tap
-2. Force-close at any step → resume from that step on relaunch
-3. O4 requires saving at least 1 account before proceeding
-4. O5 is skippable once O4 has written an account
-5. EGP is pre-selected on O2
-6. O3 security setup is UI only — no actual PIN or biometric logic
-7. `current_balance = opening_balance` at creation
-8. Credit card accounts are liabilities (negative net worth contribution)
-9. Account names are unique across all accounts
+1. `OnboardingComplete` flag is set only when the user taps "Open My Dashboard" on O6.
+2. Force-close at any onboarding step → resume from that step on relaunch.
+3. O4 requires saving at least 1 account before proceeding.
+4. O5 is skippable once O4 has written an account.
+5. EGP is pre-selected on O2.
+6. O3 security setup is UI only — no actual PIN or biometric logic yet.
+7. `current_balance = opening_balance` at account creation.
+8. Credit card accounts are liabilities (negative net-worth contribution).
+9. Account names are unique across all accounts.
 
 ---
 
 ## Design System — Cairo Nights
 
-### Colors
-```
-bg:          #0F1923   Midnight background
-surface:     #1A2535   Card / input surface
-surfaceEl:   #243044   Elevated element
-border:      #2A3A4F   Border / divider
-text1:       #F0EBE3   Primary text
-text2:       #6B7F99   Secondary / muted text
-gold:        #D4A44C   Display values
-cairoGold:   #C9973A   CTAs, active states
-positive:    #4CAF82   Positive amounts
-negative:    #E05A42   Errors, debt
-midnightBlue:#1B2B4B   CTA text
-```
+All values in `constants/theme.ts`. Never hardcode hex/spacing/radius — import from theme and scale with `ms()` / `msFont()`.
 
-### Typography
-- **Sora** — numbers, headings, CTAs, account names, balances
-- **Inter** — body copy, labels, descriptions, secondary text
-
-### Scale
-- Spacing: `xxs/xs/sm/md/lg/xl/xxl` = 4 · 8 · 12 · 16 · 20 · 24 · 32
-- Radius: `sm/md/lg/xl/pill/cta` = 8 · 12 · 16 · 28 · 11 · 13
-
-### CTA Button
-- Height: `Size.ctaHeight` (52)
-- Radius: `Radius.cta` (13)
-- Font: `FontFamily.soraBold`, `Type.bodyStrong` (15)
-- Background: `linear-gradient(#C9973A → #D4A44C)`
-- Text: `#1B2B4B`
-- Bottom bar: `paddingTop: Spacing.xs`, `paddingHorizontal: Spacing.sm`, `paddingBottom: Spacing.md`, `borderTopColor: #1A2535`
-
-### Number formatting
-All amounts use `en-US` comma formatting: `Intl.NumberFormat('en-US', { style: 'decimal' })`.
-`122300 → 122,300` ✅ `1,22,300` ❌
-
----
-
-## Animation Reference
-
-### O1 Welcome
-```typescript
-// Illustration: FadeInDown.duration(600)
-// Headline + subtext: FadeInUp.delay(400).duration(500)
-// CTA: FadeInUp.delay(600).duration(400)
-```
-
-### O2 Currency — row selection
-```typescript
-// Row tap: scale 1.0 → 1.02 → 1.0 via withSequence(withTiming, withTiming)
-// Gold border: withTiming(1, { duration: 200 })
-// Checkmark: withSpring(1, { damping: 12, stiffness: 180 })
-// Deselect: withTiming(0, { duration: 150 })
-```
-
-### O3 Security — pill selection
-```typescript
-// Icon scale: withSequence(withSpring(1.08), withSpring(1.0))
-// Border color: interpolateColor #2A3A4F → #C9973A, withTiming(200ms)
-// "Best" badge: FadeIn.delay(300).duration(250)
-```
-
-### O4 Add Account
-```typescript
-// Type pill tap: scale 1.0 → 1.03 → 1.0 via withSpring
-// CC fields: entering={FadeInDown.duration(250)} exiting={FadeOutUp.duration(200)}
-// APR field: entering={FadeInDown.duration(200)} exiting={FadeOutUp.duration(150)}
-// Errors: entering={FadeInDown.duration(150)} exiting={FadeOutUp.duration(100)}
-// Save press: scale 1.0 → 0.97 → 1.0 via withSequence(withTiming(80ms), withSpring)
-```
-
-### O5 More Accounts
-```typescript
-// Existing rows: FadeInRight.delay(index * 80).duration(300)
-// New row: FadeInRight.duration(250)
-```
-
-### O6 Ready
-```typescript
-// Checkmark: ZoomIn.springify().damping(10).stiffness(100)
-// Headline: FadeInUp.delay(200).duration(400)
-// Subtitle: FadeInUp.delay(300).duration(350)
-// Summary rows: FadeInUp.delay(400 + index * 80).duration(300)
-// CTA: FadeInUp.delay(700).duration(400)
-```
-
-### Progress Dots
-```typescript
-// Scale: withSequence(withSpring(1.3, {damping:8}), withSpring(1.0, {damping:12}))
-// Color: interpolateColor [#243044 → #C9973A], withTiming(200ms)
-```
-
-### Navigation
-```typescript
-// O1 → O2: animation: 'fade'
-// All other transitions: default slide_from_right
-```
-
----
-
-## Icons — MaterialCommunityIcons (filled)
-
-| Location | Icon | Color |
-|---|---|---|
-| O3 header | `shield-account` | #C9973A |
-| O3 PIN | `lock` | #C9973A |
-| O3 Biometric | `fingerprint` | #378ADD |
-| O3 Skip | `chevron-right` | #6B7F99 |
-| O4 Bank | `bank` | #C9973A active / #6B7F99 |
-| O4 Smart Wallet | `cellphone-nfc` | #6B7F99 |
-| O4 Physical Wallet | `wallet` | #6B7F99 |
-| O4 Physical Savings | `piggy-bank` | #6B7F99 |
-| O4 Credit Card | `credit-card` | #6B7F99 |
-| O5 rows | type-matched | #C9973A first / #6B7F99 |
-| O6 checkmark | `check-circle` | #4CAF82 |
-| Back arrow | `chevron-left` | #6B7F99 |
-
----
-
-## Account Color Presets
-
-`AccountColors` in `constants/theme.ts` — 12 values, index 0 is the default:
-
-```
-#1B2B4B  #C9973A  #3D7A5F  #C0442A
-#4A2545  #185FA5  #D4830A  #2D7D6E
-#7B3F8C  #C45C2A  #4A6FA5  #7A8B3C
-```
-
-Selected state: 2px `#C9973A` border, scale 1.1.
+- **Typography:** Sora (numbers, headings, CTAs, balances) · Inter (body, labels, secondary).
+- **Number formatting:** `Intl.NumberFormat('en-US', { style: 'decimal' })` — `122,300` not `1,22,300`.
+- **CTA button:** `Size.ctaHeight` (52), `Radius.cta` (13), gold gradient on midnight-blue text.
 
 ---
 
 ## Testing
 
-Test files live in `__tests__/` with `snake_case` names. The test layer covers pure logic: `*.helpers.ts`, stores, and `utils/responsive.ts`. Coverage: `npm run test:coverage` — thresholds 80% lines / 95% functions / 100% branches on the logic layer.
+Test files live in `__tests__/` (`snake_case`). Coverage targets the logic layer only — `*.helpers.ts`, stores, `utils/responsive.ts`.
+
+```
+npm run test:coverage    # thresholds: 80% lines / 95% functions / 100% branches
+```
 
 ---
 
 ## Notion Documentation
 
-- PRD: https://app.notion.com/p/351c90e418b681709371cadb86fb1dfa
-- Tech Spec v1.1: https://app.notion.com/p/351c90e418b681eeab72c1f9ab32a541
-- QA & Test Plan: https://app.notion.com/p/351c90e418b6817281ebde95a5eac550
-- M1 Cycle Tracker: https://app.notion.com/p/351c90e418b681268bb4c033a59749a9
+- [PRD](https://app.notion.com/p/351c90e418b681709371cadb86fb1dfa)
+- [Tech Spec v1.1](https://app.notion.com/p/351c90e418b681eeab72c1f9ab32a541)
+- [QA & Test Plan](https://app.notion.com/p/351c90e418b6817281ebde95a5eac550)
+- [M1 Cycle Tracker](https://app.notion.com/p/351c90e418b681268bb4c033a59749a9)
