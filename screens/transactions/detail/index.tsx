@@ -8,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { EditTransactionSheet } from '../transaction_form';
+import { useEditTransactionState } from '../transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '../transaction_form/edit_transaction.store';
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
@@ -21,24 +22,26 @@ export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const d = useTransactionDetail(id);
 
-  const editVisible = useEditTransactionStore((s) => s.visible);
-  const editingTx = useEditTransactionStore((s) => s.editingTx);
-  const closeEdit = useEditTransactionStore((s) => s.close);
+  const editVisible = useEditTransactionState((s) => s.state.visible);
+  const editingTx = useEditTransactionStore((s) => s.state.editingTx);
 
   useEffect(() => {
     return () => {
-      useEditTransactionStore.getState().close();
+      useEditTransactionStore.getState().reset();
+      useEditTransactionState.getState().close();
     };
   }, []);
 
   function handleEdit() {
     if (d.tx) {
-      useEditTransactionStore.getState().open(d.tx);
+      useEditTransactionStore.getState().loadFromTx(d.tx);
+      useEditTransactionState.getState().open(d.tx);
     }
   }
 
   function handleEditClose() {
-    closeEdit();
+    useEditTransactionStore.getState().reset();
+    useEditTransactionState.getState().close();
     d.reload();
   }
 

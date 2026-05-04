@@ -156,42 +156,42 @@ function EditSheetInner({
         <TransactionFormBody
           title={Strings.editTxTitle}
           locked={true}
-          type={hook.type}
+          type={hook.state.type}
           onSelectType={() => {}}
-          amountStr={hook.amountStr}
+          amountStr={hook.state.amountStr}
           handleNumpad={hook.handleNumpad}
-          amountError={hook.errors.amount}
-          selectedAccount={hook.selectedAccount}
+          amountError={hook.state.errors.amount}
+          selectedAccount={hook.state.selectedAccount}
           onOpenAccountPicker={() => {}}
           accountError={undefined}
-          selectedToAccount={hook.selectedToAccount}
+          selectedToAccount={hook.state.selectedToAccount}
           onOpenToPicker={() => {}}
           toAccountError={undefined}
-          selectedCategory={hook.selectedCategory}
+          selectedCategory={hook.state.selectedCategory}
           onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-          categoryError={hook.errors.category}
-          isUSD={hook.isUSD}
-          exchangeRate={hook.exchangeRate}
+          categoryError={hook.state.errors.category}
+          isUSD={hook.state.isUSD}
+          exchangeRate={hook.state.exchangeRate}
           setExchangeRate={hook.setExchangeRate}
-          rateOverride={hook.rateOverride}
+          rateOverride={hook.state.rateOverride}
           toggleRateOverride={hook.toggleRateOverride}
-          rateError={hook.errors.rate}
-          date={hook.date}
+          rateError={hook.state.errors.rate}
+          date={hook.state.date}
           setDate={hook.setDate}
-          time={hook.time}
+          time={hook.state.time}
           setTime={hook.setTime}
-          note={hook.note}
+          note={hook.state.note}
           setNote={hook.setNote}
-          saving={hook.saving}
+          saving={hook.state.saving}
           onClose={() => closeSheet(onClose)}
           handleSave={hook.handleSave}
         />
 
         <CategoryPickerSheet
-          visible={hook.showCategoryPicker}
+          visible={hook.state.showCategoryPicker}
           title={Strings.addTxPickCategoryTitle}
-          categories={hook.visibleCategories}
-          selectedId={hook.categoryId}
+          categories={hook.state.visibleCategories}
+          selectedId={hook.state.categoryId}
           onSelect={hook.selectCategory}
           onClose={() => hook.setShowCategoryPicker(false)}
         />

@@ -26,108 +26,75 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-beforeEach(() => {
-  useEditTransactionStore.getState().reset();
-  useEditTransactionStore.setState({ visible: false, editingTx: null });
-});
+beforeEach(() => useEditTransactionStore.getState().reset());
 
 describe('useEditTransactionStore initial state', () => {
-  it('starts with visible=false, editingTx=null, amountStr="0"', () => {
-    const s = useEditTransactionStore.getState();
-    expect(s.visible).toBe(false);
+  it('starts with editingTx=null and amountStr="0"', () => {
+    const s = useEditTransactionStore.getState().state;
     expect(s.editingTx).toBeNull();
     expect(s.amountStr).toBe('0');
-    expect(s.saving).toBe(false);
-    expect(s.showCategoryPicker).toBe(false);
   });
 });
 
-describe('useEditTransactionStore.open', () => {
-  it('sets visible=true and stores the transaction', () => {
+describe('useEditTransactionStore.loadFromTx', () => {
+  it('stores the transaction', () => {
     const tx = makeTx();
-    useEditTransactionStore.getState().open(tx);
-    const s = useEditTransactionStore.getState();
-    expect(s.visible).toBe(true);
-    expect(s.editingTx).toBe(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    expect(useEditTransactionStore.getState().state.editingTx).toBe(tx);
   });
 
   it('formats integer amount without decimal for integer amounts', () => {
-    const tx = makeTx({ amount: 200 });
-    useEditTransactionStore.getState().open(tx);
-    expect(useEditTransactionStore.getState().amountStr).toBe('200');
+    useEditTransactionStore.getState().loadFromTx(makeTx({ amount: 200 }));
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('200');
   });
 
   it('formats fractional amount as a string with decimal', () => {
-    const tx = makeTx({ amount: 99.5 });
-    useEditTransactionStore.getState().open(tx);
-    expect(useEditTransactionStore.getState().amountStr).toBe('99.5');
-  });
-});
-
-describe('useEditTransactionStore.close', () => {
-  it('sets visible=false and resets INITIAL_STATE', () => {
-    const tx = makeTx();
-    useEditTransactionStore.getState().open(tx);
-    useEditTransactionStore.getState().setSaving(true);
-    useEditTransactionStore.getState().close();
-    const s = useEditTransactionStore.getState();
-    expect(s.visible).toBe(false);
-    expect(s.editingTx).toBeNull();
-    expect(s.amountStr).toBe('0');
-    expect(s.saving).toBe(false);
-  });
-});
-
-describe('useEditTransactionStore.setSaving', () => {
-  it('toggles the saving flag', () => {
-    useEditTransactionStore.getState().setSaving(true);
-    expect(useEditTransactionStore.getState().saving).toBe(true);
-    useEditTransactionStore.getState().setSaving(false);
-    expect(useEditTransactionStore.getState().saving).toBe(false);
+    useEditTransactionStore.getState().loadFromTx(makeTx({ amount: 99.5 }));
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('99.5');
   });
 });
 
 describe('useEditTransactionStore.handleNumpad', () => {
   it('digit replaces "0" with the digit (leading-zero guard)', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '7');
-    expect(useEditTransactionStore.getState().amountStr).toBe('7');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('7');
   });
 
   it('pressing "0" when amountStr is "0" keeps it "0"', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '0');
-    expect(useEditTransactionStore.getState().amountStr).toBe('0');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('0');
   });
 
   it('digit appends to a non-zero string', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '4');
     useEditTransactionStore.getState().handleNumpad('digit', '2');
-    expect(useEditTransactionStore.getState().amountStr).toBe('42');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('42');
   });
 
   it('decimal appends "." when not already present', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '5');
     useEditTransactionStore.getState().handleNumpad('decimal');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('5.');
   });
 
   it('decimal is a no-op when "." is already present', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '5');
     useEditTransactionStore.getState().handleNumpad('decimal');
     useEditTransactionStore.getState().handleNumpad('decimal');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('5.');
   });
 
   it('backspace removes the last character', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '5');
     useEditTransactionStore.getState().handleNumpad('digit', '3');
     useEditTransactionStore.getState().handleNumpad('backspace');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('5');
   });
 
   it('backspace on a single character resets to "0"', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '5');
     useEditTransactionStore.getState().handleNumpad('backspace');
-    expect(useEditTransactionStore.getState().amountStr).toBe('0');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('0');
   });
 
   it('limits decimal digits to 2', () => {
@@ -136,36 +103,22 @@ describe('useEditTransactionStore.handleNumpad', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '1');
     useEditTransactionStore.getState().handleNumpad('digit', '2');
     useEditTransactionStore.getState().handleNumpad('digit', '3');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.12');
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('5.12');
   });
 
   it('digit action without value argument defaults to empty string (covers ?? "" branch)', () => {
     useEditTransactionStore.getState().handleNumpad('digit', '5');
     useEditTransactionStore.getState().handleNumpad('digit'); // value = undefined → digit = ''
-    expect(useEditTransactionStore.getState().amountStr).toBe('5'); // '' appended → '5'
-  });
-});
-
-describe('useEditTransactionStore pickers', () => {
-  it('setShowCategoryPicker sets the flag', () => {
-    useEditTransactionStore.getState().setShowCategoryPicker(true);
-    expect(useEditTransactionStore.getState().showCategoryPicker).toBe(true);
-    useEditTransactionStore.getState().setShowCategoryPicker(false);
-    expect(useEditTransactionStore.getState().showCategoryPicker).toBe(false);
+    expect(useEditTransactionStore.getState().state.amountStr).toBe('5'); // '' appended → '5'
   });
 });
 
 describe('useEditTransactionStore.reset', () => {
-  it('resets INITIAL_STATE fields without changing visible', () => {
-    const tx = makeTx();
-    useEditTransactionStore.getState().open(tx);
-    useEditTransactionStore.getState().setSaving(true);
-    useEditTransactionStore.getState().setShowCategoryPicker(true);
+  it('clears editingTx and amountStr', () => {
+    useEditTransactionStore.getState().loadFromTx(makeTx());
     useEditTransactionStore.getState().reset();
-    const s = useEditTransactionStore.getState();
+    const s = useEditTransactionStore.getState().state;
     expect(s.editingTx).toBeNull();
     expect(s.amountStr).toBe('0');
-    expect(s.saving).toBe(false);
-    expect(s.showCategoryPicker).toBe(false);
   });
 });
