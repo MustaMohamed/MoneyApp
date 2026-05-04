@@ -2,33 +2,64 @@ import { useRouter } from 'expo-router';
 
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useCategoryStore } from '@/store/category.store';
+import { useCategoriesScreenState } from './categories.state';
 import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
   const router = useRouter();
   const { categories, addCategory, updateCategory, deleteCategory, reassignAndDelete } =
     useCategoryStore();
-  const {
-    activeTab,
-    showAddSheet,
-    editingCategory,
-    categoryToDelete,
-    showDeleteConfirm,
-    showReassignSheet,
-    setActiveTab,
-    openAddSheet,
-    openEditSheet,
-    closeSheet,
-    openDeleteConfirm,
-    openReassignSheet,
-    closeDeleteFlow,
-  } = useCategoriesScreenStore();
+
+  const editingCategory = useCategoriesScreenStore((s) => s.state.editingCategory);
+  const categoryToDelete = useCategoriesScreenStore((s) => s.state.categoryToDelete);
+  const setEditingCategory = useCategoriesScreenStore((s) => s.setEditingCategory);
+  const setCategoryToDelete = useCategoriesScreenStore((s) => s.setCategoryToDelete);
+
+  const activeTab = useCategoriesScreenState((s) => s.state.activeTab);
+  const setActiveTab = useCategoriesScreenState((s) => s.setActiveTab);
+  const showAddSheet = useCategoriesScreenState((s) => s.state.showAddSheet);
+  const setShowAddSheet = useCategoriesScreenState((s) => s.setShowAddSheet);
+  const showDeleteConfirm = useCategoriesScreenState((s) => s.state.showDeleteConfirm);
+  const setShowDeleteConfirm = useCategoriesScreenState((s) => s.setShowDeleteConfirm);
+  const showReassignSheet = useCategoriesScreenState((s) => s.state.showReassignSheet);
+  const setShowReassignSheet = useCategoriesScreenState((s) => s.setShowReassignSheet);
 
   const displayedCategories = categories.filter((c) => c.type === activeTab);
   const defaultCategories = displayedCategories.filter((c) => c.is_default === 1);
   const customCategories = displayedCategories.filter((c) => c.is_default === 0);
   const customCount = categories.filter((c) => c.is_default === 0).length;
   const isAtLimit = customCount >= 30;
+
+  function openAddSheet() {
+    setEditingCategory(null);
+    setShowAddSheet(true);
+  }
+
+  function openEditSheet(category: Category) {
+    setEditingCategory(category);
+    setShowAddSheet(true);
+  }
+
+  function closeSheet() {
+    setShowAddSheet(false);
+    setEditingCategory(null);
+  }
+
+  function openDeleteConfirm(category: Category) {
+    setCategoryToDelete(category);
+    setShowDeleteConfirm(true);
+  }
+
+  function openReassignSheet(category: Category) {
+    setCategoryToDelete(category);
+    setShowReassignSheet(true);
+  }
+
+  function closeDeleteFlow() {
+    setCategoryToDelete(null);
+    setShowDeleteConfirm(false);
+    setShowReassignSheet(false);
+  }
 
   const handleSave = async (data: NewCategoryInput | UpdateCategoryInput) => {
     if (editingCategory) {
@@ -65,16 +96,18 @@ export function useCategories() {
   );
 
   return {
-    activeTab,
-    defaultCategories,
-    customCategories,
-    isAtLimit,
-    showAddSheet,
-    editingCategory,
-    categoryToDelete,
-    showDeleteConfirm,
-    showReassignSheet,
-    reassignOptions,
+    state: {
+      defaultCategories,
+      customCategories,
+      isAtLimit,
+      activeTab,
+      showAddSheet,
+      editingCategory,
+      categoryToDelete,
+      showDeleteConfirm,
+      showReassignSheet,
+      reassignOptions,
+    },
     setActiveTab,
     openAddSheet,
     openEditSheet,
