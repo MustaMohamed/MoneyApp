@@ -11,7 +11,8 @@ import { useReady } from './ready.hook';
 import { useReadyAnim } from './ready.anim';
 
 export default function ReadyScreen() {
-  const { rows, completing, handleComplete } = useReady();
+  const { state, handleComplete } = useReady();
+  const { rows, completing } = state;
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering } =
     useReadyAnim();
 

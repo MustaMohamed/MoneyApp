@@ -1,6 +1,6 @@
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useReadyStore } from './ready.store';
+import { useReadyState } from './ready.state';
 import { Strings } from '@/constants/strings';
 import { computeTotalBalance, resolveSecurityLabel } from './ready.helpers';
 
@@ -11,8 +11,8 @@ export function useReady() {
   const securityChoice = useOnboardingStore((s) => s.securityChoice);
   const completeOnboarding = useOnboardingStore((s) => s.completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
-  const completing = useReadyStore((s) => s.completing);
-  const setCompleting = useReadyStore((s) => s.setCompleting);
+  const completing = useReadyState((s) => s.state.completing);
+  const setCompleting = useReadyState((s) => s.setCompleting);
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -39,5 +39,8 @@ export function useReady() {
     }
   };
 
-  return { rows, completing, handleComplete };
+  return {
+    state: { rows, completing },
+    handleComplete,
+  };
 }
