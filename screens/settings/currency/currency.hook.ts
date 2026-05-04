@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { z } from 'zod';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
-import { useCurrencyScreenStore } from './currency.store';
+import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
   const router = useRouter();
@@ -15,14 +15,13 @@ export function useCurrencyScreen() {
   const fetchRate = useCurrencyStore((s) => s.fetchRate);
   const setManualRate = useCurrencyStore((s) => s.setManualRate);
 
-  const isManualPanelOpen = useCurrencyScreenStore((s) => s.isManualPanelOpen);
-  const setManualPanelOpen = useCurrencyScreenStore((s) => s.setManualPanelOpen);
-  const resetStore = useCurrencyScreenStore((s) => s.reset);
+  const screenState = useCurrencyScreenState((s) => s.state);
+  const setManualPanelOpen = useCurrencyScreenState((s) => s.setManualPanelOpen);
+  const setFetching = useCurrencyScreenState((s) => s.setFetching);
+  const setSaving = useCurrencyScreenState((s) => s.setSaving);
+  const resetState = useCurrencyScreenState((s) => s.reset);
 
-  const [isFetching, setFetching] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => () => resetStore(), []);
+  useEffect(() => () => resetState(), []);
 
   const manualSchema = z.object({
     rate: z.string().refine(
@@ -48,28 +47,30 @@ export function useCurrencyScreen() {
   };
 
   const handleSaveManualRate = form.handleSubmit(async (data) => {
-    setIsSaving(true);
+    setSaving(true);
     try {
       await setManualRate(parseFloat(data.rate));
       setManualPanelOpen(false);
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   });
 
   const goBack = () => router.back();
 
   return {
-    rate,
-    lastFetched,
-    isManualOverride,
-    isManualPanelOpen,
-    setManualPanelOpen,
+    state: {
+      rate,
+      lastFetched,
+      isManualOverride,
+      isManualPanelOpen: screenState.isManualPanelOpen,
+      isFetching: screenState.isFetching,
+      isSaving: screenState.isSaving,
+    },
     form,
+    setManualPanelOpen,
     handleFetchRate,
-    isFetching,
     handleSaveManualRate,
-    isSaving,
     goBack,
   };
 }
