@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -11,10 +11,13 @@ import type { Transaction } from '@/database/entities/transaction.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
+import { useTxDetailState } from './detail.state';
+import { useTxDetailStore } from './detail.store';
+
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export type DetailState = 'loading' | 'notFound' | 'ready';
+export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   bank: Strings.typeBank,
@@ -44,10 +47,17 @@ function signedAmount(tx: Transaction): string {
 }
 
 export function useTransactionDetail(id: string) {
-  const [tx, setTx] = useState<Transaction | null | undefined>(undefined);
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
+  const tx = useTxDetailStore((s) => s.state.tx);
+  const setTx = useTxDetailStore((s) => s.setTx);
+  const resetData = useTxDetailStore((s) => s.reset);
+
+  const confirmVisible = useTxDetailState((s) => s.state.confirmVisible);
+  const setConfirmVisible = useTxDetailState((s) => s.setConfirmVisible);
+  const deleting = useTxDetailState((s) => s.state.deleting);
+  const setDeleting = useTxDetailState((s) => s.setDeleting);
+  const reloadKey = useTxDetailState((s) => s.state.reloadKey);
+  const bumpReload = useTxDetailState((s) => s.bumpReload);
+  const resetUi = useTxDetailState((s) => s.reset);
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore((s) => s.categories);
@@ -56,6 +66,7 @@ export function useTransactionDetail(id: string) {
 
   useEffect(() => {
     let cancelled = false;
+    setTx(undefined);
     getById(id)
       .then((t) => {
         if (!cancelled) setTx(t);
@@ -67,12 +78,20 @@ export function useTransactionDetail(id: string) {
     return () => {
       cancelled = true;
     };
-  }, [id, getById, reloadKey]);
+  }, [id, getById, reloadKey, setTx]);
+
+  useEffect(() => {
+    return () => {
+      resetData();
+      resetUi();
+    };
+  }, [resetData, resetUi]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  const state: DetailState = tx === undefined ? 'loading' : tx === null ? 'notFound' : 'ready';
+  const viewState: DetailViewState =
+    tx === undefined ? 'loading' : tx === null ? 'notFound' : 'ready';
 
   const derived = useMemo(() => {
     if (!tx) return null;
@@ -107,10 +126,10 @@ export function useTransactionDetail(id: string) {
     };
   }, [tx, accountsById, categoriesById]);
 
-  const openDeleteConfirm = useCallback(() => setConfirmVisible(true), []);
+  const openDeleteConfirm = useCallback(() => setConfirmVisible(true), [setConfirmVisible]);
   const closeDeleteConfirm = useCallback(() => {
     if (!deleting) setConfirmVisible(false);
-  }, [deleting]);
+  }, [deleting, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
     if (!tx) return;
@@ -125,16 +144,18 @@ export function useTransactionDetail(id: string) {
       setDeleting(false);
       setConfirmVisible(false);
     }
-  }, [tx, deleteTransaction]);
+  }, [tx, deleteTransaction, setDeleting, setConfirmVisible]);
 
-  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+  const reload = useCallback(() => bumpReload(), [bumpReload]);
 
   return {
-    state,
-    tx,
-    derived,
-    confirmVisible,
-    deleting,
+    state: {
+      viewState,
+      tx,
+      derived,
+      confirmVisible,
+      deleting,
+    },
     openDeleteConfirm,
     closeDeleteConfirm,
     confirmDelete,

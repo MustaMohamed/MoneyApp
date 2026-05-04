@@ -8,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { EditTransactionSheet } from '../transaction_form';
+import { useEditTransactionState } from '../transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '../transaction_form/edit_transaction.store';
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
@@ -19,27 +20,30 @@ import { useTransactionDetail } from './detail.hook';
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const d = useTransactionDetail(id);
+  const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
+    useTransactionDetail(id);
 
-  const editVisible = useEditTransactionStore((s) => s.visible);
-  const editingTx = useEditTransactionStore((s) => s.editingTx);
-  const closeEdit = useEditTransactionStore((s) => s.close);
+  const editVisible = useEditTransactionState((s) => s.state.visible);
+  const editingTx = useEditTransactionStore((s) => s.state.editingTx);
 
   useEffect(() => {
     return () => {
-      useEditTransactionStore.getState().close();
+      useEditTransactionStore.getState().reset();
+      useEditTransactionState.getState().close();
     };
   }, []);
 
   function handleEdit() {
-    if (d.tx) {
-      useEditTransactionStore.getState().open(d.tx);
+    if (state.tx) {
+      useEditTransactionStore.getState().loadFromTx(state.tx);
+      useEditTransactionState.getState().open(state.tx);
     }
   }
 
   function handleEditClose() {
-    closeEdit();
-    d.reload();
+    useEditTransactionStore.getState().reset();
+    useEditTransactionState.getState().close();
+    reload();
   }
 
   return (
@@ -56,75 +60,75 @@ export default function TransactionDetailScreen() {
         <View style={styles.backBtn} />
       </View>
 
-      {d.state === 'loading' && (
+      {state.viewState === 'loading' && (
         <View style={styles.center}>
           <ActivityIndicator color={Colors.shared.cairoGold} />
         </View>
       )}
 
-      {d.state === 'notFound' && <NotFoundState />}
+      {state.viewState === 'notFound' && <NotFoundState />}
 
-      {d.state === 'ready' && d.tx && d.derived && (
+      {state.viewState === 'ready' && state.tx && state.derived && (
         <>
           <ScrollView contentContainerStyle={styles.scroll}>
             <DetailHero
-              tx={d.tx}
-              category={d.derived.category}
-              amountText={d.derived.amountText}
-              title={d.derived.title}
-              dateTimeText={d.derived.dateTimeText}
+              tx={state.tx}
+              category={state.derived.category}
+              amountText={state.derived.amountText}
+              title={state.derived.title}
+              dateTimeText={state.derived.dateTimeText}
             />
 
             <DetailRowsCard>
               <DetailRow
                 icon="shape"
                 label={Strings.detailCategory}
-                value={d.derived.categoryLabel}
-                badge={d.derived.categoryBadge}
+                value={state.derived.categoryLabel}
+                badge={state.derived.categoryBadge}
               />
               <DetailRow
                 icon="card-bulleted-outline"
                 label={Strings.detailAccount}
-                value={d.derived.accountLabel}
-                sublabel={d.derived.accountTypeLabel}
+                value={state.derived.accountLabel}
+                sublabel={state.derived.accountTypeLabel}
               />
               <DetailRow
                 icon="calendar"
                 label={Strings.detailDateTime}
-                value={d.derived.dateTimeText}
+                value={state.derived.dateTimeText}
               />
-              {d.derived.originalAmountText && (
+              {state.derived.originalAmountText && (
                 <DetailRow
                   icon="currency-usd"
                   label={Strings.detailOriginalAmount}
-                  value={d.derived.originalAmountText}
+                  value={state.derived.originalAmountText}
                 />
               )}
-              {d.derived.exchangeRateText && (
+              {state.derived.exchangeRateText && (
                 <DetailRow
                   icon="earth"
                   label={Strings.detailExchangeRate}
-                  value={d.derived.exchangeRateText}
+                  value={state.derived.exchangeRateText}
                   badge={Strings.capturedBadge}
                 />
               )}
               <DetailRow
                 icon="text"
                 label={Strings.detailNote}
-                value={d.derived.noteText}
-                muted={!d.tx.note}
+                value={state.derived.noteText}
+                muted={!state.tx.note}
                 showDivider={false}
               />
             </DetailRowsCard>
 
-            <ActionRow onEdit={handleEdit} onDelete={d.openDeleteConfirm} />
+            <ActionRow onEdit={handleEdit} onDelete={openDeleteConfirm} />
           </ScrollView>
 
           <DeleteConfirmDialog
-            visible={d.confirmVisible}
-            busy={d.deleting}
-            onCancel={d.closeDeleteConfirm}
-            onConfirm={d.confirmDelete}
+            visible={state.confirmVisible}
+            busy={state.deleting}
+            onCancel={closeDeleteConfirm}
+            onConfirm={confirmDelete}
           />
 
           <EditTransactionSheet visible={editVisible} onClose={handleEditClose} tx={editingTx} />

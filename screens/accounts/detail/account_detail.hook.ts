@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { z } from 'zod';
 
@@ -6,7 +6,7 @@ import { AccountColors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
-import { useAccountDetailStore } from './account_detail.store';
+import { useAccountDetailState } from './account_detail.state';
 
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,17 +17,14 @@ export function useAccountDetail() {
   const archiveAccount = useAccountStore((s) => s.archiveAccount);
   const adjustBalance = useAccountStore((s) => s.adjustBalance);
 
-  const isEditing = useAccountDetailStore((s) => s.isEditing);
-  const setEditing = useAccountDetailStore((s) => s.setEditing);
-  const isAdjustVisible = useAccountDetailStore((s) => s.isAdjustVisible);
-  const setAdjustVisible = useAccountDetailStore((s) => s.setAdjustVisible);
-  const isArchiveVisible = useAccountDetailStore((s) => s.isArchiveVisible);
-  const setArchiveVisible = useAccountDetailStore((s) => s.setArchiveVisible);
-  const reset = useAccountDetailStore((s) => s.reset);
-
-  const [isSaving, setIsSaving] = useState(false);
-  const [isAdjusting, setIsAdjusting] = useState(false);
-  const [isArchiving, setIsArchiving] = useState(false);
+  const detailState = useAccountDetailState((s) => s.state);
+  const setEditing = useAccountDetailState((s) => s.setEditing);
+  const setAdjustVisible = useAccountDetailState((s) => s.setAdjustVisible);
+  const setArchiveVisible = useAccountDetailState((s) => s.setArchiveVisible);
+  const setSaving = useAccountDetailState((s) => s.setSaving);
+  const setAdjusting = useAccountDetailState((s) => s.setAdjusting);
+  const setArchiving = useAccountDetailState((s) => s.setArchiving);
+  const reset = useAccountDetailState((s) => s.reset);
 
   useEffect(() => () => reset(), []);
 
@@ -67,55 +64,57 @@ export function useAccountDetail() {
 
   const handleSave = form.handleSubmit(async (data) => {
     if (!id) return;
-    setIsSaving(true);
+    setSaving(true);
     try {
       await updateAccount(id, { name: data.name.trim(), color: data.color });
       setEditing(false);
     } finally {
-      setIsSaving(false);
+      setSaving(false);
     }
   });
 
   const handleAdjustBalance = async (newBalance: number) => {
     if (!id) return;
-    setIsAdjusting(true);
+    setAdjusting(true);
     try {
       await adjustBalance(id, newBalance);
       setAdjustVisible(false);
     } finally {
-      setIsAdjusting(false);
+      setAdjusting(false);
     }
   };
 
   const handleArchive = async () => {
     if (!id) return;
-    setIsArchiving(true);
+    setArchiving(true);
     try {
       await archiveAccount(id);
       setArchiveVisible(false);
       router.back();
     } finally {
-      setIsArchiving(false);
+      setArchiving(false);
     }
   };
 
   const onBack = () => router.back();
 
   return {
-    account,
+    state: {
+      account,
+      isEditing: detailState.isEditing,
+      isAdjustVisible: detailState.isAdjustVisible,
+      isArchiveVisible: detailState.isArchiveVisible,
+      isSaving: detailState.isSaving,
+      isAdjusting: detailState.isAdjusting,
+      isArchiving: detailState.isArchiving,
+    },
     form,
-    isEditing,
     setEditing,
     handleSave,
-    isSaving,
-    isAdjustVisible,
     setAdjustVisible,
     handleAdjustBalance,
-    isAdjusting,
-    isArchiveVisible,
     setArchiveVisible,
     handleArchive,
-    isArchiving,
     onBack,
   };
 }

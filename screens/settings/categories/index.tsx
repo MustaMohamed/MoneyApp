@@ -12,16 +12,7 @@ import { ReassignCategorySheet } from './components/reassign_category_sheet';
 
 export default function CategoriesScreen() {
   const {
-    activeTab,
-    defaultCategories,
-    customCategories,
-    isAtLimit,
-    showAddSheet,
-    editingCategory,
-    categoryToDelete,
-    showDeleteConfirm,
-    showReassignSheet,
-    reassignOptions,
+    state,
     setActiveTab,
     openAddSheet,
     openEditSheet,
@@ -55,9 +46,9 @@ export default function CategoriesScreen() {
           <Pressable
             key={tab}
             onPress={() => setActiveTab(tab)}
-            style={[styles.tab, activeTab === tab && styles.tabActive]}
+            style={[styles.tab, state.activeTab === tab && styles.tabActive]}
           >
-            <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+            <Text style={[styles.tabText, state.activeTab === tab && styles.tabTextActive]}>
               {tab === 'expense' ? Strings.categoriesTabExpense : Strings.categoriesTabIncome}
             </Text>
           </Pressable>
@@ -65,19 +56,19 @@ export default function CategoriesScreen() {
       </View>
 
       <FlatList
-        data={[...defaultCategories, ...customCategories]}
+        data={[...state.defaultCategories, ...state.customCategories]}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
         ListHeaderComponent={
-          defaultCategories.length > 0 ? (
+          state.defaultCategories.length > 0 ? (
             <Text style={styles.sectionLabel}>{Strings.categoriesDefaultSection}</Text>
           ) : null
         }
         renderItem={({ item, index }) => {
-          const isFirstCustom = index === defaultCategories.length;
+          const isFirstCustom = index === state.defaultCategories.length;
           return (
             <>
-              {isFirstCustom && customCategories.length > 0 && (
+              {isFirstCustom && state.customCategories.length > 0 && (
                 <Text style={[styles.sectionLabel, { marginTop: Spacing.md }]}>
                   {Strings.categoriesCustomSection}
                 </Text>
@@ -93,7 +84,7 @@ export default function CategoriesScreen() {
       />
 
       {/* FAB */}
-      {!isAtLimit ? (
+      {!state.isAtLimit ? (
         <View style={styles.fabWrap}>
           <Pressable onPress={openAddSheet} style={styles.fab}>
             <MaterialCommunityIcons
@@ -111,24 +102,24 @@ export default function CategoriesScreen() {
       )}
 
       <AddEditCategorySheet
-        visible={showAddSheet}
-        editingCategory={editingCategory}
-        activeTab={activeTab}
+        visible={state.showAddSheet}
+        editingCategory={state.editingCategory}
+        activeTab={state.activeTab}
         onClose={closeSheet}
         onSave={handleSave}
       />
 
       <DeleteConfirmationDialog
-        visible={showDeleteConfirm}
-        categoryName={categoryToDelete?.name ?? ''}
+        visible={state.showDeleteConfirm}
+        categoryName={state.categoryToDelete?.name ?? ''}
         onConfirm={handleDeleteConfirm}
         onCancel={closeDeleteFlow}
       />
 
       <ReassignCategorySheet
-        visible={showReassignSheet}
-        categoryName={categoryToDelete?.name ?? ''}
-        options={reassignOptions}
+        visible={state.showReassignSheet}
+        categoryName={state.categoryToDelete?.name ?? ''}
+        options={state.reassignOptions}
         onConfirm={handleReassignConfirm}
         onCancel={closeDeleteFlow}
       />

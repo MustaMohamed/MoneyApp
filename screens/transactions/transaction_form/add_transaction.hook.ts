@@ -10,6 +10,7 @@ import { useTransactionStore } from '@/store/transaction.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import { useAddTransactionState } from './add_transaction.state';
 import { useAddTransactionStore } from './add_transaction.store';
 
 export type AddTransactionFormValues = {
@@ -147,23 +148,22 @@ export function useAddTransaction(onClose: () => void) {
   const addTransaction = useTransactionStore((s) => s.addTransaction);
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
 
-  const {
-    type,
-    amountStr,
-    visible,
-    saving,
-    setSaving,
-    showAccountPicker,
-    setShowAccountPicker,
-    showToPicker,
-    setShowToPicker,
-    showCategoryPicker,
-    setShowCategoryPicker,
-    setType,
-    handleNumpad,
-    rateOverride,
-    setRateOverride,
-  } = useAddTransactionStore();
+  const type = useAddTransactionStore((s) => s.state.type);
+  const amountStr = useAddTransactionStore((s) => s.state.amountStr);
+  const setType = useAddTransactionStore((s) => s.setType);
+  const handleNumpad = useAddTransactionStore((s) => s.handleNumpad);
+
+  const visible = useAddTransactionState((s) => s.state.visible);
+  const saving = useAddTransactionState((s) => s.state.saving);
+  const setSaving = useAddTransactionState((s) => s.setSaving);
+  const showAccountPicker = useAddTransactionState((s) => s.state.showAccountPicker);
+  const setShowAccountPicker = useAddTransactionState((s) => s.setShowAccountPicker);
+  const showToPicker = useAddTransactionState((s) => s.state.showToPicker);
+  const setShowToPicker = useAddTransactionState((s) => s.setShowToPicker);
+  const showCategoryPicker = useAddTransactionState((s) => s.state.showCategoryPicker);
+  const setShowCategoryPicker = useAddTransactionState((s) => s.setShowCategoryPicker);
+  const rateOverride = useAddTransactionState((s) => s.state.rateOverride);
+  const setRateOverride = useAddTransactionState((s) => s.setRateOverride);
 
   const schema = useMemo(() => createSchema(type, accounts), [type, accounts]);
 
@@ -334,40 +334,42 @@ export function useAddTransaction(onClose: () => void) {
   }
 
   return {
+    state: {
+      type,
+      amountStr,
+      accountId,
+      selectedAccount,
+      toAccountId,
+      selectedToAccount,
+      categoryId,
+      selectedCategory,
+      date,
+      time,
+      note,
+      exchangeRate,
+      rateOverride,
+      isUSD: requiresRate,
+      isTransferOrCC,
+      errors,
+      saving,
+      accounts,
+      accountsForFrom,
+      accountsForTo,
+      visibleCategories,
+      showAccountPicker,
+      showToPicker,
+      showCategoryPicker,
+    },
     form,
-    type,
     setType,
-    amountStr,
     handleNumpad,
-    accountId,
-    selectedAccount,
-    toAccountId,
-    selectedToAccount,
-    categoryId,
-    selectedCategory,
-    date,
     setDate: (v: string) => form.setValue('date', v),
-    time,
     setTime: (v: string) => form.setValue('time', v),
-    note,
     setNote: (v: string) => form.setValue('note', v),
-    exchangeRate,
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
-    rateOverride,
     toggleRateOverride,
-    isUSD: requiresRate,
-    isTransferOrCC,
-    errors,
-    saving,
-    accounts,
-    accountsForFrom,
-    accountsForTo,
-    visibleCategories,
-    showAccountPicker,
     setShowAccountPicker,
-    showToPicker,
     setShowToPicker,
-    showCategoryPicker,
     setShowCategoryPicker,
     selectAccount,
     selectToAccount,

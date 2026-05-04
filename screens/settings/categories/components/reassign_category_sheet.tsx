@@ -1,9 +1,10 @@
-import { useState } from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useEffect } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
 import type { Category } from '@/store/category.store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -23,8 +24,15 @@ export function ReassignCategorySheet({
   onConfirm,
   onCancel,
 }: ReassignCategorySheetProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const selectedId = useReassignCategorySheetState((s) => s.state.selectedId);
+  const isLoading = useReassignCategorySheetState((s) => s.state.isLoading);
+  const setSelectedId = useReassignCategorySheetState((s) => s.setSelectedId);
+  const setIsLoading = useReassignCategorySheetState((s) => s.setIsLoading);
+
+  // Reset draft state when the sheet hides — handles dismiss-without-confirm.
+  useEffect(() => {
+    if (!visible) useReassignCategorySheetState.getState().reset();
+  }, [visible]);
 
   const handleConfirm = async () => {
     if (!selectedId) return;

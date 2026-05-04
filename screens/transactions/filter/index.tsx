@@ -21,10 +21,10 @@ export function FilterDrawer() {
     useFilterDrawerAnim();
 
   useEffect(() => {
-    if (f.visible) openSheet();
-  }, [f.visible, openSheet]);
+    if (f.state.visible) openSheet();
+  }, [f.state.visible, openSheet]);
 
-  if (!f.visible) return null;
+  if (!f.state.visible) return null;
 
   function handleClose() {
     closeSheet(f.close);
@@ -57,8 +57,8 @@ export function FilterDrawer() {
           <Animated.View entering={FadeInDown.duration(250)} style={styles.rowWrap}>
             <FilterSectionRow
               label={Strings.filterSectionAccounts}
-              summary={f.selectedAccountSummary}
-              isActive={f.draft.accountIds.length > 0}
+              summary={f.state.selectedAccountSummary}
+              isActive={f.state.draft.accountIds.length > 0}
               onPress={() => f.setAccountPickerVisible(true)}
             />
           </Animated.View>
@@ -66,17 +66,17 @@ export function FilterDrawer() {
           <Animated.View entering={FadeInDown.delay(80).duration(250)} style={styles.rowWrap}>
             <FilterSectionRow
               label={Strings.filterSectionCategories}
-              summary={f.selectedCategorySummary}
-              isActive={f.draft.categoryIds.length > 0}
+              summary={f.state.selectedCategorySummary}
+              isActive={f.state.draft.categoryIds.length > 0}
               onPress={() => f.setCategoryPickerVisible(true)}
             />
           </Animated.View>
 
           <Animated.View entering={FadeInDown.delay(160).duration(250)}>
             <FilterDateSection
-              preset={f.draft.datePreset}
-              customFrom={f.draft.customDateFrom}
-              customTo={f.draft.customDateTo}
+              preset={f.state.draft.datePreset}
+              customFrom={f.state.draft.customDateFrom}
+              customTo={f.state.draft.customDateTo}
               onSelectPreset={f.setDatePreset}
               onOpenCustomPicker={() => f.setCustomDatePickerVisible(true)}
             />
@@ -84,9 +84,9 @@ export function FilterDrawer() {
 
           <Animated.View entering={FadeInDown.delay(240).duration(250)}>
             <FilterAmountSection
-              currency={f.draft.amountCurrency}
-              min={f.draft.amountMin}
-              max={f.draft.amountMax}
+              currency={f.state.draft.amountCurrency}
+              min={f.state.draft.amountMin}
+              max={f.state.draft.amountMax}
               onChangeCurrency={f.setAmountCurrency}
               onChangeMin={f.setAmountMin}
               onChangeMax={f.setAmountMax}
@@ -104,8 +104,8 @@ export function FilterDrawer() {
               style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
             >
               <Text style={styles.ctaLabel}>
-                {f.draftActiveCount > 0
-                  ? Strings.filterApplyWithCount(f.draftActiveCount)
+                {f.state.draftActiveCount > 0
+                  ? Strings.filterApplyWithCount(f.state.draftActiveCount)
                   : Strings.filterApply}
               </Text>
             </Pressable>
@@ -113,25 +113,25 @@ export function FilterDrawer() {
         </View>
 
         <FilterAccountPicker
-          visible={f.accountPickerVisible}
-          accounts={f.pickerAccounts}
-          selectedIds={f.draft.accountIds}
+          visible={f.state.accountPickerVisible}
+          accounts={f.state.pickerAccounts}
+          selectedIds={f.state.draft.accountIds}
           onToggle={f.toggleAccountId}
           onClose={() => f.setAccountPickerVisible(false)}
         />
 
         <FilterCategoryPicker
-          visible={f.categoryPickerVisible}
-          categories={f.pickerCategories}
-          selectedIds={f.draft.categoryIds}
+          visible={f.state.categoryPickerVisible}
+          categories={f.state.pickerCategories}
+          selectedIds={f.state.draft.categoryIds}
           onToggle={f.toggleCategoryId}
           onClose={() => f.setCategoryPickerVisible(false)}
         />
 
         <FilterDateCustomPicker
-          visible={f.customDatePickerVisible}
-          initialFrom={f.draft.customDateFrom}
-          initialTo={f.draft.customDateTo}
+          visible={f.state.customDatePickerVisible}
+          initialFrom={f.state.draft.customDateFrom}
+          initialTo={f.state.draft.customDateTo}
           onClose={() => f.setCustomDatePickerVisible(false)}
           onConfirm={(from, to) => {
             f.setCustomDateRange(from, to);

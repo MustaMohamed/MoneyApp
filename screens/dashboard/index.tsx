@@ -33,29 +33,16 @@ const SECTION_TITLES: Record<AccountType, string> = {
 };
 
 export default function DashboardScreen() {
-  const {
-    accounts,
-    rate,
-    netWorth,
-    groupedAccounts,
-    statsMap,
-    isBreakdownVisible,
-    setBreakdownVisible,
-    isManualOverride,
-    refreshing,
-    refresh,
-    goToAccount,
-    goToAddAccount,
-    goToSettings,
-  } = useDashboard();
+  const { state, setBreakdownVisible, refresh, goToAccount, goToAddAccount, goToSettings } =
+    useDashboard();
   const { heroStyle, startEntrance, statsEntering, sectionEntering } = useDashboardAnim();
 
   useEffect(() => {
     startEntrance();
   }, []);
 
-  const hasAccounts = accounts.length > 0;
-  const visibleTypes = TYPE_ORDER.filter((t) => groupedAccounts[t]?.length);
+  const hasAccounts = state.accounts.length > 0;
+  const visibleTypes = TYPE_ORDER.filter((t) => state.groupedAccounts[t]?.length);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -78,7 +65,7 @@ export default function DashboardScreen() {
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
+              refreshing={state.refreshing}
               onRefresh={refresh}
               tintColor={Colors.shared.cairoGold}
             />
@@ -86,16 +73,16 @@ export default function DashboardScreen() {
         >
           <Animated.View style={heroStyle}>
             <HeroCard
-              assetsEgp={netWorth.assetsEgp}
-              netWorthUsd={netWorth.netWorthUsd}
-              rate={rate}
-              isManualOverride={isManualOverride}
+              assetsEgp={state.netWorth.assetsEgp}
+              netWorthUsd={state.netWorth.netWorthUsd}
+              rate={state.rate}
+              isManualOverride={state.isManualOverride}
               onPress={() => setBreakdownVisible(true)}
             />
           </Animated.View>
 
           <Animated.View entering={statsEntering}>
-            <StatCards netWorthEgp={netWorth.netWorthEgp} monthSpentEgp={0} />
+            <StatCards netWorthEgp={state.netWorth.netWorthEgp} monthSpentEgp={0} />
           </Animated.View>
 
           {visibleTypes.map((type, index) => (
@@ -103,9 +90,9 @@ export default function DashboardScreen() {
               <SectionHeader title={SECTION_TITLES[type]} />
               <AccountCarousel
                 type={type}
-                accounts={groupedAccounts[type] ?? []}
-                rate={rate}
-                statsMap={statsMap}
+                accounts={state.groupedAccounts[type] ?? []}
+                rate={state.rate}
+                statsMap={state.statsMap}
                 onAccountPress={goToAccount}
                 onAddPress={goToAddAccount}
               />
@@ -117,12 +104,12 @@ export default function DashboardScreen() {
       )}
 
       <NetWorthBreakdownSheet
-        visible={isBreakdownVisible}
+        visible={state.isBreakdownVisible}
         onClose={() => setBreakdownVisible(false)}
-        assetsEgp={netWorth.assetsEgp}
-        liabilitiesEgp={netWorth.liabilitiesEgp}
-        netWorthEgp={netWorth.netWorthEgp}
-        netWorthUsd={netWorth.netWorthUsd}
+        assetsEgp={state.netWorth.assetsEgp}
+        liabilitiesEgp={state.netWorth.liabilitiesEgp}
+        netWorthEgp={state.netWorth.netWorthEgp}
+        netWorthUsd={state.netWorth.netWorthUsd}
       />
     </SafeAreaView>
   );

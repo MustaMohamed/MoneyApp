@@ -11,6 +11,7 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
+import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 
 export type EditTransactionFormValues = {
@@ -55,17 +56,16 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   const updateTransaction = useTransactionStore((s) => s.updateTransaction);
   const loadAccounts = useAccountStore((s) => s.loadAccounts);
 
-  const {
-    amountStr,
-    visible,
-    saving,
-    setSaving,
-    showCategoryPicker,
-    setShowCategoryPicker,
-    handleNumpad,
-    rateOverride,
-    setRateOverride,
-  } = useEditTransactionStore();
+  const amountStr = useEditTransactionStore((s) => s.state.amountStr);
+  const handleNumpad = useEditTransactionStore((s) => s.handleNumpad);
+
+  const visible = useEditTransactionState((s) => s.state.visible);
+  const saving = useEditTransactionState((s) => s.state.saving);
+  const setSaving = useEditTransactionState((s) => s.setSaving);
+  const showCategoryPicker = useEditTransactionState((s) => s.state.showCategoryPicker);
+  const setShowCategoryPicker = useEditTransactionState((s) => s.setShowCategoryPicker);
+  const rateOverride = useEditTransactionState((s) => s.state.rateOverride);
+  const setRateOverride = useEditTransactionState((s) => s.setRateOverride);
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -192,30 +192,32 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   }
 
   return {
+    state: {
+      type,
+      amountStr,
+      selectedAccount,
+      selectedToAccount,
+      categoryId,
+      selectedCategory,
+      date,
+      time,
+      note,
+      exchangeRate,
+      rateOverride,
+      isUSD: requiresRate,
+      isTransferOrCC,
+      errors,
+      saving,
+      visibleCategories,
+      showCategoryPicker,
+    },
     form,
-    type,
-    amountStr,
     handleNumpad,
-    selectedAccount,
-    selectedToAccount,
-    categoryId,
-    selectedCategory,
-    date,
     setDate: (v: string) => form.setValue('date', v),
-    time,
     setTime: (v: string) => form.setValue('time', v),
-    note,
     setNote: (v: string) => form.setValue('note', v),
-    exchangeRate,
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
-    rateOverride,
     toggleRateOverride,
-    isUSD: requiresRate,
-    isTransferOrCC,
-    errors,
-    saving,
-    visibleCategories,
-    showCategoryPicker,
     setShowCategoryPicker,
     selectCategory,
     handleSave: form.handleSubmit(onValid),

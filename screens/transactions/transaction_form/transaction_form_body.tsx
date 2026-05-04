@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -20,6 +20,7 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { ExchangeRateRow } from './components/exchange_rate_row';
 import { Numpad } from './components/numpad';
 import { TypeTabs } from './components/type_tabs';
+import { useTransactionFormBodyState } from './transaction_form_body.state';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 
@@ -98,9 +99,14 @@ export function TransactionFormBody({
   onClose,
   handleSave,
 }: TransactionFormBodyProps) {
-  const [showIosDatePicker, setShowIosDatePicker] = useState(false);
-  const [showIosTimePicker, setShowIosTimePicker] = useState(false);
+  const showIosDatePicker = useTransactionFormBodyState((s) => s.state.showIosDatePicker);
+  const setShowIosDatePicker = useTransactionFormBodyState((s) => s.setShowIosDatePicker);
+  const showIosTimePicker = useTransactionFormBodyState((s) => s.state.showIosTimePicker);
+  const setShowIosTimePicker = useTransactionFormBodyState((s) => s.setShowIosTimePicker);
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+
+  // Reset on unmount so the iOS picker flags don't leak between sheet opens.
+  useEffect(() => () => useTransactionFormBodyState.getState().reset(), []);
 
   const dateAsDate = new Date(date + 'T' + time);
   const formattedDate = dateAsDate.toLocaleDateString('en-US', {
@@ -122,7 +128,7 @@ export function TransactionFormBody({
         },
       });
     } else {
-      setShowIosDatePicker((v) => !v);
+      setShowIosDatePicker(!showIosDatePicker);
     }
   }
 
@@ -142,7 +148,7 @@ export function TransactionFormBody({
         },
       });
     } else {
-      setShowIosTimePicker((v) => !v);
+      setShowIosTimePicker(!showIosTimePicker);
     }
   }
 

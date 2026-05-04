@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
 
 import { getDb } from '@/database/client';
-import { getAccountsStats, type AccountStats } from '@/database/account_stats';
+import { getAccountsStats } from '@/database/account_stats';
 import { useAccountStore } from '@/store/account.store';
 import { useCurrencyStore } from '@/store/currency.store';
+import { useDashboardState } from './dashboard.state';
+import { useDashboardStore } from './dashboard.store';
 import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
 
 export function useDashboard() {
@@ -14,23 +16,29 @@ export function useDashboard() {
   const rate = useCurrencyStore((s) => s.rate);
   const isManualOverride = useCurrencyStore((s) => s.isManualOverride);
 
-  const [isBreakdownVisible, setBreakdownVisible] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [statsMap, setStatsMap] = useState<Record<string, AccountStats>>({});
+  const isBreakdownVisible = useDashboardState((s) => s.state.isBreakdownVisible);
+  const setBreakdownVisible = useDashboardState((s) => s.setBreakdownVisible);
+  const refreshing = useDashboardState((s) => s.state.refreshing);
+  const setRefreshing = useDashboardState((s) => s.setRefreshing);
+  const statsMap = useDashboardStore((s) => s.state.statsMap);
+  const setStatsMap = useDashboardStore((s) => s.setStatsMap);
 
-  const loadStats = useCallback(async (ids: string[]) => {
-    if (ids.length === 0) {
-      setStatsMap({});
-      return;
-    }
-    try {
-      const db = await getDb();
-      const result = await getAccountsStats(db, ids);
-      setStatsMap(result);
-    } catch (err) {
-      console.error('[dashboard] loadStats failed:', err);
-    }
-  }, []);
+  const loadStats = useCallback(
+    async (ids: string[]) => {
+      if (ids.length === 0) {
+        setStatsMap({});
+        return;
+      }
+      try {
+        const db = await getDb();
+        const result = await getAccountsStats(db, ids);
+        setStatsMap(result);
+      } catch (err) {
+        console.error('[dashboard] loadStats failed:', err);
+      }
+    },
+    [setStatsMap],
+  );
 
   useEffect(() => {
     loadStats(accounts.map((a) => a.id));
@@ -43,7 +51,7 @@ export function useDashboard() {
     } finally {
       setRefreshing(false);
     }
-  }, [loadAccounts]);
+  }, [loadAccounts, setRefreshing]);
 
   const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
@@ -53,15 +61,17 @@ export function useDashboard() {
   const goToSettings = () => router.push('/settings');
 
   return {
-    accounts,
-    rate,
-    isManualOverride,
-    netWorth,
-    groupedAccounts,
-    statsMap,
-    isBreakdownVisible,
+    state: {
+      accounts,
+      rate,
+      isManualOverride,
+      netWorth,
+      groupedAccounts,
+      statsMap,
+      isBreakdownVisible,
+      refreshing,
+    },
     setBreakdownVisible,
-    refreshing,
     refresh,
     goToAccount,
     goToAddAccount,

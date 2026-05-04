@@ -1,11 +1,12 @@
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { useFilterDateCustomPickerState } from './filter_date_custom_picker.state';
 
 interface Props {
   visible: boolean;
@@ -40,19 +41,21 @@ export function FilterDateCustomPicker({
   onClose,
   onConfirm,
 }: Props) {
-  const [from, setFrom] = useState<Date | undefined>(isoToDate(initialFrom));
-  const [to, setTo] = useState<Date | undefined>(isoToDate(initialTo));
-  const [showFromPicker, setShowFromPicker] = useState(false);
-  const [showToPicker, setShowToPicker] = useState(false);
+  const from = useFilterDateCustomPickerState((s) => s.state.from);
+  const to = useFilterDateCustomPickerState((s) => s.state.to);
+  const showFromPicker = useFilterDateCustomPickerState((s) => s.state.showFromPicker);
+  const showToPicker = useFilterDateCustomPickerState((s) => s.state.showToPicker);
+  const setFrom = useFilterDateCustomPickerState((s) => s.setFrom);
+  const setTo = useFilterDateCustomPickerState((s) => s.setTo);
+  const setShowFromPicker = useFilterDateCustomPickerState((s) => s.setShowFromPicker);
+  const setShowToPicker = useFilterDateCustomPickerState((s) => s.setShowToPicker);
+  const initialize = useFilterDateCustomPickerState((s) => s.initialize);
 
   // Re-initialize from props each time the picker opens so Reset is reflected correctly.
   useEffect(() => {
     if (!visible) return;
-    setFrom(isoToDate(initialFrom));
-    setTo(isoToDate(initialTo));
-    setShowFromPicker(false);
-    setShowToPicker(false);
-  }, [visible, initialFrom, initialTo]);
+    initialize(isoToDate(initialFrom), isoToDate(initialTo));
+  }, [visible, initialFrom, initialTo, initialize]);
 
   const canConfirm = !!from && !!to && from <= to;
 

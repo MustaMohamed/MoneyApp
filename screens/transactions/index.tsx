@@ -11,6 +11,7 @@ import { ms } from '@/utils/responsive';
 
 import { useTransactionStore } from '@/store/transaction.store';
 import { AddTransactionSheet } from './transaction_form';
+import { useAddTransactionState } from './transaction_form/add_transaction.state';
 import { useAddTransactionStore } from './transaction_form/add_transaction.store';
 import { DateHeader } from './components/date_header';
 import { FilterButton } from './components/filter_button';
@@ -19,24 +20,33 @@ import { LoadingFooter } from './components/loading_footer';
 import { SearchBar } from './components/search_bar';
 import { TransactionRow } from './components/transaction_row';
 import { FilterDrawer } from './filter';
-import { useFilterDrawerStore } from './filter/filter.store';
+import { useFilterDrawerState } from './filter/filter.state';
 import { useTransactions } from './transactions.hook';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export default function TransactionsScreen() {
   const t = useTransactions();
-  const open = useAddTransactionStore((s) => s.open);
-  const close = useAddTransactionStore((s) => s.close);
-  const visible = useAddTransactionStore((s) => s.visible);
+  const open = useAddTransactionState((s) => s.open);
+  const visible = useAddTransactionState((s) => s.state.visible);
+
+  // Closing the sheet must reset BOTH the UI state (visibility + flags) and the
+  // data store (form draft: type + amountStr) so the next FAB tap starts clean.
+  const handleClose = useCallback(() => {
+    useAddTransactionState.getState().close();
+    useAddTransactionStore.getState().reset();
+  }, []);
 
   // On tab blur: reset both screen-local UI (chip + search + applied filters)
   // AND the global query so the data array is unfiltered before the user
-  // returns. Also dismiss the filter drawer if it's open.
+  // returns. Also dismiss the filter drawer and the add-transaction sheet
+  // (both UI flags + data draft) if they're open.
   useFocusEffect(
     useCallback(() => {
       return () => {
         useTransactionsScreenStore.getState().reset();
-        useFilterDrawerStore.getState().close();
+        useFilterDrawerState.getState().close();
+        useAddTransactionState.getState().close();
+        useAddTransactionStore.getState().reset();
         useTransactionStore
           .getState()
           .setQuery({})
@@ -54,39 +64,41 @@ export default function TransactionsScreen() {
       <View style={styles.searchRow}>
         <SearchBar
           style={styles.searchBar}
-          value={t.searchQuery}
+          value={t.state.searchQuery}
           onChange={t.setSearchQuery}
           onClear={t.clearSearch}
         />
-        <FilterButton count={t.activeFilterCount} onPress={t.openFilter} />
+        <FilterButton count={t.state.activeFilterCount} onPress={t.openFilter} />
       </View>
 
-      <FilterChips active={t.activeFilter} onChange={t.setActiveFilter} />
+      <FilterChips active={t.state.activeFilter} onChange={t.setActiveFilter} />
 
-      {t.emptyVariant !== 'none' ? (
+      {t.state.emptyVariant !== 'none' ? (
         <View style={styles.body}>
           <EmptyState
-            variant={t.emptyVariant === 'noData' ? 'transactions' : 'transactionsNoResults'}
+            variant={t.state.emptyVariant === 'noData' ? 'transactions' : 'transactionsNoResults'}
           />
         </View>
       ) : (
         <SectionList
-          sections={t.sections}
+          sections={t.state.sections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
           renderSectionHeader={({ section }) => <DateHeader label={section.key} />}
           renderItem={({ item }) => (
             <TransactionRow
               tx={item}
-              account={t.accountsById.get(item.account_id)}
-              toAccount={item.to_account_id ? t.accountsById.get(item.to_account_id) : undefined}
-              category={item.category_id ? t.categoriesById.get(item.category_id) : undefined}
+              account={t.state.accountsById.get(item.account_id)}
+              toAccount={
+                item.to_account_id ? t.state.accountsById.get(item.to_account_id) : undefined
+              }
+              category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
               onPress={() => router.push(`/transactions/detail/${item.id}`)}
             />
           )}
           onEndReached={t.onEndReached}
           onEndReachedThreshold={0.5}
-          ListFooterComponent={t.loading && t.hasMore ? <LoadingFooter /> : null}
+          ListFooterComponent={t.state.loading && t.state.hasMore ? <LoadingFooter /> : null}
           contentContainerStyle={styles.listContent}
         />
       )}
@@ -95,7 +107,7 @@ export default function TransactionsScreen() {
         <MaterialCommunityIcons name="plus" size={ms(28)} color={Colors.shared.midnightBlue} />
       </Pressable>
 
-      <AddTransactionSheet visible={visible} onClose={close} />
+      <AddTransactionSheet visible={visible} onClose={handleClose} />
       <FilterDrawer />
     </SafeAreaView>
   );

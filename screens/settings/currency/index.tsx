@@ -11,19 +11,9 @@ import { useCurrencyScreen } from './currency.hook';
 import { useCurrencyScreenAnim } from './currency.anim';
 
 export default function CurrencyScreen() {
-  const {
-    rate,
-    lastFetched,
-    isManualOverride,
-    isManualPanelOpen,
-    setManualPanelOpen,
-    form,
-    handleFetchRate,
-    isFetching,
-    handleSaveManualRate,
-    isSaving,
-    goBack,
-  } = useCurrencyScreen();
+  const { state, setManualPanelOpen, form, handleFetchRate, handleSaveManualRate, goBack } =
+    useCurrencyScreen();
+  const { rate, lastFetched, isManualOverride, isManualPanelOpen, isFetching, isSaving } = state;
   const { panelEntering, panelExiting } = useCurrencyScreenAnim();
   const {
     control,

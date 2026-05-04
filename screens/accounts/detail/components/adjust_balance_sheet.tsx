@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { useAdjustBalanceSheetState } from '@/screens/accounts/detail/components/adjust_balance_sheet.state';
 
 interface AdjustBalanceSheetProps {
   visible: boolean;
@@ -23,15 +24,17 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const [input, setInput] = useState(String(currentBalance));
-  const [error, setError] = useState('');
+  const input = useAdjustBalanceSheetState((s) => s.state.input);
+  const error = useAdjustBalanceSheetState((s) => s.state.error);
+  const setInput = useAdjustBalanceSheetState((s) => s.setInput);
+  const setError = useAdjustBalanceSheetState((s) => s.setError);
+  const initialize = useAdjustBalanceSheetState((s) => s.initialize);
 
   useEffect(() => {
     if (visible) {
-      setInput(String(currentBalance));
-      setError('');
+      initialize(currentBalance);
     }
-  }, [visible, currentBalance]);
+  }, [visible, currentBalance, initialize]);
 
   const handleSave = () => {
     const n = parseFloat(input);

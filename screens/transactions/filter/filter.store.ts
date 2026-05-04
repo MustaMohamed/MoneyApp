@@ -20,18 +20,14 @@ export const EMPTY_FILTERS: AdvancedFilters = {
   amountCurrency: Currency.EGP,
 };
 
-interface FilterDrawerState {
-  visible: boolean;
+interface FilterDrawerStoreShape {
   draft: AdvancedFilters;
+}
 
-  accountPickerVisible: boolean;
-  categoryPickerVisible: boolean;
-  customDatePickerVisible: boolean;
-
-  open: (initial: AdvancedFilters) => void;
-  close: () => void;
+interface FilterDrawerStore {
+  state: FilterDrawerStoreShape;
+  setDraft: (next: AdvancedFilters) => void;
   resetDraft: () => void;
-
   toggleAccountId: (id: string) => void;
   toggleCategoryId: (id: string) => void;
   setDatePreset: (p: DatePreset) => void;
@@ -39,68 +35,65 @@ interface FilterDrawerState {
   setAmountMin: (v?: number) => void;
   setAmountMax: (v?: number) => void;
   setAmountCurrency: (c: Currency) => void;
-
-  setAccountPickerVisible: (v: boolean) => void;
-  setCategoryPickerVisible: (v: boolean) => void;
-  setCustomDatePickerVisible: (v: boolean) => void;
 }
 
-export const useFilterDrawerStore = create<FilterDrawerState>((set) => ({
-  visible: false,
+const INITIAL_STATE: FilterDrawerStoreShape = {
   draft: EMPTY_FILTERS,
-  accountPickerVisible: false,
-  categoryPickerVisible: false,
-  customDatePickerVisible: false,
+};
 
-  open: (initial) => set({ visible: true, draft: initial }),
+export const useFilterDrawerStore = create<FilterDrawerStore>((set) => ({
+  state: INITIAL_STATE,
 
-  close: () =>
-    set({
-      visible: false,
-      accountPickerVisible: false,
-      categoryPickerVisible: false,
-      customDatePickerVisible: false,
-    }),
+  setDraft: (next) => set((s) => ({ state: { ...s.state, draft: next } })),
 
-  resetDraft: () => set({ draft: EMPTY_FILTERS }),
+  resetDraft: () => set((s) => ({ state: { ...s.state, draft: EMPTY_FILTERS } })),
 
   toggleAccountId: (id) =>
     set((s) => ({
-      draft: {
-        ...s.draft,
-        accountIds: s.draft.accountIds.includes(id)
-          ? s.draft.accountIds.filter((x) => x !== id)
-          : [...s.draft.accountIds, id],
+      state: {
+        ...s.state,
+        draft: {
+          ...s.state.draft,
+          accountIds: s.state.draft.accountIds.includes(id)
+            ? s.state.draft.accountIds.filter((x) => x !== id)
+            : [...s.state.draft.accountIds, id],
+        },
       },
     })),
 
   toggleCategoryId: (id) =>
     set((s) => ({
-      draft: {
-        ...s.draft,
-        categoryIds: s.draft.categoryIds.includes(id)
-          ? s.draft.categoryIds.filter((x) => x !== id)
-          : [...s.draft.categoryIds, id],
+      state: {
+        ...s.state,
+        draft: {
+          ...s.state.draft,
+          categoryIds: s.state.draft.categoryIds.includes(id)
+            ? s.state.draft.categoryIds.filter((x) => x !== id)
+            : [...s.state.draft.categoryIds, id],
+        },
       },
     })),
 
-  setDatePreset: (p) => set((s) => ({ draft: { ...s.draft, datePreset: p } })),
+  setDatePreset: (p) =>
+    set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, datePreset: p } } })),
 
   setCustomDateRange: (from, to) =>
     set((s) => ({
-      draft: {
-        ...s.draft,
-        customDateFrom: from,
-        customDateTo: to,
-        datePreset: DatePreset.Custom,
+      state: {
+        ...s.state,
+        draft: {
+          ...s.state.draft,
+          customDateFrom: from,
+          customDateTo: to,
+          datePreset: DatePreset.Custom,
+        },
       },
     })),
 
-  setAmountMin: (v) => set((s) => ({ draft: { ...s.draft, amountMin: v } })),
-  setAmountMax: (v) => set((s) => ({ draft: { ...s.draft, amountMax: v } })),
-  setAmountCurrency: (c) => set((s) => ({ draft: { ...s.draft, amountCurrency: c } })),
-
-  setAccountPickerVisible: (v) => set({ accountPickerVisible: v }),
-  setCategoryPickerVisible: (v) => set({ categoryPickerVisible: v }),
-  setCustomDatePickerVisible: (v) => set({ customDatePickerVisible: v }),
+  setAmountMin: (v) =>
+    set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, amountMin: v } } })),
+  setAmountMax: (v) =>
+    set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, amountMax: v } } })),
+  setAmountCurrency: (c) =>
+    set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, amountCurrency: c } } })),
 }));

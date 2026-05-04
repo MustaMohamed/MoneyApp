@@ -7,6 +7,7 @@ import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
+import { useFilterDrawerState } from './filter/filter.state';
 import { useFilterDrawerStore } from './filter/filter.store';
 import { useTransactionsScreenStore } from './transactions.store';
 
@@ -33,7 +34,8 @@ export function useTransactions() {
   const categories = useCategoryStore((s) => s.categories);
 
   // drawer
-  const openDrawer = useFilterDrawerStore((s) => s.open);
+  const setDraft = useFilterDrawerStore((s) => s.setDraft);
+  const openDrawer = useFilterDrawerState((s) => s.open);
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
 
@@ -62,23 +64,26 @@ export function useTransactions() {
         : 'noData';
 
   function openFilter() {
-    openDrawer(appliedFilters);
+    setDraft(appliedFilters);
+    openDrawer();
   }
 
   return {
-    sections,
-    hasMore,
-    loading,
-    emptyVariant,
-    searchQuery,
-    activeFilter,
-    accountsById,
-    categoriesById,
+    state: {
+      sections,
+      hasMore,
+      loading,
+      emptyVariant,
+      searchQuery,
+      activeFilter,
+      accountsById,
+      categoriesById,
+      activeFilterCount,
+    },
     setSearchQuery,
     setActiveFilter,
     clearSearch,
     onEndReached: loadMore,
-    activeFilterCount,
     openFilter,
   };
 }

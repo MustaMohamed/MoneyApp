@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { useEditTransaction } from '@/screens/transactions/transaction_form/edit_transaction.hook';
+import { useEditTransactionState } from '@/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/screens/transactions/transaction_form/edit_transaction.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -56,10 +57,12 @@ beforeEach(() => {
   useAccountStore.setState({ accounts: [] });
   useCategoryStore.setState({ categories: [] });
   useEditTransactionStore.getState().reset();
+  useEditTransactionState.getState().reset();
 });
 
 afterEach(() => {
-  useEditTransactionStore.getState().close();
+  useEditTransactionStore.getState().reset();
+  useEditTransactionState.getState().close();
 });
 
 // ─── Initial state ────────────────────────────────────────────────────────────
@@ -67,23 +70,26 @@ afterEach(() => {
 describe('useEditTransaction rateOverride — initial state', () => {
   it('starts as true for a USD transaction (exchange_rate is set)', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
-    expect(result.current.rateOverride).toBe(true);
+    expect(result.current.state.rateOverride).toBe(true);
   });
 
   it('starts as false for an EGP transaction (exchange_rate is null)', () => {
     const tx = makeEGPTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('initialises exchangeRate from the transaction stored rate for USD', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
-    expect(result.current.exchangeRate).toBe(String(STORED_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(STORED_RATE));
   });
 });
 
@@ -92,61 +98,65 @@ describe('useEditTransaction rateOverride — initial state', () => {
 describe('useEditTransaction toggleRateOverride', () => {
   it('toggles from true to false for a USD transaction', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
 
     act(() => {
       result.current.toggleRateOverride();
     });
 
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('resets exchangeRate to global rate when toggling OFF for a USD transaction', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
-    expect(result.current.exchangeRate).toBe(String(STORED_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(STORED_RATE));
 
     act(() => {
       result.current.toggleRateOverride(); // true → false
     });
 
-    expect(result.current.rateOverride).toBe(false);
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.rateOverride).toBe(false);
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 
   it('does not change exchangeRate when toggling ON for an EGP transaction', () => {
     const tx = makeEGPTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
-    const before = result.current.exchangeRate;
+    const before = result.current.state.exchangeRate;
 
     act(() => {
       result.current.toggleRateOverride(); // false → true
     });
 
-    expect(result.current.rateOverride).toBe(true);
-    expect(result.current.exchangeRate).toBe(before);
+    expect(result.current.state.rateOverride).toBe(true);
+    expect(result.current.state.exchangeRate).toBe(before);
   });
 
   it('resets exchangeRate to global rate when toggling OFF after a custom edit', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
 
     // Change the rate while override is ON.
     act(() => {
       result.current.setExchangeRate('72');
     });
-    expect(result.current.exchangeRate).toBe('72');
+    expect(result.current.state.exchangeRate).toBe('72');
 
     // Toggle OFF → must revert to global.
     act(() => {
       result.current.toggleRateOverride();
     });
 
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
   });
 });
 
@@ -155,53 +165,59 @@ describe('useEditTransaction toggleRateOverride', () => {
 describe('useEditTransaction sheet close', () => {
   it('resets rateOverride to true (original) when the sheet closes for a USD transaction', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
 
     act(() => {
       result.current.toggleRateOverride(); // true → false
     });
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
 
     act(() => {
-      useEditTransactionStore.getState().close();
+      useEditTransactionStore.getState().reset();
+      useEditTransactionState.getState().close();
     });
 
-    expect(result.current.rateOverride).toBe(true);
+    expect(result.current.state.rateOverride).toBe(true);
   });
 
   it('resets rateOverride to false (original) when the sheet closes for an EGP transaction', () => {
     const tx = makeEGPTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
 
     act(() => {
       result.current.toggleRateOverride(); // false → true
     });
-    expect(result.current.rateOverride).toBe(true);
+    expect(result.current.state.rateOverride).toBe(true);
 
     act(() => {
-      useEditTransactionStore.getState().close();
+      useEditTransactionStore.getState().reset();
+      useEditTransactionState.getState().close();
     });
 
-    expect(result.current.rateOverride).toBe(false);
+    expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('resets exchangeRate to the stored transaction rate when the sheet closes for a USD transaction', () => {
     const tx = makeUSDTx();
-    useEditTransactionStore.getState().open(tx);
+    useEditTransactionStore.getState().loadFromTx(tx);
+    useEditTransactionState.getState().open(tx);
     const { result } = renderHook(() => useEditTransaction(tx, () => {}));
 
     act(() => {
       result.current.toggleRateOverride(); // ON → OFF (rate becomes GLOBAL_RATE)
     });
-    expect(result.current.exchangeRate).toBe(String(GLOBAL_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(GLOBAL_RATE));
 
     act(() => {
-      useEditTransactionStore.getState().close();
+      useEditTransactionStore.getState().reset();
+      useEditTransactionState.getState().close();
     });
 
     // buildDefaults uses tx.exchange_rate when available.
-    expect(result.current.exchangeRate).toBe(String(STORED_RATE));
+    expect(result.current.state.exchangeRate).toBe(String(STORED_RATE));
   });
 });

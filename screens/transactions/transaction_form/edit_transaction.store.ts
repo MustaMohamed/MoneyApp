@@ -4,63 +4,59 @@ import type { Transaction } from '@/database/entities/transaction.entity';
 
 type NumpadAction = 'digit' | 'decimal' | 'backspace';
 
-interface EditTransactionState {
-  visible: boolean;
+interface EditTransactionStoreShape {
   editingTx: Transaction | null;
   amountStr: string;
-  saving: boolean;
-  showCategoryPicker: boolean;
-  rateOverride: boolean;
-  open: (tx: Transaction) => void;
-  close: () => void;
-  setSaving: (v: boolean) => void;
+}
+
+interface EditTransactionStore {
+  state: EditTransactionStoreShape;
+  loadFromTx: (tx: Transaction) => void;
   handleNumpad: (action: NumpadAction, value?: string) => void;
-  setShowCategoryPicker: (v: boolean) => void;
-  setRateOverride: (v: boolean) => void;
   reset: () => void;
 }
 
-const INITIAL_STATE = {
-  editingTx: null as Transaction | null,
+const INITIAL_STATE: EditTransactionStoreShape = {
+  editingTx: null,
   amountStr: '0',
-  saving: false,
-  showCategoryPicker: false,
-  rateOverride: false,
 };
 
-export const useEditTransactionStore = create<EditTransactionState>((set) => ({
-  visible: false,
-  ...INITIAL_STATE,
+export const useEditTransactionStore = create<EditTransactionStore>((set) => ({
+  state: INITIAL_STATE,
 
-  open: (tx: Transaction) =>
-    set({
-      visible: true,
-      editingTx: tx,
-      rateOverride: tx.exchange_rate !== null,
-      // Format amount: remove trailing ".0" for integers so numpad starts clean
-      amountStr: tx.amount % 1 === 0 ? String(Math.floor(tx.amount)) : String(tx.amount),
-    }),
-
-  close: () => set({ visible: false, ...INITIAL_STATE }),
-
-  setSaving: (saving) => set({ saving }),
+  loadFromTx: (tx) =>
+    set((s) => ({
+      state: {
+        ...s.state,
+        editingTx: tx,
+        // Format amount: remove trailing ".0" for integers so numpad starts clean
+        amountStr: tx.amount % 1 === 0 ? String(Math.floor(tx.amount)) : String(tx.amount),
+      },
+    })),
 
   handleNumpad: (action, value) =>
     set((s) => {
-      const prev = s.amountStr;
-      if (action === 'backspace') return { amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
-      if (action === 'decimal') return { amountStr: prev.includes('.') ? prev : prev + '.' };
+      const prev = s.state.amountStr;
+      if (action === 'backspace') {
+        return {
+          state: { ...s.state, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) },
+        };
+      }
+      if (action === 'decimal') {
+        return {
+          state: { ...s.state, amountStr: prev.includes('.') ? prev : prev + '.' },
+        };
+      }
       const digit = value ?? '';
-      if (prev === '0') return { amountStr: digit === '0' ? '0' : digit };
+      if (prev === '0') {
+        return { state: { ...s.state, amountStr: digit === '0' ? '0' : digit } };
+      }
       if (prev.includes('.')) {
         const parts = prev.split('.');
         if (parts[1].length >= 2) return {};
       }
-      return { amountStr: prev + digit };
+      return { state: { ...s.state, amountStr: prev + digit } };
     }),
 
-  setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
-  setRateOverride: (v) => set({ rateOverride: v }),
-
-  reset: () => set({ ...INITIAL_STATE }),
+  reset: () => set({ state: INITIAL_STATE }),
 }));
