@@ -1,6 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect } from 'react';
 import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
@@ -24,10 +25,17 @@ export function ReassignCategorySheet({
   onConfirm,
   onCancel,
 }: ReassignCategorySheetProps) {
-  const selectedId = useReassignCategorySheetState((s) => s.state.selectedId);
-  const isLoading = useReassignCategorySheetState((s) => s.state.isLoading);
-  const setSelectedId = useReassignCategorySheetState((s) => s.setSelectedId);
-  const setIsLoading = useReassignCategorySheetState((s) => s.setIsLoading);
+  const {
+    state: reassignState,
+    setSelectedId,
+    setIsLoading,
+  } = useReassignCategorySheetState(
+    useShallow((s) => ({
+      state: s.state,
+      setSelectedId: s.setSelectedId,
+      setIsLoading: s.setIsLoading,
+    })),
+  );
 
   // Reset draft state when the sheet hides — handles dismiss-without-confirm.
   useEffect(() => {
@@ -35,10 +43,10 @@ export function ReassignCategorySheet({
   }, [visible]);
 
   const handleConfirm = async () => {
-    if (!selectedId) return;
+    if (!reassignState.selectedId) return;
     setIsLoading(true);
     try {
-      await onConfirm(selectedId);
+      await onConfirm(reassignState.selectedId);
     } finally {
       setIsLoading(false);
       setSelectedId(null);
@@ -67,7 +75,10 @@ export function ReassignCategorySheet({
             renderItem={({ item }) => (
               <Pressable
                 onPress={() => setSelectedId(item.id)}
-                style={[styles.optionRow, selectedId === item.id && styles.optionRowActive]}
+                style={[
+                  styles.optionRow,
+                  reassignState.selectedId === item.id && styles.optionRowActive,
+                ]}
               >
                 <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
                   <MaterialCommunityIcons
@@ -77,7 +88,7 @@ export function ReassignCategorySheet({
                   />
                 </View>
                 <Text style={styles.optionName}>{item.name}</Text>
-                {selectedId === item.id && (
+                {reassignState.selectedId === item.id && (
                   <MaterialCommunityIcons
                     name="check-circle"
                     size={Size.iconXs}
@@ -91,8 +102,11 @@ export function ReassignCategorySheet({
           <View style={styles.ctaWrap}>
             <Pressable
               onPress={handleConfirm}
-              style={[styles.cta, (!selectedId || isLoading) && styles.ctaDisabled]}
-              disabled={!selectedId || isLoading}
+              style={[
+                styles.cta,
+                (!reassignState.selectedId || reassignState.isLoading) && styles.ctaDisabled,
+              ]}
+              disabled={!reassignState.selectedId || reassignState.isLoading}
             >
               <Text style={styles.ctaText}>{Strings.categoriesReassignConfirm}</Text>
             </Pressable>

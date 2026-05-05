@@ -128,7 +128,7 @@ function createSchema(type: TransactionType, accounts: Account[]) {
     });
 }
 
-function buildDefaults(currentRate: number): AddTransactionFormValues {
+function buildDefaults(rate: number): AddTransactionFormValues {
   const now = new Date().toISOString();
   return {
     amount: 0,
@@ -138,7 +138,7 @@ function buildDefaults(currentRate: number): AddTransactionFormValues {
     note: '',
     date: now.slice(0, 10),
     time: now.slice(11, 19),
-    exchangeRate: String(currentRate),
+    exchangeRate: String(rate),
   };
 }
 
@@ -146,8 +146,8 @@ export function useAddTransaction(onClose: () => void) {
   const { state: accountState, loadAccounts } = useAccountStore(
     useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
   );
-  const categories = useCategoryStore((s) => s.state.categories);
-  const currentRate = useCurrencyStore((s) => s.state.rate);
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
   const addTransaction = useTransactionStore((s) => s.addTransaction);
 
   const {
@@ -183,7 +183,7 @@ export function useAddTransaction(onClose: () => void) {
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildDefaults(currentRate),
+    defaultValues: buildDefaults(currencyState.rate),
   });
 
   const accountId = form.watch('accountId');
@@ -205,15 +205,15 @@ export function useAddTransaction(onClose: () => void) {
     [accountState.accounts, toAccountId],
   );
   const selectedCategory = useMemo(
-    () => categories.find((c) => c.id === categoryId) ?? null,
-    [categories, categoryId],
+    () => categoryState.categories.find((c) => c.id === categoryId) ?? null,
+    [categoryState.categories, categoryId],
   );
   const visibleCategories = useMemo(
     () =>
-      categories.filter(
+      categoryState.categories.filter(
         (c) => c.type === (addTxStoreState.type === TransactionType.Income ? 'income' : 'expense'),
       ),
-    [categories, addTxStoreState.type],
+    [categoryState.categories, addTxStoreState.type],
   );
 
   // Picker eligibility:
@@ -263,7 +263,7 @@ export function useAddTransaction(onClose: () => void) {
   // When the sheet closes, reset the form and override flag so the next open starts clean.
   useEffect(() => {
     if (!addTxState.visible) {
-      form.reset(buildDefaults(currentRate));
+      form.reset(buildDefaults(currencyState.rate));
       setRateOverride(false);
     }
   }, [addTxState.visible]);
@@ -326,14 +326,14 @@ export function useAddTransaction(onClose: () => void) {
     const next = !addTxState.rateOverride;
     setRateOverride(next);
     if (!next) {
-      form.setValue('exchangeRate', String(currentRate));
+      form.setValue('exchangeRate', String(currencyState.rate));
     }
   }
 
   function selectAccount(account: Account) {
     form.setValue('accountId', account.id);
     if (account.currency === Currency.USD) {
-      form.setValue('exchangeRate', String(currentRate));
+      form.setValue('exchangeRate', String(currencyState.rate));
       setRateOverride(false);
     }
     setShowAccountPicker(false);
@@ -342,7 +342,7 @@ export function useAddTransaction(onClose: () => void) {
   function selectToAccount(account: Account) {
     form.setValue('toAccountId', account.id);
     if (account.currency === Currency.USD && selectedAccount?.currency === Currency.EGP) {
-      form.setValue('exchangeRate', String(currentRate));
+      form.setValue('exchangeRate', String(currencyState.rate));
       setRateOverride(false);
     }
     setShowToPicker(false);

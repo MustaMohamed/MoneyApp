@@ -36,8 +36,8 @@ export function useTransactions() {
     useShallow((s) => ({ state: s.state, setQuery: s.setQuery, loadMore: s.loadMore })),
   );
 
-  const accounts = useAccountStore((s) => s.state.accounts);
-  const categories = useCategoryStore((s) => s.state.categories);
+  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
   const setDraft = useFilterDrawerStore((s) => s.setDraft);
   const openDrawer = useFilterDrawerState((s) => s.open);
@@ -53,8 +53,14 @@ export function useTransactions() {
     }).catch(() => {});
   }, [debouncedSearch, txScreenState.activeFilter, txScreenState.appliedFilters, setQuery]);
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
-  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const accountsById = useMemo(
+    () => new Map(accountState.accounts.map((a) => [a.id, a])),
+    [accountState.accounts],
+  );
+  const categoriesById = useMemo(
+    () => new Map(categoryState.categories.map((c) => [c.id, c])),
+    [categoryState.categories],
+  );
 
   const sections = useMemo(
     () => groupTransactionsByDate(txState.transactions),

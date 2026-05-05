@@ -12,12 +12,12 @@ export function useReady() {
   const { state: onboardingState, completeOnboarding } = useOnboardingStore(
     useShallow((s) => ({ state: s.state, completeOnboarding: s.completeOnboarding })),
   );
-  const accounts = useAccountStore((s) => s.state.accounts);
+  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
   const { state: readyState, setCompleting } = useReadyState(
     useShallow((s) => ({ state: s.state, setCompleting: s.setCompleting })),
   );
 
-  const total = computeTotalBalance(accounts);
+  const total = computeTotalBalance(accountState.accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
   const securityValue = resolveSecurityLabel(onboardingState.securityChoice);
 
@@ -25,7 +25,7 @@ export function useReady() {
     { label: Strings.o6Currency, value: onboardingState.baseCurrency, gold: true },
     {
       label: Strings.o6Accounts,
-      value: `${accounts.length} ${Strings.o6AccountsUnit}`,
+      value: `${accountState.accounts.length} ${Strings.o6AccountsUnit}`,
       gold: false,
     },
     {

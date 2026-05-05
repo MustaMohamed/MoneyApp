@@ -1,4 +1,5 @@
 import { Redirect, Stack } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 
 import { useOnboardingStore } from '@/store/onboarding.store';
 
@@ -12,8 +13,8 @@ export type OnboardingStackParams = {
 };
 
 export default function OnboardingLayout() {
-  const complete = useOnboardingStore((s) => s.state.complete);
-  if (complete) return <Redirect href="/dashboard" />;
+  const { state } = useOnboardingStore(useShallow((s) => ({ state: s.state })));
+  if (state.complete) return <Redirect href="/dashboard" />;
 
   return (
     <Stack

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -31,10 +32,13 @@ export function FilterAmountSection({
   onChangeMax,
 }: Props) {
   // Local string state lets the user type freely (commas, decimals) before committing.
-  const minStr = useFilterAmountSectionState((s) => s.state.minStr);
-  const maxStr = useFilterAmountSectionState((s) => s.state.maxStr);
-  const setMinStr = useFilterAmountSectionState((s) => s.setMinStr);
-  const setMaxStr = useFilterAmountSectionState((s) => s.setMaxStr);
+  const {
+    state: amountSectionState,
+    setMinStr,
+    setMaxStr,
+  } = useFilterAmountSectionState(
+    useShallow((s) => ({ state: s.state, setMinStr: s.setMinStr, setMaxStr: s.setMaxStr })),
+  );
 
   // Sync display when the parent resets (e.g. drawer Reset button clears the draft).
   useEffect(() => {
@@ -65,10 +69,10 @@ export function FilterAmountSection({
         <View style={styles.inputWrap}>
           <Text style={styles.inputLabel}>{Strings.filterCustomFromLabel}</Text>
           <TextInput
-            value={minStr}
+            value={amountSectionState.minStr}
             onChangeText={setMinStr}
             onBlur={() => {
-              const parsed = parseAmountInput(minStr);
+              const parsed = parseAmountInput(amountSectionState.minStr);
               setMinStr(formatAmount(parsed));
               onChangeMin(parsed);
             }}
@@ -81,10 +85,10 @@ export function FilterAmountSection({
         <View style={styles.inputWrap}>
           <Text style={styles.inputLabel}>{Strings.filterCustomToLabel}</Text>
           <TextInput
-            value={maxStr}
+            value={amountSectionState.maxStr}
             onChangeText={setMaxStr}
             onBlur={() => {
-              const parsed = parseAmountInput(maxStr);
+              const parsed = parseAmountInput(amountSectionState.maxStr);
               setMaxStr(formatAmount(parsed));
               onChangeMax(parsed);
             }}

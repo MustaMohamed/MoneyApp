@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
 
 import { Currency } from '@/constants/enums';
@@ -24,11 +25,19 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const input = useAdjustBalanceSheetState((s) => s.state.input);
-  const error = useAdjustBalanceSheetState((s) => s.state.error);
-  const setInput = useAdjustBalanceSheetState((s) => s.setInput);
-  const setError = useAdjustBalanceSheetState((s) => s.setError);
-  const initialize = useAdjustBalanceSheetState((s) => s.initialize);
+  const {
+    state: adjustState,
+    setInput,
+    setError,
+    initialize,
+  } = useAdjustBalanceSheetState(
+    useShallow((s) => ({
+      state: s.state,
+      setInput: s.setInput,
+      setError: s.setError,
+      initialize: s.initialize,
+    })),
+  );
 
   useEffect(() => {
     if (visible) {
@@ -37,7 +46,7 @@ export function AdjustBalanceSheet({
   }, [visible, currentBalance, initialize]);
 
   const handleSave = () => {
-    const n = parseFloat(input);
+    const n = parseFloat(adjustState.input);
     if (!Number.isFinite(n) || n < 0) {
       setError(Strings.errBalanceInvalid);
       return;
@@ -63,7 +72,7 @@ export function AdjustBalanceSheet({
           <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
           <View style={styles.inputRow}>
             <TextInput
-              value={input}
+              value={adjustState.input}
               onChangeText={(v) => {
                 setInput(v);
                 setError('');
@@ -75,7 +84,7 @@ export function AdjustBalanceSheet({
             />
             <Text style={styles.currency}>{currency}</Text>
           </View>
-          {!!error && <Text style={styles.error}>{error}</Text>}
+          {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
 
           <View style={styles.ctaBar}>
             <Pressable onPress={onClose} style={styles.cancelBtn}>

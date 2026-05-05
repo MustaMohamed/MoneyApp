@@ -39,14 +39,14 @@ function createEditSchema(type: TransactionType) {
   });
 }
 
-function buildDefaults(tx: Transaction, currentRate: number): EditTransactionFormValues {
+function buildDefaults(tx: Transaction, rate: number): EditTransactionFormValues {
   return {
     amount: tx.amount,
     categoryId: tx.category_id ?? '',
     note: tx.note ?? '',
     date: tx.transaction_date,
     time: tx.transaction_time,
-    exchangeRate: String(tx.exchange_rate ?? currentRate),
+    exchangeRate: String(tx.exchange_rate ?? rate),
   };
 }
 
@@ -54,8 +54,8 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   const { state: accountState, loadAccounts } = useAccountStore(
     useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
   );
-  const categories = useCategoryStore((s) => s.state.categories);
-  const currentRate = useCurrencyStore((s) => s.state.rate);
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
   const updateTransaction = useTransactionStore((s) => s.updateTransaction);
 
   const { state: editTxStoreState, handleNumpad } = useEditTransactionStore(
@@ -83,7 +83,7 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildDefaults(initialTx, currentRate),
+    defaultValues: buildDefaults(initialTx, currencyState.rate),
   });
 
   const categoryId = form.watch('categoryId');
@@ -110,13 +110,15 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   const requiresRate = isUSD || (isTransferOrCC && isToUSD);
 
   const selectedCategory = useMemo(
-    () => categories.find((c) => c.id === categoryId) ?? null,
-    [categories, categoryId],
+    () => categoryState.categories.find((c) => c.id === categoryId) ?? null,
+    [categoryState.categories, categoryId],
   );
   const visibleCategories = useMemo(
     () =>
-      categories.filter((c) => c.type === (type === TransactionType.Income ? 'income' : 'expense')),
-    [categories, type],
+      categoryState.categories.filter(
+        (c) => c.type === (type === TransactionType.Income ? 'income' : 'expense'),
+      ),
+    [categoryState.categories, type],
   );
 
   const errors = {
@@ -134,7 +136,7 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   // When the sheet closes, reset the form and override flag to the original tx values
   useEffect(() => {
     if (!editTxState.visible) {
-      form.reset(buildDefaults(initialTx, currentRate));
+      form.reset(buildDefaults(initialTx, currencyState.rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
   }, [editTxState.visible]);
@@ -190,7 +192,7 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
     const next = !editTxState.rateOverride;
     setRateOverride(next);
     if (!next) {
-      form.setValue('exchangeRate', String(currentRate));
+      form.setValue('exchangeRate', String(currencyState.rate));
     }
   }
 

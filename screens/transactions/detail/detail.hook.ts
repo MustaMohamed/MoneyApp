@@ -73,8 +73,8 @@ export function useTransactionDetail(id: string) {
     useShallow((s) => ({ getById: s.getById, deleteTransaction: s.deleteTransaction })),
   );
 
-  const accounts = useAccountStore((s) => s.state.accounts);
-  const categories = useCategoryStore((s) => s.state.categories);
+  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
   useEffect(() => {
     let cancelled = false;
@@ -99,8 +99,14 @@ export function useTransactionDetail(id: string) {
     };
   }, [resetData, resetUi]);
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
-  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const accountsById = useMemo(
+    () => new Map(accountState.accounts.map((a) => [a.id, a])),
+    [accountState.accounts],
+  );
+  const categoriesById = useMemo(
+    () => new Map(categoryState.categories.map((c) => [c.id, c])),
+    [categoryState.categories],
+  );
 
   const viewState: DetailViewState =
     txDetailDataState.tx === undefined

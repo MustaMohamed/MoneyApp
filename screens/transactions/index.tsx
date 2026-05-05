@@ -21,13 +21,16 @@ import { SearchBar } from './components/search_bar';
 import { TransactionRow } from './components/transaction_row';
 import { FilterDrawer } from './filter';
 import { useFilterDrawerState } from './filter/filter.state';
+import { useShallow } from 'zustand/react/shallow';
+
 import { useTransactions } from './transactions.hook';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export default function TransactionsScreen() {
   const t = useTransactions();
-  const open = useAddTransactionState((s) => s.open);
-  const visible = useAddTransactionState((s) => s.state.visible);
+  const { state: addTxState, open } = useAddTransactionState(
+    useShallow((s) => ({ state: s.state, open: s.open })),
+  );
 
   // Closing the sheet must reset BOTH the UI state (visibility + flags) and the
   // data store (form draft: type + amountStr) so the next FAB tap starts clean.
@@ -107,7 +110,7 @@ export default function TransactionsScreen() {
         <MaterialCommunityIcons name="plus" size={ms(28)} color={Colors.shared.midnightBlue} />
       </Pressable>
 
-      <AddTransactionSheet visible={visible} onClose={handleClose} />
+      <AddTransactionSheet visible={addTxState.visible} onClose={handleClose} />
       <FilterDrawer />
     </SafeAreaView>
   );

@@ -11,6 +11,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
+import { useShallow } from 'zustand/react/shallow';
+
 import { useReadyStore } from '@/store/ready.store';
 import { useLayoutInit } from '@/utils/use_layout_init.hook';
 
@@ -27,16 +29,16 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const ready = useReadyStore((s) => s.state.ready);
+  const { state: readyState } = useReadyStore(useShallow((s) => ({ state: s.state })));
   useLayoutInit();
 
   useEffect(() => {
-    if (fontsLoaded && ready) {
+    if (fontsLoaded && readyState.ready) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, ready]);
+  }, [fontsLoaded, readyState.ready]);
 
-  if (!fontsLoaded || !ready) return null;
+  if (!fontsLoaded || !readyState.ready) return null;
 
   return (
     <>

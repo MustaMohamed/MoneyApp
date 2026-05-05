@@ -54,14 +54,14 @@ export function useFilterDrawer() {
     })),
   );
 
-  const allAccounts = useAccountStore((s) => s.state.accounts);
-  const allCategories = useCategoryStore((s) => s.state.categories);
+  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
   const pickerAccounts = useMemo(
-    () => allAccounts.filter((a) => a.is_archived === 0),
-    [allAccounts],
+    () => accountState.accounts.filter((a) => a.is_archived === 0),
+    [accountState.accounts],
   );
-  const pickerCategories = allCategories;
+  const pickerCategories = categoryState.categories;
 
   const setAppliedFilters = useTransactionsScreenStore((s) => s.setAppliedFilters);
 
@@ -76,17 +76,17 @@ export function useFilterDrawer() {
 
   const selectedAccountSummary = useMemo(() => {
     const names = filterDataState.draft.accountIds
-      .map((id) => allAccounts.find((a) => a.id === id)?.name)
+      .map((id) => accountState.accounts.find((a) => a.id === id)?.name)
       .filter((n): n is string => !!n);
     return formatSelectionSummary(names, Strings.filterAllAccounts);
-  }, [filterDataState.draft.accountIds, allAccounts]);
+  }, [filterDataState.draft.accountIds, accountState.accounts]);
 
   const selectedCategorySummary = useMemo(() => {
     const names = filterDataState.draft.categoryIds
-      .map((id) => allCategories.find((c) => c.id === id)?.name)
+      .map((id) => categoryState.categories.find((c) => c.id === id)?.name)
       .filter((n): n is string => !!n);
     return formatSelectionSummary(names, Strings.filterAllCategories);
-  }, [filterDataState.draft.categoryIds, allCategories]);
+  }, [filterDataState.draft.categoryIds, categoryState.categories]);
 
   const draftActiveCount = useMemo(
     () => countActiveFilters(filterDataState.draft),
