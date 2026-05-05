@@ -27,7 +27,7 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const ready = useReadyStore((s) => s.ready);
+  const ready = useReadyStore((s) => s.state.ready);
   useLayoutInit();
 
   useEffect(() => {

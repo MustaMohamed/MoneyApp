@@ -26,11 +26,15 @@ export interface TransactionListFilters {
   amountCurrency?: Currency;
 }
 
-interface TransactionState {
-  transactions: Transaction[];
-  hasMore: boolean;
-  loading: boolean;
-  query: TransactionListFilters;
+const INITIAL_STATE = {
+  transactions: [] as Transaction[],
+  hasMore: false,
+  loading: false,
+  query: {} as TransactionListFilters,
+};
+
+interface TransactionStore {
+  state: typeof INITIAL_STATE;
 
   setQuery: (q: TransactionListFilters) => Promise<void>;
   refresh: () => Promise<void>;
@@ -46,46 +50,46 @@ export function createTransactionStore(repo: ITransactionRepository) {
   // Module-scoped to this store instance — race guard for setQuery / loadMore / refresh.
   let requestId = 0;
 
-  return create<TransactionState>((set, get) => {
+  return create<TransactionStore>((set, get) => {
     async function fetchPage(
       filters: TransactionListFilters,
       offset: number,
       mode: 'replace' | 'append',
     ) {
       const myId = ++requestId;
-      set({ loading: true });
+      set((s) => ({ state: { ...s.state, loading: true } }));
       try {
         const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
         if (myId !== requestId) return; // stale — newer request superseded us
         const hasMore = rows.length === PAGE_SIZE;
         if (mode === 'replace') {
-          set({ transactions: rows, hasMore, loading: false, query: filters });
+          set({ state: { transactions: rows, hasMore, loading: false, query: filters } });
         } else {
-          set({
-            transactions: [...get().transactions, ...rows],
-            hasMore,
-            loading: false,
-          });
+          set((s) => ({
+            state: {
+              ...s.state,
+              transactions: [...s.state.transactions, ...rows],
+              hasMore,
+              loading: false,
+            },
+          }));
         }
       } catch (err) {
-        if (myId === requestId) set({ loading: false });
+        if (myId === requestId) set((s) => ({ state: { ...s.state, loading: false } }));
         console.error('[transactionStore] fetch failed:', err);
         throw err;
       }
     }
 
     return {
-      transactions: [],
-      hasMore: false,
-      loading: false,
-      query: {},
+      state: INITIAL_STATE,
 
       setQuery: (q) => fetchPage(q, 0, 'replace'),
 
-      refresh: () => fetchPage(get().query, 0, 'replace'),
+      refresh: () => fetchPage(get().state.query, 0, 'replace'),
 
       loadMore: async () => {
-        const { hasMore, loading, query, transactions } = get();
+        const { hasMore, loading, query, transactions } = get().state;
         if (!hasMore || loading) return;
         await fetchPage(query, transactions.length, 'append');
       },

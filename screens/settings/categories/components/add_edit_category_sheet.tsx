@@ -88,7 +88,7 @@ export function AddEditCategorySheet({
   onClose,
   onSave,
 }: AddEditCategorySheetProps) {
-  const { categories } = useCategoryStore();
+  const categories = useCategoryStore((s) => s.state.categories);
   const isEditing = editingCategory !== null;
 
   const type = useAddEditCategorySheetState((s) => s.state.type);

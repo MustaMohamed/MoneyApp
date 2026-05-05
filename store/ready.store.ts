@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
+const INITIAL_STATE = { ready: false };
+
 interface ReadyStore {
-  ready: boolean;
+  state: typeof INITIAL_STATE;
   setReady: (ready: boolean) => void;
 }
 
 export const useReadyStore = create<ReadyStore>((set) => ({
-  ready: false,
-  setReady: (ready) => set({ ready }),
+  state: INITIAL_STATE,
+  setReady: (ready) => set((s) => ({ state: { ...s.state, ready } })),
 }));

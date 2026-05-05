@@ -59,7 +59,7 @@ describe('accountStore.loadAccounts', () => {
     const store = createAccountStore(repo);
     await store.getState().loadAccounts();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.getState().state.accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.getAll', async () => {
@@ -83,7 +83,7 @@ describe('accountStore.addAccount', () => {
     const store = createAccountStore(repo);
     await store.getState().addAccount(baseInput);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.getState().state.accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.add', async () => {
@@ -106,7 +106,7 @@ describe('accountStore.updateAccount', () => {
     const store = createAccountStore(repo);
     await store.getState().updateAccount('test-id', { name: 'New Name', color: null });
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.getState().state.accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors from repo.update', async () => {

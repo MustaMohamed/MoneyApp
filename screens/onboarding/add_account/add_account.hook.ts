@@ -1,5 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
+
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -14,16 +16,21 @@ import {
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const accounts = useAccountStore((s) => s.accounts);
-  const addAccount = useAccountStore((s) => s.addAccount);
-  const setStep = useOnboardingStore((s) => s.setStep);
-  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
+  const { state: accountState, addAccount } = useAccountStore(
+    useShallow((s) => ({ state: s.state, addAccount: s.addAccount })),
+  );
+  const { state: onboardingState, setStep } = useOnboardingStore(
+    useShallow((s) => ({ state: s.state, setStep: s.setStep })),
+  );
 
   useEffect(() => {
     useAccountStore.getState().loadAccounts();
   }, []);
 
-  const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
+  const schema = useMemo(
+    () => createAddAccountSchema(accountState.accounts),
+    [accountState.accounts],
+  );
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -33,7 +40,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AccountColors[0],
-      currency: baseCurrency,
+      currency: onboardingState.baseCurrency,
       interest_tracking: false,
       credit_limit: '',
       apr: '',
@@ -52,7 +59,7 @@ export function useAddAccount() {
       opening_balance: parseFloat(data.balance),
       color: data.selected_color,
       interest_tracking: (data.interest_tracking ? 1 : 0) as 0 | 1,
-      sort_order: accounts.length,
+      sort_order: accountState.accounts.length,
       credit_limit: isCC && data.credit_limit?.trim() ? parseFloat(data.credit_limit) : null,
       revolving_balance:
         isCC && data.revolving_balance?.trim() ? parseFloat(data.revolving_balance) || 0 : null,

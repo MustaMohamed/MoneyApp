@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { AccountColors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
@@ -12,23 +13,44 @@ export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  const accounts = useAccountStore((s) => s.accounts);
-  const updateAccount = useAccountStore((s) => s.updateAccount);
-  const archiveAccount = useAccountStore((s) => s.archiveAccount);
-  const adjustBalance = useAccountStore((s) => s.adjustBalance);
-
-  const detailState = useAccountDetailState((s) => s.state);
-  const setEditing = useAccountDetailState((s) => s.setEditing);
-  const setAdjustVisible = useAccountDetailState((s) => s.setAdjustVisible);
-  const setArchiveVisible = useAccountDetailState((s) => s.setArchiveVisible);
-  const setSaving = useAccountDetailState((s) => s.setSaving);
-  const setAdjusting = useAccountDetailState((s) => s.setAdjusting);
-  const setArchiving = useAccountDetailState((s) => s.setArchiving);
-  const reset = useAccountDetailState((s) => s.reset);
+  const {
+    state: accountState,
+    updateAccount,
+    archiveAccount,
+    adjustBalance,
+  } = useAccountStore(
+    useShallow((s) => ({
+      state: s.state,
+      updateAccount: s.updateAccount,
+      archiveAccount: s.archiveAccount,
+      adjustBalance: s.adjustBalance,
+    })),
+  );
+  const {
+    state: detailState,
+    setEditing,
+    setAdjustVisible,
+    setArchiveVisible,
+    setSaving,
+    setAdjusting,
+    setArchiving,
+    reset,
+  } = useAccountDetailState(
+    useShallow((s) => ({
+      state: s.state,
+      setEditing: s.setEditing,
+      setAdjustVisible: s.setAdjustVisible,
+      setArchiveVisible: s.setArchiveVisible,
+      setSaving: s.setSaving,
+      setAdjusting: s.setAdjusting,
+      setArchiving: s.setArchiving,
+      reset: s.reset,
+    })),
+  );
 
   useEffect(() => () => reset(), []);
 
-  const account = accounts.find((a) => a.id === id);
+  const account = accountState.accounts.find((a) => a.id === id);
 
   const editSchema = useMemo(
     () =>
@@ -39,14 +61,14 @@ export function useAccountDetail() {
           .max(30, Strings.errNameTooLong)
           .refine(
             (n) =>
-              !accounts.some(
+              !accountState.accounts.some(
                 (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
               ),
             { message: Strings.errNameDuplicate },
           ),
         color: z.string(),
       }),
-    [accounts, id],
+    [accountState.accounts, id],
   );
 
   const form = useZodForm(editSchema, {

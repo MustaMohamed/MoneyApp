@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 
 import { AccountColors } from '@/constants/theme';
 import { AccountType, Currency } from '@/constants/enums';
@@ -12,10 +13,14 @@ import {
 
 export function useAddAccountApp() {
   const router = useRouter();
-  const accounts = useAccountStore((s) => s.accounts);
-  const addAccount = useAccountStore((s) => s.addAccount);
+  const { state: accountState, addAccount } = useAccountStore(
+    useShallow((s) => ({ state: s.state, addAccount: s.addAccount })),
+  );
 
-  const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
+  const schema = useMemo(
+    () => createAddAccountSchema(accountState.accounts),
+    [accountState.accounts],
+  );
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -44,7 +49,7 @@ export function useAddAccountApp() {
       opening_balance: parseFloat(data.balance),
       color: data.selected_color,
       interest_tracking: (data.interest_tracking ? 1 : 0) as 0 | 1,
-      sort_order: accounts.length,
+      sort_order: accountState.accounts.length,
       credit_limit: isCC && data.credit_limit?.trim() ? parseFloat(data.credit_limit) : null,
       revolving_balance:
         isCC && data.revolving_balance?.trim() ? parseFloat(data.revolving_balance) || 0 : null,

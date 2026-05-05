@@ -10,20 +10,22 @@ const FETCHED_AT_KEY = 'usd_rate_fetched_at';
 const MANUAL_KEY = 'usd_rate_manual_override';
 const EXCHANGE_API_URL = 'https://open.er-api.com/v6/latest/USD';
 
-interface CurrencyState {
-  rate: number;
-  lastFetched: string | null;
-  isManualOverride: boolean;
+const INITIAL_STATE = {
+  rate: 50,
+  lastFetched: null as string | null,
+  isManualOverride: false,
+};
+
+interface CurrencyStore {
+  state: typeof INITIAL_STATE;
   loadRate: () => Promise<void>;
   fetchRate: () => Promise<void>;
   setManualRate: (rate: number) => Promise<void>;
 }
 
 export function createCurrencyStore(repo: IAppSettingsRepository) {
-  return create<CurrencyState>((set) => ({
-    rate: 50,
-    lastFetched: null,
-    isManualOverride: false,
+  return create<CurrencyStore>((set) => ({
+    state: INITIAL_STATE,
 
     loadRate: async () => {
       try {
@@ -34,9 +36,11 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
         ]);
         if (rateStr !== null) {
           set({
-            rate: parseFloat(rateStr),
-            lastFetched: fetchedAt,
-            isManualOverride: manualStr === 'true',
+            state: {
+              rate: parseFloat(rateStr),
+              lastFetched: fetchedAt,
+              isManualOverride: manualStr === 'true',
+            },
           });
         }
       } catch (err) {
@@ -57,7 +61,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
           repo.set(FETCHED_AT_KEY, now),
           repo.set(MANUAL_KEY, 'false'),
         ]);
-        set({ rate, lastFetched: now, isManualOverride: false });
+        set({ state: { rate, lastFetched: now, isManualOverride: false } });
       } catch (err) {
         console.error('[currencyStore] fetchRate failed:', err);
         throw err;
@@ -67,7 +71,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
     setManualRate: async (rate: number) => {
       try {
         await Promise.all([repo.set(RATE_KEY, String(rate)), repo.set(MANUAL_KEY, 'true')]);
-        set({ rate, isManualOverride: true });
+        set((s) => ({ state: { ...s.state, rate, isManualOverride: true } }));
       } catch (err) {
         console.error('[currencyStore] setManualRate failed:', err);
         throw err;

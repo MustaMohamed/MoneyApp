@@ -10,8 +10,10 @@ import {
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
-interface AccountState {
-  accounts: Account[];
+const INITIAL_STATE = { accounts: [] as Account[] };
+
+interface AccountStore {
+  state: typeof INITIAL_STATE;
   loadAccounts: () => Promise<void>;
   addAccount: (data: NewAccountInput) => Promise<Account>;
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
@@ -20,13 +22,13 @@ interface AccountState {
 }
 
 export function createAccountStore(repo: IAccountRepository) {
-  return create<AccountState>((set, get) => ({
-    accounts: [],
+  return create<AccountStore>((set, get) => ({
+    state: INITIAL_STATE,
 
     loadAccounts: async () => {
       try {
         const accounts = await repo.getAll();
-        set({ accounts });
+        set((s) => ({ state: { ...s.state, accounts } }));
       } catch (err) {
         console.error('[accountStore] loadAccounts failed:', err);
         throw err;

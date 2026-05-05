@@ -8,11 +8,15 @@ import {
   type IAppSettingsRepository,
 } from '@/repositories/app_settings.repository';
 
-interface OnboardingState {
-  complete: boolean;
-  currentStep: OnboardingStep;
-  baseCurrency: Currency;
-  securityChoice: SecurityChoice | undefined;
+const INITIAL_STATE = {
+  complete: false,
+  currentStep: OnboardingStep.O1,
+  baseCurrency: Currency.EGP,
+  securityChoice: undefined as SecurityChoice | undefined,
+};
+
+interface OnboardingStore {
+  state: typeof INITIAL_STATE;
   setStep: (step: OnboardingStep) => Promise<void>;
   setBaseCurrency: (currency: Currency) => Promise<void>;
   setSecurityChoice: (choice: SecurityChoice) => Promise<void>;
@@ -20,16 +24,13 @@ interface OnboardingState {
 }
 
 export function createOnboardingStore(repo: IAppSettingsRepository) {
-  return create<OnboardingState>((set) => ({
-    complete: false,
-    currentStep: OnboardingStep.O1,
-    baseCurrency: Currency.EGP,
-    securityChoice: undefined,
+  return create<OnboardingStore>((set) => ({
+    state: INITIAL_STATE,
 
     setStep: async (step) => {
       try {
         await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
-        set({ currentStep: step });
+        set((s) => ({ state: { ...s.state, currentStep: step } }));
       } catch (err) {
         console.error('[onboardingStore] setStep failed:', err);
         throw err;
@@ -40,7 +41,7 @@ export function createOnboardingStore(repo: IAppSettingsRepository) {
       try {
         await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
         await repo.set('base_currency', currency);
-        set({ baseCurrency: currency });
+        set((s) => ({ state: { ...s.state, baseCurrency: currency } }));
       } catch (err) {
         console.error('[onboardingStore] setBaseCurrency failed:', err);
         throw err;
@@ -54,7 +55,7 @@ export function createOnboardingStore(repo: IAppSettingsRepository) {
           SecureStoreKeys.SecuritySetupSkipped,
           String(choice === SecurityChoice.Skip),
         );
-        set({ securityChoice: choice });
+        set((s) => ({ state: { ...s.state, securityChoice: choice } }));
       } catch (err) {
         console.error('[onboardingStore] setSecurityChoice failed:', err);
         throw err;
@@ -65,7 +66,7 @@ export function createOnboardingStore(repo: IAppSettingsRepository) {
       try {
         await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
         await repo.set('onboarding_complete', 'true');
-        set({ complete: true });
+        set((s) => ({ state: { ...s.state, complete: true } }));
       } catch (err) {
         console.error('[onboardingStore] completeOnboarding failed:', err);
         throw err;
@@ -95,10 +96,7 @@ export async function loadOnboardingState(): Promise<{
     : undefined;
 
   useOnboardingStore.setState({
-    complete,
-    currentStep: step,
-    baseCurrency,
-    securityChoice,
+    state: { complete, currentStep: step, baseCurrency, securityChoice },
   });
 
   return { complete, step };

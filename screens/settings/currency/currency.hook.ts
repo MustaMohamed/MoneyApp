@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/store/currency.store';
@@ -9,17 +10,32 @@ import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
   const router = useRouter();
-  const rate = useCurrencyStore((s) => s.rate);
-  const lastFetched = useCurrencyStore((s) => s.lastFetched);
-  const isManualOverride = useCurrencyStore((s) => s.isManualOverride);
-  const fetchRate = useCurrencyStore((s) => s.fetchRate);
-  const setManualRate = useCurrencyStore((s) => s.setManualRate);
-
-  const screenState = useCurrencyScreenState((s) => s.state);
-  const setManualPanelOpen = useCurrencyScreenState((s) => s.setManualPanelOpen);
-  const setFetching = useCurrencyScreenState((s) => s.setFetching);
-  const setSaving = useCurrencyScreenState((s) => s.setSaving);
-  const resetState = useCurrencyScreenState((s) => s.reset);
+  const {
+    state: currencyState,
+    fetchRate,
+    setManualRate,
+  } = useCurrencyStore(
+    useShallow((s) => ({
+      state: s.state,
+      fetchRate: s.fetchRate,
+      setManualRate: s.setManualRate,
+    })),
+  );
+  const {
+    state: screenState,
+    setManualPanelOpen,
+    setFetching,
+    setSaving,
+    resetState,
+  } = useCurrencyScreenState(
+    useShallow((s) => ({
+      state: s.state,
+      setManualPanelOpen: s.setManualPanelOpen,
+      setFetching: s.setFetching,
+      setSaving: s.setSaving,
+      resetState: s.reset,
+    })),
+  );
 
   useEffect(() => () => resetState(), []);
 
@@ -34,7 +50,7 @@ export function useCurrencyScreen() {
   });
 
   const form = useZodForm(manualSchema, {
-    defaultValues: { rate: String(rate) },
+    defaultValues: { rate: String(currencyState.rate) },
   });
 
   const handleFetchRate = async () => {
@@ -60,9 +76,9 @@ export function useCurrencyScreen() {
 
   return {
     state: {
-      rate,
-      lastFetched,
-      isManualOverride,
+      rate: currencyState.rate,
+      lastFetched: currencyState.lastFetched,
+      isManualOverride: currencyState.isManualOverride,
       isManualPanelOpen: screenState.isManualPanelOpen,
       isFetching: screenState.isFetching,
       isSaving: screenState.isSaving,

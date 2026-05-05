@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -14,68 +15,78 @@ import { useTransactionsScreenStore } from './transactions.store';
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 
 export function useTransactions() {
-  // screen-local
-  const searchQuery = useTransactionsScreenStore((s) => s.searchQuery);
-  const activeFilter = useTransactionsScreenStore((s) => s.activeFilter);
-  const appliedFilters = useTransactionsScreenStore((s) => s.appliedFilters);
-  const setSearchQuery = useTransactionsScreenStore((s) => s.setSearchQuery);
-  const setActiveFilter = useTransactionsScreenStore((s) => s.setActiveFilter);
-  const clearSearch = useTransactionsScreenStore((s) => s.clearSearch);
+  const {
+    state: txScreenState,
+    setSearchQuery,
+    setActiveFilter,
+    clearSearch,
+  } = useTransactionsScreenStore(
+    useShallow((s) => ({
+      state: s.state,
+      setSearchQuery: s.setSearchQuery,
+      setActiveFilter: s.setActiveFilter,
+      clearSearch: s.clearSearch,
+    })),
+  );
+  const {
+    state: txState,
+    setQuery,
+    loadMore,
+  } = useTransactionStore(
+    useShallow((s) => ({ state: s.state, setQuery: s.setQuery, loadMore: s.loadMore })),
+  );
 
-  // global
-  const transactions = useTransactionStore((s) => s.transactions);
-  const hasMore = useTransactionStore((s) => s.hasMore);
-  const loading = useTransactionStore((s) => s.loading);
-  const setQuery = useTransactionStore((s) => s.setQuery);
-  const loadMore = useTransactionStore((s) => s.loadMore);
+  const accounts = useAccountStore((s) => s.state.accounts);
+  const categories = useCategoryStore((s) => s.state.categories);
 
-  // joined
-  const accounts = useAccountStore((s) => s.accounts);
-  const categories = useCategoryStore((s) => s.categories);
-
-  // drawer
   const setDraft = useFilterDrawerStore((s) => s.setDraft);
   const openDrawer = useFilterDrawerState((s) => s.open);
 
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const debouncedSearch = useDebouncedValue(txScreenState.searchQuery, 300);
 
   useEffect(() => {
     const trimmed = debouncedSearch.trim();
     setQuery({
       search: trimmed || undefined,
-      type: activeFilter === 'all' ? undefined : activeFilter,
-      ...toQueryFilters(appliedFilters),
+      type: txScreenState.activeFilter === 'all' ? undefined : txScreenState.activeFilter,
+      ...toQueryFilters(txScreenState.appliedFilters),
     }).catch(() => {});
-  }, [debouncedSearch, activeFilter, appliedFilters, setQuery]);
+  }, [debouncedSearch, txScreenState.activeFilter, txScreenState.appliedFilters, setQuery]);
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
+  const sections = useMemo(
+    () => groupTransactionsByDate(txState.transactions),
+    [txState.transactions],
+  );
 
-  const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
+  const activeFilterCount = useMemo(
+    () => countActiveFilters(txScreenState.appliedFilters),
+    [txScreenState.appliedFilters],
+  );
   const hasAdvancedFilters = activeFilterCount > 0;
 
   const emptyVariant: EmptyVariant =
-    transactions.length > 0
+    txState.transactions.length > 0
       ? 'none'
-      : debouncedSearch.trim() || activeFilter !== 'all' || hasAdvancedFilters
+      : debouncedSearch.trim() || txScreenState.activeFilter !== 'all' || hasAdvancedFilters
         ? 'noResults'
         : 'noData';
 
   function openFilter() {
-    setDraft(appliedFilters);
+    setDraft(txScreenState.appliedFilters);
     openDrawer();
   }
 
   return {
     state: {
       sections,
-      hasMore,
-      loading,
+      hasMore: txState.hasMore,
+      loading: txState.loading,
       emptyVariant,
-      searchQuery,
-      activeFilter,
+      searchQuery: txScreenState.searchQuery,
+      activeFilter: txScreenState.activeFilter,
       accountsById,
       categoriesById,
       activeFilterCount,
