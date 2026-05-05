@@ -6,13 +6,10 @@ import { OnboardingStep } from '@/constants/enums';
 
 export function useMoreAccounts() {
   const router = useRouter();
-  const accounts = useAccountStore((s) => s.accounts);
+  const accounts = useAccountStore((s) => s.state.accounts);
   const setStep = useOnboardingStore((s) => s.setStep);
 
-  const initialCountRef = useRef<number | null>(null);
-  if (initialCountRef.current === null) {
-    initialCountRef.current = accounts.length;
-  }
+  const initialCountRef = useRef<number>(accounts.length);
   const initialCount = initialCountRef.current;
 
   useFocusEffect(
