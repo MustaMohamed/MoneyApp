@@ -1,14 +1,6 @@
 import { useEffect } from 'react';
-import {
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
 import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -48,6 +40,9 @@ export function AdjustBalanceSheet({
     })),
   );
 
+  const keyboard = useAnimatedKeyboard();
+  const sheetStyle = useAnimatedStyle(() => ({ marginBottom: keyboard.height.value }));
+
   useEffect(() => {
     if (visible) {
       initialize(currentBalance);
@@ -74,49 +69,47 @@ export function AdjustBalanceSheet({
     >
       <View style={styles.container}>
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-          <View style={styles.sheet}>
-            <View style={styles.handle} />
-            <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
+        <Animated.View style={[styles.sheet, sheetStyle]}>
+          <View style={styles.handle} />
+          <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
 
-            <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
-            <View style={styles.inputRow}>
-              <TextInput
-                value={adjustState.input}
-                onChangeText={(v) => {
-                  setInput(v);
-                  setError('');
-                }}
-                keyboardType="decimal-pad"
-                style={styles.input}
-                placeholderTextColor={Colors.dark.text3}
-                autoFocus
-              />
-              <Text style={styles.currency}>{currency}</Text>
-            </View>
-            {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
-
-            <View style={styles.ctaBar}>
-              <Pressable onPress={onClose} style={styles.cancelBtn}>
-                <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleSave}
-                disabled={isLoading}
-                style={[styles.savePress, isLoading && styles.disabled]}
-              >
-                <LinearGradient
-                  colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.saveGradient}
-                >
-                  <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
-                </LinearGradient>
-              </Pressable>
-            </View>
+          <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
+          <View style={styles.inputRow}>
+            <TextInput
+              value={adjustState.input}
+              onChangeText={(v) => {
+                setInput(v);
+                setError('');
+              }}
+              keyboardType="decimal-pad"
+              style={styles.input}
+              placeholderTextColor={Colors.dark.text3}
+              autoFocus
+            />
+            <Text style={styles.currency}>{currency}</Text>
           </View>
-        </KeyboardAvoidingView>
+          {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
+
+          <View style={styles.ctaBar}>
+            <Pressable onPress={onClose} style={styles.cancelBtn}>
+              <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleSave}
+              disabled={isLoading}
+              style={[styles.savePress, isLoading && styles.disabled]}
+            >
+              <LinearGradient
+                colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.saveGradient}
+              >
+                <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
+        </Animated.View>
       </View>
     </Modal>
   );
