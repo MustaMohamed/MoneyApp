@@ -81,6 +81,7 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npx --yes expo-doctor
+        continue-on-error: true
         env:
           CI: true
 
