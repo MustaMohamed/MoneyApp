@@ -1,6 +1,16 @@
 import { useEffect } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import Animated, { useAnimatedKeyboard, useAnimatedStyle } from 'react-native-reanimated';
+import {
+  Keyboard,
+  KeyboardEvent,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -40,8 +50,25 @@ export function AdjustBalanceSheet({
     })),
   );
 
-  const keyboard = useAnimatedKeyboard();
-  const sheetStyle = useAnimatedStyle(() => ({ marginBottom: keyboard.height.value }));
+  const kbHeight = useSharedValue(0);
+  const sheetStyle = useAnimatedStyle(() => ({ marginBottom: kbHeight.value }));
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const onShow = (e: KeyboardEvent) => {
+      kbHeight.value = withTiming(e.endCoordinates.height, { duration: e.duration ?? 250 });
+    };
+    const onHide = (e: KeyboardEvent) => {
+      kbHeight.value = withTiming(0, { duration: e.duration ?? 250 });
+    };
+    const showSub = Keyboard.addListener(showEvent, onShow);
+    const hideSub = Keyboard.addListener(hideEvent, onHide);
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, [kbHeight]);
 
   useEffect(() => {
     if (visible) {
