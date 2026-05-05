@@ -80,8 +80,10 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Block Expo API host (no external network in CI)
-        run: echo "0.0.0.0 exp.host" >> /etc/hosts
+      - name: Block Expo API host (REJECT on port 443 so fetch fails cleanly)
+        run: |
+          exp_ip=$(getent hosts exp.host 2>/dev/null | awk '{print $1}' | head -1)
+          [ -n "$exp_ip" ] && iptables -I OUTPUT -d "$exp_ip" -p tcp --dport 443 -j REJECT || true
       - run: npx --yes expo-doctor
         env:
           CI: true
