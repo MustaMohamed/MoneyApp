@@ -72,53 +72,52 @@ export function AdjustBalanceSheet({
       animationType="slide"
       statusBarTranslucent
     >
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
+      <View style={styles.container}>
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+          <View style={styles.sheet}>
+            <View style={styles.handle} />
+            <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
 
-          <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              value={adjustState.input}
-              onChangeText={(v) => {
-                setInput(v);
-                setError('');
-              }}
-              keyboardType="decimal-pad"
-              style={styles.input}
-              placeholderTextColor={Colors.dark.text3}
-              autoFocus
-            />
-            <Text style={styles.currency}>{currency}</Text>
-          </View>
-          {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
+            <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                value={adjustState.input}
+                onChangeText={(v) => {
+                  setInput(v);
+                  setError('');
+                }}
+                keyboardType="decimal-pad"
+                style={styles.input}
+                placeholderTextColor={Colors.dark.text3}
+                autoFocus
+              />
+              <Text style={styles.currency}>{currency}</Text>
+            </View>
+            {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
 
-          <View style={styles.ctaBar}>
-            <Pressable onPress={onClose} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleSave}
-              disabled={isLoading}
-              style={[styles.savePress, isLoading && styles.disabled]}
-            >
-              <LinearGradient
-                colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.saveGradient}
+            <View style={styles.ctaBar}>
+              <Pressable onPress={onClose} style={styles.cancelBtn}>
+                <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
+              </Pressable>
+              <Pressable
+                onPress={handleSave}
+                disabled={isLoading}
+                style={[styles.savePress, isLoading && styles.disabled]}
               >
-                <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
-              </LinearGradient>
-            </Pressable>
+                <LinearGradient
+                  colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.saveGradient}
+                >
+                  <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
