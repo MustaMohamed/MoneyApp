@@ -1,19 +1,30 @@
 import { useRouter } from 'expo-router';
-import { useCurrencyStore } from './currency.store';
-import { useOnboardingStore } from '@/store/onboarding.store';
+import { useShallow } from 'zustand/react/shallow';
+
 import { backOrReplace } from '@/utils/onboarding_nav';
 import { Currency, OnboardingStep } from '@/constants/enums';
+import { useOnboardingStore } from '@/store/onboarding.store';
+import { useCurrencyStore } from './currency.store';
 
 export function useCurrency() {
   const router = useRouter();
-  const setStep = useOnboardingStore((s) => s.setStep);
-  const setBaseCurrency = useOnboardingStore((s) => s.setBaseCurrency);
-  const globalBaseCurrency = useOnboardingStore((s) => s.baseCurrency);
-  const storeSelected = useCurrencyStore((s) => s.selected);
-  const setSelected = useCurrencyStore((s) => s.setSelected);
+  const {
+    state: onboardingState,
+    setStep,
+    setBaseCurrency,
+  } = useOnboardingStore(
+    useShallow((s) => ({
+      state: s.state,
+      setStep: s.setStep,
+      setBaseCurrency: s.setBaseCurrency,
+    })),
+  );
+  const { state: localCurrState, setSelected } = useCurrencyStore(
+    useShallow((s) => ({ state: s.state, setSelected: s.setSelected })),
+  );
 
   // Fall back to global store value until the user makes a local selection
-  const selected: Currency = storeSelected ?? globalBaseCurrency;
+  const selected: Currency = localCurrState.selected ?? onboardingState.baseCurrency;
 
   const onContinue = async () => {
     await setBaseCurrency(selected);

@@ -20,6 +20,7 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { ExchangeRateRow } from './components/exchange_rate_row';
 import { Numpad } from './components/numpad';
 import { TypeTabs } from './components/type_tabs';
+import { useShallow } from 'zustand/react/shallow';
 import { useTransactionFormBodyState } from './transaction_form_body.state';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -99,10 +100,17 @@ export function TransactionFormBody({
   onClose,
   handleSave,
 }: TransactionFormBodyProps) {
-  const showIosDatePicker = useTransactionFormBodyState((s) => s.state.showIosDatePicker);
-  const setShowIosDatePicker = useTransactionFormBodyState((s) => s.setShowIosDatePicker);
-  const showIosTimePicker = useTransactionFormBodyState((s) => s.state.showIosTimePicker);
-  const setShowIosTimePicker = useTransactionFormBodyState((s) => s.setShowIosTimePicker);
+  const {
+    state: formBodyState,
+    setShowIosDatePicker,
+    setShowIosTimePicker,
+  } = useTransactionFormBodyState(
+    useShallow((s) => ({
+      state: s.state,
+      setShowIosDatePicker: s.setShowIosDatePicker,
+      setShowIosTimePicker: s.setShowIosTimePicker,
+    })),
+  );
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
   // Reset on unmount so the iOS picker flags don't leak between sheet opens.
@@ -128,7 +136,7 @@ export function TransactionFormBody({
         },
       });
     } else {
-      setShowIosDatePicker(!showIosDatePicker);
+      setShowIosDatePicker(!formBodyState.showIosDatePicker);
     }
   }
 
@@ -148,7 +156,7 @@ export function TransactionFormBody({
         },
       });
     } else {
-      setShowIosTimePicker(!showIosTimePicker);
+      setShowIosTimePicker(!formBodyState.showIosTimePicker);
     }
   }
 
@@ -347,7 +355,7 @@ export function TransactionFormBody({
             </View>
           </Pressable>
         </View>
-        {showIosDatePicker && (
+        {formBodyState.showIosDatePicker && (
           <DateTimePicker
             value={dateAsDate}
             mode="date"
@@ -359,7 +367,7 @@ export function TransactionFormBody({
             }}
           />
         )}
-        {showIosTimePicker && (
+        {formBodyState.showIosTimePicker && (
           <DateTimePicker
             value={dateAsDate}
             mode="time"

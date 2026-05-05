@@ -88,8 +88,8 @@ describe('transactionStore.setQuery', () => {
     const useStore = createTransactionStore(repo);
 
     await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions).toHaveLength(5);
-    expect(useStore.getState().query).toEqual({});
+    expect(useStore.getState().state.transactions).toHaveLength(5);
+    expect(useStore.getState().state.query).toEqual({});
   });
 
   it('sets hasMore=true at exactly PAGE_SIZE rows', async () => {
@@ -97,14 +97,14 @@ describe('transactionStore.setQuery', () => {
     const repo = makeRepo(txs);
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
-    expect(useStore.getState().hasMore).toBe(true);
+    expect(useStore.getState().state.hasMore).toBe(true);
   });
 
   it('sets hasMore=false when fewer than PAGE_SIZE rows return', async () => {
     const repo = makeRepo([makeTransaction({ id: 't1' })]);
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
-    expect(useStore.getState().hasMore).toBe(false);
+    expect(useStore.getState().state.hasMore).toBe(false);
   });
 
   it('toggles loading true during fetch and false on completion', async () => {
@@ -114,10 +114,10 @@ describe('transactionStore.setQuery', () => {
     const useStore = createTransactionStore(repo);
 
     const inFlight = useStore.getState().setQuery({});
-    expect(useStore.getState().loading).toBe(true);
+    expect(useStore.getState().state.loading).toBe(true);
     def.resolve([]);
     await inFlight;
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().state.loading).toBe(false);
   });
 });
 
@@ -128,10 +128,10 @@ describe('transactionStore.loadMore', () => {
     const useStore = createTransactionStore(repo);
 
     await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions).toHaveLength(PAGE_SIZE);
+    expect(useStore.getState().state.transactions).toHaveLength(PAGE_SIZE);
     await useStore.getState().loadMore();
-    expect(useStore.getState().transactions).toHaveLength(PAGE_SIZE + 5);
-    expect(useStore.getState().hasMore).toBe(false);
+    expect(useStore.getState().state.transactions).toHaveLength(PAGE_SIZE + 5);
+    expect(useStore.getState().state.hasMore).toBe(false);
     expect(repo.getAll).toHaveBeenLastCalledWith({ limit: PAGE_SIZE, offset: PAGE_SIZE });
   });
 
@@ -197,18 +197,18 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     });
 
     expect(repo.add).toHaveBeenCalled();
-    expect(useStore.getState().transactions).toHaveLength(1);
+    expect(useStore.getState().state.transactions).toHaveLength(1);
   });
 
   it('deleteTransaction calls repo.delete then refresh()', async () => {
     const repo = makeRepo([makeTransaction({ id: 'tx-del' })]);
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions).toHaveLength(1);
+    expect(useStore.getState().state.transactions).toHaveLength(1);
 
     await useStore.getState().deleteTransaction('tx-del');
     expect(repo.delete).toHaveBeenCalledWith('tx-del');
-    expect(useStore.getState().transactions).toHaveLength(0);
+    expect(useStore.getState().state.transactions).toHaveLength(0);
   });
 
   it('addTransaction swallows a refresh failure and still returns the new transaction', async () => {
@@ -260,7 +260,7 @@ describe('transactionStore.updateTransaction', () => {
     const repo = makeRepo([tx]);
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions[0].amount).toBe(100);
+    expect(useStore.getState().state.transactions[0].amount).toBe(100);
 
     await useStore.getState().updateTransaction('tx-upd', {
       amount: 250,
@@ -271,7 +271,7 @@ describe('transactionStore.updateTransaction', () => {
     });
 
     expect(repo.update).toHaveBeenCalledWith('tx-upd', expect.objectContaining({ amount: 250 }));
-    expect(useStore.getState().transactions[0].amount).toBe(250);
+    expect(useStore.getState().state.transactions[0].amount).toBe(250);
   });
 
   it('swallows a refresh failure after update and still resolves', async () => {
@@ -305,11 +305,11 @@ describe('transactionStore.getById', () => {
     const tx = makeTransaction({ id: 'one' });
     const repo = makeRepo([tx]);
     const useStore = createTransactionStore(repo);
-    const before = useStore.getState().transactions;
+    const before = useStore.getState().state.transactions;
 
     const got = await useStore.getState().getById('one');
     expect(got?.id).toBe('one');
-    expect(useStore.getState().transactions).toBe(before);
+    expect(useStore.getState().state.transactions).toBe(before);
   });
 
   it('returns null for a missing id', async () => {
@@ -327,7 +327,7 @@ describe('transactionStore — error handling', () => {
     const useStore = createTransactionStore(repo);
 
     await expect(useStore.getState().setQuery({})).rejects.toThrow('db down');
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().state.loading).toBe(false);
   });
 });
 
@@ -349,8 +349,8 @@ describe('transactionStore — race guard', () => {
     firstDef.resolve([makeTransaction({ id: 'stale' })]);
     await slow;
 
-    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
-    expect(useStore.getState().query).toEqual({ search: 'ab' });
+    expect(useStore.getState().state.transactions.map((t) => t.id)).toEqual(['fresh']);
+    expect(useStore.getState().state.query).toEqual({ search: 'ab' });
   });
 
   it('a stale request that errors does not clear loading set by a newer request', async () => {
@@ -367,7 +367,7 @@ describe('transactionStore — race guard', () => {
     // The newer request resolves first and clears loading.
     secondDef.resolve([makeTransaction({ id: 'fresh' })]);
     await fresh;
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().state.loading).toBe(false);
 
     // Now have the older request reject (e.g. its DB call timed out). The
     // catch path's `if (myId === requestId)` guard must be FALSE, so it
@@ -376,7 +376,7 @@ describe('transactionStore — race guard', () => {
     firstDef.reject(new Error('stale db error'));
     await expect(stale).rejects.toThrow('stale db error');
 
-    expect(useStore.getState().loading).toBe(false);
-    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
+    expect(useStore.getState().state.loading).toBe(false);
+    expect(useStore.getState().state.transactions.map((t) => t.id)).toEqual(['fresh']);
   });
 });

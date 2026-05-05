@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 
 import { getDb } from '@/database/client';
 import { getAccountsStats } from '@/database/account_stats';
@@ -11,17 +12,25 @@ import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
 
 export function useDashboard() {
   const router = useRouter();
-  const accounts = useAccountStore((s) => s.accounts);
-  const loadAccounts = useAccountStore((s) => s.loadAccounts);
-  const rate = useCurrencyStore((s) => s.rate);
-  const isManualOverride = useCurrencyStore((s) => s.isManualOverride);
 
-  const isBreakdownVisible = useDashboardState((s) => s.state.isBreakdownVisible);
-  const setBreakdownVisible = useDashboardState((s) => s.setBreakdownVisible);
-  const refreshing = useDashboardState((s) => s.state.refreshing);
-  const setRefreshing = useDashboardState((s) => s.setRefreshing);
-  const statsMap = useDashboardStore((s) => s.state.statsMap);
-  const setStatsMap = useDashboardStore((s) => s.setStatsMap);
+  const { state: accountState, loadAccounts } = useAccountStore(
+    useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
+  );
+  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
+  const {
+    state: dashUiState,
+    setBreakdownVisible,
+    setRefreshing,
+  } = useDashboardState(
+    useShallow((s) => ({
+      state: s.state,
+      setBreakdownVisible: s.setBreakdownVisible,
+      setRefreshing: s.setRefreshing,
+    })),
+  );
+  const { state: dashDataState, setStatsMap } = useDashboardStore(
+    useShallow((s) => ({ state: s.state, setStatsMap: s.setStatsMap })),
+  );
 
   const loadStats = useCallback(
     async (ids: string[]) => {
@@ -41,8 +50,8 @@ export function useDashboard() {
   );
 
   useEffect(() => {
-    loadStats(accounts.map((a) => a.id));
-  }, [accounts]);
+    loadStats(accountState.accounts.map((a) => a.id));
+  }, [accountState.accounts]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -53,8 +62,14 @@ export function useDashboard() {
     }
   }, [loadAccounts, setRefreshing]);
 
-  const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
-  const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
+  const netWorth = useMemo(
+    () => computeNetWorth(accountState.accounts, currencyState.rate),
+    [accountState.accounts, currencyState.rate],
+  );
+  const groupedAccounts = useMemo(
+    () => groupAccountsByType(accountState.accounts),
+    [accountState.accounts],
+  );
 
   const goToAccount = (id: string) => router.push(`/accounts/${id}`);
   const goToAddAccount = () => router.push('/accounts/add_account');
@@ -62,14 +77,14 @@ export function useDashboard() {
 
   return {
     state: {
-      accounts,
-      rate,
-      isManualOverride,
+      accounts: accountState.accounts,
+      rate: currencyState.rate,
+      isManualOverride: currencyState.isManualOverride,
       netWorth,
       groupedAccounts,
-      statsMap,
-      isBreakdownVisible,
-      refreshing,
+      statsMap: dashDataState.statsMap,
+      isBreakdownVisible: dashUiState.isBreakdownVisible,
+      refreshing: dashUiState.refreshing,
     },
     setBreakdownVisible,
     refresh,

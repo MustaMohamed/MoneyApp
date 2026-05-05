@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
@@ -13,42 +14,61 @@ import { useFilterDrawerStore } from './filter.store';
  * (UI), draft data in `useFilterDrawerStore` (data). The hook composes the two.
  */
 export function useFilterDrawer() {
-  // UI state
-  const visible = useFilterDrawerState((s) => s.state.visible);
-  const accountPickerVisible = useFilterDrawerState((s) => s.state.accountPickerVisible);
-  const categoryPickerVisible = useFilterDrawerState((s) => s.state.categoryPickerVisible);
-  const customDatePickerVisible = useFilterDrawerState((s) => s.state.customDatePickerVisible);
-  const closeUi = useFilterDrawerState((s) => s.close);
-  const setAccountPickerVisible = useFilterDrawerState((s) => s.setAccountPickerVisible);
-  const setCategoryPickerVisible = useFilterDrawerState((s) => s.setCategoryPickerVisible);
-  const setCustomDatePickerVisible = useFilterDrawerState((s) => s.setCustomDatePickerVisible);
+  const {
+    state: filterUiState,
+    closeUi,
+    setAccountPickerVisible,
+    setCategoryPickerVisible,
+    setCustomDatePickerVisible,
+  } = useFilterDrawerState(
+    useShallow((s) => ({
+      state: s.state,
+      closeUi: s.close,
+      setAccountPickerVisible: s.setAccountPickerVisible,
+      setCategoryPickerVisible: s.setCategoryPickerVisible,
+      setCustomDatePickerVisible: s.setCustomDatePickerVisible,
+    })),
+  );
 
-  // Data
-  const draft = useFilterDrawerStore((s) => s.state.draft);
-  const resetDraft = useFilterDrawerStore((s) => s.resetDraft);
-  const toggleAccountId = useFilterDrawerStore((s) => s.toggleAccountId);
-  const toggleCategoryId = useFilterDrawerStore((s) => s.toggleCategoryId);
-  const setDatePreset = useFilterDrawerStore((s) => s.setDatePreset);
-  const setCustomDateRange = useFilterDrawerStore((s) => s.setCustomDateRange);
-  const setAmountMin = useFilterDrawerStore((s) => s.setAmountMin);
-  const setAmountMax = useFilterDrawerStore((s) => s.setAmountMax);
-  const setAmountCurrency = useFilterDrawerStore((s) => s.setAmountCurrency);
+  const {
+    state: filterDataState,
+    resetDraft,
+    toggleAccountId,
+    toggleCategoryId,
+    setDatePreset,
+    setCustomDateRange,
+    setAmountMin,
+    setAmountMax,
+    setAmountCurrency,
+  } = useFilterDrawerStore(
+    useShallow((s) => ({
+      state: s.state,
+      resetDraft: s.resetDraft,
+      toggleAccountId: s.toggleAccountId,
+      toggleCategoryId: s.toggleCategoryId,
+      setDatePreset: s.setDatePreset,
+      setCustomDateRange: s.setCustomDateRange,
+      setAmountMin: s.setAmountMin,
+      setAmountMax: s.setAmountMax,
+      setAmountCurrency: s.setAmountCurrency,
+    })),
+  );
 
-  // Domain data (filtered to non-archived accounts; categories shown in full)
-  const allAccounts = useAccountStore((s) => s.accounts);
-  const allCategories = useCategoryStore((s) => s.categories);
+  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
   const pickerAccounts = useMemo(
-    () => allAccounts.filter((a) => a.is_archived === 0),
-    [allAccounts],
+    () => accountState.accounts.filter((a) => a.is_archived === 0),
+    [accountState.accounts],
   );
-  const pickerCategories = allCategories;
+  const pickerCategories = categoryState.categories;
 
-  // Apply commits draft → applied
-  const setAppliedFilters = useTransactionsScreenStore((s) => s.setAppliedFilters);
+  const { setAppliedFilters } = useTransactionsScreenStore(
+    useShallow((s) => ({ setAppliedFilters: s.setAppliedFilters })),
+  );
 
   function applyDraft() {
-    setAppliedFilters(draft);
+    setAppliedFilters(filterDataState.draft);
     closeUi();
   }
 
@@ -56,30 +76,32 @@ export function useFilterDrawer() {
     closeUi();
   }
 
-  // Derived display values
   const selectedAccountSummary = useMemo(() => {
-    const names = draft.accountIds
-      .map((id) => allAccounts.find((a) => a.id === id)?.name)
+    const names = filterDataState.draft.accountIds
+      .map((id) => accountState.accounts.find((a) => a.id === id)?.name)
       .filter((n): n is string => !!n);
     return formatSelectionSummary(names, Strings.filterAllAccounts);
-  }, [draft.accountIds, allAccounts]);
+  }, [filterDataState.draft.accountIds, accountState.accounts]);
 
   const selectedCategorySummary = useMemo(() => {
-    const names = draft.categoryIds
-      .map((id) => allCategories.find((c) => c.id === id)?.name)
+    const names = filterDataState.draft.categoryIds
+      .map((id) => categoryState.categories.find((c) => c.id === id)?.name)
       .filter((n): n is string => !!n);
     return formatSelectionSummary(names, Strings.filterAllCategories);
-  }, [draft.categoryIds, allCategories]);
+  }, [filterDataState.draft.categoryIds, categoryState.categories]);
 
-  const draftActiveCount = useMemo(() => countActiveFilters(draft), [draft]);
+  const draftActiveCount = useMemo(
+    () => countActiveFilters(filterDataState.draft),
+    [filterDataState.draft],
+  );
 
   return {
     state: {
-      visible,
-      accountPickerVisible,
-      categoryPickerVisible,
-      customDatePickerVisible,
-      draft,
+      visible: filterUiState.visible,
+      accountPickerVisible: filterUiState.accountPickerVisible,
+      categoryPickerVisible: filterUiState.categoryPickerVisible,
+      customDatePickerVisible: filterUiState.customDatePickerVisible,
+      draft: filterDataState.draft,
       pickerAccounts,
       pickerCategories,
       selectedAccountSummary,

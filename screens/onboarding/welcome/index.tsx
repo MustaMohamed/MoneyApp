@@ -8,13 +8,14 @@ import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { useShallow } from 'zustand/react/shallow';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { OnboardingStep } from '@/constants/enums';
 import { useWelcomeAnim } from './welcome.anim';
 
 export default function WelcomeScreen() {
   const router = useRouter();
-  const setStep = useOnboardingStore((s) => s.setStep);
+  const { setStep } = useOnboardingStore(useShallow((s) => ({ setStep: s.setStep })));
   const { illustrationEntering, headlineEntering, ctaEntering } = useWelcomeAnim();
 
   const onGetStarted = async () => {

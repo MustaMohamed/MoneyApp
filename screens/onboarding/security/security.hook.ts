@@ -1,20 +1,32 @@
 import { useRouter } from 'expo-router';
-import { useSecurityStore } from './security.store';
-import { useOnboardingStore } from '@/store/onboarding.store';
+import { useShallow } from 'zustand/react/shallow';
+
 import { backOrReplace } from '@/utils/onboarding_nav';
 import { OnboardingStep, SecurityChoice } from '@/constants/enums';
+import { useOnboardingStore } from '@/store/onboarding.store';
+import { useSecurityStore } from './security.store';
 import { canProceed } from './security.helpers';
 
 export function useSecurity() {
   const router = useRouter();
-  const setStep = useOnboardingStore((s) => s.setStep);
-  const setSecurityChoice = useOnboardingStore((s) => s.setSecurityChoice);
-  const savedChoice = useOnboardingStore((s) => s.securityChoice);
-  const storeSelected = useSecurityStore((s) => s.selected);
-  const setSelected = useSecurityStore((s) => s.setSelected);
+  const {
+    state: onboardingState,
+    setStep,
+    setSecurityChoice,
+  } = useOnboardingStore(
+    useShallow((s) => ({
+      state: s.state,
+      setStep: s.setStep,
+      setSecurityChoice: s.setSecurityChoice,
+    })),
+  );
+  const { state: securityState, setSelected } = useSecurityStore(
+    useShallow((s) => ({ state: s.state, setSelected: s.setSelected })),
+  );
 
   // Fall back to globally saved choice on cold start / resume
-  const selected: SecurityChoice | undefined = storeSelected ?? savedChoice;
+  const selected: SecurityChoice | undefined =
+    securityState.selected ?? onboardingState.securityChoice;
 
   const onContinue = async () => {
     if (!canProceed(selected)) return;

@@ -53,9 +53,9 @@ function makeUSDTx(overrides: Partial<Transaction> = {}): Transaction {
 // ─── Setup ────────────────────────────────────────────────────────────────────
 
 beforeEach(() => {
-  useCurrencyStore.setState({ rate: GLOBAL_RATE });
-  useAccountStore.setState({ accounts: [] });
-  useCategoryStore.setState({ categories: [] });
+  useCurrencyStore.setState((s) => ({ state: { ...s.state, rate: GLOBAL_RATE } }));
+  useAccountStore.setState({ state: { accounts: [] } });
+  useCategoryStore.setState({ state: { categories: [] } });
   useEditTransactionStore.getState().reset();
   useEditTransactionState.getState().reset();
 });

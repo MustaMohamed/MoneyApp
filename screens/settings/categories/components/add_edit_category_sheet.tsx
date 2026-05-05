@@ -16,6 +16,7 @@ import { z } from 'zod/v4';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { useShallow } from 'zustand/react/shallow';
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -88,22 +89,30 @@ export function AddEditCategorySheet({
   onClose,
   onSave,
 }: AddEditCategorySheetProps) {
-  const { categories } = useCategoryStore();
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
   const isEditing = editingCategory !== null;
 
-  const type = useAddEditCategorySheetState((s) => s.state.type);
-  const selectedIcon = useAddEditCategorySheetState((s) => s.state.selectedIcon);
-  const selectedColor = useAddEditCategorySheetState((s) => s.state.selectedColor);
-  const iconError = useAddEditCategorySheetState((s) => s.state.iconError);
-  const isLoading = useAddEditCategorySheetState((s) => s.state.isLoading);
-  const setType = useAddEditCategorySheetState((s) => s.setType);
-  const setSelectedIcon = useAddEditCategorySheetState((s) => s.setSelectedIcon);
-  const setSelectedColor = useAddEditCategorySheetState((s) => s.setSelectedColor);
-  const setIconError = useAddEditCategorySheetState((s) => s.setIconError);
-  const setIsLoading = useAddEditCategorySheetState((s) => s.setIsLoading);
-  const initialize = useAddEditCategorySheetState((s) => s.initialize);
+  const {
+    state: sheetState,
+    setType,
+    setSelectedIcon,
+    setSelectedColor,
+    setIconError,
+    setIsLoading,
+    initialize,
+  } = useAddEditCategorySheetState(
+    useShallow((s) => ({
+      state: s.state,
+      setType: s.setType,
+      setSelectedIcon: s.setSelectedIcon,
+      setSelectedColor: s.setSelectedColor,
+      setIconError: s.setIconError,
+      setIsLoading: s.setIsLoading,
+      initialize: s.initialize,
+    })),
+  );
 
-  const schema = createCategorySchema(categories, editingCategory?.id);
+  const schema = createCategorySchema(categoryState.categories, editingCategory?.id);
   const {
     control,
     handleSubmit,
@@ -134,13 +143,18 @@ export function AddEditCategorySheet({
   }, [visible, editingCategory, activeTab]);
 
   const handleSave = handleSubmit(async ({ name }) => {
-    if (!selectedIcon) {
+    if (!sheetState.selectedIcon) {
       setIconError(Strings.categoriesErrIconRequired);
       return;
     }
     setIsLoading(true);
     try {
-      await onSave({ name, type, icon: selectedIcon, color: selectedColor });
+      await onSave({
+        name,
+        type: sheetState.type,
+        icon: sheetState.selectedIcon,
+        color: sheetState.selectedColor,
+      });
     } finally {
       setIsLoading(false);
     }
@@ -180,9 +194,14 @@ export function AddEditCategorySheet({
                     <Pressable
                       key={t}
                       onPress={() => setType(t as CategoryType)}
-                      style={[styles.typePill, type === t && styles.typePillActive]}
+                      style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
                     >
-                      <Text style={[styles.typePillText, type === t && styles.typePillTextActive]}>
+                      <Text
+                        style={[
+                          styles.typePillText,
+                          sheetState.type === t && styles.typePillTextActive,
+                        ]}
+                      >
                         {t === 'expense'
                           ? Strings.categoriesTabExpense
                           : Strings.categoriesTabIncome}
@@ -195,7 +214,7 @@ export function AddEditCategorySheet({
 
             {/* Icon picker */}
             <Text style={styles.fieldLabel}>{Strings.categoriesIconLabel}</Text>
-            {iconError ? <Text style={styles.error}>{iconError}</Text> : null}
+            {sheetState.iconError ? <Text style={styles.error}>{sheetState.iconError}</Text> : null}
             <FlatList
               data={CATEGORY_ICONS}
               numColumns={8}
@@ -207,12 +226,17 @@ export function AddEditCategorySheet({
                     setSelectedIcon(item);
                     setIconError('');
                   }}
-                  style={[styles.iconCell, selectedIcon === item && styles.iconCellActive]}
+                  style={[
+                    styles.iconCell,
+                    sheetState.selectedIcon === item && styles.iconCellActive,
+                  ]}
                 >
                   <MaterialCommunityIcons
                     name={item}
                     size={20}
-                    color={selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2}
+                    color={
+                      sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
+                    }
                   />
                 </Pressable>
               )}
@@ -229,7 +253,7 @@ export function AddEditCategorySheet({
                   style={[
                     styles.colorSwatch,
                     { backgroundColor: c },
-                    selectedColor === c && styles.colorSwatchActive,
+                    sheetState.selectedColor === c && styles.colorSwatchActive,
                   ]}
                 />
               ))}
@@ -238,7 +262,7 @@ export function AddEditCategorySheet({
 
           {/* Save CTA */}
           <View style={styles.ctaWrap}>
-            <Pressable onPress={handleSave} style={styles.cta} disabled={isLoading}>
+            <Pressable onPress={handleSave} style={styles.cta} disabled={sheetState.isLoading}>
               <Text style={styles.ctaText}>{Strings.categoriesSaveCta}</Text>
             </Pressable>
           </View>

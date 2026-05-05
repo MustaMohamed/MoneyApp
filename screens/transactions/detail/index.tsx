@@ -16,6 +16,8 @@ import { DetailHero } from './components/detail_hero';
 import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
 import { NotFoundState } from './components/not_found_state';
+import { useShallow } from 'zustand/react/shallow';
+
 import { useTransactionDetail } from './detail.hook';
 
 export default function TransactionDetailScreen() {
@@ -23,8 +25,10 @@ export default function TransactionDetailScreen() {
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
     useTransactionDetail(id);
 
-  const editVisible = useEditTransactionState((s) => s.state.visible);
-  const editingTx = useEditTransactionStore((s) => s.state.editingTx);
+  const { state: editTxState } = useEditTransactionState(useShallow((s) => ({ state: s.state })));
+  const { state: editTxStoreState } = useEditTransactionStore(
+    useShallow((s) => ({ state: s.state })),
+  );
 
   useEffect(() => {
     return () => {
@@ -131,7 +135,11 @@ export default function TransactionDetailScreen() {
             onConfirm={confirmDelete}
           />
 
-          <EditTransactionSheet visible={editVisible} onClose={handleEditClose} tx={editingTx} />
+          <EditTransactionSheet
+            visible={editTxState.visible}
+            onClose={handleEditClose}
+            tx={editTxStoreState.editingTx}
+          />
         </>
       )}
     </SafeAreaView>

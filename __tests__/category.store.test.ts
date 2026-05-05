@@ -33,7 +33,7 @@ describe('categoryStore.loadCategories', () => {
     const repo = makeRepo();
     const store = createCategoryStore(repo).getState();
     await store.loadCategories();
-    expect(createCategoryStore(repo).getState().categories).toHaveLength(0); // fresh store
+    expect(createCategoryStore(repo).getState().state.categories).toHaveLength(0); // fresh store
   });
 
   it('calls repo.getAll()', async () => {
@@ -48,7 +48,7 @@ describe('categoryStore.loadCategories', () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([cat]) });
     const useStore = createCategoryStore(repo);
     await useStore.getState().loadCategories();
-    expect(useStore.getState().categories).toEqual([cat]);
+    expect(useStore.getState().state.categories).toEqual([cat]);
   });
 });
 

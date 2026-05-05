@@ -42,9 +42,9 @@ function makeUSDAccount(overrides: Partial<Account> = {}): Account {
 
 beforeEach(() => {
   // Seed singleton stores with controlled test values.
-  useCurrencyStore.setState({ rate: GLOBAL_RATE });
-  useAccountStore.setState({ accounts: [] });
-  useCategoryStore.setState({ categories: [] });
+  useCurrencyStore.setState((s) => ({ state: { ...s.state, rate: GLOBAL_RATE } }));
+  useAccountStore.setState({ state: { accounts: [] } });
+  useCategoryStore.setState({ state: { categories: [] } });
 
   // Open the sheet so the hook's close-effect doesn't fire on mount.
   useAddTransactionStore.getState().reset();

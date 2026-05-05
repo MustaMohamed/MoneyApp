@@ -14,9 +14,9 @@ function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
 describe('currencyStore initial state', () => {
   it('starts with rate=50, lastFetched=null, isManualOverride=false', () => {
     const store = createCurrencyStore(makeRepo());
-    expect(store.getState().rate).toBe(50);
-    expect(store.getState().lastFetched).toBeNull();
-    expect(store.getState().isManualOverride).toBe(false);
+    expect(store.getState().state.rate).toBe(50);
+    expect(store.getState().state.lastFetched).toBeNull();
+    expect(store.getState().state.isManualOverride).toBe(false);
   });
 });
 
@@ -24,8 +24,8 @@ describe('currencyStore.loadRate', () => {
   it('leaves default state when no persisted value exists', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().loadRate();
-    expect(store.getState().rate).toBe(50);
-    expect(store.getState().lastFetched).toBeNull();
+    expect(store.getState().state.rate).toBe(50);
+    expect(store.getState().state.lastFetched).toBeNull();
   });
 
   it('reads and applies persisted rate and metadata', async () => {
@@ -37,9 +37,9 @@ describe('currencyStore.loadRate', () => {
       }),
     );
     await store.getState().loadRate();
-    expect(store.getState().rate).toBe(57.5);
-    expect(store.getState().lastFetched).toBe('2026-05-01T10:00:00.000Z');
-    expect(store.getState().isManualOverride).toBe(false);
+    expect(store.getState().state.rate).toBe(57.5);
+    expect(store.getState().state.lastFetched).toBe('2026-05-01T10:00:00.000Z');
+    expect(store.getState().state.isManualOverride).toBe(false);
   });
 
   it('sets isManualOverride=true when stored as "true"', async () => {
@@ -47,7 +47,7 @@ describe('currencyStore.loadRate', () => {
       makeRepo({ usd_rate: '48', usd_rate_manual_override: 'true' }),
     );
     await store.getState().loadRate();
-    expect(store.getState().isManualOverride).toBe(true);
+    expect(store.getState().state.isManualOverride).toBe(true);
   });
 
   it('propagates repo errors', async () => {
@@ -75,9 +75,9 @@ describe('currencyStore.fetchRate', () => {
   it('updates state with fetched EGP rate', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().fetchRate();
-    expect(store.getState().rate).toBe(55.25);
-    expect(store.getState().isManualOverride).toBe(false);
-    expect(store.getState().lastFetched).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(store.getState().state.rate).toBe(55.25);
+    expect(store.getState().state.isManualOverride).toBe(false);
+    expect(store.getState().state.lastFetched).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   it('persists rate, timestamp, and manual flag to repo', async () => {
@@ -105,8 +105,8 @@ describe('currencyStore.setManualRate', () => {
   it('sets rate in state and marks isManualOverride=true', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(48.5);
-    expect(store.getState().rate).toBe(48.5);
-    expect(store.getState().isManualOverride).toBe(true);
+    expect(store.getState().state.rate).toBe(48.5);
+    expect(store.getState().state.isManualOverride).toBe(true);
   });
 
   it('persists rate and manual flag to repo', async () => {
@@ -120,7 +120,7 @@ describe('currencyStore.setManualRate', () => {
   it('does not update lastFetched', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(48.5);
-    expect(store.getState().lastFetched).toBeNull();
+    expect(store.getState().state.lastFetched).toBeNull();
   });
 
   it('propagates repo errors', async () => {

@@ -2,6 +2,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect } from 'react';
 import { Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -41,15 +42,23 @@ export function FilterDateCustomPicker({
   onClose,
   onConfirm,
 }: Props) {
-  const from = useFilterDateCustomPickerState((s) => s.state.from);
-  const to = useFilterDateCustomPickerState((s) => s.state.to);
-  const showFromPicker = useFilterDateCustomPickerState((s) => s.state.showFromPicker);
-  const showToPicker = useFilterDateCustomPickerState((s) => s.state.showToPicker);
-  const setFrom = useFilterDateCustomPickerState((s) => s.setFrom);
-  const setTo = useFilterDateCustomPickerState((s) => s.setTo);
-  const setShowFromPicker = useFilterDateCustomPickerState((s) => s.setShowFromPicker);
-  const setShowToPicker = useFilterDateCustomPickerState((s) => s.setShowToPicker);
-  const initialize = useFilterDateCustomPickerState((s) => s.initialize);
+  const {
+    state: datePickerState,
+    setFrom,
+    setTo,
+    setShowFromPicker,
+    setShowToPicker,
+    initialize,
+  } = useFilterDateCustomPickerState(
+    useShallow((s) => ({
+      state: s.state,
+      setFrom: s.setFrom,
+      setTo: s.setTo,
+      setShowFromPicker: s.setShowFromPicker,
+      setShowToPicker: s.setShowToPicker,
+      initialize: s.initialize,
+    })),
+  );
 
   // Re-initialize from props each time the picker opens so Reset is reflected correctly.
   useEffect(() => {
@@ -57,7 +66,8 @@ export function FilterDateCustomPicker({
     initialize(isoToDate(initialFrom), isoToDate(initialTo));
   }, [visible, initialFrom, initialTo, initialize]);
 
-  const canConfirm = !!from && !!to && from <= to;
+  const canConfirm =
+    !!datePickerState.from && !!datePickerState.to && datePickerState.from <= datePickerState.to;
 
   function handleFromChange(_event: DateTimePickerEvent, selected?: Date) {
     if (Platform.OS === 'android') setShowFromPicker(false);
@@ -70,8 +80,8 @@ export function FilterDateCustomPicker({
   }
 
   function handleConfirm() {
-    if (canConfirm && from && to) {
-      onConfirm(dateToIso(from), dateToIso(to));
+    if (canConfirm && datePickerState.from && datePickerState.to) {
+      onConfirm(dateToIso(datePickerState.from), dateToIso(datePickerState.to));
     }
   }
 
@@ -98,7 +108,7 @@ export function FilterDateCustomPicker({
             style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}
           >
             <Text style={styles.fieldLabel}>{Strings.filterCustomFromLabel}</Text>
-            <Text style={styles.fieldValue}>{formatDisplay(from) || '—'}</Text>
+            <Text style={styles.fieldValue}>{formatDisplay(datePickerState.from) || '—'}</Text>
           </Pressable>
 
           <Pressable
@@ -106,26 +116,26 @@ export function FilterDateCustomPicker({
             style={({ pressed }) => [styles.field, pressed && styles.fieldPressed]}
           >
             <Text style={styles.fieldLabel}>{Strings.filterCustomToLabel}</Text>
-            <Text style={styles.fieldValue}>{formatDisplay(to) || '—'}</Text>
+            <Text style={styles.fieldValue}>{formatDisplay(datePickerState.to) || '—'}</Text>
           </Pressable>
         </View>
 
-        {showFromPicker && (
+        {datePickerState.showFromPicker && (
           <DateTimePicker
-            value={from ?? new Date()}
+            value={datePickerState.from ?? new Date()}
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleFromChange}
-            maximumDate={to}
+            maximumDate={datePickerState.to}
           />
         )}
-        {showToPicker && (
+        {datePickerState.showToPicker && (
           <DateTimePicker
-            value={to ?? new Date()}
+            value={datePickerState.to ?? new Date()}
             mode="date"
             display={Platform.OS === 'ios' ? 'spinner' : 'default'}
             onChange={handleToChange}
-            minimumDate={from}
+            minimumDate={datePickerState.from}
           />
         )}
       </View>
