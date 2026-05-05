@@ -80,10 +80,13 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Block Expo API host (no external network in CI)
+        run: echo "0.0.0.0 exp.host" >> /etc/hosts
       - run: npx --yes expo-doctor
-        continue-on-error: true
         env:
           CI: true
+          EXPO_DOCTOR_ENABLE_DIRECTORY_CHECK: 'false'
+          EXPO_DOCTOR_WARN_ON_NETWORK_ERRORS: '1'
 
   test:
     name: Unit tests (Jest)
