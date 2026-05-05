@@ -1,11 +1,12 @@
 import '@/utils/zod_config';
 import { useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { getDb, runMigrations } from '@/database/client';
 import { loadOnboardingState } from '@/store/onboarding.store';
 import { useReadyStore } from '@/store/ready.store';
 
 export function useLayoutInit() {
-  const setReady = useReadyStore((s) => s.setReady);
+  const { setReady } = useReadyStore(useShallow((s) => ({ setReady: s.setReady })));
 
   useEffect(() => {
     (async () => {

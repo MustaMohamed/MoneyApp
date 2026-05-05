@@ -8,7 +8,7 @@ import { OnboardingStep } from '@/constants/enums';
 export function useMoreAccounts() {
   const router = useRouter();
   const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const setStep = useOnboardingStore((s) => s.setStep);
+  const { setStep } = useOnboardingStore(useShallow((s) => ({ setStep: s.setStep })));
 
   const initialCountRef = useRef<number>(accountState.accounts.length);
   const initialCount = initialCountRef.current;

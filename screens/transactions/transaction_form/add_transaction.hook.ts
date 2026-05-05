@@ -148,7 +148,9 @@ export function useAddTransaction(onClose: () => void) {
   );
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
   const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
-  const addTransaction = useTransactionStore((s) => s.addTransaction);
+  const { addTransaction } = useTransactionStore(
+    useShallow((s) => ({ addTransaction: s.addTransaction })),
+  );
 
   const {
     state: addTxStoreState,

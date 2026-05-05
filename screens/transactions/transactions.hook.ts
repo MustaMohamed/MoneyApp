@@ -39,8 +39,8 @@ export function useTransactions() {
   const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
-  const setDraft = useFilterDrawerStore((s) => s.setDraft);
-  const openDrawer = useFilterDrawerState((s) => s.open);
+  const { setDraft } = useFilterDrawerStore(useShallow((s) => ({ setDraft: s.setDraft })));
+  const { open: openDrawer } = useFilterDrawerState(useShallow((s) => ({ open: s.open })));
 
   const debouncedSearch = useDebouncedValue(txScreenState.searchQuery, 300);
 

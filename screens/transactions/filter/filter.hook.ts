@@ -63,7 +63,9 @@ export function useFilterDrawer() {
   );
   const pickerCategories = categoryState.categories;
 
-  const setAppliedFilters = useTransactionsScreenStore((s) => s.setAppliedFilters);
+  const { setAppliedFilters } = useTransactionsScreenStore(
+    useShallow((s) => ({ setAppliedFilters: s.setAppliedFilters })),
+  );
 
   function applyDraft() {
     setAppliedFilters(filterDataState.draft);

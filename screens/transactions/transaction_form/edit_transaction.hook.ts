@@ -56,7 +56,9 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
   );
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
   const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
-  const updateTransaction = useTransactionStore((s) => s.updateTransaction);
+  const { updateTransaction } = useTransactionStore(
+    useShallow((s) => ({ updateTransaction: s.updateTransaction })),
+  );
 
   const { state: editTxStoreState, handleNumpad } = useEditTransactionStore(
     useShallow((s) => ({ state: s.state, handleNumpad: s.handleNumpad })),
