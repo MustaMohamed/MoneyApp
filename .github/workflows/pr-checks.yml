@@ -84,7 +84,6 @@ jobs:
         env:
           CI: true
 
-
   test:
     name: Unit tests (Jest)
     runs-on: ubuntu-latest
