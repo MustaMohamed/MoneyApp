@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
 import { type Control, useController } from 'react-hook-form';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
+import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef, ScrollView } from 'react-native-actions-sheet';
 import { z } from 'zod/v4';
 
 import { CategoryType } from '@/constants/enums';

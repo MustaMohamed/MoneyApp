@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef, FlatList } from 'react-native-actions-sheet';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -48,7 +48,6 @@ export function CategoryPickerSheet({
           keyExtractor={(c) => c.id}
           numColumns={3}
           columnWrapperStyle={styles.colWrapper}
-          style={styles.list}
           renderItem={({ item }) => {
             const isSelected = item.id === selectedId;
             return (
@@ -97,9 +96,7 @@ const styles = StyleSheet.create({
   handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
   content: {
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xxl,
   },
-  list: { maxHeight: 480 },
   title: {
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.subhead,
