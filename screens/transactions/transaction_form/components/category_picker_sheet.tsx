@@ -1,11 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import BottomSheet, {
-  BottomSheetBackdrop,
-  type BottomSheetBackdropProps,
-  BottomSheetFlatList,
-} from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -30,98 +26,86 @@ export function CategoryPickerSheet({
   onSelect,
   onClose,
 }: Props) {
-  const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['70%'], []);
+  const sheetRef = useRef<ActionSheetRef>(null);
 
   useEffect(() => {
-    if (visible) sheetRef.current?.expand();
-    else sheetRef.current?.close();
+    if (visible) sheetRef.current?.show();
+    else sheetRef.current?.hide();
   }, [visible]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   return (
-    <BottomSheet
+    <ActionSheet
       ref={sheetRef}
-      index={-1}
       onClose={onClose}
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      backgroundStyle={styles.sheetBg}
-      handleIndicatorStyle={styles.handle}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
     >
-      <BottomSheetFlatList
-        data={categories}
-        keyExtractor={(c) => c.id}
-        numColumns={3}
-        columnWrapperStyle={styles.colWrapper}
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={<Text style={styles.title}>{title}</Text>}
-        renderItem={({ item }) => {
-          const isSelected = item.id === selectedId;
-          return (
-            <Pressable
-              style={({ pressed }) => [
-                styles.cell,
-                isSelected && styles.cellActive,
-                pressed && styles.cellPressed,
-              ]}
-              onPress={() => onSelect(item)}
-            >
-              <View style={[styles.iconBox, { backgroundColor: item.color + '33' }]}>
-                <MaterialCommunityIcons
-                  name={item.icon as MCIName}
-                  size={ms(22)}
-                  color={item.color}
-                />
-              </View>
-              <Text style={styles.label} numberOfLines={2}>
-                {item.name}
-              </Text>
-              {isSelected && (
-                <View style={styles.check}>
+      <View style={styles.content}>
+        <Text style={styles.title}>{title}</Text>
+        <FlatList
+          data={categories}
+          keyExtractor={(c) => c.id}
+          numColumns={3}
+          columnWrapperStyle={styles.colWrapper}
+          style={styles.list}
+          renderItem={({ item }) => {
+            const isSelected = item.id === selectedId;
+            return (
+              <Pressable
+                style={({ pressed }) => [
+                  styles.cell,
+                  isSelected && styles.cellActive,
+                  pressed && styles.cellPressed,
+                ]}
+                onPress={() => onSelect(item)}
+              >
+                <View style={[styles.iconBox, { backgroundColor: item.color + '33' }]}>
                   <MaterialCommunityIcons
-                    name="check-circle"
-                    size={ms(14)}
-                    color={Colors.shared.cairoGold}
+                    name={item.icon as MCIName}
+                    size={ms(22)}
+                    color={item.color}
                   />
                 </View>
-              )}
-            </Pressable>
-          );
-        }}
-      />
-    </BottomSheet>
+                <Text style={styles.label} numberOfLines={2}>
+                  {item.name}
+                </Text>
+                {isSelected && (
+                  <View style={styles.check}>
+                    <MaterialCommunityIcons
+                      name="check-circle"
+                      size={ms(14)}
+                      color={Colors.shared.cairoGold}
+                    />
+                  </View>
+                )}
+              </Pressable>
+            );
+          }}
+        />
+      </View>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetBg: {
+  sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
   handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
-  listContent: {
+  content: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xxl,
   },
+  list: { maxHeight: 480 },
   title: {
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.subhead,
     color: Colors.dark.text1,
     marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   colWrapper: { gap: Spacing.xs, marginBottom: Spacing.xs },
   cell: {

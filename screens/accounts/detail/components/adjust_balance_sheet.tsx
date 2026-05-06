@@ -1,11 +1,6 @@
-import BottomSheet, {
-  BottomSheetBackdrop,
-  type BottomSheetBackdropProps,
-  BottomSheetTextInput,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -45,23 +40,16 @@ export function AdjustBalanceSheet({
     })),
   );
 
-  const snapPoints = useMemo(() => ['40%'], []);
+  const sheetRef = useRef<ActionSheetRef>(null);
 
   useEffect(() => {
-    if (visible) initialize(currentBalance);
+    if (visible) {
+      initialize(currentBalance);
+      sheetRef.current?.show();
+    } else {
+      sheetRef.current?.hide();
+    }
   }, [visible, currentBalance, initialize]);
-
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
 
   const handleSave = () => {
     const n = parseFloat(adjustState.input);
@@ -73,25 +61,20 @@ export function AdjustBalanceSheet({
     onSave(n);
   };
 
-  if (!visible) return null;
-
   return (
-    <BottomSheet
+    <ActionSheet
+      ref={sheetRef}
       onClose={onClose}
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      backdropComponent={renderBackdrop}
-      backgroundStyle={styles.sheetBg}
-      handleIndicatorStyle={styles.handle}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
     >
-      <BottomSheetView style={styles.content}>
+      <View style={styles.content}>
         <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
 
         <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
         <View style={styles.inputRow}>
-          <BottomSheetTextInput
+          <TextInput
             value={adjustState.input}
             onChangeText={(v) => {
               setInput(v);
@@ -124,24 +107,19 @@ export function AdjustBalanceSheet({
             </LinearGradient>
           </Pressable>
         </View>
-      </BottomSheetView>
-    </BottomSheet>
+      </View>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetBg: {
+  sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    borderTopWidth: 1,
-    borderColor: Colors.dark.border,
   },
   handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
-  content: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-  },
+  content: { padding: Spacing.lg },
   title: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.title,

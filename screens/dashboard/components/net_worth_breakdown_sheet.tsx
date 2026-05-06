@@ -1,10 +1,6 @@
-import BottomSheet, {
-  BottomSheetBackdrop,
-  type BottomSheetBackdropProps,
-  BottomSheetView,
-} from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -27,38 +23,22 @@ export function NetWorthBreakdownSheet({
   netWorthEgp,
   netWorthUsd,
 }: NetWorthBreakdownSheetProps) {
-  const sheetRef = useRef<BottomSheet>(null);
-  const snapPoints = useMemo(() => ['40%'], []);
+  const sheetRef = useRef<ActionSheetRef>(null);
 
   useEffect(() => {
-    if (visible) sheetRef.current?.expand();
-    else sheetRef.current?.close();
+    if (visible) sheetRef.current?.show();
+    else sheetRef.current?.hide();
   }, [visible]);
 
-  const renderBackdrop = useCallback(
-    (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop
-        {...props}
-        appearsOnIndex={0}
-        disappearsOnIndex={-1}
-        pressBehavior="close"
-      />
-    ),
-    [],
-  );
-
   return (
-    <BottomSheet
+    <ActionSheet
       ref={sheetRef}
-      index={-1}
       onClose={onClose}
-      snapPoints={snapPoints}
-      enablePanDownToClose
-      backdropComponent={renderBackdrop}
-      backgroundStyle={styles.sheetBg}
-      handleIndicatorStyle={styles.handle}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
     >
-      <BottomSheetView style={styles.content}>
+      <View style={styles.content}>
         <Text style={styles.title}>{Strings.dashNetWorthTitle}</Text>
 
         <View style={styles.row}>
@@ -79,24 +59,19 @@ export function NetWorthBreakdownSheet({
           </Text>
         </View>
         <Text style={styles.usdLine}>≈ {formatAmount(netWorthUsd, 0)} USD</Text>
-      </BottomSheetView>
-    </BottomSheet>
+      </View>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheetBg: {
+  sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    borderTopWidth: 1,
-    borderColor: Colors.dark.border,
   },
   handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
-  content: {
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-  },
+  content: { padding: Spacing.lg },
   title: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.title,
