@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef, FlatList } from 'react-native-actions-sheet';
 
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
