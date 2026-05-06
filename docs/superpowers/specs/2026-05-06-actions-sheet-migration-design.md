@@ -90,7 +90,7 @@ The component stays mounted at all times. The `visible` prop drives show/hide im
 - **Callbacks:** `onClose` (or equivalent dismiss) syncs parent picker visibility in `FilterDrawerState`
 - **Height:** `maxHeight: '70%'`
 - **Remove:** manual backdrop `<Pressable>` and manual `<View style={styles.handle} />` — ActionSheet provides both
-- **Mount pattern:** same conditional render (`if (!visible) return null`) driven by the relevant `FilterDrawerState` picker-visible flag
+- **Mount pattern:** always mounted inside `FilterDrawer`'s content; `useEffect([visible])` calls show/hide via ref, driven by the relevant `FilterDrawerState` picker-visible flag
 
 ---
 
