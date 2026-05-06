@@ -4,7 +4,7 @@ import BottomSheet, {
   BottomSheetTextInput,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -45,16 +45,10 @@ export function AdjustBalanceSheet({
     })),
   );
 
-  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['40%'], []);
 
   useEffect(() => {
-    if (visible) {
-      initialize(currentBalance);
-      sheetRef.current?.expand();
-    } else {
-      sheetRef.current?.close();
-    }
+    if (visible) initialize(currentBalance);
   }, [visible, currentBalance, initialize]);
 
   const renderBackdrop = useCallback(
@@ -79,10 +73,10 @@ export function AdjustBalanceSheet({
     onSave(n);
   };
 
+  if (!visible) return null;
+
   return (
     <BottomSheet
-      ref={sheetRef}
-      index={-1}
       onClose={onClose}
       snapPoints={snapPoints}
       enablePanDownToClose

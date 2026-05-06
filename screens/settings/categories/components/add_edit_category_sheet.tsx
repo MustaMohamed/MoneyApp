@@ -7,7 +7,7 @@ import BottomSheet, {
   BottomSheetScrollView,
   BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { type Control, useController } from 'react-hook-form';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod/v4';
@@ -121,7 +121,6 @@ export function AddEditCategorySheet({
     defaultValues: { name: '' },
   });
 
-  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['85%'], []);
 
   useEffect(() => {
@@ -141,9 +140,6 @@ export function AddEditCategorySheet({
           color: AccountColors[0],
         });
       }
-      sheetRef.current?.expand();
-    } else {
-      sheetRef.current?.close();
     }
   }, [visible, editingCategory, activeTab]);
 
@@ -190,10 +186,10 @@ export function AddEditCategorySheet({
     [handleSave, sheetState.isLoading],
   );
 
+  if (!visible) return null;
+
   return (
     <BottomSheet
-      ref={sheetRef}
-      index={-1}
       onClose={onClose}
       snapPoints={snapPoints}
       enablePanDownToClose
