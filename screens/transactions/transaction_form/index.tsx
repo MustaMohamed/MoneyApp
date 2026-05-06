@@ -36,6 +36,7 @@ export function AddTransactionSheet({ visible, onClose }: AddProps) {
       ref={sheetRef}
       onClose={onClose}
       gestureEnabled
+      useBottomSafeAreaPadding={false}
       containerStyle={styles.sheet}
       indicatorStyle={styles.handle}
     >
@@ -162,6 +163,7 @@ function EditSheetInner({
       ref={sheetRef}
       onClose={handleSheetClose}
       gestureEnabled
+      useBottomSafeAreaPadding={false}
       containerStyle={styles.sheet}
       indicatorStyle={styles.handle}
     >
