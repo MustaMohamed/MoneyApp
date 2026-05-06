@@ -49,7 +49,7 @@ function setupMocks(overrides: { refresh?: jest.Mock } = {}) {
   const mockSetQuery = jest.fn().mockResolvedValue(undefined);
   const mockLoadMore = jest.fn().mockResolvedValue(undefined);
 
-  (useTransactionStore as jest.Mock).mockImplementation((sel: any) =>
+  (useTransactionStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({
       state: { transactions: [], hasMore: false, loading: false, query: {} },
       setQuery: mockSetQuery,
@@ -57,11 +57,13 @@ function setupMocks(overrides: { refresh?: jest.Mock } = {}) {
       refresh: mockRefresh,
     }),
   );
-  (useAccountStore as jest.Mock).mockImplementation((sel: any) => sel({ state: { accounts: [] } }));
-  (useCategoryStore as jest.Mock).mockImplementation((sel: any) =>
+  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
+    sel({ state: { accounts: [] } }),
+  );
+  (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({ state: { categories: [] } }),
   );
-  (useTransactionsScreenStore as jest.Mock).mockImplementation((sel: any) =>
+  (useTransactionsScreenStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({
       state: { searchQuery: '', activeFilter: 'all', appliedFilters: EMPTY_FILTERS },
       setSearchQuery: jest.fn(),
@@ -69,10 +71,12 @@ function setupMocks(overrides: { refresh?: jest.Mock } = {}) {
       clearSearch: jest.fn(),
     }),
   );
-  (useFilterDrawerStore as jest.Mock).mockImplementation((sel: any) =>
+  (useFilterDrawerStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({ setDraft: jest.fn() }),
   );
-  (useFilterDrawerState as jest.Mock).mockImplementation((sel: any) => sel({ open: jest.fn() }));
+  (useFilterDrawerState as unknown as jest.Mock).mockImplementation((sel: any) =>
+    sel({ open: jest.fn() }),
+  );
 
   return { mockRefresh, mockSetQuery, mockLoadMore };
 }
