@@ -24,6 +24,7 @@ import { useFilterDrawerState } from './filter/filter.state';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useTransactions } from './transactions.hook';
+import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export default function TransactionsScreen() {
@@ -47,6 +48,7 @@ export default function TransactionsScreen() {
     useCallback(() => {
       return () => {
         useTransactionsScreenStore.getState().reset();
+        useTransactionsState.getState().reset();
         useFilterDrawerState.getState().close();
         useAddTransactionState.getState().close();
         useAddTransactionStore.getState().reset();
@@ -76,35 +78,34 @@ export default function TransactionsScreen() {
 
       <FilterChips active={t.state.activeFilter} onChange={t.setActiveFilter} />
 
-      {t.state.emptyVariant !== 'none' ? (
-        <View style={styles.body}>
+      <SectionList
+        sections={t.state.sections}
+        keyExtractor={(item) => item.id}
+        stickySectionHeadersEnabled
+        renderSectionHeader={({ section }) => <DateHeader label={section.key} />}
+        renderItem={({ item }) => (
+          <TransactionRow
+            tx={item}
+            account={t.state.accountsById.get(item.account_id)}
+            toAccount={
+              item.to_account_id ? t.state.accountsById.get(item.to_account_id) : undefined
+            }
+            category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
+            onPress={() => router.push(`/transactions/detail/${item.id}`)}
+          />
+        )}
+        ListEmptyComponent={
           <EmptyState
             variant={t.state.emptyVariant === 'noData' ? 'transactions' : 'transactionsNoResults'}
           />
-        </View>
-      ) : (
-        <SectionList
-          sections={t.state.sections}
-          keyExtractor={(item) => item.id}
-          stickySectionHeadersEnabled
-          renderSectionHeader={({ section }) => <DateHeader label={section.key} />}
-          renderItem={({ item }) => (
-            <TransactionRow
-              tx={item}
-              account={t.state.accountsById.get(item.account_id)}
-              toAccount={
-                item.to_account_id ? t.state.accountsById.get(item.to_account_id) : undefined
-              }
-              category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
-              onPress={() => router.push(`/transactions/detail/${item.id}`)}
-            />
-          )}
-          onEndReached={t.onEndReached}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={t.state.loading && t.state.hasMore ? <LoadingFooter /> : null}
-          contentContainerStyle={styles.listContent}
-        />
-      )}
+        }
+        onRefresh={t.onRefresh}
+        refreshing={t.state.refreshing}
+        onEndReached={t.onEndReached}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={t.state.loading && t.state.hasMore ? <LoadingFooter /> : null}
+        contentContainerStyle={styles.listContent}
+      />
 
       <Pressable style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]} onPress={open}>
         <MaterialCommunityIcons name="plus" size={ms(28)} color={Colors.shared.midnightBlue} />
@@ -138,8 +139,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.sm,
   },
   searchBar: { flex: 1 },
-  body: { flex: 1 },
-  listContent: { paddingBottom: Spacing.xxl + ms(56) },
+  listContent: { flexGrow: 1, paddingBottom: Spacing.xxl + ms(56) },
   fab: {
     position: 'absolute',
     bottom: Spacing.xl,

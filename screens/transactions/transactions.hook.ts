@@ -10,6 +10,7 @@ import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
 import { useFilterDrawerState } from './filter/filter.state';
 import { useFilterDrawerStore } from './filter/filter.store';
+import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
@@ -32,8 +33,14 @@ export function useTransactions() {
     state: txState,
     setQuery,
     loadMore,
+    refresh,
   } = useTransactionStore(
-    useShallow((s) => ({ state: s.state, setQuery: s.setQuery, loadMore: s.loadMore })),
+    useShallow((s) => ({
+      state: s.state,
+      setQuery: s.setQuery,
+      loadMore: s.loadMore,
+      refresh: s.refresh,
+    })),
   );
 
   const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
@@ -41,6 +48,9 @@ export function useTransactions() {
 
   const { setDraft } = useFilterDrawerStore(useShallow((s) => ({ setDraft: s.setDraft })));
   const { open: openDrawer } = useFilterDrawerState(useShallow((s) => ({ open: s.open })));
+
+  const refreshing = useTransactionsState((s) => s.state.refreshing);
+  const setRefreshing = useTransactionsState((s) => s.setRefreshing);
 
   const debouncedSearch = useDebouncedValue(txScreenState.searchQuery, 300);
 
@@ -85,11 +95,23 @@ export function useTransactions() {
     openDrawer();
   }
 
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch (err) {
+      console.error('[useTransactions] onRefresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return {
     state: {
       sections,
       hasMore: txState.hasMore,
       loading: txState.loading,
+      refreshing,
       emptyVariant,
       searchQuery: txScreenState.searchQuery,
       activeFilter: txScreenState.activeFilter,
@@ -101,6 +123,7 @@ export function useTransactions() {
     setActiveFilter,
     clearSearch,
     onEndReached: loadMore,
+    onRefresh,
     openFilter,
   };
 }
