@@ -38,18 +38,54 @@ export async function getAccountsStats(
     week_in: number;
     week_out: number;
   }>(
-    `SELECT
-       account_id,
-       SUM(CASE WHEN type = 'income'  AND transaction_date >= ? THEN amount ELSE 0 END) AS month_in,
-       SUM(CASE WHEN type = 'expense' AND transaction_date >= ? THEN amount ELSE 0 END) AS month_out,
-       SUM(CASE WHEN type = 'income'  AND transaction_date >= ? THEN amount ELSE 0 END) AS week_in,
-       SUM(CASE WHEN type = 'expense' AND transaction_date >= ? THEN amount ELSE 0 END) AS week_out
-     FROM transactions
-     WHERE account_id IN (${placeholders})
-       AND type IN ('income', 'expense')
-       AND transaction_date >= ?
+    `SELECT account_id,
+       SUM(month_in)  AS month_in,
+       SUM(month_out) AS month_out,
+       SUM(week_in)   AS week_in,
+       SUM(week_out)  AS week_out
+     FROM (
+       /* Leg 1: account_id rows — income IN, everything else OUT */
+       SELECT
+         account_id,
+         SUM(CASE WHEN type = 'income'  AND transaction_date >= ? THEN amount ELSE 0 END) AS month_in,
+         SUM(CASE WHEN type != 'income' AND transaction_date >= ? THEN amount ELSE 0 END) AS month_out,
+         SUM(CASE WHEN type = 'income'  AND transaction_date >= ? THEN amount ELSE 0 END) AS week_in,
+         SUM(CASE WHEN type != 'income' AND transaction_date >= ? THEN amount ELSE 0 END) AS week_out
+       FROM transactions
+       WHERE account_id IN (${placeholders})
+         AND transaction_date >= ?
+       GROUP BY account_id
+
+       UNION ALL
+
+       /* Leg 2: to_account_id rows — transfer/cc_payment IN */
+       SELECT
+         to_account_id AS account_id,
+         SUM(CASE WHEN transaction_date >= ? THEN COALESCE(to_amount, amount) ELSE 0 END) AS month_in,
+         0 AS month_out,
+         SUM(CASE WHEN transaction_date >= ? THEN COALESCE(to_amount, amount) ELSE 0 END) AS week_in,
+         0 AS week_out
+       FROM transactions
+       WHERE to_account_id IN (${placeholders})
+         AND type IN ('transfer', 'cc_payment')
+         AND transaction_date >= ?
+       GROUP BY to_account_id
+     )
      GROUP BY account_id`,
-    [monthStart, monthStart, weekStart, weekStart, ...accountIds, earliest],
+    [
+      /* Leg 1 params */
+      monthStart,
+      monthStart,
+      weekStart,
+      weekStart,
+      ...accountIds,
+      earliest,
+      /* Leg 2 params */
+      monthStart,
+      weekStart,
+      ...accountIds,
+      earliest,
+    ],
   );
 
   const result: Record<string, AccountStats> = {};
