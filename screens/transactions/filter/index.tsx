@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useEffect, useRef } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
@@ -14,6 +14,8 @@ import { FilterCategoryPicker } from './components/filter_category_picker';
 import { FilterDateCustomPicker } from './components/filter_date_custom_picker';
 import { FilterDateSection } from './components/filter_date_section';
 import { FilterSectionRow } from './components/filter_section_row';
+
+const WINDOW_HEIGHT = Dimensions.get('window').height;
 
 export function FilterDrawer() {
   const f = useFilterDrawer();
@@ -132,10 +134,10 @@ export function FilterDrawer() {
 
 const styles = StyleSheet.create({
   sheet: {
+    height: WINDOW_HEIGHT * 0.85,
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    maxHeight: '85%',
   },
   handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
   header: {
@@ -155,7 +157,7 @@ const styles = StyleSheet.create({
     fontSize: Type.body,
     color: Colors.shared.cairoGold,
   },
-  scroll: { flex: 1 },
+  scroll: { flexGrow: 1, flexShrink: 1 },
   scrollContent: { gap: Spacing.md, paddingBottom: Spacing.xl, paddingTop: Spacing.xs },
   rowWrap: { paddingHorizontal: Spacing.md },
   footer: {
