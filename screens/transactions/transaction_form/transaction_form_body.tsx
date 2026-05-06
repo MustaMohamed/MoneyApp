@@ -174,7 +174,6 @@ export function TransactionFormBody({
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.kav}
     >
-      <View style={styles.handle} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{title}</Text>
         <Pressable onPress={onClose} hitSlop={8}>
@@ -413,14 +412,6 @@ export function TransactionFormBody({
 
 const styles = StyleSheet.create({
   kav: { flex: 1 },
-  handle: {
-    width: ms(36),
-    height: ms(4),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
