@@ -31,6 +31,7 @@ export function FilterDrawer() {
       ref={sheetRef}
       onClose={f.close}
       gestureEnabled
+      useBottomSafeAreaPadding={false}
       containerStyle={styles.sheet}
       indicatorStyle={styles.handle}
     >
