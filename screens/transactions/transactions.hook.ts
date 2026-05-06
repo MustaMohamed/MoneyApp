@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAccountStore } from '@/store/account.store';
@@ -32,8 +32,14 @@ export function useTransactions() {
     state: txState,
     setQuery,
     loadMore,
+    refresh,
   } = useTransactionStore(
-    useShallow((s) => ({ state: s.state, setQuery: s.setQuery, loadMore: s.loadMore })),
+    useShallow((s) => ({
+      state: s.state,
+      setQuery: s.setQuery,
+      loadMore: s.loadMore,
+      refresh: s.refresh,
+    })),
   );
 
   const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
@@ -43,6 +49,8 @@ export function useTransactions() {
   const { open: openDrawer } = useFilterDrawerState(useShallow((s) => ({ open: s.open })));
 
   const debouncedSearch = useDebouncedValue(txScreenState.searchQuery, 300);
+
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     const trimmed = debouncedSearch.trim();
@@ -85,11 +93,23 @@ export function useTransactions() {
     openDrawer();
   }
 
+  async function onRefresh() {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } catch (err) {
+      console.error('[useTransactions] onRefresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   return {
     state: {
       sections,
       hasMore: txState.hasMore,
       loading: txState.loading,
+      refreshing,
       emptyVariant,
       searchQuery: txScreenState.searchQuery,
       activeFilter: txScreenState.activeFilter,
@@ -101,6 +121,7 @@ export function useTransactions() {
     setActiveFilter,
     clearSearch,
     onEndReached: loadMore,
+    onRefresh,
     openFilter,
   };
 }
