@@ -20,7 +20,7 @@ export default function SettingsScreen() {
           />
         </Pressable>
         <Text style={styles.title}>{Strings.settingsTitle}</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.group}>
@@ -131,6 +131,7 @@ const styles = StyleSheet.create({
     fontSize: Type.body,
     color: Colors.dark.text1,
   },
+  headerSpacer: { width: Size.backBtn, height: Size.backBtn },
   rowSub: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.caption,

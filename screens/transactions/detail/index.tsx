@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,6 +22,7 @@ import { useTransactionDetail } from './detail.hook';
 
 export default function TransactionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const navigation = useNavigation();
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
     useTransactionDetail(id);
 
@@ -37,6 +38,16 @@ export default function TransactionDetailScreen() {
     };
   }, []);
 
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!useEditTransactionState.getState().state.visible) return;
+      e.preventDefault();
+      useEditTransactionStore.getState().reset();
+      useEditTransactionState.getState().close();
+    });
+    return unsubscribe;
+  }, [navigation]);
+
   function handleEdit() {
     if (state.tx) {
       useEditTransactionStore.getState().loadFromTx(state.tx);
@@ -45,6 +56,11 @@ export default function TransactionDetailScreen() {
   }
 
   function handleEditClose() {
+    useEditTransactionStore.getState().reset();
+    useEditTransactionState.getState().close();
+  }
+
+  function handleEditSaved() {
     useEditTransactionStore.getState().reset();
     useEditTransactionState.getState().close();
     reload();
@@ -138,6 +154,7 @@ export default function TransactionDetailScreen() {
           <EditTransactionSheet
             visible={editTxState.visible}
             onClose={handleEditClose}
+            onSaved={handleEditSaved}
             tx={editTxStoreState.editingTx}
           />
         </>

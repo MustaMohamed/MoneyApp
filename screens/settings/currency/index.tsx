@@ -39,7 +39,7 @@ export default function CurrencyScreen() {
           />
         </Pressable>
         <Text style={styles.title}>{Strings.currencyScreenTitle}</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -146,6 +146,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: { fontFamily: FontFamily.soraBold, fontSize: Type.subhead, color: Colors.dark.text1 },
+  headerSpacer: { width: Size.backBtn, height: Size.backBtn },
   scroll: { flex: 1 },
   rateCard: {
     marginHorizontal: Spacing.sm,

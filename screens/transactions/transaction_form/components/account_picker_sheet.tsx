@@ -43,6 +43,7 @@ export function AccountPickerSheet({
       ref={sheetRef}
       onClose={onClose}
       gestureEnabled
+      useBottomSafeAreaPadding={false}
       containerStyle={styles.sheet}
       indicatorStyle={styles.handle}
     >

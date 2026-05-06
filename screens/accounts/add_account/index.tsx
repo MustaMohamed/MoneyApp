@@ -63,7 +63,7 @@ export default function AddAccountAppScreen() {
           />
         </Pressable>
         <Text style={styles.headerTitle}>{Strings.u4Title}</Text>
-        <View style={styles.back} />
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
@@ -362,6 +362,7 @@ const styles = StyleSheet.create({
     fontSize: Type.subhead,
     color: Colors.dark.text1,
   },
+  headerSpacer: { width: Size.backBtn, height: Size.backBtn },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: Spacing.sm, paddingBottom: Spacing.md },
   sectionLabel: {
