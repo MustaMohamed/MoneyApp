@@ -1,9 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetFlatList,
-  BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -31,26 +30,33 @@ export function CategoryPickerSheet({
   onSelect,
   onClose,
 }: Props) {
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['70%'], []);
 
   useEffect(() => {
-    if (visible) sheetRef.current?.present();
-    else sheetRef.current?.dismiss();
+    if (visible) sheetRef.current?.expand();
+    else sheetRef.current?.close();
   }, [visible]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
     ),
     [],
   );
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={sheetRef}
-      onDismiss={onClose}
+      index={-1}
+      onClose={onClose}
       snapPoints={snapPoints}
+      enablePanDownToClose
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
@@ -96,7 +102,7 @@ export function CategoryPickerSheet({
           );
         }}
       />
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }
 

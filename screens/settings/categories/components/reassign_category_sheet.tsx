@@ -1,11 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetFlatList,
   BottomSheetFooter,
   type BottomSheetFooterProps,
-  BottomSheetModal,
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -45,21 +44,26 @@ export function ReassignCategorySheet({
     })),
   );
 
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['75%'], []);
 
   useEffect(() => {
     if (visible) {
-      sheetRef.current?.present();
+      sheetRef.current?.expand();
     } else {
-      sheetRef.current?.dismiss();
+      sheetRef.current?.close();
       useReassignCategorySheetState.getState().reset();
     }
   }, [visible]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
     ),
     [],
   );
@@ -96,10 +100,12 @@ export function ReassignCategorySheet({
   );
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={sheetRef}
-      onDismiss={onCancel}
+      index={-1}
+      onClose={onCancel}
       snapPoints={snapPoints}
+      enablePanDownToClose
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
@@ -141,7 +147,7 @@ export function ReassignCategorySheet({
           </Pressable>
         )}
       />
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }
 

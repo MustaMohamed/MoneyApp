@@ -1,7 +1,6 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
-  BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -28,26 +27,33 @@ export function NetWorthBreakdownSheet({
   netWorthEgp,
   netWorthUsd,
 }: NetWorthBreakdownSheetProps) {
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['40%'], []);
 
   useEffect(() => {
-    if (visible) sheetRef.current?.present();
-    else sheetRef.current?.dismiss();
+    if (visible) sheetRef.current?.expand();
+    else sheetRef.current?.close();
   }, [visible]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
     ),
     [],
   );
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={sheetRef}
-      onDismiss={onClose}
+      index={-1}
+      onClose={onClose}
       snapPoints={snapPoints}
+      enablePanDownToClose
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
@@ -74,7 +80,7 @@ export function NetWorthBreakdownSheet({
         </View>
         <Text style={styles.usdLine}>≈ {formatAmount(netWorthUsd, 0)} USD</Text>
       </BottomSheetView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }
 

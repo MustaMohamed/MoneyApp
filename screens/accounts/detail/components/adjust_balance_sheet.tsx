@@ -1,7 +1,6 @@
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
-  BottomSheetModal,
   BottomSheetTextInput,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
@@ -46,21 +45,26 @@ export function AdjustBalanceSheet({
     })),
   );
 
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['40%'], []);
 
   useEffect(() => {
     if (visible) {
       initialize(currentBalance);
-      sheetRef.current?.present();
+      sheetRef.current?.expand();
     } else {
-      sheetRef.current?.dismiss();
+      sheetRef.current?.close();
     }
   }, [visible, currentBalance, initialize]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
     ),
     [],
   );
@@ -76,10 +80,12 @@ export function AdjustBalanceSheet({
   };
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={sheetRef}
-      onDismiss={onClose}
+      index={-1}
+      onClose={onClose}
       snapPoints={snapPoints}
+      enablePanDownToClose
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
@@ -127,7 +133,7 @@ export function AdjustBalanceSheet({
           </Pressable>
         </View>
       </BottomSheetView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }
 

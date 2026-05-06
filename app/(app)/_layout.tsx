@@ -1,4 +1,3 @@
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
@@ -29,9 +28,5 @@ export default function AppLayout() {
       .catch(() => {});
   }, []);
 
-  return (
-    <BottomSheetModalProvider>
-      <Stack screenOptions={{ headerShown: false }} />
-    </BottomSheetModalProvider>
-  );
+  return <Stack screenOptions={{ headerShown: false }} />;
 }

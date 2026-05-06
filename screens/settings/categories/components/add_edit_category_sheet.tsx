@@ -1,10 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import {
+import BottomSheet, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
   BottomSheetFooter,
   type BottomSheetFooterProps,
-  BottomSheetModal,
   BottomSheetScrollView,
   BottomSheetTextInput,
 } from '@gorhom/bottom-sheet';
@@ -122,7 +121,7 @@ export function AddEditCategorySheet({
     defaultValues: { name: '' },
   });
 
-  const sheetRef = useRef<BottomSheetModal>(null);
+  const sheetRef = useRef<BottomSheet>(null);
   const snapPoints = useMemo(() => ['85%'], []);
 
   useEffect(() => {
@@ -142,15 +141,20 @@ export function AddEditCategorySheet({
           color: AccountColors[0],
         });
       }
-      sheetRef.current?.present();
+      sheetRef.current?.expand();
     } else {
-      sheetRef.current?.dismiss();
+      sheetRef.current?.close();
     }
   }, [visible, editingCategory, activeTab]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
-      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+      <BottomSheetBackdrop
+        {...props}
+        appearsOnIndex={0}
+        disappearsOnIndex={-1}
+        pressBehavior="close"
+      />
     ),
     [],
   );
@@ -187,10 +191,12 @@ export function AddEditCategorySheet({
   );
 
   return (
-    <BottomSheetModal
+    <BottomSheet
       ref={sheetRef}
-      onDismiss={onClose}
+      index={-1}
+      onClose={onClose}
       snapPoints={snapPoints}
+      enablePanDownToClose
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"
@@ -280,7 +286,7 @@ export function AddEditCategorySheet({
           ))}
         </View>
       </BottomSheetScrollView>
-    </BottomSheetModal>
+    </BottomSheet>
   );
 }
 
