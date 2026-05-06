@@ -1,5 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetFlatList,
+  BottomSheetModal,
+} from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -24,74 +31,85 @@ export function CategoryPickerSheet({
   onSelect,
   onClose,
 }: Props) {
+  const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['70%'], []);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [visible]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+    ),
+    [],
+  );
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>{title}</Text>
-        <FlatList
-          data={categories}
-          keyExtractor={(c) => c.id}
-          numColumns={3}
-          columnWrapperStyle={styles.colWrapper}
-          renderItem={({ item }) => {
-            const isSelected = item.id === selectedId;
-            return (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.cell,
-                  isSelected && styles.cellActive,
-                  pressed && styles.cellPressed,
-                ]}
-                onPress={() => onSelect(item)}
-              >
-                <View style={[styles.iconBox, { backgroundColor: item.color + '33' }]}>
+    <BottomSheetModal
+      ref={sheetRef}
+      onDismiss={onClose}
+      snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={styles.sheetBg}
+      handleIndicatorStyle={styles.handle}
+    >
+      <BottomSheetFlatList
+        data={categories}
+        keyExtractor={(c) => c.id}
+        numColumns={3}
+        columnWrapperStyle={styles.colWrapper}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={<Text style={styles.title}>{title}</Text>}
+        renderItem={({ item }) => {
+          const isSelected = item.id === selectedId;
+          return (
+            <Pressable
+              style={({ pressed }) => [
+                styles.cell,
+                isSelected && styles.cellActive,
+                pressed && styles.cellPressed,
+              ]}
+              onPress={() => onSelect(item)}
+            >
+              <View style={[styles.iconBox, { backgroundColor: item.color + '33' }]}>
+                <MaterialCommunityIcons
+                  name={item.icon as MCIName}
+                  size={ms(22)}
+                  color={item.color}
+                />
+              </View>
+              <Text style={styles.label} numberOfLines={2}>
+                {item.name}
+              </Text>
+              {isSelected && (
+                <View style={styles.check}>
                   <MaterialCommunityIcons
-                    name={item.icon as MCIName}
-                    size={ms(22)}
-                    color={item.color}
+                    name="check-circle"
+                    size={ms(14)}
+                    color={Colors.shared.cairoGold}
                   />
                 </View>
-                <Text style={styles.label} numberOfLines={2}>
-                  {item.name}
-                </Text>
-                {isSelected && (
-                  <View style={styles.check}>
-                    <MaterialCommunityIcons
-                      name="check-circle"
-                      size={ms(14)}
-                      color={Colors.shared.cairoGold}
-                    />
-                  </View>
-                )}
-              </Pressable>
-            );
-          }}
-        />
-      </View>
-    </Modal>
+              )}
+            </Pressable>
+          );
+        }}
+      />
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: {
+  sheetBg: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
+  },
+  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  listContent: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xxl,
-    maxHeight: '70%',
-  },
-  handle: {
-    width: ms(36),
-    height: ms(4),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
   },
   title: {
     fontFamily: FontFamily.soraSemi,

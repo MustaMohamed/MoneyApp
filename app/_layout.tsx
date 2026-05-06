@@ -5,11 +5,13 @@ import {
   Sora_700Bold,
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useShallow } from 'zustand/react/shallow';
 
@@ -41,14 +43,16 @@ export default function RootLayout() {
   if (!fontsLoaded || !readyState.ready) return null;
 
   return (
-    <>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#0F1923' },
-        }}
-      />
-    </>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <BottomSheetModalProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: '#0F1923' },
+          }}
+        />
+      </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }

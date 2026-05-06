@@ -1,16 +1,16 @@
-import { useEffect } from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { type Control, useController } from 'react-hook-form';
 import {
-  FlatList,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetFooter,
+  type BottomSheetFooterProps,
+  BottomSheetModal,
+  BottomSheetScrollView,
+  BottomSheetTextInput,
+} from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { type Control, useController } from 'react-hook-form';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { z } from 'zod/v4';
 
 import { CategoryType } from '@/constants/enums';
@@ -122,6 +122,9 @@ export function AddEditCategorySheet({
     defaultValues: { name: '' },
   });
 
+  const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['85%'], []);
+
   useEffect(() => {
     if (visible) {
       if (editingCategory) {
@@ -139,8 +142,18 @@ export function AddEditCategorySheet({
           color: AccountColors[0],
         });
       }
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
     }
   }, [visible, editingCategory, activeTab]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+    ),
+    [],
+  );
 
   const handleSave = handleSubmit(async ({ name }) => {
     if (!sheetState.selectedIcon) {
@@ -160,115 +173,114 @@ export function AddEditCategorySheet({
     }
   });
 
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) => (
+      <BottomSheetFooter {...props} bottomInset={0}>
+        <View style={styles.ctaWrap}>
+          <Pressable onPress={handleSave} style={styles.cta} disabled={sheetState.isLoading}>
+            <Text style={styles.ctaText}>{Strings.categoriesSaveCta}</Text>
+          </Pressable>
+        </View>
+      </BottomSheetFooter>
+    ),
+    [handleSave, sheetState.isLoading],
+  );
+
   return (
-    <Modal
-      transparent
-      visible={visible}
-      onRequestClose={onClose}
-      animationType="slide"
-      statusBarTranslucent
+    <BottomSheetModal
+      ref={sheetRef}
+      onDismiss={onClose}
+      snapPoints={snapPoints}
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+      backdropComponent={renderBackdrop}
+      backgroundStyle={styles.sheetBg}
+      handleIndicatorStyle={styles.handle}
+      footerComponent={renderFooter}
     >
-      <View style={styles.overlay}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.sheetTitle}>
-            {isEditing ? Strings.categoriesEditSheetTitle : Strings.categoriesAddSheetTitle}
-          </Text>
+      <BottomSheetScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sheetTitle}>
+          {isEditing ? Strings.categoriesEditSheetTitle : Strings.categoriesAddSheetTitle}
+        </Text>
 
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Name */}
-            <Text style={styles.fieldLabel}>{Strings.categoriesNameLabel.toUpperCase()}</Text>
-            <NameField
-              control={control}
-              placeholder={Strings.categoriesNamePlaceholder}
-              error={errors.name?.message}
-            />
+        <Text style={styles.fieldLabel}>{Strings.categoriesNameLabel.toUpperCase()}</Text>
+        <NameField
+          control={control}
+          placeholder={Strings.categoriesNamePlaceholder}
+          error={errors.name?.message}
+        />
 
-            {/* Type toggle — locked when editing */}
-            {!isEditing && (
-              <>
-                <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
-                <View style={styles.typeRow}>
-                  {(['expense', 'income'] as const).map((t) => (
-                    <Pressable
-                      key={t}
-                      onPress={() => setType(t as CategoryType)}
-                      style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
-                    >
-                      <Text
-                        style={[
-                          styles.typePillText,
-                          sheetState.type === t && styles.typePillTextActive,
-                        ]}
-                      >
-                        {t === 'expense'
-                          ? Strings.categoriesTabExpense
-                          : Strings.categoriesTabIncome}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </>
-            )}
-
-            {/* Icon picker */}
-            <Text style={styles.fieldLabel}>{Strings.categoriesIconLabel}</Text>
-            {sheetState.iconError ? <Text style={styles.error}>{sheetState.iconError}</Text> : null}
-            <FlatList
-              data={CATEGORY_ICONS}
-              numColumns={8}
-              scrollEnabled={false}
-              keyExtractor={(item) => item}
-              renderItem={({ item }) => (
+        {!isEditing && (
+          <>
+            <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
+            <View style={styles.typeRow}>
+              {(['expense', 'income'] as const).map((t) => (
                 <Pressable
-                  onPress={() => {
-                    setSelectedIcon(item);
-                    setIconError('');
-                  }}
-                  style={[
-                    styles.iconCell,
-                    sheetState.selectedIcon === item && styles.iconCellActive,
-                  ]}
+                  key={t}
+                  onPress={() => setType(t as CategoryType)}
+                  style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
                 >
-                  <MaterialCommunityIcons
-                    name={item}
-                    size={20}
-                    color={
-                      sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
-                    }
-                  />
+                  <Text
+                    style={[
+                      styles.typePillText,
+                      sheetState.type === t && styles.typePillTextActive,
+                    ]}
+                  >
+                    {t === 'expense' ? Strings.categoriesTabExpense : Strings.categoriesTabIncome}
+                  </Text>
                 </Pressable>
-              )}
-              style={styles.iconGrid}
-            />
-
-            {/* Color picker */}
-            <Text style={styles.fieldLabel}>{Strings.categoriesColorLabel}</Text>
-            <View style={styles.colorRow}>
-              {AccountColors.map((c) => (
-                <Pressable
-                  key={c}
-                  onPress={() => setSelectedColor(c)}
-                  style={[
-                    styles.colorSwatch,
-                    { backgroundColor: c },
-                    sheetState.selectedColor === c && styles.colorSwatchActive,
-                  ]}
-                />
               ))}
             </View>
-          </ScrollView>
+          </>
+        )}
 
-          {/* Save CTA */}
-          <View style={styles.ctaWrap}>
-            <Pressable onPress={handleSave} style={styles.cta} disabled={sheetState.isLoading}>
-              <Text style={styles.ctaText}>{Strings.categoriesSaveCta}</Text>
+        <Text style={styles.fieldLabel}>{Strings.categoriesIconLabel}</Text>
+        {sheetState.iconError ? <Text style={styles.error}>{sheetState.iconError}</Text> : null}
+        <FlatList
+          data={CATEGORY_ICONS}
+          numColumns={8}
+          scrollEnabled={false}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => {
+                setSelectedIcon(item);
+                setIconError('');
+              }}
+              style={[styles.iconCell, sheetState.selectedIcon === item && styles.iconCellActive]}
+            >
+              <MaterialCommunityIcons
+                name={item}
+                size={20}
+                color={
+                  sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
+                }
+              />
             </Pressable>
-          </View>
+          )}
+          style={styles.iconGrid}
+        />
+
+        <Text style={styles.fieldLabel}>{Strings.categoriesColorLabel}</Text>
+        <View style={styles.colorRow}>
+          {AccountColors.map((c) => (
+            <Pressable
+              key={c}
+              onPress={() => setSelectedColor(c)}
+              style={[
+                styles.colorSwatch,
+                { backgroundColor: c },
+                sheetState.selectedColor === c && styles.colorSwatchActive,
+              ]}
+            />
+          ))}
         </View>
-      </View>
-    </Modal>
+      </BottomSheetScrollView>
+    </BottomSheetModal>
   );
 }
 
@@ -284,7 +296,7 @@ function NameField({
   const { field } = useController({ control, name: 'name' });
   return (
     <>
-      <TextInput
+      <BottomSheetTextInput
         style={[styles.input, error ? styles.inputError : null]}
         placeholder={placeholder}
         placeholderTextColor={Colors.dark.text2}
@@ -298,23 +310,15 @@ function NameField({
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
-  sheet: {
+  sheetBg: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-    maxHeight: '85%',
   },
-  handle: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
+  handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
+  scrollContent: {
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Size.ctaHeight + Spacing.lg + Spacing.md,
   },
   sheetTitle: {
     fontFamily: FontFamily.soraBold,
@@ -383,11 +387,12 @@ const styles = StyleSheet.create({
   colorSwatch: { width: 28, height: 28, borderRadius: 14 },
   colorSwatchActive: { borderWidth: 2, borderColor: Colors.dark.text1 },
   ctaWrap: {
+    paddingHorizontal: Spacing.md,
     paddingTop: Spacing.xs,
-    paddingBottom: Spacing.xs,
+    paddingBottom: Spacing.md,
+    backgroundColor: Colors.dark.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.dark.border,
-    marginTop: Spacing.sm,
   },
   cta: {
     height: Size.ctaHeight,

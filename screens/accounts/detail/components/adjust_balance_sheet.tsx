@@ -1,5 +1,12 @@
-import { useEffect } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetModal,
+  BottomSheetTextInput,
+  BottomSheetView,
+} from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -39,11 +46,23 @@ export function AdjustBalanceSheet({
     })),
   );
 
+  const sheetRef = useRef<BottomSheetModal>(null);
+
   useEffect(() => {
     if (visible) {
       initialize(currentBalance);
+      sheetRef.current?.present();
+    } else {
+      sheetRef.current?.dismiss();
     }
   }, [visible, currentBalance, initialize]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+    ),
+    [],
+  );
 
   const handleSave = () => {
     const n = parseFloat(adjustState.input);
@@ -56,79 +75,73 @@ export function AdjustBalanceSheet({
   };
 
   return (
-    <Modal
-      transparent
-      visible={visible}
-      onRequestClose={onClose}
-      animationType="slide"
-      statusBarTranslucent
+    <BottomSheetModal
+      ref={sheetRef}
+      onDismiss={onClose}
+      enableDynamicSizing
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
+      backdropComponent={renderBackdrop}
+      backgroundStyle={styles.sheetBg}
+      handleIndicatorStyle={styles.handle}
     >
-      <View style={styles.container}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
+      <BottomSheetView style={styles.content}>
+        <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
 
-          <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
-          <View style={styles.inputRow}>
-            <TextInput
-              value={adjustState.input}
-              onChangeText={(v) => {
-                setInput(v);
-                setError('');
-              }}
-              keyboardType="decimal-pad"
-              style={styles.input}
-              placeholderTextColor={Colors.dark.text3}
-              autoFocus
-            />
-            <Text style={styles.currency}>{currency}</Text>
-          </View>
-          {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
-
-          <View style={styles.ctaBar}>
-            <Pressable onPress={onClose} style={styles.cancelBtn}>
-              <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
-            </Pressable>
-            <Pressable
-              onPress={handleSave}
-              disabled={isLoading}
-              style={[styles.savePress, isLoading && styles.disabled]}
-            >
-              <LinearGradient
-                colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.saveGradient}
-              >
-                <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
+        <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
+        <View style={styles.inputRow}>
+          <BottomSheetTextInput
+            value={adjustState.input}
+            onChangeText={(v) => {
+              setInput(v);
+              setError('');
+            }}
+            keyboardType="decimal-pad"
+            style={styles.input}
+            placeholderTextColor={Colors.dark.text3}
+            autoFocus
+          />
+          <Text style={styles.currency}>{currency}</Text>
         </View>
-      </View>
-    </Modal>
+        {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
+
+        <View style={styles.ctaBar}>
+          <Pressable onPress={onClose} style={styles.cancelBtn}>
+            <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
+          </Pressable>
+          <Pressable
+            onPress={handleSave}
+            disabled={isLoading}
+            style={[styles.savePress, isLoading && styles.disabled]}
+          >
+            <LinearGradient
+              colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.saveGradient}
+            >
+              <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </BottomSheetView>
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
-  sheet: {
+  sheetBg: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
     borderTopWidth: 1,
     borderColor: Colors.dark.border,
   },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: Colors.dark.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: Spacing.md,
+  handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
+  content: {
+    padding: Spacing.lg,
+    paddingBottom: Spacing.xxl,
   },
   title: {
     fontFamily: FontFamily.soraBold,

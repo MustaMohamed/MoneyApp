@@ -1,5 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  BottomSheetBackdrop,
+  type BottomSheetBackdropProps,
+  BottomSheetFlatList,
+  BottomSheetModal,
+} from '@gorhom/bottom-sheet';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -29,70 +36,77 @@ export function AccountPickerSheet({
   onClose,
 }: Props) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
+  const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['60%'], []);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.present();
+    else sheetRef.current?.dismiss();
+  }, [visible]);
+
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+    ),
+    [],
+  );
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <Text style={styles.title}>{title}</Text>
-        <FlatList
-          data={filtered}
-          keyExtractor={(a) => a.id}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
-          renderItem={({ item }) => {
-            const isSelected = item.id === selectedId;
-            return (
-              <Pressable
-                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-                onPress={() => onSelect(item)}
-              >
-                <View
-                  style={[styles.dot, { backgroundColor: item.color ?? Colors.dark.surfaceEl }]}
+    <BottomSheetModal
+      ref={sheetRef}
+      onDismiss={onClose}
+      snapPoints={snapPoints}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={styles.sheetBg}
+      handleIndicatorStyle={styles.handle}
+    >
+      <BottomSheetFlatList
+        data={filtered}
+        keyExtractor={(a) => a.id}
+        contentContainerStyle={styles.listContent}
+        ListHeaderComponent={<Text style={styles.title}>{title}</Text>}
+        ItemSeparatorComponent={() => <View style={styles.sep} />}
+        renderItem={({ item }) => {
+          const isSelected = item.id === selectedId;
+          return (
+            <Pressable
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+              onPress={() => onSelect(item)}
+            >
+              <View
+                style={[styles.dot, { backgroundColor: item.color ?? Colors.dark.surfaceEl }]}
+              />
+              <View style={styles.info}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.balance}>
+                  {formatBalance(item.current_balance)} {item.currency}
+                </Text>
+              </View>
+              {isSelected && (
+                <MaterialCommunityIcons
+                  name="check"
+                  size={ms(20)}
+                  color={Colors.shared.cairoGold}
                 />
-                <View style={styles.info}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.balance}>
-                    {formatBalance(item.current_balance)} {item.currency}
-                  </Text>
-                </View>
-                {isSelected && (
-                  <MaterialCommunityIcons
-                    name="check"
-                    size={ms(20)}
-                    color={Colors.shared.cairoGold}
-                  />
-                )}
-              </Pressable>
-            );
-          }}
-        />
-      </View>
-    </Modal>
+              )}
+            </Pressable>
+          );
+        }}
+      />
+    </BottomSheetModal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  sheet: {
+  sheetBg: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
+  },
+  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  listContent: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xxl,
-    maxHeight: '60%',
-  },
-  handle: {
-    width: ms(36),
-    height: ms(4),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
   },
   title: {
     fontFamily: FontFamily.soraSemi,
