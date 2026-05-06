@@ -6,6 +6,7 @@
     "orientation": "portrait",
     "scheme": "moneyapp",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#0F1923",
     "icon": "./assets/icon.png",
     "ios": {
       "bundleIdentifier": "com.moneyapp.app",

@@ -37,7 +37,7 @@ export default function CategoriesScreen() {
           />
         </Pressable>
         <Text style={styles.title}>{Strings.categoriesTitle}</Text>
-        <View style={styles.backBtn} />
+        <View style={styles.headerSpacer} />
       </View>
 
       {/* Tab switcher */}
@@ -151,6 +151,7 @@ const styles = StyleSheet.create({
     fontSize: Type.subhead,
     color: Colors.dark.text1,
   },
+  headerSpacer: { width: Size.backBtn, height: Size.backBtn },
   tabRow: {
     flexDirection: 'row',
     marginHorizontal: Spacing.sm,

@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
-import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { EmptyState } from '@/components/empty_states';
@@ -57,6 +57,25 @@ export default function TransactionsScreen() {
           .setQuery({})
           .catch(() => {});
       };
+    }, []),
+  );
+
+  // On Android hardware back: close open overlays before allowing tab navigation.
+  useFocusEffect(
+    useCallback(() => {
+      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+        if (useAddTransactionState.getState().state.visible) {
+          useAddTransactionState.getState().close();
+          useAddTransactionStore.getState().reset();
+          return true;
+        }
+        if (useFilterDrawerState.getState().state.visible) {
+          useFilterDrawerState.getState().close();
+          return true;
+        }
+        return false;
+      });
+      return () => sub.remove();
     }, []),
   );
 

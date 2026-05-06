@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
+
+import { Colors } from '@/constants/theme';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAccountStore } from '@/store/account.store';
@@ -28,5 +30,9 @@ export default function AppLayout() {
       .catch(() => {});
   }, []);
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <Stack
+      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.dark.bg } }}
+    />
+  );
 }

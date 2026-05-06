@@ -50,7 +50,11 @@ function buildDefaults(tx: Transaction, rate: number): EditTransactionFormValues
   };
 }
 
-export function useEditTransaction(initialTx: Transaction, onClose: () => void) {
+export function useEditTransaction(
+  initialTx: Transaction,
+  onClose: () => void,
+  onSaved?: () => void,
+) {
   const { state: accountState, loadAccounts } = useAccountStore(
     useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
   );
@@ -182,7 +186,7 @@ export function useEditTransaction(initialTx: Transaction, onClose: () => void) 
 
       await updateTransaction(initialTx.id, updateInput);
       await loadAccounts();
-      onClose();
+      onSaved ? onSaved() : onClose();
     } catch {
       // error logged by store
     } finally {

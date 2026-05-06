@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -12,6 +12,7 @@ import { useAccountDetailState } from './account_detail.state';
 export function useAccountDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const navigation = useNavigation();
 
   const {
     state: accountState,
@@ -49,6 +50,15 @@ export function useAccountDetail() {
   );
 
   useEffect(() => () => reset(), []);
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
+      if (!useAccountDetailState.getState().state.isEditing) return;
+      e.preventDefault();
+      useAccountDetailState.getState().setEditing(false);
+    });
+    return unsubscribe;
+  }, [navigation]);
 
   const account = accountState.accounts.find((a) => a.id === id);
 
@@ -118,7 +128,13 @@ export function useAccountDetail() {
     }
   };
 
-  const onBack = () => router.back();
+  const onBack = () => {
+    if (detailState.isEditing) {
+      setEditing(false);
+    } else {
+      router.back();
+    }
+  };
 
   return {
     state: {
