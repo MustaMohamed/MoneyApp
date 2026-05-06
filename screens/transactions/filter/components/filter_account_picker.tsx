@@ -1,5 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -34,64 +36,69 @@ function formatBalance(balance: number, currency: string): string {
 }
 
 export function FilterAccountPicker({ visible, accounts, selectedIds, onToggle, onClose }: Props) {
+  const sheetRef = useRef<ActionSheetRef>(null);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.show();
+    else sheetRef.current?.hide();
+  }, [visible]);
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
-        <View style={styles.header}>
-          <Text style={styles.title}>{Strings.filterPickAccountsTitle}</Text>
-          <Pressable onPress={onClose} hitSlop={8}>
-            <Text style={styles.doneLabel}>{Strings.filterPickerDone}</Text>
-          </Pressable>
-        </View>
-        <FlatList
-          data={accounts}
-          keyExtractor={(a) => a.id}
-          ItemSeparatorComponent={() => <View style={styles.sep} />}
-          renderItem={({ item }) => {
-            const checked = selectedIds.includes(item.id);
-            return (
-              <Pressable
-                onPress={() => onToggle(item.id)}
-                style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
-              >
-                <View style={styles.iconContainer}>
-                  <MaterialCommunityIcons
-                    name={iconForAccountType(item.type as AccountType)}
-                    size={ms(20)}
-                    color={checked ? Colors.shared.cairoGold : Colors.dark.text2}
-                  />
-                </View>
-                <View style={styles.info}>
-                  <Text style={styles.name}>{item.name}</Text>
-                  <Text style={styles.balance}>
-                    {formatBalance(item.current_balance, item.currency)}
-                  </Text>
-                </View>
-                <View style={[styles.checkbox, checked && styles.checkboxOn]}>
-                  {checked && (
-                    <MaterialCommunityIcons
-                      name="check"
-                      size={ms(14)}
-                      color={Colors.shared.midnightBlue}
-                    />
-                  )}
-                </View>
-              </Pressable>
-            );
-          }}
-        />
+    <ActionSheet
+      ref={sheetRef}
+      onClose={onClose}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
+    >
+      <View style={styles.header}>
+        <Text style={styles.title}>{Strings.filterPickAccountsTitle}</Text>
+        <Pressable onPress={onClose} hitSlop={8}>
+          <Text style={styles.doneLabel}>{Strings.filterPickerDone}</Text>
+        </Pressable>
       </View>
-    </Modal>
+      <FlatList
+        data={accounts}
+        keyExtractor={(a) => a.id}
+        ItemSeparatorComponent={() => <View style={styles.sep} />}
+        renderItem={({ item }) => {
+          const checked = selectedIds.includes(item.id);
+          return (
+            <Pressable
+              onPress={() => onToggle(item.id)}
+              style={({ pressed }) => [styles.row, pressed && styles.rowPressed]}
+            >
+              <View style={styles.iconContainer}>
+                <MaterialCommunityIcons
+                  name={iconForAccountType(item.type as AccountType)}
+                  size={ms(20)}
+                  color={checked ? Colors.shared.cairoGold : Colors.dark.text2}
+                />
+              </View>
+              <View style={styles.info}>
+                <Text style={styles.name}>{item.name}</Text>
+                <Text style={styles.balance}>
+                  {formatBalance(item.current_balance, item.currency)}
+                </Text>
+              </View>
+              <View style={[styles.checkbox, checked && styles.checkboxOn]}>
+                {checked && (
+                  <MaterialCommunityIcons
+                    name="check"
+                    size={ms(14)}
+                    color={Colors.shared.midnightBlue}
+                  />
+                )}
+              </View>
+            </Pressable>
+          );
+        }}
+      />
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
   sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
@@ -100,15 +107,7 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
     maxHeight: '70%',
   },
-  handle: {
-    width: ms(36),
-    height: ms(4),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
-  },
+  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
