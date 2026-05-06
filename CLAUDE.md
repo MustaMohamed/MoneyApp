@@ -8,7 +8,7 @@ React Native (Expo) personal finance app — local-only, no bank connections.
 
 ## Tech Stack
 
-Expo (managed) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid`
+Expo (managed, Expo Go only) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated · react-native-actions-sheet (patched) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package
 
 ## Commands
 
@@ -27,6 +27,7 @@ constants/  enums.ts · secure_store_keys.ts · strings.ts · theme.ts
 store/      Zustand stores (one per domain)
 database/   client.ts · migrations/ · entities/ · <domain>.ts
 utils/      responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
+patches/    patch-package diffs for third-party library fixes
 __tests__/  snake_case test files (logic layer only)
 ```
 
@@ -46,6 +47,20 @@ Sub-screens (non-route drawers like `transactions/filter/`) follow the same anat
 Files: `snake_case`. TS identifiers: `camelCase`.
 
 **Store/state shape:** Both `.store.ts` and `.state.ts` Zustand stores wrap their values under a single `state: { ... }` object; setters and `reset` stay flat. Setters spread the previous state: `set((s) => ({ state: { ...s.state, x: v } }))`. `reset()` is `set({ state: INITIAL_STATE })`. Hooks return `{ state: { ...reactive values... }, ...flat actions }`; consumers destructure `state` and read fields via `state.x`.
+
+## Expo Go Compatibility (critical)
+
+**All dependencies must work in Expo Go.** Never add packages that require `expo-dev-client`, `npx expo prebuild`, or native linking. If a library has native code not bundled in the Expo Go app, it cannot be used.
+
+## Bottom Sheets — `react-native-actions-sheet`
+
+- Patched via `patch-package` (see `patches/`). The patch fixes a first-open sizing bug where the library initialized internal dimensions to `{-1, -1}`.
+- **Scrollable components inside ActionSheet** must be imported from `react-native-actions-sheet`, not from `react-native`. The sheet's gesture handler intercepts touch events, so standard RN `FlatList`/`ScrollView` won't scroll. Use: `import ActionSheet, { FlatList } from 'react-native-actions-sheet';`
+- `useBottomSafeAreaPadding={false}` on all sheets to prevent double padding.
+
+## Patches
+
+`patch-package` auto-applies on `npm install` via the `postinstall` script. Patch files live in `patches/`. Never edit a shipped patch — create a new one if the fix needs updating.
 
 ## Conventions
 
