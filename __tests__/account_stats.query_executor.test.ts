@@ -114,3 +114,80 @@ describe('getAccountsStats — transfer counts', () => {
     expect(stats['acc_wallet'].month_out).toBe(0);
   });
 });
+
+describe('getAccountsStats — cc_payment counts', () => {
+  it('cc_payment out appears in paying account month_out, in appears in CC account month_in', async () => {
+    insertTx({
+      id: 'tx-cc-1',
+      type: 'cc_payment',
+      amount: 1500,
+      currency: 'EGP',
+      egp_amount: 1500,
+      to_amount: 1500,
+      minimum_payment_snapshot: 200,
+      account_id: 'acc_bank',
+      to_account_id: 'acc_cc',
+    });
+
+    const stats = await getAccountsStats(mockDb, ['acc_bank', 'acc_cc']);
+
+    expect(stats['acc_bank'].month_out).toBe(1500);
+    expect(stats['acc_bank'].month_in).toBe(0);
+    expect(stats['acc_cc'].month_in).toBe(1500);
+    expect(stats['acc_cc'].month_out).toBe(0);
+  });
+});
+
+describe('getAccountsStats — cross-currency transfer', () => {
+  it('source uses amount (USD), destination uses to_amount (EGP)', async () => {
+    insertTx({
+      id: 'tx-cross-1',
+      type: 'transfer',
+      amount: 200,
+      currency: 'USD',
+      egp_amount: 10000,
+      exchange_rate: 50,
+      to_amount: 10000,
+      account_id: 'acc_usd',
+      to_account_id: 'acc_bank',
+    });
+
+    const stats = await getAccountsStats(mockDb, ['acc_usd', 'acc_bank']);
+
+    expect(stats['acc_usd'].month_out).toBe(200);
+    expect(stats['acc_usd'].month_in).toBe(0);
+    expect(stats['acc_bank'].month_in).toBe(10000);
+    expect(stats['acc_bank'].month_out).toBe(0);
+  });
+});
+
+describe('getAccountsStats — multi-leg summation', () => {
+  it('income + transfer to same account sums correctly in month_in', async () => {
+    insertTx({
+      id: 'tx-income-1',
+      type: 'income',
+      amount: 5000,
+      currency: 'EGP',
+      egp_amount: 5000,
+      account_id: 'acc_bank',
+    });
+
+    insertTx({
+      id: 'tx-transfer-in-1',
+      type: 'transfer',
+      amount: 2000,
+      currency: 'EGP',
+      egp_amount: 2000,
+      to_amount: 2000,
+      account_id: 'acc_wallet',
+      to_account_id: 'acc_bank',
+    });
+
+    const stats = await getAccountsStats(mockDb, ['acc_bank', 'acc_wallet']);
+
+    expect(stats['acc_bank'].month_in).toBe(7000);
+    expect(stats['acc_bank'].month_out).toBe(0);
+    expect(stats['acc_wallet'].month_in).toBe(0);
+    expect(stats['acc_wallet'].month_out).toBe(2000);
+  });
+});
