@@ -5,7 +5,7 @@ import {
   BottomSheetTextInput,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -47,6 +47,7 @@ export function AdjustBalanceSheet({
   );
 
   const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['40%'], []);
 
   useEffect(() => {
     if (visible) {
@@ -78,7 +79,7 @@ export function AdjustBalanceSheet({
     <BottomSheetModal
       ref={sheetRef}
       onDismiss={onClose}
-      enableDynamicSizing
+      snapPoints={snapPoints}
       keyboardBehavior="interactive"
       keyboardBlurBehavior="restore"
       android_keyboardInputMode="adjustResize"

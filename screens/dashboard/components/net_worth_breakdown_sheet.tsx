@@ -4,7 +4,7 @@ import {
   BottomSheetModal,
   BottomSheetView,
 } from '@gorhom/bottom-sheet';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
@@ -29,6 +29,7 @@ export function NetWorthBreakdownSheet({
   netWorthUsd,
 }: NetWorthBreakdownSheetProps) {
   const sheetRef = useRef<BottomSheetModal>(null);
+  const snapPoints = useMemo(() => ['40%'], []);
 
   useEffect(() => {
     if (visible) sheetRef.current?.present();
@@ -46,7 +47,7 @@ export function NetWorthBreakdownSheet({
     <BottomSheetModal
       ref={sheetRef}
       onDismiss={onClose}
-      enableDynamicSizing
+      snapPoints={snapPoints}
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
