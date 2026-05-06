@@ -82,6 +82,13 @@ function setupMocks(overrides: { refresh?: jest.Mock } = {}) {
 }
 
 describe('useTransactions — onRefresh', () => {
+  beforeEach(() => {
+    const { useTransactionsState } = jest.requireActual(
+      '@/screens/transactions/transactions.state',
+    );
+    useTransactionsState.getState().reset();
+  });
+
   it('refreshing starts as false', () => {
     setupMocks();
     const { result } = renderHook(() => useTransactions());

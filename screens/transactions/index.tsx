@@ -24,6 +24,7 @@ import { useFilterDrawerState } from './filter/filter.state';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useTransactions } from './transactions.hook';
+import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export default function TransactionsScreen() {
@@ -47,6 +48,7 @@ export default function TransactionsScreen() {
     useCallback(() => {
       return () => {
         useTransactionsScreenStore.getState().reset();
+        useTransactionsState.getState().reset();
         useFilterDrawerState.getState().close();
         useAddTransactionState.getState().close();
         useAddTransactionStore.getState().reset();
