@@ -1,5 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef, FlatList } from 'react-native-actions-sheet';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -24,11 +26,22 @@ export function CategoryPickerSheet({
   onSelect,
   onClose,
 }: Props) {
+  const sheetRef = useRef<ActionSheetRef>(null);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.show();
+    else sheetRef.current?.hide();
+  }, [visible]);
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+    <ActionSheet
+      ref={sheetRef}
+      onClose={onClose}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
+    >
+      <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
         <FlatList
           data={categories}
@@ -70,34 +83,26 @@ export function CategoryPickerSheet({
           }}
         />
       </View>
-    </Modal>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' },
   sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xxl,
-    maxHeight: '70%',
   },
-  handle: {
-    width: ms(36),
-    height: ms(4),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
+  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  content: {
+    paddingHorizontal: Spacing.md,
   },
   title: {
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.subhead,
     color: Colors.dark.text1,
     marginBottom: Spacing.sm,
+    marginTop: Spacing.sm,
   },
   colWrapper: { gap: Spacing.xs, marginBottom: Spacing.xs },
   cell: {

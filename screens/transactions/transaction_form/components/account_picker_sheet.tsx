@@ -1,5 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -29,17 +31,28 @@ export function AccountPickerSheet({
   onClose,
 }: Props) {
   const filtered = accounts.filter((a) => a.id !== excludeId);
+  const sheetRef = useRef<ActionSheetRef>(null);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.show();
+    else sheetRef.current?.hide();
+  }, [visible]);
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.overlay} onPress={onClose} />
-      <View style={styles.sheet}>
-        <View style={styles.handle} />
+    <ActionSheet
+      ref={sheetRef}
+      onClose={onClose}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
+    >
+      <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
         <FlatList
           data={filtered}
           keyExtractor={(a) => a.id}
           ItemSeparatorComponent={() => <View style={styles.sep} />}
+          style={styles.list}
           renderItem={({ item }) => {
             const isSelected = item.id === selectedId;
             return (
@@ -68,36 +81,27 @@ export function AccountPickerSheet({
           }}
         />
       </View>
-    </Modal>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
   sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
+  },
+  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  content: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xxl,
-    maxHeight: '60%',
   },
-  handle: {
-    width: ms(36),
-    height: ms(4),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    alignSelf: 'center',
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
-  },
+  list: { maxHeight: 420 },
   title: {
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.subhead,
     color: Colors.dark.text1,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
   },
   sep: { height: 1, backgroundColor: Colors.dark.border },

@@ -1,4 +1,6 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -21,65 +23,55 @@ export function NetWorthBreakdownSheet({
   netWorthEgp,
   netWorthUsd,
 }: NetWorthBreakdownSheetProps) {
+  const sheetRef = useRef<ActionSheetRef>(null);
+
+  useEffect(() => {
+    if (visible) sheetRef.current?.show();
+    else sheetRef.current?.hide();
+  }, [visible]);
+
   return (
-    <Modal
-      transparent
-      visible={visible}
-      onRequestClose={onClose}
-      animationType="slide"
-      statusBarTranslucent
+    <ActionSheet
+      ref={sheetRef}
+      onClose={onClose}
+      gestureEnabled
+      containerStyle={styles.sheet}
+      indicatorStyle={styles.handle}
     >
-      <View style={styles.container}>
-        <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
-        <View style={styles.sheet}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>{Strings.dashNetWorthTitle}</Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>{Strings.dashNetWorthTitle}</Text>
 
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>{Strings.dashAssetsLabel}</Text>
-            <Text style={[styles.rowValue, styles.positive]}>{formatAmount(assetsEgp)} EGP</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>{Strings.dashLiabilitiesLabel}</Text>
-            <Text style={[styles.rowValue, styles.negative]}>
-              {formatAmount(liabilitiesEgp)} EGP
-            </Text>
-          </View>
-
-          <View style={styles.divider} />
-
-          <View style={styles.row}>
-            <Text style={[styles.rowLabel, styles.totalLabel]}>{Strings.dashNetWorthTitle}</Text>
-            <Text style={[styles.rowValue, styles.totalValue, netWorthEgp < 0 && styles.negative]}>
-              {formatAmount(netWorthEgp)} EGP
-            </Text>
-          </View>
-          <Text style={styles.usdLine}>≈ {formatAmount(netWorthUsd, 0)} USD</Text>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{Strings.dashAssetsLabel}</Text>
+          <Text style={[styles.rowValue, styles.positive]}>{formatAmount(assetsEgp)} EGP</Text>
         </View>
+        <View style={styles.row}>
+          <Text style={styles.rowLabel}>{Strings.dashLiabilitiesLabel}</Text>
+          <Text style={[styles.rowValue, styles.negative]}>{formatAmount(liabilitiesEgp)} EGP</Text>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.row}>
+          <Text style={[styles.rowLabel, styles.totalLabel]}>{Strings.dashNetWorthTitle}</Text>
+          <Text style={[styles.rowValue, styles.totalValue, netWorthEgp < 0 && styles.negative]}>
+            {formatAmount(netWorthEgp)} EGP
+          </Text>
+        </View>
+        <Text style={styles.usdLine}>≈ {formatAmount(netWorthUsd, 0)} USD</Text>
       </View>
-    </Modal>
+    </ActionSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.55)' },
   sheet: {
     backgroundColor: Colors.dark.surface,
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
-    padding: Spacing.lg,
-    paddingBottom: Spacing.xxl,
-    borderTopWidth: 1,
-    borderColor: Colors.dark.border,
   },
-  handle: {
-    width: 36,
-    height: 4,
-    backgroundColor: Colors.dark.border,
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginBottom: Spacing.md,
-  },
+  handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
+  content: { padding: Spacing.lg },
   title: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.title,

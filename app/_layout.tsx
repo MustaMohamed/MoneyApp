@@ -1,3 +1,5 @@
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
   Sora_400Regular,
@@ -41,7 +43,7 @@ export default function RootLayout() {
   if (!fontsLoaded || !readyState.ready) return null;
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <StatusBar style="light" />
       <Stack
         screenOptions={{
@@ -49,6 +51,6 @@ export default function RootLayout() {
           contentStyle: { backgroundColor: '#0F1923' },
         }}
       />
-    </>
+    </GestureHandlerRootView>
   );
 }
