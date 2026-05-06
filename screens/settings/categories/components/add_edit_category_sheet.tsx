@@ -197,9 +197,6 @@ export function AddEditCategorySheet({
       onClose={onClose}
       snapPoints={snapPoints}
       enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}

@@ -86,9 +86,6 @@ export function AdjustBalanceSheet({
       onClose={onClose}
       snapPoints={snapPoints}
       enablePanDownToClose
-      keyboardBehavior="interactive"
-      keyboardBlurBehavior="restore"
-      android_keyboardInputMode="adjustResize"
       backdropComponent={renderBackdrop}
       backgroundStyle={styles.sheetBg}
       handleIndicatorStyle={styles.handle}
@@ -107,7 +104,6 @@ export function AdjustBalanceSheet({
             keyboardType="decimal-pad"
             style={styles.input}
             placeholderTextColor={Colors.dark.text3}
-            autoFocus
           />
           <Text style={styles.currency}>{currency}</Text>
         </View>
