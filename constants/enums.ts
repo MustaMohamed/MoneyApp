@@ -48,3 +48,29 @@ export enum DatePreset {
   AllTime = 'all_time',
   Custom = 'custom',
 }
+
+export enum AmountType {
+  Fixed = 'fixed',
+  Variable = 'variable',
+}
+
+export enum RecurrencePeriod {
+  Days = 'days',
+  Weeks = 'weeks',
+  Months = 'months',
+  Years = 'years',
+}
+
+export enum DurationType {
+  Forever = 'forever',
+  AfterCount = 'after_count',
+  UntilDate = 'until_date',
+}
+
+export enum CommitmentPaymentStatus {
+  Upcoming = 'upcoming',
+  Due = 'due',
+  Overdue = 'overdue',
+  Paid = 'paid',
+  Skipped = 'skipped',
+}

@@ -335,4 +335,102 @@ export const Strings = {
 
   filterCategoryTypeExpense: 'Expense',
   filterCategoryTypeIncome: 'Income',
+
+  // Commitments — C1 List
+  commitmentsTitle: 'Commitments',
+  commitmentsPaidSummary: 'Paid this month',
+  commitmentsTotalCommitted: 'Total committed',
+  commitmentsOverdue: 'Overdue',
+  commitmentsDueToday: 'Due Today',
+  commitmentsUpcoming: 'Upcoming',
+  commitmentsPaid: 'Paid',
+  commitmentsSkipped: 'Skipped',
+
+  // Commitments — Empty state
+  commitmentsEmptyTitle: 'No commitments yet',
+  commitmentsEmptySub: 'Add rent, subscriptions, or any regular payment',
+  commitmentsEmptyCta: 'Add Commitment',
+
+  // Commitments — C2 Add / C3 Edit
+  commitmentsAddTitle: 'New Commitment',
+  commitmentsEditTitle: 'Edit Commitment',
+  commitmentsFieldName: 'Name',
+  commitmentsFieldAmountType: 'Amount Type',
+  commitmentsFieldAmount: 'Amount',
+  commitmentsFieldCurrency: 'Currency',
+  commitmentsFieldCategory: 'Category',
+  commitmentsFieldRecurrence: 'Recurrence',
+  commitmentsFieldCustomRecurrence: 'Custom Recurrence',
+  commitmentsFieldStartDate: 'Start Date',
+  commitmentsFieldDefaultAccount: 'Default Account',
+  commitmentsFieldDuration: 'Duration',
+  commitmentsFieldNotes: 'Notes',
+  commitmentsAmountFixed: 'Fixed',
+  commitmentsAmountVariable: 'Variable',
+  commitmentsRecurrenceMonthly: 'Monthly',
+  commitmentsRecurrenceWeekly: 'Weekly',
+  commitmentsRecurrenceAnnually: 'Annually',
+  commitmentsRecurrenceCustom: 'Custom',
+  commitmentsRecurrenceEvery: 'Every',
+  commitmentsDurationForever: 'Forever',
+  commitmentsDurationAfterCount: 'After N payments',
+  commitmentsDurationUntilDate: 'Until date',
+  commitmentsDurationStopAfter: 'Stop after',
+  commitmentsDurationPayments: 'payments',
+  commitmentsSave: 'Save Commitment',
+  commitmentsOptional: '(optional)',
+
+  // Commitments — validation errors
+  commitmentsErrNameRequired: 'Name is required',
+  commitmentsErrNameMax: 'Name must be 50 characters or less',
+  commitmentsErrAmountRequired: 'Amount is required for fixed commitments',
+  commitmentsErrAmountPositive: 'Amount must be greater than zero',
+  commitmentsErrCategoryRequired: 'Category is required',
+  commitmentsErrStartDateRequired: 'Start date is required',
+  commitmentsErrEveryMin: 'Must be at least 1',
+  commitmentsErrEveryMax: 'Must be 365 or less',
+
+  // Commitments — C4 Detail
+  commitmentsDetailRecurrence: 'Recurrence',
+  commitmentsDetailStartDate: 'Start Date',
+  commitmentsDetailDefaultAccount: 'Default Account',
+  commitmentsDetailDuration: 'Duration',
+  commitmentsDetailCurrency: 'Currency',
+  commitmentsDetailNone: 'None',
+  commitmentsDetailPaymentHistory: 'Payment History',
+  commitmentsDetailCurrentCycle: 'Current Cycle',
+  commitmentsDetailNotes: 'Notes',
+  commitmentsDetailEdit: 'Edit',
+  commitmentsMarkAsPaid: 'Mark as Paid',
+  commitmentsSkip: 'Skip',
+
+  // Commitments — C5 Pay Sheet
+  commitmentsPayTitle: (name: string) => `Pay ${name}`,
+  commitmentsPayAmount: 'Amount',
+  commitmentsPayAccount: 'Pay from Account',
+  commitmentsPayDate: 'Payment Date',
+  commitmentsPayNotes: 'Notes',
+  commitmentsPayConfirm: 'Confirm Payment',
+  commitmentsPayErrAmountRequired: 'Amount is required',
+  commitmentsPayErrAccountRequired: 'Select an account',
+
+  // Commitments — Deactivate
+  commitmentsDeactivate: 'Deactivate Commitment',
+  commitmentsDeactivateTitle: 'Deactivate this commitment?',
+  commitmentsDeactivateBody:
+    'It will be removed from your list. Past payment records are preserved.',
+  commitmentsDeactivateCancel: 'Cancel',
+  commitmentsDeactivateConfirm: 'Deactivate',
+
+  // Commitments — status badges
+  commitmentsStatusOverdue: 'Overdue',
+  commitmentsStatusDue: 'Due',
+  commitmentsStatusUpcoming: 'Upcoming',
+  commitmentsStatusPaid: 'Paid',
+  commitmentsStatusSkipped: 'Skipped',
+
+  // Dashboard — commitments card
+  dashboardCommitmentsTitle: 'Commitments',
+  dashboardCommitmentsPaid: (paid: number, total: number) => `${paid} of ${total} paid`,
+  dashboardCommitmentsOverdue: (count: number) => `${count} overdue`,
 } as const;
