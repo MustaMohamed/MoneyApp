@@ -7,10 +7,7 @@ beforeEach(() => {
   db = new Database(':memory:');
   // FK enforcement off — migration tests check schema structure, not FK logic
   db.pragma('foreign_keys = OFF');
-  // Run all migrations up to and including 007
-  for (const m of MIGRATIONS) {
-    if (m.version <= 7) db.exec(m.up);
-  }
+  for (const m of MIGRATIONS) db.exec(m.up);
 });
 
 afterEach(() => db.close());
@@ -173,5 +170,31 @@ describe('migration007 — commitment_payments table', () => {
 
   it('has version 7', () => {
     expect(MIGRATIONS.find((m) => m.version === 7)!.version).toBe(7);
+  });
+});
+
+describe('migration008 — commitment_payment_id column on transactions', () => {
+  it('adds commitment_payment_id column', () => {
+    const cols = db.prepare("PRAGMA table_info('transactions')").all() as { name: string }[];
+    const names = cols.map((c) => c.name);
+    expect(names).toContain('commitment_payment_id');
+  });
+
+  it('has version 8', () => {
+    expect(MIGRATIONS.find((m) => m.version === 8)!.version).toBe(8);
+  });
+
+  it('allows inserting a transaction with commitment_payment_id', () => {
+    const now = new Date().toISOString();
+    db.prepare(
+      `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('acc1','Test','bank','EGP',0,0,0,0,0,?,?)`,
+    ).run(now, now);
+    expect(() => {
+      db.prepare(
+        `INSERT INTO transactions (id,type,amount,currency,egp_amount,account_id,transaction_date,transaction_time,commitment_payment_id,created_at,updated_at)
+         VALUES ('t1','expense',100,'EGP',100,'acc1','2026-01-01','12:00:00','cp1',?,?)`,
+      ).run(now, now);
+    }).not.toThrow();
   });
 });
