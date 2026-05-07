@@ -3,6 +3,7 @@ import { migration002 } from './002_create_app_settings';
 import { migration003 } from './003_create_categories';
 import { migration004 } from './004_create_transactions';
 import { migration005 } from './005_add_transaction_native_amounts';
+import { migration006 } from './006_create_commitments';
 
 export interface Migration {
   version: number;
@@ -15,4 +16,5 @@ export const MIGRATIONS: Migration[] = [
   migration003,
   migration004,
   migration005,
+  migration006,
 ];
