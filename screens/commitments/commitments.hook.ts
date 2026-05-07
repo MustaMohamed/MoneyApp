@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useRef } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -77,7 +77,10 @@ export function useCommitments() {
   );
   const isEmpty = useMemo(() => commitmentState.payments.length === 0, [commitmentState.payments]);
 
-  const currency = commitmentState.payments[0]?.currency ?? Currency.EGP;
+  const currency = useMemo(
+    () => commitmentState.payments[0]?.currency ?? Currency.EGP,
+    [commitmentState.payments],
+  );
 
   const totalCommitted = useMemo(() => {
     return commitmentState.payments.reduce((sum: number, p: CommitmentPayment) => {
@@ -88,6 +91,9 @@ export function useCommitments() {
       return sum + p.amount_due;
     }, 0);
   }, [commitmentState.payments, commitmentsById]);
+
+  const selectedMonthRef = useRef(commitmentState.selectedMonth);
+  selectedMonthRef.current = commitmentState.selectedMonth;
 
   const navigateMonth = useCallback(
     (direction: 'prev' | 'next') => {
@@ -111,8 +117,8 @@ export function useCommitments() {
   useFocusEffect(
     useCallback(() => {
       loadCommitments();
-      loadPaymentsForMonth(commitmentState.selectedMonth);
-    }, [loadCommitments, loadPaymentsForMonth, commitmentState.selectedMonth]),
+      loadPaymentsForMonth(selectedMonthRef.current);
+    }, [loadCommitments, loadPaymentsForMonth]),
   );
 
   const onRefresh = useCallback(async () => {
