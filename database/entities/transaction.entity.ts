@@ -40,6 +40,8 @@ export interface Transaction {
   transaction_date: string;
   /** HH:MM:SS, e.g. '14:30:00'. */
   transaction_time: string;
+  /** FK to commitment_payments.id; set when this transaction fulfils a commitment payment. */
+  commitment_payment_id: string | null;
   created_at: string;
   updated_at: string;
 }
