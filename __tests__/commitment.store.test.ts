@@ -397,6 +397,22 @@ describe('commitmentStore — selector getters', () => {
     expect(useStore.getState().getPaid()).toEqual([p1]);
   });
 
+  it('getUpcoming filters by Upcoming status', async () => {
+    const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Upcoming });
+    const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Paid });
+    const useStore = storeWithPayments([p1, p2]);
+    await useStore.getState().loadPaymentsForMonth('2026-06');
+    expect(useStore.getState().getUpcoming()).toEqual([p1]);
+  });
+
+  it('getSkipped filters by Skipped status', async () => {
+    const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Skipped });
+    const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Upcoming });
+    const useStore = storeWithPayments([p1, p2]);
+    await useStore.getState().loadPaymentsForMonth('2026-06');
+    expect(useStore.getState().getSkipped()).toEqual([p1]);
+  });
+
   it('getTotalCount returns all payments length', async () => {
     const payments = [mockPayment({ id: 'p-1' }), mockPayment({ id: 'p-2' })];
     const useStore = storeWithPayments(payments);
@@ -413,6 +429,139 @@ describe('commitmentStore — selector getters', () => {
     const useStore = storeWithPayments(payments);
     await useStore.getState().loadPaymentsForMonth('2026-06');
     expect(useStore.getState().getPaidCount()).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateCommitment
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.updateCommitment', () => {
+  const updateInput = {
+    name: 'Netflix Updated',
+    amount: 300,
+  };
+
+  it('calls repo.update with id and data', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().updateCommitment('c-1', updateInput);
+    expect(repo.update).toHaveBeenCalledWith('c-1', updateInput);
+  });
+
+  it('calls repo.deleteUnpaidPayments as part of regeneratePayments', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().updateCommitment('c-1', updateInput);
+    expect(repo.deleteUnpaidPayments).toHaveBeenCalledWith('c-1');
+  });
+
+  it('calls repo.getById as part of regeneratePayments', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().updateCommitment('c-1', updateInput);
+    expect(repo.getById).toHaveBeenCalledWith('c-1');
+  });
+
+  it('calls repo.insertPayments as part of regeneratePayments', async () => {
+    const repo = makeRepo({
+      getById: jest.fn().mockResolvedValue(mockCommitment()),
+      getExistingDueDates: jest.fn().mockResolvedValue([]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().updateCommitment('c-1', updateInput);
+    expect(repo.insertPayments).toHaveBeenCalled();
+  });
+
+  it('reloads commitments after update', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().updateCommitment('c-1', updateInput);
+    expect(repo.getAll).toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// deactivateCommitment
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.deactivateCommitment', () => {
+  it('calls repo.deactivate with the id', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().deactivateCommitment('c-1');
+    expect(repo.deactivate).toHaveBeenCalledWith('c-1');
+  });
+
+  it('reloads commitments after deactivation', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().deactivateCommitment('c-1');
+    expect(repo.getAll).toHaveBeenCalled();
+  });
+
+  it('reloads payments for selectedMonth after deactivation', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().setSelectedMonth('2026-09');
+    (repo.getPaymentsForMonth as jest.Mock).mockClear();
+    await useStore.getState().deactivateCommitment('c-1');
+    expect(repo.getPaymentsForMonth).toHaveBeenCalledWith('2026-09');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// regeneratePayments
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.regeneratePayments', () => {
+  it('calls repo.deleteUnpaidPayments with the commitmentId', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().regeneratePayments('c-1');
+    expect(repo.deleteUnpaidPayments).toHaveBeenCalledWith('c-1');
+  });
+
+  it('calls repo.getById to fetch the commitment', async () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().regeneratePayments('c-1');
+    expect(repo.getById).toHaveBeenCalledWith('c-1');
+  });
+
+  it('calls repo.insertPayments with generated payments for new dates', async () => {
+    const { computeDueDates } = require('@/utils/compute_due_dates');
+    (computeDueDates as jest.Mock).mockReturnValue(['2026-06-01', '2026-07-01']);
+    const repo = makeRepo({
+      getById: jest.fn().mockResolvedValue(mockCommitment()),
+      getExistingDueDates: jest.fn().mockResolvedValue([]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().regeneratePayments('c-1');
+    expect(repo.insertPayments).toHaveBeenCalledTimes(1);
+    const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
+    expect(inserted).toHaveLength(2);
+  });
+
+  it('skips insertPayments when no new dates after filtering existing', async () => {
+    const { computeDueDates } = require('@/utils/compute_due_dates');
+    (computeDueDates as jest.Mock).mockReturnValue(['2026-06-01']);
+    const repo = makeRepo({
+      getById: jest.fn().mockResolvedValue(mockCommitment()),
+      getExistingDueDates: jest.fn().mockResolvedValue(['2026-06-01']),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().regeneratePayments('c-1');
+    expect(repo.insertPayments).not.toHaveBeenCalled();
+  });
+
+  it('returns early without inserting if commitment not found', async () => {
+    const repo = makeRepo({
+      getById: jest.fn().mockResolvedValue(undefined),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().regeneratePayments('c-missing');
+    expect(repo.insertPayments).not.toHaveBeenCalled();
   });
 });
 
@@ -496,5 +645,32 @@ describe('commitmentStore.checkAndDeactivateExpired', () => {
     const callsBefore = (repo.getAll as jest.Mock).mock.calls.length;
     await useStore.getState().checkAndDeactivateExpired();
     expect((repo.getAll as jest.Mock).mock.calls.length).toBe(callsBefore + 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// reset
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.reset', () => {
+  it('returns state to INITIAL_STATE', async () => {
+    const commitment = mockCommitment();
+    const payment = mockPayment();
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+      getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
+    });
+    const useStore = createCommitmentStore(repo);
+    // Populate state
+    await useStore.getState().loadCommitments();
+    await useStore.getState().loadPaymentsForMonth('2026-06');
+    await useStore.getState().setSelectedMonth('2026-09');
+    // State is now non-empty
+    expect(useStore.getState().state.commitments).toHaveLength(1);
+    expect(useStore.getState().state.payments).toHaveLength(1);
+    // Reset
+    useStore.getState().reset();
+    expect(useStore.getState().state.commitments).toEqual([]);
+    expect(useStore.getState().state.payments).toEqual([]);
   });
 });

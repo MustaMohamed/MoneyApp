@@ -24,6 +24,33 @@ export type {
 const today = () => new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
 const currentMonth = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
+function makePayments(commitment: Commitment, dueDates: string[]): CommitmentPayment[] {
+  const now = new Date().toISOString();
+  const todayStr = now.slice(0, 10);
+  return dueDates.map((dueDate) => ({
+    id: String(uuid.v4()),
+    commitment_id: commitment.id,
+    due_date: dueDate,
+    paid_date: null,
+    skipped_date: null,
+    amount_due: commitment.amount,
+    amount_paid: null,
+    currency: commitment.currency,
+    exchange_rate_snapshot: null,
+    account_id: commitment.account_id,
+    transaction_id: null,
+    status:
+      dueDate < todayStr
+        ? CommitmentPaymentStatus.Overdue
+        : dueDate === todayStr
+          ? CommitmentPaymentStatus.Due
+          : CommitmentPaymentStatus.Upcoming,
+    notes: null,
+    created_at: now,
+    updated_at: now,
+  }));
+}
+
 interface CommitmentStoreState {
   commitments: Commitment[];
   payments: CommitmentPayment[];
@@ -170,31 +197,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           });
           const newDates = allDates.filter((d) => !existingSet.has(d));
           if (newDates.length === 0) continue;
-          const now = new Date().toISOString();
-          const todayStr = today();
-          const payments: CommitmentPayment[] = newDates.map((dueDate) => ({
-            id: String(uuid.v4()),
-            commitment_id: commitment.id,
-            due_date: dueDate,
-            paid_date: null,
-            skipped_date: null,
-            amount_due: commitment.amount,
-            amount_paid: null,
-            currency: commitment.currency,
-            exchange_rate_snapshot: null,
-            account_id: commitment.account_id,
-            transaction_id: null,
-            status:
-              dueDate < todayStr
-                ? CommitmentPaymentStatus.Overdue
-                : dueDate === todayStr
-                  ? CommitmentPaymentStatus.Due
-                  : CommitmentPaymentStatus.Upcoming,
-            notes: null,
-            created_at: now,
-            updated_at: now,
-          }));
-          await repo.insertPayments(payments);
+          await repo.insertPayments(makePayments(commitment, newDates));
         }
       } catch (err) {
         console.error('[commitmentStore] generatePayments failed:', err);
@@ -220,31 +223,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         });
         const newDates = allDates.filter((d) => !existingSet.has(d));
         if (newDates.length === 0) return;
-        const now = new Date().toISOString();
-        const todayStr = today();
-        const payments: CommitmentPayment[] = newDates.map((dueDate) => ({
-          id: String(uuid.v4()),
-          commitment_id: commitment.id,
-          due_date: dueDate,
-          paid_date: null,
-          skipped_date: null,
-          amount_due: commitment.amount,
-          amount_paid: null,
-          currency: commitment.currency,
-          exchange_rate_snapshot: null,
-          account_id: commitment.account_id,
-          transaction_id: null,
-          status:
-            dueDate < todayStr
-              ? CommitmentPaymentStatus.Overdue
-              : dueDate === todayStr
-                ? CommitmentPaymentStatus.Due
-                : CommitmentPaymentStatus.Upcoming,
-          notes: null,
-          created_at: now,
-          updated_at: now,
-        }));
-        await repo.insertPayments(payments);
+        await repo.insertPayments(makePayments(commitment, newDates));
       } catch (err) {
         console.error('[commitmentStore] regeneratePayments failed:', err);
         throw err;
