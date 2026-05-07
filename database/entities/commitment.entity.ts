@@ -15,7 +15,7 @@ export interface Commitment {
   duration_type: DurationType;
   end_date: string | null;
   end_after_count: number | null;
-  is_active: 0 | 1;
+  is_active: number;
   created_at: string;
   updated_at: string;
 }
