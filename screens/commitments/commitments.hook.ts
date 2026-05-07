@@ -1,10 +1,11 @@
 import { useMemo, useCallback } from 'react';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useCommitmentStore } from '@/store/commitment.store';
 import { useCategoryStore } from '@/store/category.store';
-import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 
@@ -49,14 +50,17 @@ export function useCommitments() {
 
   const sections: CommitmentsSection[] = useMemo(() => {
     const allPayments = commitmentState.payments;
-    const overduePayments = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
-    const dueThisMonthPayments = allPayments.filter(
-      (p) => p.status !== CommitmentPaymentStatus.Overdue,
-    );
     const result: CommitmentsSection[] = [];
-    if (overduePayments.length > 0) result.push({ title: 'Overdue', data: overduePayments });
-    if (dueThisMonthPayments.length > 0)
-      result.push({ title: 'Due This Month', data: dueThisMonthPayments });
+    const overdue = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
+    const dueToday = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Due);
+    const upcoming = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Upcoming);
+    const paid = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Paid);
+    const skipped = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Skipped);
+    if (overdue.length > 0) result.push({ title: Strings.commitmentsOverdue, data: overdue });
+    if (dueToday.length > 0) result.push({ title: Strings.commitmentsDueToday, data: dueToday });
+    if (upcoming.length > 0) result.push({ title: Strings.commitmentsUpcoming, data: upcoming });
+    if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
+    if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
     return result;
   }, [commitmentState.payments]);
 
@@ -64,10 +68,16 @@ export function useCommitments() {
     () => commitmentState.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
     [commitmentState.payments],
   );
-  const totalCount = commitmentState.payments.filter(
-    (p: CommitmentPayment) => p.status !== CommitmentPaymentStatus.Skipped,
-  ).length;
-  const isEmpty = commitmentState.payments.length === 0;
+  const totalCount = useMemo(
+    () =>
+      commitmentState.payments.filter(
+        (p: CommitmentPayment) => p.status !== CommitmentPaymentStatus.Skipped,
+      ).length,
+    [commitmentState.payments],
+  );
+  const isEmpty = useMemo(() => commitmentState.payments.length === 0, [commitmentState.payments]);
+
+  const currency = commitmentState.payments[0]?.currency ?? Currency.EGP;
 
   const totalCommitted = useMemo(() => {
     return commitmentState.payments.reduce((sum: number, p: CommitmentPayment) => {
@@ -96,6 +106,13 @@ export function useCommitments() {
       setSelectedMonth(newYearMonth);
     },
     [commitmentState.selectedMonth, setSelectedMonth],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCommitments();
+      loadPaymentsForMonth(commitmentState.selectedMonth);
+    }, [loadCommitments, loadPaymentsForMonth, commitmentState.selectedMonth]),
   );
 
   const onRefresh = useCallback(async () => {
@@ -132,6 +149,7 @@ export function useCommitments() {
       totalCommitted,
       refreshing: screenState.refreshing,
       isEmpty,
+      currency,
       categoriesById,
       commitmentsById,
     },

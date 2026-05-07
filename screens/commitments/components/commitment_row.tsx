@@ -3,6 +3,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -16,30 +17,31 @@ const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
 };
 
 const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
-  [CommitmentPaymentStatus.Overdue]: 'Overdue',
-  [CommitmentPaymentStatus.Due]: 'Due',
-  [CommitmentPaymentStatus.Upcoming]: 'Upcoming',
-  [CommitmentPaymentStatus.Paid]: 'Paid',
-  [CommitmentPaymentStatus.Skipped]: 'Skipped',
+  [CommitmentPaymentStatus.Overdue]: Strings.commitmentsStatusOverdue,
+  [CommitmentPaymentStatus.Due]: Strings.commitmentsStatusDue,
+  [CommitmentPaymentStatus.Upcoming]: Strings.commitmentsStatusUpcoming,
+  [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
+  [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
+
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
 
 function formatDueDate(dateStr: string): string {
   const [, month, day] = dateStr.split('-').map(Number);
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return `${months[month - 1]} ${day}`;
+  return `${MONTH_NAMES[month - 1]} ${day}`;
 }
 
 interface CommitmentRowProps {

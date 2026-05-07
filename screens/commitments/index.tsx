@@ -1,5 +1,3 @@
-import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,14 +22,6 @@ export default function CommitmentsScreen() {
     opacity: anim.opacity.value,
     transform: [{ translateY: anim.translateY.value }],
   }));
-
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        // No-op for now
-      };
-    }, []),
-  );
 
   if (t.state.isEmpty) {
     return (
@@ -82,7 +72,7 @@ export default function CommitmentsScreen() {
               paidCount={t.state.paidCount}
               totalCount={t.state.totalCount}
               totalCommitted={t.state.totalCommitted}
-              currency="EGP"
+              currency={t.state.currency}
             />
           }
           refreshControl={
