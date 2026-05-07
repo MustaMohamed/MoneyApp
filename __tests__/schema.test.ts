@@ -35,6 +35,7 @@ describe('database schema — TC-15', () => {
       'accounts',
       'app_settings',
       'categories',
+      'commitment_payments',
       'commitments',
       'transactions',
     ]);
