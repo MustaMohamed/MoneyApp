@@ -57,32 +57,34 @@ export async function addPayments(
   db: SQLiteDatabase,
   payments: CommitmentPayment[],
 ): Promise<void> {
-  for (const p of payments) {
-    await db.runAsync(
-      `INSERT OR IGNORE INTO commitment_payments
-        (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
-         currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
-         created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        p.id,
-        p.commitment_id,
-        p.due_date,
-        p.paid_date,
-        p.skipped_date,
-        p.amount_due,
-        p.amount_paid,
-        p.currency,
-        p.exchange_rate_snapshot,
-        p.account_id,
-        p.transaction_id,
-        p.status,
-        p.notes,
-        p.created_at,
-        p.updated_at,
-      ],
-    );
-  }
+  await db.withTransactionAsync(async () => {
+    for (const p of payments) {
+      await db.runAsync(
+        `INSERT OR IGNORE INTO commitment_payments
+          (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
+           currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
+           created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          p.id,
+          p.commitment_id,
+          p.due_date,
+          p.paid_date,
+          p.skipped_date,
+          p.amount_due,
+          p.amount_paid,
+          p.currency,
+          p.exchange_rate_snapshot,
+          p.account_id,
+          p.transaction_id,
+          p.status,
+          p.notes,
+          p.created_at,
+          p.updated_at,
+        ],
+      );
+    }
+  });
 }
 
 /** Generic status update with optional extra fields. */

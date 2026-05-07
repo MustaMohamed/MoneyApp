@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import type { Commitment } from './entities/commitment.entity';
 
 export async function getCommitments(db: SQLiteDatabase): Promise<Commitment[]> {
@@ -46,16 +47,16 @@ export async function addCommitment(db: SQLiteDatabase, commitment: Commitment):
 
 export interface UpdateCommitmentData {
   name: string;
-  amount_type: string;
+  amount_type: AmountType;
   amount: number | null;
-  currency: string;
+  currency: Currency;
   category_id: string;
   recurrence_every: number;
-  recurrence_period: string;
+  recurrence_period: RecurrencePeriod;
   start_date: string;
   account_id: string | null;
   notes: string | null;
-  duration_type: string;
+  duration_type: DurationType;
   end_date: string | null;
   end_after_count: number | null;
 }
