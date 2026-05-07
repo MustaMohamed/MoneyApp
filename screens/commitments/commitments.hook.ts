@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useCommitmentStore } from '@/store/commitment.store';
 import { useCategoryStore } from '@/store/category.store';
-import { CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 
@@ -13,18 +13,12 @@ import { useCommitmentsScreenState } from './commitments.state';
 export type CommitmentsSection = {
   title: string;
   data: CommitmentPayment[];
-  status: CommitmentPaymentStatus;
 };
 
 export function useCommitments() {
   const {
     state: commitmentState,
     setSelectedMonth,
-    getOverdue,
-    getDueToday,
-    getUpcoming,
-    getPaid,
-    getSkipped,
     loadPaymentsForMonth,
     loadCommitments,
     generatePayments,
@@ -32,11 +26,6 @@ export function useCommitments() {
     useShallow((s) => ({
       state: s.state,
       setSelectedMonth: s.setSelectedMonth,
-      getOverdue: s.getOverdue,
-      getDueToday: s.getDueToday,
-      getUpcoming: s.getUpcoming,
-      getPaid: s.getPaid,
-      getSkipped: s.getSkipped,
       loadPaymentsForMonth: s.loadPaymentsForMonth,
       loadCommitments: s.loadCommitments,
       generatePayments: s.generatePayments,
@@ -58,37 +47,35 @@ export function useCommitments() {
     [commitmentState.commitments],
   );
 
-  const overdue = getOverdue();
-  const dueToday = getDueToday();
-  const upcoming = getUpcoming();
-  const paid = getPaid();
-  const skipped = getSkipped();
-
   const sections: CommitmentsSection[] = useMemo(() => {
+    const allPayments = commitmentState.payments;
+    const overduePayments = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
+    const dueThisMonthPayments = allPayments.filter(
+      (p) => p.status !== CommitmentPaymentStatus.Overdue,
+    );
     const result: CommitmentsSection[] = [];
-    if (overdue.length > 0)
-      result.push({ title: 'Overdue', data: overdue, status: CommitmentPaymentStatus.Overdue });
-    if (dueToday.length > 0)
-      result.push({ title: 'Due Today', data: dueToday, status: CommitmentPaymentStatus.Due });
-    if (upcoming.length > 0)
-      result.push({ title: 'Upcoming', data: upcoming, status: CommitmentPaymentStatus.Upcoming });
-    if (paid.length > 0)
-      result.push({ title: 'Paid', data: paid, status: CommitmentPaymentStatus.Paid });
-    if (skipped.length > 0)
-      result.push({ title: 'Skipped', data: skipped, status: CommitmentPaymentStatus.Skipped });
+    if (overduePayments.length > 0) result.push({ title: 'Overdue', data: overduePayments });
+    if (dueThisMonthPayments.length > 0)
+      result.push({ title: 'Due This Month', data: dueThisMonthPayments });
     return result;
-  }, [overdue, dueToday, upcoming, paid, skipped]);
+  }, [commitmentState.payments]);
 
-  const paidCount = paid.length;
-  const totalCount =
-    overdue.length + dueToday.length + upcoming.length + paid.length + skipped.length;
+  const paidCount = useMemo(
+    () => commitmentState.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
+    [commitmentState.payments],
+  );
+  const totalCount = commitmentState.payments.length;
   const isEmpty = commitmentState.commitments.length === 0;
 
   const totalCommitted = useMemo(() => {
-    return commitmentState.commitments.reduce((sum: number, c: Commitment) => {
-      return sum + (c.is_active ? (c.amount ?? 0) : 0);
+    return commitmentState.payments.reduce((sum: number, p: CommitmentPayment) => {
+      if (p.status === CommitmentPaymentStatus.Skipped) return sum;
+      const commitment = commitmentsById.get(p.commitment_id);
+      if (!commitment || commitment.amount_type !== AmountType.Fixed) return sum;
+      if (p.amount_due == null) return sum;
+      return sum + p.amount_due;
     }, 0);
-  }, [commitmentState.commitments]);
+  }, [commitmentState.payments, commitmentsById]);
 
   const navigateMonth = useCallback(
     (direction: 'prev' | 'next') => {
@@ -126,8 +113,8 @@ export function useCommitments() {
     commitmentState.selectedMonth,
   ]);
 
-  const goToDetail = useCallback((_paymentId: string, commitmentId: string) => {
-    router.push(`/commitments/${commitmentId}` as Parameters<typeof router.push>[0]);
+  const goToDetail = useCallback((paymentId: string) => {
+    router.push(`/commitments/${paymentId}` as Parameters<typeof router.push>[0]);
   }, []);
 
   const goToAdd = useCallback(() => {

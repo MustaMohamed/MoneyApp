@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -10,6 +11,7 @@ import { ms } from '@/utils/responsive';
 import { Strings } from '@/constants/strings';
 
 import { useCommitments } from './commitments.hook';
+import { useCommitmentsAnim } from './commitments.anim';
 import { CommitmentRow } from './components/commitment_row';
 import { MonthNavigator } from './components/month_navigator';
 import { SummaryHeader } from './components/summary_header';
@@ -17,6 +19,11 @@ import { CommitmentsEmptyState } from './components/empty_state';
 
 export default function CommitmentsScreen() {
   const t = useCommitments();
+  const anim = useCommitmentsAnim();
+  const animStyle = useAnimatedStyle(() => ({
+    opacity: anim.opacity.value,
+    transform: [{ translateY: anim.translateY.value }],
+  }));
 
   useFocusEffect(
     useCallback(() => {
@@ -42,51 +49,53 @@ export default function CommitmentsScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>{Strings.commitmentsTitle}</Text>
       </View>
-      <MonthNavigator
-        yearMonth={t.state.selectedMonth}
-        onPrev={() => t.navigateMonth('prev')}
-        onNext={() => t.navigateMonth('next')}
-      />
-      <SectionList
-        sections={t.state.sections}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          const commitment = t.state.commitmentsById.get(item.commitment_id);
-          const category = commitment
-            ? t.state.categoriesById.get(commitment.category_id)
-            : undefined;
-          return (
-            <CommitmentRow
-              payment={item}
-              commitment={commitment}
-              category={category}
-              onPress={() => t.goToDetail(item.id, item.commitment_id)}
+      <Animated.View style={[styles.flex, animStyle]}>
+        <MonthNavigator
+          yearMonth={t.state.selectedMonth}
+          onPrev={() => t.navigateMonth('prev')}
+          onNext={() => t.navigateMonth('next')}
+        />
+        <SectionList
+          sections={t.state.sections}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => {
+            const commitment = t.state.commitmentsById.get(item.commitment_id);
+            const category = commitment
+              ? t.state.categoriesById.get(commitment.category_id)
+              : undefined;
+            return (
+              <CommitmentRow
+                payment={item}
+                commitment={commitment}
+                category={category}
+                onPress={() => t.goToDetail(item.id)}
+              />
+            );
+          }}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+            </View>
+          )}
+          ListHeaderComponent={
+            <SummaryHeader
+              paidCount={t.state.paidCount}
+              totalCount={t.state.totalCount}
+              totalCommitted={t.state.totalCommitted}
+              currency="EGP"
             />
-          );
-        }}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>{section.title}</Text>
-          </View>
-        )}
-        ListHeaderComponent={
-          <SummaryHeader
-            paidCount={t.state.paidCount}
-            totalCount={t.state.totalCount}
-            totalCommitted={t.state.totalCommitted}
-            currency="EGP"
-          />
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={t.state.refreshing}
-            onRefresh={t.onRefresh}
-            tintColor={Colors.shared.cairoGold}
-          />
-        }
-        contentContainerStyle={styles.listContent}
-        stickySectionHeadersEnabled={false}
-      />
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={t.state.refreshing}
+              onRefresh={t.onRefresh}
+              tintColor={Colors.shared.cairoGold}
+            />
+          }
+          contentContainerStyle={styles.listContent}
+          stickySectionHeadersEnabled={false}
+        />
+      </Animated.View>
       {/* FAB */}
       <Pressable onPress={t.goToAdd} style={styles.fabWrap}>
         <LinearGradient colors={[Colors.shared.cairoGold, Colors.dark.gold]} style={styles.fab}>
@@ -99,6 +108,7 @@ export default function CommitmentsScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: Colors.dark.bg },
+  flex: { flex: 1 },
   header: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   title: { fontFamily: FontFamily.soraBold, fontSize: Type.title, color: Colors.dark.text1 },
   sectionHeader: {

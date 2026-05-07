@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { Strings } from '@/constants/strings';
@@ -37,7 +38,12 @@ export function SummaryHeader({
         </View>
       </View>
       <View style={styles.track}>
-        <View style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]} />
+        <LinearGradient
+          colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={[styles.fill, { width: `${Math.round(progress * 100)}%` }]}
+        />
       </View>
     </View>
   );
@@ -63,7 +69,6 @@ const styles = StyleSheet.create({
   },
   fill: {
     height: ms(4),
-    backgroundColor: Colors.shared.cairoGold,
     borderRadius: ms(2),
   },
 });

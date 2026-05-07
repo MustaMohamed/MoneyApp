@@ -83,9 +83,9 @@ export function CommitmentRow({ payment, commitment, category, onPress }: Commit
       </View>
       <View style={styles.right}>
         <Text style={styles.amount}>
-          {isVariable ? '~ ' : ''}
+          {isVariable ? '~' : ''}
+          <Text style={styles.currency}>{payment.currency} </Text>
           {formattedAmount}
-          <Text style={styles.currency}> {payment.currency}</Text>
         </Text>
         <View style={[styles.badge, { backgroundColor: `${statusColor}22` }]}>
           <Text style={[styles.badgeText, { color: statusColor }]}>{statusLabel}</Text>
