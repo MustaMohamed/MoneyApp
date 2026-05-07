@@ -34,8 +34,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="bills/index"
-        options={{ title: 'Bills', tabBarIcon: ({ color }) => tabIcon('calendar-clock', color) }}
+        name="commitments"
+        options={{
+          title: 'Commitments',
+          tabBarIcon: ({ color }) => tabIcon('calendar-check', color),
+        }}
       />
       <Tabs.Screen
         name="goals/index"
