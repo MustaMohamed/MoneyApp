@@ -64,8 +64,10 @@ export function useCommitments() {
     () => commitmentState.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
     [commitmentState.payments],
   );
-  const totalCount = commitmentState.payments.length;
-  const isEmpty = commitmentState.commitments.length === 0;
+  const totalCount = commitmentState.payments.filter(
+    (p: CommitmentPayment) => p.status !== CommitmentPaymentStatus.Skipped,
+  ).length;
+  const isEmpty = commitmentState.payments.length === 0;
 
   const totalCommitted = useMemo(() => {
     return commitmentState.payments.reduce((sum: number, p: CommitmentPayment) => {
