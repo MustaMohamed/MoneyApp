@@ -2,14 +2,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-import { CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { Category } from '@/database/entities/category.entity';
 
 const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
-  [CommitmentPaymentStatus.Due]: '#D4A44C',
+  [CommitmentPaymentStatus.Due]: Colors.dark.gold,
   [CommitmentPaymentStatus.Upcoming]: Colors.dark.text2,
   [CommitmentPaymentStatus.Paid]: Colors.dark.positive,
   [CommitmentPaymentStatus.Skipped]: Colors.dark.text3,
@@ -52,7 +52,7 @@ interface CommitmentRowProps {
 export function CommitmentRow({ payment, commitment, category, onPress }: CommitmentRowProps) {
   const statusColor = STATUS_COLORS[payment.status];
   const statusLabel = STATUS_LABELS[payment.status];
-  const isVariable = commitment?.amount_type === 'variable';
+  const isVariable = commitment?.amount_type === AmountType.Variable;
   const amount = payment.amount_due ?? commitment?.amount;
   const formattedAmount =
     amount != null ? new Intl.NumberFormat('en-US', { style: 'decimal' }).format(amount) : '—';
