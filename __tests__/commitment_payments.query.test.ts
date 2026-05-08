@@ -8,9 +8,12 @@ import {
   deleteUnpaidPaymentsByCommitment,
   getExistingDueDates,
   getLastPaidPayment,
+  getPaymentById,
   getPaymentsByCommitment,
   getPaymentsByMonth,
   getPaidCountByCommitment,
+  markCommitmentAsPaid,
+  updatePaymentStatus,
 } from '@/database/commitment_payments';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
@@ -147,6 +150,29 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     ...overrides,
   };
 }
+
+describe('getPaymentsByMonth — December year-wrap', () => {
+  it('correctly wraps from December to January of next year', async () => {
+    // December 2025 payment — should be returned for '2025-12'
+    const decPayment = makePayment({
+      id: 'pay-dec-1',
+      due_date: '2025-12-15',
+      status: 'upcoming',
+    });
+    // January 2026 payment — should NOT be returned for '2025-12'
+    const janPayment = makePayment({
+      id: 'pay-jan-1',
+      due_date: '2026-01-01',
+      status: 'upcoming',
+    });
+    await addPayments(mockDb, [decPayment, janPayment]);
+
+    const results = await getPaymentsByMonth(mockDb, '2025-12');
+    const ids = results.map((r) => r.id);
+    expect(ids).toContain('pay-dec-1');
+    expect(ids).not.toContain('pay-jan-1');
+  });
+});
 
 describe('getPaymentsByMonth', () => {
   it('returns payments with due_date in the given month', async () => {
@@ -324,6 +350,28 @@ describe('getPaidCountByCommitment', () => {
   });
 });
 
+describe('getPaidCountByCommitment — null row fallback', () => {
+  it('returns 0 when the result rows have no count (handles ??0 path)', async () => {
+    // When there are no payments at all for this commitmentId, the COUNT query
+    // still returns a row with count=0, so the ?? path gives 0 as well.
+    const count = await getPaidCountByCommitment(mockDb, 'commitment-no-payments');
+    expect(count).toBe(0);
+  });
+
+  it('returns 0 when getAllAsync returns an empty array (rows[0] is undefined → ??0)', async () => {
+    // Override getAllAsync temporarily to return [] to hit the undefined path
+    const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
+
+    const original = mocked.getAllAsync.getMockImplementation();
+    mocked.getAllAsync.mockResolvedValueOnce([]);
+
+    const count = await getPaidCountByCommitment(mockDb, 'any-id');
+    expect(count).toBe(0);
+
+    if (original) mocked.getAllAsync.mockImplementation(original);
+  });
+});
+
 describe('getLastPaidPayment', () => {
   it('returns the most recent paid payment', async () => {
     const payments = [
@@ -369,5 +417,218 @@ describe('getPaymentsByCommitment', () => {
     expect(results).toHaveLength(2);
     expect(results[0].id).toBe('pay-all-2'); // DESC order
     expect(results[1].id).toBe('pay-all-1');
+  });
+});
+
+describe('getPaymentById', () => {
+  it('returns the payment when it exists', async () => {
+    const payment = makePayment({ id: 'pay-by-id-1', due_date: '2026-05-01' });
+    await addPayments(mockDb, [payment]);
+
+    const found = await getPaymentById(mockDb, 'pay-by-id-1');
+    expect(found).not.toBeNull();
+    expect(found?.id).toBe('pay-by-id-1');
+  });
+
+  it('returns null when the payment does not exist', async () => {
+    const found = await getPaymentById(mockDb, 'pay-nonexistent');
+    expect(found).toBeNull();
+  });
+});
+
+describe('updatePaymentStatus', () => {
+  it('updates status and optional fields when fields are provided', async () => {
+    const payment = makePayment({ id: 'pay-upd-1', due_date: '2026-05-01', status: 'upcoming' });
+    await addPayments(mockDb, [payment]);
+
+    await updatePaymentStatus(mockDb, 'pay-upd-1', 'paid', {
+      paid_date: '2026-05-02',
+      amount_paid: 200,
+      account_id: 'acc1',
+      exchange_rate_snapshot: 50,
+    });
+
+    const row = realDb
+      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
+      .get('pay-upd-1') as Record<string, unknown>;
+    expect(row.status).toBe('paid');
+    expect(row.paid_date).toBe('2026-05-02');
+    expect(row.amount_paid).toBe(200);
+    expect(row.account_id).toBe('acc1');
+    expect(row.exchange_rate_snapshot).toBe(50);
+  });
+
+  it('updates status without optional fields (fields omitted)', async () => {
+    const payment = makePayment({ id: 'pay-upd-2', due_date: '2026-05-01', status: 'upcoming' });
+    await addPayments(mockDb, [payment]);
+
+    await updatePaymentStatus(mockDb, 'pay-upd-2', 'skipped');
+
+    const row = realDb
+      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
+      .get('pay-upd-2') as Record<string, unknown>;
+    expect(row.status).toBe('skipped');
+    // optional fields should remain null (COALESCE with null keeps existing)
+    expect(row.paid_date).toBeNull();
+    expect(row.amount_paid).toBeNull();
+  });
+
+  it('updates skipped_date when provided', async () => {
+    const payment = makePayment({ id: 'pay-upd-3', due_date: '2026-05-01', status: 'upcoming' });
+    await addPayments(mockDb, [payment]);
+
+    await updatePaymentStatus(mockDb, 'pay-upd-3', 'skipped', {
+      skipped_date: '2026-05-03',
+    });
+
+    const row = realDb
+      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
+      .get('pay-upd-3') as Record<string, unknown>;
+    expect(row.status).toBe('skipped');
+    expect(row.skipped_date).toBe('2026-05-03');
+  });
+});
+
+describe('markCommitmentAsPaid', () => {
+  it('marks payment as paid, inserts transaction, and deducts balance (same currency EGP)', async () => {
+    const payment = makePayment({
+      id: 'pay-paid-egp',
+      due_date: '2026-05-01',
+      status: 'upcoming',
+      amount_due: 200,
+      currency: Currency.EGP,
+    });
+    await addPayments(mockDb, [payment]);
+
+    const tx = makeTx({
+      id: 'tx-paid-egp',
+      amount: 200,
+      currency: Currency.EGP,
+      egp_amount: 200,
+      exchange_rate: null,
+      account_id: 'acc1',
+      commitment_payment_id: 'pay-paid-egp',
+    });
+
+    await markCommitmentAsPaid(
+      mockDb,
+      'pay-paid-egp',
+      {
+        amount_paid: 200,
+        account_id: 'acc1',
+        paid_date: '2026-05-02',
+      },
+      tx,
+    );
+
+    // Payment should be marked paid
+    const payRow = realDb
+      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
+      .get('pay-paid-egp') as Record<string, unknown>;
+    expect(payRow.status).toBe('paid');
+    expect(payRow.paid_date).toBe('2026-05-02');
+    expect(payRow.amount_paid).toBe(200);
+    expect(payRow.transaction_id).toBe('tx-paid-egp');
+
+    // Transaction should be inserted
+    const txRow = realDb
+      .prepare('SELECT * FROM transactions WHERE id = ?')
+      .get('tx-paid-egp') as Record<string, unknown>;
+    expect(txRow).toBeDefined();
+    expect(txRow.amount).toBe(200);
+
+    // Account balance should be deducted by egp_amount (200)
+    const accRow = realDb
+      .prepare('SELECT current_balance FROM accounts WHERE id = ?')
+      .get('acc1') as Record<string, unknown>;
+    expect(accRow.current_balance).toBe(4800); // 5000 - 200
+  });
+
+  it('works when tx.commitment_payment_id is null (inserts null into transaction)', async () => {
+    const payment = makePayment({
+      id: 'pay-paid-no-link',
+      due_date: '2026-05-01',
+      status: 'upcoming',
+      amount_due: 100,
+      currency: Currency.EGP,
+    });
+    await addPayments(mockDb, [payment]);
+
+    const tx = makeTx({
+      id: 'tx-no-link',
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      exchange_rate: null,
+      account_id: 'acc1',
+      commitment_payment_id: null, // explicitly null — tests the ?? null branch
+    });
+
+    await markCommitmentAsPaid(
+      mockDb,
+      'pay-paid-no-link',
+      {
+        amount_paid: 100,
+        account_id: 'acc1',
+        paid_date: '2026-05-02',
+      },
+      tx,
+    );
+
+    const txRow = realDb
+      .prepare('SELECT * FROM transactions WHERE id = ?')
+      .get('tx-no-link') as Record<string, unknown>;
+    expect(txRow).toBeDefined();
+    expect(txRow.commitment_payment_id).toBeNull();
+  });
+
+  it('marks payment as paid and deducts egp_amount for cross-currency (USD commitment on EGP account)', async () => {
+    const payment = makePayment({
+      id: 'pay-paid-usd',
+      due_date: '2026-05-01',
+      status: 'upcoming',
+      amount_due: 10,
+      currency: Currency.USD,
+    });
+    await addPayments(mockDb, [payment]);
+
+    // USD 10 at rate 50 = EGP 500
+    const tx = makeTx({
+      id: 'tx-paid-usd',
+      amount: 10, // face value in USD
+      currency: Currency.USD,
+      egp_amount: 500, // EGP equivalent deducted from EGP account
+      exchange_rate: 50,
+      account_id: 'acc1',
+      commitment_payment_id: 'pay-paid-usd',
+    });
+
+    await markCommitmentAsPaid(
+      mockDb,
+      'pay-paid-usd',
+      {
+        amount_paid: 10,
+        account_id: 'acc1',
+        paid_date: '2026-05-02',
+        exchange_rate_snapshot: 50,
+        notes: 'USD payment',
+      },
+      tx,
+    );
+
+    // Payment marked paid
+    const payRow = realDb
+      .prepare('SELECT * FROM commitment_payments WHERE id = ?')
+      .get('pay-paid-usd') as Record<string, unknown>;
+    expect(payRow.status).toBe('paid');
+    expect(payRow.exchange_rate_snapshot).toBe(50);
+    expect(payRow.notes).toBe('USD payment');
+    expect(payRow.transaction_id).toBe('tx-paid-usd');
+
+    // Account balance deducted by egp_amount (500), NOT by face value (10)
+    const accRow = realDb
+      .prepare('SELECT current_balance FROM accounts WHERE id = ?')
+      .get('acc1') as Record<string, unknown>;
+    expect(accRow.current_balance).toBe(4500); // 5000 - 500
   });
 });

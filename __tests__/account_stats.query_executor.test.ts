@@ -93,6 +93,103 @@ const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Paramete
   typeof getAccountsStats
 >[0];
 
+describe('getAccountsStats — empty accountIds', () => {
+  it('returns an empty object immediately when accountIds is empty', async () => {
+    const stats = await getAccountsStats(mockDb, []);
+    expect(stats).toEqual({});
+  });
+});
+
+describe('getAccountsStats — Sunday week-start branch', () => {
+  it('computes correct weekStart when today is a Sunday (day=0 → -6 offset)', async () => {
+    // 2026-05-10 is a Sunday. weekStart should be Monday 2026-05-04.
+    const sunday = new Date('2026-05-10T12:00:00.000Z');
+    const realDateNow = Date;
+    // Temporarily replace Date with a stub that returns our Sunday
+    global.Date = class extends realDateNow {
+      constructor(...args: ConstructorParameters<typeof realDateNow>) {
+        if (args.length === 0) {
+          super('2026-05-10T12:00:00.000Z');
+        } else {
+          // @ts-ignore
+          super(...args);
+        }
+      }
+      static now() {
+        return sunday.getTime();
+      }
+    } as unknown as typeof Date;
+
+    try {
+      // This call exercises computeDates() with a Sunday, covering the day===0 branch
+      const stats = await getAccountsStats(mockDb, ['acc_bank']);
+      // Should return a zero-stats entry for acc_bank (no transactions in that week)
+      expect(stats['acc_bank']).toBeDefined();
+      expect(stats['acc_bank'].month_in).toBe(0);
+    } finally {
+      global.Date = realDateNow;
+    }
+  });
+});
+
+describe('getAccountsStats — weekStart before monthStart branch', () => {
+  it('uses weekStart as earliest when weekStart < monthStart (e.g. beginning of month on Thursday)', async () => {
+    // 2026-05-01 is a Friday. Monday of that week = 2026-04-27, which is before monthStart (2026-05-01).
+    // So weekStart (04-27) < monthStart (05-01), making earliest = weekStart.
+    const friday = new Date('2026-05-01T12:00:00.000Z');
+    const realDateNow = Date;
+    global.Date = class extends realDateNow {
+      constructor(...args: ConstructorParameters<typeof realDateNow>) {
+        if (args.length === 0) {
+          super('2026-05-01T12:00:00.000Z');
+        } else {
+          // @ts-ignore
+          super(...args);
+        }
+      }
+      static now() {
+        return friday.getTime();
+      }
+    } as unknown as typeof Date;
+
+    try {
+      const stats = await getAccountsStats(mockDb, ['acc_bank']);
+      expect(stats['acc_bank']).toBeDefined();
+    } finally {
+      global.Date = realDateNow;
+    }
+  });
+});
+
+describe('getAccountsStats — default zero stats for accounts with no transactions', () => {
+  it('returns zero stats for accounts not in any transactions', async () => {
+    const stats = await getAccountsStats(mockDb, ['acc_bank', 'acc_wallet']);
+    expect(stats['acc_bank']).toEqual({ month_in: 0, month_out: 0, week_in: 0, week_out: 0 });
+    expect(stats['acc_wallet']).toEqual({ month_in: 0, month_out: 0, week_in: 0, week_out: 0 });
+  });
+});
+
+describe('getAccountsStats — null row fields fallback (??0 branches)', () => {
+  it('returns 0 for any null aggregate field returned by DB (covers ??0 branches)', async () => {
+    // Override getAllAsync once to return a row with null fields
+    // (simulates a DB returning NULL aggregates)
+    const mocked = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
+
+    const original = mocked.getAllAsync.getMockImplementation();
+    mocked.getAllAsync.mockResolvedValueOnce([
+      { account_id: 'acc_bank', month_in: null, month_out: null, week_in: null, week_out: null },
+    ]);
+
+    const stats = await getAccountsStats(mockDb, ['acc_bank']);
+    expect(stats['acc_bank'].month_in).toBe(0);
+    expect(stats['acc_bank'].month_out).toBe(0);
+    expect(stats['acc_bank'].week_in).toBe(0);
+    expect(stats['acc_bank'].week_out).toBe(0);
+
+    if (original) mocked.getAllAsync.mockImplementation(original);
+  });
+});
+
 describe('getAccountsStats — transfer counts', () => {
   it('transfer out appears in source month_out, transfer in appears in destination month_in', async () => {
     insertTx({

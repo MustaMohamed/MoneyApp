@@ -279,6 +279,22 @@ describe('commitmentStore.markAsPaid', () => {
     );
     consoleSpy.mockRestore();
   });
+
+  it('throws if payment does not exist in state (paymentId not in payments)', async () => {
+    // payment is undefined → commitment is undefined → throws
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([mockCommitment({ id: 'c-1' })]),
+      getPaymentsForMonth: jest.fn().mockResolvedValue([]), // no payments
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await useStore.getState().loadPaymentsForMonth('2026-06');
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await expect(useStore.getState().markAsPaid('p-nonexistent', paymentDetails)).rejects.toThrow(
+      'Commitment not found for payment p-nonexistent',
+    );
+    consoleSpy.mockRestore();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -645,6 +661,210 @@ describe('commitmentStore.checkAndDeactivateExpired', () => {
     const callsBefore = (repo.getAll as jest.Mock).mock.calls.length;
     await useStore.getState().checkAndDeactivateExpired();
     expect((repo.getAll as jest.Mock).mock.calls.length).toBe(callsBefore + 1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// makePayments status logic (via generatePayments)
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.generatePayments — payment status assignment', () => {
+  it('assigns Overdue status to past due dates', async () => {
+    const { computeDueDates } = require('@/utils/compute_due_dates');
+    // A date definitely in the past
+    (computeDueDates as jest.Mock).mockReturnValue(['2020-01-01']);
+
+    const commitment = mockCommitment();
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+      getExistingDueDates: jest.fn().mockResolvedValue([]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await useStore.getState().generatePayments();
+
+    const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
+    expect(inserted[0].status).toBe(CommitmentPaymentStatus.Overdue);
+  });
+
+  it('assigns Due status to dates matching today', async () => {
+    const { computeDueDates } = require('@/utils/compute_due_dates');
+    const todayStr = new Date().toISOString().slice(0, 10);
+    (computeDueDates as jest.Mock).mockReturnValue([todayStr]);
+
+    const commitment = mockCommitment();
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+      getExistingDueDates: jest.fn().mockResolvedValue([]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await useStore.getState().generatePayments();
+
+    const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
+    expect(inserted[0].status).toBe(CommitmentPaymentStatus.Due);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// checkAndDeactivateExpired — UntilDate not yet expired
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.checkAndDeactivateExpired — UntilDate not expired', () => {
+  it('does not deactivate UntilDate commitment when end_date is in the future', async () => {
+    const commitment = mockCommitment({
+      id: 'c-future',
+      duration_type: DurationType.UntilDate,
+      end_date: '2099-12-31', // far in the future
+      is_active: 1,
+    });
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await useStore.getState().checkAndDeactivateExpired();
+    expect(repo.deactivate).not.toHaveBeenCalled();
+  });
+
+  it('does not deactivate UntilDate commitment when end_date is null', async () => {
+    const commitment = mockCommitment({
+      id: 'c-null-end',
+      duration_type: DurationType.UntilDate,
+      end_date: null,
+      is_active: 1,
+    });
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await useStore.getState().checkAndDeactivateExpired();
+    expect(repo.deactivate).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Error paths — catch branches
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore — error paths', () => {
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+  afterAll(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it('addCommitment propagates repo.add errors', async () => {
+    const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('add fail')) });
+    const useStore = createCommitmentStore(repo);
+    await expect(useStore.getState().addCommitment({} as never)).rejects.toThrow('add fail');
+  });
+
+  it('updateCommitment propagates repo.update errors', async () => {
+    const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update fail')) });
+    const useStore = createCommitmentStore(repo);
+    await expect(useStore.getState().updateCommitment('c-1', {} as never)).rejects.toThrow(
+      'update fail',
+    );
+  });
+
+  it('deactivateCommitment propagates repo.deactivate errors', async () => {
+    const repo = makeRepo({
+      deactivate: jest.fn().mockRejectedValue(new Error('deactivate fail')),
+    });
+    const useStore = createCommitmentStore(repo);
+    await expect(useStore.getState().deactivateCommitment('c-1')).rejects.toThrow(
+      'deactivate fail',
+    );
+  });
+
+  it('markAsPaid propagates repo.markAsPaid errors', async () => {
+    const commitment = mockCommitment({ id: 'c-1' });
+    const payment = mockPayment({ id: 'p-1', commitment_id: 'c-1' });
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+      getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
+      markAsPaid: jest.fn().mockRejectedValue(new Error('markAsPaid fail')),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await useStore.getState().loadPaymentsForMonth('2026-06');
+    await expect(
+      useStore
+        .getState()
+        .markAsPaid('p-1', { amount_paid: 200, account_id: 'acc-1', paid_date: '2026-06-01' }),
+    ).rejects.toThrow('markAsPaid fail');
+  });
+
+  it('skipPayment propagates repo.markAsSkipped errors', async () => {
+    const repo = makeRepo({
+      markAsSkipped: jest.fn().mockRejectedValue(new Error('skip fail')),
+    });
+    const useStore = createCommitmentStore(repo);
+    await expect(useStore.getState().skipPayment('p-1')).rejects.toThrow('skip fail');
+  });
+
+  it('generatePayments propagates repo.getExistingDueDates errors', async () => {
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([mockCommitment()]),
+      getExistingDueDates: jest.fn().mockRejectedValue(new Error('dates fail')),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await expect(useStore.getState().generatePayments()).rejects.toThrow('dates fail');
+  });
+
+  it('regeneratePayments propagates repo.deleteUnpaidPayments errors', async () => {
+    const repo = makeRepo({
+      deleteUnpaidPayments: jest.fn().mockRejectedValue(new Error('delete fail')),
+    });
+    const useStore = createCommitmentStore(repo);
+    await expect(useStore.getState().regeneratePayments('c-1')).rejects.toThrow('delete fail');
+  });
+
+  it('checkAndDeactivateExpired propagates repo.getPaidCount errors', async () => {
+    const commitment = mockCommitment({
+      id: 'c-1',
+      duration_type: DurationType.AfterCount,
+      end_after_count: 3,
+      is_active: 1,
+    });
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([commitment]),
+      getPaidCount: jest.fn().mockRejectedValue(new Error('paidCount fail')),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    await expect(useStore.getState().checkAndDeactivateExpired()).rejects.toThrow('paidCount fail');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getTotalMonthlyCommitted
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore.getTotalMonthlyCommitted', () => {
+  it('sums amount for active commitments, ignoring inactive ones', async () => {
+    const active1 = mockCommitment({ id: 'c-a1', amount: 200, is_active: 1 });
+    const active2 = mockCommitment({ id: 'c-a2', amount: 100, is_active: 1 });
+    const inactive = mockCommitment({ id: 'c-i1', amount: 500, is_active: 0 });
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([active1, active2, inactive]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    expect(useStore.getState().getTotalMonthlyCommitted()).toBe(300);
+  });
+
+  it('treats null amount as 0', async () => {
+    const variableCommitment = mockCommitment({ id: 'c-var', amount: null, is_active: 1 });
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([variableCommitment]),
+    });
+    const useStore = createCommitmentStore(repo);
+    await useStore.getState().loadCommitments();
+    expect(useStore.getState().getTotalMonthlyCommitted()).toBe(0);
   });
 });
 
