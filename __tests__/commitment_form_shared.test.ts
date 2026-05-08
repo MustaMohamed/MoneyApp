@@ -118,6 +118,11 @@ describe('COMMITMENT_SCHEMA', () => {
   it('fails when category_id is empty', () => {
     expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, category_id: '' }).success).toBe(false);
   });
+
+  it('fails when Fixed has amount of 0', () => {
+    const result = COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, amount: 0 });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('detectPreset', () => {

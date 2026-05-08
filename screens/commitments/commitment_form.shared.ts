@@ -37,7 +37,7 @@ export const COMMITMENT_SCHEMA = z
     end_after_count: z.number().int().min(1).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.amount_type === AmountType.Fixed && !data.amount) {
+    if (data.amount_type === AmountType.Fixed && data.amount === undefined) {
       ctx.addIssue({
         code: 'custom',
         message: Strings.commitmentsErrAmountRequired,
