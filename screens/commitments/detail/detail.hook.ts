@@ -230,7 +230,6 @@ export function useCommitmentDetail() {
       recurrenceLabel,
       durationLabel,
       skipConfirmVisible: uiState.skipConfirmVisible,
-      paySheetVisible: uiState.paySheetVisible,
     },
     openPaySheet,
     skipPayment,

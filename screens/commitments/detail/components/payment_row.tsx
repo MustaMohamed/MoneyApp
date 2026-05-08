@@ -5,6 +5,7 @@ import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { ms, msFont } from '@/utils/responsive';
+import { formatMonthYear } from '@/utils/format_date';
 
 const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
@@ -22,27 +23,7 @@ const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Skipped]: 'Skipped',
 };
 
-const MONTHS_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
-
-function formatMonthYear(dateStr: string): string {
-  const [year, month] = dateStr.split('-').map(Number);
-  return `${MONTHS_LONG[month - 1]} ${year}`;
-}
 
 interface Props {
   payment: CommitmentPayment;

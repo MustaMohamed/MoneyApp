@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { formatShortDate } from '@/utils/format_date';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
@@ -23,26 +24,6 @@ const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
   [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
-
-const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
-
-function formatDueDate(dateStr: string): string {
-  const [, month, day] = dateStr.split('-').map(Number);
-  return `${MONTH_NAMES[month - 1]} ${day}`;
-}
 
 interface CommitmentRowProps {
   payment: CommitmentPayment;
@@ -81,7 +62,7 @@ export function CommitmentRow({ payment, commitment, category, onPress }: Commit
         <Text style={styles.name} numberOfLines={1}>
           {commitment?.name ?? '—'}
         </Text>
-        <Text style={styles.date}>{formatDueDate(payment.due_date)}</Text>
+        <Text style={styles.date}>{formatShortDate(payment.due_date)}</Text>
       </View>
       <View style={styles.right}>
         <Text style={styles.amount}>

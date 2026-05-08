@@ -8,6 +8,7 @@ import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/the
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { ms, msFont } from '@/utils/responsive';
+import { formatShortDate } from '@/utils/format_date';
 import { cardEntering } from '../detail.anim';
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
@@ -27,26 +28,6 @@ const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
   [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
-
-const MONTHS_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
-
-function formatDueDate(dateStr: string): string {
-  const [, month, day] = dateStr.split('-').map(Number);
-  return `${MONTHS_SHORT[month - 1]} ${day}`;
-}
 
 interface Props {
   payment: CommitmentPayment;
@@ -78,7 +59,7 @@ export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: 
       <View style={[styles.card, { borderLeftColor: statusColor }]}>
         <View style={styles.row}>
           <View style={styles.info}>
-            <Text style={styles.dueDateLabel}>{formatDueDate(payment.due_date)}</Text>
+            <Text style={styles.dueDateLabel}>{formatShortDate(payment.due_date)}</Text>
             <Text style={styles.amountText}>{amountText}</Text>
           </View>
           <View style={[styles.badge, { backgroundColor: `${statusColor}22` }]}>
