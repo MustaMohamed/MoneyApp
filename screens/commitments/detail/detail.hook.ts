@@ -21,6 +21,26 @@ import { useCommitmentDetailState } from './detail.state';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
+const MONTHS_LONG = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+function formatLongDate(dateStr: string): string {
+  const [y, month, day] = dateStr.split('-').map(Number);
+  return `${MONTHS_LONG[month - 1]} ${day}, ${y}`;
+}
+
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
   [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
   [RecurrencePeriod.Weeks]: Strings.commitmentsRecurrencePeriodWeek,
@@ -43,7 +63,7 @@ function buildDurationLabel(commitment: Commitment): string {
         : Strings.commitmentsDurationAfterCount;
     case DurationType.UntilDate:
       return commitment.end_date != null
-        ? Strings.commitmentsDurationUntilDateOf(commitment.end_date)
+        ? Strings.commitmentsDurationUntilDateOf(formatLongDate(commitment.end_date))
         : Strings.commitmentsDurationUntilDate;
   }
 }

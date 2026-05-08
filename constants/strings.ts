@@ -438,7 +438,8 @@ export const Strings = {
   commitmentsStatusSkipped: 'Skipped',
 
   // Commitments — recurrence / duration labels
-  commitmentsRecurrenceEveryN: (n: number, period: string) => `Every ${n} ${period}s`,
+  commitmentsRecurrenceEveryN: (n: number, period: string) =>
+    n === 1 ? `Every ${period}` : `Every ${n} ${period}s`,
   commitmentsRecurrencePeriodDay: 'day',
   commitmentsRecurrencePeriodWeek: 'week',
   commitmentsRecurrencePeriodMonth: 'month',
