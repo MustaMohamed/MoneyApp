@@ -421,7 +421,7 @@ export function CommitmentFormBody({
         visible={bodyState.categoryPickerVisible}
         title={Strings.addTxPickCategoryTitle}
         categories={categories}
-        selectedId={form.watch('category_id')}
+        selectedId={categoryId}
         onSelect={selectCategory}
         onClose={() => setCategoryPickerVisible(false)}
       />
@@ -429,7 +429,7 @@ export function CommitmentFormBody({
         visible={bodyState.accountPickerVisible}
         title={Strings.addTxPickAccountTitle}
         accounts={accounts}
-        selectedId={form.watch('account_id')}
+        selectedId={accountId}
         onSelect={selectAccount}
         onClose={() => setAccountPickerVisible(false)}
       />
