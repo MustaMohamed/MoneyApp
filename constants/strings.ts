@@ -411,6 +411,11 @@ export const Strings = {
   commitmentsDetailEdit: 'Edit',
   commitmentsMarkAsPaid: 'Mark as Paid',
   commitmentsSkip: 'Skip',
+  commitmentsSkipConfirmTitle: 'Skip this payment?',
+  commitmentsSkipConfirmBody:
+    'This payment will be marked as skipped and excluded from your totals.',
+  commitmentsSkipConfirmCancel: 'Cancel',
+  commitmentsSkipConfirmConfirm: 'Skip Payment',
 
   // Commitments — C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,

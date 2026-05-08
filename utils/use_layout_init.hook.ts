@@ -16,9 +16,9 @@ export function useLayoutInit() {
         await runMigrations(db);
         await loadOnboardingState();
         const commitmentStore = useCommitmentStore.getState();
+        await commitmentStore.loadCommitments();
         await commitmentStore.generatePayments();
         await commitmentStore.checkAndDeactivateExpired();
-        await commitmentStore.loadCommitments();
         const now = new Date();
         const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         await commitmentStore.loadPaymentsForMonth(currentMonth);

@@ -12,6 +12,7 @@ import { DetailsCard } from './components/details_card';
 import { DetailHero } from './components/detail_hero';
 import { PaymentHistory } from './components/payment_history';
 import { PaySheet } from './components/pay_sheet';
+import { SkipConfirmDialog } from './components/skip_confirm_dialog';
 
 export default function CommitmentDetailScreen() {
   const { state, confirmSkip, skipPayment, cancelSkip, openPaySheet, goToEdit, goBack } =
@@ -81,6 +82,12 @@ export default function CommitmentDetailScreen() {
       )}
 
       <PaySheet commitment={state.commitment} payment={state.currentPayment} />
+
+      <SkipConfirmDialog
+        visible={state.skipConfirmVisible}
+        onCancel={cancelSkip}
+        onConfirm={skipPayment}
+      />
     </SafeAreaView>
   );
 }

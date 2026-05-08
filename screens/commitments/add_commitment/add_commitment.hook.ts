@@ -156,8 +156,11 @@ export function useAddCommitment() {
   );
 
   useEffect(() => {
-    return () => resetScreenState();
-  }, [resetScreenState]);
+    return () => {
+      resetStore();
+      resetScreenState();
+    };
+  }, [resetStore, resetScreenState]);
 
   const schema = useMemo(
     () => createSchema(storeState.amountType, storeState.durationType),
