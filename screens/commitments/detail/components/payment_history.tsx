@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { FlatList, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Strings } from '@/constants/strings';
@@ -23,14 +23,18 @@ export function PaymentHistory({ payments, commitment }: Props) {
         <Text style={styles.sectionTitle}>{Strings.commitmentsDetailPaymentHistory}</Text>
       </View>
       <View style={styles.card}>
-        {payments.map((payment, index) => (
-          <PaymentRow
-            key={payment.id}
-            payment={payment}
-            commitment={commitment}
-            showDivider={index < payments.length - 1}
-          />
-        ))}
+        <FlatList
+          data={payments}
+          keyExtractor={(item) => item.id}
+          scrollEnabled={false}
+          renderItem={({ item, index }) => (
+            <PaymentRow
+              payment={item}
+              commitment={commitment}
+              showDivider={index < payments.length - 1}
+            />
+          )}
+        />
       </View>
     </Animated.View>
   );

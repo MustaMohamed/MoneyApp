@@ -3,8 +3,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms, msFont } from '@/utils/responsive';
 
 import { useCommitmentDetail } from './detail.hook';
 import { CurrentCycleCard } from './components/current_cycle_card';
@@ -76,6 +76,13 @@ export default function CommitmentDetailScreen() {
 
           <PaymentHistory payments={state.allPayments} commitment={state.commitment} />
 
+          {state.commitment.notes != null && (
+            <View style={styles.notesCard}>
+              <Text style={styles.notesLabel}>{Strings.commitmentsDetailNotes}</Text>
+              <Text style={styles.notesText}>{state.commitment.notes}</Text>
+            </View>
+          )}
+
           <View style={styles.bottomPad} />
         </ScrollView>
       )}
@@ -127,4 +134,25 @@ const styles = StyleSheet.create({
   },
   scroll: { paddingBottom: ms(40) },
   bottomPad: { height: ms(16) },
+  notesCard: {
+    marginHorizontal: Spacing.md,
+    marginTop: Spacing.md,
+    backgroundColor: Colors.dark.surface,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  notesLabel: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: msFont(11),
+    color: Colors.dark.text2,
+    letterSpacing: 0.4,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.xs,
+  },
+  notesText: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+    lineHeight: Type.body * 1.6,
+  },
 });

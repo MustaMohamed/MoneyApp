@@ -63,7 +63,9 @@ export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: 
   const amountText =
     amount != null
       ? `${isVariable ? '~' : ''}${numberFmt.format(amount)} ${payment.currency}`
-      : '—';
+      : isVariable
+        ? Strings.commitmentsAmountVariable
+        : '—';
   const isActionable =
     payment.status !== CommitmentPaymentStatus.Paid &&
     payment.status !== CommitmentPaymentStatus.Skipped;
