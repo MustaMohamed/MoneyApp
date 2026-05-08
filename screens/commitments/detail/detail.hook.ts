@@ -140,7 +140,7 @@ export function useCommitmentDetail() {
     return () => {
       cancelled = true;
     };
-  }, [commitment?.id, setAllPayments, setViewState]);
+  }, [commitment?.id, commitmentState.payments, setAllPayments, setViewState]);
 
   // Cleanup on unmount
   useEffect(() => {

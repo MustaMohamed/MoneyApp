@@ -188,7 +188,7 @@ describe('getPaymentsByMonth', () => {
     expect(ids).not.toContain('pay-jun-1');
   });
 
-  it('includes overdue/upcoming payments from previous months', async () => {
+  it('does not include overdue/upcoming payments from previous months', async () => {
     const overdue = makePayment({
       id: 'pay-apr-overdue',
       due_date: '2026-04-01',
@@ -204,8 +204,8 @@ describe('getPaymentsByMonth', () => {
 
     const results = await getPaymentsByMonth(mockDb, '2026-05');
     const ids = results.map((r) => r.id);
-    expect(ids).toContain('pay-apr-overdue');
-    expect(ids).toContain('pay-mar-upcoming');
+    expect(ids).not.toContain('pay-apr-overdue');
+    expect(ids).not.toContain('pay-mar-upcoming');
     expect(ids).toContain('pay-may-1');
   });
 
@@ -405,7 +405,7 @@ describe('getLastPaidPayment', () => {
 });
 
 describe('getPaymentsByCommitment', () => {
-  it('returns all payments for a commitment ordered by due_date DESC', async () => {
+  it('returns all payments for a commitment ordered by due_date ASC', async () => {
     const payments = [
       makePayment({ id: 'pay-all-1', commitment_id: 'commitment1', due_date: '2026-05-01' }),
       makePayment({ id: 'pay-all-2', commitment_id: 'commitment1', due_date: '2026-06-01' }),
@@ -415,8 +415,8 @@ describe('getPaymentsByCommitment', () => {
 
     const results = await getPaymentsByCommitment(mockDb, 'commitment1');
     expect(results).toHaveLength(2);
-    expect(results[0].id).toBe('pay-all-2'); // DESC order
-    expect(results[1].id).toBe('pay-all-1');
+    expect(results[0].id).toBe('pay-all-1'); // ASC order — soonest first
+    expect(results[1].id).toBe('pay-all-2');
   });
 });
 

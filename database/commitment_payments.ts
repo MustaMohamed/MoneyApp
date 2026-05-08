@@ -5,8 +5,7 @@ import type { Transaction } from './entities/transaction.entity';
 
 /**
  * Get payments for a given month (YYYY-MM format).
- * Returns payments where due_date is in that month PLUS
- * any unpaid/overdue payments from previous months (due_date < month_start AND status NOT IN ('paid', 'skipped')).
+ * Returns payments whose due_date falls within the selected month.
  */
 export async function getPaymentsByMonth(
   db: SQLiteDatabase,
@@ -22,10 +21,9 @@ export async function getPaymentsByMonth(
 
   return db.getAllAsync<CommitmentPayment>(
     `SELECT * FROM commitment_payments
-     WHERE (due_date >= ? AND due_date < ?)
-        OR (due_date < ? AND status NOT IN ('paid', 'skipped'))
+     WHERE due_date >= ? AND due_date < ?
      ORDER BY due_date ASC, status DESC`,
-    [monthStart, nextMonthStr, monthStart],
+    [monthStart, nextMonthStr],
   );
 }
 
@@ -35,7 +33,7 @@ export async function getPaymentsByCommitment(
   commitmentId: string,
 ): Promise<CommitmentPayment[]> {
   return db.getAllAsync<CommitmentPayment>(
-    'SELECT * FROM commitment_payments WHERE commitment_id = ? ORDER BY due_date DESC',
+    'SELECT * FROM commitment_payments WHERE commitment_id = ? ORDER BY due_date ASC',
     [commitmentId],
   );
 }

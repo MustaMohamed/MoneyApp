@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
@@ -16,11 +17,11 @@ const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
 };
 
 const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
-  [CommitmentPaymentStatus.Overdue]: 'Overdue',
-  [CommitmentPaymentStatus.Due]: 'Due',
-  [CommitmentPaymentStatus.Upcoming]: 'Upcoming',
-  [CommitmentPaymentStatus.Paid]: 'Paid',
-  [CommitmentPaymentStatus.Skipped]: 'Skipped',
+  [CommitmentPaymentStatus.Overdue]: Strings.commitmentsStatusOverdue,
+  [CommitmentPaymentStatus.Due]: Strings.commitmentsStatusDue,
+  [CommitmentPaymentStatus.Upcoming]: Strings.commitmentsStatusUpcoming,
+  [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
+  [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
