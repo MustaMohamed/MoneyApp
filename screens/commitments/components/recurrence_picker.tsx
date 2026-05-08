@@ -5,7 +5,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import type { UseFormReturn } from 'react-hook-form';
-import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
+import type { CommitmentFormValues } from '../commitment_form.shared';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;

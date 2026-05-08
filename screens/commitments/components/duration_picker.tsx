@@ -9,7 +9,7 @@ import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { formatLongDate } from '@/utils/format_date';
 import type { UseFormReturn } from 'react-hook-form';
-import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
+import type { CommitmentFormValues } from '../commitment_form.shared';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -47,7 +47,7 @@ export function DurationPicker({
         value: endDateAsDate,
         mode: 'date',
         onChange: (_, d) => {
-          if (d) form.setValue('end_date', d.toISOString().slice(0, 10));
+          if (d) form.setValue('end_date', d.toISOString().slice(0, 10), { shouldDirty: true });
         },
       });
     } else {
@@ -124,7 +124,7 @@ export function DurationPicker({
           display="spinner"
           themeVariant="dark"
           onChange={(_, d) => {
-            if (d) form.setValue('end_date', d.toISOString().slice(0, 10));
+            if (d) form.setValue('end_date', d.toISOString().slice(0, 10), { shouldDirty: true });
           }}
         />
       )}
