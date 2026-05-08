@@ -2,8 +2,6 @@ import { create } from 'zustand';
 
 import { AmountType, DurationType, RecurrencePreset } from '@/constants/enums';
 
-export type { RecurrencePreset };
-
 interface AddCommitmentStoreShape {
   amountType: AmountType;
   recurrencePreset: RecurrencePreset;
