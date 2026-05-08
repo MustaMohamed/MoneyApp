@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -278,17 +279,16 @@ export function CommitmentFormBody({
       </ScrollView>
 
       {/* CTA */}
-      <View style={styles.footer}>
-        <Pressable
-          style={({ pressed }) => [
-            styles.cta,
-            pressed && styles.ctaPressed,
-            saving && styles.ctaDisabled,
-          ]}
-          onPress={onSubmit}
-          disabled={saving}
-        >
-          <Text style={styles.ctaLabel}>{Strings.commitmentsSave}</Text>
+      <View style={[styles.footer, saving && styles.ctaDisabled]}>
+        <Pressable style={styles.ctaPress} onPress={onSubmit} disabled={saving}>
+          <LinearGradient
+            colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.cta}
+          >
+            <Text style={styles.ctaLabel}>{Strings.commitmentsSave}</Text>
+          </LinearGradient>
         </Pressable>
       </View>
 
@@ -427,14 +427,16 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.dark.surface,
   },
+  ctaPress: {
+    borderRadius: Radius.cta,
+    overflow: 'hidden',
+  },
   cta: {
     height: Size.ctaHeight,
-    backgroundColor: Colors.shared.cairoGold,
     borderRadius: Radius.cta,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaPressed: { opacity: 0.8 },
   ctaDisabled: { opacity: 0.5 },
   ctaLabel: {
     fontFamily: FontFamily.soraBold,
