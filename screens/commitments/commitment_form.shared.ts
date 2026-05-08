@@ -12,7 +12,7 @@ import type { Commitment } from '@/database/entities/commitment.entity';
 
 export const COMMITMENT_SCHEMA = z
   .object({
-    amount_type: z.nativeEnum(AmountType),
+    amountType: z.nativeEnum(AmountType),
     name: z
       .string()
       .min(1, Strings.commitmentsErrNameRequired)
@@ -22,40 +22,40 @@ export const COMMITMENT_SCHEMA = z
       .positive(Strings.commitmentsErrAmountPositive)
       .optional(),
     currency: z.nativeEnum(Currency),
-    category_id: z.string().min(1, Strings.commitmentsErrCategoryRequired),
-    recurrence_every: z
+    categoryId: z.string().min(1, Strings.commitmentsErrCategoryRequired),
+    recurrenceEvery: z
       .number()
       .int()
       .min(1, Strings.commitmentsErrEveryMin)
       .max(365, Strings.commitmentsErrEveryMax),
-    recurrence_period: z.nativeEnum(RecurrencePeriod),
-    start_date: z.string().min(1, Strings.commitmentsErrStartDateRequired),
-    account_id: z.string().optional(),
+    recurrencePeriod: z.nativeEnum(RecurrencePeriod),
+    startDate: z.string().min(1, Strings.commitmentsErrStartDateRequired),
+    accountId: z.string().optional(),
     notes: z.string().optional(),
-    duration_type: z.nativeEnum(DurationType),
-    end_date: z.string().optional(),
-    end_after_count: z.number().int().min(1).optional(),
+    durationType: z.nativeEnum(DurationType),
+    endDate: z.string().optional(),
+    endAfterCount: z.number().int().min(1).optional(),
   })
   .superRefine((data, ctx) => {
-    if (data.amount_type === AmountType.Fixed && data.amount === undefined) {
+    if (data.amountType === AmountType.Fixed && data.amount === undefined) {
       ctx.addIssue({
         code: 'custom',
         message: Strings.commitmentsErrAmountRequired,
         path: ['amount'],
       });
     }
-    if (data.duration_type === DurationType.UntilDate && !data.end_date) {
+    if (data.durationType === DurationType.UntilDate && !data.endDate) {
       ctx.addIssue({
         code: 'custom',
         message: Strings.commitmentsErrEndDateRequired,
-        path: ['end_date'],
+        path: ['endDate'],
       });
     }
-    if (data.duration_type === DurationType.AfterCount && !data.end_after_count) {
+    if (data.durationType === DurationType.AfterCount && !data.endAfterCount) {
       ctx.addIssue({
         code: 'custom',
         message: Strings.commitmentsErrAfterCountRequired,
-        path: ['end_after_count'],
+        path: ['endAfterCount'],
       });
     }
   });
@@ -75,37 +75,37 @@ export const PRESET_MAP: Record<
 export function buildAddDefaults(): CommitmentFormValues {
   const today = new Date().toISOString().slice(0, 10);
   return {
-    amount_type: AmountType.Fixed,
+    amountType: AmountType.Fixed,
     name: '',
     amount: undefined,
     currency: Currency.EGP,
-    category_id: '',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
-    start_date: today,
-    account_id: undefined,
+    categoryId: '',
+    recurrenceEvery: 1,
+    recurrencePeriod: RecurrencePeriod.Months,
+    startDate: today,
+    accountId: undefined,
     notes: undefined,
-    duration_type: DurationType.Forever,
-    end_date: undefined,
-    end_after_count: undefined,
+    durationType: DurationType.Forever,
+    endDate: undefined,
+    endAfterCount: undefined,
   };
 }
 
 export function buildEditDefaults(c: Commitment): CommitmentFormValues {
   return {
-    amount_type: c.amount_type,
+    amountType: c.amount_type,
     name: c.name,
     amount: c.amount ?? undefined,
     currency: c.currency,
-    category_id: c.category_id,
-    recurrence_every: c.recurrence_every,
-    recurrence_period: c.recurrence_period,
-    start_date: c.start_date,
-    account_id: c.account_id ?? undefined,
+    categoryId: c.category_id,
+    recurrenceEvery: c.recurrence_every,
+    recurrencePeriod: c.recurrence_period,
+    startDate: c.start_date,
+    accountId: c.account_id ?? undefined,
     notes: c.notes ?? undefined,
-    duration_type: c.duration_type,
-    end_date: c.end_date ?? undefined,
-    end_after_count: c.end_after_count ?? undefined,
+    durationType: c.duration_type,
+    endDate: c.end_date ?? undefined,
+    endAfterCount: c.end_after_count ?? undefined,
   };
 }
 

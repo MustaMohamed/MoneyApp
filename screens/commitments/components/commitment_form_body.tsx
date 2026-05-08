@@ -56,14 +56,14 @@ export function CommitmentFormBody({
   title,
   locked,
 }: CommitmentFormBodyProps) {
-  const amountType = form.watch('amount_type');
+  const amountType = form.watch('amountType');
   const currency = form.watch('currency');
-  const start_date = form.watch('start_date');
-  const durationType = form.watch('duration_type');
-  const recurrenceEvery = form.watch('recurrence_every');
-  const recurrencePeriod = form.watch('recurrence_period');
-  const categoryId = form.watch('category_id');
-  const accountId = form.watch('account_id');
+  const startDate = form.watch('startDate');
+  const durationType = form.watch('durationType');
+  const recurrenceEvery = form.watch('recurrenceEvery');
+  const recurrencePeriod = form.watch('recurrencePeriod');
+  const categoryId = form.watch('categoryId');
+  const accountId = form.watch('accountId');
   const recurrencePreset = detectPreset(recurrenceEvery, recurrencePeriod);
 
   const selectedCategory = useMemo(
@@ -96,33 +96,33 @@ export function CommitmentFormBody({
   const errors = {
     name: form.formState.errors.name?.message,
     amount: form.formState.errors.amount?.message,
-    category: form.formState.errors.category_id?.message,
-    start_date: form.formState.errors.start_date?.message,
+    category: form.formState.errors.categoryId?.message,
+    startDate: form.formState.errors.startDate?.message,
     notes: form.formState.errors.notes?.message,
   };
 
-  const startDateAsDate = start_date ? new Date(start_date + 'T00:00:00') : new Date();
-  const formattedStartDate = start_date
-    ? formatLongDate(start_date)
+  const startDateAsDate = startDate ? new Date(startDate + 'T00:00:00') : new Date();
+  const formattedStartDate = startDate
+    ? formatLongDate(startDate)
     : Strings.commitmentDateInputFormat;
 
   function handleAmountTypeChange(v: AmountType) {
-    form.setValue('amount_type', v, { shouldDirty: true });
+    form.setValue('amountType', v, { shouldDirty: true });
     if (v === AmountType.Variable) form.setValue('amount', undefined);
   }
 
   function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
     const mapped = PRESET_MAP[preset];
     if (mapped) {
-      form.setValue('recurrence_every', mapped.every, { shouldDirty: true });
-      form.setValue('recurrence_period', mapped.period, { shouldDirty: true });
+      form.setValue('recurrenceEvery', mapped.every, { shouldDirty: true });
+      form.setValue('recurrencePeriod', mapped.period, { shouldDirty: true });
     }
   }
 
   function handleDurationTypeChange(type: DurationType) {
-    form.setValue('duration_type', type, { shouldDirty: true });
-    if (type !== DurationType.UntilDate) form.setValue('end_date', undefined);
-    if (type !== DurationType.AfterCount) form.setValue('end_after_count', undefined);
+    form.setValue('durationType', type, { shouldDirty: true });
+    if (type !== DurationType.UntilDate) form.setValue('endDate', undefined);
+    if (type !== DurationType.AfterCount) form.setValue('endAfterCount', undefined);
   }
 
   function openStartDatePicker() {
@@ -132,7 +132,7 @@ export function CommitmentFormBody({
         value: startDateAsDate,
         mode: 'date',
         onChange: (_, d) => {
-          if (d) form.setValue('start_date', d.toISOString().slice(0, 10));
+          if (d) form.setValue('startDate', d.toISOString().slice(0, 10));
         },
       });
     } else {
@@ -142,12 +142,12 @@ export function CommitmentFormBody({
   }
 
   function selectCategory(category: Category) {
-    form.setValue('category_id', category.id);
+    form.setValue('categoryId', category.id);
     setCategoryPickerVisible(false);
   }
 
   function selectAccount(account: Account) {
-    form.setValue('account_id', account.id);
+    form.setValue('accountId', account.id);
     setAccountPickerVisible(false);
   }
 
@@ -307,13 +307,13 @@ export function CommitmentFormBody({
 
         {/* Start Date */}
         <Pressable
-          style={[styles.field, errors.start_date ? styles.inputError : null]}
+          style={[styles.field, errors.startDate ? styles.inputError : null]}
           onPress={openStartDatePicker}
           disabled={locked}
         >
           <Text style={styles.fieldLabel}>{Strings.commitmentsFieldStartDate}</Text>
           <View style={styles.fieldValue}>
-            <Text style={start_date ? styles.fieldValueText : styles.fieldPlaceholder}>
+            <Text style={startDate ? styles.fieldValueText : styles.fieldPlaceholder}>
               {formattedStartDate}
             </Text>
             <MaterialCommunityIcons
@@ -323,7 +323,7 @@ export function CommitmentFormBody({
             />
           </View>
         </Pressable>
-        {errors.start_date ? <Text style={styles.err}>{errors.start_date}</Text> : null}
+        {errors.startDate ? <Text style={styles.err}>{errors.startDate}</Text> : null}
 
         {bodyState.showStartDatePicker && (
           <DateTimePicker
@@ -332,7 +332,7 @@ export function CommitmentFormBody({
             display="spinner"
             themeVariant="dark"
             onChange={(_, d) => {
-              if (d) form.setValue('start_date', d.toISOString().slice(0, 10));
+              if (d) form.setValue('startDate', d.toISOString().slice(0, 10));
             }}
           />
         )}

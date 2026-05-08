@@ -14,15 +14,15 @@ import {
 import type { Commitment } from '@/database/entities/commitment.entity';
 
 const VALID_BASE = {
-  amount_type: AmountType.Fixed,
+  amountType: AmountType.Fixed,
   name: 'Rent',
   amount: 5000,
   currency: Currency.EGP,
-  category_id: 'cat-1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2024-01-01',
-  duration_type: DurationType.Forever,
+  categoryId: 'cat-1',
+  recurrenceEvery: 1,
+  recurrencePeriod: RecurrencePeriod.Months,
+  startDate: '2024-01-01',
+  durationType: DurationType.Forever,
 };
 
 const MOCK_COMMITMENT: Commitment = {
@@ -61,52 +61,52 @@ describe('COMMITMENT_SCHEMA', () => {
   it('passes when Variable has no amount', () => {
     const result = COMMITMENT_SCHEMA.safeParse({
       ...VALID_BASE,
-      amount_type: AmountType.Variable,
+      amountType: AmountType.Variable,
       amount: undefined,
     });
     expect(result.success).toBe(true);
   });
 
-  it('fails when UntilDate has no end_date', () => {
+  it('fails when UntilDate has no endDate', () => {
     const result = COMMITMENT_SCHEMA.safeParse({
       ...VALID_BASE,
-      duration_type: DurationType.UntilDate,
-      end_date: undefined,
+      durationType: DurationType.UntilDate,
+      endDate: undefined,
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((e) => e.path.includes('end_date'))).toBe(true);
+      expect(result.error.issues.some((e) => e.path.includes('endDate'))).toBe(true);
     }
   });
 
-  it('passes when UntilDate has end_date', () => {
+  it('passes when UntilDate has endDate', () => {
     expect(
       COMMITMENT_SCHEMA.safeParse({
         ...VALID_BASE,
-        duration_type: DurationType.UntilDate,
-        end_date: '2025-12-31',
+        durationType: DurationType.UntilDate,
+        endDate: '2025-12-31',
       }).success,
     ).toBe(true);
   });
 
-  it('fails when AfterCount has no end_after_count', () => {
+  it('fails when AfterCount has no endAfterCount', () => {
     const result = COMMITMENT_SCHEMA.safeParse({
       ...VALID_BASE,
-      duration_type: DurationType.AfterCount,
-      end_after_count: undefined,
+      durationType: DurationType.AfterCount,
+      endAfterCount: undefined,
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      expect(result.error.issues.some((e) => e.path.includes('end_after_count'))).toBe(true);
+      expect(result.error.issues.some((e) => e.path.includes('endAfterCount'))).toBe(true);
     }
   });
 
-  it('passes when AfterCount has end_after_count', () => {
+  it('passes when AfterCount has endAfterCount', () => {
     expect(
       COMMITMENT_SCHEMA.safeParse({
         ...VALID_BASE,
-        duration_type: DurationType.AfterCount,
-        end_after_count: 12,
+        durationType: DurationType.AfterCount,
+        endAfterCount: 12,
       }).success,
     ).toBe(true);
   });
@@ -115,8 +115,8 @@ describe('COMMITMENT_SCHEMA', () => {
     expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, name: '' }).success).toBe(false);
   });
 
-  it('fails when category_id is empty', () => {
-    expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, category_id: '' }).success).toBe(false);
+  it('fails when categoryId is empty', () => {
+    expect(COMMITMENT_SCHEMA.safeParse({ ...VALID_BASE, categoryId: '' }).success).toBe(false);
   });
 
   it('fails when Fixed has amount of 0', () => {
@@ -144,17 +144,17 @@ describe('detectPreset', () => {
 });
 
 describe('buildAddDefaults', () => {
-  it('returns Fixed amount_type', () => {
-    expect(buildAddDefaults().amount_type).toBe(AmountType.Fixed);
+  it('returns Fixed amountType', () => {
+    expect(buildAddDefaults().amountType).toBe(AmountType.Fixed);
   });
-  it('returns Forever duration_type', () => {
-    expect(buildAddDefaults().duration_type).toBe(DurationType.Forever);
+  it('returns Forever durationType', () => {
+    expect(buildAddDefaults().durationType).toBe(DurationType.Forever);
   });
   it('returns EGP currency', () => {
     expect(buildAddDefaults().currency).toBe(Currency.EGP);
   });
-  it('returns today as start_date', () => {
-    expect(buildAddDefaults().start_date).toBe(new Date().toISOString().slice(0, 10));
+  it('returns today as startDate', () => {
+    expect(buildAddDefaults().startDate).toBe(new Date().toISOString().slice(0, 10));
   });
   it('returns undefined amount', () => {
     expect(buildAddDefaults().amount).toBeUndefined();
@@ -165,26 +165,26 @@ describe('buildEditDefaults', () => {
   it('maps all fields from entity', () => {
     const d = buildEditDefaults(MOCK_COMMITMENT);
     expect(d.name).toBe('Rent');
-    expect(d.amount_type).toBe(AmountType.Fixed);
+    expect(d.amountType).toBe(AmountType.Fixed);
     expect(d.amount).toBe(5000);
     expect(d.currency).toBe(Currency.EGP);
-    expect(d.category_id).toBe('cat-1');
-    expect(d.duration_type).toBe(DurationType.Forever);
-    expect(d.start_date).toBe('2024-01-01');
+    expect(d.categoryId).toBe('cat-1');
+    expect(d.durationType).toBe(DurationType.Forever);
+    expect(d.startDate).toBe('2024-01-01');
   });
   it('converts null amount to undefined', () => {
     expect(buildEditDefaults({ ...MOCK_COMMITMENT, amount: null }).amount).toBeUndefined();
   });
   it('converts null account_id to undefined', () => {
-    expect(buildEditDefaults(MOCK_COMMITMENT).account_id).toBeUndefined();
+    expect(buildEditDefaults(MOCK_COMMITMENT).accountId).toBeUndefined();
   });
   it('converts null notes to undefined', () => {
     expect(buildEditDefaults(MOCK_COMMITMENT).notes).toBeUndefined();
   });
   it('converts null end_date to undefined', () => {
-    expect(buildEditDefaults(MOCK_COMMITMENT).end_date).toBeUndefined();
+    expect(buildEditDefaults(MOCK_COMMITMENT).endDate).toBeUndefined();
   });
   it('converts null end_after_count to undefined', () => {
-    expect(buildEditDefaults(MOCK_COMMITMENT).end_after_count).toBeUndefined();
+    expect(buildEditDefaults(MOCK_COMMITMENT).endAfterCount).toBeUndefined();
   });
 });

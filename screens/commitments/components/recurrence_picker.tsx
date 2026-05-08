@@ -30,9 +30,9 @@ const PERIODS: { key: RecurrencePeriod; label: string }[] = [
 ];
 
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {
-  const recurrence_every = form.watch('recurrence_every');
-  const recurrence_period = form.watch('recurrence_period');
-  const everyError = form.formState.errors.recurrence_every?.message;
+  const recurrenceEvery = form.watch('recurrenceEvery');
+  const recurrencePeriod = form.watch('recurrencePeriod');
+  const everyError = form.formState.errors.recurrenceEvery?.message;
 
   return (
     <View style={styles.container}>
@@ -60,10 +60,10 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
           <Text style={styles.everyLabel}>{Strings.commitmentsRecurrenceEvery}</Text>
           <TextInput
             style={[styles.everyInput, everyError ? styles.inputError : null]}
-            value={recurrence_every != null ? String(recurrence_every) : ''}
+            value={recurrenceEvery != null ? String(recurrenceEvery) : ''}
             onChangeText={(v) => {
               const n = parseInt(v, 10);
-              form.setValue('recurrence_every', isNaN(n) ? 1 : n);
+              form.setValue('recurrenceEvery', isNaN(n) ? 1 : n);
             }}
             keyboardType="number-pad"
             maxLength={3}
@@ -71,12 +71,12 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
           />
           <View style={styles.periodChips}>
             {PERIODS.map(({ key, label }) => {
-              const active = recurrence_period === key;
+              const active = recurrencePeriod === key;
               return (
                 <Pressable
                   key={key}
                   style={[styles.periodChip, active && styles.chipActive]}
-                  onPress={() => form.setValue('recurrence_period', key)}
+                  onPress={() => form.setValue('recurrencePeriod', key)}
                 >
                   <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
                 </Pressable>

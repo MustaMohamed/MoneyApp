@@ -81,19 +81,19 @@ export function useEditCommitment() {
     try {
       await updateCommitment(id, {
         name: data.name,
-        amount_type: data.amount_type,
-        amount: data.amount_type === AmountType.Fixed ? (data.amount ?? null) : null,
+        amount_type: data.amountType,
+        amount: data.amountType === AmountType.Fixed ? (data.amount ?? null) : null,
         currency: data.currency,
-        category_id: data.category_id,
-        recurrence_every: data.recurrence_every,
-        recurrence_period: data.recurrence_period,
-        start_date: data.start_date,
-        account_id: data.account_id ?? null,
+        category_id: data.categoryId,
+        recurrence_every: data.recurrenceEvery,
+        recurrence_period: data.recurrencePeriod,
+        start_date: data.startDate,
+        account_id: data.accountId ?? null,
         notes: data.notes?.trim() || null,
-        duration_type: data.duration_type,
-        end_date: data.duration_type === DurationType.UntilDate ? (data.end_date ?? null) : null,
+        duration_type: data.durationType,
+        end_date: data.durationType === DurationType.UntilDate ? (data.endDate ?? null) : null,
         end_after_count:
-          data.duration_type === DurationType.AfterCount ? (data.end_after_count ?? null) : null,
+          data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
       reset();
       form.reset();

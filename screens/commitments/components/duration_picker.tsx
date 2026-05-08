@@ -34,12 +34,12 @@ export function DurationPicker({
   showEndDatePicker,
   setShowEndDatePicker,
 }: Props) {
-  const end_date = form.watch('end_date');
-  const countError = form.formState.errors.end_after_count?.message;
-  const dateError = form.formState.errors.end_date?.message;
+  const endDate = form.watch('endDate');
+  const countError = form.formState.errors.endAfterCount?.message;
+  const dateError = form.formState.errors.endDate?.message;
 
-  const endDateAsDate = end_date ? new Date(end_date + 'T00:00:00') : new Date();
-  const formattedEndDate = end_date ? formatLongDate(end_date) : Strings.commitmentDateInputFormat;
+  const endDateAsDate = endDate ? new Date(endDate + 'T00:00:00') : new Date();
+  const formattedEndDate = endDate ? formatLongDate(endDate) : Strings.commitmentDateInputFormat;
 
   function openEndDatePicker() {
     if (Platform.OS === 'android') {
@@ -47,7 +47,7 @@ export function DurationPicker({
         value: endDateAsDate,
         mode: 'date',
         onChange: (_, d) => {
-          if (d) form.setValue('end_date', d.toISOString().slice(0, 10), { shouldDirty: true });
+          if (d) form.setValue('endDate', d.toISOString().slice(0, 10), { shouldDirty: true });
         },
       });
     } else {
@@ -81,7 +81,7 @@ export function DurationPicker({
           <Text style={styles.conditionalLabel}>{Strings.commitmentsDurationStopAfter}</Text>
           <Controller
             control={form.control}
-            name="end_after_count"
+            name="endAfterCount"
             render={({ field: { value, onChange, onBlur } }) => (
               <TextInput
                 style={[styles.countInput, countError ? styles.inputError : null]}
@@ -111,7 +111,7 @@ export function DurationPicker({
           style={[styles.dateRow, dateError ? styles.inputError : null]}
           onPress={openEndDatePicker}
         >
-          <Text style={end_date ? styles.dateValue : styles.datePlaceholder}>
+          <Text style={endDate ? styles.dateValue : styles.datePlaceholder}>
             {formattedEndDate}
           </Text>
           <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
@@ -124,7 +124,7 @@ export function DurationPicker({
           display="spinner"
           themeVariant="dark"
           onChange={(_, d) => {
-            if (d) form.setValue('end_date', d.toISOString().slice(0, 10), { shouldDirty: true });
+            if (d) form.setValue('endDate', d.toISOString().slice(0, 10), { shouldDirty: true });
           }}
         />
       )}
