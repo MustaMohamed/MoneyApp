@@ -437,6 +437,16 @@ export const Strings = {
   commitmentsStatusPaid: 'Paid',
   commitmentsStatusSkipped: 'Skipped',
 
+  // Commitments — recurrence / duration labels
+  commitmentsRecurrenceEveryN: (n: number, period: string) => `Every ${n} ${period}s`,
+  commitmentsRecurrencePeriodDay: 'day',
+  commitmentsRecurrencePeriodWeek: 'week',
+  commitmentsRecurrencePeriodMonth: 'month',
+  commitmentsRecurrencePeriodYear: 'year',
+  commitmentsDurationAfterCountOf: (n: number) => `After ${n} payments`,
+  commitmentsDurationUntilDateOf: (date: string) => `Until ${date}`,
+  commitmentsDetailNotFound: 'Commitment not found',
+
   // Dashboard — commitments card
   dashboardCommitmentsTitle: 'Commitments',
   dashboardCommitmentsPaid: (paid: number, total: number) => `${paid} of ${total} paid`,

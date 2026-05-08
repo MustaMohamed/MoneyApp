@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
+import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
 import {
@@ -18,63 +19,18 @@ import { commitmentRepository } from '@/repositories/commitment.repository';
 
 import { useCommitmentDetailState } from './detail.state';
 
-import { create } from 'zustand';
-
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
-const MONTHS_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
-const MONTHS_SHORT = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
-
-function formatShortDate(dateStr: string): string {
-  const [, month, day] = dateStr.split('-').map(Number);
-  return `${MONTHS_SHORT[month - 1]} ${day}`;
-}
-
-function formatLongDate(dateStr: string): string {
-  const [y, month, day] = dateStr.split('-').map(Number);
-  return `${MONTHS_LONG[month - 1]} ${day}, ${y}`;
-}
+const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
+  [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
+  [RecurrencePeriod.Weeks]: Strings.commitmentsRecurrencePeriodWeek,
+  [RecurrencePeriod.Months]: Strings.commitmentsRecurrencePeriodMonth,
+  [RecurrencePeriod.Years]: Strings.commitmentsRecurrencePeriodYear,
+};
 
 function buildRecurrenceLabel(commitment: Commitment): string {
   const { recurrence_every, recurrence_period } = commitment;
-  const every = recurrence_every === 1 ? '' : ` ${recurrence_every}`;
-  switch (recurrence_period) {
-    case RecurrencePeriod.Days:
-      return recurrence_every === 1 ? 'Every day' : `Every${every} days`;
-    case RecurrencePeriod.Weeks:
-      return recurrence_every === 1 ? 'Every week' : `Every${every} weeks`;
-    case RecurrencePeriod.Months:
-      return recurrence_every === 1 ? 'Every month' : `Every${every} months`;
-    case RecurrencePeriod.Years:
-      return recurrence_every === 1 ? 'Every year' : `Every${every} years`;
-  }
+  return Strings.commitmentsRecurrenceEveryN(recurrence_every, PERIOD_LABEL[recurrence_period]);
 }
 
 function buildDurationLabel(commitment: Commitment): string {
@@ -83,11 +39,11 @@ function buildDurationLabel(commitment: Commitment): string {
       return Strings.commitmentsDurationForever;
     case DurationType.AfterCount:
       return commitment.end_after_count != null
-        ? `After ${commitment.end_after_count} payments`
+        ? Strings.commitmentsDurationAfterCountOf(commitment.end_after_count)
         : Strings.commitmentsDurationAfterCount;
     case DurationType.UntilDate:
       return commitment.end_date != null
-        ? `Until ${formatLongDate(commitment.end_date)}`
+        ? Strings.commitmentsDurationUntilDateOf(commitment.end_date)
         : Strings.commitmentsDurationUntilDate;
   }
 }
@@ -129,10 +85,6 @@ export function useCommitmentDetail() {
     })),
   );
 
-  // Local ref for all commitment payments loaded from repo
-  const allPaymentsRef = useRef<CommitmentPayment[]>([]);
-  const allPaymentsLoadedRef = useRef(false);
-  // We use a Zustand-style approach: store allPayments in state
   const {
     state: screenState,
     setAllPayments,

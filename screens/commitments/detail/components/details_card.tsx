@@ -5,7 +5,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Account } from '@/database/entities/account.entity';
-import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import { ms, msFont } from '@/utils/responsive';
 import { cardEntering } from '../detail.anim';
@@ -56,7 +55,6 @@ function InfoRow({ icon, label, value, showDivider = true }: RowProps) {
 interface Props {
   commitment: Commitment;
   account: Account | undefined;
-  category: Category | undefined;
   recurrenceLabel: string;
   durationLabel: string;
 }

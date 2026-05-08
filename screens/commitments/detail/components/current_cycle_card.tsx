@@ -93,9 +93,9 @@ export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: 
         >
           {isActionable ? (
             <LinearGradient
-              colors={['#C9973A', '#E8B84B', '#C9973A']}
+              colors={[Colors.shared.cairoGold, Colors.dark.gold]}
               start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
+              end={{ x: 1, y: 1 }}
               style={styles.ctaGradient}
             >
               <Text style={styles.ctaText}>{Strings.commitmentsMarkAsPaid}</Text>
