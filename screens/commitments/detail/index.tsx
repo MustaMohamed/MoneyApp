@@ -11,6 +11,7 @@ import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailsCard } from './components/details_card';
 import { DetailHero } from './components/detail_hero';
 import { PaymentHistory } from './components/payment_history';
+import { PaySheet } from './components/pay_sheet';
 
 export default function CommitmentDetailScreen() {
   const { state, confirmSkip, skipPayment, cancelSkip, openPaySheet, goToEdit, goBack } =
@@ -78,6 +79,8 @@ export default function CommitmentDetailScreen() {
           <View style={styles.bottomPad} />
         </ScrollView>
       )}
+
+      <PaySheet commitment={state.commitment} payment={state.currentPayment} />
     </SafeAreaView>
   );
 }

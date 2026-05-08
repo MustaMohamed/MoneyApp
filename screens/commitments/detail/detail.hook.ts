@@ -19,6 +19,7 @@ import { commitmentRepository } from '@/repositories/commitment.repository';
 import { formatLongDate } from '@/utils/format_date';
 
 import { useCommitmentDetailState } from './detail.state';
+import { usePaySheetState } from './components/pay_sheet.state';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
@@ -75,13 +76,11 @@ export function useCommitmentDetail() {
   const {
     state: uiState,
     setSkipConfirmVisible,
-    setPaySheetVisible,
     reset: resetUi,
   } = useCommitmentDetailState(
     useShallow((s) => ({
       state: s.state,
       setSkipConfirmVisible: s.setSkipConfirmVisible,
-      setPaySheetVisible: s.setPaySheetVisible,
       reset: s.reset,
     })),
   );
@@ -183,8 +182,8 @@ export function useCommitmentDetail() {
   );
 
   const openPaySheet = useCallback(() => {
-    setPaySheetVisible(true);
-  }, [setPaySheetVisible]);
+    usePaySheetState.getState().setVisible(true);
+  }, []);
 
   const skipPayment = useCallback(async () => {
     if (!currentPayment) return;
