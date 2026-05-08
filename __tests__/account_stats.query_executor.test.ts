@@ -108,7 +108,7 @@ describe('getAccountsStats — Sunday week-start branch', () => {
     // Temporarily replace Date with a stub that returns our Sunday
     global.Date = class extends realDateNow {
       constructor(...args: ConstructorParameters<typeof realDateNow>) {
-        if (args.length === 0) {
+        if ((args as unknown[]).length === 0) {
           super('2026-05-10T12:00:00.000Z');
         } else {
           // @ts-ignore
@@ -140,7 +140,7 @@ describe('getAccountsStats — weekStart before monthStart branch', () => {
     const realDateNow = Date;
     global.Date = class extends realDateNow {
       constructor(...args: ConstructorParameters<typeof realDateNow>) {
-        if (args.length === 0) {
+        if ((args as unknown[]).length === 0) {
           super('2026-05-01T12:00:00.000Z');
         } else {
           // @ts-ignore

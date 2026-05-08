@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { Currency, TransactionType } from '@/constants/enums';
+import { CommitmentPaymentStatus, Currency, TransactionType } from '@/constants/enums';
 import {
   addPayments,
   deleteUnpaidPaymentsByCommitment,
@@ -120,7 +120,7 @@ function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
     exchange_rate_snapshot: null,
     account_id: null,
     transaction_id: null,
-    status: 'upcoming' as CommitmentPayment['status'],
+    status: CommitmentPaymentStatus.Upcoming,
     notes: null,
     created_at: NOW,
     updated_at: NOW,
@@ -157,13 +157,13 @@ describe('getPaymentsByMonth — December year-wrap', () => {
     const decPayment = makePayment({
       id: 'pay-dec-1',
       due_date: '2025-12-15',
-      status: 'upcoming',
+      status: CommitmentPaymentStatus.Upcoming,
     });
     // January 2026 payment — should NOT be returned for '2025-12'
     const janPayment = makePayment({
       id: 'pay-jan-1',
       due_date: '2026-01-01',
-      status: 'upcoming',
+      status: CommitmentPaymentStatus.Upcoming,
     });
     await addPayments(mockDb, [decPayment, janPayment]);
 
@@ -176,9 +176,21 @@ describe('getPaymentsByMonth — December year-wrap', () => {
 
 describe('getPaymentsByMonth', () => {
   it('returns payments with due_date in the given month', async () => {
-    const p1 = makePayment({ id: 'pay-may-1', due_date: '2026-05-01', status: 'upcoming' });
-    const p2 = makePayment({ id: 'pay-may-15', due_date: '2026-05-15', status: 'due' });
-    const p3 = makePayment({ id: 'pay-jun-1', due_date: '2026-06-01', status: 'upcoming' });
+    const p1 = makePayment({
+      id: 'pay-may-1',
+      due_date: '2026-05-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
+    const p2 = makePayment({
+      id: 'pay-may-15',
+      due_date: '2026-05-15',
+      status: CommitmentPaymentStatus.Due,
+    });
+    const p3 = makePayment({
+      id: 'pay-jun-1',
+      due_date: '2026-06-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
     await addPayments(mockDb, [p1, p2, p3]);
 
     const results = await getPaymentsByMonth(mockDb, '2026-05');
@@ -192,14 +204,18 @@ describe('getPaymentsByMonth', () => {
     const overdue = makePayment({
       id: 'pay-apr-overdue',
       due_date: '2026-04-01',
-      status: 'overdue',
+      status: CommitmentPaymentStatus.Overdue,
     });
     const upcoming_old = makePayment({
       id: 'pay-mar-upcoming',
       due_date: '2026-03-01',
-      status: 'upcoming',
+      status: CommitmentPaymentStatus.Upcoming,
     });
-    const current = makePayment({ id: 'pay-may-1', due_date: '2026-05-01', status: 'upcoming' });
+    const current = makePayment({
+      id: 'pay-may-1',
+      due_date: '2026-05-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
     await addPayments(mockDb, [overdue, upcoming_old, current]);
 
     const results = await getPaymentsByMonth(mockDb, '2026-05');
@@ -213,17 +229,21 @@ describe('getPaymentsByMonth', () => {
     const paid_old = makePayment({
       id: 'pay-apr-paid',
       due_date: '2026-04-01',
-      status: 'paid',
+      status: CommitmentPaymentStatus.Paid,
       paid_date: '2026-04-01',
       amount_paid: 200,
     });
     const skipped_old = makePayment({
       id: 'pay-mar-skipped',
       due_date: '2026-03-01',
-      status: 'skipped',
+      status: CommitmentPaymentStatus.Skipped,
       skipped_date: '2026-03-01',
     });
-    const current = makePayment({ id: 'pay-may-1', due_date: '2026-05-01', status: 'upcoming' });
+    const current = makePayment({
+      id: 'pay-may-1',
+      due_date: '2026-05-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
     await addPayments(mockDb, [paid_old, skipped_old, current]);
 
     const results = await getPaymentsByMonth(mockDb, '2026-05');
@@ -279,19 +299,27 @@ describe('getExistingDueDates', () => {
 describe('deleteUnpaidPaymentsByCommitment', () => {
   it('removes upcoming and due payments but preserves paid and skipped', async () => {
     const payments = [
-      makePayment({ id: 'pay-del-upcoming', due_date: '2026-06-01', status: 'upcoming' }),
-      makePayment({ id: 'pay-del-due', due_date: '2026-05-01', status: 'due' }),
+      makePayment({
+        id: 'pay-del-upcoming',
+        due_date: '2026-06-01',
+        status: CommitmentPaymentStatus.Upcoming,
+      }),
+      makePayment({
+        id: 'pay-del-due',
+        due_date: '2026-05-01',
+        status: CommitmentPaymentStatus.Due,
+      }),
       makePayment({
         id: 'pay-del-paid',
         due_date: '2026-04-01',
-        status: 'paid',
+        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-04-01',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-del-skipped',
         due_date: '2026-03-01',
-        status: 'skipped',
+        status: CommitmentPaymentStatus.Skipped,
         skipped_date: '2026-03-01',
       }),
     ];
@@ -317,23 +345,27 @@ describe('getPaidCountByCommitment', () => {
       makePayment({
         id: 'pay-count-1',
         due_date: '2026-03-01',
-        status: 'paid',
+        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-03-01',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-count-2',
         due_date: '2026-04-01',
-        status: 'paid',
+        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-04-01',
         amount_paid: 200,
       }),
-      makePayment({ id: 'pay-count-3', due_date: '2026-05-01', status: 'upcoming' }),
+      makePayment({
+        id: 'pay-count-3',
+        due_date: '2026-05-01',
+        status: CommitmentPaymentStatus.Upcoming,
+      }),
       makePayment({
         id: 'pay-count-4',
         commitment_id: 'commitment2',
         due_date: '2026-03-01',
-        status: 'paid',
+        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-03-01',
         amount_paid: 150,
       }),
@@ -378,18 +410,22 @@ describe('getLastPaidPayment', () => {
       makePayment({
         id: 'pay-last-1',
         due_date: '2026-03-01',
-        status: 'paid',
+        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-03-02',
         amount_paid: 200,
       }),
       makePayment({
         id: 'pay-last-2',
         due_date: '2026-04-01',
-        status: 'paid',
+        status: CommitmentPaymentStatus.Paid,
         paid_date: '2026-04-03',
         amount_paid: 200,
       }),
-      makePayment({ id: 'pay-last-3', due_date: '2026-05-01', status: 'upcoming' }),
+      makePayment({
+        id: 'pay-last-3',
+        due_date: '2026-05-01',
+        status: CommitmentPaymentStatus.Upcoming,
+      }),
     ];
     await addPayments(mockDb, payments);
 
@@ -438,7 +474,11 @@ describe('getPaymentById', () => {
 
 describe('updatePaymentStatus', () => {
   it('updates status and optional fields when fields are provided', async () => {
-    const payment = makePayment({ id: 'pay-upd-1', due_date: '2026-05-01', status: 'upcoming' });
+    const payment = makePayment({
+      id: 'pay-upd-1',
+      due_date: '2026-05-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
     await addPayments(mockDb, [payment]);
 
     await updatePaymentStatus(mockDb, 'pay-upd-1', 'paid', {
@@ -459,7 +499,11 @@ describe('updatePaymentStatus', () => {
   });
 
   it('updates status without optional fields (fields omitted)', async () => {
-    const payment = makePayment({ id: 'pay-upd-2', due_date: '2026-05-01', status: 'upcoming' });
+    const payment = makePayment({
+      id: 'pay-upd-2',
+      due_date: '2026-05-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
     await addPayments(mockDb, [payment]);
 
     await updatePaymentStatus(mockDb, 'pay-upd-2', 'skipped');
@@ -474,7 +518,11 @@ describe('updatePaymentStatus', () => {
   });
 
   it('updates skipped_date when provided', async () => {
-    const payment = makePayment({ id: 'pay-upd-3', due_date: '2026-05-01', status: 'upcoming' });
+    const payment = makePayment({
+      id: 'pay-upd-3',
+      due_date: '2026-05-01',
+      status: CommitmentPaymentStatus.Upcoming,
+    });
     await addPayments(mockDb, [payment]);
 
     await updatePaymentStatus(mockDb, 'pay-upd-3', 'skipped', {
@@ -494,7 +542,7 @@ describe('markCommitmentAsPaid', () => {
     const payment = makePayment({
       id: 'pay-paid-egp',
       due_date: '2026-05-01',
-      status: 'upcoming',
+      status: CommitmentPaymentStatus.Upcoming,
       amount_due: 200,
       currency: Currency.EGP,
     });
@@ -548,7 +596,7 @@ describe('markCommitmentAsPaid', () => {
     const payment = makePayment({
       id: 'pay-paid-no-link',
       due_date: '2026-05-01',
-      status: 'upcoming',
+      status: CommitmentPaymentStatus.Upcoming,
       amount_due: 100,
       currency: Currency.EGP,
     });
@@ -586,7 +634,7 @@ describe('markCommitmentAsPaid', () => {
     const payment = makePayment({
       id: 'pay-paid-usd',
       due_date: '2026-05-01',
-      status: 'upcoming',
+      status: CommitmentPaymentStatus.Upcoming,
       amount_due: 10,
       currency: Currency.USD,
     });

@@ -278,7 +278,7 @@ describe('updateCommitment', () => {
       | Commitment
       | undefined;
     expect(row?.updated_at).not.toBe('2020-01-01T00:00:00.000Z');
-    expect(row?.updated_at >= before).toBe(true);
+    expect(row!.updated_at >= before).toBe(true);
   });
 });
 
@@ -308,7 +308,7 @@ describe('deactivateCommitment', () => {
     const row = realDb.prepare('SELECT * FROM commitments WHERE id = ?').get('com-deact-ts') as
       | Commitment
       | undefined;
-    expect(row?.updated_at >= before).toBe(true);
+    expect(row!.updated_at >= before).toBe(true);
   });
 
   it('does not affect other commitments', async () => {

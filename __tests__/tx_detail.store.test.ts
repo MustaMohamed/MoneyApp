@@ -17,6 +17,7 @@ const FAKE_TX: Transaction = {
   note: null,
   transaction_date: '2026-05-01',
   transaction_time: '10:00:00',
+  commitment_payment_id: null,
   created_at: '2026-05-01T00:00:00.000Z',
   updated_at: '2026-05-01T00:00:00.000Z',
 };
