@@ -1,0 +1,103 @@
+import { StyleSheet, Text, View } from 'react-native';
+
+import { CommitmentPaymentStatus } from '@/constants/enums';
+import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import type { Commitment } from '@/database/entities/commitment.entity';
+import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import { ms, msFont } from '@/utils/responsive';
+
+const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
+  [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
+  [CommitmentPaymentStatus.Due]: Colors.dark.gold,
+  [CommitmentPaymentStatus.Upcoming]: Colors.dark.text2,
+  [CommitmentPaymentStatus.Paid]: Colors.dark.positive,
+  [CommitmentPaymentStatus.Skipped]: Colors.dark.text3,
+};
+
+const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
+  [CommitmentPaymentStatus.Overdue]: 'Overdue',
+  [CommitmentPaymentStatus.Due]: 'Due',
+  [CommitmentPaymentStatus.Upcoming]: 'Upcoming',
+  [CommitmentPaymentStatus.Paid]: 'Paid',
+  [CommitmentPaymentStatus.Skipped]: 'Skipped',
+};
+
+const MONTHS_LONG = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+] as const;
+
+const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
+
+function formatMonthYear(dateStr: string): string {
+  const [year, month] = dateStr.split('-').map(Number);
+  return `${MONTHS_LONG[month - 1]} ${year}`;
+}
+
+interface Props {
+  payment: CommitmentPayment;
+  commitment: Commitment;
+  showDivider?: boolean;
+}
+
+export function PaymentRow({ payment, commitment, showDivider = true }: Props) {
+  const statusColor = STATUS_COLORS[payment.status];
+  const statusLabel = STATUS_LABELS[payment.status];
+  const displayAmount = payment.amount_paid ?? payment.amount_due ?? commitment.amount;
+  const amountText =
+    displayAmount != null ? `${numberFmt.format(displayAmount)} ${payment.currency}` : '—';
+
+  return (
+    <View style={[styles.row, !showDivider && styles.noDivider]}>
+      <View style={[styles.dot, { backgroundColor: statusColor }]} />
+      <View style={styles.info}>
+        <Text style={styles.monthLabel}>{formatMonthYear(payment.due_date)}</Text>
+        <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
+      </View>
+      <Text style={styles.amount}>{amountText}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Spacing.sm,
+    gap: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.dark.border,
+  },
+  noDivider: { borderBottomWidth: 0 },
+  dot: {
+    width: ms(8),
+    height: ms(8),
+    borderRadius: ms(4),
+  },
+  info: { flex: 1 },
+  monthLabel: {
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+  },
+  statusLabel: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: msFont(12),
+    marginTop: ms(2),
+  },
+  amount: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+  },
+});
