@@ -7,6 +7,7 @@ import { getAccountsStats } from '@/database/account_stats';
 import { useAccountStore } from '@/store/account.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useCommitmentStore } from '@/store/commitment.store';
+import { Currency } from '@/constants/enums';
 import { useDashboardState } from './dashboard.state';
 import { useDashboardStore } from './dashboard.store';
 import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
@@ -91,7 +92,7 @@ export function useDashboard() {
   const totalCount = getTotalCount();
   const overdueCount = getOverdue().length;
   const totalCommitted = getTotalMonthlyCommitted();
-  const commitmentCurrency = commitmentState.payments[0]?.currency ?? 'EGP';
+  const commitmentCurrency = commitmentState.payments[0]?.currency ?? Currency.EGP;
 
   const goToAccount = (id: string) => router.push(`/accounts/${id}`);
   const goToAddAccount = () => router.push('/accounts/add_account');

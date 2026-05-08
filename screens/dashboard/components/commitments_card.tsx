@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { formatMonthYear } from '@/utils/format_date';
 
 interface Props {
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     flexDirection: 'row',
-    height: 6,
+    height: ms(6),
     borderRadius: Radius.sm,
     backgroundColor: Colors.dark.surfaceEl,
     overflow: 'hidden',
