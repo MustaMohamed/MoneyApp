@@ -7,29 +7,10 @@ import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Account } from '@/database/entities/account.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import { ms, msFont } from '@/utils/responsive';
+import { formatLongDate } from '@/utils/format_date';
 import { cardEntering } from '../detail.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const MONTHS_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
-function formatLongDate(dateStr: string): string {
-  const [y, month, day] = dateStr.split('-').map(Number);
-  return `${MONTHS_LONG[month - 1]} ${day}, ${y}`;
-}
 
 interface RowProps {
   icon: IconName;

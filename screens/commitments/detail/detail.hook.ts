@@ -16,30 +16,11 @@ import { useCommitmentStore } from '@/store/commitment.store';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { commitmentRepository } from '@/repositories/commitment.repository';
+import { formatLongDate } from '@/utils/format_date';
 
 import { useCommitmentDetailState } from './detail.state';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
-
-const MONTHS_LONG = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const;
-
-function formatLongDate(dateStr: string): string {
-  const [y, month, day] = dateStr.split('-').map(Number);
-  return `${MONTHS_LONG[month - 1]} ${day}, ${y}`;
-}
 
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
   [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
