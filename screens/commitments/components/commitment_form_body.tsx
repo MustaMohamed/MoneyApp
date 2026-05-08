@@ -1,6 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useEffect } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,12 +13,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import type { UseFormReturn } from 'react-hook-form';
+import { Controller, type UseFormReturn } from 'react-hook-form';
+import { useShallow } from 'zustand/react/shallow';
 
 import { AmountType, Currency, DurationType, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { formatLongDate } from '@/utils/format_date';
 import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import type { Account } from '@/database/entities/account.entity';
@@ -24,6 +28,7 @@ import type { Category } from '@/database/entities/category.entity';
 import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
 import { RecurrencePicker } from './recurrence_picker';
 import { DurationPicker } from './duration_picker';
+import { useCommitmentFormBodyState } from './commitment_form_body.state';
 
 const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
 
@@ -85,11 +90,22 @@ export function CommitmentFormBody({
   title,
   locked,
 }: CommitmentFormBodyProps) {
-  const name = form.watch('name');
-  const amount = form.watch('amount');
   const currency = form.watch('currency');
   const start_date = form.watch('start_date');
-  const notes = form.watch('notes');
+
+  const {
+    state: formBodyState,
+    setShowStartDatePicker,
+    setShowEndDatePicker,
+  } = useCommitmentFormBodyState(
+    useShallow((s) => ({
+      state: s.state,
+      setShowStartDatePicker: s.setShowStartDatePicker,
+      setShowEndDatePicker: s.setShowEndDatePicker,
+    })),
+  );
+
+  useEffect(() => () => useCommitmentFormBodyState.getState().reset(), []);
 
   const errors = {
     name: form.formState.errors.name?.message,
@@ -98,6 +114,27 @@ export function CommitmentFormBody({
     start_date: form.formState.errors.start_date?.message,
     notes: form.formState.errors.notes?.message,
   };
+
+  const startDateAsDate = start_date ? new Date(start_date + 'T00:00:00') : new Date();
+  const formattedStartDate = start_date
+    ? formatLongDate(start_date)
+    : Strings.commitmentDateInputFormat;
+
+  function openStartDatePicker() {
+    if (locked) return;
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: startDateAsDate,
+        mode: 'date',
+        onChange: (_, d) => {
+          if (d) form.setValue('start_date', d.toISOString().slice(0, 10));
+        },
+      });
+    } else {
+      setShowStartDatePicker(!formBodyState.showStartDatePicker);
+      setShowEndDatePicker(false);
+    }
+  }
 
   return (
     <KeyboardAvoidingView
@@ -120,14 +157,23 @@ export function CommitmentFormBody({
         {/* Name */}
         <View style={styles.field}>
           <Text style={styles.fieldLabel}>{Strings.commitmentsFieldName}</Text>
-          <TextInput
-            style={styles.textInput}
-            value={name}
-            onChangeText={(v) => form.setValue('name', v)}
-            placeholder={Strings.commitmentsNamePlaceholder}
-            placeholderTextColor={Colors.dark.text2}
-            maxLength={50}
-            editable={!locked}
+          <Controller
+            control={form.control}
+            name="name"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                style={styles.textInput}
+                value={value ?? ''}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={Strings.commitmentsNamePlaceholder}
+                placeholderTextColor={Colors.dark.text2}
+                maxLength={50}
+                editable={!locked}
+                multiline={false}
+                numberOfLines={1}
+              />
+            )}
           />
         </View>
         {errors.name ? <Text style={styles.err}>{errors.name}</Text> : null}
@@ -157,17 +203,26 @@ export function CommitmentFormBody({
           <View style={styles.amountRow}>
             <View style={[styles.field, styles.amountField]}>
               <Text style={styles.fieldLabel}>{Strings.commitmentsFieldAmount}</Text>
-              <TextInput
-                style={[styles.textInput, errors.amount ? styles.inputError : null]}
-                value={amount != null ? String(amount) : ''}
-                onChangeText={(v) => {
-                  const n = parseFloat(v);
-                  form.setValue('amount', isNaN(n) ? undefined : n);
-                }}
-                keyboardType="decimal-pad"
-                placeholder={Strings.commitmentsAmountPlaceholder}
-                placeholderTextColor={Colors.dark.text2}
-                editable={!locked}
+              <Controller
+                control={form.control}
+                name="amount"
+                render={({ field: { value, onChange, onBlur } }) => (
+                  <TextInput
+                    style={[styles.textInput, errors.amount ? styles.inputError : null]}
+                    value={value != null ? String(value) : ''}
+                    onChangeText={(v) => {
+                      const n = parseFloat(v);
+                      onChange(isNaN(n) ? undefined : n);
+                    }}
+                    onBlur={onBlur}
+                    keyboardType="decimal-pad"
+                    placeholder={Strings.commitmentsAmountPlaceholder}
+                    placeholderTextColor={Colors.dark.text2}
+                    editable={!locked}
+                    multiline={false}
+                    numberOfLines={1}
+                  />
+                )}
               />
             </View>
             <View style={[styles.field, styles.currencyField]}>
@@ -193,6 +248,58 @@ export function CommitmentFormBody({
         {amountType === AmountType.Fixed && errors.amount ? (
           <Text style={styles.err}>{errors.amount}</Text>
         ) : null}
+
+        {/* Currency chip (Variable) */}
+        {amountType === AmountType.Variable && (
+          <View style={styles.field}>
+            <Text style={styles.fieldLabel}>{Strings.commitmentsFieldCurrency}</Text>
+            <View style={styles.chipRow}>
+              {CURRENCIES.map((c) => {
+                const active = currency === c;
+                return (
+                  <Pressable
+                    key={c}
+                    style={[styles.chip, active && styles.chipActive]}
+                    onPress={() => form.setValue('currency', c)}
+                    disabled={locked}
+                  >
+                    <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{c}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Estimated Amount (Variable only) */}
+        {amountType === AmountType.Variable && (
+          <Controller
+            control={form.control}
+            name="amount"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <View style={styles.field}>
+                <View style={styles.fieldLabelRow}>
+                  <Text style={styles.fieldLabel}>{Strings.commitmentsFieldEstimatedAmount}</Text>
+                  <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
+                </View>
+                <TextInput
+                  style={styles.textInput}
+                  value={value != null ? String(value) : ''}
+                  onChangeText={(v) => {
+                    const n = parseFloat(v);
+                    onChange(isNaN(n) ? undefined : n);
+                  }}
+                  onBlur={onBlur}
+                  keyboardType="decimal-pad"
+                  multiline={false}
+                  numberOfLines={1}
+                  placeholder={Strings.commitmentsEstimatedAmountPlaceholder}
+                  placeholderTextColor={Colors.dark.text2}
+                />
+              </View>
+            )}
+          />
+        )}
 
         {/* Category picker row */}
         <Pressable style={styles.field} onPress={onOpenCategoryPicker} disabled={locked}>
@@ -220,20 +327,36 @@ export function CommitmentFormBody({
         />
 
         {/* Start Date */}
-        <View style={styles.field}>
+        <Pressable
+          style={[styles.field, errors.start_date ? styles.inputError : null]}
+          onPress={openStartDatePicker}
+          disabled={locked}
+        >
           <Text style={styles.fieldLabel}>{Strings.commitmentsFieldStartDate}</Text>
-          <TextInput
-            style={[styles.textInput, errors.start_date ? styles.inputError : null]}
-            value={start_date}
-            onChangeText={(v) => form.setValue('start_date', v)}
-            placeholder={Strings.commitmentDateInputFormat}
-            placeholderTextColor={Colors.dark.text2}
-            keyboardType="numbers-and-punctuation"
-            maxLength={10}
-            editable={!locked}
-          />
-        </View>
+          <View style={styles.fieldValue}>
+            <Text style={start_date ? styles.fieldValueText : styles.fieldPlaceholder}>
+              {formattedStartDate}
+            </Text>
+            <MaterialCommunityIcons
+              name={locked ? 'lock-outline' : 'calendar'}
+              size={ms(18)}
+              color={Colors.dark.text2}
+            />
+          </View>
+        </Pressable>
         {errors.start_date ? <Text style={styles.err}>{errors.start_date}</Text> : null}
+
+        {formBodyState.showStartDatePicker && (
+          <DateTimePicker
+            value={startDateAsDate}
+            mode="date"
+            display="spinner"
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) form.setValue('start_date', d.toISOString().slice(0, 10));
+            }}
+          />
+        )}
 
         {/* Default Account (optional) */}
         <Pressable style={styles.field} onPress={onOpenAccountPicker} disabled={locked}>
@@ -264,6 +387,11 @@ export function CommitmentFormBody({
           form={form}
           durationType={durationType}
           onDurationTypeChange={onDurationTypeChange}
+          showEndDatePicker={formBodyState.showEndDatePicker}
+          setShowEndDatePicker={(v) => {
+            setShowEndDatePicker(v);
+            if (v) setShowStartDatePicker(false);
+          }}
         />
 
         {/* Notes (optional) */}
@@ -272,14 +400,21 @@ export function CommitmentFormBody({
             <Text style={styles.fieldLabel}>{Strings.commitmentsFieldNotes}</Text>
             <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
           </View>
-          <TextInput
-            style={styles.notesInput}
-            value={notes ?? ''}
-            onChangeText={(v) => form.setValue('notes', v || undefined)}
-            placeholder={Strings.addTxNotePlaceholder}
-            placeholderTextColor={Colors.dark.text2}
-            multiline
-            numberOfLines={3}
+          <Controller
+            control={form.control}
+            name="notes"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                style={styles.notesInput}
+                value={value ?? ''}
+                onChangeText={(v) => onChange(v || undefined)}
+                onBlur={onBlur}
+                placeholder={Strings.addTxNotePlaceholder}
+                placeholderTextColor={Colors.dark.text2}
+                multiline
+                numberOfLines={3}
+              />
+            )}
           />
         </View>
       </ScrollView>

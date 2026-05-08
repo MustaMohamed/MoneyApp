@@ -1,9 +1,13 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Controller } from 'react-hook-form';
 
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { formatLongDate } from '@/utils/format_date';
 import type { UseFormReturn } from 'react-hook-form';
 import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
 
@@ -11,6 +15,8 @@ interface Props {
   form: UseFormReturn<CommitmentFormValues>;
   durationType: DurationType;
   onDurationTypeChange: (type: DurationType) => void;
+  showEndDatePicker: boolean;
+  setShowEndDatePicker: (v: boolean) => void;
 }
 
 const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
@@ -21,11 +27,33 @@ const DURATION_TYPES: { key: DurationType; label: string }[] = [
   { key: DurationType.UntilDate, label: Strings.commitmentsDurationUntilDate },
 ];
 
-export function DurationPicker({ form, durationType, onDurationTypeChange }: Props) {
-  const end_after_count = form.watch('end_after_count');
+export function DurationPicker({
+  form,
+  durationType,
+  onDurationTypeChange,
+  showEndDatePicker,
+  setShowEndDatePicker,
+}: Props) {
   const end_date = form.watch('end_date');
   const countError = form.formState.errors.end_after_count?.message;
   const dateError = form.formState.errors.end_date?.message;
+
+  const endDateAsDate = end_date ? new Date(end_date + 'T00:00:00') : new Date();
+  const formattedEndDate = end_date ? formatLongDate(end_date) : Strings.commitmentDateInputFormat;
+
+  function openEndDatePicker() {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: endDateAsDate,
+        mode: 'date',
+        onChange: (_, d) => {
+          if (d) form.setValue('end_date', d.toISOString().slice(0, 10));
+        },
+      });
+    } else {
+      setShowEndDatePicker(!showEndDatePicker);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -51,17 +79,26 @@ export function DurationPicker({ form, durationType, onDurationTypeChange }: Pro
       {durationType === DurationType.AfterCount && (
         <View style={styles.conditionalRow}>
           <Text style={styles.conditionalLabel}>{Strings.commitmentsDurationStopAfter}</Text>
-          <TextInput
-            style={[styles.countInput, countError ? styles.inputError : null]}
-            value={end_after_count != null ? String(end_after_count) : ''}
-            onChangeText={(v) => {
-              const n = parseInt(v, 10);
-              form.setValue('end_after_count', isNaN(n) ? undefined : n);
-            }}
-            keyboardType="number-pad"
-            maxLength={4}
-            placeholderTextColor={Colors.dark.text2}
-            placeholder={Strings.commitmentsAfterCountPlaceholder}
+          <Controller
+            control={form.control}
+            name="end_after_count"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                style={[styles.countInput, countError ? styles.inputError : null]}
+                value={value != null ? String(value) : ''}
+                onChangeText={(v) => {
+                  const n = parseInt(v, 10);
+                  onChange(isNaN(n) ? undefined : n);
+                }}
+                onBlur={onBlur}
+                keyboardType="number-pad"
+                maxLength={4}
+                placeholderTextColor={Colors.dark.text2}
+                placeholder={Strings.commitmentsAfterCountPlaceholder}
+                multiline={false}
+                numberOfLines={1}
+              />
+            )}
           />
           <Text style={styles.conditionalLabel}>{Strings.commitmentsDurationPayments}</Text>
         </View>
@@ -70,14 +107,25 @@ export function DurationPicker({ form, durationType, onDurationTypeChange }: Pro
 
       {/* UntilDate conditional */}
       {durationType === DurationType.UntilDate && (
-        <TextInput
-          style={[styles.dateInput, dateError ? styles.inputError : null]}
-          value={end_date ?? ''}
-          onChangeText={(v) => form.setValue('end_date', v || undefined)}
-          placeholder={Strings.commitmentDateInputFormat}
-          placeholderTextColor={Colors.dark.text2}
-          keyboardType="numbers-and-punctuation"
-          maxLength={10}
+        <Pressable
+          style={[styles.dateRow, dateError ? styles.inputError : null]}
+          onPress={openEndDatePicker}
+        >
+          <Text style={end_date ? styles.dateValue : styles.datePlaceholder}>
+            {formattedEndDate}
+          </Text>
+          <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
+        </Pressable>
+      )}
+      {durationType === DurationType.UntilDate && showEndDatePicker && (
+        <DateTimePicker
+          value={endDateAsDate}
+          mode="date"
+          display="spinner"
+          themeVariant="dark"
+          onChange={(_, d) => {
+            if (d) form.setValue('end_date', d.toISOString().slice(0, 10));
+          }}
         />
       )}
       {dateError ? <Text style={styles.err}>{dateError}</Text> : null}
@@ -144,15 +192,27 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
     textAlign: 'center',
   },
-  dateInput: {
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
     borderWidth: 1,
     borderColor: Colors.dark.border,
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xs,
+  },
+  dateValue: {
+    flex: 1,
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.body,
     color: Colors.dark.text1,
+  },
+  datePlaceholder: {
+    flex: 1,
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
+    color: Colors.dark.text2,
   },
   inputError: {
     borderColor: Colors.dark.negative,

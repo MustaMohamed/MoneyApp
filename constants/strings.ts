@@ -397,6 +397,8 @@ export const Strings = {
   commitmentsAmountPlaceholder: '0.00',
   commitmentDateInputFormat: 'YYYY-MM-DD',
   commitmentsAfterCountPlaceholder: '0',
+  commitmentsFieldEstimatedAmount: 'Estimated Amount',
+  commitmentsEstimatedAmountPlaceholder: 'e.g. 500',
 
   // Commitments — C4 Detail
   commitmentsDetailRecurrence: 'Recurrence',

@@ -41,6 +41,7 @@ export function CategoryPickerSheet({
       useBottomSafeAreaPadding={false}
       containerStyle={styles.sheet}
       indicatorStyle={styles.handle}
+      snapPoints={[80]}
     >
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
