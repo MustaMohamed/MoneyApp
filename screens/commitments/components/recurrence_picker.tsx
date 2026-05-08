@@ -1,12 +1,11 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { RecurrencePeriod } from '@/constants/enums';
+import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import type { UseFormReturn } from 'react-hook-form';
 import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
-import type { RecurrencePreset } from '../add_commitment/add_commitment.store';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -14,11 +13,13 @@ interface Props {
   onPresetChange: (preset: RecurrencePreset) => void;
 }
 
+const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
+
 const PRESETS: { key: RecurrencePreset; label: string }[] = [
-  { key: 'monthly', label: Strings.commitmentsRecurrenceMonthly },
-  { key: 'weekly', label: Strings.commitmentsRecurrenceWeekly },
-  { key: 'annually', label: Strings.commitmentsRecurrenceAnnually },
-  { key: 'custom', label: Strings.commitmentsRecurrenceCustom },
+  { key: RecurrencePreset.Monthly, label: Strings.commitmentsRecurrenceMonthly },
+  { key: RecurrencePreset.Weekly, label: Strings.commitmentsRecurrenceWeekly },
+  { key: RecurrencePreset.Annually, label: Strings.commitmentsRecurrenceAnnually },
+  { key: RecurrencePreset.Custom, label: Strings.commitmentsRecurrenceCustom },
 ];
 
 const PERIODS: { key: RecurrencePeriod; label: string }[] = [
@@ -54,7 +55,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
       </View>
 
       {/* Custom row */}
-      {recurrencePreset === 'custom' && (
+      {recurrencePreset === RecurrencePreset.Custom && (
         <View style={styles.customRow}>
           <Text style={styles.everyLabel}>{Strings.commitmentsRecurrenceEvery}</Text>
           <TextInput
@@ -116,7 +117,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: Colors.shared.cairoGold,
-    backgroundColor: Colors.shared.cairoGold + '22',
+    backgroundColor: CHIP_ACTIVE_BG,
   },
   chipLabel: {
     fontFamily: FontFamily.interMedium,

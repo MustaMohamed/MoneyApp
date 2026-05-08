@@ -1,9 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 import { useRouter } from 'expo-router';
 
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import {
+  AmountType,
+  Currency,
+  DurationType,
+  RecurrencePeriod,
+  RecurrencePreset,
+} from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -11,7 +17,8 @@ import { useCommitmentStore } from '@/store/commitment.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { useAddCommitmentStore, type RecurrencePreset } from './add_commitment.store';
+import { useAddCommitmentStore } from './add_commitment.store';
+import { useAddCommitmentState } from './add_commitment.state';
 
 // Base shape — used to derive CommitmentFormValues so it always matches Zod's inferred output.
 const BASE_SCHEMA = z.object({
@@ -68,14 +75,14 @@ function createSchema(amountType: AmountType, durationType: DurationType) {
       if (durationType === DurationType.UntilDate && !data.end_date) {
         ctx.addIssue({
           code: 'custom',
-          message: Strings.commitmentsErrStartDateRequired,
+          message: Strings.commitmentsErrEndDateRequired,
           path: ['end_date'],
         });
       }
       if (durationType === DurationType.AfterCount && !data.end_after_count) {
         ctx.addIssue({
           code: 'custom',
-          message: Strings.commitmentsErrEveryMin,
+          message: Strings.commitmentsErrAfterCountRequired,
           path: ['end_after_count'],
         });
       }
@@ -101,10 +108,10 @@ function buildDefaults(): CommitmentFormValues {
 }
 
 const PRESET_MAP: Record<RecurrencePreset, { every: number; period: RecurrencePeriod } | null> = {
-  monthly: { every: 1, period: RecurrencePeriod.Months },
-  weekly: { every: 1, period: RecurrencePeriod.Weeks },
-  annually: { every: 1, period: RecurrencePeriod.Years },
-  custom: null,
+  [RecurrencePreset.Monthly]: { every: 1, period: RecurrencePeriod.Months },
+  [RecurrencePreset.Weekly]: { every: 1, period: RecurrencePeriod.Weeks },
+  [RecurrencePreset.Annually]: { every: 1, period: RecurrencePeriod.Years },
+  [RecurrencePreset.Custom]: null,
 };
 
 export function useAddCommitment() {
@@ -132,8 +139,25 @@ export function useAddCommitment() {
     })),
   );
 
-  const [saving, setSaving] = useState(false);
-  const [pickerVisible, setPickerVisible] = useState({ category: false, account: false });
+  const {
+    state: screenState,
+    setSaving: setScreenSaving,
+    setCategoryPickerVisible,
+    setAccountPickerVisible,
+    reset: resetScreenState,
+  } = useAddCommitmentState(
+    useShallow((s) => ({
+      state: s.state,
+      setSaving: s.setSaving,
+      setCategoryPickerVisible: s.setCategoryPickerVisible,
+      setAccountPickerVisible: s.setAccountPickerVisible,
+      reset: s.reset,
+    })),
+  );
+
+  useEffect(() => {
+    return () => resetScreenState();
+  }, [resetScreenState]);
 
   const schema = useMemo(
     () => createSchema(storeState.amountType, storeState.durationType),
@@ -160,7 +184,7 @@ export function useAddCommitment() {
   );
 
   async function onValid(data: CommitmentFormValues) {
-    setSaving(true);
+    setScreenSaving(true);
     try {
       await addCommitment({
         name: data.name,
@@ -183,12 +207,13 @@ export function useAddCommitment() {
       });
       await generatePayments();
       resetStore();
+      resetScreenState();
       form.reset(buildDefaults());
       router.back();
     } catch {
       // error logged by store
     } finally {
-      setSaving(false);
+      setScreenSaving(false);
     }
   }
 
@@ -210,18 +235,19 @@ export function useAddCommitment() {
 
   function selectCategory(category: Category) {
     form.setValue('category_id', category.id);
-    setPickerVisible((prev) => ({ ...prev, category: false }));
+    setCategoryPickerVisible(false);
   }
 
   function selectAccount(account: Account) {
     form.setValue('account_id', account.id);
-    setPickerVisible((prev) => ({ ...prev, account: false }));
+    setAccountPickerVisible(false);
   }
 
   return {
     state: {
-      saving,
-      pickerVisible,
+      saving: screenState.saving,
+      categoryPickerVisible: screenState.categoryPickerVisible,
+      accountPickerVisible: screenState.accountPickerVisible,
       selectedCategory,
       selectedAccount,
       amountType: storeState.amountType,
@@ -235,10 +261,10 @@ export function useAddCommitment() {
     setAmountType,
     handleRecurrencePresetChange,
     handleDurationTypeChange,
-    openCategoryPicker: () => setPickerVisible((prev) => ({ ...prev, category: true })),
-    closeCategoryPicker: () => setPickerVisible((prev) => ({ ...prev, category: false })),
-    openAccountPicker: () => setPickerVisible((prev) => ({ ...prev, account: true })),
-    closeAccountPicker: () => setPickerVisible((prev) => ({ ...prev, account: false })),
+    openCategoryPicker: () => setCategoryPickerVisible(true),
+    closeCategoryPicker: () => setCategoryPickerVisible(false),
+    openAccountPicker: () => setAccountPickerVisible(true),
+    closeAccountPicker: () => setAccountPickerVisible(false),
     selectCategory,
     selectAccount,
   };

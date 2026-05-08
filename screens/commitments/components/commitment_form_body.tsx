@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import type { UseFormReturn } from 'react-hook-form';
 
-import { AmountType, Currency, DurationType } from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -21,9 +21,10 @@ import { AccountPickerSheet } from '@/screens/transactions/transaction_form/comp
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
-import type { RecurrencePreset } from '../add_commitment/add_commitment.store';
 import { RecurrencePicker } from './recurrence_picker';
 import { DurationPicker } from './duration_picker';
+
+const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
 
 const CURRENCIES: Currency[] = [Currency.EGP, Currency.USD];
 
@@ -83,6 +84,7 @@ export function CommitmentFormBody({
   title,
   locked,
 }: CommitmentFormBodyProps) {
+  const name = form.watch('name');
   const amount = form.watch('amount');
   const currency = form.watch('currency');
   const start_date = form.watch('start_date');
@@ -116,9 +118,9 @@ export function CommitmentFormBody({
           <Text style={styles.fieldLabel}>{Strings.commitmentsFieldName}</Text>
           <TextInput
             style={styles.textInput}
-            value={form.watch('name')}
+            value={name}
             onChangeText={(v) => form.setValue('name', v)}
-            placeholder="e.g. Rent"
+            placeholder={Strings.commitmentsNamePlaceholder}
             placeholderTextColor={Colors.dark.text2}
             maxLength={50}
             editable={!locked}
@@ -159,7 +161,7 @@ export function CommitmentFormBody({
                   form.setValue('amount', isNaN(n) ? undefined : n);
                 }}
                 keyboardType="decimal-pad"
-                placeholder="0.00"
+                placeholder={Strings.commitmentsAmountPlaceholder}
                 placeholderTextColor={Colors.dark.text2}
                 editable={!locked}
               />
@@ -220,7 +222,7 @@ export function CommitmentFormBody({
             style={[styles.textInput, errors.start_date ? styles.inputError : null]}
             value={start_date}
             onChangeText={(v) => form.setValue('start_date', v)}
-            placeholder="YYYY-MM-DD"
+            placeholder={Strings.commitmentDateInputFormat}
             placeholderTextColor={Colors.dark.text2}
             keyboardType="numbers-and-punctuation"
             maxLength={10}
@@ -230,7 +232,7 @@ export function CommitmentFormBody({
         {errors.start_date ? <Text style={styles.err}>{errors.start_date}</Text> : null}
 
         {/* Default Account (optional) */}
-        <Pressable style={styles.field} onPress={onOpenAccountPicker}>
+        <Pressable style={styles.field} onPress={onOpenAccountPicker} disabled={locked}>
           <View style={styles.fieldLabelRow}>
             <Text style={styles.fieldLabel}>{Strings.commitmentsFieldDefaultAccount}</Text>
             <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
@@ -390,7 +392,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: Colors.shared.cairoGold,
-    backgroundColor: Colors.shared.cairoGold + '22',
+    backgroundColor: CHIP_ACTIVE_BG,
   },
   chipLabel: {
     fontFamily: FontFamily.interMedium,

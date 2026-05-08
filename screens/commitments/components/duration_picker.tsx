@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import type { UseFormReturn } from 'react-hook-form';
 import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
 
@@ -11,6 +12,8 @@ interface Props {
   durationType: DurationType;
   onDurationTypeChange: (type: DurationType) => void;
 }
+
+const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
 
 const DURATION_TYPES: { key: DurationType; label: string }[] = [
   { key: DurationType.Forever, label: Strings.commitmentsDurationForever },
@@ -58,7 +61,7 @@ export function DurationPicker({ form, durationType, onDurationTypeChange }: Pro
             keyboardType="number-pad"
             maxLength={4}
             placeholderTextColor={Colors.dark.text2}
-            placeholder="0"
+            placeholder={Strings.commitmentsAfterCountPlaceholder}
           />
           <Text style={styles.conditionalLabel}>{Strings.commitmentsDurationPayments}</Text>
         </View>
@@ -71,7 +74,7 @@ export function DurationPicker({ form, durationType, onDurationTypeChange }: Pro
           style={[styles.dateInput, dateError ? styles.inputError : null]}
           value={end_date ?? ''}
           onChangeText={(v) => form.setValue('end_date', v || undefined)}
-          placeholder="YYYY-MM-DD"
+          placeholder={Strings.commitmentDateInputFormat}
           placeholderTextColor={Colors.dark.text2}
           keyboardType="numbers-and-punctuation"
           maxLength={10}
@@ -109,7 +112,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: Colors.shared.cairoGold,
-    backgroundColor: Colors.shared.cairoGold + '22',
+    backgroundColor: CHIP_ACTIVE_BG,
   },
   chipLabel: {
     fontFamily: FontFamily.interMedium,
@@ -130,7 +133,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
   },
   countInput: {
-    width: 64,
+    width: ms(64),
     borderWidth: 1,
     borderColor: Colors.dark.border,
     borderRadius: Radius.sm,

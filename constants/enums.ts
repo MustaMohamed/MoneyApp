@@ -74,3 +74,10 @@ export enum CommitmentPaymentStatus {
   Paid = 'paid',
   Skipped = 'skipped',
 }
+
+export enum RecurrencePreset {
+  Monthly = 'monthly',
+  Weekly = 'weekly',
+  Annually = 'annually',
+  Custom = 'custom',
+}

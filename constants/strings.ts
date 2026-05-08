@@ -387,8 +387,16 @@ export const Strings = {
   commitmentsErrAmountPositive: 'Amount must be greater than zero',
   commitmentsErrCategoryRequired: 'Category is required',
   commitmentsErrStartDateRequired: 'Start date is required',
+  commitmentsErrEndDateRequired: 'End date is required',
+  commitmentsErrAfterCountRequired: 'Number of payments is required',
   commitmentsErrEveryMin: 'Must be at least 1',
   commitmentsErrEveryMax: 'Must be 365 or less',
+
+  // Commitments — placeholders
+  commitmentsNamePlaceholder: 'e.g. Rent',
+  commitmentsAmountPlaceholder: '0.00',
+  commitmentDateInputFormat: 'YYYY-MM-DD',
+  commitmentsAfterCountPlaceholder: '0',
 
   // Commitments — C4 Detail
   commitmentsDetailRecurrence: 'Recurrence',

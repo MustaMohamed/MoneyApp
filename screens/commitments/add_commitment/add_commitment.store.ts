@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
-import { AmountType, DurationType } from '@/constants/enums';
+import { AmountType, DurationType, RecurrencePreset } from '@/constants/enums';
 
-export type RecurrencePreset = 'monthly' | 'weekly' | 'annually' | 'custom';
+export type { RecurrencePreset };
 
 interface AddCommitmentStoreShape {
   amountType: AmountType;
@@ -20,7 +20,7 @@ interface AddCommitmentStore {
 
 const INITIAL_STATE: AddCommitmentStoreShape = {
   amountType: AmountType.Fixed,
-  recurrencePreset: 'monthly',
+  recurrencePreset: RecurrencePreset.Monthly,
   durationType: DurationType.Forever,
 };
 

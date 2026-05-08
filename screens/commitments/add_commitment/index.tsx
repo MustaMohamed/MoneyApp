@@ -37,8 +37,8 @@ export default function AddCommitmentScreen() {
         onCloseAccountPicker={closeAccountPicker}
         onSelectCategory={selectCategory}
         onSelectAccount={selectAccount}
-        categoryPickerVisible={state.pickerVisible.category}
-        accountPickerVisible={state.pickerVisible.account}
+        categoryPickerVisible={state.categoryPickerVisible}
+        accountPickerVisible={state.accountPickerVisible}
         categories={state.categories}
         accounts={state.accounts}
         selectedCategory={state.selectedCategory}
