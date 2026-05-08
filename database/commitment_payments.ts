@@ -259,10 +259,14 @@ export async function markCommitmentAsPaid(
       ],
     );
 
-    // 3. Deduct balance from account (use tx.amount for native face-value)
+    // 3. Deduct balance from account using the account-currency equivalent.
+    //    tx.egp_amount holds the EGP-equivalent (amount_paid * exchange_rate_snapshot when
+    //    the commitment is in a foreign currency, or amount_paid itself for EGP commitments).
+    //    Using tx.amount would deduct the face-value in the commitment's currency (e.g. USD)
+    //    from an EGP account, producing a wrong balance.
     await db.runAsync(
       'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-      [tx.amount, now, tx.account_id],
+      [tx.egp_amount, now, tx.account_id],
     );
 
     // 4. Link the transaction back to the payment

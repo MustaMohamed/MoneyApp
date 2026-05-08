@@ -276,7 +276,8 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
     getPaidCount: () =>
       get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
 
-    getTotalCount: () => get().state.payments.length,
+    getTotalCount: () =>
+      get().state.payments.filter((p) => p.status !== CommitmentPaymentStatus.Skipped).length,
 
     getTotalMonthlyCommitted: () => {
       const { commitments } = get().state;
