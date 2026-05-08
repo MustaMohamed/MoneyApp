@@ -2,21 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-
-const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+import { formatMonthYear } from '@/utils/format_date';
 
 interface MonthNavigatorProps {
   yearMonth: string; // 'YYYY-MM'
@@ -25,8 +11,7 @@ interface MonthNavigatorProps {
 }
 
 export function MonthNavigator({ yearMonth, onPrev, onNext }: MonthNavigatorProps) {
-  const [year, month] = yearMonth.split('-').map(Number);
-  const label = `${MONTH_NAMES[month - 1]} ${year}`;
+  const label = formatMonthYear(yearMonth);
   return (
     <View style={styles.container}>
       <Pressable onPress={onPrev} style={styles.btn} hitSlop={ms(8)}>

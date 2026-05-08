@@ -1,14 +1,18 @@
-import { useEffect } from 'react';
-import { useSharedValue, withTiming, Easing } from 'react-native-reanimated';
+import { useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
 
-export function useCommitmentsAnim() {
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(16);
-
-  useEffect(() => {
-    opacity.value = withTiming(1, { duration: 300, easing: Easing.out(Easing.quad) });
-    translateY.value = withTiming(0, { duration: 300, easing: Easing.out(Easing.quad) });
-  }, [opacity, translateY]);
-
-  return { opacity, translateY };
+/**
+ * Press-feedback for a commitment row. Mirrors useRowPressScale from
+ * transactions.anim — scale down slightly on press, spring back on release.
+ */
+export function useRowPressScale() {
+  const scale = useSharedValue(1);
+  return {
+    scale,
+    onPressIn: () => {
+      scale.value = withTiming(0.98, { duration: 80 });
+    },
+    onPressOut: () => {
+      scale.value = withSpring(1, { damping: 12, stiffness: 180 });
+    },
+  };
 }
