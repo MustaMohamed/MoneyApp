@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,7 +16,7 @@ import {
 import { Controller, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AmountType, Currency, DurationType, RecurrencePreset } from '@/constants/enums';
+import { AmountType, Currency, DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -25,15 +25,13 @@ import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/com
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import type { CommitmentFormValues } from '../commitment_form.shared';
+import { type CommitmentFormValues, PRESET_MAP, detectPreset } from '../commitment_form.shared';
 import { RecurrencePicker } from './recurrence_picker';
 import { DurationPicker } from './duration_picker';
 import { useCommitmentFormBodyState } from './commitment_form_body.state';
 
 const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
-
 const CURRENCIES: Currency[] = [Currency.EGP, Currency.USD];
-
 const AMOUNT_TYPES: { key: AmountType; label: string }[] = [
   { key: AmountType.Fixed, label: Strings.commitmentsAmountFixed },
   { key: AmountType.Variable, label: Strings.commitmentsAmountVariable },
@@ -41,24 +39,8 @@ const AMOUNT_TYPES: { key: AmountType; label: string }[] = [
 
 interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
-  amountType: AmountType;
-  recurrencePreset: RecurrencePreset;
-  durationType: DurationType;
-  onAmountTypeChange: (v: AmountType) => void;
-  onRecurrencePresetChange: (preset: RecurrencePreset) => void;
-  onDurationTypeChange: (type: DurationType) => void;
-  onOpenCategoryPicker: () => void;
-  onCloseCategoryPicker: () => void;
-  onOpenAccountPicker: () => void;
-  onCloseAccountPicker: () => void;
-  onSelectCategory: (category: Category) => void;
-  onSelectAccount: (account: Account) => void;
-  categoryPickerVisible: boolean;
-  accountPickerVisible: boolean;
   categories: Category[];
   accounts: Account[];
-  selectedCategory: Category | undefined;
-  selectedAccount: Account | undefined;
   saving: boolean;
   onSubmit: () => void;
   title: string;
@@ -67,40 +49,43 @@ interface CommitmentFormBodyProps {
 
 export function CommitmentFormBody({
   form,
-  amountType,
-  recurrencePreset,
-  durationType,
-  onAmountTypeChange,
-  onRecurrencePresetChange,
-  onDurationTypeChange,
-  onOpenCategoryPicker,
-  onCloseCategoryPicker,
-  onOpenAccountPicker,
-  onCloseAccountPicker,
-  onSelectCategory,
-  onSelectAccount,
-  categoryPickerVisible,
-  accountPickerVisible,
   categories,
   accounts,
-  selectedCategory,
-  selectedAccount,
   saving,
   onSubmit,
   title,
   locked,
 }: CommitmentFormBodyProps) {
+  const amountType = form.watch('amount_type');
   const currency = form.watch('currency');
   const start_date = form.watch('start_date');
-  console.log({ currency });
+  const durationType = form.watch('duration_type');
+  const recurrenceEvery = form.watch('recurrence_every');
+  const recurrencePeriod = form.watch('recurrence_period');
+  const categoryId = form.watch('category_id');
+  const accountId = form.watch('account_id');
+  const recurrencePreset = detectPreset(recurrenceEvery, recurrencePeriod);
+
+  const selectedCategory = useMemo(
+    () => categories.find((c) => c.id === categoryId),
+    [categories, categoryId],
+  );
+  const selectedAccount = useMemo(
+    () => accounts.find((a) => a.id === accountId),
+    [accounts, accountId],
+  );
 
   const {
-    state: formBodyState,
+    state: bodyState,
+    setCategoryPickerVisible,
+    setAccountPickerVisible,
     setShowStartDatePicker,
     setShowEndDatePicker,
   } = useCommitmentFormBodyState(
     useShallow((s) => ({
       state: s.state,
+      setCategoryPickerVisible: s.setCategoryPickerVisible,
+      setAccountPickerVisible: s.setAccountPickerVisible,
       setShowStartDatePicker: s.setShowStartDatePicker,
       setShowEndDatePicker: s.setShowEndDatePicker,
     })),
@@ -121,6 +106,25 @@ export function CommitmentFormBody({
     ? formatLongDate(start_date)
     : Strings.commitmentDateInputFormat;
 
+  function handleAmountTypeChange(v: AmountType) {
+    form.setValue('amount_type', v);
+    if (v === AmountType.Variable) form.setValue('amount', undefined);
+  }
+
+  function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
+    const mapped = PRESET_MAP[preset];
+    if (mapped) {
+      form.setValue('recurrence_every', mapped.every);
+      form.setValue('recurrence_period', mapped.period);
+    }
+  }
+
+  function handleDurationTypeChange(type: DurationType) {
+    form.setValue('duration_type', type);
+    if (type !== DurationType.UntilDate) form.setValue('end_date', undefined);
+    if (type !== DurationType.AfterCount) form.setValue('end_after_count', undefined);
+  }
+
   function openStartDatePicker() {
     if (locked) return;
     if (Platform.OS === 'android') {
@@ -132,9 +136,19 @@ export function CommitmentFormBody({
         },
       });
     } else {
-      setShowStartDatePicker(!formBodyState.showStartDatePicker);
+      setShowStartDatePicker(!bodyState.showStartDatePicker);
       setShowEndDatePicker(false);
     }
+  }
+
+  function selectCategory(category: Category) {
+    form.setValue('category_id', category.id);
+    setCategoryPickerVisible(false);
+  }
+
+  function selectAccount(account: Account) {
+    form.setValue('account_id', account.id);
+    setAccountPickerVisible(false);
   }
 
   return (
@@ -194,7 +208,7 @@ export function CommitmentFormBody({
                 <Pressable
                   key={key}
                   style={[styles.chip, active && styles.chipActive]}
-                  onPress={() => onAmountTypeChange(key)}
+                  onPress={() => handleAmountTypeChange(key)}
                   disabled={locked}
                 >
                   <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
@@ -204,7 +218,7 @@ export function CommitmentFormBody({
           </View>
         </View>
 
-        {/* Amount + Currency row (both Fixed and Variable) */}
+        {/* Amount + Currency row */}
         <View style={styles.amountRow}>
           <View style={[styles.field, styles.amountField]}>
             {amountType === AmountType.Variable ? (
@@ -263,7 +277,11 @@ export function CommitmentFormBody({
         {errors.amount ? <Text style={styles.err}>{errors.amount}</Text> : null}
 
         {/* Category picker row */}
-        <Pressable style={styles.field} onPress={onOpenCategoryPicker} disabled={locked}>
+        <Pressable
+          style={styles.field}
+          onPress={() => setCategoryPickerVisible(true)}
+          disabled={locked}
+        >
           <Text style={styles.fieldLabel}>{Strings.commitmentsFieldCategory}</Text>
           <View style={styles.fieldValue}>
             {selectedCategory ? (
@@ -284,7 +302,7 @@ export function CommitmentFormBody({
         <RecurrencePicker
           form={form}
           recurrencePreset={recurrencePreset}
-          onPresetChange={onRecurrencePresetChange}
+          onPresetChange={handleRecurrencePresetChange}
         />
 
         {/* Start Date */}
@@ -307,7 +325,7 @@ export function CommitmentFormBody({
         </Pressable>
         {errors.start_date ? <Text style={styles.err}>{errors.start_date}</Text> : null}
 
-        {formBodyState.showStartDatePicker && (
+        {bodyState.showStartDatePicker && (
           <DateTimePicker
             value={startDateAsDate}
             mode="date"
@@ -320,7 +338,11 @@ export function CommitmentFormBody({
         )}
 
         {/* Default Account (optional) */}
-        <Pressable style={styles.field} onPress={onOpenAccountPicker} disabled={locked}>
+        <Pressable
+          style={styles.field}
+          onPress={() => setAccountPickerVisible(true)}
+          disabled={locked}
+        >
           <View style={styles.fieldLabelRow}>
             <Text style={styles.fieldLabel}>{Strings.commitmentsFieldDefaultAccount}</Text>
             <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
@@ -347,8 +369,8 @@ export function CommitmentFormBody({
         <DurationPicker
           form={form}
           durationType={durationType}
-          onDurationTypeChange={onDurationTypeChange}
-          showEndDatePicker={formBodyState.showEndDatePicker}
+          onDurationTypeChange={handleDurationTypeChange}
+          showEndDatePicker={bodyState.showEndDatePicker}
           setShowEndDatePicker={(v) => {
             setShowEndDatePicker(v);
             if (v) setShowStartDatePicker(false);
@@ -396,20 +418,20 @@ export function CommitmentFormBody({
 
       {/* Pickers */}
       <CategoryPickerSheet
-        visible={categoryPickerVisible}
+        visible={bodyState.categoryPickerVisible}
         title={Strings.addTxPickCategoryTitle}
         categories={categories}
         selectedId={form.watch('category_id')}
-        onSelect={onSelectCategory}
-        onClose={onCloseCategoryPicker}
+        onSelect={selectCategory}
+        onClose={() => setCategoryPickerVisible(false)}
       />
       <AccountPickerSheet
-        visible={accountPickerVisible}
+        visible={bodyState.accountPickerVisible}
         title={Strings.addTxPickAccountTitle}
         accounts={accounts}
         selectedId={form.watch('account_id')}
-        onSelect={onSelectAccount}
-        onClose={onCloseAccountPicker}
+        onSelect={selectAccount}
+        onClose={() => setAccountPickerVisible(false)}
       />
     </KeyboardAvoidingView>
   );
@@ -489,19 +511,9 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     paddingHorizontal: Spacing.xs,
   },
-  chipRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  currencyChipRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-  },
-  currencyChip: {
-    flex: 1,
-    alignItems: 'center',
-  },
+  chipRow: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap' },
+  currencyChipRow: { flexDirection: 'row', gap: Spacing.xs },
+  currencyChip: { flex: 1, alignItems: 'center' },
   chip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -509,22 +521,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.dark.border,
   },
-  chipActive: {
-    borderColor: Colors.shared.cairoGold,
-    backgroundColor: CHIP_ACTIVE_BG,
-  },
+  chipActive: { borderColor: Colors.shared.cairoGold, backgroundColor: CHIP_ACTIVE_BG },
   chipLabel: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.caption,
     color: Colors.dark.text2,
   },
-  chipLabelActive: {
-    color: Colors.shared.cairoGold,
-  },
-  amountRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
+  chipLabelActive: { color: Colors.shared.cairoGold },
+  amountRow: { flexDirection: 'row', gap: Spacing.sm },
   amountField: { flex: 3 },
   currencyField: { flex: 2 },
   notesInput: {
@@ -548,10 +552,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.dark.surface,
   },
-  ctaPress: {
-    borderRadius: Radius.cta,
-    overflow: 'hidden',
-  },
+  ctaPress: { borderRadius: Radius.cta, overflow: 'hidden' },
   cta: {
     height: Size.ctaHeight,
     borderRadius: Radius.cta,
