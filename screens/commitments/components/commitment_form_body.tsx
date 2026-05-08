@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -104,6 +105,9 @@ export function CommitmentFormBody({
       style={styles.kav}
     >
       <View style={styles.header}>
+        <Pressable onPress={() => router.back()} hitSlop={8}>
+          <MaterialCommunityIcons name="arrow-left" size={ms(22)} color={Colors.dark.text1} />
+        </Pressable>
         <Text style={styles.headerTitle}>{title}</Text>
       </View>
 
@@ -318,6 +322,9 @@ export function CommitmentFormBody({
 const styles = StyleSheet.create({
   kav: { flex: 1 },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,

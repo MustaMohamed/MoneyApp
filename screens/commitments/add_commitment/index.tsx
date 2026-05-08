@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
@@ -22,7 +23,7 @@ export default function AddCommitmentScreen() {
   } = useAddCommitment();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <CommitmentFormBody
         form={form}
         amountType={state.amountType}
@@ -47,7 +48,7 @@ export default function AddCommitmentScreen() {
         onSubmit={onSubmit}
         title={Strings.commitmentsAddTitle}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 

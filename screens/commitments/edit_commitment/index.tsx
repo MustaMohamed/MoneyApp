@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
@@ -26,7 +27,7 @@ export default function EditCommitmentScreen() {
   } = useEditCommitment();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -66,7 +67,7 @@ export default function EditCommitmentScreen() {
         onCancel={cancelDeactivate}
         onConfirm={confirmDeactivate}
       />
-    </View>
+    </SafeAreaView>
   );
 }
 
