@@ -96,6 +96,7 @@ export function useEditCommitment() {
           data.duration_type === DurationType.AfterCount ? (data.end_after_count ?? null) : null,
       });
       reset();
+      form.reset();
       router.back();
     } catch {
       // error logged by store

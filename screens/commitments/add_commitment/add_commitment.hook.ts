@@ -44,7 +44,7 @@ export function useAddCommitment() {
       reset();
       form.reset(buildAddDefaults());
     };
-  }, [reset]);
+  }, [reset, form]);
 
   async function onValid(data: CommitmentFormValues) {
     setSaving(true);
