@@ -139,7 +139,7 @@ export function usePaySheet(
     return () => {
       cancelled = true;
     };
-  }, [paySheetState.visible, commitment?.id]);
+  }, [paySheetState.visible, commitment?.id, payment?.id]);
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;

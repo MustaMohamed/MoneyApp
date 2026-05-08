@@ -176,7 +176,9 @@ export function PaySheet({ commitment, payment }: Props) {
           {state.requiresRate && convertedTotal != null ? (
             <View style={styles.convertedRow}>
               <Text style={styles.convertedLabel}>= </Text>
-              <Text style={styles.convertedValue}>{numberFmt.format(convertedTotal)} EGP</Text>
+              <Text style={styles.convertedValue}>
+                {numberFmt.format(convertedTotal)} {state.selectedAccount?.currency}
+              </Text>
             </View>
           ) : null}
 
