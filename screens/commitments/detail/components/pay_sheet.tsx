@@ -5,7 +5,7 @@ import { Controller } from 'react-hook-form';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import ActionSheet, { ScrollView, type ActionSheetRef } from 'react-native-actions-sheet';
 
-import { AmountType } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
@@ -27,6 +27,10 @@ export function PaySheet({ commitment, payment }: Props) {
   const sheetRef = useRef<ActionSheetRef>(null);
   const { form, state, onSubmit, openAccountPicker, closeAccountPicker, selectAccount } =
     usePaySheet(commitment, payment);
+
+  const isAlreadyPaid =
+    payment?.status === CommitmentPaymentStatus.Paid ||
+    payment?.status === CommitmentPaymentStatus.Skipped;
 
   useEffect(() => {
     if (state.visible) sheetRef.current?.show();
@@ -67,7 +71,8 @@ export function PaySheet({ commitment, payment }: Props) {
             </Text>
             {payment ? (
               <Text style={styles.headerSub}>
-                {payment.due_date} · {payment.currency}
+                {payment.due_date} · {payment.currency} ·{' '}
+                {isVariable ? Strings.commitmentsAmountVariable : Strings.commitmentsAmountFixed}
               </Text>
             ) : null}
           </View>
@@ -75,24 +80,35 @@ export function PaySheet({ commitment, payment }: Props) {
           {/* Amount */}
           <View style={styles.field}>
             <Text style={styles.label}>{Strings.commitmentsPayAmount}</Text>
-            <Controller
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <TextInput
-                  style={[styles.input, amountError ? styles.inputError : null]}
-                  value={field.value > 0 ? String(field.value) : ''}
-                  onChangeText={(v) => {
-                    const parsed = parseFloat(v);
-                    field.onChange(isNaN(parsed) ? 0 : parsed);
-                  }}
-                  keyboardType="decimal-pad"
-                  placeholder={isVariable ? Strings.commitmentsAmountPlaceholder : undefined}
-                  placeholderTextColor={Colors.dark.text2}
-                  returnKeyType="done"
-                />
-              )}
-            />
+            <View style={styles.amountRow}>
+              <Controller
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                  <TextInput
+                    style={[
+                      styles.input,
+                      styles.amountInput,
+                      amountError ? styles.inputError : null,
+                    ]}
+                    value={field.value > 0 ? String(field.value) : ''}
+                    onChangeText={(v) => {
+                      const parsed = parseFloat(v);
+                      field.onChange(isNaN(parsed) ? 0 : parsed);
+                    }}
+                    keyboardType="decimal-pad"
+                    placeholder={isVariable ? Strings.commitmentsAmountPlaceholder : undefined}
+                    placeholderTextColor={Colors.dark.text2}
+                    returnKeyType="done"
+                  />
+                )}
+              />
+              {commitment ? (
+                <View style={styles.currencyChip}>
+                  <Text style={styles.currencyChipText}>{commitment.currency}</Text>
+                </View>
+              ) : null}
+            </View>
             {amountError ? <Text style={styles.errText}>{amountError}</Text> : null}
           </View>
 
@@ -206,8 +222,12 @@ export function PaySheet({ commitment, payment }: Props) {
           </View>
 
           {/* CTA */}
-          <View style={[styles.footer, state.saving && styles.ctaDisabled]}>
-            <Pressable style={styles.ctaPress} onPress={onSubmit} disabled={state.saving}>
+          <View style={[styles.footer, (state.saving || isAlreadyPaid) && styles.ctaDisabled]}>
+            <Pressable
+              style={styles.ctaPress}
+              onPress={onSubmit}
+              disabled={state.saving || isAlreadyPaid}
+            >
               <LinearGradient
                 colors={[Colors.shared.cairoGold, Colors.dark.gold]}
                 start={{ x: 0, y: 0 }}
@@ -283,6 +303,29 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: Colors.dark.negative,
+  },
+  amountRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  amountInput: {
+    flex: 1,
+  },
+  currencyChip: {
+    backgroundColor: Colors.dark.surfaceEl,
+    borderRadius: Radius.md,
+    borderWidth: 1,
+    borderColor: Colors.dark.border,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Platform.OS === 'ios' ? Spacing.sm : Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  currencyChipText: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
+    color: Colors.dark.text2,
   },
   notesInput: {
     minHeight: ms(72),
