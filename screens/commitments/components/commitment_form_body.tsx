@@ -107,20 +107,20 @@ export function CommitmentFormBody({
     : Strings.commitmentDateInputFormat;
 
   function handleAmountTypeChange(v: AmountType) {
-    form.setValue('amount_type', v);
+    form.setValue('amount_type', v, { shouldDirty: true });
     if (v === AmountType.Variable) form.setValue('amount', undefined);
   }
 
   function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
     const mapped = PRESET_MAP[preset];
     if (mapped) {
-      form.setValue('recurrence_every', mapped.every);
-      form.setValue('recurrence_period', mapped.period);
+      form.setValue('recurrence_every', mapped.every, { shouldDirty: true });
+      form.setValue('recurrence_period', mapped.period, { shouldDirty: true });
     }
   }
 
   function handleDurationTypeChange(type: DurationType) {
-    form.setValue('duration_type', type);
+    form.setValue('duration_type', type, { shouldDirty: true });
     if (type !== DurationType.UntilDate) form.setValue('end_date', undefined);
     if (type !== DurationType.AfterCount) form.setValue('end_after_count', undefined);
   }
@@ -264,7 +264,7 @@ export function CommitmentFormBody({
                   <Pressable
                     key={c}
                     style={[styles.chip, styles.currencyChip, active && styles.chipActive]}
-                    onPress={() => form.setValue('currency', c)}
+                    onPress={() => form.setValue('currency', c, { shouldDirty: true })}
                     disabled={locked}
                   >
                     <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{c}</Text>
