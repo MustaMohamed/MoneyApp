@@ -39,6 +39,7 @@ export default function TabsLayout() {
         options={{
           title: 'Commitments',
           tabBarIcon: ({ color }) => tabIcon('calendar-check', color),
+          // @ts-expect-error: unmountOnBlur is a valid React Navigation tab option not yet typed in expo-router
           unmountOnBlur: true,
         }}
       />
