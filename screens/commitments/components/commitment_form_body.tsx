@@ -25,7 +25,7 @@ import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/com
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import type { CommitmentFormValues } from '../add_commitment/add_commitment.hook';
+import type { CommitmentFormValues } from '../commitment_form.shared';
 import { RecurrencePicker } from './recurrence_picker';
 import { DurationPicker } from './duration_picker';
 import { useCommitmentFormBodyState } from './commitment_form_body.state';
@@ -92,6 +92,7 @@ export function CommitmentFormBody({
 }: CommitmentFormBodyProps) {
   const currency = form.watch('currency');
   const start_date = form.watch('start_date');
+  console.log({ currency });
 
   const {
     state: formBodyState,
@@ -142,10 +143,15 @@ export function CommitmentFormBody({
       style={styles.kav}
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
-          <MaterialCommunityIcons name="arrow-left" size={ms(22)} color={Colors.dark.text1} />
+        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={Size.iconBack}
+            color={Colors.dark.text2}
+          />
         </Pressable>
         <Text style={styles.headerTitle}>{title}</Text>
+        <View style={styles.backBtn} />
       </View>
 
       <ScrollView
@@ -198,68 +204,52 @@ export function CommitmentFormBody({
           </View>
         </View>
 
-        {/* Amount + Currency (Fixed only) */}
-        {amountType === AmountType.Fixed && (
-          <View style={styles.amountRow}>
-            <View style={[styles.field, styles.amountField]}>
-              <Text style={styles.fieldLabel}>{Strings.commitmentsFieldAmount}</Text>
-              <Controller
-                control={form.control}
-                name="amount"
-                render={({ field: { value, onChange, onBlur } }) => (
-                  <TextInput
-                    style={[styles.textInput, errors.amount ? styles.inputError : null]}
-                    value={value != null ? String(value) : ''}
-                    onChangeText={(v) => {
-                      const n = parseFloat(v);
-                      onChange(isNaN(n) ? undefined : n);
-                    }}
-                    onBlur={onBlur}
-                    keyboardType="decimal-pad"
-                    placeholder={Strings.commitmentsAmountPlaceholder}
-                    placeholderTextColor={Colors.dark.text2}
-                    editable={!locked}
-                    multiline={false}
-                    numberOfLines={1}
-                  />
-                )}
-              />
-            </View>
-            <View style={[styles.field, styles.currencyField]}>
-              <Text style={styles.fieldLabel}>{Strings.commitmentsFieldCurrency}</Text>
-              <View style={styles.chipRow}>
-                {CURRENCIES.map((c) => {
-                  const active = currency === c;
-                  return (
-                    <Pressable
-                      key={c}
-                      style={[styles.chip, active && styles.chipActive]}
-                      onPress={() => form.setValue('currency', c)}
-                      disabled={locked}
-                    >
-                      <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{c}</Text>
-                    </Pressable>
-                  );
-                })}
+        {/* Amount + Currency row (both Fixed and Variable) */}
+        <View style={styles.amountRow}>
+          <View style={[styles.field, styles.amountField]}>
+            {amountType === AmountType.Variable ? (
+              <View style={styles.fieldLabelRow}>
+                <Text style={styles.fieldLabel}>{Strings.commitmentsFieldEstimatedAmount}</Text>
+                <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
               </View>
-            </View>
+            ) : (
+              <Text style={styles.fieldLabel}>{Strings.commitmentsFieldAmount}</Text>
+            )}
+            <Controller
+              control={form.control}
+              name="amount"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <TextInput
+                  style={[styles.textInput, errors.amount ? styles.inputError : null]}
+                  value={value != null ? String(value) : ''}
+                  onChangeText={(v) => {
+                    const n = parseFloat(v);
+                    onChange(isNaN(n) ? undefined : n);
+                  }}
+                  onBlur={onBlur}
+                  keyboardType="decimal-pad"
+                  placeholder={
+                    amountType === AmountType.Variable
+                      ? Strings.commitmentsEstimatedAmountPlaceholder
+                      : Strings.commitmentsAmountPlaceholder
+                  }
+                  placeholderTextColor={Colors.dark.text2}
+                  editable={!locked}
+                  multiline={false}
+                  numberOfLines={1}
+                />
+              )}
+            />
           </View>
-        )}
-        {amountType === AmountType.Fixed && errors.amount ? (
-          <Text style={styles.err}>{errors.amount}</Text>
-        ) : null}
-
-        {/* Currency chip (Variable) */}
-        {amountType === AmountType.Variable && (
-          <View style={styles.field}>
+          <View style={[styles.field, styles.currencyField]}>
             <Text style={styles.fieldLabel}>{Strings.commitmentsFieldCurrency}</Text>
-            <View style={styles.chipRow}>
+            <View style={styles.currencyChipRow}>
               {CURRENCIES.map((c) => {
                 const active = currency === c;
                 return (
                   <Pressable
                     key={c}
-                    style={[styles.chip, active && styles.chipActive]}
+                    style={[styles.chip, styles.currencyChip, active && styles.chipActive]}
                     onPress={() => form.setValue('currency', c)}
                     disabled={locked}
                   >
@@ -269,37 +259,8 @@ export function CommitmentFormBody({
               })}
             </View>
           </View>
-        )}
-
-        {/* Estimated Amount (Variable only) */}
-        {amountType === AmountType.Variable && (
-          <Controller
-            control={form.control}
-            name="amount"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <View style={styles.field}>
-                <View style={styles.fieldLabelRow}>
-                  <Text style={styles.fieldLabel}>{Strings.commitmentsFieldEstimatedAmount}</Text>
-                  <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
-                </View>
-                <TextInput
-                  style={styles.textInput}
-                  value={value != null ? String(value) : ''}
-                  onChangeText={(v) => {
-                    const n = parseFloat(v);
-                    onChange(isNaN(n) ? undefined : n);
-                  }}
-                  onBlur={onBlur}
-                  keyboardType="decimal-pad"
-                  multiline={false}
-                  numberOfLines={1}
-                  placeholder={Strings.commitmentsEstimatedAmountPlaceholder}
-                  placeholderTextColor={Colors.dark.text2}
-                />
-              </View>
-            )}
-          />
-        )}
+        </View>
+        {errors.amount ? <Text style={styles.err}>{errors.amount}</Text> : null}
 
         {/* Category picker row */}
         <Pressable style={styles.field} onPress={onOpenCategoryPicker} disabled={locked}>
@@ -457,18 +418,26 @@ export function CommitmentFormBody({
 const styles = StyleSheet.create({
   kav: { flex: 1 },
   header: {
+    height: Size.headerHeight,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.dark.border,
   },
+  backBtn: {
+    width: Size.backBtn,
+    height: Size.backBtn,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   headerTitle: {
+    flex: 1,
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.subhead,
     color: Colors.dark.text1,
+    textAlign: 'center',
   },
   scroll: { flex: 1, paddingHorizontal: Spacing.md },
   scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md, paddingTop: Spacing.sm },
@@ -525,6 +494,14 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
     flexWrap: 'wrap',
   },
+  currencyChipRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  currencyChip: {
+    flex: 1,
+    alignItems: 'center',
+  },
   chip: {
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.xxs,
@@ -548,8 +525,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  amountField: { flex: 2 },
-  currencyField: { flex: 1 },
+  amountField: { flex: 3 },
+  currencyField: { flex: 2 },
   notesInput: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,
