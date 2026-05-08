@@ -12,6 +12,7 @@ import { useDashboard } from './dashboard.hook';
 import { useDashboardAnim } from './dashboard.anim';
 import { HeroCard } from './components/hero_card';
 import { StatCards } from './components/stat_cards';
+import { CommitmentsCard } from './components/commitments_card';
 import { SectionHeader } from './components/section_header';
 import { AccountCarousel } from './components/account_carousel';
 import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
@@ -33,8 +34,15 @@ const SECTION_TITLES: Record<AccountType, string> = {
 };
 
 export default function DashboardScreen() {
-  const { state, setBreakdownVisible, refresh, goToAccount, goToAddAccount, goToSettings } =
-    useDashboard();
+  const {
+    state,
+    setBreakdownVisible,
+    refresh,
+    goToAccount,
+    goToAddAccount,
+    goToSettings,
+    goToCommitments,
+  } = useDashboard();
   const { heroStyle, startEntrance, statsEntering, sectionEntering } = useDashboardAnim();
 
   useEffect(() => {
@@ -84,6 +92,15 @@ export default function DashboardScreen() {
           <Animated.View entering={statsEntering}>
             <StatCards netWorthEgp={state.netWorth.netWorthEgp} monthSpentEgp={0} />
           </Animated.View>
+
+          <CommitmentsCard
+            paidCount={state.commitments.paidCount}
+            totalCount={state.commitments.totalCount}
+            overdueCount={state.commitments.overdueCount}
+            totalCommitted={state.commitments.totalCommitted}
+            currency={state.commitments.currency}
+            onPress={goToCommitments}
+          />
 
           {visibleTypes.map((type, index) => (
             <Animated.View key={type} entering={sectionEntering(index)}>

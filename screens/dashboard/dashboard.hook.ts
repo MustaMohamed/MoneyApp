@@ -6,6 +6,7 @@ import { getDb } from '@/database/client';
 import { getAccountsStats } from '@/database/account_stats';
 import { useAccountStore } from '@/store/account.store';
 import { useCurrencyStore } from '@/store/currency.store';
+import { useCommitmentStore } from '@/store/commitment.store';
 import { useDashboardState } from './dashboard.state';
 import { useDashboardStore } from './dashboard.store';
 import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
@@ -17,6 +18,21 @@ export function useDashboard() {
     useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
   );
   const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
+  const {
+    getPaidCount,
+    getTotalCount,
+    getOverdue,
+    getTotalMonthlyCommitted,
+    state: commitmentState,
+  } = useCommitmentStore(
+    useShallow((s) => ({
+      getPaidCount: s.getPaidCount,
+      getTotalCount: s.getTotalCount,
+      getOverdue: s.getOverdue,
+      getTotalMonthlyCommitted: s.getTotalMonthlyCommitted,
+      state: s.state,
+    })),
+  );
   const {
     state: dashUiState,
     setBreakdownVisible,
@@ -71,9 +87,16 @@ export function useDashboard() {
     [accountState.accounts],
   );
 
+  const paidCount = getPaidCount();
+  const totalCount = getTotalCount();
+  const overdueCount = getOverdue().length;
+  const totalCommitted = getTotalMonthlyCommitted();
+  const commitmentCurrency = commitmentState.payments[0]?.currency ?? 'EGP';
+
   const goToAccount = (id: string) => router.push(`/accounts/${id}`);
   const goToAddAccount = () => router.push('/accounts/add_account');
   const goToSettings = () => router.push('/settings');
+  const goToCommitments = useCallback(() => router.push('/(app)/(tabs)/commitments'), [router]);
 
   return {
     state: {
@@ -85,11 +108,19 @@ export function useDashboard() {
       statsMap: dashDataState.statsMap,
       isBreakdownVisible: dashUiState.isBreakdownVisible,
       refreshing: dashUiState.refreshing,
+      commitments: {
+        paidCount,
+        totalCount,
+        overdueCount,
+        totalCommitted,
+        currency: commitmentCurrency,
+      },
     },
     setBreakdownVisible,
     refresh,
     goToAccount,
     goToAddAccount,
     goToSettings,
+    goToCommitments,
   };
 }
