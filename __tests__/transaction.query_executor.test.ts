@@ -6,6 +6,7 @@ import { Currency, TransactionType } from '@/constants/enums';
 import {
   addTransaction,
   deleteTransaction,
+  getMonthExpenseStats,
   getTransactionById,
   getTransactions,
   getTransactionsByAccount,
@@ -43,6 +44,7 @@ beforeAll(() => {
       __fakeDb: {
         runAsync: jest.Mock;
         getAllAsync: jest.Mock;
+        getFirstAsync: jest.Mock;
         withTransactionAsync: jest.Mock;
       };
     }
@@ -57,6 +59,11 @@ beforeAll(() => {
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
     return realDb.prepare(sql).all(...(params as never[]));
+  });
+
+  mocked.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
+    return realDb.prepare(sql).get(...(params as never[])) ?? null;
   });
 
   mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
@@ -972,5 +979,102 @@ describe('deleteTransaction — cc_payment null to_amount fallback (legacy row)'
       .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_asset'")
       .get() as { current_balance: number };
     expect(asset.current_balance).toBe(1000);
+  });
+});
+
+describe('getMonthExpenseStats', () => {
+  beforeEach(() => {
+    realDb.exec('DELETE FROM transactions');
+    realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc_asset'").run();
+  });
+
+  it('returns zeros for a month with no expenses', async () => {
+    const stats = await getMonthExpenseStats(mockDb, '2026-03');
+    expect(stats).toEqual({ totalEgp: 0, egpNative: 0, usdNative: 0, count: 0 });
+  });
+
+  it('returns zeros when getFirstAsync returns null (covers row?? 0 branches)', async () => {
+    // Use a custom mock db where getFirstAsync always returns null
+    const nullDb = {
+      getFirstAsync: jest.fn().mockResolvedValue(null),
+    } as unknown as Parameters<typeof getMonthExpenseStats>[0];
+    const stats = await getMonthExpenseStats(nullDb, '2026-03');
+    expect(stats).toEqual({ totalEgp: 0, egpNative: 0, usdNative: 0, count: 0 });
+  });
+
+  it('sums EGP expenses for a non-December month (covers month !== 12 branch)', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-mar-1',
+        type: TransactionType.Expense,
+        amount: 200,
+        currency: Currency.EGP,
+        egp_amount: 200,
+        transaction_date: '2026-03-15',
+      }),
+    );
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-mar-2',
+        type: TransactionType.Expense,
+        amount: 100,
+        currency: Currency.EGP,
+        egp_amount: 100,
+        transaction_date: '2026-03-28',
+      }),
+    );
+    const stats = await getMonthExpenseStats(mockDb, '2026-03');
+    expect(stats.totalEgp).toBe(300);
+    expect(stats.egpNative).toBe(300);
+    expect(stats.usdNative).toBe(0);
+    expect(stats.count).toBe(2);
+  });
+
+  it('wraps correctly for December (covers month === 12 branch: nextMonth=1, nextYear+1)', async () => {
+    // Expense in December 2025 — should be inside [2025-12-01, 2026-01-01)
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-dec',
+        type: TransactionType.Expense,
+        amount: 500,
+        currency: Currency.EGP,
+        egp_amount: 500,
+        transaction_date: '2025-12-20',
+      }),
+    );
+    // Expense in January 2026 — should NOT be included
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-jan',
+        type: TransactionType.Expense,
+        amount: 999,
+        currency: Currency.EGP,
+        egp_amount: 999,
+        transaction_date: '2026-01-01',
+      }),
+    );
+    const stats = await getMonthExpenseStats(mockDb, '2025-12');
+    expect(stats.totalEgp).toBe(500);
+    expect(stats.count).toBe(1);
+  });
+
+  it('excludes non-expense types (income, transfer, cc_payment)', async () => {
+    await addTransaction(
+      mockDb,
+      makeTx({
+        id: 'tx-inc',
+        type: TransactionType.Income,
+        amount: 1000,
+        currency: Currency.EGP,
+        egp_amount: 1000,
+        transaction_date: '2026-03-10',
+      }),
+    );
+    const stats = await getMonthExpenseStats(mockDb, '2026-03');
+    expect(stats.count).toBe(0);
   });
 });
