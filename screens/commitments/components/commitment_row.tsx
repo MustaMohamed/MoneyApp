@@ -27,6 +27,16 @@ const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const STATUS_ICONS: Record<CommitmentPaymentStatus, IconName> = {
+  [CommitmentPaymentStatus.Overdue]: 'alert-circle',
+  [CommitmentPaymentStatus.Due]: 'clock-outline',
+  [CommitmentPaymentStatus.Upcoming]: 'calendar-clock',
+  [CommitmentPaymentStatus.Paid]: 'check-circle',
+  [CommitmentPaymentStatus.Skipped]: 'minus-circle',
+};
+
 interface CommitmentRowProps {
   payment: CommitmentPayment;
   commitment: Commitment | undefined;
@@ -43,8 +53,12 @@ export function CommitmentRow({ payment, commitment, category, onPress }: Commit
   const statusColor = STATUS_COLORS[payment.status];
   const statusLabel = STATUS_LABELS[payment.status];
   const isVariable = commitment?.amount_type === AmountType.Variable;
-  const amount = payment.amount_due ?? commitment?.amount;
+  const isPaid = payment.status === CommitmentPaymentStatus.Paid;
+  const amount = isPaid
+    ? (payment.amount_paid ?? payment.amount_due ?? commitment?.amount)
+    : (payment.amount_due ?? commitment?.amount);
   const formattedAmount = amount != null ? numberFmt.format(amount) : '—';
+  const showTilde = isVariable && !isPaid;
   const iconBg = category?.color ? `${category.color}2E` : Colors.dark.surfaceEl;
 
   return (
@@ -71,10 +85,17 @@ export function CommitmentRow({ payment, commitment, category, onPress }: Commit
         </View>
         <View style={styles.right}>
           <Text style={styles.amount}>
-            {isVariable ? '~' : ''}
+            {showTilde ? '~' : ''}
             {formattedAmount} {payment.currency}
           </Text>
-          <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}22` }]}>
+            <MaterialCommunityIcons
+              name={STATUS_ICONS[payment.status]}
+              size={msFont(11)}
+              color={statusColor}
+            />
+            <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
+          </View>
         </View>
       </Animated.View>
     </Pressable>
@@ -112,15 +133,22 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
     marginTop: 2,
   },
-  right: { alignItems: 'flex-end' },
+  right: { alignItems: 'flex-end', gap: ms(4) },
   amount: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.bodyStrong,
     color: Colors.dark.text1,
   },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(3),
+    paddingHorizontal: ms(6),
+    paddingVertical: ms(2),
+    borderRadius: Radius.pill,
+  },
   statusText: {
-    fontFamily: FontFamily.interRegular,
+    fontFamily: FontFamily.interMedium,
     fontSize: msFont(10),
-    marginTop: 2,
   },
 });

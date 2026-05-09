@@ -55,13 +55,13 @@ export default function CommitmentDetailScreen() {
           <DetailHero
             commitment={state.commitment}
             category={state.category}
-            payment={state.currentPayment}
+            payment={state.payment}
             recurrenceLabel={state.recurrenceLabel}
           />
 
-          {state.currentPayment && (
+          {state.payment && (
             <CurrentCycleCard
-              payment={state.currentPayment}
+              payment={state.payment}
               commitment={state.commitment}
               onMarkAsPaid={openPaySheet}
               onSkip={confirmSkip}
@@ -81,7 +81,7 @@ export default function CommitmentDetailScreen() {
         </ScrollView>
       )}
 
-      <PaySheet commitment={state.commitment} payment={state.currentPayment} />
+      <PaySheet commitment={state.commitment} payment={state.payment} />
 
       <SkipConfirmDialog
         visible={state.skipConfirmVisible}

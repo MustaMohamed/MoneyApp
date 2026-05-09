@@ -1,9 +1,5 @@
-import { useSharedValue, withSpring, withTiming } from 'react-native-reanimated';
+import { useSharedValue, withSequence, withSpring, withTiming } from 'react-native-reanimated';
 
-/**
- * Press-feedback for a commitment row. Mirrors useRowPressScale from
- * transactions.anim — scale down slightly on press, spring back on release.
- */
 export function useRowPressScale() {
   const scale = useSharedValue(1);
   return {
@@ -13,6 +9,19 @@ export function useRowPressScale() {
     },
     onPressOut: () => {
       scale.value = withSpring(1, { damping: 12, stiffness: 180 });
+    },
+  };
+}
+
+export function useChipPressScale() {
+  const scale = useSharedValue(1);
+  return {
+    scale,
+    pop: () => {
+      scale.value = withSequence(
+        withTiming(1.05, { duration: 100 }),
+        withSpring(1, { damping: 14, stiffness: 200 }),
+      );
     },
   };
 }

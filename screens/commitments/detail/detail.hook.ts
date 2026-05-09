@@ -186,9 +186,9 @@ export function useCommitmentDetail() {
   }, []);
 
   const skipPayment = useCallback(async () => {
-    if (!currentPayment) return;
+    if (!payment) return;
     try {
-      await storeSkipPayment(currentPayment.id);
+      await storeSkipPayment(payment.id);
       // Reload allPayments after skip
       if (commitment) {
         const updated = await commitmentRepository.getPaymentsByCommitment(commitment.id);
@@ -199,7 +199,7 @@ export function useCommitmentDetail() {
     } finally {
       setSkipConfirmVisible(false);
     }
-  }, [currentPayment, storeSkipPayment, commitment, setAllPayments, setSkipConfirmVisible]);
+  }, [payment, storeSkipPayment, commitment, setAllPayments, setSkipConfirmVisible]);
 
   const confirmSkip = useCallback(() => {
     setSkipConfirmVisible(true);

@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useCommitmentStore } from '@/store/commitment.store';
 import { useCategoryStore } from '@/store/category.store';
-import { AmountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
@@ -34,8 +34,16 @@ export function useCommitments() {
   );
 
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-  const { state: screenState, setRefreshing } = useCommitmentsScreenState(
-    useShallow((s) => ({ state: s.state, setRefreshing: s.setRefreshing })),
+  const {
+    state: screenState,
+    setRefreshing,
+    setStatusFilter,
+  } = useCommitmentsScreenState(
+    useShallow((s) => ({
+      state: s.state,
+      setRefreshing: s.setRefreshing,
+      setStatusFilter: s.setStatusFilter,
+    })),
   );
 
   const categoriesById = useMemo(
@@ -49,7 +57,11 @@ export function useCommitments() {
   );
 
   const sections: CommitmentsSection[] = useMemo(() => {
-    const allPayments = commitmentState.payments;
+    const filter = screenState.statusFilter;
+    const allPayments =
+      filter === 'all'
+        ? commitmentState.payments
+        : commitmentState.payments.filter((p) => p.status === filter);
     const result: CommitmentsSection[] = [];
     const overdue = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
     const dueToday = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Due);
@@ -62,35 +74,57 @@ export function useCommitments() {
     if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
     if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
     return result;
-  }, [commitmentState.payments]);
+  }, [commitmentState.payments, screenState.statusFilter]);
 
-  const paidCount = useMemo(
-    () => commitmentState.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
-    [commitmentState.payments],
-  );
-  const totalCount = useMemo(
-    () =>
-      commitmentState.payments.filter(
-        (p: CommitmentPayment) => p.status !== CommitmentPaymentStatus.Skipped,
-      ).length,
-    [commitmentState.payments],
-  );
+  const counts = useMemo(() => {
+    let paid = 0;
+    let overdue = 0;
+    let due = 0;
+    let upcoming = 0;
+    let skipped = 0;
+    for (const p of commitmentState.payments) {
+      switch (p.status) {
+        case CommitmentPaymentStatus.Paid:
+          paid++;
+          break;
+        case CommitmentPaymentStatus.Overdue:
+          overdue++;
+          break;
+        case CommitmentPaymentStatus.Due:
+          due++;
+          break;
+        case CommitmentPaymentStatus.Upcoming:
+          upcoming++;
+          break;
+        case CommitmentPaymentStatus.Skipped:
+          skipped++;
+          break;
+      }
+    }
+    return {
+      paid,
+      overdue,
+      due,
+      upcoming,
+      skipped,
+      total: paid + overdue + due + upcoming, // excludes skipped
+    };
+  }, [commitmentState.payments]);
   const isEmpty = useMemo(() => commitmentState.payments.length === 0, [commitmentState.payments]);
 
-  const currency = useMemo(
-    () => commitmentState.payments[0]?.currency ?? Currency.EGP,
-    [commitmentState.payments],
-  );
-
-  const totalCommitted = useMemo(() => {
-    return commitmentState.payments.reduce((sum: number, p: CommitmentPayment) => {
-      if (p.status === CommitmentPaymentStatus.Skipped) return sum;
-      const commitment = commitmentsById.get(p.commitment_id);
-      if (!commitment || commitment.amount_type !== AmountType.Fixed) return sum;
-      if (p.amount_due == null) return sum;
-      return sum + p.amount_due;
-    }, 0);
-  }, [commitmentState.payments, commitmentsById]);
+  // Group totals by currency. For paid: actual paid amount; for variable+unpaid with no
+  // estimate: skipped (excluded). Skipped payments excluded entirely.
+  const totalsByCurrency = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const p of commitmentState.payments) {
+      if (p.status === CommitmentPaymentStatus.Skipped) continue;
+      const isPaid = p.status === CommitmentPaymentStatus.Paid;
+      const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
+      if (value == null) continue;
+      totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
+    }
+    return totals;
+  }, [commitmentState.payments]);
 
   const selectedMonthRef = useRef(commitmentState.selectedMonth);
   selectedMonthRef.current = commitmentState.selectedMonth;
@@ -150,12 +184,11 @@ export function useCommitments() {
     state: {
       sections,
       selectedMonth: commitmentState.selectedMonth,
-      paidCount,
-      totalCount,
-      totalCommitted,
+      counts,
+      totalsByCurrency,
       refreshing: screenState.refreshing,
       isEmpty,
-      currency,
+      statusFilter: screenState.statusFilter,
       categoriesById,
       commitmentsById,
     },
@@ -163,5 +196,6 @@ export function useCommitments() {
     onRefresh,
     goToDetail,
     goToAdd,
+    setStatusFilter,
   };
 }

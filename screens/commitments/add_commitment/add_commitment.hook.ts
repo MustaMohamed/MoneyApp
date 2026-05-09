@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useRouter } from 'expo-router';
 
-import { AmountType, DurationType } from '@/constants/enums';
+import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCommitmentStore } from '@/store/commitment.store';
@@ -40,11 +40,8 @@ export function useAddCommitment() {
   });
 
   useEffect(() => {
-    return () => {
-      reset();
-      form.reset(buildAddDefaults());
-    };
-  }, [reset, form]);
+    return () => reset();
+  }, [reset]);
 
   async function onValid(data: CommitmentFormValues) {
     setSaving(true);
@@ -52,7 +49,7 @@ export function useAddCommitment() {
       await addCommitment({
         name: data.name,
         amount_type: data.amountType,
-        amount: data.amountType === AmountType.Fixed ? (data.amount ?? null) : null,
+        amount: data.amount ?? null,
         currency: data.currency,
         category_id: data.categoryId,
         recurrence_every: data.recurrenceEvery,

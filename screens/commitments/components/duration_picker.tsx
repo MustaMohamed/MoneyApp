@@ -1,15 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Controller } from 'react-hook-form';
+import { Controller, useWatch } from 'react-hook-form';
 
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-import { formatLongDate } from '@/utils/format_date';
+import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 import type { UseFormReturn } from 'react-hook-form';
-import type { CommitmentFormValues } from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -34,7 +34,7 @@ export function DurationPicker({
   showEndDatePicker,
   setShowEndDatePicker,
 }: Props) {
-  const endDate = form.watch('endDate');
+  const endDate = useWatch({ control: form.control, name: 'endDate' });
   const countError = form.formState.errors.endAfterCount?.message;
   const dateError = form.formState.errors.endDate?.message;
 
@@ -47,7 +47,7 @@ export function DurationPicker({
         value: endDateAsDate,
         mode: 'date',
         onChange: (_, d) => {
-          if (d) form.setValue('endDate', d.toISOString().slice(0, 10), { shouldDirty: true });
+          if (d) form.setValue('endDate', toLocalDateString(d), SET_OPTS);
         },
       });
     } else {
@@ -118,15 +118,22 @@ export function DurationPicker({
         </Pressable>
       )}
       {durationType === DurationType.UntilDate && showEndDatePicker && (
-        <DateTimePicker
-          value={endDateAsDate}
-          mode="date"
-          display="spinner"
-          themeVariant="dark"
-          onChange={(_, d) => {
-            if (d) form.setValue('endDate', d.toISOString().slice(0, 10), { shouldDirty: true });
-          }}
-        />
+        <View style={styles.iosPickerWrap}>
+          <View style={styles.iosPickerHeader}>
+            <Pressable hitSlop={8} onPress={() => setShowEndDatePicker(false)}>
+              <Text style={styles.iosPickerDone}>{Strings.commitmentsDone}</Text>
+            </Pressable>
+          </View>
+          <DateTimePicker
+            value={endDateAsDate}
+            mode="date"
+            display="spinner"
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) form.setValue('endDate', toLocalDateString(d), SET_OPTS);
+            }}
+          />
+        </View>
       )}
       {dateError ? <Text style={styles.err}>{dateError}</Text> : null}
     </View>
@@ -221,5 +228,20 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.negative,
+  },
+  iosPickerWrap: {
+    backgroundColor: Colors.dark.surfaceEl,
+    borderRadius: Radius.md,
+  },
+  iosPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.xs,
+  },
+  iosPickerDone: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
+    color: Colors.shared.cairoGold,
   },
 });

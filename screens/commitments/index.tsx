@@ -11,6 +11,7 @@ import { CommitmentRow } from './components/commitment_row';
 import { MonthNavigator } from './components/month_navigator';
 import { SummaryHeader } from './components/summary_header';
 import { CommitmentsEmptyState } from './components/empty_state';
+import { StatusFilterChips } from './components/status_filter_chips';
 import { DateHeader } from '@/screens/transactions/components/date_header';
 
 export default function CommitmentsScreen() {
@@ -51,12 +52,8 @@ export default function CommitmentsScreen() {
                 onPrev={() => t.navigateMonth('prev')}
                 onNext={() => t.navigateMonth('next')}
               />
-              <SummaryHeader
-                paidCount={t.state.paidCount}
-                totalCount={t.state.totalCount}
-                totalCommitted={t.state.totalCommitted}
-                currency={t.state.currency}
-              />
+              <SummaryHeader counts={t.state.counts} totalsByCurrency={t.state.totalsByCurrency} />
+              <StatusFilterChips active={t.state.statusFilter} onChange={t.setStatusFilter} />
             </>
           }
           refreshControl={

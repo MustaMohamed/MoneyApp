@@ -137,6 +137,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         await repo.update(id, data);
         await get().regeneratePayments(id);
         await get().loadCommitments();
+        await get().loadPaymentsForMonth(get().state.selectedMonth);
       } catch (err) {
         console.error('[commitmentStore] updateCommitment failed:', err);
         throw err;

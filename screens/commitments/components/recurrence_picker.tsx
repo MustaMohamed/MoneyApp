@@ -1,11 +1,11 @@
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-import type { UseFormReturn } from 'react-hook-form';
-import type { CommitmentFormValues } from '../commitment_form.shared';
+import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 
 interface Props {
   form: UseFormReturn<CommitmentFormValues>;
@@ -30,8 +30,7 @@ const PERIODS: { key: RecurrencePeriod; label: string }[] = [
 ];
 
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {
-  const recurrenceEvery = form.watch('recurrenceEvery');
-  const recurrencePeriod = form.watch('recurrencePeriod');
+  const recurrencePeriod = useWatch({ control: form.control, name: 'recurrencePeriod' });
   const everyError = form.formState.errors.recurrenceEvery?.message;
 
   return (
@@ -58,16 +57,27 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
       {recurrencePreset === RecurrencePreset.Custom && (
         <View style={styles.customRow}>
           <Text style={styles.everyLabel}>{Strings.commitmentsRecurrenceEvery}</Text>
-          <TextInput
-            style={[styles.everyInput, everyError ? styles.inputError : null]}
-            value={recurrenceEvery != null ? String(recurrenceEvery) : ''}
-            onChangeText={(v) => {
-              const n = parseInt(v, 10);
-              form.setValue('recurrenceEvery', isNaN(n) ? 1 : n);
-            }}
-            keyboardType="number-pad"
-            maxLength={3}
-            placeholderTextColor={Colors.dark.text2}
+          <Controller
+            control={form.control}
+            name="recurrenceEvery"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <TextInput
+                style={[styles.everyInput, everyError ? styles.inputError : null]}
+                value={value != null ? String(value) : ''}
+                onChangeText={(v) => {
+                  if (v === '') {
+                    onChange(undefined);
+                    return;
+                  }
+                  const n = parseInt(v, 10);
+                  if (!isNaN(n)) onChange(n);
+                }}
+                onBlur={onBlur}
+                keyboardType="number-pad"
+                maxLength={3}
+                placeholderTextColor={Colors.dark.text2}
+              />
+            )}
           />
           <View style={styles.periodChips}>
             {PERIODS.map(({ key, label }) => {
@@ -76,7 +86,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
                 <Pressable
                   key={key}
                   style={[styles.periodChip, active && styles.chipActive]}
-                  onPress={() => form.setValue('recurrencePeriod', key)}
+                  onPress={() => form.setValue('recurrencePeriod', key, SET_OPTS)}
                 >
                   <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
                 </Pressable>

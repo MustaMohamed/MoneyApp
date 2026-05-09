@@ -9,6 +9,7 @@ import {
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Commitment } from '@/database/entities/commitment.entity';
+import { toLocalDateString } from '@/utils/format_date';
 
 export const COMMITMENT_SCHEMA = z
   .object({
@@ -62,6 +63,8 @@ export const COMMITMENT_SCHEMA = z
 
 export type CommitmentFormValues = z.infer<typeof COMMITMENT_SCHEMA>;
 
+export const SET_OPTS = { shouldDirty: true, shouldValidate: true } as const;
+
 export const PRESET_MAP: Record<
   RecurrencePreset,
   { every: number; period: RecurrencePeriod } | null
@@ -73,7 +76,7 @@ export const PRESET_MAP: Record<
 };
 
 export function buildAddDefaults(): CommitmentFormValues {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalDateString(new Date());
   return {
     amountType: AmountType.Fixed,
     name: '',

@@ -12,6 +12,7 @@ function tabIcon(name: MCIName, color: string) {
 export default function TabsLayout() {
   return (
     <Tabs
+      initialRouteName="dashboard"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.shared.cairoGold,
@@ -22,7 +23,6 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="bills/index" options={{ href: null }} />
       <Tabs.Screen
         name="dashboard"
         options={{ title: 'Home', tabBarIcon: ({ color }) => tabIcon('home', color) }}
@@ -39,8 +39,7 @@ export default function TabsLayout() {
         options={{
           title: 'Commitments',
           tabBarIcon: ({ color }) => tabIcon('calendar-check', color),
-          // @ts-expect-error: unmountOnBlur is a valid React Navigation tab option not yet typed in expo-router
-          unmountOnBlur: true,
+          popToTopOnBlur: true,
         }}
       />
       <Tabs.Screen

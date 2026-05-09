@@ -11,6 +11,7 @@ import type { Account } from '@/database/entities/account.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { commitmentRepository } from '@/repositories/commitment.repository';
+import { toLocalDateString } from '@/utils/format_date';
 
 import { usePaySheetState } from './pay_sheet.state';
 
@@ -28,7 +29,7 @@ function buildDefaults(): PaySheetFormValues {
   return {
     amount: 0,
     account_id: '',
-    paid_date: new Date().toISOString().split('T')[0],
+    paid_date: toLocalDateString(new Date()),
     exchange_rate: undefined,
     notes: undefined,
   };
@@ -127,7 +128,7 @@ export function usePaySheet(
         form.reset({
           amount: prefillAmount,
           account_id: prefillAccountId,
-          paid_date: new Date().toISOString().split('T')[0],
+          paid_date: toLocalDateString(new Date()),
           exchange_rate: undefined,
           notes: undefined,
         });

@@ -82,23 +82,34 @@ export default function DashboardScreen() {
           <Animated.View style={heroStyle}>
             <HeroCard
               assetsEgp={state.netWorth.assetsEgp}
-              netWorthUsd={state.netWorth.netWorthUsd}
+              assetsUsd={state.netWorth.assetsUsd}
               rate={state.rate}
               isManualOverride={state.isManualOverride}
+              assetsCount={state.accountCounts.assets}
+              liabilitiesCount={state.accountCounts.liabilities}
               onPress={() => setBreakdownVisible(true)}
             />
           </Animated.View>
 
           <Animated.View entering={statsEntering}>
-            <StatCards netWorthEgp={state.netWorth.netWorthEgp} monthSpentEgp={0} />
+            <StatCards
+              netWorthEgp={state.netWorth.netWorthEgp}
+              assetsEgp={state.netWorth.assetsEgp}
+              liabilitiesEgp={state.netWorth.liabilitiesEgp}
+              assetsCount={state.accountCounts.assets}
+              liabilitiesCount={state.accountCounts.liabilities}
+              monthSpentEgp={state.monthSpend.currentEgp}
+              monthSpentUsd={state.monthSpend.currentUsdNative}
+              monthSpendDeltaPct={state.monthSpend.deltaPct}
+              monthSpendCount={state.monthSpend.currentCount}
+              spendYearMonth={state.monthSpend.yearMonth}
+            />
           </Animated.View>
 
           <CommitmentsCard
-            paidCount={state.commitments.paidCount}
-            totalCount={state.commitments.totalCount}
-            overdueCount={state.commitments.overdueCount}
-            totalCommitted={state.commitments.totalCommitted}
-            currency={state.commitments.currency}
+            counts={state.commitments.counts}
+            totalsByCurrency={state.commitments.totalsByCurrency}
+            yearMonth={state.commitments.yearMonth}
             onPress={goToCommitments}
           />
 

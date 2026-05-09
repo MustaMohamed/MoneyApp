@@ -1,16 +1,23 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
 import { getDb } from '@/database/client';
 import { getAccountsStats } from '@/database/account_stats';
+import { getMonthExpenseStats } from '@/database/transactions';
 import { useAccountStore } from '@/store/account.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useCommitmentStore } from '@/store/commitment.store';
-import { Currency } from '@/constants/enums';
+import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { commitmentRepository } from '@/repositories/commitment.repository';
+import { toLocalDateString } from '@/utils/format_date';
 import { useDashboardState } from './dashboard.state';
 import { useDashboardStore } from './dashboard.store';
 import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
+
+function getCurrentYearMonth(): string {
+  return toLocalDateString(new Date()).slice(0, 7);
+}
 
 export function useDashboard() {
   const router = useRouter();
@@ -19,21 +26,8 @@ export function useDashboard() {
     useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
   );
   const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
-  const {
-    getPaidCount,
-    getTotalCount,
-    getOverdue,
-    getTotalMonthlyCommitted,
-    state: commitmentState,
-  } = useCommitmentStore(
-    useShallow((s) => ({
-      getPaidCount: s.getPaidCount,
-      getTotalCount: s.getTotalCount,
-      getOverdue: s.getOverdue,
-      getTotalMonthlyCommitted: s.getTotalMonthlyCommitted,
-      state: s.state,
-    })),
-  );
+  const { state: commitmentState } = useCommitmentStore(useShallow((s) => ({ state: s.state })));
+  const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
   const {
     state: dashUiState,
     setBreakdownVisible,
@@ -45,9 +39,67 @@ export function useDashboard() {
       setRefreshing: s.setRefreshing,
     })),
   );
-  const { state: dashDataState, setStatsMap } = useDashboardStore(
-    useShallow((s) => ({ state: s.state, setStatsMap: s.setStatsMap })),
+  const {
+    state: dashDataState,
+    setStatsMap,
+    setCurrentMonthCommitmentPayments,
+    setMonthSpendStats,
+  } = useDashboardStore(
+    useShallow((s) => ({
+      state: s.state,
+      setStatsMap: s.setStatsMap,
+      setCurrentMonthCommitmentPayments: s.setCurrentMonthCommitmentPayments,
+      setMonthSpendStats: s.setMonthSpendStats,
+    })),
   );
+
+  const previousYearMonth = useMemo(() => {
+    const [y, m] = currentYearMonth.split('-').map(Number);
+    const prevM = m === 1 ? 12 : m - 1;
+    const prevY = m === 1 ? y - 1 : y;
+    return `${prevY}-${String(prevM).padStart(2, '0')}`;
+  }, [currentYearMonth]);
+
+  const loadMonthSpend = useCallback(async () => {
+    try {
+      const db = await getDb();
+      const [current, previous] = await Promise.all([
+        getMonthExpenseStats(db, currentYearMonth),
+        getMonthExpenseStats(db, previousYearMonth),
+      ]);
+      setMonthSpendStats(current, previous);
+    } catch (err) {
+      console.error('[dashboard] loadMonthSpend failed:', err);
+    }
+  }, [currentYearMonth, previousYearMonth, setMonthSpendStats]);
+
+  const loadCurrentMonthCommitmentPayments = useCallback(async () => {
+    try {
+      const payments = await commitmentRepository.getPaymentsForMonth(currentYearMonth);
+      setCurrentMonthCommitmentPayments(payments);
+    } catch (err) {
+      console.error('[dashboard] loadCurrentMonthCommitmentPayments failed:', err);
+    }
+  }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
+
+  // Reload when commitments change (added/edited/deactivated) or shared payments
+  // change (mark-as-paid/skip) — both signals indicate current month may have shifted.
+  useEffect(() => {
+    loadCurrentMonthCommitmentPayments();
+  }, [loadCurrentMonthCommitmentPayments, commitmentState.commitments, commitmentState.payments]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadCurrentMonthCommitmentPayments();
+      loadMonthSpend();
+    }, [loadCurrentMonthCommitmentPayments, loadMonthSpend]),
+  );
+
+  // Reload spend stats when accounts list changes (proxy for transaction add/edit/delete:
+  // those mutate balances which mutate accounts, triggering this effect).
+  useEffect(() => {
+    loadMonthSpend();
+  }, [loadMonthSpend, accountState.accounts]);
 
   const loadStats = useCallback(
     async (ids: string[]) => {
@@ -88,11 +140,63 @@ export function useDashboard() {
     [accountState.accounts],
   );
 
-  const paidCount = getPaidCount();
-  const totalCount = getTotalCount();
-  const overdueCount = getOverdue().length;
-  const totalCommitted = getTotalMonthlyCommitted();
-  const commitmentCurrency = commitmentState.payments[0]?.currency ?? Currency.EGP;
+  const spendDeltaPct = useMemo(() => {
+    const prev = dashDataState.previousMonthSpend.totalEgp;
+    const curr = dashDataState.currentMonthSpend.totalEgp;
+    if (prev <= 0) return null;
+    return Math.round(((curr - prev) / prev) * 100);
+  }, [dashDataState.currentMonthSpend, dashDataState.previousMonthSpend]);
+
+  const accountCounts = useMemo(() => {
+    let assets = 0;
+    let liabilities = 0;
+    for (const a of accountState.accounts) {
+      if (a.is_archived) continue;
+      if (a.type === AccountType.CreditCard) liabilities++;
+      else assets++;
+    }
+    return { assets, liabilities };
+  }, [accountState.accounts]);
+
+  const commitmentCounts = useMemo(() => {
+    let paid = 0;
+    let overdue = 0;
+    let due = 0;
+    let upcoming = 0;
+    let skipped = 0;
+    for (const p of dashDataState.currentMonthCommitmentPayments) {
+      switch (p.status) {
+        case CommitmentPaymentStatus.Paid:
+          paid++;
+          break;
+        case CommitmentPaymentStatus.Overdue:
+          overdue++;
+          break;
+        case CommitmentPaymentStatus.Due:
+          due++;
+          break;
+        case CommitmentPaymentStatus.Upcoming:
+          upcoming++;
+          break;
+        case CommitmentPaymentStatus.Skipped:
+          skipped++;
+          break;
+      }
+    }
+    return { paid, overdue, due, upcoming, skipped, total: paid + overdue + due + upcoming };
+  }, [dashDataState.currentMonthCommitmentPayments]);
+
+  const commitmentTotalsByCurrency = useMemo(() => {
+    const totals = new Map<string, number>();
+    for (const p of dashDataState.currentMonthCommitmentPayments) {
+      if (p.status === CommitmentPaymentStatus.Skipped) continue;
+      const isPaid = p.status === CommitmentPaymentStatus.Paid;
+      const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
+      if (value == null) continue;
+      totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
+    }
+    return totals;
+  }, [dashDataState.currentMonthCommitmentPayments]);
 
   const goToAccount = (id: string) => router.push(`/accounts/${id}`);
   const goToAddAccount = () => router.push('/accounts/add_account');
@@ -109,12 +213,19 @@ export function useDashboard() {
       statsMap: dashDataState.statsMap,
       isBreakdownVisible: dashUiState.isBreakdownVisible,
       refreshing: dashUiState.refreshing,
+      monthSpend: {
+        currentEgp: dashDataState.currentMonthSpend.totalEgp,
+        currentUsdNative: dashDataState.currentMonthSpend.usdNative,
+        currentCount: dashDataState.currentMonthSpend.count,
+        previousEgp: dashDataState.previousMonthSpend.totalEgp,
+        deltaPct: spendDeltaPct,
+        yearMonth: currentYearMonth,
+      },
+      accountCounts,
       commitments: {
-        paidCount,
-        totalCount,
-        overdueCount,
-        totalCommitted,
-        currency: commitmentCurrency,
+        counts: commitmentCounts,
+        totalsByCurrency: commitmentTotalsByCurrency,
+        yearMonth: currentYearMonth,
       },
     },
     setBreakdownVisible,

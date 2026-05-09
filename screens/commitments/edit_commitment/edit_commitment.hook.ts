@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
-import { AmountType, DurationType } from '@/constants/enums';
+import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCommitmentStore } from '@/store/commitment.store';
@@ -10,7 +10,6 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import {
   COMMITMENT_SCHEMA,
   type CommitmentFormValues,
-  buildAddDefaults,
   buildEditDefaults,
 } from '../commitment_form.shared';
 import { useEditCommitmentState } from './edit_commitment.state';
@@ -61,14 +60,14 @@ export function useEditCommitment() {
   const form = useZodForm(COMMITMENT_SCHEMA, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildAddDefaults(),
+    defaultValues: commitment ? buildEditDefaults(commitment) : undefined,
   });
 
-  // Pre-fill when commitment loads
+  // Re-prefill if the underlying commitment reference changes
   useEffect(() => {
     if (!commitment) return;
     form.reset(buildEditDefaults(commitment));
-  }, [commitment?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [commitment]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {
@@ -82,7 +81,7 @@ export function useEditCommitment() {
       await updateCommitment(id, {
         name: data.name,
         amount_type: data.amountType,
-        amount: data.amountType === AmountType.Fixed ? (data.amount ?? null) : null,
+        amount: data.amount ?? null,
         currency: data.currency,
         category_id: data.categoryId,
         recurrence_every: data.recurrenceEvery,
@@ -96,8 +95,10 @@ export function useEditCommitment() {
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
       reset();
-      form.reset();
-      router.back();
+      // regeneratePayments invalidates the URL paymentId on the detail screen
+      // underneath, so pop to list instead of router.back() (which would land
+      // on a "Commitment not found" screen).
+      router.dismissTo('/commitments' as Parameters<typeof router.dismissTo>[0]);
     } catch {
       // error logged by store
     } finally {

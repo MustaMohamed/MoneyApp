@@ -153,8 +153,10 @@ describe('buildAddDefaults', () => {
   it('returns EGP currency', () => {
     expect(buildAddDefaults().currency).toBe(Currency.EGP);
   });
-  it('returns today as startDate', () => {
-    expect(buildAddDefaults().startDate).toBe(new Date().toISOString().slice(0, 10));
+  it('returns today (local date) as startDate', () => {
+    const now = new Date();
+    const expected = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    expect(buildAddDefaults().startDate).toBe(expected);
   });
   it('returns undefined amount', () => {
     expect(buildAddDefaults().amount).toBeUndefined();

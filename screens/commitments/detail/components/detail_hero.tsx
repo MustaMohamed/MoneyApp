@@ -4,7 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import Svg, { Defs, Pattern, Path, Rect } from 'react-native-svg';
 
-import { AmountType } from '@/constants/enums';
+import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
@@ -40,11 +41,18 @@ export function DetailHero({ commitment, category, payment, recurrenceLabel }: P
   const iconColor = category?.color ?? Colors.dark.gold;
   const tintBg = iconColor.length === 7 ? `${iconColor}2E` : iconColor;
   const isVariable = commitment.amount_type === AmountType.Variable;
-  const amount = payment?.amount_due ?? commitment.amount;
+  const isPaid = payment?.status === CommitmentPaymentStatus.Paid;
+  const amount = isPaid
+    ? (payment?.amount_paid ?? payment?.amount_due ?? commitment.amount)
+    : (payment?.amount_due ?? commitment.amount);
+  const showTilde = isVariable && !isPaid;
+  const currency = payment?.currency ?? commitment.currency;
   const amountText =
     amount != null
-      ? `${isVariable ? '~' : ''}${payment?.currency ?? commitment.currency} ${numberFmt.format(amount)}`
-      : (payment?.currency ?? commitment.currency);
+      ? `${showTilde ? '~' : ''}${currency} ${numberFmt.format(amount)}`
+      : isVariable
+        ? Strings.commitmentsAmountVariable
+        : currency;
 
   return (
     <Animated.View entering={heroEntering} style={styles.wrap}>
@@ -66,11 +74,11 @@ export function DetailHero({ commitment, category, payment, recurrenceLabel }: P
           color={iconColor}
         />
       </View>
-      <Text style={[styles.amount, { color: iconColor }]} numberOfLines={1}>
-        {amountText}
-      </Text>
       <Text style={styles.name} numberOfLines={1}>
         {commitment.name}
+      </Text>
+      <Text style={[styles.amount, { color: iconColor }]} numberOfLines={1}>
+        {amountText}
       </Text>
       <Text style={styles.meta} numberOfLines={1}>
         {category?.name ?? ''}
@@ -104,16 +112,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: Spacing.md,
   },
-  amount: {
-    fontFamily: FontFamily.soraExtra,
-    fontSize: msFont(32),
-    marginBottom: Spacing.xs,
-  },
   name: {
+    fontFamily: FontFamily.soraExtra,
+    fontSize: msFont(28),
+    color: Colors.dark.text1,
+    marginBottom: Spacing.xs,
+    textAlign: 'center',
+  },
+  amount: {
     fontFamily: FontFamily.interSemi,
     fontSize: msFont(16),
-    color: Colors.dark.text1,
-    opacity: 0.7,
+    opacity: 0.85,
   },
   meta: {
     fontFamily: FontFamily.interRegular,

@@ -13,21 +13,27 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Controller, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AmountType, Currency, DurationType } from '@/constants/enums';
+import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
-import { formatLongDate } from '@/utils/format_date';
+import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { type CommitmentFormValues, PRESET_MAP, detectPreset } from '../commitment_form.shared';
+import {
+  type CommitmentFormValues,
+  PRESET_MAP,
+  SET_OPTS,
+  detectPreset,
+} from '../commitment_form.shared';
 import { RecurrencePicker } from './recurrence_picker';
 import { DurationPicker } from './duration_picker';
+import { DecimalAmountInput } from './decimal_amount_input';
 import { useCommitmentFormBodyState } from './commitment_form_body.state';
 
 const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
@@ -56,14 +62,28 @@ export function CommitmentFormBody({
   title,
   locked,
 }: CommitmentFormBodyProps) {
-  const amountType = form.watch('amountType');
-  const currency = form.watch('currency');
-  const startDate = form.watch('startDate');
-  const durationType = form.watch('durationType');
-  const recurrenceEvery = form.watch('recurrenceEvery');
-  const recurrencePeriod = form.watch('recurrencePeriod');
-  const categoryId = form.watch('categoryId');
-  const accountId = form.watch('accountId');
+  const [
+    amountType,
+    currency,
+    startDate,
+    durationType,
+    recurrenceEvery,
+    recurrencePeriod,
+    categoryId,
+    accountId,
+  ] = useWatch({
+    control: form.control,
+    name: [
+      'amountType',
+      'currency',
+      'startDate',
+      'durationType',
+      'recurrenceEvery',
+      'recurrencePeriod',
+      'categoryId',
+      'accountId',
+    ],
+  });
   const recurrencePreset = detectPreset(recurrenceEvery, recurrencePeriod);
 
   const selectedCategory = useMemo(
@@ -107,22 +127,31 @@ export function CommitmentFormBody({
     : Strings.commitmentDateInputFormat;
 
   function handleAmountTypeChange(v: AmountType) {
-    form.setValue('amountType', v, { shouldDirty: true });
-    if (v === AmountType.Variable) form.setValue('amount', undefined);
+    form.setValue('amountType', v, SET_OPTS);
   }
 
   function handleRecurrencePresetChange(preset: ReturnType<typeof detectPreset>) {
     const mapped = PRESET_MAP[preset];
     if (mapped) {
-      form.setValue('recurrenceEvery', mapped.every, { shouldDirty: true });
-      form.setValue('recurrencePeriod', mapped.period, { shouldDirty: true });
+      form.setValue('recurrenceEvery', mapped.every, SET_OPTS);
+      form.setValue('recurrencePeriod', mapped.period, SET_OPTS);
+      return;
+    }
+    // Custom: nudge values away from preset shapes so detectPreset returns Custom.
+    // Keep current period; bump every to 2 (or 1 if every is already non-1).
+    if (recurrenceEvery === 1) {
+      form.setValue('recurrenceEvery', 2, SET_OPTS);
+    } else if (recurrencePeriod === RecurrencePeriod.Months) {
+      // Already non-1 months — switch period so detectPreset can't map back.
+      form.setValue('recurrencePeriod', RecurrencePeriod.Days, SET_OPTS);
     }
   }
 
   function handleDurationTypeChange(type: DurationType) {
-    form.setValue('durationType', type, { shouldDirty: true });
-    if (type !== DurationType.UntilDate) form.setValue('endDate', undefined);
-    if (type !== DurationType.AfterCount) form.setValue('endAfterCount', undefined);
+    form.setValue('durationType', type, SET_OPTS);
+    if (type !== DurationType.UntilDate) form.resetField('endDate', { defaultValue: undefined });
+    if (type !== DurationType.AfterCount)
+      form.resetField('endAfterCount', { defaultValue: undefined });
   }
 
   function openStartDatePicker() {
@@ -132,7 +161,7 @@ export function CommitmentFormBody({
         value: startDateAsDate,
         mode: 'date',
         onChange: (_, d) => {
-          if (d) form.setValue('startDate', d.toISOString().slice(0, 10));
+          if (d) form.setValue('startDate', toLocalDateString(d), SET_OPTS);
         },
       });
     } else {
@@ -142,12 +171,12 @@ export function CommitmentFormBody({
   }
 
   function selectCategory(category: Category) {
-    form.setValue('categoryId', category.id);
+    form.setValue('categoryId', category.id, SET_OPTS);
     setCategoryPickerVisible(false);
   }
 
   function selectAccount(account: Account) {
-    form.setValue('accountId', account.id);
+    form.setValue('accountId', account.id, SET_OPTS);
     setAccountPickerVisible(false);
   }
 
@@ -233,15 +262,12 @@ export function CommitmentFormBody({
               control={form.control}
               name="amount"
               render={({ field: { value, onChange, onBlur } }) => (
-                <TextInput
-                  style={[styles.textInput, errors.amount ? styles.inputError : null]}
-                  value={value != null ? String(value) : ''}
-                  onChangeText={(v) => {
-                    const n = parseFloat(v);
-                    onChange(isNaN(n) ? undefined : n);
-                  }}
+                <DecimalAmountInput
+                  style={styles.textInput}
+                  value={value}
+                  onChange={onChange}
                   onBlur={onBlur}
-                  keyboardType="decimal-pad"
+                  hasError={!!errors.amount}
                   placeholder={
                     amountType === AmountType.Variable
                       ? Strings.commitmentsEstimatedAmountPlaceholder
@@ -264,7 +290,7 @@ export function CommitmentFormBody({
                   <Pressable
                     key={c}
                     style={[styles.chip, styles.currencyChip, active && styles.chipActive]}
-                    onPress={() => form.setValue('currency', c, { shouldDirty: true })}
+                    onPress={() => form.setValue('currency', c, SET_OPTS)}
                     disabled={locked}
                   >
                     <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{c}</Text>
@@ -326,15 +352,22 @@ export function CommitmentFormBody({
         {errors.startDate ? <Text style={styles.err}>{errors.startDate}</Text> : null}
 
         {bodyState.showStartDatePicker && (
-          <DateTimePicker
-            value={startDateAsDate}
-            mode="date"
-            display="spinner"
-            themeVariant="dark"
-            onChange={(_, d) => {
-              if (d) form.setValue('startDate', d.toISOString().slice(0, 10));
-            }}
-          />
+          <View style={styles.iosPickerWrap}>
+            <View style={styles.iosPickerHeader}>
+              <Pressable hitSlop={8} onPress={() => setShowStartDatePicker(false)}>
+                <Text style={styles.iosPickerDone}>{Strings.commitmentsDone}</Text>
+              </Pressable>
+            </View>
+            <DateTimePicker
+              value={startDateAsDate}
+              mode="date"
+              display="spinner"
+              themeVariant="dark"
+              onChange={(_, d) => {
+                if (d) form.setValue('startDate', toLocalDateString(d), SET_OPTS);
+              }}
+            />
+          </View>
         )}
 
         {/* Default Account (optional) */}
@@ -548,7 +581,7 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: Spacing.xs,
     paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.md,
+    paddingBottom: Spacing.xxs,
     borderTopWidth: 1,
     borderTopColor: Colors.dark.surface,
   },
@@ -564,5 +597,20 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.soraBold,
     fontSize: Type.bodyStrong,
     color: Colors.shared.midnightBlue,
+  },
+  iosPickerWrap: {
+    backgroundColor: Colors.dark.surfaceEl,
+    borderRadius: Radius.md,
+  },
+  iosPickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: Spacing.sm,
+    paddingTop: Spacing.xs,
+  },
+  iosPickerDone: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.body,
+    color: Colors.shared.cairoGold,
   },
 });

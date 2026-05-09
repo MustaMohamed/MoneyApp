@@ -379,6 +379,7 @@ export const Strings = {
   commitmentsDurationPayments: 'payments',
   commitmentsSave: 'Save Commitment',
   commitmentsOptional: '(optional)',
+  commitmentsDone: 'Done',
 
   // Commitments — validation errors
   commitmentsErrNameRequired: 'Name is required',

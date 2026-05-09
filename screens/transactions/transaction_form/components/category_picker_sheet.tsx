@@ -50,6 +50,7 @@ export function CategoryPickerSheet({
           keyExtractor={(c) => c.id}
           numColumns={3}
           columnWrapperStyle={styles.colWrapper}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => {
             const isSelected = item.id === selectedId;
             return (
@@ -107,6 +108,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   colWrapper: { gap: Spacing.xs, marginBottom: Spacing.xs },
+  listContent: { paddingBottom: Spacing.lg },
   cell: {
     flex: 1,
     alignItems: 'center',
