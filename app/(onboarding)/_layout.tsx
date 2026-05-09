@@ -2,6 +2,7 @@ import { Redirect, Stack } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useOnboardingStore } from '@/store/onboarding.store';
+import { Colors } from '@/constants/theme';
 
 export type OnboardingStackParams = {
   welcome: undefined;
@@ -29,7 +30,7 @@ export default function OnboardingLayout() {
         animation: 'fade',
         animationTypeForReplace: 'pop',
         freezeOnBlur: true,
-        contentStyle: { backgroundColor: '#0F1923' },
+        contentStyle: { backgroundColor: Colors.dark.bg },
       }}
     />
   );

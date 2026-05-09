@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text } from 'react-native';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 
 const TYPE_LABEL: Record<AccountType, string> = {
   [AccountType.Bank]: Strings.typeBank,
@@ -31,7 +32,7 @@ export function AddCard({ type, onPress }: AddCardProps) {
 
 const styles = StyleSheet.create({
   card: {
-    width: 80,
+    width: ms(80),
     backgroundColor: 'transparent',
     borderRadius: Radius.md,
     borderWidth: 1.5,

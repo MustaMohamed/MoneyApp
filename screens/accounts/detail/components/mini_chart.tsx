@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { formatAmount } from '@/utils/format_amount';
 import type { Account } from '@/store/account.store';
 
@@ -32,13 +33,13 @@ const styles = StyleSheet.create({
     borderColor: Colors.dark.border,
   },
   bar: {
-    height: 4,
+    height: ms(4),
     backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: 2,
+    borderRadius: ms(2),
     overflow: 'hidden',
     marginBottom: Spacing.sm,
   },
-  fill: { width: '100%', height: '100%', borderRadius: 2 },
+  fill: { width: '100%', height: '100%', borderRadius: ms(2) },
   label: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.headline,

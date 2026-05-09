@@ -8,6 +8,7 @@ import { z } from 'zod/v4';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { useShallow } from 'zustand/react/shallow';
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
@@ -287,7 +288,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
-  handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
   content: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
   sheetTitle: {
     fontFamily: FontFamily.soraBold,
@@ -305,7 +310,7 @@ const styles = StyleSheet.create({
     marginTop: Spacing.sm,
   },
   input: {
-    height: 48,
+    height: ms(48),
     backgroundColor: Colors.dark.surfaceEl,
     borderRadius: Radius.sm,
     borderWidth: 1,
@@ -349,12 +354,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radius.sm,
-    margin: 3,
+    margin: ms(3),
     backgroundColor: Colors.dark.surfaceEl,
   },
   iconCellActive: { borderWidth: 2, borderColor: Colors.shared.cairoGold },
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.sm },
-  colorSwatch: { width: 28, height: 28, borderRadius: 14 },
+  colorSwatch: { width: ms(28), height: ms(28), borderRadius: ms(14) },
   colorSwatchActive: { borderWidth: 2, borderColor: Colors.dark.text1 },
   ctaWrap: {
     paddingTop: Spacing.xs,

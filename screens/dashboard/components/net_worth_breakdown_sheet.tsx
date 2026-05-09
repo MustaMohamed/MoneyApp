@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { formatAmount } from '@/utils/format_amount';
 
 interface NetWorthBreakdownSheetProps {
@@ -70,7 +70,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
-  handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
   content: { padding: Spacing.lg },
   title: {
     fontFamily: FontFamily.soraBold,
@@ -96,7 +100,11 @@ const styles = StyleSheet.create({
   },
   positive: { color: Colors.dark.positive },
   negative: { color: Colors.dark.negative },
-  divider: { height: 1, backgroundColor: Colors.dark.border, marginVertical: Spacing.sm },
+  divider: {
+    height: Size.hairline,
+    backgroundColor: Colors.dark.border,
+    marginVertical: Spacing.sm,
+  },
   totalLabel: { color: Colors.dark.text1, fontFamily: FontFamily.interSemi },
   totalValue: { fontSize: Type.subhead, fontFamily: FontFamily.soraBold },
   usdLine: {

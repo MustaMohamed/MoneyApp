@@ -3,7 +3,7 @@ import { Dimensions, StyleSheet } from 'react-native';
 import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Radius } from '@/constants/theme';
+import { Colors, Radius, Size } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { useAddTransaction } from './add_transaction.hook';
@@ -220,5 +220,9 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
-  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
 });

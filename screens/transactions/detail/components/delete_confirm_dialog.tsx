@@ -1,7 +1,7 @@
 import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 
 interface Props {
   visible: boolean;
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
   btnRow: { flexDirection: 'row', gap: Spacing.sm },
   btn: {
     flex: 1,
-    height: 44,
+    height: Size.dialogButton,
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',

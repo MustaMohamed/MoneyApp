@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import ActionSheet, { type ActionSheetRef, FlatList } from 'react-native-actions-sheet';
 
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import type { Category } from '@/database/entities/category.entity';
 
@@ -96,7 +96,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
-  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
   content: {
     paddingHorizontal: Spacing.md,
   },

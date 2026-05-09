@@ -261,7 +261,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
-  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
   content: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.xxl,

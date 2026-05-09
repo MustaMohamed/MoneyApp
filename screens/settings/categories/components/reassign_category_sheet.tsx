@@ -6,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
 import type { Category } from '@/store/category.store';
 
@@ -126,7 +127,11 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
   },
-  handle: { backgroundColor: Colors.dark.border, width: 36, height: 4 },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
   content: {
     paddingHorizontal: Spacing.md,
     paddingBottom: Spacing.md,
@@ -155,8 +160,8 @@ const styles = StyleSheet.create({
   },
   optionRowActive: { backgroundColor: Colors.dark.surfaceEl },
   iconBox: {
-    width: 32,
-    height: 32,
+    width: ms(32),
+    height: ms(32),
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
