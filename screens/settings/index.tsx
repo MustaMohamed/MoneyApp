@@ -106,7 +106,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   divider: {
-    height: 1,
+    height: Size.hairline,
     backgroundColor: Colors.dark.border,
     marginLeft: Spacing.md + Size.typeIconBox + Spacing.sm,
   },

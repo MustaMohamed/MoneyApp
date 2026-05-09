@@ -5,7 +5,7 @@ import ActionSheet, { type ActionSheetRef, FlatList } from 'react-native-actions
 
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import type { Account } from '@/database/entities/account.entity';
 
@@ -107,7 +107,11 @@ const styles = StyleSheet.create({
     paddingBottom: Spacing.xxl,
     maxHeight: '70%',
   },
-  handle: { backgroundColor: Colors.dark.border, width: ms(36), height: ms(4) },
+  handle: {
+    backgroundColor: Colors.dark.border,
+    width: Size.sheetHandle.width,
+    height: Size.sheetHandle.height,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -124,7 +128,7 @@ const styles = StyleSheet.create({
     fontSize: Type.body,
     color: Colors.shared.cairoGold,
   },
-  sep: { height: 1, backgroundColor: Colors.dark.border },
+  sep: { height: Size.hairline, backgroundColor: Colors.dark.border },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

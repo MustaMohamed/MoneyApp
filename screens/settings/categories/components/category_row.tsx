@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import type { Category } from '@/store/category.store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -94,8 +95,8 @@ const styles = StyleSheet.create({
     gap: Spacing.sm,
   },
   actionBtn: {
-    width: 32,
-    height: 32,
+    width: ms(32),
+    height: ms(32),
     alignItems: 'center',
     justifyContent: 'center',
   },

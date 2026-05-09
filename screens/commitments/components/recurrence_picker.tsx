@@ -23,10 +23,10 @@ const PRESETS: { key: RecurrencePreset; label: string }[] = [
 ];
 
 const PERIODS: { key: RecurrencePeriod; label: string }[] = [
-  { key: RecurrencePeriod.Days, label: 'Days' },
-  { key: RecurrencePeriod.Weeks, label: 'Weeks' },
-  { key: RecurrencePeriod.Months, label: 'Months' },
-  { key: RecurrencePeriod.Years, label: 'Years' },
+  { key: RecurrencePeriod.Days, label: Strings.commitmentsRecurrenceUnitDays },
+  { key: RecurrencePeriod.Weeks, label: Strings.commitmentsRecurrenceUnitWeeks },
+  { key: RecurrencePeriod.Months, label: Strings.commitmentsRecurrenceUnitMonths },
+  { key: RecurrencePeriod.Years, label: Strings.commitmentsRecurrenceUnitYears },
 ];
 
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {

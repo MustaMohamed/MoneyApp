@@ -289,6 +289,10 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   destructive: { color: Colors.dark.negative },
-  divider: { height: 1, backgroundColor: Colors.dark.border, marginHorizontal: Spacing.md },
+  divider: {
+    height: Size.hairline,
+    backgroundColor: Colors.dark.border,
+    marginHorizontal: Spacing.md,
+  },
   bottomPad: { height: Spacing.xxl },
 });

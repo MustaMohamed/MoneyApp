@@ -22,6 +22,7 @@ export const Colors = {
     positive: '#4CAF82',
     negative: '#E05A42',
     dangerBg: 'rgba(224, 90, 66, 0.12)',
+    overlayWhite7: 'rgba(255, 255, 255, 0.07)',
   },
   light: {
     bg: '#F7F4EF',
@@ -112,6 +113,9 @@ export const Size = {
   progressDot: ms(4),
   checkCircle: ms(20),
   illustration: ms(120),
+  sheetHandle: { width: ms(36), height: ms(4) },
+  dialogButton: ms(44),
+  hairline: ms(1),
 } as const;
 
 /**

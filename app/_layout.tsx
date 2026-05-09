@@ -19,17 +19,18 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { useReadyStore } from '@/store/ready.store';
 import { useLayoutInit } from '@/utils/use_layout_init.hook';
+import { Colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
-SystemUI.setBackgroundColorAsync('#0F1923');
+SystemUI.setBackgroundColorAsync(Colors.dark.bg);
 
 const AppTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: '#0F1923',
-    card: '#1A2535',
-    border: '#2A3A4F',
+    background: Colors.dark.bg,
+    card: Colors.dark.surface,
+    border: Colors.dark.border,
   },
 };
 
@@ -56,13 +57,13 @@ export default function RootLayout() {
   if (!fontsLoaded || !readyState.ready) return null;
 
   return (
-    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#0F1923' }}>
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>
       <ThemeProvider value={AppTheme}>
         <StatusBar style="light" />
         <Stack
           screenOptions={{
             headerShown: false,
-            contentStyle: { backgroundColor: '#0F1923' },
+            contentStyle: { backgroundColor: Colors.dark.bg },
           }}
         />
       </ThemeProvider>

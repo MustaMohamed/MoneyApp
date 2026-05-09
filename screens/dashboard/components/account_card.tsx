@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import type { AccountStats } from '@/database/account_stats';
 import type { Account } from '@/store/account.store';
 import { formatAmount } from '@/utils/format_amount';
@@ -194,7 +194,7 @@ export function AccountCard({ account, rate, stats, onPress }: AccountCardProps)
           </View>
           <View style={styles.balanceRow}>
             <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
-              <MaterialCommunityIcons name={icon} size={12} color={color} />
+              <MaterialCommunityIcons name={icon} size={ms(12)} color={color} />
             </View>
             <Text style={[styles.balance, { color: balanceColor }]} numberOfLines={1}>
               {formatAmount(account.current_balance)} {account.currency}
@@ -244,7 +244,7 @@ export function AccountCard({ account, rate, stats, onPress }: AccountCardProps)
 
 const styles = StyleSheet.create({
   card: {
-    width: 180,
+    width: ms(180),
     backgroundColor: Colors.dark.surfaceEl,
     borderRadius: Radius.md,
     borderWidth: 1,
@@ -252,16 +252,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginLeft: Spacing.xs,
   },
-  accentBar: { height: 3, width: '100%' },
+  accentBar: { height: ms(3), width: '100%' },
   body: {
     padding: Spacing.xs,
     gap: Spacing.xs,
   },
   cardTop: {
-    gap: 4,
+    gap: ms(4),
   },
   infoSection: {
-    gap: 2,
+    gap: ms(2),
   },
   topRow: {
     flexDirection: 'row',
@@ -277,9 +277,9 @@ const styles = StyleSheet.create({
   },
   currencyPill: {
     borderWidth: 1,
-    borderRadius: 3,
-    paddingHorizontal: Spacing.xxs + 2,
-    paddingVertical: 2,
+    borderRadius: ms(3),
+    paddingHorizontal: Spacing.xxs + ms(2),
+    paddingVertical: ms(2),
   },
   currencyPillText: {
     fontFamily: FontFamily.interSemi,
@@ -292,9 +292,9 @@ const styles = StyleSheet.create({
     gap: Spacing.xs,
   },
   iconBox: {
-    width: 24,
-    height: 24,
-    borderRadius: 5,
+    width: ms(24),
+    height: ms(24),
+    borderRadius: ms(5),
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     fontSize: Type.body,
   },
   divider: {
-    height: 1,
+    height: Size.hairline,
     backgroundColor: Colors.dark.border,
   },
   infoRow: {
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'flex-end',
-    gap: 2,
+    gap: ms(2),
   },
   infoLabel: {
     fontFamily: FontFamily.interRegular,
@@ -334,14 +334,14 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   progressTrack: {
-    height: 3,
-    borderRadius: 2,
+    height: ms(3),
+    borderRadius: ms(2),
     backgroundColor: Colors.dark.border,
     overflow: 'hidden',
     marginTop: -Spacing.xxs,
   },
   progressFill: {
     height: '100%',
-    borderRadius: 2,
+    borderRadius: ms(2),
   },
 });
