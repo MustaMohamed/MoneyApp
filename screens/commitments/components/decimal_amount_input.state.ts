@@ -12,7 +12,7 @@ function createStore(initialText: string) {
   return create<DecimalInputState>((set) => ({
     state: { text: initialText },
     setText: (text) => set((s) => ({ state: { ...s.state, text } })),
-    syncToValue: (text) => set({ state: { text } }),
+    syncToValue: (text) => set((s) => ({ state: { ...s.state, text } })),
   }));
 }
 
