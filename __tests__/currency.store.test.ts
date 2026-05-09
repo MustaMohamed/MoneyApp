@@ -132,3 +132,25 @@ describe('currencyStore.setManualRate', () => {
     consoleSpy.mockRestore();
   });
 });
+
+describe('currencyStore.reset', () => {
+  it('restores INITIAL_STATE (rate=50, lastFetched=null, isManualOverride=false)', async () => {
+    const repo = makeRepo({
+      usd_rate: '70',
+      usd_rate_fetched_at: '2025-01-01T00:00:00Z',
+      usd_rate_manual_override: 'true',
+    });
+    const useStore = createCurrencyStore(repo);
+    await useStore.getState().loadRate();
+    expect(useStore.getState().state.rate).toBe(70);
+    expect(useStore.getState().state.isManualOverride).toBe(true);
+
+    useStore.getState().reset();
+
+    expect(useStore.getState().state).toEqual({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+    });
+  });
+});

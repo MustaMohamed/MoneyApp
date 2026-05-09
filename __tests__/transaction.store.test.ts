@@ -332,6 +332,25 @@ describe('transactionStore — error handling', () => {
   });
 });
 
+describe('transactionStore.reset', () => {
+  it('restores INITIAL_STATE (empty list, no query, not loading)', async () => {
+    const repo = makeRepo([makeTransaction({ id: 't1' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({ search: 'x' });
+    expect(useStore.getState().state.transactions).toHaveLength(1);
+    expect(useStore.getState().state.query).toEqual({ search: 'x' });
+
+    useStore.getState().reset();
+
+    expect(useStore.getState().state).toEqual({
+      transactions: [],
+      hasMore: false,
+      loading: false,
+      query: {},
+    });
+  });
+});
+
 describe('transactionStore — race guard', () => {
   it('drops out-of-order responses from rapid setQuery calls', async () => {
     const repo = makeRepo();

@@ -44,6 +44,7 @@ interface TransactionStore {
   addTransaction: (data: NewTransactionInput) => Promise<Transaction>;
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, data: UpdateTransactionInput) => Promise<void>;
+  reset: () => void;
 }
 
 export function createTransactionStore(repo: ITransactionRepository) {
@@ -121,6 +122,11 @@ export function createTransactionStore(repo: ITransactionRepository) {
         await get()
           .refresh()
           .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));
+      },
+
+      reset: () => {
+        requestId++;
+        set({ state: INITIAL_STATE });
       },
     };
   });

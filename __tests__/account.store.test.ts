@@ -163,3 +163,18 @@ describe('accountStore.adjustBalance', () => {
     await expect(store.getState().adjustBalance('test-id', 0)).rejects.toThrow('db error');
   });
 });
+
+describe('accountStore.reset', () => {
+  it('restores INITIAL_STATE', async () => {
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([{ id: 'a1' } as Account]),
+    });
+    const useStore = createAccountStore(repo);
+    await useStore.getState().loadAccounts();
+    expect(useStore.getState().state.accounts).toHaveLength(1);
+
+    useStore.getState().reset();
+
+    expect(useStore.getState().state).toEqual({ accounts: [] });
+  });
+});
