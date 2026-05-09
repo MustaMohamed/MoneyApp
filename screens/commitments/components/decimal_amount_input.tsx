@@ -14,14 +14,14 @@ interface Props extends Omit<
 }
 
 export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, ...rest }: Props) {
-  const { state, setText, reset } = useDecimalInputState(value != null ? String(value) : '');
+  const { state, setText, syncToValue } = useDecimalInputState(value != null ? String(value) : '');
 
   useEffect(() => {
     if (value == null) {
-      reset('');
+      syncToValue('');
       return;
     }
-    if (parseFloat(state.text) !== value) reset(String(value));
+    if (parseFloat(state.text) !== value) syncToValue(String(value));
   }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -43,10 +43,10 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
       onBlur={(e) => {
         const n = parseFloat(state.text);
         if (isNaN(n)) {
-          reset('');
+          syncToValue('');
           onChange(undefined);
         } else {
-          reset(String(n));
+          syncToValue(String(n));
           onChange(n);
         }
         onBlur?.(e);

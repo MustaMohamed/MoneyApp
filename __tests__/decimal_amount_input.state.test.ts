@@ -18,10 +18,10 @@ describe('useDecimalInputState', () => {
     expect(result.current.state.text).toBe('1.2');
   });
 
-  it('reset replaces text with the new value', () => {
+  it('syncToValue replaces text with the new value', () => {
     const { result } = renderHook(() => useDecimalInputState('1'));
     act(() => result.current.setText('999'));
-    act(() => result.current.reset('42'));
+    act(() => result.current.syncToValue('42'));
     expect(result.current.state.text).toBe('42');
   });
 

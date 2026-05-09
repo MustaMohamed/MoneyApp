@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Radius } from '@/constants/theme';
 import { ms, msFont } from '@/utils/responsive';
 
 import { useFilterButtonBadgeAnim } from './filter_button.anim';
