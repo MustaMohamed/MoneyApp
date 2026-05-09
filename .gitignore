@@ -44,6 +44,8 @@ app-example
 # Claude Code agent worktrees (local tooling state)
 .claude/*
 !.claude/skills/
+!.claude/agents/
+!.claude/commands/
 
 # generated native folders
 /ios
