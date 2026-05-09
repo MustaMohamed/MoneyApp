@@ -26,7 +26,7 @@ const VALID_INSERT = `
 `;
 
 describe('database schema — TC-15', () => {
-  it('creates exactly the M1+M2b tables and no others', () => {
+  it('creates exactly the expected tables and no others', () => {
     const db = withDb();
     const rows = db
       .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
@@ -35,6 +35,8 @@ describe('database schema — TC-15', () => {
       'accounts',
       'app_settings',
       'categories',
+      'commitment_payments',
+      'commitments',
       'transactions',
     ]);
   });

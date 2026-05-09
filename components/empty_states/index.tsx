@@ -11,7 +11,8 @@ export type EmptyStateVariant =
   | 'transactionsNoResults'
   | 'bills'
   | 'goals'
-  | 'budget';
+  | 'budget'
+  | 'commitments';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -45,6 +46,11 @@ const VARIANT_CONFIG: Record<EmptyStateVariant, { icon: IconName; title: string;
     icon: 'chart-pie',
     title: Strings.emptyBudgetTitle,
     sub: Strings.emptyBudgetSub,
+  },
+  commitments: {
+    icon: 'calendar-check-outline',
+    title: Strings.commitmentsEmptyTitle,
+    sub: Strings.commitmentsEmptySub,
   },
 };
 

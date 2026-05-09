@@ -12,6 +12,7 @@ function tabIcon(name: MCIName, color: string) {
 export default function TabsLayout() {
   return (
     <Tabs
+      initialRouteName="dashboard"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors.shared.cairoGold,
@@ -34,8 +35,12 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="bills/index"
-        options={{ title: 'Bills', tabBarIcon: ({ color }) => tabIcon('calendar-clock', color) }}
+        name="commitments"
+        options={{
+          title: 'Commitments',
+          tabBarIcon: ({ color }) => tabIcon('calendar-check', color),
+          popToTopOnBlur: true,
+        }}
       />
       <Tabs.Screen
         name="goals/index"

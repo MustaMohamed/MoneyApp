@@ -3,6 +3,56 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from './entities/transaction.entity';
 
+export interface MonthExpenseStats {
+  totalEgp: number;
+  egpNative: number;
+  usdNative: number;
+  count: number;
+}
+
+/**
+ * Aggregate expense rows for one calendar month [yearMonth-01, nextMonth-01).
+ * Returns:
+ *  - totalEgp: SUM(egp_amount) across all currencies (each row's egp equivalent)
+ *  - egpNative: SUM(amount) where currency='EGP' (true EGP-denominated spend)
+ *  - usdNative: SUM(amount) where currency='USD' (true USD-denominated spend)
+ *  - count: total expense rows
+ * Excludes transfers, income, and CC payments — only true expenses.
+ */
+export async function getMonthExpenseStats(
+  db: SQLiteDatabase,
+  yearMonth: string,
+): Promise<MonthExpenseStats> {
+  const monthStart = `${yearMonth}-01`;
+  const [year, month] = yearMonth.split('-').map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonthStart = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+  const row = await db.getFirstAsync<{
+    total: number | null;
+    egp_native: number | null;
+    usd_native: number | null;
+    cnt: number;
+  }>(
+    `SELECT
+       COALESCE(SUM(egp_amount), 0) AS total,
+       COALESCE(SUM(CASE WHEN currency = 'EGP' THEN amount ELSE 0 END), 0) AS egp_native,
+       COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) AS usd_native,
+       COUNT(*) AS cnt
+     FROM transactions
+     WHERE type = 'expense'
+       AND transaction_date >= ?
+       AND transaction_date < ?`,
+    [monthStart, nextMonthStart],
+  );
+  return {
+    totalEgp: row?.total ?? 0,
+    egpNative: row?.egp_native ?? 0,
+    usdNative: row?.usd_native ?? 0,
+    count: row?.cnt ?? 0,
+  };
+}
+
 export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promise<void> {
   await db.withTransactionAsync(async () => {
     await db.runAsync(

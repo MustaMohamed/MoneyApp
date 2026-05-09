@@ -12,6 +12,7 @@ import { useDashboard } from './dashboard.hook';
 import { useDashboardAnim } from './dashboard.anim';
 import { HeroCard } from './components/hero_card';
 import { StatCards } from './components/stat_cards';
+import { CommitmentsCard } from './components/commitments_card';
 import { SectionHeader } from './components/section_header';
 import { AccountCarousel } from './components/account_carousel';
 import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
@@ -33,8 +34,15 @@ const SECTION_TITLES: Record<AccountType, string> = {
 };
 
 export default function DashboardScreen() {
-  const { state, setBreakdownVisible, refresh, goToAccount, goToAddAccount, goToSettings } =
-    useDashboard();
+  const {
+    state,
+    setBreakdownVisible,
+    refresh,
+    goToAccount,
+    goToAddAccount,
+    goToSettings,
+    goToCommitments,
+  } = useDashboard();
   const { heroStyle, startEntrance, statsEntering, sectionEntering } = useDashboardAnim();
 
   useEffect(() => {
@@ -74,16 +82,36 @@ export default function DashboardScreen() {
           <Animated.View style={heroStyle}>
             <HeroCard
               assetsEgp={state.netWorth.assetsEgp}
-              netWorthUsd={state.netWorth.netWorthUsd}
+              assetsUsd={state.netWorth.assetsUsd}
               rate={state.rate}
               isManualOverride={state.isManualOverride}
+              assetsCount={state.accountCounts.assets}
+              liabilitiesCount={state.accountCounts.liabilities}
               onPress={() => setBreakdownVisible(true)}
             />
           </Animated.View>
 
           <Animated.View entering={statsEntering}>
-            <StatCards netWorthEgp={state.netWorth.netWorthEgp} monthSpentEgp={0} />
+            <StatCards
+              netWorthEgp={state.netWorth.netWorthEgp}
+              assetsEgp={state.netWorth.assetsEgp}
+              liabilitiesEgp={state.netWorth.liabilitiesEgp}
+              assetsCount={state.accountCounts.assets}
+              liabilitiesCount={state.accountCounts.liabilities}
+              monthSpentEgp={state.monthSpend.currentEgp}
+              monthSpentUsd={state.monthSpend.currentUsdNative}
+              monthSpendDeltaPct={state.monthSpend.deltaPct}
+              monthSpendCount={state.monthSpend.currentCount}
+              spendYearMonth={state.monthSpend.yearMonth}
+            />
           </Animated.View>
+
+          <CommitmentsCard
+            counts={state.commitments.counts}
+            totalsByCurrency={state.commitments.totalsByCurrency}
+            yearMonth={state.commitments.yearMonth}
+            onPress={goToCommitments}
+          />
 
           {visibleTypes.map((type, index) => (
             <Animated.View key={type} entering={sectionEntering(index)}>

@@ -3,6 +3,7 @@ import type { Account } from '@/store/account.store';
 
 export interface NetWorthResult {
   assetsEgp: number;
+  assetsUsd: number;
   liabilitiesEgp: number;
   netWorthEgp: number;
   netWorthUsd: number;
@@ -22,8 +23,9 @@ export function computeNetWorth(accounts: Account[], rate: number): NetWorthResu
   }
 
   const netWorthEgp = assetsEgp - liabilitiesEgp;
+  const assetsUsd = rate > 0 ? assetsEgp / rate : 0;
   const netWorthUsd = rate > 0 ? netWorthEgp / rate : 0;
-  return { assetsEgp, liabilitiesEgp, netWorthEgp, netWorthUsd };
+  return { assetsEgp, assetsUsd, liabilitiesEgp, netWorthEgp, netWorthUsd };
 }
 
 export function groupAccountsByType(accounts: Account[]): Partial<Record<AccountType, Account[]>> {

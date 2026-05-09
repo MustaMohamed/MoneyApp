@@ -27,6 +27,7 @@ describe('computeNetWorth', () => {
   it('returns all zeros for empty accounts', () => {
     expect(computeNetWorth([], 50)).toEqual({
       assetsEgp: 0,
+      assetsUsd: 0,
       liabilitiesEgp: 0,
       netWorthEgp: 0,
       netWorthUsd: 0,
