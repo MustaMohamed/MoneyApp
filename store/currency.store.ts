@@ -21,6 +21,7 @@ interface CurrencyStore {
   loadRate: () => Promise<void>;
   fetchRate: () => Promise<void>;
   setManualRate: (rate: number) => Promise<void>;
+  reset: () => void;
 }
 
 export function createCurrencyStore(repo: IAppSettingsRepository) {
@@ -78,6 +79,8 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
         throw err;
       }
     },
+
+    reset: () => set({ state: INITIAL_STATE }),
   }));
 }
 

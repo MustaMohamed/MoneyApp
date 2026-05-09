@@ -19,6 +19,7 @@ interface CategoryStore {
   updateCategory: (id: string, data: UpdateCategoryInput) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
   reassignAndDelete: (fromId: string, toId: string) => Promise<void>;
+  reset: () => void;
 }
 
 export function createCategoryStore(repo: ICategoryRepository) {
@@ -74,6 +75,8 @@ export function createCategoryStore(repo: ICategoryRepository) {
         throw err;
       }
     },
+
+    reset: () => set({ state: INITIAL_STATE }),
   }));
 }
 

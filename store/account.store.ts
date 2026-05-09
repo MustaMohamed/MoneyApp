@@ -19,6 +19,7 @@ interface AccountStore {
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
+  reset: () => void;
 }
 
 export function createAccountStore(repo: IAccountRepository) {
@@ -75,6 +76,8 @@ export function createAccountStore(repo: IAccountRepository) {
         throw err;
       }
     },
+
+    reset: () => set({ state: INITIAL_STATE }),
   }));
 }
 

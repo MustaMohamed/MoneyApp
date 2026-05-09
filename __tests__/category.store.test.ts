@@ -176,3 +176,18 @@ describe('categoryStore — error branches', () => {
     consoleSpy.mockRestore();
   });
 });
+
+describe('categoryStore.reset', () => {
+  it('restores INITIAL_STATE', async () => {
+    const repo = makeRepo({
+      getAll: jest.fn().mockResolvedValue([{ id: 'c1' } as Category]),
+    });
+    const useStore = createCategoryStore(repo);
+    await useStore.getState().loadCategories();
+    expect(useStore.getState().state.categories).toHaveLength(1);
+
+    useStore.getState().reset();
+
+    expect(useStore.getState().state).toEqual({ categories: [] });
+  });
+});
