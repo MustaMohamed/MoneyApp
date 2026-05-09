@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
 import { Colors, FontFamily, Type } from '@/constants/theme';
+import { useDecimalInputState } from './decimal_amount_input.state';
 
 interface Props extends Omit<
   TextInputProps,
@@ -13,21 +14,21 @@ interface Props extends Omit<
 }
 
 export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, ...rest }: Props) {
-  const [text, setText] = useState(value != null ? String(value) : '');
+  const { state, setText, syncToValue } = useDecimalInputState(value != null ? String(value) : '');
 
   useEffect(() => {
     if (value == null) {
-      setText('');
+      syncToValue('');
       return;
     }
-    if (parseFloat(text) !== value) setText(String(value));
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (parseFloat(state.text) !== value) syncToValue(String(value));
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps -- omit syncToValue/state.text to prevent sync loop
 
   return (
     <TextInput
       {...rest}
       style={[styles.input, hasError ? styles.inputError : null, style]}
-      value={text}
+      value={state.text}
       keyboardType="decimal-pad"
       onChangeText={(v) => {
         if (v !== '' && !/^\d*\.?\d*$/.test(v)) return;
@@ -40,12 +41,12 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
         onChange(isNaN(n) ? undefined : n);
       }}
       onBlur={(e) => {
-        const n = parseFloat(text);
+        const n = parseFloat(state.text);
         if (isNaN(n)) {
-          setText('');
+          syncToValue('');
           onChange(undefined);
         } else {
-          setText(String(n));
+          syncToValue(String(n));
           onChange(n);
         }
         onBlur?.(e);

@@ -1,10 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import Animated from 'react-native-reanimated';
 
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size } from '@/constants/theme';
 import { ms, msFont } from '@/utils/responsive';
+
+import { useFilterButtonBadgeAnim } from './filter_button.anim';
 
 interface Props {
   count: number;
@@ -13,18 +14,7 @@ interface Props {
 
 export function FilterButton({ count, onPress }: Props) {
   const active = count > 0;
-  const badgeScale = useSharedValue(1);
-
-  useEffect(() => {
-    if (count > 0) {
-      badgeScale.value = 1.2;
-      badgeScale.value = withSpring(1.0, { damping: 10, stiffness: 180 });
-    }
-  }, [count]);
-
-  const badgeStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: badgeScale.value }],
-  }));
+  const { badgeStyle } = useFilterButtonBadgeAnim(count);
 
   return (
     <Pressable
@@ -34,7 +24,7 @@ export function FilterButton({ count, onPress }: Props) {
     >
       <MaterialCommunityIcons
         name="tune-variant"
-        size={ms(22)}
+        size={Size.iconMd}
         color={active ? Colors.shared.cairoGold : Colors.dark.text2}
       />
       {active && (
@@ -48,8 +38,8 @@ export function FilterButton({ count, onPress }: Props) {
 
 const styles = StyleSheet.create({
   btn: {
-    width: ms(40),
-    height: ms(40),
+    width: Size.backBtn,
+    height: Size.backBtn,
     backgroundColor: Colors.dark.surface,
     borderWidth: 1,
     borderColor: Colors.dark.border,
@@ -65,7 +55,7 @@ const styles = StyleSheet.create({
     minWidth: ms(16),
     height: ms(16),
     paddingHorizontal: ms(4),
-    borderRadius: ms(8),
+    borderRadius: Radius.sm,
     backgroundColor: Colors.shared.cairoGold,
     alignItems: 'center',
     justifyContent: 'center',
