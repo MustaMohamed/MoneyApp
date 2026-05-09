@@ -28,6 +28,8 @@ module.exports = {
     'database/**/*.ts',
     'utils/responsive.ts',
     'utils/format_amount.ts',
+    'utils/format_date.ts',
+    'utils/onboarding_nav.ts',
     'app/**/*.helpers.ts',
     'app/**/*.store.ts',
     '!**/__mocks__/**',
