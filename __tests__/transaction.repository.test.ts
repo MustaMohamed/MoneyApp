@@ -32,10 +32,12 @@ function seedAccount() {
         interest_tracking,is_archived,sort_order,created_at,updated_at)
      VALUES
        ('acc1','Bank','bank','EGP',5000,5000,NULL,NULL,0,0,0,?,?),
+       ('acc_usd','USD Bank','bank','USD',0,0,NULL,NULL,0,0,3,?,?),
        ('acc_cc','CC','credit_card','EGP',0,1000,500,200,0,0,1,?,?),
-       ('acc_cc_no_min','CC2','credit_card','EGP',0,1000,500,NULL,0,0,2,?,?)`,
+       ('acc_cc_no_min','CC2','credit_card','EGP',0,1000,500,NULL,0,0,2,?,?),
+       ('acc_cc_installment','CC3','credit_card','EGP',0,1000,5000,500,0,0,4,?,?)`,
     )
-    .run(NOW, NOW, NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
 }
 
 beforeAll(() => {
@@ -73,6 +75,22 @@ beforeEach(() => {
   mockUuidCounter = 0;
   realDb.exec('DELETE FROM transactions');
   realDb.prepare("UPDATE accounts SET current_balance = 5000 WHERE id = 'acc1'").run();
+  realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_usd'").run();
+  realDb
+    .prepare(
+      "UPDATE accounts SET current_balance = 1000, revolving_balance = 500 WHERE id = 'acc_cc'",
+    )
+    .run();
+  realDb
+    .prepare(
+      "UPDATE accounts SET current_balance = 1000, revolving_balance = 500 WHERE id = 'acc_cc_no_min'",
+    )
+    .run();
+  realDb
+    .prepare(
+      "UPDATE accounts SET current_balance = 1000, revolving_balance = 5000 WHERE id = 'acc_cc_installment'",
+    )
+    .run();
 });
 
 afterAll(() => {
@@ -297,5 +315,207 @@ describe('TransactionRepository.delete', () => {
       }
     ).current_balance;
     expect(balAfter).toBe(5000);
+  });
+});
+
+describe('Case A — same-currency transfer (EGP → EGP)', () => {
+  it('to_amount equals amount, exchange_rate equals 1, balances update correctly', async () => {
+    const tx = await repo.add({
+      type: TransactionType.Transfer,
+      amount: 1000,
+      currency: Currency.EGP,
+      egp_amount: 1000,
+      to_amount: 1000,
+      exchange_rate: 1,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(tx.to_amount).toBe(1000);
+    expect(tx.exchange_rate).toBe(1);
+
+    const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
+      current_balance: number;
+    };
+    const to = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+      current_balance: number;
+    };
+
+    expect(from.current_balance).toBe(4000); // 5000 - 1000
+    expect(to.current_balance).toBe(2000); // 1000 + 1000
+  });
+});
+
+describe('Case B — foreign-currency transfer (EGP → USD)', () => {
+  it('to_amount is in destination currency, exchange_rate applied, balances update correctly', async () => {
+    const tx = await repo.add({
+      type: TransactionType.Transfer,
+      amount: 1000,
+      currency: Currency.EGP,
+      egp_amount: 1000,
+      to_amount: 20,
+      exchange_rate: 0.02,
+      account_id: 'acc1',
+      to_account_id: 'acc_usd',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(tx.amount).toBe(1000);
+    expect(tx.to_amount).toBe(20);
+    expect(tx.exchange_rate).toBe(0.02);
+
+    const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
+      current_balance: number;
+    };
+    const to = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+
+    expect(from.current_balance).toBe(4000);
+    expect(to.current_balance).toBe(20);
+  });
+});
+
+describe('Case C — CC payment, payment ≤ minimum', () => {
+  it('captures minimum_payment_snapshot, payment ≤ minimum does NOT reduce revolving_balance', async () => {
+    // acc_cc_installment: revolving_balance=5000, minimum_payment=500
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 300,
+      currency: Currency.EGP,
+      egp_amount: 300,
+      to_amount: 300,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_installment',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(tx.minimum_payment_snapshot).toBe(500);
+
+    const cc = realDb
+      .prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc_installment'")
+      .get() as { revolving_balance: number };
+
+    expect(cc.revolving_balance).toBe(5000);
+  });
+});
+
+describe('Case D — CC payment > minimum, installment-first split', () => {
+  it('first minimum satisfies installment, excess reduces revolving_balance', async () => {
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 800,
+      currency: Currency.EGP,
+      egp_amount: 800,
+      to_amount: 800,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_installment',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(tx.minimum_payment_snapshot).toBe(500);
+
+    const cc = realDb
+      .prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc_installment'")
+      .get() as { revolving_balance: number };
+
+    expect(cc.revolving_balance).toBe(4700); // 5000 - 300 (excess only)
+  });
+});
+
+describe('Case E — reversal symmetry (delete restores all balances)', () => {
+  it('deleting same-currency transfer (Case A shape) restores both balances', async () => {
+    const tx = await repo.add({
+      type: TransactionType.Transfer,
+      amount: 1000,
+      currency: Currency.EGP,
+      egp_amount: 1000,
+      to_amount: 1000,
+      exchange_rate: 1,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    await repo.delete(tx.id);
+    const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
+      current_balance: number;
+    };
+    const to = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+      current_balance: number;
+    };
+    expect(from.current_balance).toBe(5000);
+    expect(to.current_balance).toBe(1000);
+  });
+
+  it('deleting foreign-currency transfer (Case B shape) restores both balances', async () => {
+    const tx = await repo.add({
+      type: TransactionType.Transfer,
+      amount: 1000,
+      currency: Currency.EGP,
+      egp_amount: 1000,
+      to_amount: 20,
+      exchange_rate: 0.02,
+      account_id: 'acc1',
+      to_account_id: 'acc_usd',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    await repo.delete(tx.id);
+    const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
+      current_balance: number;
+    };
+    const to = realDb
+      .prepare("SELECT current_balance FROM accounts WHERE id = 'acc_usd'")
+      .get() as { current_balance: number };
+    expect(from.current_balance).toBe(5000);
+    expect(to.current_balance).toBe(0);
+  });
+
+  it('deleting CC payment (Case C shape: ≤ min, no revolving change) leaves revolving at 5000', async () => {
+    // Inverse of Case C: payment 300 ≤ minimum 500 leaves revolving at 5000 (no principal change).
+    // Deleting it must keep revolving at 5000 — there is nothing to "credit back" since revolving never moved.
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 300,
+      currency: Currency.EGP,
+      egp_amount: 300,
+      to_amount: 300,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_installment',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    await repo.delete(tx.id);
+    const cc = realDb
+      .prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc_installment'")
+      .get() as { revolving_balance: number };
+    expect(cc.revolving_balance).toBe(5000);
+  });
+
+  it('deleting CC payment (Case D shape: > min, partial revolving reduction) restores revolving from 4700 to 5000', async () => {
+    // Inverse of Case D: payment 800 > minimum 500 reduces revolving from 5000 → 4700 (300 excess).
+    // Deleting it must restore revolving back to 5000.
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 800,
+      currency: Currency.EGP,
+      egp_amount: 800,
+      to_amount: 800,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_installment',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    await repo.delete(tx.id);
+    const cc = realDb
+      .prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc_installment'")
+      .get() as { revolving_balance: number };
+    expect(cc.revolving_balance).toBe(5000);
   });
 });
