@@ -1,14 +1,33 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlashList } from '@shopify/flash-list';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import type { Category } from '@/store/category.store';
 import { useCategories } from './categories.hook';
 import { AddEditCategorySheet } from './components/add_edit_category_sheet';
 import { CategoryRow } from './components/category_row';
 import { DeleteConfirmationDialog } from './components/delete_confirmation_dialog';
 import { ReassignCategorySheet } from './components/reassign_category_sheet';
+
+type ListEntry =
+  | { type: 'header'; id: string; label: string }
+  | { type: 'category'; id: string; category: Category };
+
+function buildListEntries(defaults: Category[], customs: Category[]): ListEntry[] {
+  const entries: ListEntry[] = [];
+  if (defaults.length > 0) {
+    entries.push({ type: 'header', id: 'header-default', label: Strings.categoriesDefaultSection });
+    for (const c of defaults) entries.push({ type: 'category', id: c.id, category: c });
+  }
+  if (customs.length > 0) {
+    entries.push({ type: 'header', id: 'header-custom', label: Strings.categoriesCustomSection });
+    for (const c of customs) entries.push({ type: 'category', id: c.id, category: c });
+  }
+  return entries;
+}
 
 export default function CategoriesScreen() {
   const {
@@ -55,32 +74,29 @@ export default function CategoriesScreen() {
         ))}
       </View>
 
-      <FlatList
-        data={[...state.defaultCategories, ...state.customCategories]}
+      <FlashList<ListEntry>
+        data={buildListEntries(state.defaultCategories, state.customCategories)}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
-        ListHeaderComponent={
-          state.defaultCategories.length > 0 ? (
-            <Text style={styles.sectionLabel}>{Strings.categoriesDefaultSection}</Text>
-          ) : null
+        getItemType={(item) => item.type}
+        renderItem={({ item }) =>
+          item.type === 'header' ? (
+            <Text
+              style={[
+                styles.sectionLabel,
+                item.id === 'header-custom' && styles.sectionLabelCustom,
+              ]}
+            >
+              {item.label}
+            </Text>
+          ) : (
+            <CategoryRow
+              category={item.category}
+              onEdit={() => openEditSheet(item.category)}
+              onDelete={() => handleDeletePress(item.category)}
+            />
+          )
         }
-        renderItem={({ item, index }) => {
-          const isFirstCustom = index === state.defaultCategories.length;
-          return (
-            <>
-              {isFirstCustom && state.customCategories.length > 0 && (
-                <Text style={[styles.sectionLabel, { marginTop: Spacing.md }]}>
-                  {Strings.categoriesCustomSection}
-                </Text>
-              )}
-              <CategoryRow
-                category={item}
-                onEdit={() => openEditSheet(item)}
-                onDelete={() => handleDeletePress(item)}
-              />
-            </>
-          );
-        }}
       />
 
       {/* FAB */}
@@ -190,6 +206,9 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
     letterSpacing: 0.5,
     marginBottom: Spacing.xs,
+  },
+  sectionLabelCustom: {
+    marginTop: Spacing.md,
   },
   fabWrap: {
     paddingTop: Spacing.xs,

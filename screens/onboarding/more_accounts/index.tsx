@@ -1,5 +1,6 @@
+import { FlashList } from '@shopify/flash-list';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/progress_dots';
@@ -28,7 +29,7 @@ export default function MoreAccountsScreen() {
         {Strings.o5SubtitleSuffix}
       </Text>
 
-      <FlatList
+      <FlashList
         data={accounts}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
