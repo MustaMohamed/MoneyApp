@@ -1,14 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { create } from 'zustand';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
+import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
@@ -18,10 +12,12 @@ import type { CommitmentPayment } from '@/database/entities/commitment_payment.e
 import { commitmentRepository } from '@/repositories/commitment.repository';
 import { formatLongDate } from '@/utils/format_date';
 
-import { useCommitmentDetailState } from './detail.state';
+import {
+  useCommitmentDetailState,
+  useCommitmentDetailScreenData,
+  type DetailViewState,
+} from './detail.state';
 import { usePaySheetState } from './components/pay_sheet.state';
-
-export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
   [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
@@ -239,29 +235,3 @@ export function useCommitmentDetail() {
     goBack,
   };
 }
-
-// --- Internal screen-level data store (avoids useState) ---
-
-interface DetailScreenDataShape {
-  allPayments: CommitmentPayment[];
-  viewState: DetailViewState;
-}
-
-interface CommitmentDetailScreenDataStore {
-  state: DetailScreenDataShape;
-  setAllPayments: (payments: CommitmentPayment[]) => void;
-  setViewState: (vs: DetailViewState) => void;
-  reset: () => void;
-}
-
-const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
-  allPayments: [],
-  viewState: 'loading',
-};
-
-const useCommitmentDetailScreenData = create<CommitmentDetailScreenDataStore>((set) => ({
-  state: INITIAL_SCREEN_DATA,
-  setAllPayments: (payments) => set((s) => ({ state: { ...s.state, allPayments: payments } })),
-  setViewState: (vs) => set((s) => ({ state: { ...s.state, viewState: vs } })),
-  reset: () => set({ state: INITIAL_SCREEN_DATA }),
-}));

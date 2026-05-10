@@ -1,0 +1,69 @@
+import { renderHook } from '@testing-library/react-native';
+
+import { useAccountStore } from '@/store/account.store';
+import { useAccountDetail } from '@/screens/accounts/detail/account_detail.hook';
+
+jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+jest.mock('expo-router', () => ({
+  useLocalSearchParams: () => ({ id: 'acc-1' }),
+  useRouter: () => ({ back: jest.fn() }),
+  useNavigation: () => ({ addListener: jest.fn(() => jest.fn()) }),
+}));
+jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/screens/accounts/detail/account_detail.state', () => {
+  const mockState = {
+    state: {
+      isEditing: false,
+      isAdjustVisible: false,
+      isArchiveVisible: false,
+      isSaving: false,
+      isAdjusting: false,
+      isArchiving: false,
+    },
+    setEditing: jest.fn(),
+    setAdjustVisible: jest.fn(),
+    setArchiveVisible: jest.fn(),
+    setSaving: jest.fn(),
+    setAdjusting: jest.fn(),
+    setArchiving: jest.fn(),
+    reset: jest.fn(),
+    getState: jest.fn(() => ({
+      state: { isEditing: false },
+      setEditing: jest.fn(),
+    })),
+  };
+  const useAccountDetailState = Object.assign(
+    jest.fn((sel: any) => sel(mockState)),
+    {
+      getState: jest.fn(() => ({
+        state: { isEditing: false },
+        setEditing: jest.fn(),
+      })),
+    },
+  );
+  return { useAccountDetailState };
+});
+
+function setup() {
+  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
+    sel({
+      state: { accounts: [] },
+      updateAccount: jest.fn(),
+      archiveAccount: jest.fn(),
+      adjustBalance: jest.fn(),
+    }),
+  );
+}
+
+describe('useAccountDetail', () => {
+  beforeEach(setup);
+
+  it('renders without throwing', () => {
+    expect(() => renderHook(() => useAccountDetail())).not.toThrow();
+  });
+
+  it('account is undefined when accounts list is empty', () => {
+    const { result } = renderHook(() => useAccountDetail());
+    expect(result.current.state.account).toBeUndefined();
+  });
+});
