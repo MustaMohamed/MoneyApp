@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { Config } from '@/constants/config';
 import {
   AppSettingsRepository,
   type IAppSettingsRepository,
@@ -8,7 +9,6 @@ import {
 const RATE_KEY = 'usd_rate';
 const FETCHED_AT_KEY = 'usd_rate_fetched_at';
 const MANUAL_KEY = 'usd_rate_manual_override';
-const EXCHANGE_API_URL = 'https://open.er-api.com/v6/latest/USD';
 
 const INITIAL_STATE = {
   rate: 50,
@@ -53,7 +53,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
     fetchRate: async () => {
       try {
-        const res = await fetch(EXCHANGE_API_URL);
+        const res = await fetch(Config.currencyRateUrl);
         const json = (await res.json()) as { rates: Record<string, number> };
         const rate = json.rates['EGP'];
         if (!rate) throw new Error('[currencyStore] EGP not in API response');
