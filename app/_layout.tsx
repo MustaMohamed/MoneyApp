@@ -1,3 +1,4 @@
+import '../global.css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SystemUI from 'expo-system-ui';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
