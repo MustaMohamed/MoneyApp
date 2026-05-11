@@ -1,1 +1,115 @@
 @import 'tailwindcss';
+@import 'uniwind';
+@import 'heroui-native/styles';
+@source './node_modules/heroui-native/lib';
+
+@layer theme {
+  @variant dark {
+    --background:                          #0F1923;
+    --foreground:                          #F0EBE3;
+    --surface:                             #1A2535;
+    --surface-foreground:                  #F0EBE3;
+    --surface-secondary:                   #243044;
+    --surface-secondary-foreground:        #F0EBE3;
+    --surface-tertiary:                    #2A3A4F;
+    --surface-tertiary-foreground:         #F0EBE3;
+    --overlay:                             rgba(0,0,0,0.6);
+    --overlay-foreground:                  #F0EBE3;
+    --accent:                              #D4A44C;
+    --accent-foreground:                   #0F1923;
+    --default:                             #243044;
+    --default-foreground:                  #F0EBE3;
+    --field-background:                    #243044;
+    --field-foreground:                    #F0EBE3;
+    --field-placeholder:                   #6B7F99;
+    --field-border:                        #2A3A4F;
+    --success:                             #4CAF82;
+    --success-foreground:                  #0F1923;
+    --warning:                             #E8B130;
+    --warning-foreground:                  #0F1923;
+    --danger:                              #E05A42;
+    --danger-foreground:                   #F0EBE3;
+    --muted:                               #4A5568;
+    --segment:                             #1A2535;
+    --border:                              #2A3A4F;
+    --separator:                           #2A3A4F;
+    --focus:                               #D4A44C;
+    --link:                                #D4A44C;
+  }
+
+  @variant light {
+    /* App is dark-only. Duplicate dark values so Uniwind has a valid light variant. */
+    --background:                          #0F1923;
+    --foreground:                          #F0EBE3;
+    --surface:                             #1A2535;
+    --surface-foreground:                  #F0EBE3;
+    --surface-secondary:                   #243044;
+    --surface-secondary-foreground:        #F0EBE3;
+    --surface-tertiary:                    #2A3A4F;
+    --surface-tertiary-foreground:         #F0EBE3;
+    --overlay:                             rgba(0,0,0,0.6);
+    --overlay-foreground:                  #F0EBE3;
+    --accent:                              #D4A44C;
+    --accent-foreground:                   #0F1923;
+    --default:                             #243044;
+    --default-foreground:                  #F0EBE3;
+    --field-background:                    #243044;
+    --field-foreground:                    #F0EBE3;
+    --field-placeholder:                   #6B7F99;
+    --field-border:                        #2A3A4F;
+    --success:                             #4CAF82;
+    --success-foreground:                  #0F1923;
+    --warning:                             #E8B130;
+    --warning-foreground:                  #0F1923;
+    --danger:                              #E05A42;
+    --danger-foreground:                   #F0EBE3;
+    --muted:                               #4A5568;
+    --segment:                             #1A2535;
+    --border:                              #2A3A4F;
+    --separator:                           #2A3A4F;
+    --focus:                               #D4A44C;
+    --link:                                #D4A44C;
+  }
+}
+
+@theme inline {
+  --color-background:                      var(--background);
+  --color-foreground:                      var(--foreground);
+  --color-surface:                         var(--surface);
+  --color-surface-foreground:              var(--surface-foreground);
+  --color-surface-secondary:               var(--surface-secondary);
+  --color-surface-secondary-foreground:    var(--surface-secondary-foreground);
+  --color-surface-tertiary:                var(--surface-tertiary);
+  --color-surface-tertiary-foreground:     var(--surface-tertiary-foreground);
+  --color-overlay:                         var(--overlay);
+  --color-overlay-foreground:              var(--overlay-foreground);
+  --color-accent:                          var(--accent);
+  --color-accent-foreground:               var(--accent-foreground);
+  --color-default:                         var(--default);
+  --color-default-foreground:              var(--default-foreground);
+  --color-field-background:                var(--field-background);
+  --color-field-foreground:                var(--field-foreground);
+  --color-field-placeholder:               var(--field-placeholder);
+  --color-field-border:                    var(--field-border);
+  --color-success:                         var(--success);
+  --color-success-foreground:              var(--success-foreground);
+  --color-warning:                         var(--warning);
+  --color-warning-foreground:              var(--warning-foreground);
+  --color-danger:                          var(--danger);
+  --color-danger-foreground:               var(--danger-foreground);
+  --color-muted:                           var(--muted);
+  --color-segment:                         var(--segment);
+  --color-border:                          var(--border);
+  --color-separator:                       var(--separator);
+  --color-focus:                           var(--focus);
+  --color-link:                            var(--link);
+
+  /* Gold gradient stops — not in HeroUI's semantic slots, used by Button + screens */
+  --color-gold-400:                        #E0B968;
+  --color-gold-500:                        #D4A44C;
+  --color-gold-600:                        #C9973A;
+  --color-gold-700:                        #A47C2C;
+
+  /* Semantic aliases matching NativeWind-era class names used in §2 screens */
+  --color-negative:                        var(--danger);
+}
