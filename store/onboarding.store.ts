@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
 import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
+import { FeatureFlags } from '@/constants/feature_flags';
 import { SecureStoreKeys } from '@/constants/secure_store_keys';
 import {
   AppSettingsRepository,
@@ -89,7 +90,15 @@ export async function loadOnboardingState(): Promise<{
   ]);
 
   const complete = completeRaw === 'true';
-  const step: OnboardingStep = isOnboardingStep(stepRaw) ? stepRaw : OnboardingStep.O1;
+  let step: OnboardingStep = isOnboardingStep(stepRaw) ? stepRaw : OnboardingStep.O1;
+
+  // Force-restart: if the new-onboarding flag is enabled and the persisted step is from
+  // the old O* flow, restart from N1. This handles the flag-flip moment for testers.
+  // No production users will be affected during the §2 window (flag ships as false).
+  if (FeatureFlags.newOnboarding && step.startsWith('O')) {
+    step = OnboardingStep.N1;
+    await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, OnboardingStep.N1);
+  }
   const baseCurrency: Currency = isCurrency(currencyRaw) ? currencyRaw : Currency.EGP;
   const securityChoice: SecurityChoice | undefined = isSecurityChoice(securityRaw)
     ? securityRaw
