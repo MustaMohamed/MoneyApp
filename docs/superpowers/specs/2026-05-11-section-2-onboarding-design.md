@@ -1,7 +1,11 @@
 # Section 2 · Onboarding — Design Spec
 
+> **Revised 2026-05-12: retargeted for HeroUI Native foundation (post-PR #61 merge).**
+> **Status: Revised — awaiting re-approval.**
+
 **Date:** 2026-05-11
-**Status:** Draft (pending plan + approval)
+**Revised:** 2026-05-12
+**Status:** Revised — awaiting re-approval
 **Owners:** [marcus] UX · [tariq] technical · [layla] CC field copy · [sarah] sequencing
 **Section:** 2 of 9 (Onboarding) within the *Full reset = rebrand + library + IA restructure* mega-initiative.
 
@@ -9,13 +13,13 @@
 
 # Part A · Initiative Overview
 
-*This part is shared context across all 9 section specs. It does not change between sections.*
+*This part is shared context across all 9 section specs. The library section below reflects the updated foundation from PR #61.*
 
 ## The mega-initiative
 
 MoneyApp's existing custom UI accumulated bugs and inconsistencies. Decision: full reset rather than surgical fixes. Three things change at once:
 
-1. **UI library** — swap hand-rolled components for `gluestack-ui v2 + NativeWind` (Tailwind for RN). Replaces the patched `react-native-actions-sheet` with gluestack's `Actionsheet`.
+1. **UI library** — swap hand-rolled components for **HeroUI Native v1.0 + Unistyles 3 via Uniwind** (Tailwind classes processed at build time into Unistyles). Replaces the patched `react-native-actions-sheet` over the course of §3-9.
 2. **Brand expression** — apply *Cairo Nights Extended* palette (additions to existing tokens, fully backwards-compatible).
 3. **Information architecture** — 8 cleanup changes to existing screens. Zero new features, zero new screens, zero new tabs.
 
@@ -24,9 +28,9 @@ Delivery model: **vertical-slice, one section per conversation**. Each section s
 ## Locked decisions (do not re-open)
 
 ### Library
-**gluestack-ui v2 + NativeWind.** Headless component primitives + Tailwind classes. Compatible with Expo Go (no `expo-dev-client`, no `prebuild`). Replaces all hand-rolled components and the patched `react-native-actions-sheet` over the course of §3-9.
+**HeroUI Native v1.0 + Unistyles 3 via Uniwind.** Tailwind classes processed at build time. `cn` utility comes from `heroui-native` — `utils/cn.ts` is deleted post-PR #61. Requires `expo-dev-client` and New Architecture (`expo-build-properties`). Native iOS/Android directories are gitignored. **Expo Go is no longer used.**
 
-gluestack v2 is a **copy-paste primitives model** — there is no `GluestackUIProvider`, no `gluestack-ui.config.ts`, no `@gluestack-style/react`. Headless primitives (`@gluestack-ui/pressable`, `@gluestack-ui/button`) are used as optional foundations; all styling is applied via NativeWind classes and `cva`.
+Previously: gluestack-ui v2 + NativeWind. That stack is replaced. The `Actionsheet` component from gluestack is not in scope for §2 — §2 does not use bottom sheets. Patched `react-native-actions-sheet` stays until §3.
 
 ### Brand · Cairo Nights Extended palette
 
@@ -101,7 +105,7 @@ Brief reference. Full detail lives in each section's spec where it is implemente
 
 These four patterns are *defined* by the IA changes (above) and *built* in §3. Every other section (§4-9) consumes them:
 
-- **Sheet pattern** — bottom-sheet container with swipe-down dismiss, scrim tap dismiss, focus trap, sheet-on-sheet stacking. Replaces patched `react-native-actions-sheet` with gluestack `Actionsheet`. Used by Add Transaction (§7), Add Account from Dashboard (§9), Currency picker (§4), Net Worth Breakdown (§5), and the existing Category/Account pickers (§7).
+- **Sheet pattern** — bottom-sheet container with swipe-down dismiss, scrim tap dismiss, focus trap, sheet-on-sheet stacking. Patched `react-native-actions-sheet` continues to be used until §3 evaluates the HeroUI Native optional peer (`@gorhom/bottom-sheet`). §2 does not use bottom sheets.
 - **FAB pattern** — floating "+" button with tap (default action) and long-press (menu). Used by Dashboard (§5), Transactions (§6), Commitments (§8).
 - **EmptyState pattern** — illustration + headline + description + single CTA. Variant-driven (`accounts`, `transactions`, `commitments`, `filtered`). Used by Dashboard (§5), Transactions (§6), Commitments (§8).
 - **SettingsSection pattern** — grouped list with section header, divided rows, optional destructive last row. Used by Settings (§4).
@@ -112,7 +116,7 @@ Each section ships its migrated screens **behind the existing routes**. The old 
 
 ## Cross-spec references
 
-This spec (§2 Onboarding) **depends on §1** (primitives, palette, flag scaffold, `cn` util, `theme_tokens`). All §1 deliverables must be merged before §2 execution begins.
+This spec (§2 Onboarding) **depends on §1** (primitives, palette, flag scaffold, `theme_tokens`). All §1 deliverables must be merged (including PR #61 HeroUI Native migration) before §2 execution begins.
 
 This spec **provides to §3-9:** nothing structural. §2 is a leaf section that consumes §1, produces no shared patterns. The `screens/onboarding_v2/` folder is internal to §2; nothing in it is imported by other sections.
 
@@ -123,7 +127,7 @@ This spec **provides to §3-9:** nothing structural. §2 is a leaf section that 
 ## Goals
 
 1. Compress the 6-screen old onboarding flow (O1–O6) to a 4-screen new flow (N1–N4) behind `FeatureFlags.newOnboarding`.
-2. Port all onboarding screens to §1 primitives (`Box`, `Text`, `Button`, `Input`, `Pressable`) and NativeWind classes. Zero `StyleSheet.create` in v2 screen files.
+2. Port all onboarding screens to §1 primitives (`Box`, `Text`, `Button`, `Input`, `Pressable`) and Tailwind via Uniwind classes. Zero `StyleSheet.create` in v2 screen files.
 3. Merge Welcome (O1) and Currency (O2) into a single screen (N1) — currency selection inline as an EGP/USD pill row, no separate route.
 4. Drop the Security screen (O3) entirely from the new flow. Security moves to Settings (§4).
 5. Update the N2 Add Account color picker source from the old `AccountColors` hex array to `AcctTokens.*.rich` values from `constants/theme_tokens.ts`.
@@ -144,6 +148,39 @@ This spec **provides to §3-9:** nothing structural. §2 is a leaf section that 
 - No changes to `utils/schemas/add_account.schema.ts` — the Zod schema is unchanged.
 - No Expo Router version change. Stack navigation stays; `_layout.tsx` stays single-instance.
 
+## Foundation · HeroUI Native DX for §2
+
+§2 screens consume the §1 primitive layer — the internal implementation of each primitive (whether it wraps HeroUI Native components or is hand-rolled) is opaque to §2. What matters is the public API:
+
+**`cn` utility:** imported from `heroui-native`, not from `@/utils/cn`. That file does not exist post-PR #61.
+
+```ts
+import { cn } from 'heroui-native';
+```
+
+**Tailwind token names (HeroUI slot system):** Theme is defined as CSS variables in `global.css`. The dead NativeWind-era names (`bg-bg`, `text-text1`, `bg-surfaceEl`, `text-text2`) must not appear in any v2 file.
+
+| NativeWind-era (dead) | HeroUI slot (use this) | Semantic |
+|---|---|---|
+| `bg-bg` | `bg-background` | Root screen background |
+| `bg-surfaceEl` | `bg-default` | Field, pill, row element background |
+| `text-text1` | `text-foreground` | Primary text |
+| `text-text2` | `text-muted` | Secondary / hint text |
+| `text-text3` | `text-muted` | Also muted |
+| `border-surface` (divider) | `border-separator` | CTA bar top border, row dividers |
+
+Unchanged names: `bg-surface` · `border-border` · `text-negative` · `text-gold-500` · `text-gold-600` · arbitrary values (`bg-[rgba(...)]`).
+
+**Primitive APIs (flat, unchanged for §2):**
+
+- `Box` — `View` wrapper; `className` prop; no changes.
+- `Text` — `variant` prop with values: `hero | h1 | h2 | h3 | title | body | label | hint | caption | numLg | numMd`. Old variants (`hero`, `title`, `body`, `caption`, `hint`) remain valid — no §2 changes needed.
+- `Button` — variants: `primary | secondary | tertiary | outline | ghost | danger | danger-soft`. Old `destructive` variant is renamed to `danger`. §2 only uses `primary` — no impact.
+- `Input` — `hasError` prop retained (back-compat). `isInvalid` is the HeroUI-native preferred name but `hasError` still works. §2 continues to use `hasError`.
+- `Pressable` — unchanged API (`className`, `hitSlop`, opacity feedback).
+
+**Reanimated v4.2.1:** `withSpring` config no longer accepts `restDisplacementThreshold` or `restSpeedThreshold` (removed; use `energyThreshold` if needed). None of the §2 anim files use those removed params — no code changes required. All spring calls in §2 use only `damping`, `stiffness`, `mass` — all still valid.
+
 ## Scope · Detailed work items
 
 ### 2.1 Route topology (D1)
@@ -154,6 +191,7 @@ The 4 existing route `index.tsx` files that have N* equivalents become condition
 
 ```tsx
 // app/(onboarding)/welcome/index.tsx
+import React from 'react';
 import { FeatureFlags } from '@/constants/feature_flags';
 import WelcomeScreenV1 from '@/screens/onboarding/welcome';
 import WelcomeScreenV2 from '@/screens/onboarding_v2/welcome';
@@ -234,7 +272,7 @@ if (FeatureFlags.newOnboarding && step.startsWith('O')) {
 **Layout (top to bottom), within `SafeAreaView` edges top+bottom:**
 
 ```
-SafeAreaView (bg-bg)
+SafeAreaView (bg-background)
   ProgressDots totalSteps={4} currentStep={1}
   ScrollView (flex-1) [needed on small screens for currency note]
     Box (flex-1, items-center, justify-center, gap-6, px-4)
@@ -243,7 +281,7 @@ SafeAreaView (bg-bg)
       Animated.View [headlineEntering]
         Text variant="hero" className="text-center font-soraExtra"
           {Strings.o1Headline}
-        Text variant="body" className="text-text2 text-center mt-1"
+        Text variant="body" className="text-muted text-center mt-1"
           {Strings.o1Subtext}
       Text variant="hint" className="mt-4 self-start"
         "BASE CURRENCY"
@@ -251,19 +289,21 @@ SafeAreaView (bg-bg)
         Pressable (EGP pill)  ← see pill spec below
         Pressable (USD pill)
       Box className="mt-3 bg-surface rounded-[10px] px-4 py-3 w-full"
-        Text variant="caption" className="text-text2"
+        Text variant="caption" className="text-muted"
           "Change anytime in Settings."
-  Box (ctaBar — borderTopWidth 1, border-surface, pt-2, px-sm, pb-md)
+  Box (ctaBar — borderTopWidth 1, border-separator, pt-2, px-sm, pb-md)
     Animated.View [ctaEntering]
       Button variant="primary" label="Get Started" onPress={onContinue}
 ```
 
 No back button — N1 is step 1 of the flow.
 
-**Currency pill spec:** each pill is a `<Pressable>` wrapping a `<Box>` with `<Text>`. Active state: `border-gold-600 bg-[rgba(201,151,58,0.08)]`. Inactive state: `border-border bg-surfaceEl`. The gold-tinted active background is `rgba(201,151,58,0.08)` — this is the same tint used in the old O4 `pillActive` style, now expressed via NativeWind's arbitrary value syntax. Flag emoji + currency code inline.
+**Currency pill spec:** each pill is a `<Pressable>` wrapping a `<Box>` with `<Text>`. Active state: `border-gold-600 bg-[rgba(201,151,58,0.08)]`. Inactive state: `border-border bg-default`. The gold-tinted active background is `rgba(201,151,58,0.08)` — this is the same tint used in the old O4 `pillActive` style, now expressed via Tailwind's arbitrary value syntax. Flag emoji + currency code inline.
 
 ```tsx
 // Pill shape inside welcome/index.tsx
+import { cn } from 'heroui-native';
+
 {(['EGP', 'USD'] as Currency[]).map((code) => (
   <Pressable
     key={code}
@@ -272,13 +312,13 @@ No back button — N1 is step 1 of the flow.
       'flex-1 flex-row items-center justify-center gap-2 py-3 rounded-[10px] border-[1.5px]',
       state.selected === code
         ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
-        : 'border-border bg-surfaceEl',
+        : 'border-border bg-default',
     )}
   >
     <Text className="text-[18px]">{code === 'EGP' ? '🇪🇬' : '🇺🇸'}</Text>
     <Text
       variant="body"
-      className={cn('font-soraBold', state.selected === code ? 'text-gold-600' : 'text-text2')}
+      className={cn('font-soraBold', state.selected === code ? 'text-gold-600' : 'text-muted')}
     >
       {code}
     </Text>
@@ -393,7 +433,7 @@ import { Switch } from 'react-native';
 import { GoldTokens, CoreTokens } from '@/constants/theme_tokens';
 
 <Box className="flex-row items-center justify-between py-3">
-  <Text variant="body" className="font-interSemi text-text1">
+  <Text variant="body" className="font-interSemi text-foreground">
     {Strings.o4InterestLabel}
   </Text>
   <Switch
@@ -427,16 +467,16 @@ o4MinPaymentPlaceholderV2: 'From your statement',
 
 (Separate key rather than mutating `o4MinPaymentPlaceholder` — the old placeholder stays for the old screen during the flag-false window.)
 
-Hints render as `<Text variant="caption" className="text-text2 mt-1">` immediately below the respective `<Input>`. Not a tooltip, not a placeholder — always-visible helper text.
+Hints render as `<Text variant="caption" className="text-muted mt-1">` immediately below the respective `<Input>`. Not a tooltip, not a placeholder — always-visible helper text.
 
 ```tsx
 {/* Below min_payment Input */}
-<Text variant="caption" className="text-text2 mt-1">
+<Text variant="caption" className="text-muted mt-1">
   {Strings.o4MinPaymentHint}
 </Text>
 
 {/* Below apr Input (inside interestTracking conditional) */}
-<Text variant="caption" className="text-text2 mt-1">
+<Text variant="caption" className="text-muted mt-1">
   {Strings.o4AprHint}
 </Text>
 ```
@@ -447,7 +487,7 @@ Hints render as `<Text variant="caption" className="text-text2 mt-1">` immediate
 
 **CC animations preserved:** `ccEntering`, `ccExiting`, `aprEntering`, `aprExiting`, `errorEntering`, `errorExiting` — all imported from `add_account.anim.ts` (ported verbatim into `onboarding_v2/add_account/add_account.anim.ts`).
 
-**`TypePill` component:** ported to `onboarding_v2/add_account/components/type_pill.tsx`. Swap bare `Pressable` → `<Pressable>` from `components/ui/pressable.tsx`. Swap color literals → Tailwind classes. `TYPE_OPTIONS` constant unchanged — same account types, same icons, same labels from `Strings`.
+**`TypePill` component:** ported to `onboarding_v2/add_account/components/type_pill.tsx`. Swap bare `Pressable` → `<Pressable>` from `components/ui/pressable.tsx`. Swap color literals → Tailwind classes using HeroUI tokens (`bg-default` for inactive background, `text-muted` for inactive label). `cn` imported from `heroui-native`. `TYPE_OPTIONS` constant unchanged — same account types, same icons, same labels from `Strings`.
 
 ### 2.5 N3 — Add Another? (D5)
 
@@ -456,7 +496,7 @@ Hints render as `<Text variant="caption" className="text-text2 mt-1">` immediate
 **Layout (top to bottom):**
 
 ```
-SafeAreaView (bg-bg)
+SafeAreaView (bg-background)
   ProgressDots totalSteps={4} currentStep={3}
   Box (flex-1, px-sm)
     [Top half — success header]
@@ -464,29 +504,27 @@ SafeAreaView (bg-bg)
       Animated.View [checkEntering]
         Box className="w-16 h-16 rounded-full bg-[rgba(76,175,130,0.12)] items-center justify-center"
           MaterialCommunityIcons name="check-circle" size={40} color={SemanticTokens.positive}
-      Animated.Text [headlineEntering] — Text variant="title" className="font-soraBold text-text1 text-center"
+      Animated.Text [headlineEntering] — Text variant="title" className="font-soraBold text-foreground text-center"
         "Account saved"
-      Animated.Text [subtitleEntering] — Text variant="body" className="text-text2 text-center"
+      Animated.Text [subtitleEntering] — Text variant="body" className="text-muted text-center"
         "Want to add another? You can add credit cards, cash wallets, and more."
     [Account list]
     FlashList
-      renderItem: AccountRow (v2, animated per rowEntering)
+      renderItem: AccountRowV2 (animated per rowEntering)
       ListFooterComponent: AddAnotherRow (dashed border row)
     [Spacer]
-    Text variant="caption" className="text-text3 text-center px-4 py-2"
+    Text variant="caption" className="text-muted text-center px-4 py-2"
       {Strings.o5SettingsHint}
-  Box (ctaBar)
+  Box (ctaBar — border-separator)
     Button variant="primary" label={Strings.o5Cta} onPress={handleContinue}
 ```
-
-"Account saved" headline and subtitle are hardcoded strings in the component (not new `Strings` keys) unless the human requests otherwise. These are visible only from the N3 layout; adding them to `Strings` is cleaner but not blocking.
 
 **Hook contract (`more_accounts.hook.ts` in `onboarding_v2/`):**
 
 Port of `useMoreAccounts` with one rename:
 
 ```ts
-export function useMoreAccounts() {
+export function useMoreAccountsV2() {
   // ...identical logic...
   const handleContinue = async () => {         // renamed from handleDone
     await setStep(OnboardingStep.N4);           // was O6
@@ -500,8 +538,6 @@ export function useMoreAccounts() {
 The `handleAddAnother` impl is unchanged — it pushes to `/(onboarding)/add_account` with `isAddingMore=true`. That route now renders N2 when flag=true.
 
 **State file (`more_accounts.state.ts`):** not needed for N3. The account list is read-only from the store; no local UI state beyond what the hook provides. Omit per CLAUDE.md anatomy rule (omit `.state.ts` if none).
-
-Wait — the existing O5 also has no `.state.ts`. Confirmed: omit.
 
 **Animations (`more_accounts.anim.ts` in `onboarding_v2/`):**
 
@@ -526,10 +562,11 @@ export function useMoreAccountsAnim() {
 
 `isInitialMount` in `rowEntering` mirrors the existing O5 behavior: rows present when the screen first mounts skip the delay stagger (they are all "initial"), while new rows added after returning from N2 animate in without delay.
 
-**`AccountRow` component (`onboarding_v2/more_accounts/components/account_row.tsx`):**
+**`AccountRowV2` component (`onboarding_v2/more_accounts/components/account_row.tsx`):**
 
 Port of the existing `AccountRow`. Changes:
 - Swap `StyleSheet`/bare RN components → `<Box>`, `<Text>`, `<Animated.View>`.
+- Token classes updated: `text-text1` → `text-foreground`, `text-text2` → `text-muted`.
 - The icon container dot color uses `account.color` (the saved hex) for the icon background and a derived border. Since the color is a raw hex from `ACCOUNT_COLORS`, apply it via inline `style={{ backgroundColor: account.color }}` — this is the only legitimate use of inline style in v2 screens (Tailwind cannot apply runtime-dynamic hex values as a class).
 - Icon color: always `CoreTokens.text1` (white) — the colored background provides contrast regardless of family.
 
@@ -543,8 +580,6 @@ Port of the existing `AccountRow`. Changes:
 </Box>
 ```
 
-This is cleaner than the old O5 approach which used a gold ring only for the first account. Every account now shows its actual color — more useful when multiple accounts are listed.
-
 ### 2.6 N4 — Done (D6)
 
 **Purpose:** replaces O6 (Ready). Route: `app/(onboarding)/ready/`. Final screen; CTA calls `completeOnboarding()`.
@@ -552,20 +587,20 @@ This is cleaner than the old O5 approach which used a gold ring only for the fir
 **Layout (top to bottom):**
 
 ```
-SafeAreaView (bg-bg)
+SafeAreaView (bg-background)
   ProgressDots totalSteps={4} currentStep={4}
   Box (flex-1, items-center, justify-center, px-sm, gap-4)
     Animated.View [checkEntering]
       MaterialCommunityIcons name="check-circle" size={Size.iconHero} color={SemanticTokens.positive}
     Animated.Text [headlineEntering]
-      Text variant="hero" className="font-soraExtra text-text1 text-center"
+      Text variant="hero" className="font-soraExtra text-foreground text-center"
         {Strings.o6Title}
     Animated.Text [subtitleEntering]
-      Text variant="body" className="text-text2 text-center"
+      Text variant="body" className="text-muted text-center"
         {Strings.o6Subtitle}
     Box className="w-full bg-surface border border-border rounded-[12px] py-3 px-4 gap-0"
       [3 summary rows — see below]
-  Box (ctaBar)
+  Box (ctaBar — border-separator)
     Animated.View [ctaEntering]
       Button variant="primary" label={Strings.o6Cta} onPress={handleComplete} disabled={completing}
 ```
@@ -575,15 +610,17 @@ SafeAreaView (bg-bg)
 | Label key | Value | Gold text? |
 |---|---|---|
 | `Strings.o6Currency` | `onboardingState.baseCurrency` | yes (`text-gold-500`) |
-| `Strings.o6Accounts` | `${accounts.length} ${Strings.o6AccountsUnit}` | no (`text-text1`) |
+| `Strings.o6Accounts` | `${accounts.length} ${Strings.o6AccountsUnit}` | no (`text-foreground`) |
 | `Strings.o6TotalBalance` | `${formattedTotal} ${onboardingState.baseCurrency}` | yes (`text-gold-500`) |
+
+Summary row dividers use `border-separator` (was `border-surfaceEl` in old screens — updated to HeroUI slot name).
 
 The Security row (`Strings.o6Security`) is dropped. The summary rows array in `ready.hook.ts` v2 no longer includes it, and `resolveSecurityLabel` is not called.
 
 **Hook contract (`ready.hook.ts` in `onboarding_v2/`):**
 
 ```ts
-export function useReady() {
+export function useReadyV2() {
   const { state: onboardingState, completeOnboarding } = useOnboardingStore(
     useShallow((s) => ({ state: s.state, completeOnboarding: s.completeOnboarding })),
   );
@@ -645,21 +682,21 @@ Complete file-level disposition:
 | Old path | New path | Disposition |
 |---|---|---|
 | `screens/onboarding/welcome/welcome.anim.ts` | `screens/onboarding_v2/welcome/welcome.anim.ts` | Adapt; new timings + `pillsEntering`; key `'welcome_v2'` |
-| `screens/onboarding/welcome/index.tsx` | `screens/onboarding_v2/welcome/index.tsx` | New N1 layout; §1 primitives; currency pills inline |
+| `screens/onboarding/welcome/index.tsx` | `screens/onboarding_v2/welcome/index.tsx` | New N1 layout; §1 primitives; currency pills inline; HeroUI tokens |
 | `screens/onboarding/currency/components/currency_row.tsx` | — | Not ported. Currency selection is inline in N1. |
-| `screens/onboarding/add_account/components/type_pill.tsx` | `screens/onboarding_v2/add_account/components/type_pill.tsx` | Port to §1 primitives; Tailwind classes replace StyleSheet |
+| `screens/onboarding/add_account/components/type_pill.tsx` | `screens/onboarding_v2/add_account/components/type_pill.tsx` | Port to §1 primitives; HeroUI token classes; `cn` from `heroui-native` |
 | `screens/onboarding/add_account/add_account.hook.ts` | `screens/onboarding_v2/add_account/add_account.hook.ts` | Port + adapt: new color default, new step (N3), new back target (welcome) |
-| `screens/onboarding/add_account/add_account.anim.ts` | `screens/onboarding_v2/add_account/add_account.anim.ts` | Port verbatim |
-| `screens/onboarding/add_account/index.tsx` | `screens/onboarding_v2/add_account/index.tsx` | Port; swap all primitives to §1; Switch for interest; helper hints |
-| `screens/onboarding/more_accounts/components/account_row.tsx` | `screens/onboarding_v2/more_accounts/components/account_row.tsx` | Port to §1 primitives; icon bg = `account.color` (inline style); icon color = `CoreTokens.text1` |
+| `screens/onboarding/add_account/add_account.anim.ts` | `screens/onboarding_v2/add_account/add_account.anim.ts` | Port verbatim (Reanimated v4 compat confirmed — no removed params used) |
+| `screens/onboarding/add_account/index.tsx` | `screens/onboarding_v2/add_account/index.tsx` | Port; swap all primitives to §1; Switch for interest; helper hints; HeroUI tokens |
+| `screens/onboarding/more_accounts/components/account_row.tsx` | `screens/onboarding_v2/more_accounts/components/account_row.tsx` | Port to §1 primitives; HeroUI token classes; icon bg = `account.color` (inline style); icon color = `CoreTokens.text1` |
 | `screens/onboarding/more_accounts/more_accounts.hook.ts` | `screens/onboarding_v2/more_accounts/more_accounts.hook.ts` | Port; rename `handleDone` → `handleContinue`; step N4; remove headerTitle |
 | `screens/onboarding/more_accounts/more_accounts.anim.ts` | `screens/onboarding_v2/more_accounts/more_accounts.anim.ts` | Port + add `checkEntering`, `headlineEntering`, `subtitleEntering` |
-| `screens/onboarding/more_accounts/index.tsx` | `screens/onboarding_v2/more_accounts/index.tsx` | New hybrid layout; check-circle header; §1 primitives |
+| `screens/onboarding/more_accounts/index.tsx` | `screens/onboarding_v2/more_accounts/index.tsx` | New hybrid layout; check-circle header; §1 primitives; HeroUI tokens |
 | `screens/onboarding/ready/ready.hook.ts` | `screens/onboarding_v2/ready/ready.hook.ts` | Port; drop Security row; drop `resolveSecurityLabel` call |
 | `screens/onboarding/ready/ready.state.ts` | `screens/onboarding_v2/ready/ready.state.ts` | Port verbatim |
 | `screens/onboarding/ready/ready.anim.ts` | `screens/onboarding_v2/ready/ready.anim.ts` | Port verbatim; key `'ready_v2'` |
 | `screens/onboarding/ready/ready.helpers.ts` | `screens/onboarding_v2/ready/ready.helpers.ts` | Port `computeTotalBalance` only; omit `resolveSecurityLabel` |
-| `screens/onboarding/ready/index.tsx` | `screens/onboarding_v2/ready/index.tsx` | Port; 3-row summary; §1 primitives |
+| `screens/onboarding/ready/index.tsx` | `screens/onboarding_v2/ready/index.tsx` | Port; 3-row summary; §1 primitives; HeroUI tokens |
 | `screens/onboarding/security/*` | — | No N* equivalent. Deleted in cleanup PR. |
 | `components/progress_dots/*` | reused as-is | Pass `totalSteps={4}` in all N* screens |
 | `components/geo_illustration/index.tsx` | reused as-is | Pure SVG; no token leakage |
@@ -729,6 +766,8 @@ Add a test case to the existing `__tests__/onboarding.store.test.ts`:
 
 - When `FeatureFlags.newOnboarding = true` (mocked) and persisted step is `'O3'` (an O* value), `loadOnboardingState()` resolves with `step === OnboardingStep.N1` and `SecureStore.setItemAsync` is called with `OnboardingStep.N1`.
 
+**Test strategy for HeroUI Native / Tailwind via Uniwind:** The Tailwind build-time transform (Uniwind) does not run in Jest. Tests assert on `className` strings, rendered text content, and `testID` values — not computed pixel styles. This matches the project's existing test strategy and requires no new Jest setup. Tests that previously mocked NativeWind transforms continue to work unchanged.
+
 Coverage target: all 4 hook files must individually achieve 100% branch coverage. Smoke tests count toward line and function thresholds.
 
 ## Acceptance criteria (D9)
@@ -742,49 +781,67 @@ Coverage target: all 4 hook files must individually achieve 100% branch coverage
    - Rule 4: N3 is always entered after at least one account save (N2 navigates here after save).
    - Rule 5: EGP pre-selected — `useWelcome` defaults `selected` to `onboardingState.baseCurrency`, which defaults to `Currency.EGP` in the store `INITIAL_STATE`.
    - Rule 7: `current_balance = opening_balance` — handled by `account.store.ts`; unchanged.
-   - Rule 8: CC accounts as liabilities — balance rendering in `AccountRow` unchanged.
+   - Rule 8: CC accounts as liabilities — balance rendering in `AccountRowV2` unchanged.
    - Rule 9: Unique account name — enforced by `createAddAccountSchema`; unchanged.
 4. `npm run typecheck` passes with zero errors.
 5. `npm run test:coverage` passes. Thresholds unchanged: 80% lines / 95% functions / 100% branches. New hook tests + smoke tests contribute to line/function coverage; hook files achieve 100% branch coverage individually.
 6. The §1 dev preview route at `app/(dev)/primitives/index.tsx` still renders all 5 primitives without regression. N2/N3/N4 introduce no new primitives — they consume existing ones.
-7. The `tailwind.config.js` hex-literal lint rule (§1.8) still passes. No hex literals introduced in `tailwind.config.js` by §2 changes.
-8. Animation timings match existing onboarding fidelity — verified subjectively in Expo Go on Android.
-9. `Switch` component renders acceptably on Android API 26+ in Expo Go (see R5 — visual check, not automated).
+7. No dead NativeWind-era token names (`bg-bg`, `text-text1`, `bg-surfaceEl`, `text-text2`) appear in any `screens/onboarding_v2/` file. Verify: `grep -r "bg-bg\|text-text1\|bg-surfaceEl\|text-text2" screens/onboarding_v2/` — expected: no output.
+8. Animation timings match existing onboarding fidelity — verified subjectively in the Android dev client build.
+9. `Switch` component renders acceptably on Android API 26+ in dev client (see R5 — visual check, not automated).
 
 ## Risks
 
 - **R1 · String-deletion blast radius (cleanup PR).** Many `o*` strings will be removed in the cleanup PR. The audit must be exhaustive. Mitigation: cleanup PR runs `grep -r "Strings\.o[1-6]" screens/ app/ components/` for each candidate key before deletion. Strings with zero hits are safe to delete. Flag any hits outside of `screens/onboarding_v2/` as unexpected (they suggest a v2 file inadvertently references an old string key).
 
-- **R2 · Account color migration — silent ring absence.** DB rows saved during testing with a hex from the old `AccountColors` array that is not in `ACCOUNT_COLORS` will display correctly (the hex renders fine) but the N2 color picker will show no gold ring on that color. Mitigation: the "selected" equality check `selectedColor === color` finds no match and renders no ring — no crash, no console error. Document and accept. Note: `AccountColors` array in `constants/theme.ts` is not audited here; that is cleanup PR work.
+- **R2 · Account color migration — silent ring absence.** DB rows saved during testing with a hex from the old `AccountColors` array that is not in `ACCOUNT_COLORS` will display correctly (the hex renders fine) but the N2 color picker will show no gold ring on that color. Mitigation: the "selected" equality check `selectedColor === color` finds no match and renders no ring — no crash, no console error. Document and accept.
 
-- **R3 · OnboardingStep enum bloat.** During the §2 window, the enum holds 10 values. `isOnboardingStep` uses `Object.values(OnboardingStep).includes(...)` — correct and future-safe. `loadOnboardingState` now also reads N* values from SecureStore without issue. Risk is low; window is bounded by the 5-business-day cleanup deadline.
+- **R3 · OnboardingStep enum bloat.** During the §2 window, the enum holds 10 values. `isOnboardingStep` uses `Object.values(OnboardingStep).includes(...)` — correct and future-safe. Risk is low; window is bounded by the 5-business-day cleanup deadline.
 
 - **R4 · Currency and security routes still registered.** `app/(onboarding)/currency/` and `app/(onboarding)/security/` remain as Stack screens when flag=true. They are unreachable (no navigation action leads to them in the N* flow) but still registered by Expo Router. No runtime impact, no perf cost. Cleanup PR removes them.
 
-- **R5 · `<Switch>` thumbColor on Android.** Android's `Switch` ignores `thumbColor` in the unchecked state on API levels below 23 (not relevant — Expo SDK 55 requires API 24+) and may render differently on API 26 vs API 34. The `trackColor` pair provides the primary visual distinction. Mitigation: test on Android API 26+ in Expo Go; if `thumbColor` renders incorrectly on the unchecked state, remove `thumbColor` from the unchecked case (i.e., only set it when `value=true`). This is a visual polish issue, not a correctness issue.
+- **R5 · `<Switch>` thumbColor on Android.** Android's `Switch` ignores `thumbColor` in the unchecked state on API levels below 23 (not relevant — Expo SDK 55 requires API 24+) and may render differently on API 26 vs API 34. The `trackColor` pair provides the primary visual distinction. Mitigation: test on Android API 26+ in dev client; if `thumbColor` renders incorrectly on the unchecked state, remove `thumbColor` from the unchecked case. This is a visual polish issue, not a correctness issue.
 
 - **R6 · `useFirstMountEntering` key collisions.** While both old and new screens co-exist (flag-false window), the same `useFirstMountEntering` key (`'welcome'`, `'ready'`) would be shared if not namespaced. This would cause the old screen's mount flag to suppress the new screen's animation on first open after a flag flip. Mitigation: all v2 anim files use `_v2`-suffixed keys (`'welcome_v2'`, `'more_accounts_v2'`, `'ready_v2'`). The add_account screen has no `useFirstMountEntering` usage in the existing anim — no conflict.
 
 - **R7 · `FlashList` in N3.** The existing O5 screen uses `FlashList` from `@shopify/flash-list`. N3 must also use `FlashList` for the account list. Confirm `FlashList` is already installed (it is — commit 55c53ad added it). No new dependency.
 
+- **R8 · `cn` import source.** Post-PR #61, `utils/cn.ts` is deleted. Any `import { cn } from '@/utils/cn'` in a v2 file will fail to compile. Mitigation: all v2 files import `cn` from `'heroui-native'` exclusively. Enforced by: `grep -r "from '@/utils/cn'" screens/onboarding_v2/` in AC #7 check — expected: no output.
+
+## Decisions log (2026-05-12 revision)
+
+The following decisions were made during the retargeting pass. They do not change any product behavior — they are purely technical adaptations for the new foundation.
+
+1. **Token renames applied throughout.** `bg-bg` → `bg-background`, `text-text1` → `text-foreground`, `text-text2` → `text-muted`, `bg-surfaceEl` → `bg-default`, `border-surface` (divider) → `border-separator`. These are mechanical substitutions; no visual change since the CSS variables they reference resolve to the same hex values.
+
+2. **`cn` import source changed to `heroui-native`.** All occurrences of `import { cn } from '@/utils/cn'` replaced. `utils/cn.ts` does not exist post-PR #61.
+
+3. **`Button` `destructive` variant clarification.** §2 does not use `destructive`. The spec and plan reference only `primary`. The renamed `danger` variant (HeroUI Native's replacement for `destructive`) is noted for awareness but has no §2 impact.
+
+4. **Expo Go references replaced with expo-dev-client.** Manual verification steps now reference `npx expo run:android` rather than "Expo Go". No functional change — the test steps are identical; only the run mechanism differs.
+
+5. **Tailwind lint check updated.** Old AC #7 checked `tailwind.config.js` for hex literals. That file doesn't exist in Tailwind v4 / Uniwind (theme is in `global.css`). New AC #7 checks for dead NativeWind-era token names in v2 files via grep.
+
+6. **Reanimated v4.2.1 `withSpring` — no changes needed.** None of the §2 anim files use the removed `restDisplacementThreshold` or `restSpeedThreshold` params. `damping`, `stiffness`, `springify()` chaining all remain valid. No code changes required; documented for clarity.
+
 ## Open questions (D11)
 
 1. **Min payment hint copy (wording polish).** Layla's substance is locked. Marcus may revise the exact phrasing before plan execution. Not blocking — the plan phase proceeds with the spec wording; Marcus can revise during dev if needed.
 
-2. **`OnboardingStep` enum: hard-delete O1..O6 at cleanup, or leave as commented-out tombstones?** Recommendation: hard-delete. The values are `'O1'`..`'O6'`; no migration value in preserving them since there are no production users. Leaving comments adds noise. Awaiting human confirmation before the cleanup PR is written.
+2. **`OnboardingStep` enum: hard-delete O1..O6 at cleanup, or leave as commented-out tombstones?** Recommendation: hard-delete. The values are `'O1'`..`'O6'`; no migration value in preserving them since there are no production users. Awaiting human confirmation before the cleanup PR is written.
 
 3. **N4 button label.** Keep `Strings.o6Cta` ("Open My Dashboard") or use a punchier variant? Stays as-is per D6 unless the human overrides.
 
-4. **N1 section label and note copy.** The spec uses `Strings.n1CurrencyLabel` and `Strings.n1CurrencyNote` (new keys). The exact copy (`"BASE CURRENCY"` / `"Change anytime in Settings."`) is reasonable but may warrant a Marcus pass. Not blocking.
+4. **N1 section label and note copy.** The spec uses `Strings.n1CurrencyLabel` and `Strings.n1CurrencyNote`. The exact copy (`"BASE CURRENCY"` / `"Change anytime in Settings."`) is reasonable but may warrant a Marcus pass. Not blocking.
 
-5. **N3 "Account saved" and subtitle strings — `Strings` keys or hardcoded?** The spec proposes `Strings.n3AccountSaved` and `Strings.n3AddMoreSubtitle`. These are always visible and user-facing; they belong in `Strings` per CLAUDE.md convention. Confirm before plan phase.
+5. **N3 "Account saved" and subtitle strings — `Strings` keys or hardcoded?** The spec proposes `Strings.n3AccountSaved` and `Strings.n3AddMoreSubtitle`. These are always visible and user-facing; they belong in `Strings` per CLAUDE.md convention. Confirmed: they are `Strings` keys in this spec.
 
 ## Hand-off to §3
 
 §2 delivers: new onboarding flow fully behind `FeatureFlags.newOnboarding=true` (initially `false` — flag flip is a separate one-line PR after code review). Old 6-screen flow unaffected.
 
 §3 (Reusable patterns: Sheet · FAB · EmptyState · SettingsSection) starts with:
-- §1 primitives and palette available (from §1, already merged).
+- §1 primitives and palette available (from §1, already merged including PR #61 HeroUI Native migration).
 - New onboarding behind the flag (from §2, merged).
 - No dependency on §2 deliverables — §3 builds cross-cutting patterns consumed by §4-9.
 - Nothing in §2 blocks §3. §3 plan approval may begin once the §2 cleanup PR has merged to main ([sarah] enforces per initiative rule §1.6 item 5).
@@ -794,7 +851,7 @@ Coverage target: all 4 hook files must individually achieve 100% branch coverage
 - `components/progress_dots/` — reused as-is; §3-9 may also use it.
 - `components/geo_illustration/` — §2-specific; §3-9 are unlikely to use it.
 - All §1 primitives — `Box`, `Text`, `Button`, `Input`, `Pressable` — available for §3-9.
-- All §1 Tailwind tokens — available for §3-9.
+- All §1 Tailwind tokens (HeroUI slot names) — available for §3-9.
 
 ---
 

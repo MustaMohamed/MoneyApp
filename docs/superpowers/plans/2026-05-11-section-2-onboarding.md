@@ -1,12 +1,52 @@
 # Section 2 · Onboarding Implementation Plan
 
+> **Revised 2026-05-12: retargeted for HeroUI Native foundation (post-PR #61 merge).**
+> **Status: Revised — awaiting re-approval.**
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Compress the existing 6-screen onboarding flow (O1–O6) into a 4-screen v2 flow (N1–N4) behind `FeatureFlags.newOnboarding`, porting all screens to §1 primitives and NativeWind classes, with zero visible change when the flag is `false`.
+**Goal:** Compress the existing 6-screen onboarding flow (O1–O6) into a 4-screen v2 flow (N1–N4) behind `FeatureFlags.newOnboarding`, porting all screens to §1 primitives and HeroUI Native Tailwind classes, with zero visible change when the flag is `false`.
 
 **Architecture:** Each new screen lives under `screens/onboarding_v2/<screen>/` (hook + anim + screen + optional components). The 4 existing `app/(onboarding)/*/index.tsx` route files become conditional dispatchers: when `FeatureFlags.newOnboarding` is `true` they render the v2 screen, otherwise the v1 screen. The flag is a compile-time `as const` boolean; Metro tree-shakes the unused branch. `store/onboarding.store.ts` gets one targeted change — `loadOnboardingState` force-restarts from N1 if the flag is `true` and a persisted O* step is found.
 
-**Tech Stack:** Expo Router v3 · TypeScript strict · Zustand v5 · RHF v7 + Zod v4 · react-native-reanimated · NativeWind v5 · gluestack-ui v2 primitives (`Box`, `Text`, `Button`, `Input`, `Pressable` from `components/ui/`) · `AcctTokens` from `constants/theme_tokens.ts` · `FlashList` from `@shopify/flash-list` · RN `Switch` · `react-native-safe-area-context` · Jest + RNTL
+**Tech Stack:** Expo Router v3 · TypeScript strict · Zustand v5 · RHF v7 + Zod v4 · react-native-reanimated v4.2.1 · HeroUI Native v1.0 + Unistyles 3 via Uniwind (`cn` from `heroui-native`) · `Box`, `Text`, `Button`, `Input`, `Pressable` from `components/ui/` · `AcctTokens` from `constants/theme_tokens.ts` · `FlashList` from `@shopify/flash-list` · RN `Switch` · `react-native-safe-area-context` · Jest + RNTL · expo-dev-client (Expo Go no longer used — see §1 foundation notes)
+
+---
+
+## Foundation prerequisite
+
+**This plan is executed AFTER PR #61 (`refactor/heroui-native-migration`) has merged to `main`.** Do not start §2 implementation until that merge is confirmed. The following are available post-merge:
+
+- `components/ui/box.tsx`, `button.tsx`, `input.tsx`, `pressable.tsx`, `text.tsx` — HeroUI Native-backed primitives
+- `heroui-native` package installed; `cn` utility exported from it
+- `utils/cn.ts` — deleted post-migration; do not import from it
+- Tailwind v4 CSS variables in `global.css` replacing old NativeWind token names
+- `expo-dev-client` required for running the app locally (`npx expo run:android` / `npx expo run:ios`)
+
+**Token rename reference (NativeWind-era → HeroUI slot):**
+
+| Old class | New class | Notes |
+|---|---|---|
+| `bg-bg` | `bg-background` | Root screen background |
+| `bg-surface` | `bg-surface` | Card/panel backgrounds — name unchanged |
+| `bg-surfaceEl` | `bg-default` | Field/pill/row background |
+| `text-text1` | `text-foreground` | Primary text |
+| `text-text2` | `text-muted` | Secondary/hint text |
+| `text-text3` | `text-muted` | Also maps to muted (slightly lower contrast — use opacity modifier if visual distinction needed) |
+| `border-border` | `border-border` | Unchanged |
+| `border-surface` (divider) | `border-separator` | CTA bar top border, row dividers |
+| `text-negative` | `text-negative` | Unchanged (`--color-negative` alias) |
+| `text-gold-500` | `text-gold-500` | Unchanged (custom token) |
+| `text-gold-600` | `text-gold-600` | Unchanged |
+| `bg-[rgba(...)]` | `bg-[rgba(...)]` | Arbitrary values still work |
+
+**Reanimated v4.2.1 note:** `withSpring` no longer accepts `restDisplacementThreshold` or `restSpeedThreshold` (use `energyThreshold` instead). None of the §2 anim files use those removed params — no changes required. Confirmed: `damping`, `stiffness`, `mass` remain valid config keys. `springify()` chaining (`.damping().stiffness()`) also unchanged.
+
+**`cn` import rule:** Every file in `screens/onboarding_v2/` and `app/(onboarding)/` that needs `cn` must import it as:
+```ts
+import { cn } from 'heroui-native';
+```
+Never `import { cn } from '@/utils/cn'` — that file is deleted post-PR #61.
 
 ---
 
@@ -619,11 +659,14 @@ Expected: FAIL — `Cannot find module '@/screens/onboarding_v2/welcome'`.
 
 - [ ] **Step 3: Create `screens/onboarding_v2/welcome/index.tsx`**
 
+Token mapping applied: `bg-bg` → `bg-background`, `bg-surface` → `bg-surface` (unchanged — surface card color), `text-text2` → `text-muted`, `border-border` → `border-border` (unchanged), `bg-surfaceEl` → `bg-default`, `border-surface` (divider) → `border-separator`. `cn` imports from `heroui-native`.
+
 ```tsx
-import React, { useState } from 'react';
+import React from 'react';
 import { ScrollView } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { cn } from 'heroui-native';
 
 import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
@@ -633,7 +676,6 @@ import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { cn } from '@/utils/cn';
 import { useWelcome } from './welcome.hook';
 import { useWelcomeAnim } from './welcome.anim';
 
@@ -642,7 +684,7 @@ export default function WelcomeScreenV2() {
   const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <ProgressDots totalSteps={4} currentStep={1} />
 
       <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
@@ -655,7 +697,7 @@ export default function WelcomeScreenV2() {
             <Text variant="hero" className="text-center font-soraExtra">
               {Strings.o1Headline}
             </Text>
-            <Text variant="body" className="text-text2 text-center mt-1">
+            <Text variant="body" className="text-muted text-center mt-1">
               {Strings.o1Subtext}
             </Text>
           </Animated.View>
@@ -673,7 +715,7 @@ export default function WelcomeScreenV2() {
                   'flex-1 flex-row items-center justify-center gap-2 py-3 rounded-[10px] border-[1.5px]',
                   state.selected === code
                     ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
-                    : 'border-border bg-surfaceEl',
+                    : 'border-border bg-default',
                 )}
               >
                 <Text className="text-[18px]">{code === 'EGP' ? '🇪🇬' : '🇺🇸'}</Text>
@@ -681,7 +723,7 @@ export default function WelcomeScreenV2() {
                   variant="body"
                   className={cn(
                     'font-soraBold',
-                    state.selected === code ? 'text-gold-600' : 'text-text2',
+                    state.selected === code ? 'text-gold-600' : 'text-muted',
                   )}
                 >
                   {code}
@@ -691,14 +733,14 @@ export default function WelcomeScreenV2() {
           </Animated.View>
 
           <Box className="mt-3 bg-surface rounded-[10px] px-4 py-3 w-full">
-            <Text variant="caption" className="text-text2">
+            <Text variant="caption" className="text-muted">
               {Strings.n1CurrencyNote}
             </Text>
           </Box>
         </Box>
       </ScrollView>
 
-      <Box className="border-t border-surface pt-2 px-4 pb-6">
+      <Box className="border-t border-separator pt-2 px-4 pb-6">
         <Animated.View entering={ctaEntering}>
           <Button variant="primary" label={Strings.o1Cta} onPress={onContinue} />
         </Animated.View>
@@ -769,11 +811,13 @@ Expected: exits 0.
 
 - [ ] **Step 3: Manual verification (flag=false)**
 
+Build and run on Android dev client:
+
 ```bash
-cd /Users/musta/Code/projects/practice/MoneyApp && npx expo start
+cd /Users/musta/Code/projects/practice/MoneyApp && npx expo run:android
 ```
 
-Open on Android Expo Go. Navigate to the welcome screen. Expected: old V1 screen renders unchanged (`FeatureFlags.newOnboarding` is still `false`).
+Navigate to the welcome screen. Expected: old V1 screen renders unchanged (`FeatureFlags.newOnboarding` is still `false`).
 
 - [ ] **Step 4: Commit**
 
@@ -1025,7 +1069,7 @@ cd /Users/musta/Code/projects/practice/MoneyApp && git add screens/onboarding_v2
 
 - [ ] **Step 1: Create `screens/onboarding_v2/add_account/add_account.anim.ts`**
 
-Port verbatim from `screens/onboarding/add_account/add_account.anim.ts` — no changes needed (this anim has no `useFirstMountEntering`, so no key collision risk):
+Port verbatim from `screens/onboarding/add_account/add_account.anim.ts` — no changes needed (this anim has no `useFirstMountEntering`, so no key collision risk). Note: Reanimated v4.2.1 compat confirmed — none of the `withSpring` calls here use the removed `restDisplacementThreshold` or `restSpeedThreshold` params; `damping` and `stiffness` remain valid.
 
 ```ts
 import {
@@ -1084,19 +1128,19 @@ export function useTypePillAnim() {
 
 - [ ] **Step 2: Create `screens/onboarding_v2/add_account/components/type_pill.tsx`**
 
-Port from `screens/onboarding/add_account/components/type_pill.tsx` with §1 primitives replacing bare RN components and StyleSheet replaced by Tailwind classes. `TYPE_OPTIONS` and `TypeOption` are identical — no schema changes.
+Port from `screens/onboarding/add_account/components/type_pill.tsx` with §1 primitives replacing bare RN components and StyleSheet replaced by Tailwind classes. `cn` from `heroui-native`. Token mapping: `bg-surfaceEl` → `bg-default`, `text-text2` → `text-muted`, `border-border` → `border-border` (unchanged).
 
 ```tsx
 import React from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Animated from 'react-native-reanimated';
+import { cn } from 'heroui-native';
 
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { AccountType } from '@/constants/enums';
 import { GoldTokens, CoreTokens } from '@/constants/theme_tokens';
-import { cn } from '@/utils/cn';
 import { useTypePillAnim } from '../add_account.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -1142,13 +1186,13 @@ export function TypePill({
           'flex-row items-center gap-2 py-3 px-3 rounded-[8px] border-[1.5px]',
           isSelected
             ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
-            : 'border-border bg-surfaceEl',
+            : 'border-border bg-default',
         )}
       >
         <MaterialCommunityIcons name={option.icon} size={18} color={iconColor} />
         <Text
           variant="body"
-          className={cn('font-soraBold', isSelected ? 'text-gold-600' : 'text-text2')}
+          className={cn('font-soraBold', isSelected ? 'text-gold-600' : 'text-muted')}
         >
           {option.label}
         </Text>
@@ -1261,6 +1305,8 @@ Expected: FAIL — `Cannot find module '@/screens/onboarding_v2/add_account'`.
 
 - [ ] **Step 3: Create `screens/onboarding_v2/add_account/index.tsx`**
 
+Token mapping applied throughout: `bg-bg` → `bg-background`, `bg-surfaceEl` → `bg-default`, `text-text1` → `text-foreground`, `text-text2` → `text-muted`, `border-border` → `border-border` (unchanged), `border-surface` (CTA bar divider) → `border-separator`. `cn` from `heroui-native`.
+
 ```tsx
 import React from 'react';
 import { ScrollView, Switch } from 'react-native';
@@ -1268,6 +1314,7 @@ import Animated from 'react-native-reanimated';
 import { Controller, useWatch } from 'react-hook-form';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { cn } from 'heroui-native';
 
 import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
@@ -1278,7 +1325,6 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { AccountType, Currency } from '@/constants/enums';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
-import { cn } from '@/utils/cn';
 import { useAddAccountV2, ACCOUNT_COLORS } from './add_account.hook';
 import { useAddAccountAnim } from './add_account.anim';
 import { TypePill, TYPE_OPTIONS } from './components/type_pill';
@@ -1308,7 +1354,7 @@ export default function AddAccountScreenV2() {
   const isCreditCard = selectedType === AccountType.CreditCard;
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       {/* Header */}
       <Box className="flex-row items-center justify-between px-4 h-14">
         <Pressable onPress={onBack} className="w-9 h-9 rounded-[8px] bg-surface border border-border items-center justify-center">
@@ -1374,10 +1420,10 @@ export default function AddAccountScreenV2() {
                 onPress={() => form.setValue('currency', code)}
                 className={cn(
                   'flex-1 py-3 px-3 rounded-[10px] border-[1.5px] items-center justify-center',
-                  selectedCurrency === code ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]' : 'border-border bg-surfaceEl',
+                  selectedCurrency === code ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]' : 'border-border bg-default',
                 )}
               >
-                <Text variant="body" className={cn('font-soraBold', selectedCurrency === code ? 'text-gold-600' : 'text-text2')}>
+                <Text variant="body" className={cn('font-soraBold', selectedCurrency === code ? 'text-gold-600' : 'text-muted')}>
                   {code}
                 </Text>
               </Pressable>
@@ -1475,7 +1521,7 @@ export default function AddAccountScreenV2() {
                   <Input value={value} onChangeText={onChange} placeholder={Strings.o4MinPaymentPlaceholderV2} keyboardType="decimal-pad" />
                 )}
               />
-              <Text variant="caption" className="text-text2 mt-1">{Strings.o4MinPaymentHint}</Text>
+              <Text variant="caption" className="text-muted mt-1">{Strings.o4MinPaymentHint}</Text>
             </Box>
 
             {/* Due Day */}
@@ -1492,7 +1538,7 @@ export default function AddAccountScreenV2() {
 
             {/* Interest Tracking — native Switch (spec §2.4) */}
             <Box className="flex-row items-center justify-between py-3">
-              <Text variant="body" className="font-interSemi text-text1">{Strings.o4InterestLabel}</Text>
+              <Text variant="body" className="font-interSemi text-foreground">{Strings.o4InterestLabel}</Text>
               <Switch
                 value={interestTracking}
                 onValueChange={(v) => form.setValue('interest_tracking', v)}
@@ -1515,7 +1561,7 @@ export default function AddAccountScreenV2() {
                     <Input value={value} onChangeText={onChange} onBlur={onBlur} placeholder={Strings.o4AprPlaceholder} keyboardType="decimal-pad" hasError={!!errors.apr} />
                   )}
                 />
-                <Text variant="caption" className="text-text2 mt-1">{Strings.o4AprHint}</Text>
+                <Text variant="caption" className="text-muted mt-1">{Strings.o4AprHint}</Text>
                 {errors.apr ? (
                   <Animated.Text entering={errorEntering} exiting={errorExiting} className="text-negative font-inter text-[12px] mt-1">{errors.apr.message}</Animated.Text>
                 ) : null}
@@ -1526,7 +1572,7 @@ export default function AddAccountScreenV2() {
       </ScrollView>
 
       {/* CTA bar */}
-      <Box className="border-t border-surface pt-2 px-4 pb-6">
+      <Box className="border-t border-separator pt-2 px-4 pb-6">
         <Animated.View style={btnAnim}>
           <Button
             variant="primary"
@@ -1789,7 +1835,7 @@ cd /Users/musta/Code/projects/practice/MoneyApp && git add screens/onboarding_v2
 
 - [ ] **Step 1: Create `screens/onboarding_v2/more_accounts/more_accounts.anim.ts`**
 
-New animations vs. O5 — adds check-circle, headline, and subtitle entering animations:
+New animations vs. O5 — adds check-circle, headline, and subtitle entering animations. Reanimated v4.2.1 compat confirmed — `ZoomIn.springify().damping().stiffness()` chaining is unchanged.
 
 ```ts
 import { FadeInDown, FadeInRight, ZoomIn } from 'react-native-reanimated';
@@ -1815,7 +1861,7 @@ export function useMoreAccountsAnim() {
 
 - [ ] **Step 2: Create `screens/onboarding_v2/more_accounts/components/account_row.tsx`**
 
-Port of O5 `AccountRow`. Key change: icon container uses `account.color` via inline style (runtime hex — cannot be a Tailwind class). Icon color is always `CoreTokens.text1` (white on colored background).
+Port of O5 `AccountRow`. Key change: icon container uses `account.color` via inline style (runtime hex — cannot be a Tailwind class). Icon color is always `CoreTokens.text1` (white on colored background). Token mapping: `bg-surface` → `bg-surface` (unchanged), `border-border` → `border-border` (unchanged), `text-foreground` replaces `text-text1`, `text-muted` replaces `text-text2`.
 
 ```tsx
 import React from 'react';
@@ -1873,10 +1919,10 @@ export function AccountRowV2({
         </Box>
 
         <Box className="flex-1 gap-0.5">
-          <Text variant="body" className="font-soraBold text-text1" numberOfLines={1}>
+          <Text variant="body" className="font-soraBold text-foreground" numberOfLines={1}>
             {account.name}
           </Text>
-          <Text variant="caption" className="text-text2">
+          <Text variant="caption" className="text-muted">
             {typeLabel}
           </Text>
         </Box>
@@ -1998,6 +2044,8 @@ Expected: FAIL — `Cannot find module '@/screens/onboarding_v2/more_accounts'`.
 
 - [ ] **Step 3: Create `screens/onboarding_v2/more_accounts/index.tsx`**
 
+Token mapping: `bg-bg` → `bg-background`, `border-surface` (CTA divider) → `border-separator`, `text-text3` → `text-muted`, `text-text2` → `text-muted`. No `cn` needed in this file — no conditional class merging.
+
 ```tsx
 import React from 'react';
 import { FlashList } from '@shopify/flash-list';
@@ -2011,7 +2059,7 @@ import { Button } from '@/components/ui/button';
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { SemanticTokens, GoldTokens } from '@/constants/theme_tokens';
+import { SemanticTokens } from '@/constants/theme_tokens';
 import { useMoreAccountsV2 } from './more_accounts.hook';
 import { useMoreAccountsAnim } from './more_accounts.anim';
 import { AccountRowV2 } from './components/account_row';
@@ -2022,7 +2070,7 @@ export default function MoreAccountsScreenV2() {
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering } = useMoreAccountsAnim();
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <ProgressDots totalSteps={4} currentStep={3} />
 
       <Box className="flex-1 px-4">
@@ -2035,13 +2083,13 @@ export default function MoreAccountsScreenV2() {
           </Animated.View>
 
           <Animated.Text entering={headlineEntering}>
-            <Text variant="title" className="font-soraBold text-text1 text-center">
+            <Text variant="title" className="font-soraBold text-foreground text-center">
               {Strings.n3AccountSaved}
             </Text>
           </Animated.Text>
 
           <Animated.Text entering={subtitleEntering}>
-            <Text variant="body" className="text-text2 text-center">
+            <Text variant="body" className="text-muted text-center">
               {Strings.n3AddMoreSubtitle}
             </Text>
           </Animated.Text>
@@ -2073,20 +2121,20 @@ export default function MoreAccountsScreenV2() {
               >
                 <Text className="text-gold-500 font-soraBold text-[16px]">+</Text>
               </Box>
-              <Text variant="body" className="text-text2">
+              <Text variant="body" className="text-muted">
                 {Strings.o5AddAnother}
               </Text>
             </Pressable>
           }
         />
 
-        <Text variant="caption" className="text-text3 text-center px-4 py-2">
+        <Text variant="caption" className="text-muted text-center px-4 py-2">
           {Strings.o5SettingsHint}
         </Text>
       </Box>
 
       {/* CTA */}
-      <Box className="border-t border-surface pt-2 px-4 pb-6">
+      <Box className="border-t border-separator pt-2 px-4 pb-6">
         <Button variant="primary" label={Strings.o5Cta} onPress={handleContinue} />
       </Box>
     </SafeAreaView>
@@ -2433,7 +2481,7 @@ cd /Users/musta/Code/projects/practice/MoneyApp && git add screens/onboarding_v2
 
 - [ ] **Step 1: Create `screens/onboarding_v2/ready/ready.anim.ts`**
 
-Port verbatim from `screens/onboarding/ready/ready.anim.ts` with key `'ready_v2'`:
+Port verbatim from `screens/onboarding/ready/ready.anim.ts` with key `'ready_v2'`. Reanimated v4.2.1 compat confirmed — `ZoomIn.springify().damping().stiffness()` unchanged; no removed params used.
 
 ```ts
 import { FadeInUp, ZoomIn } from 'react-native-reanimated';
@@ -2553,19 +2601,21 @@ Expected: FAIL — `Cannot find module '@/screens/onboarding_v2/ready'`.
 
 - [ ] **Step 3: Create `screens/onboarding_v2/ready/index.tsx`**
 
+Token mapping: `bg-bg` → `bg-background`, `text-text1` → `text-foreground`, `text-text2` → `text-muted`, `border-surface` (CTA bar divider) → `border-separator`, `bg-surfaceEl` (summary row divider) → `border-separator`. `cn` from `heroui-native`.
+
 ```tsx
 import React from 'react';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { cn } from 'heroui-native';
 
 import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { SemanticTokens, GoldTokens } from '@/constants/theme_tokens';
-import { cn } from '@/utils/cn';
+import { SemanticTokens } from '@/constants/theme_tokens';
 import { useReadyV2 } from './ready.hook';
 import { useReadyAnim } from './ready.anim';
 
@@ -2576,7 +2626,7 @@ export default function ReadyScreenV2() {
     useReadyAnim();
 
   return (
-    <SafeAreaView className="flex-1 bg-bg" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
       <ProgressDots totalSteps={4} currentStep={4} />
 
       <Box className="flex-1 items-center justify-center px-4 gap-4">
@@ -2585,13 +2635,13 @@ export default function ReadyScreenV2() {
         </Animated.View>
 
         <Animated.Text entering={headlineEntering}>
-          <Text variant="hero" className="font-soraExtra text-text1 text-center">
+          <Text variant="hero" className="font-soraExtra text-foreground text-center">
             {Strings.o6Title}
           </Text>
         </Animated.Text>
 
         <Animated.Text entering={subtitleEntering}>
-          <Text variant="body" className="text-text2 text-center">
+          <Text variant="body" className="text-muted text-center">
             {Strings.o6Subtitle}
           </Text>
         </Animated.Text>
@@ -2605,13 +2655,13 @@ export default function ReadyScreenV2() {
               entering={rowEntering(index)}
               className={cn(
                 'flex-row justify-between items-center py-3',
-                index < rows.length - 1 && 'border-b border-surfaceEl',
+                index < rows.length - 1 && 'border-b border-separator',
               )}
             >
-              <Text variant="body" className="text-text2">{row.label}</Text>
+              <Text variant="body" className="text-muted">{row.label}</Text>
               <Text
                 variant="body"
-                className={cn('font-soraBold', row.gold ? 'text-gold-500' : 'text-text1')}
+                className={cn('font-soraBold', row.gold ? 'text-gold-500' : 'text-foreground')}
               >
                 {row.value}
               </Text>
@@ -2621,7 +2671,7 @@ export default function ReadyScreenV2() {
       </Box>
 
       {/* CTA bar */}
-      <Box className="border-t border-surface pt-2 px-4 pb-6">
+      <Box className="border-t border-separator pt-2 px-4 pb-6">
         <Animated.View entering={ctaEntering}>
           <Button
             variant="primary"
@@ -2727,12 +2777,14 @@ cd /Users/musta/Code/projects/practice/MoneyApp && npm run test:coverage
 
 Expected: exits 0. Thresholds unchanged — 80% lines / 95% functions / 100% branches. New hook files must achieve 100% branch coverage individually. If any branch threshold fails, identify the uncovered branch and add the missing test case before proceeding.
 
+Note on test strategy for HeroUI Native: Tailwind classes processed by Uniwind's build-time transform do not run in Jest. Tests assert on `className` strings (present in the rendered VDOM), rendered text content, and `testID` values — not computed pixel styles. This matches the project's existing test strategy and is unchanged from the NativeWind era.
+
 - [ ] **Step 3: Verify old O1–O6 flow untouched (flag=false)**
 
-With `FeatureFlags.newOnboarding = false` (the default — do not change it), run the app on Android Expo Go:
+With `FeatureFlags.newOnboarding = false` (the default — do not change it), build and run on Android dev client:
 
 ```bash
-cd /Users/musta/Code/projects/practice/MoneyApp && npx expo start
+cd /Users/musta/Code/projects/practice/MoneyApp && npx expo run:android
 ```
 
 Navigate: Welcome → Currency → Security → Add Account → More Accounts → Ready. Expected: identical behaviour to pre-§2. No visual changes, no crashes, no regression.
@@ -2821,6 +2873,10 @@ cd /Users/musta/Code/projects/practice/MoneyApp && gh pr create \
 - N3: Add Another? with check-circle success header + FlashList account list + dashed add row.
 - N4: Done with 3-row summary (Currency / Accounts / Total Balance) — Security row dropped.
 
+## Foundation
+
+Targets the HeroUI Native v1.0 + Unistyles 3 via Uniwind foundation from PR #61. Must be executed after that PR merges to main.
+
 ## Flag state
 
 \`FeatureFlags.newOnboarding = false\` on merge. **Zero UX change for end users.** Flag flip is a separate one-line PR after [tariq] code review (Gate 2).
@@ -2833,8 +2889,8 @@ cd /Users/musta/Code/projects/practice/MoneyApp && gh pr create \
 
 - [ ] \`npm run typecheck\` — exits 0
 - [ ] \`npm run test:coverage\` — exits 0, thresholds unchanged
-- [ ] Android Expo Go with \`flag=false\`: O1–O6 flow unchanged
-- [ ] Android Expo Go with \`flag=true\` (local flip): full N1→N2→N3→N4 flow completes; dashboard redirect on N4 CTA; relaunch skips onboarding
+- [ ] Android dev client with \`flag=false\`: O1–O6 flow unchanged
+- [ ] Android dev client with \`flag=true\` (local flip): full N1→N2→N3→N4 flow completes; dashboard redirect on N4 CTA; relaunch skips onboarding
 - [ ] isAddingMore round-trip: N3 → N2 (reset form) → N3 (both accounts listed)
 - [ ] Force-restart: O* persisted step + flag=true → restarts at N1
 EOF
@@ -2867,7 +2923,7 @@ OQ1–OQ5 from the spec are not blockers. If Marcus wants to revise N1/N3 copy s
 
 **Coverage contract:** Hook unit tests drive branch coverage. Smoke tests contribute to line and function coverage. All 4 hook files must individually achieve 100% branch coverage. The `npm run test:coverage` thresholds (80% lines / 95% functions / 100% branches) apply project-wide and must not regress.
 
-**NativeWind in tests:** NativeWind's Metro transform does not run in Jest. Tests assert on `className` strings and rendered text/testIDs, not computed pixel styles. This matches the project's existing test strategy.
+**HeroUI Native / Tailwind via Uniwind in tests:** The Tailwind transform (Uniwind/Unistyles build-time processing) does not run in Jest. Tests assert on `className` strings, rendered text, and `testID` values — not computed pixel styles. This is identical to the prior NativeWind test strategy; no new test setup is required.
 
 ---
 
@@ -2881,6 +2937,6 @@ OQ1–OQ5 from the spec are not blockers. If Marcus wants to revise N1/N3 copy s
 - [ ] **AC #4** — `npm run typecheck` passes with zero errors.
 - [ ] **AC #5** — `npm run test:coverage` passes. Thresholds unchanged.
 - [ ] **AC #6** — §1 dev preview route at `app/(dev)/primitives/index.tsx` still renders all 5 primitives without regression.
-- [ ] **AC #7** — `npx eslint tailwind.config.js` exits 0. No new hex literals introduced.
-- [ ] **AC #8** — Animation fidelity matches O* screens subjectively on Android Expo Go.
-- [ ] **AC #9** — `Switch` renders acceptably on Android API 26+ in Expo Go (visual check).
+- [ ] **AC #7** — No dead NativeWind-era token names (`bg-bg`, `text-text1`, `bg-surfaceEl`, `text-text2`) present in any `screens/onboarding_v2/` file. Verify with: `grep -r "bg-bg\|text-text1\|bg-surfaceEl\|text-text2" screens/onboarding_v2/` — expected: no output.
+- [ ] **AC #8** — Animation fidelity matches O* screens subjectively on Android dev client.
+- [ ] **AC #9** — `Switch` renders acceptably on Android API 26+ in dev client build (visual check).
