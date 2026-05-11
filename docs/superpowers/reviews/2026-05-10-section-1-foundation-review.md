@@ -114,3 +114,106 @@ All four deviations were correct calls. No pushback.
 3. **I2 (important):** Add a comment to `Button`'s `forwardRef` documenting that `ref` targets `Pressable` (not `LinearGradient`) for the primary variant. Must land before §5 plan is approved.
 
 Items I2 and I3 may be addressed in a follow-up commit on this branch rather than blocking the merge, provided they land before their respective downstream section plans are approved. B1 must be in the merge commit.
+
+---
+
+## Round 2 Review — `49c0f5f`
+
+**Reviewer:** Tariq Mansour (Technical Team Lead)
+**Date:** 2026-05-11
+**Head:** `49c0f5f`
+**New commits reviewed:** `b68b306` (B1/I1/I2 fixes) · `1be430e` (CI failures) · `49c0f5f` (prettier on configs)
+**CI status:** All green (Install · Lint · Typecheck · Format check · Unit tests · Android JS bundle · Expo doctor)
+
+---
+
+### Verdict: APPROVED
+
+No blockers. No important issues. Two nits, one process note. Ready to merge to main.
+
+---
+
+### Prior conditions resolved
+
+**B1 — trailing newline in `tsconfig.json`**
+
+Resolved correctly in `b68b306`. The diff shows `}` without the `\ No newline at end of file` marker. The subsequent `1be430e` introduced an unexpected regression (see "Commit message accuracy" below) but `49c0f5f` restored the file to a valid prettier-passing state with a trailing newline. The final file at `49c0f5f` ends cleanly at line 11 with `}` followed by a newline. B1 is satisfied.
+
+**I1 — `focus:border-gold-500` restored in `Input`**
+
+Resolved correctly in `b68b306`. The class is present at line 16 of `components/ui/input.tsx` as `'border-border focus:border-gold-500'` in the non-error branch. The choice to restore rather than document a limitation is appropriate: NativeWind v5's custom-variant system (`@custom-variant`) and the `focus:` pseudo-class are part of the v5 spec. The `theme.css` ships `@custom-variant` registrations for `ios`, `android`, `native`, and `web` — but `focus:` is a standard Tailwind v4 interactive variant and is handled by the Tailwind v4 compiler, not a NativeWind-specific override. Whether it fires at runtime in RN depends on the component implementing `onFocus`/`onBlur` events and passing them to the NativeWind runtime; `TextInput` does. I1 is satisfied.
+
+**I2 — `forwardRef` comment on `Button`**
+
+Resolved correctly in `b68b306`. The 7-line block comment above the `forwardRef` call documents the exact risk: Pressable geometry vs. gradient geometry, and points §5 developers toward the correct mitigation (wrapper `View` with a separate ref). The comment is accurate. I2 is satisfied.
+
+---
+
+### CI fix analysis (`1be430e`)
+
+**`global.css` — `@import 'tailwindcss'` directive**
+
+This is the correct Tailwind v4 / NativeWind v5 directive. Tailwind v4 replaced the v3 triple-directive pattern (`@tailwind base; @tailwind components; @tailwind utilities;`) with a single `@import 'tailwindcss'` which expands to all three layers internally. The NativeWind v5 Metro transformer (`react-native-css@3.0.7`) processes this via the Tailwind v4 compiler. The commit message's error description (`failed to deserialize; expected a sequence, found ()`) is the correct diagnostic from the v5 transformer encountering v3 directives. No preflight loss to worry about: NativeWind v5 intentionally does not apply CSS preflight to React Native (there is no DOM to reset), so `@tailwind base` was already a no-op in this context.
+
+**`tsconfig.json` — typecheck fix**
+
+The commit message is factually wrong. It states "remove `nativewind-env.d.ts` from tsconfig include array." The actual diff for `1be430e` shows only the trailing newline being removed (reverting B1's fix). `nativewind-env.d.ts` remains in the `include` array throughout all three commits and is present in the final file at `49c0f5f` line 10.
+
+The typecheck CI failure was not caused by `nativewind-env.d.ts` being in the include array. The correct explanation is that CI's format check failure (tsconfig.json had non-prettier-compliant multi-line arrays) was treated as a typecheck failure in the same CI run, or the Edit tool re-expanded the arrays after `b68b306`'s `prettier --write` pass. The actual typecheck mechanism that was broken and fixed is prettier formatting, not the include entry. `nativewind-env.d.ts` is safe to list explicitly: the file exists on disk (it is not gitignored — `.gitignore` does not contain `nativewind-env.d.ts`), it is committed, and `tsc` resolves it correctly. The `**/*.ts` glob would also cover it if it were present, but the explicit entry is not harmful and is in fact the right thing to do given the file is generated infrastructure that should be committed.
+
+The inaccurate commit message is recorded history and cannot be edited. It is a documentation problem, not a code problem. No action required.
+
+**`tailwind.config.js` — prettier alignment whitespace**
+
+Pure formatting change. All token keys and values verified intact by loading the config at runtime. Color map: 18 top-level keys (bg, surface, surfaceEl, border, text1, text2, text3, hint, gold, positive, negative, warning, info, nile, spice, lapis, sand, acct). Gold: 4 shades (400/500/600/700). Acct: 12 families (midnight, gold, nile, paprika, plum, lapis, rose, sand, amethyst, emerald, saffron, steel). Font families: 7 (sora, soraSemi, soraBold, soraExtra, inter, interMedium, interSemi). Content globs: 3 (app, screens, components). Nothing dropped.
+
+---
+
+### Acceptance criteria review (AC #1–#8)
+
+| AC | Description | Status |
+|----|-------------|--------|
+| AC #1 | `npm install` completes without errors | Pass — CI Install step green. |
+| AC #2 | `npx expo start` on Android Expo Go SDK 55 — zero visible UI changes | Manual only. Not verifiable in CI. Spec R5 notes iOS Expo Go for SDK 55 may require TestFlight. Not a merge blocker per spec. |
+| AC #3 | `npm run typecheck` passes | Pass — CI Typecheck step green. |
+| AC #4 | `npm run test:coverage` passes with thresholds | Pass — 908 tests / 107 suites / all thresholds met (100% branches, 95%+ functions, 80%+ lines). Verified locally. |
+| AC #5 | `app/(dev)/primitives/index.tsx` exists and renders all 5 primitives | Pass — file exists. Dev preview screen present at `screens/dev/primitives/index.tsx`. CI `test -f` check passes. |
+| AC #6 | `tailwind.config.js` contains no hex literals | Pass — lint rule in `eslint.config.js` enforces this. CI Lint step green. No hex literals present in config. |
+| AC #7 | `constants/feature_flags.ts` exists with all flags `false` | Pass — file present with `FeatureFlags.newOnboarding = false`. |
+| AC #8 | `metro.config.js` uses `withNativeWind`; `babel.config.js` unchanged | Pass — `metro.config.js` correctly wraps `getDefaultConfig` with `withNativeWind`. Babel not touched. |
+
+All automatable ACs are green. AC #2 is manual and deferred per spec R5; this is documented and does not block merge.
+
+---
+
+### New findings
+
+**Nit N6 — `@gluestack-ui/button` and `@gluestack-ui/pressable` installed but unused**
+
+Both packages appear in `package.json` (and are resolved in `node_modules`) but have zero import sites in `app/`, `screens/`, `components/`, `utils/`, `constants/`, or `__tests__/`. The plan's Task 1 Step 3 installed them as "gluestack v2 headless primitives," but the actual implementation rolled its own `Button` and `Pressable` wrappers directly (the gluestack packages were installed as the architectural model, then the primitives were implemented from scratch using `cva` + NativeWind classes instead of wrapping gluestack's headless components).
+
+Neither package requires native code (peer deps are `react>=16` + `react-dom>=16` only; no `.podspec` or `.gradle` files), so they do not violate Expo Go compatibility. Bundle impact is present but small (both are pure-JS headless utility packages).
+
+This is a nit, not a blocker: the packages do not harm anything and removing them is a one-line `npm uninstall` in a follow-up PR. However, the dead dependencies should be removed before §2 begins to keep `package.json` honest. Flag for the §2 kickoff.
+
+**Nit N7 (process) — `lint-staged` scope excludes JSON and JS config files**
+
+`lint-staged` runs `eslint --fix` + `prettier --write` only on `*.{ts,tsx}`. This caused two CI-wasted rounds on this PR: `1be430e` fixed the tsconfig prettier failure, then `49c0f5f` had to fix prettier on `tailwind.config.js` as well because the pre-commit hook did not catch it. The fix is a one-line change to `lint-staged` config to include `*.{json,js,cjs,mjs}` patterns. This should not block merge — it is a developer-experience improvement that prevents future CI waste. File as a follow-up PR immediately after §1 merges.
+
+---
+
+### Praise
+
+The three-commit sequence to green CI was methodical and correct in outcome even where the diagnosis in `1be430e`'s commit message was imprecise. The `global.css` fix (`@import 'tailwindcss'`) required knowing the Tailwind v4 API change — that is the right call and it is correct. The prettier consistency across both JSON and JS configs is clean. The full test suite at 908 passing tests with 100% branch coverage is an unusually strong baseline for a §1 foundation layer.
+
+The `nativewind-env.d.ts` not being gitignored is actually correct: the file comment itself says "should be committed with your source code." The `.gitignore` entry in the Round 1 review's N2 nit described it as "auto-generated and gitignored" — that was imprecise on my part. It is auto-generated but should be committed, and it is. The file is correctly tracked.
+
+---
+
+### Conditions for merge
+
+None. This PR is clear to merge to main.
+
+**Recommended follow-up PRs (not blocking):**
+1. `chore(deps): remove unused @gluestack-ui/button + @gluestack-ui/pressable` — address N6 before §2 begins.
+2. `chore(tooling): extend lint-staged to cover JSON/JS/CJS config files` — address N7 to prevent repeat CI waste on §2.
