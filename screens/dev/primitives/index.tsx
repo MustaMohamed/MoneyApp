@@ -57,8 +57,8 @@ export default function PrimitivesPreview() {
         onPress={() => {}}
       />
       <Button
-        variant="destructive"
-        label="Destructive (bg-negative)"
+        variant="danger"
+        label="Danger (HeroUI danger variant)"
         className="mb-6"
         onPress={() => {}}
       />
