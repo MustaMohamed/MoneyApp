@@ -1,76 +1,96 @@
 import React from 'react';
-import { Pressable, type PressableProps } from 'react-native';
+import { Pressable as RNPressable, type PressableProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/utils/cn';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { tv, type VariantProps } from 'tailwind-variants';
+import { cn } from 'heroui-native';
 import { Text } from './text';
+import { GoldTokens } from '@/constants/theme_tokens';
 
-const buttonVariants = cva(
-  'min-h-[52px] min-w-[44px] rounded-[13px] items-center justify-center px-4',
-  {
-    variants: {
-      variant: {
-        primary: '',
-        ghost: 'border border-border bg-transparent',
-        destructive: 'bg-negative',
-      },
-    },
-    defaultVariants: { variant: 'primary' },
-  },
-);
-
-const labelVariants = cva('font-soraSemi text-[16px]', {
+const buttonVariants = tv({
+  base: 'h-[52px] rounded-[13px] items-center justify-center flex-row gap-2',
   variants: {
     variant: {
-      primary: 'text-surfaceEl',
-      ghost: 'text-text1',
-      destructive: 'text-text1',
+      primary: 'overflow-hidden',
+      secondary: 'bg-default border border-border',
+      outline: 'border border-accent',
+      ghost: '',
+      danger: 'bg-danger',
+    },
+    fullWidth: {
+      true: 'w-full',
+    },
+    disabled: {
+      true: 'opacity-40',
+    },
+  },
+  defaultVariants: {
+    variant: 'primary',
+  },
+});
+
+const labelVariants = tv({
+  base: 'font-sora text-[16px] font-semibold',
+  variants: {
+    variant: {
+      primary: 'text-accent-foreground',
+      secondary: 'text-foreground',
+      outline: 'text-accent',
+      ghost: 'text-foreground',
+      danger: 'text-danger-foreground',
     },
   },
   defaultVariants: { variant: 'primary' },
 });
 
-interface ButtonProps extends PressableProps, VariantProps<typeof buttonVariants> {
+type ButtonVariantProps = Omit<VariantProps<typeof buttonVariants>, 'disabled'>;
+
+export interface ButtonProps extends PressableProps, ButtonVariantProps {
   className?: string;
   label: string;
+  isLoading?: boolean;
 }
 
-// NOTE: forwardRef targets the inner Pressable for all variants, including
-// `primary` (where the Pressable sits inside a LinearGradient wrapper).
-// Consumers that measure layout via ref (e.g. animated CTAs in §5 Dashboard)
-// will receive Pressable's geometry, NOT the gradient's. The gradient is a
-// 1px-wider visual frame around the Pressable — measure offsets will be off
-// by the gradient's border-radius/padding if any is added later. Reach for
-// the gradient ref via children-as-function or a separate API if/when needed.
-export const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>(
-  ({ className, variant = 'primary', label, ...props }, ref) => {
-    const pressable = (
-      <Pressable
-        ref={ref}
-        className={cn(buttonVariants({ variant }), className)}
-        accessibilityRole="button"
+export function Button({
+  variant = 'primary',
+  fullWidth,
+  disabled,
+  isLoading,
+  label,
+  className,
+  ...props
+}: ButtonProps) {
+  const isDisabled = disabled || isLoading;
+
+  const inner = (
+    <Text className={cn(labelVariants({ variant }))}>{isLoading ? 'Loading...' : label}</Text>
+  );
+
+  if (variant === 'primary') {
+    return (
+      <RNPressable
+        disabled={isDisabled}
+        className={cn(buttonVariants({ variant, fullWidth, disabled: isDisabled }), className)}
         {...props}
       >
-        <Text className={labelVariants({ variant })}>{label}</Text>
-      </Pressable>
-    );
-
-    if (variant === 'primary') {
-      return (
         <LinearGradient
-          // Token-sourced: GoldTokens[400] = #E0B968, GoldTokens[600] = #C9973A
           colors={[GoldTokens[400], GoldTokens[600]]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={{ borderRadius: 13 }}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ flex: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}
         >
-          {pressable}
+          {inner}
         </LinearGradient>
-      );
-    }
+      </RNPressable>
+    );
+  }
 
-    return pressable;
-  },
-);
-Button.displayName = 'Button';
+  return (
+    <RNPressable
+      disabled={isDisabled}
+      className={cn(buttonVariants({ variant, fullWidth, disabled: isDisabled }), className)}
+      {...props}
+    >
+      {inner}
+    </RNPressable>
+  );
+}
