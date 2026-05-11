@@ -2,6 +2,8 @@
 
 > **Revised 2026-05-12: corrected HeroUI Native architecture.**
 > The original doc was written on incorrect assumptions about the styling model. See "Revision Notes" below.
+>
+> **Scope update (2026-05-12, execution-time):** This migration PR ships the **§1 foundation only** (library swap, primitives, theme, build system, CI, docs). The §2 onboarding retarget was deferred to a follow-up PR after discovering the §2 files never landed on `main` (they only existed on the closed `feat/section-2-onboarding` branch). The "targeted retarget" plan was based on a false premise. §2 will be rebuilt fresh atop the merged HeroUI Native foundation in a separate PR.
 
 **Date:** 2026-05-11
 **Revised:** 2026-05-12
