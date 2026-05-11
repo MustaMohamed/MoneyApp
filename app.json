@@ -41,6 +41,13 @@
             "backgroundColor": "#0F1923"
           }
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": { "newArchEnabled": true },
+          "ios": { "newArchEnabled": true }
+        }
       ]
     ],
     "experiments": {
