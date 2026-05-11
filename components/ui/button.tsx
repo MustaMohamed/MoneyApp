@@ -36,6 +36,13 @@ interface ButtonProps extends PressableProps, VariantProps<typeof buttonVariants
   label: string;
 }
 
+// NOTE: forwardRef targets the inner Pressable for all variants, including
+// `primary` (where the Pressable sits inside a LinearGradient wrapper).
+// Consumers that measure layout via ref (e.g. animated CTAs in §5 Dashboard)
+// will receive Pressable's geometry, NOT the gradient's. The gradient is a
+// 1px-wider visual frame around the Pressable — measure offsets will be off
+// by the gradient's border-radius/padding if any is added later. Reach for
+// the gradient ref via children-as-function or a separate API if/when needed.
 export const Button = React.forwardRef<React.ElementRef<typeof Pressable>, ButtonProps>(
   ({ className, variant = 'primary', label, ...props }, ref) => {
     const pressable = (

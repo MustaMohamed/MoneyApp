@@ -13,7 +13,7 @@ export const Input = React.forwardRef<TextInput, InputProps>(
       ref={ref}
       className={cn(
         'border rounded-[12px] px-4 py-3 font-inter text-[14px] text-text1 bg-surfaceEl',
-        hasError ? 'border-negative' : 'border-border',
+        hasError ? 'border-negative' : 'border-border focus:border-gold-500',
         className,
       )}
       // placeholderTextColor cannot be a Tailwind class (it is a JSX prop).
