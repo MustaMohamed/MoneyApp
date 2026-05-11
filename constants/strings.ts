@@ -63,6 +63,20 @@ export const Strings = {
   o4AprPlaceholder: 'e.g. 2.99',
   o4Cta: 'Save Account',
 
+  // N1 — Welcome + Currency (v2 keys)
+  n1CurrencyLabel: 'BASE CURRENCY',
+  n1CurrencyNote: 'Change anytime in Settings.',
+
+  // N3 — Add Another? (v2 keys)
+  n3AccountSaved: 'Account saved',
+  n3AddMoreSubtitle: 'Want to add another? You can add credit cards, cash wallets, and more.',
+
+  // N2 — CC field improvements (v2 keys — old keys kept for O4 screen during flag=false window)
+  o4MinPaymentHint: 'Copy from your latest statement. Leave blank if your card is new.',
+  o4AprHint:
+    'Annual rate — usually 25–40% on Egyptian credit cards. Find it on your cardholder agreement or in your bank app under "Rates".',
+  o4MinPaymentPlaceholderV2: 'From your statement',
+
   // O4 validation errors
   errNameRequired: 'Account name is required',
   errNameTooLong: 'Name must be 30 characters or less',
