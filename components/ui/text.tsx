@@ -1,28 +1,40 @@
 import React from 'react';
-import { Text as RNText, type TextProps } from 'react-native';
-import { cva, type VariantProps } from 'class-variance-authority';
-import { cn } from '@/utils/cn';
+import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
+import { tv, type VariantProps } from 'tailwind-variants';
+import { cn } from 'heroui-native';
 
-const textVariants = cva('font-inter text-text1', {
+const textVariants = tv({
+  base: 'text-foreground',
   variants: {
     variant: {
-      body: 'text-[14px]',
-      caption: 'text-[12px] text-text2',
-      hint: 'text-[12px] text-hint',
-      title: 'font-soraSemi text-[18px]',
-      hero: 'font-soraSemi text-[28px]',
+      hero: 'font-sora text-[32px] font-bold leading-tight',
+      h1: 'font-sora text-[28px] font-bold leading-tight',
+      h2: 'font-sora text-[22px] font-semibold leading-snug',
+      h3: 'font-sora text-[18px] font-semibold',
+      title: 'font-sora text-[20px] font-semibold',
+      body: 'font-inter text-[15px] font-normal',
+      label: 'font-inter text-[13px] font-medium',
+      hint: 'font-inter text-[12px] font-normal text-muted',
+      caption: 'font-inter text-[11px] font-normal text-muted',
+      numLg: 'font-sora text-[32px] font-bold tabular-nums',
+      numMd: 'font-sora text-[20px] font-semibold tabular-nums',
+    },
+    muted: {
+      true: 'text-muted',
+    },
+    accent: {
+      true: 'text-accent',
     },
   },
-  defaultVariants: { variant: 'body' },
+  defaultVariants: {
+    variant: 'body',
+  },
 });
 
-interface TextComponentProps extends TextProps, VariantProps<typeof textVariants> {
+export interface TextProps extends RNTextProps, VariantProps<typeof textVariants> {
   className?: string;
 }
 
-export const Text = React.forwardRef<RNText, TextComponentProps>(
-  ({ className, variant, ...props }, ref) => (
-    <RNText ref={ref} className={cn(textVariants({ variant }), className)} {...props} />
-  ),
-);
-Text.displayName = 'Text';
+export function Text({ variant, muted, accent, className, ...props }: TextProps) {
+  return <RNText className={cn(textVariants({ variant, muted, accent }), className)} {...props} />;
+}

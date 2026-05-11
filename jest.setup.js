@@ -53,3 +53,42 @@ jest.mock('react-native-uuid', () => ({
     v4: () => '00000000-0000-4000-8000-000000000000',
   },
 }));
+
+jest.mock('heroui-native', () => {
+  const React = require('react');
+  const { View, Text: RNText, TextInput } = require('react-native');
+
+  const passThrough = (Component) =>
+    React.forwardRef(({ children, ...props }, ref) =>
+      React.createElement(Component, { ref, ...props }, children),
+    );
+
+  const TextField = passThrough(View);
+  const Label = passThrough(RNText);
+  const Description = passThrough(RNText);
+  const FieldError = passThrough(RNText);
+  const Input = passThrough(TextInput);
+  const Surface = passThrough(View);
+  const Text = passThrough(RNText);
+
+  const Button = passThrough(View);
+  Button.Label = passThrough(RNText);
+
+  return {
+    cn: (...args) => args.filter(Boolean).flat(Infinity).join(' '),
+    Button,
+    TextField,
+    Input,
+    Label,
+    Description,
+    FieldError,
+    Surface,
+    Text,
+    useTextField: () => ({ isDisabled: false, isInvalid: false, isRequired: false }),
+    useThemeColor: () => ['#D4A44C'],
+  };
+});
+
+jest.mock('heroui-native/provider-raw', () => ({
+  HeroUINativeProviderRaw: ({ children }) => children,
+}));

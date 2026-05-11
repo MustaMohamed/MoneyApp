@@ -2,6 +2,7 @@ import '../global.css';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as SystemUI from 'expo-system-ui';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { HeroUINativeProviderRaw } from 'heroui-native/provider-raw';
 
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
@@ -59,15 +60,17 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>
-      <ThemeProvider value={AppTheme}>
-        <StatusBar style="light" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: Colors.dark.bg },
-          }}
-        />
-      </ThemeProvider>
+      <HeroUINativeProviderRaw>
+        <ThemeProvider value={AppTheme}>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: Colors.dark.bg },
+            }}
+          />
+        </ThemeProvider>
+      </HeroUINativeProviderRaw>
     </GestureHandlerRootView>
   );
 }

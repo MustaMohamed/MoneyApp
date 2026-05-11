@@ -1,26 +1,37 @@
 import React from 'react';
-import { TextInput, type TextInputProps } from 'react-native';
-import { cn } from '@/utils/cn';
+import {
+  TextField as HTextField,
+  Input as HInput,
+  Label,
+  Description,
+  type InputProps as HInputProps,
+} from 'heroui-native';
 
-interface InputProps extends TextInputProps {
+export interface InputProps extends HInputProps {
   className?: string;
+  label?: string;
+  helperText?: string;
+  isRequired?: boolean;
+  /** @deprecated use isInvalid */
   hasError?: boolean;
 }
 
-export const Input = React.forwardRef<TextInput, InputProps>(
-  ({ className, hasError = false, ...props }, ref) => (
-    <TextInput
-      ref={ref}
-      className={cn(
-        'border rounded-[12px] px-4 py-3 font-inter text-[14px] text-text1 bg-surfaceEl',
-        hasError ? 'border-negative' : 'border-border focus:border-gold-500',
-        className,
-      )}
-      // placeholderTextColor cannot be a Tailwind class (it is a JSX prop).
-      // #6B7F99 equals CoreTokens.text2. Accepted exception per plan note.
-      placeholderTextColor="#6B7F99"
-      {...props}
-    />
-  ),
-);
-Input.displayName = 'Input';
+export function Input({
+  className,
+  label,
+  helperText,
+  isInvalid,
+  hasError,
+  isDisabled,
+  isRequired,
+  ...inputProps
+}: InputProps) {
+  const invalid = isInvalid ?? hasError ?? false;
+  return (
+    <HTextField isInvalid={invalid} isDisabled={isDisabled} isRequired={isRequired}>
+      {label ? <Label>{label}</Label> : null}
+      <HInput className={className} {...inputProps} />
+      {helperText ? <Description>{helperText}</Description> : null}
+    </HTextField>
+  );
+}

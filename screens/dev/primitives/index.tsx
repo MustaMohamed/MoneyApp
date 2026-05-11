@@ -10,7 +10,7 @@ export default function PrimitivesPreview() {
   if (!__DEV__) return null;
 
   return (
-    <ScrollView className="flex-1 bg-bg p-4">
+    <ScrollView className="flex-1 bg-background p-4">
       <Text variant="title" className="mb-6">
         Primitives Preview
       </Text>
@@ -26,19 +26,19 @@ export default function PrimitivesPreview() {
         Text variants
       </Text>
       <Text variant="hero" className="mb-1">
-        Hero (28px Sora)
+        Hero (32px Sora bold)
       </Text>
       <Text variant="title" className="mb-1">
-        Title (18px Sora)
+        Title (20px Sora semibold)
       </Text>
       <Text variant="body" className="mb-1">
-        Body (14px Inter)
+        Body (15px Inter)
       </Text>
       <Text variant="caption" className="mb-1">
-        Caption (12px Inter text2)
+        Caption (11px Inter muted)
       </Text>
       <Text variant="hint" className="mb-6">
-        Hint (12px Inter text-hint — EGP pre-selected)
+        Hint (12px Inter muted)
       </Text>
 
       <Text variant="body" className="mb-2">
@@ -57,8 +57,8 @@ export default function PrimitivesPreview() {
         onPress={() => {}}
       />
       <Button
-        variant="destructive"
-        label="Destructive (bg-negative)"
+        variant="danger"
+        label="Danger (HeroUI danger variant)"
         className="mb-6"
         onPress={() => {}}
       />
@@ -66,14 +66,14 @@ export default function PrimitivesPreview() {
       <Text variant="body" className="mb-2">
         Input
       </Text>
-      <Input placeholder="Normal state — border-border" className="mb-3" />
-      <Input placeholder="Error state — border-negative" hasError className="mb-6" />
+      <Input placeholder="Normal state — field border" className="mb-3" />
+      <Input placeholder="Error state — invalid border" hasError className="mb-6" />
 
       <Text variant="body" className="mb-2">
         Pressable
       </Text>
-      <Pressable className="bg-surfaceEl rounded-[12px] p-4 mb-8">
-        <Text>Press me — opacity 0.75 feedback, hitSlop 44</Text>
+      <Pressable className="bg-surface-secondary rounded-[12px] p-4 mb-8">
+        <Text>Press me — opacity 0.7 feedback, hitSlop 12</Text>
       </Pressable>
     </ScrollView>
   );

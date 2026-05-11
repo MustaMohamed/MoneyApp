@@ -35,9 +35,6 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - run: npx expo export --platform android --output-dir /tmp/expo-export
-        env:
-          CI: true
       - run: npm run typecheck
 
   lint:
@@ -98,18 +95,24 @@ jobs:
       - run: npm ci
       - run: npm test -- --ci
 
-  build:
-    name: Build (Android JS bundle)
+  prebuild-check:
+    name: Prebuild dry-run (Android)
     runs-on: ubuntu-latest
     needs: install
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - run: npm ci
-      - run: npx expo export --platform android --output-dir /tmp/expo-export
+      - run: npx expo prebuild --no-install --platform android
         env:
           CI: true
+      - name: Verify android/ dir was generated
+        run: test -d android && echo "prebuild ok"

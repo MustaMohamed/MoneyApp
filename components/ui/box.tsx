@@ -1,12 +1,11 @@
 import React from 'react';
 import { View, type ViewProps } from 'react-native';
-import { cn } from '@/utils/cn';
+import { cn } from 'heroui-native';
 
-interface BoxProps extends ViewProps {
+export interface BoxProps extends ViewProps {
   className?: string;
 }
 
-export const Box = React.forwardRef<View, BoxProps>(({ className, ...props }, ref) => (
-  <View ref={ref} className={cn(className)} {...props} />
-));
-Box.displayName = 'Box';
+export function Box({ className, style, ...props }: BoxProps) {
+  return <View className={cn(className)} style={style} {...props} />;
+}
