@@ -1,3 +1,46 @@
 @import 'tailwindcss';
 @import 'nativewind/theme.css';
-@config './tailwind.config.js';
+
+/*
+ * Cairo Nights Extended palette — Tailwind v4 CSS-first config.
+ * Mirrors `constants/theme_tokens.ts` (single source of truth for the palette).
+ * Both files must be kept in sync until a build-time bridge is established.
+ */
+@theme {
+  /* Core */
+  --color-bg: #0f1923;
+  --color-surface: #1a2535;
+  --color-surfaceEl: #243044;
+  --color-border: #2a3a4f;
+  --color-text1: #f0ebe3;
+  --color-text2: #6b7f99;
+  --color-text3: #4a5568;
+  --color-hint: #4a5568;
+
+  /* Gold scale */
+  --color-gold-400: #e0b968;
+  --color-gold-500: #d4a44c;
+  --color-gold-600: #c9973a;
+  --color-gold-700: #a47c2c;
+
+  /* Semantic */
+  --color-positive: #4caf82;
+  --color-negative: #e05a42;
+  --color-warning: #e8b130;
+  --color-info: #4a7abf;
+
+  /* Cultural accents */
+  --color-nile: #2d7d6e;
+  --color-spice: #c45c2a;
+  --color-lapis: #185fa5;
+  --color-sand: #c9a876;
+
+  /* Fonts (loaded via @expo-google-fonts in utils/use_layout_init.hook.ts) */
+  --font-sora: 'Sora_400Regular';
+  --font-soraSemi: 'Sora_600SemiBold';
+  --font-soraBold: 'Sora_700Bold';
+  --font-soraExtra: 'Sora_800ExtraBold';
+  --font-inter: 'Inter_400Regular';
+  --font-interMedium: 'Inter_500Medium';
+  --font-interSemi: 'Inter_600SemiBold';
+}
