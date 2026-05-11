@@ -187,9 +187,12 @@ export default function AddAccountScreenV2() {
                 <Box
                   className={cn(
                     'w-8 h-8 rounded-full',
-                    selectedColor === color && 'border-2 border-gold-500 scale-110',
+                    selectedColor === color && 'border-2 border-gold-500',
                   )}
-                  style={{ backgroundColor: color }}
+                  style={{
+                    backgroundColor: color,
+                    transform: selectedColor === color ? [{ scale: 1.1 }] : undefined,
+                  }}
                 />
               </Pressable>
             ))}
