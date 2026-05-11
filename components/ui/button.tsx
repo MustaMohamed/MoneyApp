@@ -1,96 +1,63 @@
 import React from 'react';
-import { Pressable as RNPressable, type PressableProps } from 'react-native';
+import { StyleSheet, type PressableProps } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { tv, type VariantProps } from 'tailwind-variants';
-import { cn } from 'heroui-native';
-import { Text } from './text';
+import { Button as HButton, cn, type ButtonSize, type ButtonVariant } from 'heroui-native';
 import { GoldTokens } from '@/constants/theme_tokens';
 
-const buttonVariants = tv({
-  base: 'h-[52px] rounded-[13px] items-center justify-center flex-row gap-2',
-  variants: {
-    variant: {
-      primary: 'overflow-hidden',
-      secondary: 'bg-default border border-border',
-      outline: 'border border-accent',
-      ghost: '',
-      danger: 'bg-danger',
-    },
-    fullWidth: {
-      true: 'w-full',
-    },
-    disabled: {
-      true: 'opacity-40',
-    },
-  },
-  defaultVariants: {
-    variant: 'primary',
-  },
-});
-
-const labelVariants = tv({
-  base: 'font-sora text-[16px] font-semibold',
-  variants: {
-    variant: {
-      primary: 'text-accent-foreground',
-      secondary: 'text-foreground',
-      outline: 'text-accent',
-      ghost: 'text-foreground',
-      danger: 'text-danger-foreground',
-    },
-  },
-  defaultVariants: { variant: 'primary' },
-});
-
-type ButtonVariantProps = Omit<VariantProps<typeof buttonVariants>, 'disabled'>;
-
-export interface ButtonProps extends PressableProps, ButtonVariantProps {
-  className?: string;
+export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled'> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
   label: string;
   isLoading?: boolean;
+  isDisabled?: boolean;
+  /** RN convention. When set and isDisabled is not, maps to HeroUI Native's `isDisabled`. */
+  disabled?: boolean;
+  className?: string;
 }
 
 export function Button({
   variant = 'primary',
-  fullWidth,
-  disabled,
+  size = 'md',
   isLoading,
+  isDisabled,
+  disabled,
   label,
   className,
   ...props
 }: ButtonProps) {
-  const isDisabled = disabled || isLoading;
-
-  const inner = (
-    <Text className={cn(labelVariants({ variant }))}>{isLoading ? 'Loading...' : label}</Text>
-  );
+  const disabledState = isDisabled ?? disabled;
+  const content = isLoading ? 'Loading...' : label;
 
   if (variant === 'primary') {
     return (
-      <RNPressable
-        disabled={isDisabled}
-        className={cn(buttonVariants({ variant, fullWidth, disabled: isDisabled }), className)}
+      <HButton
+        variant="primary"
+        size={size}
+        isDisabled={disabledState}
+        className={cn('overflow-hidden bg-transparent', className)}
         {...props}
       >
         <LinearGradient
           colors={[GoldTokens[400], GoldTokens[600]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={{ flex: 1, borderRadius: 13, alignItems: 'center', justifyContent: 'center' }}
-        >
-          {inner}
-        </LinearGradient>
-      </RNPressable>
+          style={[StyleSheet.absoluteFillObject, { borderRadius: 13 }]}
+          pointerEvents="none"
+        />
+        <HButton.Label className="text-accent-foreground">{content}</HButton.Label>
+      </HButton>
     );
   }
 
   return (
-    <RNPressable
-      disabled={isDisabled}
-      className={cn(buttonVariants({ variant, fullWidth, disabled: isDisabled }), className)}
+    <HButton
+      variant={variant}
+      size={size}
+      isDisabled={disabledState}
+      className={className}
       {...props}
     >
-      {inner}
-    </RNPressable>
+      <HButton.Label>{content}</HButton.Label>
+    </HButton>
   );
 }

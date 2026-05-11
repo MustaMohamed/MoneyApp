@@ -1,13 +1,17 @@
 import React from 'react';
-import { TextInput, View, type TextInputProps } from 'react-native';
-import { cn } from 'heroui-native';
-import { Text } from './text';
+import {
+  TextField as HTextField,
+  Input as HInput,
+  Label,
+  Description,
+  type InputProps as HInputProps,
+} from 'heroui-native';
 
-export interface InputProps extends TextInputProps {
+export interface InputProps extends HInputProps {
   className?: string;
   label?: string;
   helperText?: string;
-  isInvalid?: boolean;
+  isRequired?: boolean;
   /** @deprecated use isInvalid */
   hasError?: boolean;
 }
@@ -18,32 +22,16 @@ export function Input({
   helperText,
   isInvalid,
   hasError,
-  placeholderTextColor,
-  ...props
+  isDisabled,
+  isRequired,
+  ...inputProps
 }: InputProps) {
   const invalid = isInvalid ?? hasError ?? false;
   return (
-    <View className="gap-1">
-      {label ? (
-        <Text variant="label" className="text-foreground">
-          {label}
-        </Text>
-      ) : null}
-      <TextInput
-        className={cn(
-          'h-12 rounded-xl px-4 font-inter text-[15px]',
-          'bg-field-background text-field-foreground border border-field-border',
-          invalid && 'border-danger',
-          className,
-        )}
-        placeholderTextColor={placeholderTextColor ?? '#6B7F99'}
-        {...props}
-      />
-      {helperText ? (
-        <Text variant="caption" className={invalid ? 'text-danger' : 'text-muted'}>
-          {helperText}
-        </Text>
-      ) : null}
-    </View>
+    <HTextField isInvalid={invalid} isDisabled={isDisabled} isRequired={isRequired}>
+      {label ? <Label>{label}</Label> : null}
+      <HInput className={className} {...inputProps} />
+      {helperText ? <Description>{helperText}</Description> : null}
+    </HTextField>
   );
 }
