@@ -90,8 +90,11 @@
   },
   "private": true,
   "lint-staged": {
-    "*.{ts,tsx}": [
+    "*.{ts,tsx,js,cjs,mjs}": [
       "eslint --fix",
+      "prettier --write"
+    ],
+    "*.json": [
       "prettier --write"
     ]
   }
