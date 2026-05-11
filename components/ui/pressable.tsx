@@ -13,9 +13,9 @@ export const Pressable = React.forwardRef<
   <RNPressable
     ref={ref}
     hitSlop={44}
-    style={({ pressed }) => [
-      { opacity: pressed ? 0.75 : 1 },
-      typeof style === 'function' ? style({ pressed }) : style,
+    style={(args) => [
+      { opacity: args.pressed ? 0.75 : 1 },
+      typeof style === 'function' ? style(args) : style,
     ]}
     className={cn(className)}
     {...props}
