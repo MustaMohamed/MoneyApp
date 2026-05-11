@@ -146,12 +146,11 @@ This spec **depends on** nothing — it's foundational.
 Exact pinned matrix:
 
 ```
-nativewind                  ^5.0.0-preview.27
-tailwindcss                 ^4.1.0
-react-native-css            ^0.1.0
+nativewind                  ^5.0.0-preview.3
+tailwindcss                 ^4.1.11
+react-native-css            ^3.0.7
 @gluestack-ui/pressable     ^0.1.23
 @gluestack-ui/button        ^1.0.14
-@gluestack-ui/utils         ^1.0.13
 class-variance-authority    ^0.7.1
 clsx                        ^2.1.1
 tailwind-merge              ^3.3.0
@@ -172,7 +171,7 @@ These satisfy NativeWind v5 peer deps.
 ```bash
 npx expo install expo-linear-gradient
 npm install nativewind@^5.0.0-preview.27 tailwindcss@^4.1.0 react-native-css@^0.1.0
-npm install @gluestack-ui/pressable@^0.1.23 @gluestack-ui/button@^1.0.14 @gluestack-ui/utils@^1.0.13
+npm install @gluestack-ui/pressable@^0.1.23 @gluestack-ui/button@^1.0.14
 npm install class-variance-authority@^0.7.1 clsx@^2.1.1 tailwind-merge@^3.3.0
 ```
 
