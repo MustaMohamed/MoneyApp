@@ -6,7 +6,7 @@
 
 **Architecture:** NativeWind v5 is configured via Metro (not Babel). `constants/theme_tokens.ts` is the sole palette source, imported by `tailwind.config.js`. gluestack v2 is a copy-paste primitives model — no provider, no config file, no runtime overhead. All 5 primitives live in `components/ui/`, styled via `cva` + `cn`, wrapped in `React.forwardRef`.
 
-**Tech Stack:** NativeWind ^5.0.0-preview.3 · tailwindcss ^4.1.11 · react-native-css ^3.0.7 · @gluestack-ui/pressable ^0.1.23 · @gluestack-ui/button ^1.0.14 · class-variance-authority ^0.7.1 · clsx ^2.1.1 · tailwind-merge ^3.3.0 · expo-linear-gradient (SDK-pegged) · TypeScript strict
+**Tech Stack:** NativeWind ^5.0.0-preview.3 · tailwindcss ^4.1.11 · react-native-css ^3.0.7 · @gluestack-ui/pressable ^0.1.23 · @gluestack-ui/button ^1.0.14 · class-variance-authority ^0.7.1 · clsx ^2.1.1 · tailwind-merge ^3.3.0 · expo-linear-gradient (SDK-pegged) · tsx ^4.21.0 (devDep, build-time TS loader) · TypeScript strict
 
 ---
 
@@ -398,9 +398,19 @@ cd /home/user/MoneyApp && git add constants/theme_tokens.ts __tests__/theme_toke
 
 - [ ] **Step 1: Create `tailwind.config.js`**
 
-Create `/home/user/MoneyApp/tailwind.config.js`. Note: `tailwind.config.js` uses `require()` (CommonJS) because Metro's config pipeline evaluates it as CJS. The TypeScript file is imported via `require` which works because `ts-node` or Metro's transformer handles it — but check: if `require('./constants/theme_tokens')` fails at Metro startup, add `"ts-node"` or use a `.js` intermediary. For the initial implementation, use the direct require and verify in Task 8's smoke test.
+Create `/home/user/MoneyApp/tailwind.config.js`. Node v22 cannot `require()` a `.ts` file natively, so we register `tsx`'s CJS loader at the top of the config. `tsx` is a devDependency-only loader (build-time, never bundled into the app). This preserves `theme_tokens.ts` as the single source of truth without duplicating values.
+
+**Before writing the config, install `tsx`:**
+
+```bash
+cd /home/user/MoneyApp && npm install --save-dev tsx@^4.21.0
+```
+
+Then create `/home/user/MoneyApp/tailwind.config.js`:
 
 ```js
+require('tsx/cjs');
+
 const {
   CoreTokens,
   GoldTokens,

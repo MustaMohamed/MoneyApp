@@ -151,6 +151,7 @@ tailwindcss                 ^4.1.11
 react-native-css            ^3.0.7
 @gluestack-ui/pressable     ^0.1.23
 @gluestack-ui/button        ^1.0.14
+tsx                         ^4.21.0  (devDependency — build-time TS loader for tailwind.config.js)
 class-variance-authority    ^0.7.1
 clsx                        ^2.1.1
 tailwind-merge              ^3.3.0
@@ -276,9 +277,11 @@ export const AcctTokens = {
 } as const;
 ```
 
-**Create `tailwind.config.js`** at project root. Imports from `constants/theme_tokens.ts` — no hex literals in this file (enforced by lint rule in §1.8 below):
+**Create `tailwind.config.js`** at project root. Imports from `constants/theme_tokens.ts` — no hex literals in this file (enforced by lint rule in §1.8 below). Because Node v22 cannot natively `require()` a `.ts` file, the config registers `tsx`'s CJS loader at the top. `tsx` is installed as a devDependency (build-time only — never bundled into the app).
 
 ```js
+require('tsx/cjs');
+
 const { CoreTokens, GoldTokens, SemanticTokens, AccentTokens, AcctTokens } = require('./constants/theme_tokens');
 
 /** @type {import('tailwindcss').Config} */
