@@ -1,5 +1,7 @@
 # Section 1 · Foundation — Design Spec
 
+> **SUPERSEDED (Part B):** This spec's Part B (NativeWind + gluestack-ui v2 implementation details) is superseded by [`docs/superpowers/specs/2026-05-11-heroui-native-migration-design.md`](2026-05-11-heroui-native-migration-design.md). Part A's Library locked decision is also updated — HeroUI Native v1.0 + Unistyles 3 (via Uniwind) replaces gluestack-ui v2 + NativeWind. All other Part A content remains valid. Do NOT delete this file — it is a historical record of the abandoned stack and the brand/design system tokens that did survive.
+
 **Date:** 2026-05-10
 **Status:** Draft (pending plan + approval)
 **Owners:** [tariq] technical · [marcus] design tokens · [sarah] sequencing
