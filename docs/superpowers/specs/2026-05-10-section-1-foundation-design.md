@@ -150,7 +150,7 @@ nativewind                  ^5.0.0-preview.27
 tailwindcss                 ^4.1.0
 react-native-css            ^0.1.0
 @gluestack-ui/pressable     ^0.1.23
-@gluestack-ui/button        ^0.1.18
+@gluestack-ui/button        ^1.0.14
 @gluestack-ui/utils         ^1.0.13
 class-variance-authority    ^0.7.1
 clsx                        ^2.1.1
@@ -172,7 +172,7 @@ These satisfy NativeWind v5 peer deps.
 ```bash
 npx expo install expo-linear-gradient
 npm install nativewind@^5.0.0-preview.27 tailwindcss@^4.1.0 react-native-css@^0.1.0
-npm install @gluestack-ui/pressable@^0.1.23 @gluestack-ui/button@^0.1.18 @gluestack-ui/utils@^1.0.13
+npm install @gluestack-ui/pressable@^0.1.23 @gluestack-ui/button@^1.0.14 @gluestack-ui/utils@^1.0.13
 npm install class-variance-authority@^0.7.1 clsx@^2.1.1 tailwind-merge@^3.3.0
 ```
 

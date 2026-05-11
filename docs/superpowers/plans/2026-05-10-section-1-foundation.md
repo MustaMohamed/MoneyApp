@@ -6,7 +6,7 @@
 
 **Architecture:** NativeWind v5 is configured via Metro (not Babel). `constants/theme_tokens.ts` is the sole palette source, imported by `tailwind.config.js`. gluestack v2 is a copy-paste primitives model — no provider, no config file, no runtime overhead. All 5 primitives live in `components/ui/`, styled via `cva` + `cn`, wrapped in `React.forwardRef`.
 
-**Tech Stack:** NativeWind ^5.0.0-preview.27 · tailwindcss ^4.1.0 · @gluestack-ui/pressable ^0.1.23 · @gluestack-ui/button ^0.1.18 · class-variance-authority ^0.7.1 · clsx ^2.1.1 · tailwind-merge ^3.3.0 · expo-linear-gradient (SDK-pegged) · TypeScript strict
+**Tech Stack:** NativeWind ^5.0.0-preview.27 · tailwindcss ^4.1.0 · @gluestack-ui/pressable ^0.1.23 · @gluestack-ui/button ^1.0.14 · class-variance-authority ^0.7.1 · clsx ^2.1.1 · tailwind-merge ^3.3.0 · expo-linear-gradient (SDK-pegged) · TypeScript strict
 
 ---
 
@@ -78,7 +78,7 @@ Expected: exits 0. If peer-dep warnings appear for `react-native-reanimated`, th
 - [ ] **Step 3: Install gluestack-ui v2 headless packages**
 
 ```bash
-cd /home/user/MoneyApp && npm install @gluestack-ui/pressable@^0.1.23 @gluestack-ui/button@^0.1.18 @gluestack-ui/utils@^1.0.13
+cd /home/user/MoneyApp && npm install @gluestack-ui/pressable@^0.1.23 @gluestack-ui/button@^1.0.14 @gluestack-ui/utils@^1.0.13
 ```
 
 Expected: exits 0. Do **not** install `@gluestack-ui/themed`, `@gluestack-style/react`, or `@gluestack-ui/config` — those are v1 artifacts.
