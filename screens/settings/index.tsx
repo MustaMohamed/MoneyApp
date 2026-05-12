@@ -1,8 +1,9 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup } from 'heroui-native';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -25,7 +26,7 @@ export default function SettingsScreen() {
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
-                <Text>{Strings.settingsCurrencyValue('EGP')}</Text>
+                <Text style={{color: Colors.dark.text2}} >{Strings.settingsCurrencyValue('EGP')}</Text>
                 <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
               </View>
             </ListGroup.ItemSuffix>
