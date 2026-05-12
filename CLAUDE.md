@@ -44,7 +44,7 @@ Phase mapping (skills are authoritative — personas contribute to their outputs
 
 ## Tech Stack
 
-Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.8 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (legacy, phasing out §4–§9; do NOT add new usages) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package
+Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (legacy, phasing out §4–§9; do NOT add new usages) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package
 
 ## Commands
 
@@ -137,7 +137,7 @@ Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirec
 
 **New pattern (§3+): use `Sheet` from `components/ui/sheet.tsx`.**
 
-`Sheet` wraps `@gorhom/bottom-sheet@^5.2.8`. It is declarative — open/close via `visible` prop + `onClose` callback. No refs, no `.show()` / `.hide()`.
+`Sheet` wraps `@gorhom/bottom-sheet@^5.2.14`. It is declarative — open/close via `visible` prop + `onClose` callback. No refs, no `.show()` / `.hide()`.
 
 ```tsx
 import { Sheet } from '@/components/ui/sheet';

@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { ms, msFont } from '@/utils/responsive';
 
 /**
@@ -98,7 +100,13 @@ export const Radius = {
 export const Size = {
   ctaHeight: ms(52),
   headerHeight: ms(56),
-  tabBarHeight: ms(56),
+  // Bottom-tab-bar content height (excludes safe-area inset). iOS ~49pt, Android ~56dp.
+  // Estimate only — does NOT track landscape collapse (~32pt on iOS) or scaled
+  // tabBarLabelStyle (accessibility text sizes can push this past 56). The FAB
+  // offset adds a 16dp gap on top so small overshoot is visually harmless. If a
+  // future screen needs an accurate value, expose useBottomTabBarHeight() via
+  // context from a wrapper component inside a <Tabs.Screen>.
+  tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
   iconBack: ms(20),
   iconXs: ms(16),

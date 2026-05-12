@@ -14,12 +14,18 @@
  *
  * SHEET STACKING:
  * Maximum depth 2. A nested sheet should not contain a third sheet.
+ *
+ * FOOTER BEHAVIOR:
+ * The `footer` prop renders as a sticky `BottomSheetFooter` — it stays pinned
+ * to the bottom of the sheet even when the body content scrolls.
  */
 import React, { useCallback, useRef } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import BottomSheetLib, {
   BottomSheetBackdrop,
+  BottomSheetFooter,
   type BottomSheetBackdropProps,
+  type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -70,6 +76,18 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
     [onClose],
   );
 
+  const renderFooter = useCallback(
+    (props: BottomSheetFooterProps) =>
+      footer !== undefined ? (
+        <BottomSheetFooter {...props}>
+          <View testID="sheet-footer" style={styles.footer}>
+            {footer}
+          </View>
+        </BottomSheetFooter>
+      ) : null,
+    [footer],
+  );
+
   return (
     <BottomSheetLib
       ref={sheetRef}
@@ -79,6 +97,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       onClose={onClose}
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}
+      footerComponent={footer !== undefined ? renderFooter : undefined}
       backgroundStyle={styles.background}
     >
       {title !== undefined && (
@@ -98,12 +117,6 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       )}
 
       {children}
-
-      {footer !== undefined && (
-        <View testID="sheet-footer" style={styles.footer}>
-          {footer}
-        </View>
-      )}
     </BottomSheetLib>
   );
 }
