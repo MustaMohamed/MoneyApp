@@ -110,6 +110,29 @@ HeroUI Native composes Tailwind classes (`className=`) into Unistyles 3 styles a
 - Runtime hex (e.g. account swatches): pass `style={{ backgroundColor: hex }}` — `className` is build-time only.
 - Module-level theme access (`SystemUI.setBackgroundColorAsync`, `expo-linear-gradient` colors, `MaterialCommunityIcons` color prop): import `Colors` / `GoldTokens` / `CoreTokens` from `constants/theme_tokens.ts` directly (cannot use `useThemeColor` hook outside React).
 
+### Screen layout (critical)
+
+**Use `<Screen>` and `<ScreenScroll>` from `@/components/ui/screen` for every full-screen route.** Do not use `SafeAreaView` from `react-native-safe-area-context` directly.
+
+Uniwind's `flex-1` className does not propagate reliably through `SafeAreaView`'s wrapper on Android Fabric — using it as the root with `className="flex-1"` collapses the flex chain and breaks all child layouts. `Screen` bakes `flex: 1` into the `style` prop instead, fixing the issue.
+
+```tsx
+import { Screen, ScreenScroll } from '@/components/ui/screen';
+
+<Screen>
+  <Header />
+  <ScreenScroll>
+    {/* content */}
+  </ScreenScroll>
+  <Box className="border-t border-separator pt-2 px-4 pb-6">{/* CTA */}</Box>
+</Screen>
+```
+
+`Screen` defaults: `edges={['top', 'bottom']}`, `bg-background`. Override via `edges`/`className` props.
+`ScreenScroll` defaults: `style={{ flex: 1 }}`, `contentContainerStyle={{ flexGrow: 1 }}`.
+
+Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirection: 'row' }}` / `style={{ flex: 1 }}` for layout-critical containers rather than `className="flex-row"` / `className="flex-1"`. Keep `className` for colors, padding, gap, typography.
+
 ## Bottom Sheets — `react-native-actions-sheet`
 
 - Patched via `patch-package` (see `patches/`). The patch fixes a first-open sizing bug where the library initialized internal dimensions to `{-1, -1}`.

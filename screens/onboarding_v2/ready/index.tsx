@@ -1,12 +1,12 @@
 import React from 'react';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { cn } from 'heroui-native';
 
 import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -20,7 +20,7 @@ export default function ReadyScreenV2() {
     useReadyAnim();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+    <Screen>
       <ProgressDots totalSteps={4} currentStep={4} />
 
       <Box style={{ flex: 1 }} className="items-center justify-center px-4 gap-4">
@@ -78,6 +78,6 @@ export default function ReadyScreenV2() {
           />
         </Animated.View>
       </Box>
-    </SafeAreaView>
+    </Screen>
   );
 }

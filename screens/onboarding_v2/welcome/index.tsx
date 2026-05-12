@@ -1,7 +1,5 @@
 import React from 'react';
-import { ScrollView } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { cn } from 'heroui-native';
 
 import { GeoIllustration } from '@/components/geo_illustration';
@@ -9,6 +7,7 @@ import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Pressable } from '@/components/ui/pressable';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -20,10 +19,10 @@ export default function WelcomeScreenV2() {
   const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+    <Screen>
       <ProgressDots totalSteps={4} currentStep={1} />
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+      <ScreenScroll>
         <Box style={{ flex: 1 }} className="items-center justify-center gap-6 px-4">
           <Animated.View entering={illustrationEntering}>
             <GeoIllustration />
@@ -79,13 +78,13 @@ export default function WelcomeScreenV2() {
             </Text>
           </Box>
         </Box>
-      </ScrollView>
+      </ScreenScroll>
 
       <Box className="border-t border-separator pt-2 px-4 pb-6">
         <Animated.View entering={ctaEntering}>
           <Button variant="primary" label={Strings.o1Cta} onPress={onContinue} />
         </Animated.View>
       </Box>
-    </SafeAreaView>
+    </Screen>
   );
 }

@@ -1,8 +1,7 @@
 import React from 'react';
-import { ScrollView, Switch } from 'react-native';
+import { Switch } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Controller, useWatch } from 'react-hook-form';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { cn } from 'heroui-native';
 
@@ -11,6 +10,7 @@ import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { AccountType, Currency } from '@/constants/enums';
@@ -44,7 +44,7 @@ export default function AddAccountScreenV2() {
   const isCreditCard = selectedType === AccountType.CreditCard;
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+    <Screen>
       {/* Header */}
       <Box
         style={{ flexDirection: 'row', height: 56 }}
@@ -64,8 +64,7 @@ export default function AddAccountScreenV2() {
 
       <ProgressDots totalSteps={4} currentStep={2} />
 
-      <ScrollView
-        style={{ flex: 1 }}
+      <ScreenScroll
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -361,7 +360,7 @@ export default function AddAccountScreenV2() {
             )}
           </Animated.View>
         )}
-      </ScrollView>
+      </ScreenScroll>
 
       {/* CTA bar */}
       <Box className="border-t border-separator pt-2 px-4 pb-6">
@@ -377,6 +376,6 @@ export default function AddAccountScreenV2() {
           />
         </Animated.View>
       </Box>
-    </SafeAreaView>
+    </Screen>
   );
 }

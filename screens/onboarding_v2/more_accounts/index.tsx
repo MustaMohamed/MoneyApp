@@ -1,13 +1,13 @@
 import React from 'react';
 import { FlashList } from '@shopify/flash-list';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Pressable } from '@/components/ui/pressable';
+import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
@@ -21,7 +21,7 @@ export default function MoreAccountsScreenV2() {
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering } = useMoreAccountsAnim();
 
   return (
-    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
+    <Screen>
       <ProgressDots totalSteps={4} currentStep={3} />
 
       <Box style={{ flex: 1 }} className="px-4">
@@ -92,6 +92,6 @@ export default function MoreAccountsScreenV2() {
       <Box className="border-t border-separator pt-2 px-4 pb-6">
         <Button variant="primary" label={Strings.o5Cta} onPress={handleContinue} />
       </Box>
-    </SafeAreaView>
+    </Screen>
   );
 }
