@@ -54,7 +54,6 @@ export default function MoreAccountsScreenV2() {
         <FlashList
           data={accounts}
           keyExtractor={(item: Account) => item.id}
-          estimatedItemSize={64}
           contentContainerStyle={{ paddingBottom: 8 }}
           renderItem={({ item, index }: { item: Account; index: number }) => (
             <Box className="mb-2">
