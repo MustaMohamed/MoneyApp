@@ -1,7 +1,14 @@
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 import { render } from '@testing-library/react-native';
 
 import AddAccountScreenV2 from '@/screens/onboarding_v2/add_account';
+
+const ADD_ACCOUNT_SOURCE = fs.readFileSync(
+  path.resolve(__dirname, '../../../screens/onboarding_v2/add_account/index.tsx'),
+  'utf8',
+);
 
 jest.mock('react-native-reanimated', () => {
   const RN = require('react-native');
@@ -59,5 +66,24 @@ describe('AddAccountScreenV2 smoke test', () => {
   it('renders the Account Name input', () => {
     const { getByPlaceholderText } = render(<AddAccountScreenV2 />);
     expect(getByPlaceholderText('e.g. CIB Savings')).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 3 — back button must use the §4-standard icon/size token
+// ---------------------------------------------------------------------------
+describe('AddAccountScreenV2 back button — §4 standard (Bug 3)', () => {
+  it('uses MaterialCommunityIcons name="chevron-left" for the back button', () => {
+    expect(ADD_ACCOUNT_SOURCE).toContain('name="chevron-left"');
+  });
+
+  it('uses Size.iconBack token (not a hardcoded number) for the back button icon size', () => {
+    expect(ADD_ACCOUNT_SOURCE).toContain('size={Size.iconBack}');
+    // Ensure the old hardcoded 24 is gone
+    expect(ADD_ACCOUNT_SOURCE).not.toContain('size={24}');
+  });
+
+  it('imports Size from @/constants/theme', () => {
+    expect(ADD_ACCOUNT_SOURCE).toMatch(/import\s+{[^}]*\bSize\b[^}]*}\s+from\s+'@\/constants\/theme'/);
   });
 });

@@ -14,6 +14,7 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { AccountType, Currency } from '@/constants/enums';
+import { Size } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { useAddAccountV2, ACCOUNT_COLORS } from './add_account.hook';
 import { useAddAccountAnim } from './add_account.anim';
@@ -54,7 +55,7 @@ export default function AddAccountScreenV2() {
           onPress={onBack}
           className="w-9 h-9 rounded-[8px] bg-surface border border-border items-center justify-center"
         >
-          <MaterialCommunityIcons name="chevron-left" size={24} color={CoreTokens.text2} />
+          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
         </Pressable>
         <Text variant="title" className="font-soraBold">
           {Strings.o4Title}
