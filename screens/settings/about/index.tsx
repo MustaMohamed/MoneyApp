@@ -11,7 +11,7 @@ export default function AboutScreen() {
   const { state } = useAbout();
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <ScreenScroll contentContainerStyle={{ paddingBottom: 48 }}>
         {/* App info card */}
         <View className="mx-4 mt-6 bg-surface rounded-2xl p-6 border border-border items-center">

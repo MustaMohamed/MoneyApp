@@ -49,7 +49,7 @@ export default function CategoriesScreen() {
   const listData = buildListEntries(state.defaultCategories, state.customCategories);
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       {/* Tab switcher */}
       <View
         style={{
@@ -89,35 +89,37 @@ export default function CategoriesScreen() {
         ))}
       </View>
 
-      {/* List or EmptyState */}
-      {isEmpty ? (
-        <EmptyState variant="categories" />
-      ) : (
-        <FlashList<ListEntry>
-          data={listData}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{
-            paddingHorizontal: Spacing.sm,
-            paddingTop: Spacing.md,
-            paddingBottom: Spacing.xxl,
-          }}
-          getItemType={(item) => item.type}
-          renderItem={({ item }) =>
-            item.type === 'header' ? (
-              <Text className="text-muted text-xs font-inter-medium tracking-wider mb-1">
-                {item.label}
-              </Text>
-            ) : (
-              <CategoryRow
-                category={item.category}
-                onEdit={() => openEditSheet(item.category)}
-                onDelete={() => handleDeletePress(item.category)}
-                isDeleteDisabled={state.isDeleting}
-              />
-            )
-          }
-        />
-      )}
+      {/* List or EmptyState — flex:1 via style (not className) per CLAUDE.md Android Fabric rule */}
+      <View style={{ flex: 1 }}>
+        {isEmpty ? (
+          <EmptyState variant="categories" />
+        ) : (
+          <FlashList<ListEntry>
+            data={listData}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={{
+              paddingHorizontal: Spacing.sm,
+              paddingTop: Spacing.md,
+              paddingBottom: Spacing.xxl,
+            }}
+            getItemType={(item) => item.type}
+            renderItem={({ item }) =>
+              item.type === 'header' ? (
+                <Text className="text-muted text-xs font-inter-medium tracking-wider mb-1">
+                  {item.label}
+                </Text>
+              ) : (
+                <CategoryRow
+                  category={item.category}
+                  onEdit={() => openEditSheet(item.category)}
+                  onDelete={() => handleDeletePress(item.category)}
+                  isDeleteDisabled={state.isDeleting}
+                />
+              )
+            }
+          />
+        )}
+      </View>
 
       {/* Bottom CTA or limit message */}
       <View className="border-t border-separator pt-2 px-4 pb-6">
