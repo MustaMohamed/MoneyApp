@@ -9,7 +9,12 @@ import { GoldTokens } from '@/constants/theme_tokens';
 import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
 
-export type EmptyStateVariant = 'accounts' | 'transactions' | 'commitments' | 'filtered';
+export type EmptyStateVariant =
+  | 'accounts'
+  | 'transactions'
+  | 'commitments'
+  | 'filtered'
+  | 'categories';
 
 export interface EmptyStateProps {
   variant: EmptyStateVariant;
@@ -55,6 +60,13 @@ const VARIANT_CONFIG: Record<
     description: Strings.emptyFilteredDescription,
     ctaLabel: null,
     clearLabel: Strings.emptyFilteredClearCta,
+  },
+  categories: {
+    icon: 'tag-outline',
+    headline: Strings.emptyStateCategoriesHeadline,
+    description: Strings.emptyStateCategoriesDescription,
+    ctaLabel: null,
+    clearLabel: null,
   },
 };
 

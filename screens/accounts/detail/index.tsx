@@ -4,6 +4,8 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackButton } from '@/components/ui/back_button';
+
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
 import { useAccountDetail } from './account_detail.hook';
@@ -52,13 +54,7 @@ export default function AccountDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <Animated.View style={[styles.header, headerStyle]}>
-        <Pressable onPress={onBack} style={styles.iconBtn} hitSlop={hitSlop}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={Size.iconBack}
-            color={Colors.dark.text2}
-          />
-        </Pressable>
+        <BackButton onPress={onBack} />
 
         <Text style={styles.headerTitle} numberOfLines={1}>
           {account.name}

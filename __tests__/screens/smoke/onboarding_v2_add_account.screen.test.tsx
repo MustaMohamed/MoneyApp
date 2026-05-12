@@ -1,7 +1,14 @@
 import React from 'react';
+import fs from 'fs';
+import path from 'path';
 import { render } from '@testing-library/react-native';
 
 import AddAccountScreenV2 from '@/screens/onboarding_v2/add_account';
+
+const ADD_ACCOUNT_SOURCE = fs.readFileSync(
+  path.resolve(__dirname, '../../../screens/onboarding_v2/add_account/index.tsx'),
+  'utf8',
+);
 
 jest.mock('react-native-reanimated', () => {
   const RN = require('react-native');
@@ -59,5 +66,26 @@ describe('AddAccountScreenV2 smoke test', () => {
   it('renders the Account Name input', () => {
     const { getByPlaceholderText } = render(<AddAccountScreenV2 />);
     expect(getByPlaceholderText('e.g. CIB Savings')).toBeTruthy();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 3 → standardized: back button is now the shared BackButton component.
+// Inline chevron-left / Size.iconBack assertions moved to the shared component.
+// ---------------------------------------------------------------------------
+describe('AddAccountScreenV2 back button — shared BackButton component', () => {
+  it('imports BackButton from @/components/ui/back_button', () => {
+    expect(ADD_ACCOUNT_SOURCE).toContain("from '@/components/ui/back_button'");
+  });
+
+  it('uses <BackButton onPress={onBack} /> instead of inline Pressable', () => {
+    expect(ADD_ACCOUNT_SOURCE).toContain('<BackButton onPress={onBack}');
+    // Ensure the old inline chevron-left is gone from this file
+    expect(ADD_ACCOUNT_SOURCE).not.toContain('name="chevron-left"');
+  });
+
+  it('does not hardcode the back button chrome (boxy style delegated to shared component)', () => {
+    // The w-9 h-9 rounded-[8px] inline className should be gone from this file
+    expect(ADD_ACCOUNT_SOURCE).not.toContain('rounded-[8px] bg-surface border border-border');
   });
 });

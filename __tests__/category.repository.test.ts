@@ -57,15 +57,15 @@ const baseInput: NewCategoryInput = {
 };
 
 describe('CategoryRepository.getAll', () => {
-  it('returns all 27 defaults', async () => {
+  it('returns all 28 defaults (27 original + cat_other_income from migration009)', async () => {
     const cats = await repo.getAll();
-    expect(cats).toHaveLength(27);
+    expect(cats).toHaveLength(28);
   });
 
   it('returns custom categories alongside defaults after add', async () => {
     await repo.add(baseInput);
     const cats = await repo.getAll();
-    expect(cats).toHaveLength(28);
+    expect(cats).toHaveLength(29);
   });
 });
 

@@ -1,34 +1,19 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Controller, useWatch } from 'react-hook-form';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackButton } from '@/components/ui/back_button';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
-import {
-  AccountColors,
-  FontFamily,
-  Radius,
-  Size,
-  Spacing,
-  TouchSize,
-  Type,
-} from '@/constants/theme';
+import { AccountColors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { AccountType, Currency } from '@/constants/enums';
 import { useAddAccount } from './add_account.hook';
 import { useAddAccountAnim } from './add_account.anim';
 import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
 const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
-
-const hitSlop = {
-  top: TouchSize.min / 4,
-  bottom: TouchSize.min / 4,
-  left: TouchSize.min / 4,
-  right: TouchSize.min / 4,
-};
 
 export default function AddAccountScreen() {
   const { form, handleSave, onBack } = useAddAccount();
@@ -55,9 +40,7 @@ export default function AddAccountScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.back} hitSlop={hitSlop}>
-          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
-        </Pressable>
+        <BackButton onPress={onBack} />
         <Text style={styles.headerTitle}>{Strings.o4Title}</Text>
         <View style={styles.back} />
       </View>

@@ -1,9 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
+import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -15,6 +15,7 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 interface ReassignCategorySheetProps {
   visible: boolean;
   categoryName: string;
+  linkedCount: number;
   options: Category[];
   onConfirm: (toId: string) => Promise<void>;
   onCancel: () => void;
@@ -23,6 +24,7 @@ interface ReassignCategorySheetProps {
 export function ReassignCategorySheet({
   visible,
   categoryName,
+  linkedCount,
   options,
   onConfirm,
   onCancel,
@@ -39,16 +41,10 @@ export function ReassignCategorySheet({
     })),
   );
 
-  const sheetRef = useRef<ActionSheetRef>(null);
-
-  useEffect(() => {
-    if (visible) {
-      sheetRef.current?.show();
-    } else {
-      sheetRef.current?.hide();
-      useReassignCategorySheetState.getState().reset();
-    }
-  }, [visible]);
+  const handleClose = () => {
+    useReassignCategorySheetState.getState().reset();
+    onCancel();
+  };
 
   const handleConfirm = async () => {
     if (!reassignState.selectedId) return;
@@ -61,22 +57,39 @@ export function ReassignCategorySheet({
     }
   };
 
-  return (
-    <ActionSheet
-      ref={sheetRef}
-      onClose={onCancel}
-      gestureEnabled
-      containerStyle={styles.sheet}
-      indicatorStyle={styles.handle}
+  const footer = (
+    <Pressable
+      testID="reassign-cta"
+      onPress={handleConfirm}
+      style={[
+        styles.cta,
+        (!reassignState.selectedId || reassignState.isLoading) && styles.ctaDisabled,
+      ]}
+      disabled={!reassignState.selectedId || reassignState.isLoading}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !reassignState.selectedId || reassignState.isLoading }}
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>{Strings.categoriesReassignTitle(categoryName)}</Text>
+      <Text style={styles.ctaText}>{Strings.categoriesReassignConfirm}</Text>
+    </Pressable>
+  );
+
+  return (
+    <Sheet
+      visible={visible}
+      onClose={handleClose}
+      title={Strings.categoriesReassignTitle(categoryName)}
+      size="lg"
+      footer={footer}
+    >
+      <Sheet.Body>
+        <Text style={styles.subtitle}>{Strings.categoriesReassignSubtitle(linkedCount)}</Text>
         <Text style={styles.body}>{Strings.categoriesReassignBody}</Text>
 
-        <FlatList
+        <BottomSheetFlatList
           data={options}
           keyExtractor={(item) => item.id}
           style={styles.list}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => setSelectedId(item.id)}
@@ -84,6 +97,8 @@ export function ReassignCategorySheet({
                 styles.optionRow,
                 reassignState.selectedId === item.id && styles.optionRowActive,
               ]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: reassignState.selectedId === item.id }}
             >
               <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
                 <MaterialCommunityIcons
@@ -103,58 +118,34 @@ export function ReassignCategorySheet({
             </Pressable>
           )}
         />
-
-        <View style={styles.ctaWrap}>
-          <Pressable
-            onPress={handleConfirm}
-            style={[
-              styles.cta,
-              (!reassignState.selectedId || reassignState.isLoading) && styles.ctaDisabled,
-            ]}
-            disabled={!reassignState.selectedId || reassignState.isLoading}
-          >
-            <Text style={styles.ctaText}>{Strings.categoriesReassignConfirm}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </ActionSheet>
+      </Sheet.Body>
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-  },
-  handle: {
-    backgroundColor: Colors.dark.border,
-    width: Size.sheetHandle.width,
-    height: Size.sheetHandle.height,
-  },
-  content: {
+  subtitle: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.body,
+    color: Colors.dark.text2,
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.md,
-  },
-  title: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
     marginBottom: Spacing.xs,
   },
   body: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.body,
     color: Colors.dark.text2,
+    paddingHorizontal: Spacing.md,
     marginBottom: Spacing.md,
   },
-  list: { flexGrow: 0, maxHeight: 300 },
+  list: { flexGrow: 0 },
+  listContent: { paddingBottom: SHEET_FOOTER_CLEARANCE },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
     paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
+    paddingHorizontal: Spacing.md,
     borderRadius: Radius.sm,
     marginBottom: 2,
   },
@@ -171,12 +162,6 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.interMedium,
     fontSize: Type.body,
     color: Colors.dark.text1,
-  },
-  ctaWrap: {
-    paddingTop: Spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
-    marginTop: Spacing.sm,
   },
   cta: {
     height: Size.ctaHeight,

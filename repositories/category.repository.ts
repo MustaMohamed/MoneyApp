@@ -5,7 +5,6 @@ import {
   deleteCategory,
   getCategories,
   getCategoriesByType,
-  reassignCategory,
   updateCategory,
 } from '@/database/categories';
 import { getDb } from '@/database/client';
@@ -42,9 +41,19 @@ export class CategoryRepository implements ICategoryRepository {
     const existing = await getCategoriesByType(db, data.type);
     const maxOrder = existing.reduce((max, c) => Math.max(max, c.sort_order), -1);
 
+    // Name uniqueness check scoped to (name, type) — backstop in case the Zod
+    // schema in the UI layer is bypassed.
+    const trimmedName = data.name.trim();
+    const duplicate = existing.find(
+      (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
+    if (duplicate) {
+      throw new Error(`A category named "${trimmedName}" already exists in ${data.type}`);
+    }
+
     const category: Category = {
       id,
-      name: data.name,
+      name: trimmedName,
       type: data.type,
       icon: data.icon,
       color: data.color,
@@ -67,9 +76,28 @@ export class CategoryRepository implements ICategoryRepository {
     await deleteCategory(db, id);
   }
 
+  /**
+   * Atomically reassigns all transactions and commitments from `fromId` to
+   * `toId`, then deletes the source category. All three SQL statements run
+   * inside a single `db.withTransactionAsync` so a failure at any step leaves
+   * the database in its pre-operation state (TC-09).
+   *
+   * Commitments are included because `commitments.category_id` is NOT NULL and
+   * has no FK ON DELETE behaviour — leaving it pointing at a deleted category
+   * would create a dangling reference (TC-02 / Layla §3.4).
+   */
   async reassignAndDelete(fromId: string, toId: string): Promise<void> {
     const db = await getDb();
-    await reassignCategory(db, fromId, toId); // no-op in M2a
-    await deleteCategory(db, fromId);
+    await db.withTransactionAsync(async () => {
+      await db.runAsync('UPDATE transactions SET category_id = ? WHERE category_id = ?', [
+        toId,
+        fromId,
+      ]);
+      await db.runAsync('UPDATE commitments SET category_id = ? WHERE category_id = ?', [
+        toId,
+        fromId,
+      ]);
+      await db.runAsync('DELETE FROM categories WHERE id = ?', [fromId]);
+    });
   }
 }

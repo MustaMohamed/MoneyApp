@@ -1,6 +1,7 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { BackButton } from '@/components/ui/back_button';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
@@ -21,13 +22,7 @@ export default function CommitmentDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={goBack} style={styles.backBtn} hitSlop={8}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={Size.iconBack}
-            color={Colors.dark.text2}
-          />
-        </Pressable>
+        <BackButton onPress={goBack} />
         <Text style={styles.title}>{state.commitment?.name ?? ''}</Text>
         {state.viewState === 'ready' && state.commitment ? (
           <Pressable onPress={goToEdit} style={styles.editBtn} hitSlop={8}>

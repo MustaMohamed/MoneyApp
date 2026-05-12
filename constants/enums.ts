@@ -85,3 +85,6 @@ export enum RecurrencePreset {
   Annually = 'annually',
   Custom = 'custom',
 }
+
+export const PROTECTED_CATEGORY_IDS = ['cat_other_expense', 'cat_other_income'] as const;
+export type ProtectedCategoryId = (typeof PROTECTED_CATEGORY_IDS)[number];

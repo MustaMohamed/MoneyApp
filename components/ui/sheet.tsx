@@ -19,20 +19,38 @@
  * The `footer` prop renders as a sticky `BottomSheetFooter` — it stays pinned
  * to the bottom of the sheet even when the body content scrolls.
  */
-import React, { useCallback, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import BottomSheetLib, {
   BottomSheetBackdrop,
   BottomSheetFooter,
+  BottomSheetView,
   type BottomSheetBackdropProps,
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
+
+/**
+ * SHEET_FOOTER_CLEARANCE — the paddingBottom consumers must add to their
+ * scrollable content when they pass a `footer` to Sheet.
+ *
+ * Why a named export instead of magic in Sheet.Body:
+ *   Sheet.Body has no reliable way to inject paddingBottom into an arbitrary
+ *   BottomSheetScrollView / BottomSheetFlatList child without fragile React.cloneElement
+ *   inspection. Exporting a constant lets consumers compose it explicitly in
+ *   contentContainerStyle — simple, typed, and visible at the call site.
+ *
+ * Value = footer paddingTop (Spacing.xs) + CTA height (Size.ctaHeight) +
+ *         footer paddingBottom (Spacing.lg) + extra breathing room (ms(20))
+ *         ≈ ms(8) + ms(52) + ms(20) + ms(20) = ms(100).
+ */
+export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
 
 export interface SheetProps {
   visible: boolean;
@@ -45,7 +63,10 @@ export interface SheetProps {
 
 const SNAP_POINTS: Record<'sm' | 'lg', string[]> = {
   sm: ['50%'],
-  lg: ['85%'],
+  // 92% rather than 85%: sheets sit inside <Screen> which already loses ~80px
+  // to safe area + Stack header, so 85% of that parent felt cramped. 92% gives
+  // noticeably more room without going full-screen (which feels modal, not sheet).
+  lg: ['92%'],
 };
 
 function SheetHandle() {
@@ -62,6 +83,17 @@ function SheetBody({ children }: { children: React.ReactNode }) {
 
 export function Sheet({ visible, onClose, title, size, footer, children }: SheetProps) {
   const sheetRef = useRef<BottomSheetMethods>(null);
+
+  // @gorhom/bottom-sheet v5 treats the `index` prop as initial-only in many code
+  // paths. Changing it from 0 to -1 after mount does not reliably trigger a close.
+  // Drive open/close state imperatively via the ref instead.
+  useEffect(() => {
+    if (visible) {
+      sheetRef.current?.snapToIndex(0);
+    } else {
+      sheetRef.current?.close();
+    }
+  }, [visible]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
@@ -91,9 +123,10 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
   return (
     <BottomSheetLib
       ref={sheetRef}
-      index={visible ? 0 : -1}
+      index={-1}
       snapPoints={SNAP_POINTS[size]}
       enablePanDownToClose
+      keyboardBehavior="extend"
       onClose={onClose}
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}
@@ -103,7 +136,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       {title !== undefined && (
         <View testID="sheet-header" style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <Pressable
+          <TouchableOpacity
             testID="sheet-close-btn"
             onPress={onClose}
             style={styles.closeBtn}
@@ -112,7 +145,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
             accessibilityRole="button"
           >
             <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
-          </Pressable>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -163,6 +196,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footer: {
+    backgroundColor: Colors.dark.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.dark.border,
     paddingTop: Spacing.xs,

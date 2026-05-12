@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef, ScrollView } from 'react-native-actions-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { z } from 'zod/v4';
 
 import { CategoryType } from '@/constants/enums';
@@ -14,6 +14,7 @@ import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { useAddEditCategorySheetState } from './add_edit_category_sheet.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -53,15 +54,26 @@ const CATEGORY_ICONS: IconName[] = [
   'airplane',
 ];
 
-function createCategorySchema(categories: Category[], editingId?: string) {
+export function createCategorySchema(
+  categories: Category[],
+  activeTab: 'expense' | 'income',
+  editingCategory?: Category | null,
+) {
+  const editingId = editingCategory?.id;
+  const editingType = editingCategory?.type ?? activeTab;
   return z.object({
     name: z
       .string()
       .min(1, Strings.categoriesErrNameRequired)
-      .max(20, Strings.categoriesErrNameTooLong)
+      .max(50, Strings.categoriesErrNameTooLong)
       .refine(
         (val) =>
-          !categories.some((c) => c.name.toLowerCase() === val.toLowerCase() && c.id !== editingId),
+          !categories.some(
+            (c) =>
+              c.name.toLowerCase() === val.toLowerCase() &&
+              c.id !== editingId &&
+              c.type === editingType,
+          ),
         Strings.categoriesErrNameDuplicate,
       ),
   });
@@ -105,7 +117,7 @@ export function AddEditCategorySheet({
     })),
   );
 
-  const schema = createCategorySchema(categoryState.categories, editingCategory?.id);
+  const schema = createCategorySchema(categoryState.categories, activeTab, editingCategory);
   const {
     control,
     handleSubmit,
@@ -114,8 +126,6 @@ export function AddEditCategorySheet({
   } = useZodForm(schema, {
     defaultValues: { name: '' },
   });
-
-  const sheetRef = useRef<ActionSheetRef>(null);
 
   useEffect(() => {
     if (visible) {
@@ -134,9 +144,6 @@ export function AddEditCategorySheet({
           color: AccountColors[0],
         });
       }
-      sheetRef.current?.show();
-    } else {
-      sheetRef.current?.hide();
     }
   }, [visible, editingCategory, activeTab]);
 
@@ -158,21 +165,32 @@ export function AddEditCategorySheet({
     }
   });
 
-  return (
-    <ActionSheet
-      ref={sheetRef}
-      onClose={onClose}
-      gestureEnabled
-      useBottomSafeAreaPadding={false}
-      containerStyle={styles.sheet}
-      indicatorStyle={styles.handle}
+  const footer = (
+    <Pressable
+      testID="add-edit-category-save-btn"
+      onPress={handleSave}
+      style={[styles.cta, sheetState.isLoading && styles.ctaDisabled]}
+      disabled={sheetState.isLoading}
+      accessibilityRole="button"
+      accessibilityLabel={Strings.categoriesSaveCta}
     >
-      <View style={styles.content}>
-        <Text style={styles.sheetTitle}>
-          {isEditing ? Strings.categoriesEditSheetTitle : Strings.categoriesAddSheetTitle}
-        </Text>
+      <Text style={styles.ctaText}>{Strings.categoriesSaveCta}</Text>
+    </Pressable>
+  );
 
-        <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
+  return (
+    <Sheet
+      visible={visible}
+      onClose={onClose}
+      title={isEditing ? Strings.categoriesEditSheetTitle : Strings.categoriesAddSheetTitle}
+      size="lg"
+      footer={footer}
+    >
+      <Sheet.Body>
+        <BottomSheetScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           <Text style={styles.fieldLabel}>{Strings.categoriesNameLabel.toUpperCase()}</Text>
           <NameField
             control={control}
@@ -189,6 +207,8 @@ export function AddEditCategorySheet({
                     key={t}
                     onPress={() => setType(t as CategoryType)}
                     style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: sheetState.type === t }}
                   >
                     <Text
                       style={[
@@ -205,7 +225,11 @@ export function AddEditCategorySheet({
           )}
 
           <Text style={styles.fieldLabel}>{Strings.categoriesIconLabel}</Text>
-          {sheetState.iconError ? <Text style={styles.error}>{sheetState.iconError}</Text> : null}
+          {sheetState.iconError ? (
+            <Text testID="icon-error" style={styles.error}>
+              {sheetState.iconError}
+            </Text>
+          ) : null}
           <FlatList
             data={CATEGORY_ICONS}
             numColumns={8}
@@ -218,6 +242,9 @@ export function AddEditCategorySheet({
                   setIconError('');
                 }}
                 style={[styles.iconCell, sheetState.selectedIcon === item && styles.iconCellActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sheetState.selectedIcon === item }}
+                accessibilityLabel={item}
               >
                 <MaterialCommunityIcons
                   name={item}
@@ -242,18 +269,15 @@ export function AddEditCategorySheet({
                   { backgroundColor: c },
                   sheetState.selectedColor === c && styles.colorSwatchActive,
                 ]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: sheetState.selectedColor === c }}
+                accessibilityLabel={c}
               />
             ))}
           </View>
-        </ScrollView>
-
-        <View style={styles.ctaWrap}>
-          <Pressable onPress={handleSave} style={styles.cta} disabled={sheetState.isLoading}>
-            <Text style={styles.ctaText}>{Strings.categoriesSaveCta}</Text>
-          </Pressable>
-        </View>
-      </View>
-    </ActionSheet>
+        </BottomSheetScrollView>
+      </Sheet.Body>
+    </Sheet>
   );
 }
 
@@ -275,7 +299,8 @@ function NameField({
         placeholderTextColor={Colors.dark.text2}
         value={field.value as string}
         onChangeText={field.onChange}
-        maxLength={20}
+        maxLength={50}
+        accessibilityLabel={placeholder}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </>
@@ -283,24 +308,7 @@ function NameField({
 }
 
 const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-  },
-  handle: {
-    backgroundColor: Colors.dark.border,
-    width: Size.sheetHandle.width,
-    height: Size.sheetHandle.height,
-  },
-  content: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
-  sheetTitle: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    marginVertical: Spacing.md,
-  },
-  scroll: { maxHeight: 480 },
+  scrollContent: { paddingHorizontal: Spacing.md, paddingBottom: SHEET_FOOTER_CLEARANCE },
   fieldLabel: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.caption,
@@ -361,13 +369,6 @@ const styles = StyleSheet.create({
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.sm },
   colorSwatch: { width: ms(28), height: ms(28), borderRadius: ms(14) },
   colorSwatchActive: { borderWidth: 2, borderColor: Colors.dark.text1 },
-  ctaWrap: {
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.xs,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.border,
-    marginTop: Spacing.sm,
-  },
   cta: {
     height: Size.ctaHeight,
     borderRadius: Radius.cta,
@@ -375,6 +376,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  ctaDisabled: { opacity: 0.5 },
   ctaText: {
     fontFamily: FontFamily.soraBold,
     fontSize: Type.bodyStrong,

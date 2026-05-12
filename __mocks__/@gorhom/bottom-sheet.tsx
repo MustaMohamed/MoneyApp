@@ -4,7 +4,12 @@ import { View, type ViewProps } from 'react-native';
 /**
  * Jest mock for @gorhom/bottom-sheet.
  *
- * - BottomSheet: renders children when index >= 0; calls onClose on backdrop press.
+ * - BottomSheet: tracks open/closed state internally via useState.
+ *   `index` prop is initial-only (mirrors real v5 behaviour).
+ *   Imperative `snapToIndex(n)` / `close()` drive the open state AND
+ *   record calls on the stable `bottomSheetMockMethods` spy handles
+ *   so tests can assert them without needing access to the internal ref.
+ * - BottomSheetView: passthrough View wrapper.
  * - BottomSheetScrollView: passthrough ScrollView wrapper.
  * - BottomSheetFlatList: passthrough FlatList wrapper.
  * - BottomSheetBackdrop: renders a pressable View with testID="bottom-sheet-backdrop".
@@ -24,23 +29,66 @@ interface BottomSheetProps {
   backgroundStyle?: ViewProps['style'];
 }
 
-const BottomSheet = React.forwardRef<any, BottomSheetProps>(
+export interface BottomSheetMockRef {
+  close: jest.Mock;
+  snapToIndex: jest.Mock;
+}
+
+/**
+ * Stable spy handles — allocated once per test file load.
+ * Tests clear them in beforeEach and assert directly:
+ *
+ *   import { bottomSheetMockMethods } from '@gorhom/bottom-sheet';
+ *   bottomSheetMockMethods.close.mockClear();
+ *   expect(bottomSheetMockMethods.close).toHaveBeenCalledTimes(1);
+ */
+export const bottomSheetMockMethods: BottomSheetMockRef = {
+  close: jest.fn(),
+  snapToIndex: jest.fn(),
+};
+
+const BottomSheet = React.forwardRef<BottomSheetMockRef, BottomSheetProps>(
   (
     {
-      index,
+      index: initialIndex,
       children,
       onClose,
       backdropComponent: BackdropComponent,
       handleComponent: HandleComponent,
       footerComponent: FooterComponent,
     },
-    _ref,
+    ref,
   ) => {
-    if (index < 0) return null;
+    // Track open/closed state internally.
+    // `initialIndex` is the initial value only — imperative methods drive state.
+    const [isOpen, setIsOpen] = React.useState(initialIndex >= 0);
+    // Stable ref so useImperativeHandle doesn't recreate functions every render.
+    const setOpenRef = React.useRef(setIsOpen);
+    setOpenRef.current = setIsOpen;
+
+    React.useImperativeHandle(
+      ref,
+      () => ({
+        close: jest.fn().mockImplementation(() => {
+          bottomSheetMockMethods.close();
+          setOpenRef.current(false);
+        }),
+        snapToIndex: jest.fn().mockImplementation((n: number) => {
+          bottomSheetMockMethods.snapToIndex(n);
+          setOpenRef.current(true);
+        }),
+      }),
+      [],
+    );
+
+    if (!isOpen) return null;
     return (
       <View testID="bottom-sheet">
         {BackdropComponent && (
-          <BackdropComponent animatedIndex={{ value: index }} animatedPosition={{ value: 0 }} />
+          <BackdropComponent
+            animatedIndex={{ value: initialIndex }}
+            animatedPosition={{ value: 0 }}
+          />
         )}
         {HandleComponent && <HandleComponent />}
         {children}
@@ -81,6 +129,14 @@ function BottomSheetFlatList(props: any) {
   return <FlatList {...props} />;
 }
 
+function BottomSheetView({ children, ...props }: ViewProps & { children?: React.ReactNode }) {
+  return (
+    <View testID="bottom-sheet-view" {...props}>
+      {children}
+    </View>
+  );
+}
+
 function BottomSheetFooter({ children }: { children?: React.ReactNode }) {
   return <View>{children}</View>;
 }
@@ -92,4 +148,5 @@ export {
   BottomSheetFlatList,
   BottomSheetFooter,
   BottomSheetScrollView,
+  BottomSheetView,
 };

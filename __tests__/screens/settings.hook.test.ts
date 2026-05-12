@@ -17,4 +17,20 @@ describe('useSettings', () => {
     expect(typeof result.current.goToCategories).toBe('function');
     expect(typeof result.current.goBack).toBe('function');
   });
+
+  it('exposes goToAbout (Task 8)', () => {
+    const { result } = renderHook(() => useSettings());
+    expect(typeof result.current.goToAbout).toBe('function');
+  });
+
+  it('goToAbout calls router.push with /settings/about', () => {
+    const pushMock = jest.fn();
+    jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({
+      push: pushMock,
+      back: jest.fn(),
+    });
+    const { result } = renderHook(() => useSettings());
+    result.current.goToAbout();
+    expect(pushMock).toHaveBeenCalledWith('/settings/about');
+  });
 });

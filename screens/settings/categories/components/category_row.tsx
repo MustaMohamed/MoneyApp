@@ -1,8 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
+// PROTECTED_CATEGORY_IDS intentionally not imported here — UI protection gate
+// now uses category.is_default === 1 (see: fix/section-4-lock-all-defaults).
+// The constant remains in constants/enums.ts as a documented historical artifact.
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+import { Text } from '@/components/ui/text';
 import type { Category } from '@/store/category.store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -11,13 +15,22 @@ interface CategoryRowProps {
   category: Category;
   onEdit: () => void;
   onDelete: () => void;
+  isDeleteDisabled?: boolean;
+  /** When true, the bottom border divider is hidden. Use for the last row in each section. */
+  isLast?: boolean;
 }
 
-export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
-  const isDefault = category.is_default === 1;
+export function CategoryRow({
+  category,
+  onEdit,
+  onDelete,
+  isDeleteDisabled,
+  isLast = false,
+}: CategoryRowProps) {
+  const isProtected = category.is_default === 1;
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, isLast && styles.rowLast]}>
       <View style={styles.left}>
         <View style={[styles.iconBox, { backgroundColor: category.color + '22' }]}>
           <MaterialCommunityIcons
@@ -26,11 +39,11 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
             color={category.color}
           />
         </View>
-        <Text style={styles.name}>{category.name}</Text>
+        <Text className="text-foreground font-inter-medium text-base">{category.name}</Text>
       </View>
 
       <View style={styles.right}>
-        {isDefault ? (
+        {isProtected ? (
           <MaterialCommunityIcons
             name="lock-outline"
             size={Size.iconXs}
@@ -38,18 +51,31 @@ export function CategoryRow({ category, onEdit, onDelete }: CategoryRowProps) {
           />
         ) : (
           <View style={styles.actions}>
-            <Pressable onPress={onEdit} hitSlop={8} style={styles.actionBtn}>
+            <Pressable
+              onPress={onEdit}
+              hitSlop={8}
+              style={styles.actionBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Edit category"
+            >
               <MaterialCommunityIcons
                 name="pencil-outline"
                 size={Size.iconXs}
                 color={Colors.dark.text2}
               />
             </Pressable>
-            <Pressable onPress={onDelete} hitSlop={8} style={styles.actionBtn}>
+            <Pressable
+              onPress={onDelete}
+              hitSlop={8}
+              style={styles.actionBtn}
+              disabled={isDeleteDisabled}
+              accessibilityRole="button"
+              accessibilityLabel="Delete category"
+            >
               <MaterialCommunityIcons
                 name="trash-can-outline"
                 size={Size.iconXs}
-                color={Colors.dark.negative}
+                color={isDeleteDisabled ? Colors.dark.text2 : Colors.dark.negative}
               />
             </Pressable>
           </View>
@@ -68,6 +94,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Colors.dark.border,
   },
+  rowLast: {
+    borderBottomWidth: 0,
+  },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -80,11 +109,6 @@ const styles = StyleSheet.create({
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  name: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
   },
   right: {
     alignItems: 'center',
