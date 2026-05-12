@@ -20,7 +20,8 @@
  * to the bottom of the sheet even when the body content scrolls.
  */
 import React, { useCallback, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import BottomSheetLib, {
   BottomSheetBackdrop,
   BottomSheetFooter,
@@ -122,21 +123,23 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       backgroundStyle={styles.background}
     >
       {title !== undefined && (
-        <BottomSheetView>
-          <View testID="sheet-header" style={styles.header}>
-            <Text style={styles.title}>{title}</Text>
-            <Pressable
-              testID="sheet-close-btn"
-              onPress={onClose}
-              style={styles.closeBtn}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityLabel="Close"
-              accessibilityRole="button"
-            >
-              <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
-            </Pressable>
-          </View>
-        </BottomSheetView>
+        <View testID="sheet-header" style={styles.header}>
+          <Text style={styles.title}>{title}</Text>
+          <TouchableOpacity
+            testID="sheet-close-btn"
+            onPress={() => {
+              // TODO(round-7): remove diagnostic console.log once user confirms close works
+              console.log('[Sheet] close button pressed');
+              onClose();
+            }}
+            style={styles.closeBtn}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+          >
+            <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
+          </TouchableOpacity>
+        </View>
       )}
 
       {children}

@@ -9,6 +9,13 @@ jest.mock('heroui-native', () => ({
 }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 
+// Mock react-native-gesture-handler — TouchableOpacity delegates to RN's
+// TouchableOpacity so fireEvent.press works in tests.
+jest.mock('react-native-gesture-handler', () => {
+  const { TouchableOpacity } = require('react-native');
+  return { TouchableOpacity };
+});
+
 // Uses the __mocks__/@gorhom/bottom-sheet.tsx mock automatically via moduleNameMapper
 // The mock renders children when index >= 0 and null when index < 0.
 
@@ -161,21 +168,27 @@ describe('Sheet component', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug A — close button must be inside a BottomSheetView so gorhom's gesture
-// system forwards touches on Android. The correct fix (per @gorhom/bottom-sheet
-// v5 docs) is to wrap the header in BottomSheetView, not to change the
-// Pressable variant.
+// Bug A — close button uses TouchableOpacity from react-native-gesture-handler
+// (Round 7 approach). This ensures the gesture system on Android forwards
+// touches to the button correctly when it sits directly inside BottomSheetLib
+// without a BottomSheetView wrapper.
+//
+// If this still doesn't fix close on device, the next step is to switch to
+// BottomSheetModal (Portal-based, fully isolated gesture stack). Flag to @tariq.
 // ---------------------------------------------------------------------------
-describe('Sheet close button — BottomSheetView wrapping (Bug A)', () => {
-  it('imports BottomSheetView from @gorhom/bottom-sheet', () => {
-    expect(SHEET_SOURCE).toContain('BottomSheetView');
-    expect(SHEET_SOURCE).toContain("from '@gorhom/bottom-sheet'");
-  });
-
-  it('does NOT import TouchableOpacity from react-native-gesture-handler (reverted to Pressable)', () => {
-    expect(SHEET_SOURCE).not.toContain(
+describe('Sheet close button — gesture-handler TouchableOpacity (Bug A)', () => {
+  it('imports TouchableOpacity from react-native-gesture-handler', () => {
+    expect(SHEET_SOURCE).toContain(
       "import { TouchableOpacity } from 'react-native-gesture-handler'",
     );
+  });
+
+  it('does NOT wrap the header in BottomSheetView (BottomSheetView wrap reverted)', () => {
+    // BottomSheetView may still be imported for other uses but the header View
+    // must NOT be wrapped in it — that pattern caused the layout regression
+    // (header overlapping body) fixed in Round 7.
+    // Verify the source does not contain the wrapping pattern.
+    expect(SHEET_SOURCE).not.toMatch(/<BottomSheetView>\s*<View testID="sheet-header"/);
   });
 
   it('close button testID=sheet-close-btn fires onClose callback', () => {
@@ -191,19 +204,19 @@ describe('Sheet close button — BottomSheetView wrapping (Bug A)', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it('sheet-header is rendered inside a BottomSheetView ancestor', () => {
-    // This test catches regressions where someone moves the header out of
-    // BottomSheetView (the mock renders it with testID="bottom-sheet-view").
-    const { getByTestId } = render(
-      <Sheet visible={true} onClose={jest.fn()} title="Wrap Test" size="sm">
+  it('sheet-header is a direct child of BottomSheet (not inside BottomSheetView)', () => {
+    // Round 6 regression: BottomSheetView as sibling to Sheet.Body caused both
+    // to flex:1 against each other and broke stacking order. Verifying the header
+    // is NOT inside a bottom-sheet-view element guards against re-introducing this.
+    const { getByTestId, queryByTestId } = render(
+      <Sheet visible={true} onClose={jest.fn()} title="Layout Check" size="sm">
         <Sheet.Body>
           <></>
         </Sheet.Body>
       </Sheet>,
     );
     const header = getByTestId('sheet-header');
-    // Walk up the parent chain to find a BottomSheetView ancestor.
-    // The mock renders BottomSheetView as a View with testID="bottom-sheet-view".
+    // Walk up the parent chain — there must be no bottom-sheet-view ancestor.
     let current: any = header.parent;
     let foundBottomSheetView = false;
     while (current !== null && current !== undefined) {
@@ -213,7 +226,9 @@ describe('Sheet close button — BottomSheetView wrapping (Bug A)', () => {
       }
       current = current.parent;
     }
-    expect(foundBottomSheetView).toBe(true);
+    expect(foundBottomSheetView).toBe(false);
+    // Also confirm the sheet itself is visible
+    expect(queryByTestId('bottom-sheet')).toBeTruthy();
   });
 });
 
