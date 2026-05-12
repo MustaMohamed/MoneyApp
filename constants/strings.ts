@@ -478,4 +478,17 @@ export const Strings = {
   dashboardCommitmentsTitle: 'Commitments',
   dashboardCommitmentsPaid: (paid: number, total: number) => `${paid} of ${total} paid`,
   dashboardCommitmentsOverdue: (count: number) => `${count} overdue`,
+
+  // EmptyState component
+  emptyAccountsHeadline: 'No accounts yet',
+  emptyAccountsDescription: 'Add your first account to start tracking your money.',
+  emptyTransactionsHeadline: 'No transactions yet',
+  emptyTransactionsDescription: 'Your transactions will appear here once you start adding them.',
+  emptyTransactionsCta: 'Add Transaction',
+  emptyCommitmentsHeadline: 'No commitments yet',
+  emptyCommitmentsDescription: 'Track bills, subscriptions, and recurring payments here.',
+  emptyCommitmentsCta: 'Add Commitment',
+  emptyFilteredHeadline: 'No results',
+  emptyFilteredDescription: 'Try adjusting your filters.',
+  emptyFilteredClearCta: 'Clear Filters',
 } as const;
