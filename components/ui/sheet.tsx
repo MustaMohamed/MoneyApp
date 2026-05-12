@@ -19,7 +19,7 @@
  * The `footer` prop renders as a sticky `BottomSheetFooter` — it stays pinned
  * to the bottom of the sheet even when the body content scrolls.
  */
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 import BottomSheetLib, {
@@ -84,6 +84,17 @@ function SheetBody({ children }: { children: React.ReactNode }) {
 export function Sheet({ visible, onClose, title, size, footer, children }: SheetProps) {
   const sheetRef = useRef<BottomSheetMethods>(null);
 
+  // @gorhom/bottom-sheet v5 treats the `index` prop as initial-only in many code
+  // paths. Changing it from 0 to -1 after mount does not reliably trigger a close.
+  // Drive open/close state imperatively via the ref instead.
+  useEffect(() => {
+    if (visible) {
+      sheetRef.current?.snapToIndex(0);
+    } else {
+      sheetRef.current?.close();
+    }
+  }, [visible]);
+
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
@@ -112,7 +123,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
   return (
     <BottomSheetLib
       ref={sheetRef}
-      index={visible ? 0 : -1}
+      index={-1}
       snapPoints={SNAP_POINTS[size]}
       enablePanDownToClose
       keyboardBehavior="extend"
@@ -127,11 +138,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
           <Text style={styles.title}>{title}</Text>
           <TouchableOpacity
             testID="sheet-close-btn"
-            onPress={() => {
-              // TODO(round-7): remove diagnostic console.log once user confirms close works
-              console.log('[Sheet] close button pressed');
-              onClose();
-            }}
+            onPress={onClose}
             style={styles.closeBtn}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             accessibilityLabel="Close"

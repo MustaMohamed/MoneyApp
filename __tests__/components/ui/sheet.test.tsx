@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
+import { render, fireEvent, act } from '@testing-library/react-native';
 import fs from 'fs';
 import path from 'path';
 
@@ -16,11 +16,16 @@ jest.mock('react-native-gesture-handler', () => {
   return { TouchableOpacity };
 });
 
-// Uses the __mocks__/@gorhom/bottom-sheet.tsx mock automatically via moduleNameMapper
+// Uses the __mocks__/@gorhom/bottom-sheet.tsx mock automatically via moduleNameMapper.
 // The mock renders children when index >= 0 and null when index < 0.
+// It also exposes `bottomSheetMockMethods` — stable jest.fn() handles for the
+// imperative ref methods Sheet calls via useEffect.
 
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Colors } from '@/constants/theme';
+// Import from the mock file directly so TypeScript resolves the correct types.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { bottomSheetMockMethods } = require('../../../__mocks__/@gorhom/bottom-sheet') as typeof import('../../../__mocks__/@gorhom/bottom-sheet');
 
 const SHEET_SOURCE = fs.readFileSync(
   path.resolve(__dirname, '../../../components/ui/sheet.tsx'),
@@ -250,5 +255,84 @@ describe('Sheet footer background (Bug 2)', () => {
       ? Object.assign({}, ...footerEl.props.style)
       : footerEl.props.style;
     expect(flatStyle.backgroundColor).toBe(Colors.dark.surface);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Round 8 — imperative ref sync via useEffect
+//
+// @gorhom/bottom-sheet v5 treats `index` as initial-only in many code paths.
+// Sheet must imperatively call sheetRef.current?.close() / .snapToIndex(0)
+// to reliably drive open/close state.
+// ---------------------------------------------------------------------------
+describe('Sheet imperative ref sync (Round 8)', () => {
+  beforeEach(() => {
+    bottomSheetMockMethods.close.mockClear();
+    bottomSheetMockMethods.snapToIndex.mockClear();
+  });
+
+  it('calls snapToIndex(0) on the ref when visible changes from false to true', () => {
+    const { rerender } = render(
+      <Sheet visible={false} onClose={jest.fn()} size="sm">
+        <Sheet.Body>
+          <></>
+        </Sheet.Body>
+      </Sheet>,
+    );
+    // Clear after initial mount so we only assert the transition call.
+    bottomSheetMockMethods.snapToIndex.mockClear();
+    bottomSheetMockMethods.close.mockClear();
+
+    act(() => {
+      rerender(
+        <Sheet visible={true} onClose={jest.fn()} size="sm">
+          <Sheet.Body>
+            <></>
+          </Sheet.Body>
+        </Sheet>,
+      );
+    });
+
+    expect(bottomSheetMockMethods.snapToIndex).toHaveBeenCalledWith(0);
+    expect(bottomSheetMockMethods.close).not.toHaveBeenCalled();
+  });
+
+  it('calls close() on the ref when visible changes from true to false', () => {
+    const { rerender } = render(
+      <Sheet visible={true} onClose={jest.fn()} size="sm">
+        <Sheet.Body>
+          <></>
+        </Sheet.Body>
+      </Sheet>,
+    );
+    // Clear after initial mount so we only assert the transition call.
+    bottomSheetMockMethods.snapToIndex.mockClear();
+    bottomSheetMockMethods.close.mockClear();
+
+    act(() => {
+      rerender(
+        <Sheet visible={false} onClose={jest.fn()} size="sm">
+          <Sheet.Body>
+            <></>
+          </Sheet.Body>
+        </Sheet>,
+      );
+    });
+
+    expect(bottomSheetMockMethods.close).toHaveBeenCalledTimes(1);
+    expect(bottomSheetMockMethods.snapToIndex).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Round 8 cleanup — diagnostic console.log removed
+// ---------------------------------------------------------------------------
+describe('Sheet diagnostic cleanup (Round 8)', () => {
+  it('does not contain the round-7 diagnostic console.log', () => {
+    expect(SHEET_SOURCE).not.toContain('[Sheet] close button pressed');
+  });
+
+  it('does not contain the TODO(round-7) comment', () => {
+    expect(SHEET_SOURCE).not.toContain('TODO(round-7)');
   });
 });
