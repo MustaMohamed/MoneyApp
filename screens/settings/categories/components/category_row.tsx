@@ -1,7 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { PROTECTED_CATEGORY_IDS } from '@/constants/enums';
+// PROTECTED_CATEGORY_IDS intentionally not imported here — UI protection gate
+// now uses category.is_default === 1 (see: fix/section-4-lock-all-defaults).
+// The constant remains in constants/enums.ts as a documented historical artifact.
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { Text } from '@/components/ui/text';
@@ -19,7 +21,7 @@ interface CategoryRowProps {
 }
 
 export function CategoryRow({ category, onEdit, onDelete, isDeleteDisabled, isLast = false }: CategoryRowProps) {
-  const isProtected = (PROTECTED_CATEGORY_IDS as readonly string[]).includes(category.id);
+  const isProtected = category.is_default === 1;
 
   return (
     <View style={[styles.row, isLast && styles.rowLast]}>

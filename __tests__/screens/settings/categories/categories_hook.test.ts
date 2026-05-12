@@ -153,27 +153,32 @@ describe('useCategoriesScreenState — isDeleting', () => {
 });
 
 // ---------------------------------------------------------------------------
-// TC-04: Protected category guard — isProtected helper logic
+// TC-04: PROTECTED_CATEGORY_IDS constant — membership tests
+//
+// Note: As of the is_default reversal, the UI protection gate is now
+// category.is_default === 1, NOT membership in PROTECTED_CATEGORY_IDS.
+// PROTECTED_CATEGORY_IDS is retained as a documented historical artifact.
+// These tests verify the constant's own membership — separate from UI behavior.
 // ---------------------------------------------------------------------------
 
-describe('PROTECTED_CATEGORY_IDS guard (TC-04)', () => {
-  const isProtected = (id: string): boolean =>
+describe('PROTECTED_CATEGORY_IDS constant membership (TC-04)', () => {
+  const isInProtectedList = (id: string): boolean =>
     (PROTECTED_CATEGORY_IDS as readonly string[]).includes(id);
 
-  it('cat_other_expense is protected', () => {
-    expect(isProtected('cat_other_expense')).toBe(true);
+  it('cat_other_expense is in PROTECTED_CATEGORY_IDS', () => {
+    expect(isInProtectedList('cat_other_expense')).toBe(true);
   });
 
-  it('cat_other_income is protected', () => {
-    expect(isProtected('cat_other_income')).toBe(true);
+  it('cat_other_income is in PROTECTED_CATEGORY_IDS', () => {
+    expect(isInProtectedList('cat_other_income')).toBe(true);
   });
 
-  it('cat_groceries is NOT protected (user-deletable default)', () => {
-    expect(isProtected('cat_groceries')).toBe(false);
+  it('cat_groceries is NOT in PROTECTED_CATEGORY_IDS (but is still UI-protected via is_default=1)', () => {
+    expect(isInProtectedList('cat_groceries')).toBe(false);
   });
 
-  it('cat_food is NOT protected', () => {
-    expect(isProtected('cat_food')).toBe(false);
+  it('cat_food is NOT in PROTECTED_CATEGORY_IDS (but is still UI-protected via is_default=1)', () => {
+    expect(isInProtectedList('cat_food')).toBe(false);
   });
 });
 
