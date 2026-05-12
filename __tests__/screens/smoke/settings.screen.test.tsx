@@ -1,5 +1,5 @@
 import React from 'react';
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 
 import SettingsScreen from '@/screens/settings/index';
 import { Strings } from '@/constants/strings';
@@ -25,16 +25,50 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
+jest.mock('heroui-native', () => {
+  const { View, Text, Pressable } = require('react-native');
+  const ListGroupRoot = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+  const ListGroupItem = ({ children, onPress, ...props }: any) => (
+    <Pressable onPress={onPress} {...props}>{children}</Pressable>
+  );
+  const ListGroupItemPrefix = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+  const ListGroupItemContent = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+  const ListGroupItemTitle = ({ children, ...props }: any) => <Text {...props}>{children}</Text>;
+  const ListGroupItemDescription = ({ children, ...props }: any) => <Text {...props}>{children}</Text>;
+  const ListGroupItemSuffix = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+  ListGroupRoot.Item = ListGroupItem;
+  ListGroupRoot.ItemPrefix = ListGroupItemPrefix;
+  ListGroupRoot.ItemContent = ListGroupItemContent;
+  ListGroupRoot.ItemTitle = ListGroupItemTitle;
+  ListGroupRoot.ItemDescription = ListGroupItemDescription;
+  ListGroupRoot.ItemSuffix = ListGroupItemSuffix;
+  return {
+    ListGroup: ListGroupRoot,
+    cn: (...args: any[]) => args.filter(Boolean).join(' '),
+  };
+});
+
+const mockGoToCurrency = jest.fn();
+const mockGoToCategories = jest.fn();
+const mockGoToAbout = jest.fn();
+const mockGoBack = jest.fn();
+
 jest.mock('@/screens/settings/settings.hook', () => ({
-  useSettings: () => ({
-    goToCurrency: jest.fn(),
-    goToCategories: jest.fn(),
-    goToAbout: jest.fn(),
-    goBack: jest.fn(),
-  }),
+  useSettings: jest.fn(),
 }));
 
 describe('SettingsScreen smoke test', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    const { useSettings } = require('@/screens/settings/settings.hook');
+    (useSettings as jest.Mock).mockReturnValue({
+      goToCurrency: mockGoToCurrency,
+      goToCategories: mockGoToCategories,
+      goToAbout: mockGoToAbout,
+      goBack: mockGoBack,
+    });
+  });
+
   it('renders without throwing', () => {
     expect(() => render(<SettingsScreen />)).not.toThrow();
   });
@@ -47,11 +81,10 @@ describe('SettingsScreen smoke test', () => {
   });
 
   it('Data and About section wrappers carry marginTop: Spacing.lg', () => {
-    const { getByText } = render(<SettingsScreen />);
+    const { getByTestId } = render(<SettingsScreen />);
 
-    // Walk ancestors until we find the node whose style includes marginTop: Spacing.lg
     function findAncestorWithMarginTop(
-      node: ReturnType<typeof getByText> | null | undefined,
+      node: ReturnType<typeof getByTestId> | null | undefined,
     ): { marginTop: number } | undefined {
       let current = node?.parent;
       for (let i = 0; i < 10 && current != null; i++) {
@@ -62,10 +95,48 @@ describe('SettingsScreen smoke test', () => {
       return undefined;
     }
 
-    const dataStyle = findAncestorWithMarginTop(getByText(Strings.settingsGroupData));
+    const dataStyle = findAncestorWithMarginTop(getByTestId('settings-group-data'));
     expect(dataStyle).toEqual({ marginTop: Spacing.lg });
 
-    const aboutStyle = findAncestorWithMarginTop(getByText(Strings.settingsGroupAbout));
+    const aboutStyle = findAncestorWithMarginTop(getByTestId('settings-group-about'));
     expect(aboutStyle).toEqual({ marginTop: Spacing.lg });
+  });
+
+  it('renders the Currency row title', () => {
+    const { getByText } = render(<SettingsScreen />);
+    expect(getByText(Strings.settingsCurrencyRow)).toBeTruthy();
+  });
+
+  it('renders the Categories row title', () => {
+    const { getByText } = render(<SettingsScreen />);
+    expect(getByText(Strings.settingsCategoriesRow)).toBeTruthy();
+  });
+
+  it('renders the About row title', () => {
+    const { getByText } = render(<SettingsScreen />);
+    expect(getByText(Strings.aboutTitle)).toBeTruthy();
+  });
+
+  it('renders the currency value "EGP" alongside the Currency row', () => {
+    const { getByText } = render(<SettingsScreen />);
+    expect(getByText('EGP')).toBeTruthy();
+  });
+
+  it('pressing the Currency row calls goToCurrency', () => {
+    const { getByText } = render(<SettingsScreen />);
+    fireEvent.press(getByText(Strings.settingsCurrencyRow));
+    expect(mockGoToCurrency).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing the Categories row calls goToCategories', () => {
+    const { getByText } = render(<SettingsScreen />);
+    fireEvent.press(getByText(Strings.settingsCategoriesRow));
+    expect(mockGoToCategories).toHaveBeenCalledTimes(1);
+  });
+
+  it('pressing the About row calls goToAbout', () => {
+    const { getByText } = render(<SettingsScreen />);
+    fireEvent.press(getByText(Strings.aboutTitle));
+    expect(mockGoToAbout).toHaveBeenCalledTimes(1);
   });
 });
