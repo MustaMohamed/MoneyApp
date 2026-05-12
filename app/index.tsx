@@ -11,6 +11,12 @@ const STEP_HREF: Record<OnboardingStep, Href> = {
   O4: '/(onboarding)/add_account',
   O5: '/(onboarding)/more_accounts',
   O6: '/(onboarding)/ready',
+  // N* steps map to the same routes as their v2 equivalents;
+  // conditional dispatchers in those routes render the V2 screen.
+  N1: '/(onboarding)/welcome',
+  N2: '/(onboarding)/add_account',
+  N3: '/(onboarding)/more_accounts',
+  N4: '/(onboarding)/ready',
 };
 
 export default function Index() {
