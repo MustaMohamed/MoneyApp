@@ -16,6 +16,7 @@ import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { Strings } from '@/constants/strings';
+import { Spacing } from '@/constants/theme';
 
 // ---------------------------------------------------------------------------
 // Module mocks (hoisted)
@@ -137,5 +138,28 @@ describe('CategoriesScreen — tab switcher layout fix', () => {
   it('renders the Add Category button when not at limit', () => {
     const { getByText } = render(<CategoriesScreen />);
     expect(getByText(Strings.categoriesAddBtn)).toBeTruthy();
+  });
+
+  it('tab switcher container has marginBottom: Spacing.sm', () => {
+    const { getByText } = render(<CategoriesScreen />);
+
+    // Walk up ancestors from the Expense tab text until we find the container
+    // that carries marginBottom (the tab switcher outer View)
+    function findAncestorWithMarginBottom(
+      node: ReturnType<typeof getByText> | null | undefined,
+    ): number | undefined {
+      let current = node?.parent;
+      for (let i = 0; i < 10 && current != null; i++) {
+        const s = current.props?.style;
+        if (s && typeof s === 'object' && 'marginBottom' in s) {
+          return (s as { marginBottom: number }).marginBottom;
+        }
+        current = current.parent;
+      }
+      return undefined;
+    }
+
+    const marginBottom = findAncestorWithMarginBottom(getByText(Strings.categoriesTabExpense));
+    expect(marginBottom).toBe(Spacing.sm);
   });
 });

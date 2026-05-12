@@ -56,6 +56,7 @@ export default function CategoriesScreen() {
           flexDirection: 'row',
           marginHorizontal: Spacing.sm,
           marginTop: Spacing.sm,
+          marginBottom: Spacing.sm,
           backgroundColor: Colors.dark.surfaceEl,
           borderRadius: Radius.md,
           padding: 3,
