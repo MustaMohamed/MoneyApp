@@ -82,12 +82,7 @@ describe('Sheet component', () => {
 
   it('renders footer when footer prop is provided', () => {
     const { getByTestId } = render(
-      <Sheet
-        visible={true}
-        onClose={jest.fn()}
-        size="sm"
-        footer={<></>}
-      >
+      <Sheet visible={true} onClose={jest.fn()} size="sm" footer={<></>}>
         <Sheet.Body>
           <></>
         </Sheet.Body>

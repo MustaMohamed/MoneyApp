@@ -13,8 +13,8 @@ jest.mock('react-native-gesture-handler', () => {
       return (
         <View
           testID="long-press-handler"
-          onTouchStart={() =>
-            onHandlerStateChange?.({ nativeEvent: { state: 4 } }) // State.ACTIVE = 4
+          onTouchStart={
+            () => onHandlerStateChange?.({ nativeEvent: { state: 4 } }) // State.ACTIVE = 4
           }
         >
           {children}
@@ -62,9 +62,7 @@ describe('FAB component', () => {
 
   it('calls onAddTransaction when FAB is tapped (default action)', () => {
     const onAddTransaction = jest.fn();
-    const { getByTestId } = render(
-      <FAB {...baseProps} onAddTransaction={onAddTransaction} />,
-    );
+    const { getByTestId } = render(<FAB {...baseProps} onAddTransaction={onAddTransaction} />);
     fireEvent.press(getByTestId('fab-button'));
     expect(onAddTransaction).toHaveBeenCalledTimes(1);
   });
@@ -76,9 +74,7 @@ describe('FAB component', () => {
 
   it('calls onAddAccount when "Add Account" menu item is pressed after long-press', () => {
     const onAddAccount = jest.fn();
-    const { getByTestId } = render(
-      <FAB {...baseProps} onAddAccount={onAddAccount} />,
-    );
+    const { getByTestId } = render(<FAB {...baseProps} onAddAccount={onAddAccount} />);
     // Trigger long-press to open menu
     fireEvent(getByTestId('long-press-handler'), 'touchStart');
     // Press the menu item
@@ -89,9 +85,7 @@ describe('FAB component', () => {
 
   it('calls onAddCommitment when "Add Commitment" menu item is pressed after long-press', () => {
     const onAddCommitment = jest.fn();
-    const { getByTestId } = render(
-      <FAB {...baseProps} onAddCommitment={onAddCommitment} />,
-    );
+    const { getByTestId } = render(<FAB {...baseProps} onAddCommitment={onAddCommitment} />);
     fireEvent(getByTestId('long-press-handler'), 'touchStart');
     const item = getByTestId('fab-menu-item-2'); // index 2 = Add Commitment
     fireEvent.press(item);
