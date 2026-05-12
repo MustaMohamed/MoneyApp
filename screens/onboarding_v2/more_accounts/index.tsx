@@ -21,10 +21,10 @@ export default function MoreAccountsScreenV2() {
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering } = useMoreAccountsAnim();
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
       <ProgressDots totalSteps={4} currentStep={3} />
 
-      <Box className="flex-1 px-4">
+      <Box style={{ flex: 1 }} className="px-4">
         {/* Success header */}
         <Box className="items-center pt-8 pb-6 gap-3">
           <Animated.View entering={checkEntering}>
@@ -67,7 +67,8 @@ export default function MoreAccountsScreenV2() {
           ListFooterComponent={
             <Pressable
               onPress={handleAddAnother}
-              className="flex-row items-center justify-center gap-2 p-3 mt-1 rounded-[8px] border-[1.5px] border-dashed border-border"
+              style={{ flexDirection: 'row' }}
+              className="items-center justify-center gap-2 p-3 mt-1 rounded-[8px] border-[1.5px] border-dashed border-border"
             >
               <Box
                 className="w-7 h-7 rounded-[6px] items-center justify-center"

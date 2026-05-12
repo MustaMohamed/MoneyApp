@@ -20,10 +20,10 @@ export default function ReadyScreenV2() {
     useReadyAnim();
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
       <ProgressDots totalSteps={4} currentStep={4} />
 
-      <Box className="flex-1 items-center justify-center px-4 gap-4">
+      <Box style={{ flex: 1 }} className="items-center justify-center px-4 gap-4">
         <Animated.View entering={checkEntering}>
           <MaterialCommunityIcons name="check-circle" size={64} color={SemanticTokens.positive} />
         </Animated.View>
@@ -47,8 +47,9 @@ export default function ReadyScreenV2() {
               key={row.label}
               testID="summary-row"
               entering={rowEntering(index)}
+              style={{ flexDirection: 'row' }}
               className={cn(
-                'flex-row justify-between items-center py-3',
+                'justify-between items-center py-3',
                 index < rows.length - 1 && 'border-b border-separator',
               )}
             >

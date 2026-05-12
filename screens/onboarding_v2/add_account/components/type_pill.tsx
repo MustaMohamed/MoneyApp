@@ -54,8 +54,9 @@ export function TypePill({
           triggerPillTap();
           onSelect();
         }}
+        style={{ flexDirection: 'row' }}
         className={cn(
-          'flex-row items-center gap-2 py-3 px-3 rounded-[8px] border-[1.5px]',
+          'items-center gap-2 py-3 px-3 rounded-[8px] border-[1.5px]',
           isSelected ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]' : 'border-border bg-default',
         )}
       >

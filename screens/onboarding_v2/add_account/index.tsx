@@ -44,9 +44,12 @@ export default function AddAccountScreenV2() {
   const isCreditCard = selectedType === AccountType.CreditCard;
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
       {/* Header */}
-      <Box className="flex-row items-center justify-between px-4 h-14">
+      <Box
+        style={{ flexDirection: 'row', height: 56 }}
+        className="items-center justify-between px-4"
+      >
         <Pressable
           onPress={onBack}
           className="w-9 h-9 rounded-[8px] bg-surface border border-border items-center justify-center"
@@ -62,7 +65,7 @@ export default function AddAccountScreenV2() {
       <ProgressDots totalSteps={4} currentStep={2} />
 
       <ScrollView
-        className="flex-1"
+        style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
       >
@@ -70,7 +73,7 @@ export default function AddAccountScreenV2() {
         <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
           {Strings.o4SectionType}
         </Text>
-        <Box className="flex-row flex-wrap gap-2">
+        <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
           {TYPE_OPTIONS.map((opt) => (
             <TypePill
               key={opt.type}
@@ -116,13 +119,14 @@ export default function AddAccountScreenV2() {
           <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
             {Strings.o4SectionCurrency}
           </Text>
-          <Box className="flex-row gap-2">
+          <Box style={{ flexDirection: 'row' }} className="gap-2">
             {CURRENCY_OPTIONS.map((code) => (
               <Pressable
                 key={code}
                 onPress={() => form.setValue('currency', code)}
+                style={{ flex: 1 }}
                 className={cn(
-                  'flex-1 py-3 px-3 rounded-[10px] border-[1.5px] items-center justify-center',
+                  'py-3 px-3 rounded-[10px] border-[1.5px] items-center justify-center',
                   selectedCurrency === code
                     ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
                     : 'border-border bg-default',
@@ -177,7 +181,7 @@ export default function AddAccountScreenV2() {
           <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
             {Strings.o4SectionColor}
           </Text>
-          <Box className="flex-row flex-wrap gap-2">
+          <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
             {ACCOUNT_COLORS.map((color) => (
               <Pressable
                 key={color}
@@ -303,7 +307,7 @@ export default function AddAccountScreenV2() {
             </Box>
 
             {/* Interest Tracking — native Switch (spec §2.4) */}
-            <Box className="flex-row items-center justify-between py-3">
+            <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
               <Text variant="body" className="font-interSemi text-foreground">
                 {Strings.o4InterestLabel}
               </Text>
