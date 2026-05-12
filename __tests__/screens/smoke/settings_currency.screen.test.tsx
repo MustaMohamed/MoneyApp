@@ -46,11 +46,29 @@ jest.mock('heroui-native', () => {
   const { View, Pressable } = require('react-native');
 
   // Accordion mock — renders trigger + content inline (no expansion state needed for smoke)
-  const AccordionContent = ({ children, ...props }: any) => <View testID="accordion-content" {...props}>{children}</View>;
+  const AccordionContent = ({ children, ...props }: any) => (
+    <View testID="accordion-content" {...props}>
+      {children}
+    </View>
+  );
   const AccordionIndicator = (props: any) => <View testID="accordion-indicator" {...props} />;
-  const AccordionTrigger = ({ children, ...props }: any) => <Pressable testID="accordion-trigger" {...props}>{children}</Pressable>;
-  const AccordionItem = ({ children, ...props }: any) => <View testID="accordion-item" {...props}>{typeof children === 'function' ? children({ isExpanded: false, value: 'manual-override' }) : children}</View>;
-  const AccordionRoot = ({ children, ...props }: any) => <View testID="accordion-root" {...props}>{children}</View>;
+  const AccordionTrigger = ({ children, ...props }: any) => (
+    <Pressable testID="accordion-trigger" {...props}>
+      {children}
+    </Pressable>
+  );
+  const AccordionItem = ({ children, ...props }: any) => (
+    <View testID="accordion-item" {...props}>
+      {typeof children === 'function'
+        ? children({ isExpanded: false, value: 'manual-override' })
+        : children}
+    </View>
+  );
+  const AccordionRoot = ({ children, ...props }: any) => (
+    <View testID="accordion-root" {...props}>
+      {children}
+    </View>
+  );
   AccordionRoot.Item = AccordionItem;
   AccordionRoot.Trigger = AccordionTrigger;
   AccordionRoot.Indicator = AccordionIndicator;

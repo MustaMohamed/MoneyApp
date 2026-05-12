@@ -7,21 +7,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { BackButton } from '@/components/ui/back_button';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
-import {
-  AccountColors,
-  FontFamily,
-  Radius,
-  Size,
-  Spacing,
-  Type,
-} from '@/constants/theme';
+import { AccountColors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { AccountType, Currency } from '@/constants/enums';
 import { useAddAccount } from './add_account.hook';
 import { useAddAccountAnim } from './add_account.anim';
 import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
 const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
-
 
 export default function AddAccountScreen() {
   const { form, handleSave, onBack } = useAddAccount();

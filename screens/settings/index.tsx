@@ -14,7 +14,9 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={['bottom']}>
-      <ScreenScroll contentContainerStyle={{ paddingTop: 8, paddingBottom: 32, paddingHorizontal: Spacing.md }}>
+      <ScreenScroll
+        contentContainerStyle={{ paddingTop: 8, paddingBottom: 32, paddingHorizontal: Spacing.md }}
+      >
         <ListGroup>
           <ListGroup.Item onPress={goToCurrency} accessibilityRole="button">
             <ListGroup.ItemPrefix>
@@ -22,12 +24,20 @@ export default function SettingsScreen() {
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{Strings.settingsCurrencyRow}</ListGroup.ItemTitle>
-              <ListGroup.ItemDescription>{Strings.settingsCurrencyDescription}</ListGroup.ItemDescription>
+              <ListGroup.ItemDescription>
+                {Strings.settingsCurrencyDescription}
+              </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
-                <Text style={{color: Colors.dark.text2}} >{Strings.settingsCurrencyValue('EGP')}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
+                <Text style={{ color: Colors.dark.text2 }}>
+                  {Strings.settingsCurrencyValue('EGP')}
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={ms(20)}
+                  color={Colors.dark.text2}
+                />
               </View>
             </ListGroup.ItemSuffix>
           </ListGroup.Item>
@@ -38,23 +48,39 @@ export default function SettingsScreen() {
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{Strings.settingsCategoriesRow}</ListGroup.ItemTitle>
-              <ListGroup.ItemDescription>{Strings.settingsCategoriesDescription}</ListGroup.ItemDescription>
+              <ListGroup.ItemDescription>
+                {Strings.settingsCategoriesDescription}
+              </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
-              <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={ms(20)}
+                color={Colors.dark.text2}
+              />
             </ListGroup.ItemSuffix>
           </ListGroup.Item>
 
           <ListGroup.Item onPress={goToAbout} accessibilityRole="button">
             <ListGroup.ItemPrefix>
-              <MaterialCommunityIcons name="information-outline" size={ms(20)} color={Colors.dark.text2} />
+              <MaterialCommunityIcons
+                name="information-outline"
+                size={ms(20)}
+                color={Colors.dark.text2}
+              />
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{Strings.aboutTitle}</ListGroup.ItemTitle>
-              <ListGroup.ItemDescription>{Strings.settingsAboutDescription}</ListGroup.ItemDescription>
+              <ListGroup.ItemDescription>
+                {Strings.settingsAboutDescription}
+              </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
-              <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={ms(20)}
+                color={Colors.dark.text2}
+              />
             </ListGroup.ItemSuffix>
           </ListGroup.Item>
         </ListGroup>

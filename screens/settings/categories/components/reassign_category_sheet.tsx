@@ -82,9 +82,7 @@ export function ReassignCategorySheet({
       footer={footer}
     >
       <Sheet.Body>
-        <Text style={styles.subtitle}>
-          {Strings.categoriesReassignSubtitle(linkedCount)}
-        </Text>
+        <Text style={styles.subtitle}>{Strings.categoriesReassignSubtitle(linkedCount)}</Text>
         <Text style={styles.body}>{Strings.categoriesReassignBody}</Text>
 
         <BottomSheetFlatList

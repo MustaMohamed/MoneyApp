@@ -17,11 +17,7 @@ export default function AboutScreen() {
         <View className="mx-4 mt-6 bg-surface rounded-2xl p-6 border border-border items-center">
           {/* App icon placeholder — replace with Image when asset exists */}
           <View className="w-20 h-20 rounded-2xl bg-default border border-border items-center justify-center mb-4">
-            <MaterialCommunityIcons
-              name="chart-line"
-              size={40}
-              color={Colors.shared.cairoGold}
-            />
+            <MaterialCommunityIcons name="chart-line" size={40} color={Colors.shared.cairoGold} />
           </View>
 
           <Text className="text-foreground font-sora-bold text-xl mb-1">MoneyApp</Text>

@@ -20,7 +20,13 @@ interface CategoryRowProps {
   isLast?: boolean;
 }
 
-export function CategoryRow({ category, onEdit, onDelete, isDeleteDisabled, isLast = false }: CategoryRowProps) {
+export function CategoryRow({
+  category,
+  onEdit,
+  onDelete,
+  isDeleteDisabled,
+  isLast = false,
+}: CategoryRowProps) {
   const isProtected = category.is_default === 1;
 
   return (

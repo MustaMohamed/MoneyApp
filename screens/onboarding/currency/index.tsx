@@ -26,7 +26,6 @@ const ROWS: RowConfig[] = [
   },
 ];
 
-
 export default function CurrencyScreen() {
   const { selected, setSelected, onContinue, onBack } = useCurrency();
 

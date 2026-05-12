@@ -294,9 +294,8 @@ describe('CategoryRepository.reassignAndDelete — TC-02 (commitment cascade)', 
 // ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
   it('wraps all SQL in a single withTransactionAsync call', async () => {
-    const mocked = (
-      SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } }
-    ).__fakeDb;
+    const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
+      .__fakeDb;
 
     insertFromCategory('from-cat-09a');
     insertTransaction('from-cat-09a', 'tc09-tx-1');
@@ -308,9 +307,8 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
   });
 
   it('when withTransactionAsync rejects, the error propagates', async () => {
-    const mocked = (
-      SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } }
-    ).__fakeDb;
+    const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
+      .__fakeDb;
 
     insertFromCategory('from-cat-09b');
 
@@ -331,9 +329,8 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
     expect(countTransactions('from-cat-09c')).toBe(47);
     expect(countCategories('from-cat-09c')).toBe(1);
 
-    const mocked = (
-      SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } }
-    ).__fakeDb;
+    const mocked = (SQLite as unknown as { __fakeDb: { withTransactionAsync: jest.Mock } })
+      .__fakeDb;
 
     // Simulate DB-level failure — the whole transaction is rolled back
     // (withTransactionAsync itself rejects without executing the callback)
@@ -406,9 +403,9 @@ describe('CategoryRepository.update — type field immutability (TC-07)', () => 
     // At runtime, we verify the type column is unchanged after update.
     await repo.update(cat.id, { name: 'Salary Updated', icon: 'star', color: '#aaa' });
 
-    const row = realDb
-      .prepare('SELECT type FROM categories WHERE id = ?')
-      .get(cat.id) as { type: string };
+    const row = realDb.prepare('SELECT type FROM categories WHERE id = ?').get(cat.id) as {
+      type: string;
+    };
 
     expect(row.type).toBe('income');
   });

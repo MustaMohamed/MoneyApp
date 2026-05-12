@@ -49,12 +49,16 @@ describe('useCurrencyScreen', () => {
 
   it('does not expose isManualPanelOpen (Accordion owns expansion state)', () => {
     const { result } = renderHook(() => useCurrencyScreen());
-    expect((result.current.state as unknown as Record<string, unknown>).isManualPanelOpen).toBeUndefined();
+    expect(
+      (result.current.state as unknown as Record<string, unknown>).isManualPanelOpen,
+    ).toBeUndefined();
   });
 
   it('does not expose setManualPanelOpen (Accordion owns expansion state)', () => {
     const { result } = renderHook(() => useCurrencyScreen());
-    expect((result.current as unknown as Record<string, unknown>).setManualPanelOpen).toBeUndefined();
+    expect(
+      (result.current as unknown as Record<string, unknown>).setManualPanelOpen,
+    ).toBeUndefined();
   });
 
   it('handleFetchRate sets fetchError on rejection', async () => {

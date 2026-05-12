@@ -39,7 +39,11 @@ const makeCategory = (overrides: Partial<Category> = {}): Category => ({
 
 /** Flatten the style prop (may be an array of StyleSheet IDs or plain objects) */
 function flattenStyle(style: unknown): Partial<Record<string, unknown>> {
-  return (StyleSheet.flatten(style as Parameters<typeof StyleSheet.flatten>[0]) as Partial<Record<string, unknown>>) ?? {};
+  return (
+    (StyleSheet.flatten(style as Parameters<typeof StyleSheet.flatten>[0]) as Partial<
+      Record<string, unknown>
+    >) ?? {}
+  );
 }
 
 describe('CategoryRow — isLast prop', () => {
@@ -75,11 +79,7 @@ describe('CategoryRow — isLast prop', () => {
 
   it('defaults to showing the divider (borderBottomWidth 1) when isLast is omitted', () => {
     const { UNSAFE_getAllByType } = render(
-      <CategoryRow
-        category={makeCategory()}
-        onEdit={jest.fn()}
-        onDelete={jest.fn()}
-      />,
+      <CategoryRow category={makeCategory()} onEdit={jest.fn()} onDelete={jest.fn()} />,
     );
 
     const outerRow = UNSAFE_getAllByType(View)[0];
@@ -90,7 +90,11 @@ describe('CategoryRow — isLast prop', () => {
 
 describe('CategoryRow — is_default protection gate', () => {
   it('shows edit and delete buttons when is_default=0', () => {
-    const { getByAccessibilityHint: _a, queryByLabelText, queryAllByRole } = render(
+    const {
+      getByAccessibilityHint: _a,
+      queryByLabelText,
+      queryAllByRole,
+    } = render(
       <CategoryRow
         category={makeCategory({ is_default: 0 })}
         onEdit={jest.fn()}

@@ -17,7 +17,9 @@ describe('currencyScreenState initial state', () => {
 
   it('does not expose isManualPanelOpen (Accordion owns expansion state)', () => {
     const store = createCurrencyScreenState();
-    expect((store.getState().state as unknown as Record<string, unknown>).isManualPanelOpen).toBeUndefined();
+    expect(
+      (store.getState().state as unknown as Record<string, unknown>).isManualPanelOpen,
+    ).toBeUndefined();
   });
 });
 
@@ -53,7 +55,9 @@ describe('currencyScreenState setters', () => {
 
   it('does not expose setManualPanelOpen (Accordion owns expansion state)', () => {
     const store = createCurrencyScreenState();
-    expect((store.getState() as unknown as Record<string, unknown>).setManualPanelOpen).toBeUndefined();
+    expect(
+      (store.getState() as unknown as Record<string, unknown>).setManualPanelOpen,
+    ).toBeUndefined();
   });
 });
 

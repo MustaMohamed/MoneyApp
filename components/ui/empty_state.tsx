@@ -9,7 +9,12 @@ import { GoldTokens } from '@/constants/theme_tokens';
 import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
 
-export type EmptyStateVariant = 'accounts' | 'transactions' | 'commitments' | 'filtered' | 'categories';
+export type EmptyStateVariant =
+  | 'accounts'
+  | 'transactions'
+  | 'commitments'
+  | 'filtered'
+  | 'categories';
 
 export interface EmptyStateProps {
   variant: EmptyStateVariant;

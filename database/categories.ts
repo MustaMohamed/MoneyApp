@@ -60,10 +60,7 @@ export async function reassignCategory(
   ]);
 }
 
-export async function getCategoryTransactionCount(
-  db: SQLiteDatabase,
-  id: string,
-): Promise<number> {
+export async function getCategoryTransactionCount(db: SQLiteDatabase, id: string): Promise<number> {
   const result = await db.getFirstAsync<{ count: number }>(
     'SELECT COUNT(*) as count FROM transactions WHERE category_id = ?',
     [id],

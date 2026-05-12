@@ -115,9 +115,7 @@ export default function CategoriesScreen() {
                   onEdit={() => openEditSheet(item.category)}
                   onDelete={() => handleDeletePress(item.category)}
                   isDeleteDisabled={state.isDeleting}
-                  isLast={
-                    index === listData.length - 1 || listData[index + 1]?.type === 'header'
-                  }
+                  isLast={index === listData.length - 1 || listData[index + 1]?.type === 'header'}
                 />
               )
             }
@@ -128,11 +126,7 @@ export default function CategoriesScreen() {
       {/* Bottom CTA or limit message */}
       <View className="border-t border-separator pt-2 px-4 pb-6">
         {!state.isAtLimit ? (
-          <Button
-            label={Strings.categoriesAddBtn}
-            variant="primary"
-            onPress={openAddSheet}
-          />
+          <Button label={Strings.categoriesAddBtn} variant="primary" onPress={openAddSheet} />
         ) : (
           <Text className="text-muted text-xs font-inter-regular text-center py-3">
             {Strings.categoriesLimitMsg}

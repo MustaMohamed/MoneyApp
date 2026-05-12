@@ -25,7 +25,8 @@ import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Colors } from '@/constants/theme';
 // Import from the mock file directly so TypeScript resolves the correct types.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const { bottomSheetMockMethods } = require('../../../__mocks__/@gorhom/bottom-sheet') as typeof import('../../../__mocks__/@gorhom/bottom-sheet');
+const { bottomSheetMockMethods } =
+  require('../../../__mocks__/@gorhom/bottom-sheet') as typeof import('../../../__mocks__/@gorhom/bottom-sheet');
 
 const SHEET_SOURCE = fs.readFileSync(
   path.resolve(__dirname, '../../../components/ui/sheet.tsx'),

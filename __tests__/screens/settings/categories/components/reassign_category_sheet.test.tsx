@@ -48,19 +48,16 @@ const mockReset = jest.fn(() => {
   mockIsLoading = false;
 });
 
-jest.mock(
-  '@/screens/settings/categories/components/reassign_category_sheet.state',
-  () => ({
-    useReassignCategorySheetState: jest.fn((selector: any) =>
-      selector({
-        state: { selectedId: mockSelectedId, isLoading: mockIsLoading },
-        setSelectedId: mockSetSelectedId,
-        setIsLoading: mockSetIsLoading,
-        reset: mockReset,
-      }),
-    ),
-  }),
-);
+jest.mock('@/screens/settings/categories/components/reassign_category_sheet.state', () => ({
+  useReassignCategorySheetState: jest.fn((selector: any) =>
+    selector({
+      state: { selectedId: mockSelectedId, isLoading: mockIsLoading },
+      setSelectedId: mockSetSelectedId,
+      setIsLoading: mockSetIsLoading,
+      reset: mockReset,
+    }),
+  ),
+}));
 
 // Attach getState().reset() used inside handleClose
 const mockGetState = {

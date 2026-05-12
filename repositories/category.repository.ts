@@ -48,9 +48,7 @@ export class CategoryRepository implements ICategoryRepository {
       (c) => c.name.trim().toLowerCase() === trimmedName.toLowerCase(),
     );
     if (duplicate) {
-      throw new Error(
-        `A category named "${trimmedName}" already exists in ${data.type}`,
-      );
+      throw new Error(`A category named "${trimmedName}" already exists in ${data.type}`);
     }
 
     const category: Category = {
@@ -91,16 +89,15 @@ export class CategoryRepository implements ICategoryRepository {
   async reassignAndDelete(fromId: string, toId: string): Promise<void> {
     const db = await getDb();
     await db.withTransactionAsync(async () => {
-      await db.runAsync(
-        'UPDATE transactions SET category_id = ? WHERE category_id = ?',
-        [toId, fromId],
-      );
-      await db.runAsync(
-        'UPDATE commitments SET category_id = ? WHERE category_id = ?',
-        [toId, fromId],
-      );
+      await db.runAsync('UPDATE transactions SET category_id = ? WHERE category_id = ?', [
+        toId,
+        fromId,
+      ]);
+      await db.runAsync('UPDATE commitments SET category_id = ? WHERE category_id = ?', [
+        toId,
+        fromId,
+      ]);
       await db.runAsync('DELETE FROM categories WHERE id = ?', [fromId]);
     });
   }
 }
-

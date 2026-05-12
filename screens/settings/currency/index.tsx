@@ -66,9 +66,7 @@ export default function CurrencyScreen() {
 
         {/* Fetch error message */}
         {fetchError !== '' && (
-          <Text className="text-danger text-sm font-inter-regular mx-4 mt-2">
-            {fetchError}
-          </Text>
+          <Text className="text-danger text-sm font-inter-regular mx-4 mt-2">{fetchError}</Text>
         )}
 
         {/* Manual override — HeroUI Accordion */}

@@ -154,11 +154,11 @@ describe('CategoriesScreen — isLast prop computation', () => {
     // Default section: first two are NOT last, third IS last (next entry is custom header)
     expect(rows[0].props.isLast).toBe(false); // def-1
     expect(rows[1].props.isLast).toBe(false); // def-2
-    expect(rows[2].props.isLast).toBe(true);  // def-3 — last before custom section header
+    expect(rows[2].props.isLast).toBe(true); // def-3 — last before custom section header
 
     // Custom section: first is NOT last, second IS last (end of list)
     expect(rows[3].props.isLast).toBe(false); // cus-1
-    expect(rows[4].props.isLast).toBe(true);  // cus-2 — last item in list
+    expect(rows[4].props.isLast).toBe(true); // cus-2 — last item in list
   });
 
   it('passes isLast={true} to the only row when each section has exactly one category', () => {

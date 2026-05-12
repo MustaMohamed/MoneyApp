@@ -45,12 +45,12 @@ import { useCategories } from '@/screens/settings/categories/categories.hook';
 import type { Category } from '@/store/category.store';
 
 // Real Zustand stores — bypassing the mock for shape tests
-const realCategoriesStore = jest.requireActual<typeof import('@/screens/settings/categories/categories.store')>(
-  '@/screens/settings/categories/categories.store',
-);
-const realCategoriesState = jest.requireActual<typeof import('@/screens/settings/categories/categories.state')>(
-  '@/screens/settings/categories/categories.state',
-);
+const realCategoriesStore = jest.requireActual<
+  typeof import('@/screens/settings/categories/categories.store')
+>('@/screens/settings/categories/categories.store');
+const realCategoriesState = jest.requireActual<
+  typeof import('@/screens/settings/categories/categories.state')
+>('@/screens/settings/categories/categories.state');
 const { useCategoriesScreenStore: realScreenStore } = realCategoriesStore;
 const { useCategoriesScreenState: realScreenState } = realCategoriesState;
 
@@ -204,15 +204,17 @@ let capturedSetLinkedCount: jest.Mock;
 let capturedSetShowDeleteConfirm: jest.Mock;
 let capturedSetShowReassignSheet: jest.Mock;
 
-function setupMocks(overrides: {
-  isDeleting?: boolean;
-  linkedCount?: number;
-  categoryToDelete?: Category | null;
-  showDeleteConfirm?: boolean;
-  showReassignSheet?: boolean;
-  addCategory?: jest.Mock;
-  reassignAndDelete?: jest.Mock;
-} = {}) {
+function setupMocks(
+  overrides: {
+    isDeleting?: boolean;
+    linkedCount?: number;
+    categoryToDelete?: Category | null;
+    showDeleteConfirm?: boolean;
+    showReassignSheet?: boolean;
+    addCategory?: jest.Mock;
+    reassignAndDelete?: jest.Mock;
+  } = {},
+) {
   capturedSetIsDeleting = jest.fn();
   capturedSetLinkedCount = jest.fn();
   capturedSetShowDeleteConfirm = jest.fn();
@@ -287,10 +289,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
       await result.current.handleDeletePress(fakeExpenseCategory);
     });
 
-    expect(getCategoryTransactionCount).toHaveBeenCalledWith(
-      expect.anything(),
-      'cat_food',
-    );
+    expect(getCategoryTransactionCount).toHaveBeenCalledWith(expect.anything(), 'cat_food');
   });
 
   it('handleDeletePress opens DeleteConfirmationDialog when count = 0 (TC-03)', async () => {
@@ -341,9 +340,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
   });
 
   it('handleDeletePress calls setIsDeleting(false) in finally even when count query throws (TC-09)', async () => {
-    (getCategoryTransactionCount as jest.Mock).mockRejectedValueOnce(
-      new Error('DB error'),
-    );
+    (getCategoryTransactionCount as jest.Mock).mockRejectedValueOnce(new Error('DB error'));
     const { result } = renderHook(() => useCategories());
 
     // The hook has try/finally (no catch) so the error propagates, but

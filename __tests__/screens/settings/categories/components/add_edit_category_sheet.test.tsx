@@ -34,12 +34,9 @@ jest.mock('@/store/category.store', () => ({
   useCategoryStore: jest.fn(),
 }));
 
-jest.mock(
-  '@/screens/settings/categories/components/add_edit_category_sheet.state',
-  () => ({
-    useAddEditCategorySheetState: jest.fn(),
-  }),
-);
+jest.mock('@/screens/settings/categories/components/add_edit_category_sheet.state', () => ({
+  useAddEditCategorySheetState: jest.fn(),
+}));
 
 // Bottom-sheet is mocked via __mocks__/@gorhom/bottom-sheet.tsx (moduleNameMapper)
 
@@ -54,7 +51,10 @@ import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
 import { useAddEditCategorySheetState } from '@/screens/settings/categories/components/add_edit_category_sheet.state';
-import { AddEditCategorySheet, createCategorySchema } from '@/screens/settings/categories/components/add_edit_category_sheet';
+import {
+  AddEditCategorySheet,
+  createCategorySchema,
+} from '@/screens/settings/categories/components/add_edit_category_sheet';
 import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import type { Category } from '@/store/category.store';
 
@@ -80,13 +80,15 @@ function makeCategoryStoreMock(categories: Category[] = []) {
   );
 }
 
-function makeSheetStateMock(overrides: {
-  type?: CategoryType;
-  selectedIcon?: string | null;
-  selectedColor?: string;
-  iconError?: string;
-  isLoading?: boolean;
-} = {}) {
+function makeSheetStateMock(
+  overrides: {
+    type?: CategoryType;
+    selectedIcon?: string | null;
+    selectedColor?: string;
+    iconError?: string;
+    isLoading?: boolean;
+  } = {},
+) {
   const setType = jest.fn();
   const setSelectedIcon = jest.fn();
   const setSelectedColor = jest.fn();
@@ -136,9 +138,7 @@ describe('AddEditCategorySheet — Sheet migration (Task 6)', () => {
 
   // TC-ADD-1
   it('renders "New Category" title when editingCategory is null (isEditing=false)', () => {
-    const { getByText } = render(
-      <AddEditCategorySheet {...defaultProps} editingCategory={null} />,
-    );
+    const { getByText } = render(<AddEditCategorySheet {...defaultProps} editingCategory={null} />);
     expect(getByText(Strings.categoriesAddSheetTitle)).toBeTruthy();
   });
 
@@ -152,9 +152,7 @@ describe('AddEditCategorySheet — Sheet migration (Task 6)', () => {
 
   // TC-ADD-3
   it('does not render sheet content when visible=false', () => {
-    const { queryByTestId } = render(
-      <AddEditCategorySheet {...defaultProps} visible={false} />,
-    );
+    const { queryByTestId } = render(<AddEditCategorySheet {...defaultProps} visible={false} />);
     // The bottom-sheet mock renders null when index < 0
     expect(queryByTestId('bottom-sheet')).toBeNull();
   });
@@ -162,9 +160,7 @@ describe('AddEditCategorySheet — Sheet migration (Task 6)', () => {
   // TC-ADD-4
   it('calls onClose when the sheet close button is pressed', () => {
     const onClose = jest.fn();
-    const { getByTestId } = render(
-      <AddEditCategorySheet {...defaultProps} onClose={onClose} />,
-    );
+    const { getByTestId } = render(<AddEditCategorySheet {...defaultProps} onClose={onClose} />);
     fireEvent.press(getByTestId('sheet-close-btn'));
     expect(onClose).toHaveBeenCalledTimes(1);
   });
@@ -177,9 +173,7 @@ describe('AddEditCategorySheet — Sheet migration (Task 6)', () => {
 
   // TC-ADD-6
   it('shows type toggle row for a new category (isEditing=false)', () => {
-    const { getByText } = render(
-      <AddEditCategorySheet {...defaultProps} editingCategory={null} />,
-    );
+    const { getByText } = render(<AddEditCategorySheet {...defaultProps} editingCategory={null} />);
     expect(getByText(Strings.categoriesTabExpense)).toBeTruthy();
     expect(getByText(Strings.categoriesTabIncome)).toBeTruthy();
   });
@@ -405,10 +399,7 @@ describe('Sheet primitive — keyboardBehavior extend', () => {
     const fs = require('fs');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path');
-    const filePath = path.resolve(
-      __dirname,
-      '../../../../../components/ui/sheet.tsx',
-    );
+    const filePath = path.resolve(__dirname, '../../../../../components/ui/sheet.tsx');
     const source: string = fs.readFileSync(filePath, 'utf8');
     expect(source).toContain('keyboardBehavior="extend"');
   });
