@@ -482,7 +482,6 @@ export const Strings = {
   // EmptyState component
   emptyAccountsHeadline: 'No accounts yet',
   emptyAccountsDescription: 'Add your first account to start tracking your money.',
-  emptyAccountsCta: 'Add Account',
   emptyTransactionsHeadline: 'No transactions yet',
   emptyTransactionsDescription: 'Your transactions will appear here once you start adding them.',
   emptyTransactionsCta: 'Add Transaction',
