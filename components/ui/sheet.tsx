@@ -20,7 +20,8 @@
  * to the bottom of the sheet even when the body content scrolls.
  */
 import React, { useCallback, useRef } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { TouchableOpacity } from 'react-native-gesture-handler';
 import BottomSheetLib, {
   BottomSheetBackdrop,
   BottomSheetFooter,
@@ -123,7 +124,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       {title !== undefined && (
         <View testID="sheet-header" style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <Pressable
+          <TouchableOpacity
             testID="sheet-close-btn"
             onPress={onClose}
             style={styles.closeBtn}
@@ -132,7 +133,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
             accessibilityRole="button"
           >
             <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
-          </Pressable>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -183,6 +184,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   footer: {
+    backgroundColor: Colors.dark.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: Colors.dark.border,
     paddingTop: Spacing.xs,
