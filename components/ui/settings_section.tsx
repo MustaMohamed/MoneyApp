@@ -74,8 +74,14 @@ function SettingsSectionRow({ item }: { item: SettingsSectionItem }) {
       )}
 
       <View style={styles.trailingContainer}>
-        {item.value !== undefined && trailing !== 'chevron' && trailing !== 'toggle' && (
-          <Text style={styles.valueText}>{item.value}</Text>
+        {item.value !== undefined && trailing !== 'toggle' && (
+          <Text
+            style={styles.valueText}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.value}
+          </Text>
         )}
         {trailing === 'chevron' && (
           <MaterialCommunityIcons

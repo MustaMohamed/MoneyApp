@@ -63,6 +63,14 @@ describe('SettingsSection', () => {
       expect(getByText('USD')).toBeTruthy();
     });
 
+    it('renders value text AND chevron simultaneously (§4 Currency row requirement)', () => {
+      const { getByText, getByTestId } = render(
+        <SettingsSection items={[{ ...baseItem, value: 'EGP', trailing: 'chevron' }]} />,
+      );
+      expect(getByText('EGP')).toBeTruthy();
+      expect(getByTestId('trailing-chevron')).toBeTruthy();
+    });
+
     it('does not render leading icon container when icon is omitted', () => {
       const { queryByTestId } = render(<SettingsSection items={[{ ...baseItem }]} />);
       expect(queryByTestId('leading-icon')).toBeNull();
