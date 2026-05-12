@@ -3,6 +3,8 @@ import { render, fireEvent } from '@testing-library/react-native';
 
 import { Strings } from '@/constants/strings';
 
+import { EmptyState } from '@/components/ui/empty_state';
+
 // String key tests stay at top
 describe('EmptyState strings', () => {
   it('has all accounts variant copy keys', () => {
@@ -42,8 +44,6 @@ jest.mock('heroui-native', () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(' '),
 }));
 
-import { EmptyState } from '@/components/ui/empty_state';
-
 describe('EmptyState component', () => {
   describe('accounts variant', () => {
     it('renders headline and description', () => {
@@ -69,7 +69,9 @@ describe('EmptyState component', () => {
     it('renders headline and description', () => {
       const { getByText } = render(<EmptyState variant="transactions" />);
       expect(getByText('No transactions yet')).toBeTruthy();
-      expect(getByText('Your transactions will appear here once you start adding them.')).toBeTruthy();
+      expect(
+        getByText('Your transactions will appear here once you start adding them.'),
+      ).toBeTruthy();
     });
 
     it('renders CTA button with label', () => {

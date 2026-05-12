@@ -20,7 +20,13 @@ type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const VARIANT_CONFIG: Record<
   EmptyStateVariant,
-  { icon: MCIName; headline: string; description: string; ctaLabel: string | null; clearLabel: string | null }
+  {
+    icon: MCIName;
+    headline: string;
+    description: string;
+    ctaLabel: string | null;
+    clearLabel: string | null;
+  }
 > = {
   accounts: {
     icon: 'bank',
@@ -59,26 +65,16 @@ export function EmptyState({ variant, onAction }: EmptyStateProps) {
     <View style={styles.root}>
       {/* Icon circle */}
       <View style={styles.iconCircle}>
-        <MaterialCommunityIcons
-          name={config.icon}
-          size={ms(40)}
-          color={Colors.dark.text2}
-        />
+        <MaterialCommunityIcons name={config.icon} size={ms(40)} color={Colors.dark.text2} />
       </View>
 
       {/* Headline */}
-      <Text
-        variant="h3"
-        style={styles.headline}
-      >
+      <Text variant="h3" style={styles.headline}>
         {config.headline}
       </Text>
 
       {/* Description */}
-      <Text
-        variant="hint"
-        style={styles.description}
-      >
+      <Text variant="hint" style={styles.description}>
         {config.description}
       </Text>
 

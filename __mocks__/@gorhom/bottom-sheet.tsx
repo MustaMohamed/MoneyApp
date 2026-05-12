@@ -23,15 +23,21 @@ interface BottomSheetProps {
 }
 
 const BottomSheet = React.forwardRef<any, BottomSheetProps>(
-  ({ index, children, onClose, backdropComponent: BackdropComponent, handleComponent: HandleComponent }, _ref) => {
+  (
+    {
+      index,
+      children,
+      onClose,
+      backdropComponent: BackdropComponent,
+      handleComponent: HandleComponent,
+    },
+    _ref,
+  ) => {
     if (index < 0) return null;
     return (
       <View testID="bottom-sheet">
         {BackdropComponent && (
-          <BackdropComponent
-            animatedIndex={{ value: index }}
-            animatedPosition={{ value: 0 }}
-          />
+          <BackdropComponent animatedIndex={{ value: index }} animatedPosition={{ value: 0 }} />
         )}
         {HandleComponent && <HandleComponent />}
         {children}
