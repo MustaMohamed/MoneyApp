@@ -1,8 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { BackButton } from '@/components/ui/back_button';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
@@ -69,13 +70,7 @@ export default function TransactionDetailScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={Size.iconBack}
-            color={Colors.dark.text2}
-          />
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.title}>{Strings.detailHeader}</Text>
         <View style={styles.backBtn} />
       </View>

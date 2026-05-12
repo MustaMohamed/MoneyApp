@@ -16,6 +16,7 @@ import {
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
+import { BackButton } from '@/components/ui/back_button';
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
@@ -186,13 +187,7 @@ export function CommitmentFormBody({
       style={styles.kav}
     >
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={8}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={Size.iconBack}
-            color={Colors.dark.text2}
-          />
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>{title}</Text>
         <View style={styles.backBtn} />
       </View>
