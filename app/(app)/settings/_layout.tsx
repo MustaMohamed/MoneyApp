@@ -1,24 +1,12 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 
-import { Colors, FontFamily, Size, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { Colors, FontFamily, Type } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
+import { BackButton } from '@/components/ui/back_button';
 
-function BackButton() {
+function SettingsBackButton() {
   const router = useRouter();
-  return (
-    <Pressable
-      onPress={() => router.back()}
-      hitSlop={ms(8)}
-      accessibilityRole="button"
-      accessibilityLabel="Go back"
-      style={{ width: Size.backBtn, height: Size.backBtn, alignItems: 'center', justifyContent: 'center' }}
-    >
-      <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={Colors.dark.text1} />
-    </Pressable>
-  );
+  return <BackButton onPress={() => router.back()} />;
 }
 
 export default function SettingsLayout() {
@@ -36,15 +24,15 @@ export default function SettingsLayout() {
       <Stack.Screen name="index" options={{ title: Strings.settingsTitle }} />
       <Stack.Screen
         name="currency/index"
-        options={{ title: Strings.currencyScreenTitle, headerLeft: () => <BackButton /> }}
+        options={{ title: Strings.currencyScreenTitle, headerLeft: () => <SettingsBackButton /> }}
       />
       <Stack.Screen
         name="categories/index"
-        options={{ title: Strings.categoriesTitle, headerLeft: () => <BackButton /> }}
+        options={{ title: Strings.categoriesTitle, headerLeft: () => <SettingsBackButton /> }}
       />
       <Stack.Screen
         name="about/index"
-        options={{ title: Strings.aboutTitle, headerLeft: () => <BackButton /> }}
+        options={{ title: Strings.aboutTitle, headerLeft: () => <SettingsBackButton /> }}
       />
     </Stack>
   );

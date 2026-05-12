@@ -1,10 +1,10 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Controller, useWatch } from 'react-hook-form';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackButton } from '@/components/ui/back_button';
 import { Strings } from '@/constants/strings';
 import {
   AccountColors,
@@ -13,7 +13,6 @@ import {
   Radius,
   Size,
   Spacing,
-  TouchSize,
   Type,
 } from '@/constants/theme';
 import { AccountType, Currency } from '@/constants/enums';
@@ -23,12 +22,6 @@ import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
 const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
 
-const hitSlop = {
-  top: TouchSize.min / 4,
-  bottom: TouchSize.min / 4,
-  left: TouchSize.min / 4,
-  right: TouchSize.min / 4,
-};
 
 export default function AddAccountAppScreen() {
   const { form, handleSave, onBack } = useAddAccountApp();
@@ -55,13 +48,7 @@ export default function AddAccountAppScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.back} hitSlop={hitSlop}>
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={Size.iconBack}
-            color={Colors.dark.text2}
-          />
-        </Pressable>
+        <BackButton onPress={onBack} />
         <Text style={styles.headerTitle}>{Strings.u4Title}</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -346,16 +333,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: Spacing.sm,
-  },
-  back: {
-    width: Size.backBtn,
-    height: Size.backBtn,
-    borderRadius: Spacing.sm,
-    backgroundColor: Colors.dark.surface,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerTitle: {
     fontFamily: FontFamily.soraBold,

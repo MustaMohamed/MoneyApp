@@ -1,11 +1,11 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BackButton } from '@/components/ui/back_button';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { Currency } from '@/constants/enums';
 
 import { useCurrency } from './currency.hook';
@@ -26,12 +26,6 @@ const ROWS: RowConfig[] = [
   },
 ];
 
-const hitSlop = {
-  top: TouchSize.min / 4,
-  bottom: TouchSize.min / 4,
-  left: TouchSize.min / 4,
-  right: TouchSize.min / 4,
-};
 
 export default function CurrencyScreen() {
   const { selected, setSelected, onContinue, onBack } = useCurrency();
@@ -39,9 +33,7 @@ export default function CurrencyScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={onBack} style={styles.back} hitSlop={hitSlop}>
-          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color="#6B7F99" />
-        </Pressable>
+        <BackButton onPress={onBack} />
         <Text style={styles.headerTitle}>{Strings.o2Title}</Text>
         <View style={styles.back} />
       </View>

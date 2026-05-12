@@ -2,10 +2,10 @@ import React from 'react';
 import { Switch } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { Controller, useWatch } from 'react-hook-form';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { cn } from 'heroui-native';
 
 import { ProgressDots } from '@/components/progress_dots';
+import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,7 +14,6 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { AccountType, Currency } from '@/constants/enums';
-import { Size } from '@/constants/theme';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { useAddAccountV2, ACCOUNT_COLORS } from './add_account.hook';
 import { useAddAccountAnim } from './add_account.anim';
@@ -51,12 +50,7 @@ export default function AddAccountScreenV2() {
         style={{ flexDirection: 'row', height: 56 }}
         className="items-center justify-between px-4"
       >
-        <Pressable
-          onPress={onBack}
-          className="w-9 h-9 rounded-[8px] bg-surface border border-border items-center justify-center"
-        >
-          <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
-        </Pressable>
+        <BackButton onPress={onBack} />
         <Text variant="title" className="font-soraBold">
           {Strings.o4Title}
         </Text>

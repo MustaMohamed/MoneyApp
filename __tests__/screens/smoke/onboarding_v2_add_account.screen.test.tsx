@@ -70,20 +70,22 @@ describe('AddAccountScreenV2 smoke test', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug 3 — back button must use the §4-standard icon/size token
+// Bug 3 → standardized: back button is now the shared BackButton component.
+// Inline chevron-left / Size.iconBack assertions moved to the shared component.
 // ---------------------------------------------------------------------------
-describe('AddAccountScreenV2 back button — §4 standard (Bug 3)', () => {
-  it('uses MaterialCommunityIcons name="chevron-left" for the back button', () => {
-    expect(ADD_ACCOUNT_SOURCE).toContain('name="chevron-left"');
+describe('AddAccountScreenV2 back button — shared BackButton component', () => {
+  it('imports BackButton from @/components/ui/back_button', () => {
+    expect(ADD_ACCOUNT_SOURCE).toContain("from '@/components/ui/back_button'");
   });
 
-  it('uses Size.iconBack token (not a hardcoded number) for the back button icon size', () => {
-    expect(ADD_ACCOUNT_SOURCE).toContain('size={Size.iconBack}');
-    // Ensure the old hardcoded 24 is gone
-    expect(ADD_ACCOUNT_SOURCE).not.toContain('size={24}');
+  it('uses <BackButton onPress={onBack} /> instead of inline Pressable', () => {
+    expect(ADD_ACCOUNT_SOURCE).toContain('<BackButton onPress={onBack}');
+    // Ensure the old inline chevron-left is gone from this file
+    expect(ADD_ACCOUNT_SOURCE).not.toContain('name="chevron-left"');
   });
 
-  it('imports Size from @/constants/theme', () => {
-    expect(ADD_ACCOUNT_SOURCE).toMatch(/import\s+{[^}]*\bSize\b[^}]*}\s+from\s+'@\/constants\/theme'/);
+  it('does not hardcode the back button chrome (boxy style delegated to shared component)', () => {
+    // The w-9 h-9 rounded-[8px] inline className should be gone from this file
+    expect(ADD_ACCOUNT_SOURCE).not.toContain('rounded-[8px] bg-surface border border-border');
   });
 });
