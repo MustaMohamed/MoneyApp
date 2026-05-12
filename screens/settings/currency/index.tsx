@@ -32,7 +32,7 @@ export default function CurrencyScreen() {
     : Strings.currencyNeverFetched;
 
   return (
-    <Screen>
+    <Screen edges={['bottom']}>
       <ScreenScroll showsVerticalScrollIndicator={false}>
         {/* Rate card */}
         <View className="mx-4 mt-4 bg-surface rounded-2xl p-5 border border-border">

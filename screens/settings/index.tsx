@@ -7,8 +7,7 @@ export default function SettingsScreen() {
   const { goToCurrency, goToCategories, goToAbout } = useSettings();
 
   return (
-    <Screen>
-      {/* No custom header — stack navigator header provided by _layout.tsx */}
+    <Screen edges={['bottom']}>
       <ScreenScroll contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}>
         <SettingsSection
           title={Strings.settingsGroupPreferences}
