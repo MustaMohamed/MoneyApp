@@ -14,13 +14,15 @@ interface CategoryRowProps {
   onEdit: () => void;
   onDelete: () => void;
   isDeleteDisabled?: boolean;
+  /** When true, the bottom border divider is hidden. Use for the last row in each section. */
+  isLast?: boolean;
 }
 
-export function CategoryRow({ category, onEdit, onDelete, isDeleteDisabled }: CategoryRowProps) {
+export function CategoryRow({ category, onEdit, onDelete, isDeleteDisabled, isLast = false }: CategoryRowProps) {
   const isProtected = (PROTECTED_CATEGORY_IDS as readonly string[]).includes(category.id);
 
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, isLast && styles.rowLast]}>
       <View style={styles.left}>
         <View style={[styles.iconBox, { backgroundColor: category.color + '22' }]}>
           <MaterialCommunityIcons
@@ -83,6 +85,9 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
     borderBottomColor: Colors.dark.border,
+  },
+  rowLast: {
+    borderBottomWidth: 0,
   },
   left: {
     flexDirection: 'row',

@@ -103,7 +103,7 @@ export default function CategoriesScreen() {
               paddingBottom: Spacing.xxl,
             }}
             getItemType={(item) => item.type}
-            renderItem={({ item }) =>
+            renderItem={({ item, index }) =>
               item.type === 'header' ? (
                 <Text className="text-muted text-xs font-inter-medium tracking-wider mb-1">
                   {item.label}
@@ -114,6 +114,9 @@ export default function CategoriesScreen() {
                   onEdit={() => openEditSheet(item.category)}
                   onDelete={() => handleDeletePress(item.category)}
                   isDeleteDisabled={state.isDeleting}
+                  isLast={
+                    index === listData.length - 1 || listData[index + 1]?.type === 'header'
+                  }
                 />
               )
             }
