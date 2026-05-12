@@ -1,23 +1,17 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Controller } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
-import Animated from 'react-native-reanimated';
+import { View } from 'react-native';
+import { Accordion } from 'heroui-native';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { Colors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
 import { useCurrencyScreen } from './currency.hook';
-import { useCurrencyScreenAnim } from './currency.anim';
 
 export default function CurrencyScreen() {
-  const { state, setManualPanelOpen, form, handleFetchRate, handleSaveManualRate } =
-    useCurrencyScreen();
-  const { rate, lastFetched, isManualOverride, isManualPanelOpen, isFetching, isSaving, fetchError } =
-    state;
-  const { panelEntering, panelExiting } = useCurrencyScreenAnim();
+  const { state, form, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
+  const { rate, lastFetched, isManualOverride, isFetching, isSaving, fetchError } = state;
   const {
     control,
     formState: { errors },
@@ -77,63 +71,53 @@ export default function CurrencyScreen() {
           </Text>
         )}
 
-        {/* Manual override toggle row */}
-        <Pressable
-          onPress={() => setManualPanelOpen(!isManualPanelOpen)}
-          className="mx-4 mt-2 bg-surface rounded-xl border border-border"
-          style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 16 }}
-        >
-          <View style={{ flex: 1 }}>
-            <Text className="text-foreground font-inter-medium text-base">
-              {Strings.currencyManualLabel}
-            </Text>
-            <Text className="text-muted text-xs font-inter-regular mt-0.5">
-              {Strings.currencyManualSub}
-            </Text>
-          </View>
-          <MaterialCommunityIcons
-            name={isManualPanelOpen ? 'chevron-up' : 'chevron-down'}
-            size={20}
-            color={Colors.dark.text2}
-          />
-        </Pressable>
-
-        {/* Manual override panel — animated expansion (anim unchanged) */}
-        {isManualPanelOpen && (
-          <Animated.View
-            entering={panelEntering}
-            exiting={panelExiting}
-            className="mx-4 mt-2 bg-surface rounded-xl p-4 border border-border"
-          >
-            <Text className="text-accent text-xs font-sora-bold uppercase tracking-widest mb-2">
-              {Strings.currencyRateLabel}
-            </Text>
-            <Controller
-              control={control}
-              name="rate"
-              render={({ field: { value, onChange, onBlur } }) => (
-                <Input
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  keyboardType="decimal-pad"
-                  isInvalid={!!errors.rate}
-                  helperText={errors.rate?.message}
+        {/* Manual override — HeroUI Accordion */}
+        <View className="mx-4 mt-2">
+          <Accordion variant="surface">
+            <Accordion.Item value="manual-override">
+              <Accordion.Trigger>
+                <View style={{ flex: 1 }}>
+                  <Text className="text-foreground font-inter-medium text-base">
+                    {Strings.currencyManualLabel}
+                  </Text>
+                  <Text className="text-muted text-xs font-inter-regular mt-0.5">
+                    {Strings.currencyManualSub}
+                  </Text>
+                </View>
+                <Accordion.Indicator />
+              </Accordion.Trigger>
+              <Accordion.Content>
+                <Text className="text-accent text-xs font-sora-bold uppercase tracking-widest mb-2">
+                  {Strings.currencyRateLabel}
+                </Text>
+                <Controller
+                  control={control}
+                  name="rate"
+                  render={({ field: { value, onChange, onBlur } }) => (
+                    <Input
+                      value={value}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="decimal-pad"
+                      isInvalid={!!errors.rate}
+                      helperText={errors.rate?.message}
+                    />
+                  )}
                 />
-              )}
-            />
-            {/* Save Rate button — primary (gold gradient) */}
-            <View className="mt-4">
-              <Button
-                label={Strings.currencySaveCta}
-                variant="primary"
-                onPress={handleSaveManualRate}
-                isDisabled={isSaving}
-                isLoading={isSaving}
-              />
-            </View>
-          </Animated.View>
-        )}
+                {/* Save Rate button — primary (gold gradient) */}
+                <View className="mt-4">
+                  <Button
+                    label={Strings.currencySaveCta}
+                    variant="primary"
+                    onPress={handleSaveManualRate}
+                    isDisabled={isSaving}
+                    isLoading={isSaving}
+                  />
+                </View>
+              </Accordion.Content>
+            </Accordion.Item>
+          </Accordion>
+        </View>
 
         {/* Footer note — EGP immutability */}
         <Text className="text-muted text-xs font-inter-regular text-center mx-6 mt-6 mb-8">

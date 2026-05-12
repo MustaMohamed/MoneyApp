@@ -23,7 +23,6 @@ export function useCurrencyScreen() {
   );
   const {
     state: screenState,
-    setManualPanelOpen,
     setFetching,
     setSaving,
     setFetchError,
@@ -31,7 +30,6 @@ export function useCurrencyScreen() {
   } = useCurrencyScreenState(
     useShallow((s) => ({
       state: s.state,
-      setManualPanelOpen: s.setManualPanelOpen,
       setFetching: s.setFetching,
       setSaving: s.setSaving,
       setFetchError: s.setFetchError,
@@ -71,7 +69,6 @@ export function useCurrencyScreen() {
     setSaving(true);
     try {
       await setManualRate(parseFloat(data.rate));
-      setManualPanelOpen(false);
     } finally {
       setSaving(false);
     }
@@ -84,13 +81,11 @@ export function useCurrencyScreen() {
       rate: currencyState.rate,
       lastFetched: currencyState.lastFetched,
       isManualOverride: currencyState.isManualOverride,
-      isManualPanelOpen: screenState.isManualPanelOpen,
       isFetching: screenState.isFetching,
       isSaving: screenState.isSaving,
       fetchError: screenState.fetchError,
     },
     form,
-    setManualPanelOpen,
     handleFetchRate,
     handleSaveManualRate,
     goBack,
