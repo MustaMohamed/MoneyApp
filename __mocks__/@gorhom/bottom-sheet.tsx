@@ -8,6 +8,7 @@ import { View, type ViewProps } from 'react-native';
  * - BottomSheetScrollView: passthrough ScrollView wrapper.
  * - BottomSheetFlatList: passthrough FlatList wrapper.
  * - BottomSheetBackdrop: renders a pressable View with testID="bottom-sheet-backdrop".
+ * - BottomSheetFooter: passthrough View wrapper for sticky footer content.
  */
 
 interface BottomSheetProps {
@@ -17,6 +18,7 @@ interface BottomSheetProps {
   onClose?: () => void;
   backdropComponent?: React.ComponentType<any>;
   handleComponent?: React.ComponentType<any>;
+  footerComponent?: React.ComponentType<any>;
   children?: React.ReactNode;
   style?: ViewProps['style'];
   backgroundStyle?: ViewProps['style'];
@@ -30,6 +32,7 @@ const BottomSheet = React.forwardRef<any, BottomSheetProps>(
       onClose,
       backdropComponent: BackdropComponent,
       handleComponent: HandleComponent,
+      footerComponent: FooterComponent,
     },
     _ref,
   ) => {
@@ -41,6 +44,7 @@ const BottomSheet = React.forwardRef<any, BottomSheetProps>(
         )}
         {HandleComponent && <HandleComponent />}
         {children}
+        {FooterComponent && <FooterComponent animatedFooterPosition={{ value: 0 }} />}
       </View>
     );
   },
@@ -77,5 +81,15 @@ function BottomSheetFlatList(props: any) {
   return <FlatList {...props} />;
 }
 
+function BottomSheetFooter({ children }: { children?: React.ReactNode }) {
+  return <View>{children}</View>;
+}
+
 export default BottomSheet;
-export { BottomSheet, BottomSheetBackdrop, BottomSheetScrollView, BottomSheetFlatList };
+export {
+  BottomSheet,
+  BottomSheetBackdrop,
+  BottomSheetFlatList,
+  BottomSheetFooter,
+  BottomSheetScrollView,
+};

@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Tabs, usePathname, useRouter } from 'expo-router';
+import { Tabs, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Size } from '@/constants/theme';
@@ -25,7 +25,8 @@ function tabIcon(name: MCIName, color: string) {
  * Replace the console.warn stubs with router.push calls when each section ships.
  */
 function useFABActions() {
-  const router = useRouter();
+  // useRouter() will be added back when each handler is wired to a real route
+  // in §7 (Add Transaction), §8 (Add Commitment), and §9 (Add Account).
   return {
     handleAddTransaction: () => {
       // TODO(§7): router.push('/(app)/transactions/add') when Add Transaction sheet ships
