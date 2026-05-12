@@ -13,6 +13,7 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
+import { CategoryType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { CategoryRepository, type NewCategoryInput } from '@/repositories/category.repository';
 
@@ -352,7 +353,7 @@ describe('CategoryRepository.reassignAndDelete — TC-09 (atomicity)', () => {
 describe('CategoryRepository.add — name uniqueness (TC-06)', () => {
   const myExpenseInput: NewCategoryInput = {
     name: 'My Expenses',
-    type: 'expense',
+    type: CategoryType.Expense,
     icon: 'home',
     color: '#fff',
   };
@@ -379,13 +380,13 @@ describe('CategoryRepository.add — name uniqueness (TC-06)', () => {
     // Adding as income should succeed — different type, not a collision
     const result = await repo.add({
       name: 'My Expenses',
-      type: 'income',
+      type: CategoryType.Income,
       icon: 'briefcase',
       color: '#fff',
     });
 
     expect(result.id).toBeTruthy();
-    expect(result.type).toBe('income');
+    expect(result.type).toBe(CategoryType.Income);
   });
 });
 
@@ -396,7 +397,7 @@ describe('CategoryRepository.update — type field immutability (TC-07)', () => 
   it('update() does not accept or apply a type field', async () => {
     const cat = await repo.add({
       name: 'Salary Custom',
-      type: 'income',
+      type: CategoryType.Income,
       icon: 'briefcase',
       color: '#fff',
     });

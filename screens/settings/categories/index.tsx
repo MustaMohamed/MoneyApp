@@ -150,8 +150,6 @@ export default function CategoriesScreen() {
         onCancel={closeDeleteFlow}
       />
 
-      {/* NOTE for integration merger (D2): add linkedCount={state.linkedCount} once
-          ReassignCategorySheet accepts the linkedCount prop (Task 7). */}
       <ReassignCategorySheet
         visible={state.showReassignSheet}
         categoryName={state.categoryToDelete?.name ?? ''}
