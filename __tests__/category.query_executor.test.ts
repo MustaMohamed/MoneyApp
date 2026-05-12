@@ -70,9 +70,9 @@ const customRow: Omit<Category, 'created_at' | 'updated_at'> = {
 };
 
 describe('getCategories', () => {
-  it('returns all 27 default rows', async () => {
+  it('returns all 28 default rows (27 original + cat_other_income from migration009)', async () => {
     const rows = await getCategories(mockDb);
-    expect(rows).toHaveLength(27);
+    expect(rows).toHaveLength(28);
   });
 
   it('orders by type then sort_order', async () => {
@@ -91,9 +91,9 @@ describe('getCategoriesByType', () => {
     expect(rows.every((r) => r.type === 'expense')).toBe(true);
   });
 
-  it('returns 5 income categories', async () => {
+  it('returns 6 income categories (5 original + cat_other_income from migration009)', async () => {
     const rows = await getCategoriesByType(mockDb, 'income');
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     expect(rows.every((r) => r.type === 'income')).toBe(true);
   });
 });
