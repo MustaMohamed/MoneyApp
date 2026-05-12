@@ -26,6 +26,7 @@ export function useCurrencyScreen() {
     setManualPanelOpen,
     setFetching,
     setSaving,
+    setFetchError,
     resetState,
   } = useCurrencyScreenState(
     useShallow((s) => ({
@@ -33,6 +34,7 @@ export function useCurrencyScreen() {
       setManualPanelOpen: s.setManualPanelOpen,
       setFetching: s.setFetching,
       setSaving: s.setSaving,
+      setFetchError: s.setFetchError,
       resetState: s.reset,
     })),
   );
@@ -55,8 +57,11 @@ export function useCurrencyScreen() {
 
   const handleFetchRate = async () => {
     setFetching(true);
+    setFetchError('');
     try {
       await fetchRate();
+    } catch {
+      setFetchError(Strings.currencyFetchError);
     } finally {
       setFetching(false);
     }
@@ -82,6 +87,7 @@ export function useCurrencyScreen() {
       isManualPanelOpen: screenState.isManualPanelOpen,
       isFetching: screenState.isFetching,
       isSaving: screenState.isSaving,
+      fetchError: screenState.fetchError,
     },
     form,
     setManualPanelOpen,
