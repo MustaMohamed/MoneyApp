@@ -54,15 +54,26 @@ const CATEGORY_ICONS: IconName[] = [
   'airplane',
 ];
 
-function createCategorySchema(categories: Category[], editingId?: string) {
+export function createCategorySchema(
+  categories: Category[],
+  activeTab: 'expense' | 'income',
+  editingCategory?: Category | null,
+) {
+  const editingId = editingCategory?.id;
+  const editingType = editingCategory?.type ?? activeTab;
   return z.object({
     name: z
       .string()
       .min(1, Strings.categoriesErrNameRequired)
-      .max(20, Strings.categoriesErrNameTooLong)
+      .max(50, Strings.categoriesErrNameTooLong)
       .refine(
         (val) =>
-          !categories.some((c) => c.name.toLowerCase() === val.toLowerCase() && c.id !== editingId),
+          !categories.some(
+            (c) =>
+              c.name.toLowerCase() === val.toLowerCase() &&
+              c.id !== editingId &&
+              c.type === editingType,
+          ),
         Strings.categoriesErrNameDuplicate,
       ),
   });
@@ -106,7 +117,7 @@ export function AddEditCategorySheet({
     })),
   );
 
-  const schema = createCategorySchema(categoryState.categories, editingCategory?.id);
+  const schema = createCategorySchema(categoryState.categories, activeTab, editingCategory);
   const {
     control,
     handleSubmit,
@@ -288,7 +299,7 @@ function NameField({
         placeholderTextColor={Colors.dark.text2}
         value={field.value as string}
         onChangeText={field.onChange}
-        maxLength={20}
+        maxLength={50}
         accessibilityLabel={placeholder}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

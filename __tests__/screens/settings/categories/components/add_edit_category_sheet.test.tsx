@@ -54,7 +54,7 @@ import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
 import { useAddEditCategorySheetState } from '@/screens/settings/categories/components/add_edit_category_sheet.state';
-import { AddEditCategorySheet } from '@/screens/settings/categories/components/add_edit_category_sheet';
+import { AddEditCategorySheet, createCategorySchema } from '@/screens/settings/categories/components/add_edit_category_sheet';
 import type { Category } from '@/store/category.store';
 
 // ---------------------------------------------------------------------------
@@ -272,6 +272,104 @@ describe('AddEditCategorySheet — no legacy import', () => {
     );
     const source: string = fs.readFileSync(filePath, 'utf8');
     expect(source).toContain("from '@/components/ui/sheet'");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BLOCKER-1: max name length — 50 chars accepted, 51 chars rejected
+// ---------------------------------------------------------------------------
+describe('createCategorySchema — BLOCKER-1: max name length', () => {
+  const categories: Category[] = [];
+
+  it('accepts a name exactly 50 characters long', () => {
+    const schema = createCategorySchema(categories, 'expense');
+    const name50 = 'A'.repeat(50);
+    const result = schema.safeParse({ name: name50 });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects a name that is 51 characters long with the too-long error', () => {
+    const schema = createCategorySchema(categories, 'expense');
+    const name51 = 'A'.repeat(51);
+    const result = schema.safeParse({ name: name51 });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message);
+      expect(messages).toContain(Strings.categoriesErrNameTooLong);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// BLOCKER-2: (name, type) scoped uniqueness in the Zod refine
+// ---------------------------------------------------------------------------
+describe('createCategorySchema — BLOCKER-2: (name, type) scoped uniqueness', () => {
+  const expenseFood: Category = {
+    id: 'cat_expense_food',
+    name: 'Food',
+    type: CategoryType.Expense,
+    icon: 'food-fork-drink',
+    color: AccountColors[0],
+    is_default: 0,
+    sort_order: 1,
+    created_at: '2026-01-01T00:00:00.000Z',
+    updated_at: '2026-01-01T00:00:00.000Z',
+  };
+
+  it('allows same name across different types (Food expense + Food income both accepted)', () => {
+    // expenseFood exists; we're adding an income category named "Food"
+    const schema = createCategorySchema([expenseFood], 'income');
+    const result = schema.safeParse({ name: 'Food' });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects same name within same type', () => {
+    // expenseFood exists; we're adding another expense category named "Food"
+    const schema = createCategorySchema([expenseFood], 'expense');
+    const result = schema.safeParse({ name: 'Food' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message);
+      expect(messages).toContain(Strings.categoriesErrNameDuplicate);
+    }
+  });
+
+  it('duplicate check is case-insensitive within same type', () => {
+    const schema = createCategorySchema([expenseFood], 'expense');
+    const result = schema.safeParse({ name: 'food' });
+    expect(result.success).toBe(false);
+  });
+
+  it('when editing, uses the editing category type (not activeTab) for scoping', () => {
+    // editingCategory is expense "Food"; activeTab is "income" (stale/irrelevant).
+    // Editing the same category — should not flag itself as duplicate.
+    const schema = createCategorySchema([expenseFood], 'income', expenseFood);
+    const result = schema.safeParse({ name: 'Food' });
+    expect(result.success).toBe(true);
+  });
+
+  it('when editing, rejects a name collision within the editing category type', () => {
+    // editingCategory is expense type; there is another expense "Travel" in the list.
+    const expenseTravel: Category = {
+      id: 'cat_expense_travel',
+      name: 'Travel',
+      type: CategoryType.Expense,
+      icon: 'airplane',
+      color: AccountColors[1],
+      is_default: 0,
+      sort_order: 2,
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    };
+    // editingCategory is expenseFood; renaming it to "Travel" should be rejected
+    // because expenseTravel exists in the same type.
+    const schema = createCategorySchema([expenseFood, expenseTravel], 'income', expenseFood);
+    const result = schema.safeParse({ name: 'Travel' });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const messages = result.error.issues.map((i) => i.message);
+      expect(messages).toContain(Strings.categoriesErrNameDuplicate);
+    }
   });
 });
 
