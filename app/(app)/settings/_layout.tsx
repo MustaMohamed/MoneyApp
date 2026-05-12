@@ -14,7 +14,7 @@ import { BackButton } from '@/components/ui/back_button';
 function SettingsBackButton() {
   const router = useRouter();
   return (
-    <View style={{ paddingLeft: Spacing.md, paddingRight: Spacing.sm }}>
+    <View style={{ paddingLeft: 0, paddingRight: Spacing.xs }}>
       <BackButton onPress={() => router.back()} />
     </View>
   );
