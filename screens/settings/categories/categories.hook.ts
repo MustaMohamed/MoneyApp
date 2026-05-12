@@ -1,6 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
+import { getCategoryTransactionCount } from '@/database/categories';
+import { getDb } from '@/database/client';
+import { PROTECTED_CATEGORY_IDS } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCategoriesScreenState } from './categories.state';
@@ -28,11 +32,13 @@ export function useCategories() {
     state: catScreenDataState,
     setEditingCategory,
     setCategoryToDelete,
+    setLinkedCount,
   } = useCategoriesScreenStore(
     useShallow((s) => ({
       state: s.state,
       setEditingCategory: s.setEditingCategory,
       setCategoryToDelete: s.setCategoryToDelete,
+      setLinkedCount: s.setLinkedCount,
     })),
   );
 
@@ -42,6 +48,7 @@ export function useCategories() {
     setShowAddSheet,
     setShowDeleteConfirm,
     setShowReassignSheet,
+    setIsDeleting,
   } = useCategoriesScreenState(
     useShallow((s) => ({
       state: s.state,
@@ -49,6 +56,7 @@ export function useCategories() {
       setShowAddSheet: s.setShowAddSheet,
       setShowDeleteConfirm: s.setShowDeleteConfirm,
       setShowReassignSheet: s.setShowReassignSheet,
+      setIsDeleting: s.setIsDeleting,
     })),
   );
 
@@ -89,23 +97,47 @@ export function useCategories() {
     setCategoryToDelete(null);
     setShowDeleteConfirm(false);
     setShowReassignSheet(false);
+    setLinkedCount(0);
   }
 
   const handleSave = async (data: NewCategoryInput | UpdateCategoryInput) => {
     if (catScreenDataState.editingCategory) {
       await updateCategory(catScreenDataState.editingCategory.id, data as UpdateCategoryInput);
     } else {
+      // addCategory throws 'already exists' on name+type collision — caller catches
+      // and surfaces as categoriesErrNameDuplicate form error (TC-06)
       await addCategory(data as NewCategoryInput);
     }
     closeSheet();
   };
 
-  const handleDeletePress = (category: Category) => {
-    const hasTransactions = false; // always false in M2a — transactions don't exist yet
-    if (hasTransactions) {
-      openReassignSheet(category);
-    } else {
-      openDeleteConfirm(category);
+  /**
+   * Replaces the M2a stub `hasTransactions = false`.
+   *
+   * Flow:
+   *  1. Set isDeleting = true (disables delete affordance on CategoryRow)
+   *  2. Query real transaction count from DB
+   *  3. Store the count in linkedCount (used as subtitle in ReassignCategorySheet)
+   *  4. Branch: count === 0 → DeleteConfirmationDialog
+   *             count  > 0 → ReassignCategorySheet
+   *  5. Set isDeleting = false in `finally` (TC-09 partial-failure safety)
+   *
+   * Note: PROTECTED_CATEGORY_IDS guard is enforced in CategoryRow — this
+   * handler will never be called for protected IDs.
+   */
+  const handleDeletePress = async (category: Category) => {
+    setIsDeleting(true);
+    try {
+      const db = await getDb();
+      const count = await getCategoryTransactionCount(db, category.id);
+      setLinkedCount(count);
+      if (count > 0) {
+        openReassignSheet(category);
+      } else {
+        openDeleteConfirm(category);
+      }
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -115,12 +147,28 @@ export function useCategories() {
     closeDeleteFlow();
   };
 
+  /**
+   * Called from ReassignCategorySheet on confirm.
+   * repository.reassignAndDelete() is atomic (withTransactionAsync) and will
+   * throw if the DB transaction rolls back (TC-09). That throw propagates to
+   * the caller (ReassignCategorySheet) which is responsible for surfacing the
+   * error to the user.
+   */
   const handleReassignConfirm = async (toId: string) => {
     if (!catScreenDataState.categoryToDelete) return;
     await reassignAndDelete(catScreenDataState.categoryToDelete.id, toId);
     closeDeleteFlow();
   };
 
+  /**
+   * Options for the reassign picker — all categories of the same type except:
+   * - the category being deleted (would be a no-op and is being removed)
+   *
+   * Protected categories (cat_other_expense, cat_other_income) ARE valid
+   * reassignment targets and are intentionally included here per Layla §2.2.
+   * The picker always has at least one option because the protected "Other"
+   * category can never be deleted.
+   */
   const reassignOptions = catState.categories.filter(
     (c) =>
       c.type === catScreenDataState.categoryToDelete?.type &&
@@ -139,6 +187,8 @@ export function useCategories() {
       showDeleteConfirm: catScreenUiState.showDeleteConfirm,
       showReassignSheet: catScreenUiState.showReassignSheet,
       reassignOptions,
+      linkedCount: catScreenDataState.linkedCount,
+      isDeleting: catScreenUiState.isDeleting,
     },
     setActiveTab,
     openAddSheet,
