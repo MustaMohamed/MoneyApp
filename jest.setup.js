@@ -74,6 +74,8 @@ jest.mock('heroui-native', () => {
   const Button = passThrough(View);
   Button.Label = passThrough(RNText);
 
+  const Separator = (props) => React.createElement(View, { testID: 'separator', ...props });
+
   return {
     cn: (...args) => args.filter(Boolean).flat(Infinity).join(' '),
     Button,
@@ -82,6 +84,7 @@ jest.mock('heroui-native', () => {
     Label,
     Description,
     FieldError,
+    Separator,
     Surface,
     Text,
     useTextField: () => ({ isDisabled: false, isInvalid: false, isRequired: false }),

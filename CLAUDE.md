@@ -44,7 +44,7 @@ Phase mapping (skills are authoritative — personas contribute to their outputs
 
 ## Tech Stack
 
-Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (patched; deferred retirement in §3) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package
+Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.8 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (legacy, phasing out §4–§9; do NOT add new usages) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package
 
 ## Commands
 
@@ -133,11 +133,33 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 
 Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirection: 'row' }}` / `style={{ flex: 1 }}` for layout-critical containers rather than `className="flex-row"` / `className="flex-1"`. Keep `className` for colors, padding, gap, typography.
 
-## Bottom Sheets — `react-native-actions-sheet`
+## Bottom Sheets
 
-- Patched via `patch-package` (see `patches/`). The patch fixes a first-open sizing bug where the library initialized internal dimensions to `{-1, -1}`.
-- **Scrollable components inside ActionSheet** must be imported from `react-native-actions-sheet`, not from `react-native`. The sheet's gesture handler intercepts touch events, so standard RN `FlatList`/`ScrollView` won't scroll. Use: `import ActionSheet, { FlatList } from 'react-native-actions-sheet';`
-- `useBottomSafeAreaPadding={false}` on all sheets to prevent double padding.
+**New pattern (§3+): use `Sheet` from `components/ui/sheet.tsx`.**
+
+`Sheet` wraps `@gorhom/bottom-sheet@^5.2.8`. It is declarative — open/close via `visible` prop + `onClose` callback. No refs, no `.show()` / `.hide()`.
+
+```tsx
+import { Sheet } from '@/components/ui/sheet';
+import { BottomSheetScrollView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+
+<Sheet visible={isOpen} onClose={close} title="My Sheet" size="sm">
+  <Sheet.Body>
+    {/* Use BottomSheetScrollView / BottomSheetFlatList for scrollable content */}
+    <BottomSheetScrollView>
+      {/* content */}
+    </BottomSheetScrollView>
+  </Sheet.Body>
+</Sheet>
+```
+
+**Scrollable content rule:** `BottomSheetScrollView` and `BottomSheetFlatList` must be imported from `@gorhom/bottom-sheet`, not from `react-native`. Standard `ScrollView` and `FlatList` will NOT scroll inside a Sheet.
+
+**`react-native-actions-sheet` — LEGACY, phasing out section by section.**
+
+The old `react-native-actions-sheet` dep and its patch (`patches/react-native-actions-sheet+10.1.2.patch`) remain in the project during §4–§9 while existing consumers are migrated. No new code may import from `react-native-actions-sheet`. Each section migrates the sheets within its domain. The dep and patch are removed when the last consumer is gone (no earlier than §9).
+
+Legacy consumers still in-flight (as of §3): `screens/accounts/detail/components/adjust_balance_sheet.tsx`, `screens/commitments/detail/components/pay_sheet.tsx`, `screens/dashboard/components/net_worth_breakdown_sheet.tsx`, `screens/settings/categories/components/add_edit_category_sheet.tsx`, `screens/settings/categories/components/reassign_category_sheet.tsx`, `screens/transactions/filter/components/filter_account_picker.tsx`, `screens/transactions/filter/components/filter_category_picker.tsx`, `screens/transactions/filter/components/filter_date_custom_picker.tsx`, `screens/transactions/filter/index.tsx`, `screens/transactions/transaction_form/components/account_picker_sheet.tsx`, `screens/transactions/transaction_form/components/category_picker_sheet.tsx`, `screens/transactions/transaction_form/index.tsx`.
 
 ## Patches
 
