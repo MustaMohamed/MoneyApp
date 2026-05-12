@@ -46,6 +46,7 @@ describe('useCategoriesScreenState', () => {
         showAddSheet: true,
         showDeleteConfirm: true,
         showReassignSheet: true,
+        isDeleting: true,
       },
     });
     useCategoriesScreenState.getState().reset();
@@ -54,5 +55,6 @@ describe('useCategoriesScreenState', () => {
     expect(s.showAddSheet).toBe(false);
     expect(s.showDeleteConfirm).toBe(false);
     expect(s.showReassignSheet).toBe(false);
+    expect(s.isDeleting).toBe(false);
   });
 });
