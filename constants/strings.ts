@@ -492,10 +492,10 @@ export const Strings = {
   emptyFilteredDescription: 'Try adjusting your filters.',
   emptyFilteredClearCta: 'Clear Filters',
 
-  // §4 Settings root groups
-  settingsGroupPreferences: 'PREFERENCES',
-  settingsGroupData: 'DATA',
-  settingsGroupAbout: 'ABOUT',
+  // §4 Settings root — row descriptions
+  settingsCurrencyDescription: 'Set your default currency and exchange rate',
+  settingsCategoriesDescription: 'Manage your expense and income categories',
+  settingsAboutDescription: 'App version and information',
   settingsCurrencyValue: (pair: string) => pair,
 
   // §4 About screen

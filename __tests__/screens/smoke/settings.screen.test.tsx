@@ -1,9 +1,8 @@
 import React from 'react';
-import { fireEvent, render } from '@testing-library/react-native';
+import { render, fireEvent } from '@testing-library/react-native';
 
 import SettingsScreen from '@/screens/settings/index';
 import { Strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 
 jest.mock('react-native-reanimated', () => ({
   default: { View: require('react-native').View },
@@ -27,15 +26,17 @@ jest.mock('react-native-safe-area-context', () => {
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 jest.mock('heroui-native', () => {
   const { View, Text, Pressable } = require('react-native');
-  const ListGroupRoot = ({ children, ...props }: any) => <View {...props}>{children}</View>;
-  const ListGroupItem = ({ children, onPress, ...props }: any) => (
-    <Pressable onPress={onPress} {...props}>{children}</Pressable>
+  const ListGroupItem = ({ children, onPress, ...rest }: any) => (
+    <Pressable onPress={onPress} {...rest}>
+      {children}
+    </Pressable>
   );
-  const ListGroupItemPrefix = ({ children, ...props }: any) => <View {...props}>{children}</View>;
-  const ListGroupItemContent = ({ children, ...props }: any) => <View {...props}>{children}</View>;
-  const ListGroupItemTitle = ({ children, ...props }: any) => <Text {...props}>{children}</Text>;
-  const ListGroupItemDescription = ({ children, ...props }: any) => <Text {...props}>{children}</Text>;
-  const ListGroupItemSuffix = ({ children, ...props }: any) => <View {...props}>{children}</View>;
+  const ListGroupItemPrefix = ({ children }: any) => <View>{children}</View>;
+  const ListGroupItemContent = ({ children }: any) => <View>{children}</View>;
+  const ListGroupItemTitle = ({ children }: any) => <Text>{children}</Text>;
+  const ListGroupItemDescription = ({ children }: any) => <Text>{children}</Text>;
+  const ListGroupItemSuffix = ({ children }: any) => <View>{children}</View>;
+  const ListGroupRoot = ({ children }: any) => <View>{children}</View>;
   ListGroupRoot.Item = ListGroupItem;
   ListGroupRoot.ItemPrefix = ListGroupItemPrefix;
   ListGroupRoot.ItemContent = ListGroupItemContent;
@@ -51,90 +52,56 @@ jest.mock('heroui-native', () => {
 const mockGoToCurrency = jest.fn();
 const mockGoToCategories = jest.fn();
 const mockGoToAbout = jest.fn();
-const mockGoBack = jest.fn();
 
 jest.mock('@/screens/settings/settings.hook', () => ({
-  useSettings: jest.fn(),
+  useSettings: () => ({
+    goToCurrency: mockGoToCurrency,
+    goToCategories: mockGoToCategories,
+    goToAbout: mockGoToAbout,
+    goBack: jest.fn(),
+  }),
 }));
 
 describe('SettingsScreen smoke test', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    const { useSettings } = require('@/screens/settings/settings.hook');
-    (useSettings as jest.Mock).mockReturnValue({
-      goToCurrency: mockGoToCurrency,
-      goToCategories: mockGoToCategories,
-      goToAbout: mockGoToAbout,
-      goBack: mockGoBack,
-    });
   });
 
   it('renders without throwing', () => {
     expect(() => render(<SettingsScreen />)).not.toThrow();
   });
 
-  it('renders all three section group headers', () => {
-    const { getByText } = render(<SettingsScreen />);
-    expect(getByText(Strings.settingsGroupPreferences)).toBeTruthy();
-    expect(getByText(Strings.settingsGroupData)).toBeTruthy();
-    expect(getByText(Strings.settingsGroupAbout)).toBeTruthy();
-  });
-
-  it('Data and About section wrappers carry marginTop: Spacing.lg', () => {
-    const { getByTestId } = render(<SettingsScreen />);
-
-    function findAncestorWithMarginTop(
-      node: ReturnType<typeof getByTestId> | null | undefined,
-    ): { marginTop: number } | undefined {
-      let current = node?.parent;
-      for (let i = 0; i < 10 && current != null; i++) {
-        const s = current.props?.style;
-        if (s && typeof s === 'object' && 'marginTop' in s) return s as { marginTop: number };
-        current = current.parent;
-      }
-      return undefined;
-    }
-
-    const dataStyle = findAncestorWithMarginTop(getByTestId('settings-group-data'));
-    expect(dataStyle).toEqual({ marginTop: Spacing.lg });
-
-    const aboutStyle = findAncestorWithMarginTop(getByTestId('settings-group-about'));
-    expect(aboutStyle).toEqual({ marginTop: Spacing.lg });
-  });
-
-  it('renders the Currency row title', () => {
+  it('renders Currency row title and description', () => {
     const { getByText } = render(<SettingsScreen />);
     expect(getByText(Strings.settingsCurrencyRow)).toBeTruthy();
+    expect(getByText(Strings.settingsCurrencyDescription)).toBeTruthy();
   });
 
-  it('renders the Categories row title', () => {
+  it('renders Categories row title and description', () => {
     const { getByText } = render(<SettingsScreen />);
     expect(getByText(Strings.settingsCategoriesRow)).toBeTruthy();
+    expect(getByText(Strings.settingsCategoriesDescription)).toBeTruthy();
   });
 
-  it('renders the About row title', () => {
+  it('renders About row title and description', () => {
     const { getByText } = render(<SettingsScreen />);
     expect(getByText(Strings.aboutTitle)).toBeTruthy();
+    expect(getByText(Strings.settingsAboutDescription)).toBeTruthy();
   });
 
-  it('renders the currency value "EGP" alongside the Currency row', () => {
-    const { getByText } = render(<SettingsScreen />);
-    expect(getByText('EGP')).toBeTruthy();
-  });
-
-  it('pressing the Currency row calls goToCurrency', () => {
+  it('calls goToCurrency when Currency row is pressed', () => {
     const { getByText } = render(<SettingsScreen />);
     fireEvent.press(getByText(Strings.settingsCurrencyRow));
     expect(mockGoToCurrency).toHaveBeenCalledTimes(1);
   });
 
-  it('pressing the Categories row calls goToCategories', () => {
+  it('calls goToCategories when Categories row is pressed', () => {
     const { getByText } = render(<SettingsScreen />);
     fireEvent.press(getByText(Strings.settingsCategoriesRow));
     expect(mockGoToCategories).toHaveBeenCalledTimes(1);
   });
 
-  it('pressing the About row calls goToAbout', () => {
+  it('calls goToAbout when About row is pressed', () => {
     const { getByText } = render(<SettingsScreen />);
     fireEvent.press(getByText(Strings.aboutTitle));
     expect(mockGoToAbout).toHaveBeenCalledTimes(1);
