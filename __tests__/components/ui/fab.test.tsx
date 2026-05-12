@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { render, fireEvent } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
@@ -98,13 +99,21 @@ describe('FAB component', () => {
   });
 
   describe('hidden prop', () => {
-    it('FAB button is not accessible when hidden=true', () => {
-      const { queryByTestId } = render(<FAB {...baseProps} hidden={true} />);
-      // When hidden, the FAB container has pointerEvents="none" and opacity 0.
-      // The button may still be in the tree but not interactive.
-      // We test that the wrapper has the hidden style applied.
-      const wrapper = queryByTestId('fab-container');
-      expect(wrapper).toBeTruthy(); // still mounted
+    it('fab-root has opacity:0 and pointerEvents:"none" when hidden=true', () => {
+      const { getByTestId } = render(<FAB {...baseProps} hidden={true} />);
+      const root = getByTestId('fab-root');
+
+      // pointerEvents prop must be "none" so the overlay is fully non-interactive
+      expect(root.props.pointerEvents).toBe('none');
+
+      // Resolve the style array to a flat object and confirm opacity is 0
+      const flatStyle = StyleSheet.flatten(root.props.style);
+      expect(flatStyle.opacity).toBe(0);
+    });
+
+    it('fab-root is still mounted (not unmounted) when hidden=true', () => {
+      const { getByTestId } = render(<FAB {...baseProps} hidden={true} />);
+      expect(getByTestId('fab-root')).toBeTruthy();
     });
   });
 });

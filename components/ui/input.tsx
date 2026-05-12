@@ -7,7 +7,7 @@ import {
   type InputProps as HInputProps,
 } from 'heroui-native';
 
-import { FontFamily } from '@/constants/theme';
+import { FontFamily, Spacing, Type } from '@/constants/theme';
 
 export interface InputProps extends HInputProps {
   className?: string;
@@ -38,9 +38,9 @@ export function Input({
         style={[
           {
             fontFamily: FontFamily.interRegular,
-            fontSize: 16,
-            paddingTop: 8,
-            paddingBottom: 4,
+            fontSize: Type.subhead,
+            paddingTop: Spacing.xs,
+            paddingBottom: Spacing.xxs,
             includeFontPadding: false,
             textAlignVertical: 'center',
           },

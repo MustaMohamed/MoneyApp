@@ -98,6 +98,7 @@ export const Radius = {
 export const Size = {
   ctaHeight: ms(52),
   headerHeight: ms(56),
+  tabBarHeight: ms(56),
   backBtn: ms(40),
   iconBack: ms(20),
   iconXs: ms(16),

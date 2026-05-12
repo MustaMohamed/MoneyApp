@@ -21,6 +21,7 @@ import BottomSheetLib, {
   BottomSheetBackdrop,
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -54,7 +55,7 @@ function SheetBody({ children }: { children: React.ReactNode }) {
 }
 
 export function Sheet({ visible, onClose, title, size, footer, children }: SheetProps) {
-  const sheetRef = useRef<any>(null);
+  const sheetRef = useRef<BottomSheetMethods>(null);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (

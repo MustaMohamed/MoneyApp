@@ -2,9 +2,9 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, usePathname, useRouter } from 'expo-router';
-import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import { FAB } from '@/components/ui/fab';
 import { ms } from '@/utils/responsive';
 
@@ -45,13 +45,15 @@ function useFABActions() {
 function FABOverlay() {
   const { handleAddTransaction, handleAddAccount, handleAddCommitment } = useFABActions();
   const pathname = usePathname();
-  const tabBarHeight = useBottomTabBarHeight();
+  // useBottomTabBarHeight() throws when called outside <Tabs> context.
+  // Use safe-area insets + a fixed tab-bar estimate instead.
+  const insets = useSafeAreaInsets();
+  const bottomOffset = insets.bottom + Size.tabBarHeight + ms(16);
 
   const isSettingsRoute = pathname.startsWith('/settings');
-  const bottomOffset = tabBarHeight + ms(16);
 
   return (
-    <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+    <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
       <FAB
         onAddTransaction={handleAddTransaction}
         onAddAccount={handleAddAccount}

@@ -7,6 +7,9 @@
  *
  * Ownership: consumed by app/(app)/(tabs)/_layout.tsx only.
  * Screens do not mount or control the FAB.
+ *
+ * TODO(S2): Migrate LongPressGestureHandler to Gesture.LongPress() (RNGH v2 declarative API).
+ * The legacy handler API works but the modern API is preferred for new code.
  */
 import React, { useCallback, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -26,7 +29,7 @@ import Animated, {
   withDelay,
 } from 'react-native-reanimated';
 
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
@@ -42,6 +45,9 @@ export interface FABProps {
 }
 
 const FAB_SIZE = ms(56);
+
+// Duration for close animation: 3 items × 40ms stagger + ~150ms anim + 10ms buffer.
+const CLOSE_DURATION_MS = 280;
 
 export function FAB({
   onAddTransaction,
@@ -102,8 +108,8 @@ export function FAB({
       translateY.value = withDelay(index * 40, withSpring(0, { mass: 0.8, stiffness: 180 }));
       opacity.value = withDelay(index * 40, withTiming(1, { duration: 150 }));
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Shared values from useSharedValue are stable refs — empty deps array is correct.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const closeMenu = useCallback(() => {
     rotation.value = withTiming(0, { duration: 200 });
@@ -116,10 +122,10 @@ export function FAB({
       );
       opacity.value = withDelay(reverseIndex * 40, withTiming(0, { duration: 150 }));
     });
-    // Delay state change to let close animation finish (3 items × 40ms stagger + ~150ms anim)
-    setTimeout(() => setMenuOpen(false), 280);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // Delay state change to let close animation finish (see CLOSE_DURATION_MS).
+    setTimeout(() => setMenuOpen(false), CLOSE_DURATION_MS);
+    // Shared values from useSharedValue are stable refs — empty deps array is correct.
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onLongPress = useCallback(
     (event: HandlerStateChangeEvent<LongPressGestureHandlerEventPayload>) => {
@@ -167,86 +173,100 @@ export function FAB({
   ];
 
   return (
+    // Outer wrapper covers the full screen so the scrim can fill it.
+    // pointerEvents="box-none" lets touches pass through to tabs/content
+    // when the menu is closed; the scrim itself captures taps when open.
     <View
-      testID="fab-container"
-      style={[styles.container, { bottom: bottomOffset }, hidden && styles.hidden]}
+      testID="fab-root"
+      style={[StyleSheet.absoluteFill, hidden && styles.hidden]}
       pointerEvents={hidden ? 'none' : 'box-none'}
     >
       {/* Scrim — full-screen overlay, tapping dismisses the menu */}
-      {menuOpen && (
-        <Animated.View style={[styles.scrim, scrimStyle]} pointerEvents="auto">
-          <Pressable style={StyleSheet.absoluteFillObject} onPress={closeMenu} />
-        </Animated.View>
-      )}
+      <Animated.View
+        style={[StyleSheet.absoluteFill, styles.scrim, scrimStyle]}
+        pointerEvents={menuOpen ? 'auto' : 'none'}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={closeMenu} />
+      </Animated.View>
 
-      {/* Mini menu items — rendered above FAB; item 0 bottom, item 2 top */}
-      {menuOpen &&
-        menuItems.map((item, index) => {
-          const { animStyle } = itemAnimValues[index];
-          return (
-            <Animated.View key={item.testID} style={[styles.menuItem, animStyle]}>
-              <Pressable
-                testID={item.testID}
-                onPress={() => {
-                  closeMenu();
-                  item.onPress();
-                }}
-                style={styles.menuPill}
-                accessibilityRole="button"
-                accessibilityLabel={item.label}
-              >
-                <MaterialCommunityIcons
-                  name={item.icon as any}
-                  size={ms(18)}
-                  color={Colors.dark.text1}
-                />
-                <Text style={styles.menuLabel}>{item.label}</Text>
-              </Pressable>
-            </Animated.View>
-          );
-        })}
+      {/* FAB column — positioned at bottom-center, holds menu items + FAB circle */}
+      <View
+        testID="fab-container"
+        style={[styles.container, { bottom: bottomOffset }]}
+        pointerEvents="box-none"
+      >
+        {/* Mini menu items — rendered above FAB; item 0 bottom, item 2 top */}
+        {menuOpen &&
+          menuItems.map((item, index) => {
+            const { animStyle } = itemAnimValues[index];
+            return (
+              <Animated.View key={item.testID} style={[styles.menuItem, animStyle]}>
+                <Pressable
+                  testID={item.testID}
+                  onPress={() => {
+                    closeMenu();
+                    item.onPress();
+                  }}
+                  style={styles.menuPill}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.label}
+                >
+                  <MaterialCommunityIcons
+                    name={item.icon as any}
+                    size={ms(18)}
+                    color={Colors.dark.text1}
+                  />
+                  <Text style={styles.menuLabel}>{item.label}</Text>
+                </Pressable>
+              </Animated.View>
+            );
+          })}
 
-      {/* FAB button — primary action on tap, mini menu on long-press */}
-      <LongPressGestureHandler onHandlerStateChange={onLongPress} minDurationMs={500}>
-        <Pressable
-          testID="fab-button"
-          onPress={onFABPress}
-          style={styles.fab}
-          accessibilityRole="button"
-          accessibilityLabel="Add"
-        >
-          <LinearGradient
-            colors={[GoldTokens[500], GoldTokens[600]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={StyleSheet.absoluteFillObject}
-          />
-          <Animated.View style={rotateStyle}>
-            <MaterialCommunityIcons
-              name="plus"
-              size={ms(28)}
-              color={Colors.shared.midnightBlue}
+        {/* FAB button — primary action on tap, mini menu on long-press */}
+        <LongPressGestureHandler onHandlerStateChange={onLongPress} minDurationMs={500}>
+          <Pressable
+            testID="fab-button"
+            onPress={onFABPress}
+            style={styles.fab}
+            accessibilityRole="button"
+            accessibilityLabel="Add"
+          >
+            <LinearGradient
+              colors={[GoldTokens[500], GoldTokens[600]]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={StyleSheet.absoluteFill}
             />
-          </Animated.View>
-        </Pressable>
-      </LongPressGestureHandler>
+            <Animated.View style={rotateStyle}>
+              <MaterialCommunityIcons
+                name="plus"
+                size={ms(28)}
+                color={Colors.shared.midnightBlue}
+              />
+            </Animated.View>
+          </Pressable>
+        </LongPressGestureHandler>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // Outer shell — full-screen, used to anchor the scrim
+  hidden: {
+    opacity: 0,
+  },
+  // Scrim — full-screen dark overlay behind the menu
+  scrim: {
+    // Colors.shared.midnightBlue matches brand; scrim uses same hue at 50% opacity
+    backgroundColor: Colors.shared.midnightBlue,
+    zIndex: -1,
+  },
+  // FAB column — auto-sized, positioned bottom-center
   container: {
     position: 'absolute',
     alignSelf: 'center',
     alignItems: 'center',
-  },
-  hidden: {
-    opacity: 0,
-  },
-  scrim: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#000',
-    zIndex: -1,
   },
   menuItem: {
     marginBottom: Spacing.xs,
@@ -262,7 +282,8 @@ const styles = StyleSheet.create({
   },
   menuLabel: {
     color: Colors.dark.text1,
-    fontSize: ms(13),
+    fontSize: Type.body,
+    fontFamily: FontFamily.interMedium,
   },
   fab: {
     width: FAB_SIZE,
@@ -272,7 +293,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     overflow: 'hidden',
     elevation: 4,
-    shadowColor: '#000',
+    // Colors.shared.midnightBlue as shadow color — consistent with brand palette
+    shadowColor: Colors.shared.midnightBlue,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
