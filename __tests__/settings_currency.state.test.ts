@@ -10,6 +10,11 @@ describe('currencyScreenState initial state', () => {
     expect(s.isFetching).toBe(false);
     expect(s.isSaving).toBe(false);
   });
+
+  it('starts with fetchError as empty string (Task 9)', () => {
+    const store = createCurrencyScreenState();
+    expect(store.getState().state.fetchError).toBe('');
+  });
 });
 
 describe('currencyScreenState setters', () => {
@@ -36,6 +41,19 @@ describe('currencyScreenState setters', () => {
     store.getState().setSaving(false);
     expect(store.getState().state.isSaving).toBe(false);
   });
+
+  it('setFetchError stores the error message (Task 9)', () => {
+    const store = createCurrencyScreenState();
+    store.getState().setFetchError('Could not update rate. Try again.');
+    expect(store.getState().state.fetchError).toBe('Could not update rate. Try again.');
+  });
+
+  it('setFetchError can be cleared by setting empty string (Task 9)', () => {
+    const store = createCurrencyScreenState();
+    store.getState().setFetchError('Some error');
+    store.getState().setFetchError('');
+    expect(store.getState().state.fetchError).toBe('');
+  });
 });
 
 describe('currencyScreenState reset', () => {
@@ -49,5 +67,12 @@ describe('currencyScreenState reset', () => {
     expect(s.isManualPanelOpen).toBe(false);
     expect(s.isFetching).toBe(false);
     expect(s.isSaving).toBe(false);
+  });
+
+  it('clears fetchError on reset (Task 9)', () => {
+    const store = createCurrencyScreenState();
+    store.getState().setFetchError('Some error');
+    store.getState().reset();
+    expect(store.getState().state.fetchError).toBe('');
   });
 });
