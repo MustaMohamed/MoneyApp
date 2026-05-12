@@ -7,6 +7,8 @@ import {
   type InputProps as HInputProps,
 } from 'heroui-native';
 
+import { FontFamily } from '@/constants/theme';
+
 export interface InputProps extends HInputProps {
   className?: string;
   label?: string;
@@ -24,13 +26,28 @@ export function Input({
   hasError,
   isDisabled,
   isRequired,
+  style,
   ...inputProps
 }: InputProps) {
   const invalid = isInvalid ?? hasError ?? false;
   return (
     <HTextField isInvalid={invalid} isDisabled={isDisabled} isRequired={isRequired}>
       {label ? <Label>{label}</Label> : null}
-      <HInput className={className} {...inputProps} />
+      <HInput
+        className={className}
+        style={[
+          {
+            fontFamily: FontFamily.interRegular,
+            fontSize: 16,
+            paddingTop: 8,
+            paddingBottom: 4,
+            includeFontPadding: false,
+            textAlignVertical: 'center',
+          },
+          style,
+        ]}
+        {...inputProps}
+      />
       {helperText ? <Description>{helperText}</Description> : null}
     </HTextField>
   );
