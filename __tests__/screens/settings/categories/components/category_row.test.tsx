@@ -34,8 +34,8 @@ const mockCategory: Category = {
 };
 
 /** Flatten the style prop (may be an array of StyleSheet IDs or plain objects) */
-function flattenStyle(style: unknown): Record<string, unknown> {
-  return StyleSheet.flatten(style as Parameters<typeof StyleSheet.flatten>[0]) ?? {};
+function flattenStyle(style: unknown): Partial<Record<string, unknown>> {
+  return (StyleSheet.flatten(style as Parameters<typeof StyleSheet.flatten>[0]) as Partial<Record<string, unknown>>) ?? {};
 }
 
 describe('CategoryRow — isLast prop', () => {
