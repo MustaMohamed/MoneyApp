@@ -20,11 +20,11 @@ export default function WelcomeScreenV2() {
   const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top', 'bottom']}>
+    <SafeAreaView style={{ flex: 1 }} className="bg-background" edges={['top', 'bottom']}>
       <ProgressDots totalSteps={4} currentStep={1} />
 
-      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }}>
-        <Box className="flex-1 items-center justify-center gap-6 px-4">
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1 }}>
+        <Box style={{ flex: 1 }} className="items-center justify-center gap-6 px-4">
           <Animated.View entering={illustrationEntering}>
             <GeoIllustration />
           </Animated.View>
@@ -42,13 +42,18 @@ export default function WelcomeScreenV2() {
             {Strings.n1CurrencyLabel}
           </Text>
 
-          <Animated.View entering={pillsEntering} className="flex-row gap-3 w-full">
+          <Animated.View
+            entering={pillsEntering}
+            style={{ flexDirection: 'row', width: '100%' }}
+            className="gap-3"
+          >
             {(['EGP', 'USD'] as Currency[]).map((code) => (
               <Pressable
                 key={code}
                 onPress={() => setSelected(code)}
+                style={{ flex: 1 }}
                 className={cn(
-                  'flex-1 flex-row items-center justify-center gap-2 py-3 rounded-[10px] border-[1.5px]',
+                  'flex-row items-center justify-center gap-2 py-3 rounded-[10px] border-[1.5px]',
                   state.selected === code
                     ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
                     : 'border-border bg-default',
