@@ -1,5 +1,7 @@
 import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import fs from 'fs';
+import path from 'path';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 jest.mock('heroui-native', () => ({
@@ -11,6 +13,12 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 // The mock renders children when index >= 0 and null when index < 0.
 
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Colors } from '@/constants/theme';
+
+const SHEET_SOURCE = fs.readFileSync(
+  path.resolve(__dirname, '../../../components/ui/sheet.tsx'),
+  'utf8',
+);
 
 // ---------------------------------------------------------------------------
 // SHEET_FOOTER_CLEARANCE export
@@ -149,5 +157,59 @@ describe('Sheet component', () => {
       </Sheet>,
     );
     expect(queryByTestId('sheet-footer')).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 1 — close button uses TouchableOpacity from react-native-gesture-handler
+// (not RN Pressable) so touches are forwarded through gorhom's gesture system.
+// ---------------------------------------------------------------------------
+describe('Sheet close button — gesture handler forwarding (Bug 1)', () => {
+  it('imports TouchableOpacity from react-native-gesture-handler, not react-native', () => {
+    expect(SHEET_SOURCE).toContain(
+      "import { TouchableOpacity } from 'react-native-gesture-handler'",
+    );
+  });
+
+  it('does NOT import Pressable from react-native for the close button', () => {
+    // Pressable must not appear in the RN import line
+    const rnImportLine = SHEET_SOURCE
+      .split('\n')
+      .find((line) => line.includes("from 'react-native'") && line.includes('import'));
+    expect(rnImportLine).not.toContain('Pressable');
+  });
+
+  it('close button testID=sheet-close-btn fires onClose callback', () => {
+    const onClose = jest.fn();
+    const { getByTestId } = render(
+      <Sheet visible={true} onClose={onClose} title="Test" size="sm">
+        <Sheet.Body>
+          <></>
+        </Sheet.Body>
+      </Sheet>,
+    );
+    fireEvent.press(getByTestId('sheet-close-btn'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Bug 2 — footer container has a solid background so scrolled content does
+// not bleed through behind the sticky footer.
+// ---------------------------------------------------------------------------
+describe('Sheet footer background (Bug 2)', () => {
+  it('footer container style includes backgroundColor matching sheet surface', () => {
+    const { getByTestId } = render(
+      <Sheet visible={true} onClose={jest.fn()} size="sm" footer={<></>}>
+        <Sheet.Body>
+          <></>
+        </Sheet.Body>
+      </Sheet>,
+    );
+    const footerEl = getByTestId('sheet-footer');
+    const flatStyle = Array.isArray(footerEl.props.style)
+      ? Object.assign({}, ...footerEl.props.style)
+      : footerEl.props.style;
+    expect(flatStyle.backgroundColor).toBe(Colors.dark.surface);
   });
 });
