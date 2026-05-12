@@ -94,6 +94,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       index={visible ? 0 : -1}
       snapPoints={SNAP_POINTS[size]}
       enablePanDownToClose
+      keyboardBehavior="extend"
       onClose={onClose}
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}
