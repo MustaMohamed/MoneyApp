@@ -1,9 +1,11 @@
-import { View } from 'react-native';
+import { Text, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ListGroup } from 'heroui-native';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { SettingsSection } from '@/components/ui/settings_section';
 import { Strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { useSettings } from './settings.hook';
 
 export default function SettingsScreen() {
@@ -11,45 +13,50 @@ export default function SettingsScreen() {
 
   return (
     <Screen edges={['bottom']}>
-      <ScreenScroll contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 }}>
-        <SettingsSection
-          title={Strings.settingsGroupPreferences}
-          items={[
-            {
-              label: Strings.settingsCurrencyRow,
-              icon: 'currency-usd',
-              value: Strings.settingsCurrencyValue('EGP'),
-              trailing: 'chevron',
-              onPress: goToCurrency,
-            },
-          ]}
-        />
-        <View style={{ marginTop: Spacing.lg }}>
-          <SettingsSection
-            title={Strings.settingsGroupData}
-            items={[
-              {
-                label: Strings.settingsCategoriesRow,
-                icon: 'tag-multiple',
-                trailing: 'chevron',
-                onPress: goToCategories,
-              },
-            ]}
-          />
-        </View>
-        <View style={{ marginTop: Spacing.lg }}>
-          <SettingsSection
-            title={Strings.settingsGroupAbout}
-            items={[
-              {
-                label: Strings.aboutTitle,
-                icon: 'information-outline',
-                trailing: 'chevron',
-                onPress: goToAbout,
-              },
-            ]}
-          />
-        </View>
+      <ScreenScroll contentContainerStyle={{ paddingTop: 8, paddingBottom: 32, paddingHorizontal: Spacing.md }}>
+        <ListGroup>
+          <ListGroup.Item onPress={goToCurrency} accessibilityRole="button">
+            <ListGroup.ItemPrefix>
+              <MaterialCommunityIcons name="currency-usd" size={ms(20)} color={Colors.dark.text2} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{Strings.settingsCurrencyRow}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>{Strings.settingsCurrencyDescription}</ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+                <Text>{Strings.settingsCurrencyValue('EGP')}</Text>
+                <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
+              </View>
+            </ListGroup.ItemSuffix>
+          </ListGroup.Item>
+
+          <ListGroup.Item onPress={goToCategories} accessibilityRole="button">
+            <ListGroup.ItemPrefix>
+              <MaterialCommunityIcons name="tag-multiple" size={ms(20)} color={Colors.dark.text2} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{Strings.settingsCategoriesRow}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>{Strings.settingsCategoriesDescription}</ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix>
+              <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
+            </ListGroup.ItemSuffix>
+          </ListGroup.Item>
+
+          <ListGroup.Item onPress={goToAbout} accessibilityRole="button">
+            <ListGroup.ItemPrefix>
+              <MaterialCommunityIcons name="information-outline" size={ms(20)} color={Colors.dark.text2} />
+            </ListGroup.ItemPrefix>
+            <ListGroup.ItemContent>
+              <ListGroup.ItemTitle>{Strings.aboutTitle}</ListGroup.ItemTitle>
+              <ListGroup.ItemDescription>{Strings.settingsAboutDescription}</ListGroup.ItemDescription>
+            </ListGroup.ItemContent>
+            <ListGroup.ItemSuffix>
+              <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={Colors.dark.text2} />
+            </ListGroup.ItemSuffix>
+          </ListGroup.Item>
+        </ListGroup>
       </ScreenScroll>
     </Screen>
   );
