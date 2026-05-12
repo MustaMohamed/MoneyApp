@@ -221,7 +221,7 @@ export const Strings = {
   categoriesColorLabel: 'COLOR',
   categoriesSaveCta: 'Save',
   categoriesErrNameRequired: 'Category name is required',
-  categoriesErrNameTooLong: 'Name must be 20 characters or less',
+  categoriesErrNameTooLong: 'Name must be 50 characters or less',
   categoriesErrNameDuplicate: 'This name is already used',
   categoriesErrIconRequired: 'Please select an icon',
   categoriesDeleteTitle: 'Delete Category',
@@ -491,4 +491,28 @@ export const Strings = {
   emptyFilteredHeadline: 'No results',
   emptyFilteredDescription: 'Try adjusting your filters.',
   emptyFilteredClearCta: 'Clear Filters',
+
+  // §4 Settings root groups
+  settingsGroupPreferences: 'PREFERENCES',
+  settingsGroupData: 'DATA',
+  settingsGroupAbout: 'ABOUT',
+  settingsCurrencyValue: (pair: string) => pair,
+
+  // §4 About screen
+  aboutTitle: 'About',
+  aboutDataNotice: 'MoneyApp is local-only. All your financial data stays on your device.',
+  aboutVersion: (version: string) => `Version ${version}`,
+  aboutBuild: (build: string) => `Build ${build}`,
+
+  // §4 Currency screen additions
+  currencyFetchError: 'Could not update rate. Try again.',
+  currencyFooterNote: 'All balances and analytics are shown in Egyptian Pound (EGP).',
+
+  // §4 Category additions
+  categoriesReassignSubtitle: (count: number) =>
+    count === 1 ? '1 transaction will be moved' : `${count} transactions will be moved`,
+
+  // §4 EmptyState — categories variant
+  emptyStateCategoriesHeadline: 'No categories yet',
+  emptyStateCategoriesDescription: 'Your categories will appear here.',
 } as const;

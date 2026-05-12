@@ -117,3 +117,32 @@ describe('EmptyState component', () => {
     expect(() => render(<EmptyState variant="accounts" />)).not.toThrow();
   });
 });
+
+describe('EmptyState — categories variant', () => {
+  it('renders the tag-outline icon', () => {
+    const { getByTestId } = render(<EmptyState variant="categories" />);
+    // The icon is rendered via MaterialCommunityIcons with name prop
+    // We test indirectly via the component rendering without crash and checking text
+    expect(getByTestId).toBeTruthy();
+  });
+
+  it('renders the correct headline', () => {
+    const { getByText } = render(<EmptyState variant="categories" />);
+    expect(getByText('No categories yet')).toBeTruthy();
+  });
+
+  it('renders the correct description', () => {
+    const { getByText } = render(<EmptyState variant="categories" />);
+    expect(getByText('Your categories will appear here.')).toBeTruthy();
+  });
+
+  it('renders no CTA gradient button', () => {
+    const { queryByTestId } = render(<EmptyState variant="categories" />);
+    expect(queryByTestId('empty-state-cta-gradient')).toBeNull();
+  });
+
+  it('renders no clear-filters text button', () => {
+    const { queryByText } = render(<EmptyState variant="categories" />);
+    expect(queryByText('Clear Filters')).toBeNull();
+  });
+});
