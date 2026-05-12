@@ -161,22 +161,21 @@ describe('Sheet component', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug 1 — close button uses TouchableOpacity from react-native-gesture-handler
-// (not RN Pressable) so touches are forwarded through gorhom's gesture system.
+// Bug A — close button must be inside a BottomSheetView so gorhom's gesture
+// system forwards touches on Android. The correct fix (per @gorhom/bottom-sheet
+// v5 docs) is to wrap the header in BottomSheetView, not to change the
+// Pressable variant.
 // ---------------------------------------------------------------------------
-describe('Sheet close button — gesture handler forwarding (Bug 1)', () => {
-  it('imports TouchableOpacity from react-native-gesture-handler, not react-native', () => {
-    expect(SHEET_SOURCE).toContain(
-      "import { TouchableOpacity } from 'react-native-gesture-handler'",
-    );
+describe('Sheet close button — BottomSheetView wrapping (Bug A)', () => {
+  it('imports BottomSheetView from @gorhom/bottom-sheet', () => {
+    expect(SHEET_SOURCE).toContain('BottomSheetView');
+    expect(SHEET_SOURCE).toContain("from '@gorhom/bottom-sheet'");
   });
 
-  it('does NOT import Pressable from react-native for the close button', () => {
-    // Pressable must not appear in the RN import line
-    const rnImportLine = SHEET_SOURCE
-      .split('\n')
-      .find((line) => line.includes("from 'react-native'") && line.includes('import'));
-    expect(rnImportLine).not.toContain('Pressable');
+  it('does NOT import TouchableOpacity from react-native-gesture-handler (reverted to Pressable)', () => {
+    expect(SHEET_SOURCE).not.toContain(
+      "import { TouchableOpacity } from 'react-native-gesture-handler'",
+    );
   });
 
   it('close button testID=sheet-close-btn fires onClose callback', () => {
@@ -190,6 +189,31 @@ describe('Sheet close button — gesture handler forwarding (Bug 1)', () => {
     );
     fireEvent.press(getByTestId('sheet-close-btn'));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('sheet-header is rendered inside a BottomSheetView ancestor', () => {
+    // This test catches regressions where someone moves the header out of
+    // BottomSheetView (the mock renders it with testID="bottom-sheet-view").
+    const { getByTestId } = render(
+      <Sheet visible={true} onClose={jest.fn()} title="Wrap Test" size="sm">
+        <Sheet.Body>
+          <></>
+        </Sheet.Body>
+      </Sheet>,
+    );
+    const header = getByTestId('sheet-header');
+    // Walk up the parent chain to find a BottomSheetView ancestor.
+    // The mock renders BottomSheetView as a View with testID="bottom-sheet-view".
+    let current: any = header.parent;
+    let foundBottomSheetView = false;
+    while (current !== null && current !== undefined) {
+      if (current.props?.testID === 'bottom-sheet-view') {
+        foundBottomSheetView = true;
+        break;
+      }
+      current = current.parent;
+    }
+    expect(foundBottomSheetView).toBe(true);
   });
 });
 

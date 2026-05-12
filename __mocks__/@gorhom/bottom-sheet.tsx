@@ -5,6 +5,7 @@ import { View, type ViewProps } from 'react-native';
  * Jest mock for @gorhom/bottom-sheet.
  *
  * - BottomSheet: renders children when index >= 0; calls onClose on backdrop press.
+ * - BottomSheetView: passthrough View wrapper (required so touch-bearing children receive gestures).
  * - BottomSheetScrollView: passthrough ScrollView wrapper.
  * - BottomSheetFlatList: passthrough FlatList wrapper.
  * - BottomSheetBackdrop: renders a pressable View with testID="bottom-sheet-backdrop".
@@ -81,6 +82,10 @@ function BottomSheetFlatList(props: any) {
   return <FlatList {...props} />;
 }
 
+function BottomSheetView({ children, ...props }: ViewProps & { children?: React.ReactNode }) {
+  return <View testID="bottom-sheet-view" {...props}>{children}</View>;
+}
+
 function BottomSheetFooter({ children }: { children?: React.ReactNode }) {
   return <View>{children}</View>;
 }
@@ -92,4 +97,5 @@ export {
   BottomSheetFlatList,
   BottomSheetFooter,
   BottomSheetScrollView,
+  BottomSheetView,
 };
