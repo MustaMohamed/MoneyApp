@@ -155,6 +155,7 @@ export default function CategoriesScreen() {
       <ReassignCategorySheet
         visible={state.showReassignSheet}
         categoryName={state.categoryToDelete?.name ?? ''}
+        linkedCount={state.linkedCount}
         options={state.reassignOptions}
         onConfirm={handleReassignConfirm}
         onCancel={closeDeleteFlow}
