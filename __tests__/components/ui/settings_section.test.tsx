@@ -102,6 +102,37 @@ describe('SettingsSection', () => {
     });
   });
 
+  describe('trailingContainer layout', () => {
+    it('renders value text and chevron in the same row (IMPORTANT: flexDirection row)', () => {
+      const { getByText, getByTestId } = render(
+        <SettingsSection items={[{ ...baseItem, value: 'EGP', trailing: 'chevron' }]} />,
+      );
+      // Both children are present, confirming they coexist in trailingContainer
+      expect(getByText('EGP')).toBeTruthy();
+      expect(getByTestId('trailing-chevron')).toBeTruthy();
+
+      // Assert the trailingContainer itself has flexDirection: 'row'
+      const container = getByTestId('trailing-container');
+      expect(container.props.style).toMatchObject({ flexDirection: 'row' });
+    });
+
+    it('trailingContainer has flexDirection "row" when only chevron is rendered', () => {
+      const { getByTestId } = render(
+        <SettingsSection items={[{ ...baseItem, trailing: 'chevron' }]} />,
+      );
+      const container = getByTestId('trailing-container');
+      expect(container.props.style).toMatchObject({ flexDirection: 'row' });
+    });
+
+    it('trailingContainer has flexDirection "row" when toggle is rendered', () => {
+      const { getByTestId } = render(
+        <SettingsSection items={[{ ...baseItem, trailing: 'toggle', toggleValue: false }]} />,
+      );
+      const container = getByTestId('trailing-container');
+      expect(container.props.style).toMatchObject({ flexDirection: 'row' });
+    });
+  });
+
   describe('separators', () => {
     it('renders separators between rows but not after the last row', () => {
       const items = [

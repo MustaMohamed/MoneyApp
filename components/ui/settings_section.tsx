@@ -73,7 +73,7 @@ function SettingsSectionRow({ item }: { item: SettingsSectionItem }) {
         <Text style={styles.label}>{item.label}</Text>
       )}
 
-      <View style={styles.trailingContainer}>
+      <View testID="trailing-container" style={styles.trailingContainer}>
         {item.value !== undefined && trailing !== 'toggle' && (
           <Text
             style={styles.valueText}
@@ -139,9 +139,11 @@ const styles = StyleSheet.create({
     color: Colors.dark.negative,
   },
   trailingContainer: {
-    marginLeft: Spacing.xs,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: Spacing.xs,
+    marginLeft: Spacing.xs,
   },
   valueText: {
     fontFamily: FontFamily.interRegular,
