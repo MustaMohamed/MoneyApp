@@ -55,6 +55,7 @@ import { AccountColors } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
 import { useAddEditCategorySheetState } from '@/screens/settings/categories/components/add_edit_category_sheet.state';
 import { AddEditCategorySheet, createCategorySchema } from '@/screens/settings/categories/components/add_edit_category_sheet';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import type { Category } from '@/store/category.store';
 
 // ---------------------------------------------------------------------------
@@ -370,6 +371,28 @@ describe('createCategorySchema — BLOCKER-2: (name, type) scoped uniqueness', (
       const messages = result.error.issues.map((i) => i.message);
       expect(messages).toContain(Strings.categoriesErrNameDuplicate);
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Footer clearance: scrollContent paddingBottom uses SHEET_FOOTER_CLEARANCE
+// ---------------------------------------------------------------------------
+describe('AddEditCategorySheet — footer clearance padding', () => {
+  it('scrollContent paddingBottom is at least SHEET_FOOTER_CLEARANCE', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path');
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../../../../../screens/settings/categories/components/add_edit_category_sheet.tsx',
+      ),
+      'utf8',
+    );
+    // The paddingBottom must reference SHEET_FOOTER_CLEARANCE, not a literal Spacing token
+    expect(source).toContain('SHEET_FOOTER_CLEARANCE');
+    expect(source).toContain('paddingBottom: SHEET_FOOTER_CLEARANCE');
   });
 });
 

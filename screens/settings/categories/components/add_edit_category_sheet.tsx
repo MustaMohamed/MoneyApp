@@ -14,7 +14,7 @@ import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { useAddEditCategorySheetState } from './add_edit_category_sheet.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -308,7 +308,7 @@ function NameField({
 }
 
 const styles = StyleSheet.create({
-  scrollContent: { paddingHorizontal: Spacing.md, paddingBottom: Spacing.md },
+  scrollContent: { paddingHorizontal: Spacing.md, paddingBottom: SHEET_FOOTER_CLEARANCE },
   fieldLabel: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.caption,

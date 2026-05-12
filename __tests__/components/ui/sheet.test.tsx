@@ -10,7 +10,56 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 // Uses the __mocks__/@gorhom/bottom-sheet.tsx mock automatically via moduleNameMapper
 // The mock renders children when index >= 0 and null when index < 0.
 
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+
+// ---------------------------------------------------------------------------
+// SHEET_FOOTER_CLEARANCE export
+// ---------------------------------------------------------------------------
+describe('SHEET_FOOTER_CLEARANCE', () => {
+  it('is a positive number', () => {
+    expect(typeof SHEET_FOOTER_CLEARANCE).toBe('number');
+    expect(SHEET_FOOTER_CLEARANCE).toBeGreaterThan(0);
+  });
+
+  it('is at least Size.ctaHeight (52 px scaled) tall — enough to clear the sticky footer', () => {
+    // The clearance must at minimum exceed the CTA height alone (ms(52)) so
+    // the last piece of scrollable content is never hidden behind the footer.
+    // On a reference device ms(52) = 52; SHEET_FOOTER_CLEARANCE is ms(52) + ms(48) = ms(100).
+    expect(SHEET_FOOTER_CLEARANCE).toBeGreaterThanOrEqual(52);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Snap point mapping
+// ---------------------------------------------------------------------------
+describe('Sheet snap-point contract', () => {
+  it('sm size passes ["50%"] snap point to BottomSheet', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path');
+    const source: string = fs.readFileSync(
+      path.resolve(__dirname, '../../../components/ui/sheet.tsx'),
+      'utf8',
+    );
+    // Verify the sm snap point is 50%
+    expect(source).toContain("sm: ['50%']");
+  });
+
+  it('lg size passes ["92%"] snap point to BottomSheet', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path');
+    const source: string = fs.readFileSync(
+      path.resolve(__dirname, '../../../components/ui/sheet.tsx'),
+      'utf8',
+    );
+    // Verify the lg snap point was bumped from 85% → 92%
+    expect(source).toContain("lg: ['92%']");
+    expect(source).not.toContain("lg: ['85%']");
+  });
+});
 
 describe('Sheet component', () => {
   it('renders children when visible is true', () => {

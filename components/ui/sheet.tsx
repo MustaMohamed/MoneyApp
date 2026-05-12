@@ -30,9 +30,25 @@ import BottomSheetLib, {
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
+
+/**
+ * SHEET_FOOTER_CLEARANCE — the paddingBottom consumers must add to their
+ * scrollable content when they pass a `footer` to Sheet.
+ *
+ * Why a named export instead of magic in Sheet.Body:
+ *   Sheet.Body has no reliable way to inject paddingBottom into an arbitrary
+ *   BottomSheetScrollView / BottomSheetFlatList child without fragile React.cloneElement
+ *   inspection. Exporting a constant lets consumers compose it explicitly in
+ *   contentContainerStyle — simple, typed, and visible at the call site.
+ *
+ * Value = footer paddingTop (Spacing.xs) + CTA height (Size.ctaHeight) +
+ *         footer paddingBottom (Spacing.lg) + extra breathing room (ms(20))
+ *         ≈ ms(8) + ms(52) + ms(20) + ms(20) = ms(100).
+ */
+export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
 
 export interface SheetProps {
   visible: boolean;
@@ -45,7 +61,10 @@ export interface SheetProps {
 
 const SNAP_POINTS: Record<'sm' | 'lg', string[]> = {
   sm: ['50%'],
-  lg: ['85%'],
+  // 92% rather than 85%: sheets sit inside <Screen> which already loses ~80px
+  // to safe area + Stack header, so 85% of that parent felt cramped. 92% gives
+  // noticeably more room without going full-screen (which feels modal, not sheet).
+  lg: ['92%'],
 };
 
 function SheetHandle() {
