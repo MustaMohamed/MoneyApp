@@ -3,7 +3,7 @@ import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
@@ -91,6 +91,7 @@ export function ReassignCategorySheet({
           data={options}
           keyExtractor={(item) => item.id}
           style={styles.list}
+          contentContainerStyle={styles.listContent}
           renderItem={({ item }) => (
             <Pressable
               onPress={() => setSelectedId(item.id)}
@@ -140,6 +141,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
   list: { flexGrow: 0 },
+  listContent: { paddingBottom: SHEET_FOOTER_CLEARANCE },
   optionRow: {
     flexDirection: 'row',
     alignItems: 'center',

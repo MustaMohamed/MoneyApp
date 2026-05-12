@@ -78,6 +78,7 @@ import { act, fireEvent, render } from '@testing-library/react-native';
 import { Strings } from '@/constants/strings';
 import { ReassignCategorySheet } from '@/screens/settings/categories/components/reassign_category_sheet';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import type { Category } from '@/store/category.store';
 
 // Attach getState to the mock (used by handleClose in the component)
@@ -398,6 +399,32 @@ describe('Strings.categoriesReassignSubtitle', () => {
 
   it('returns plural form for large counts', () => {
     expect(Strings.categoriesReassignSubtitle(999)).toBe('999 transactions will be moved');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Footer clearance: BottomSheetFlatList contentContainerStyle uses SHEET_FOOTER_CLEARANCE
+// ---------------------------------------------------------------------------
+describe('ReassignCategorySheet — footer clearance padding', () => {
+  it('FlatList contentContainerStyle paddingBottom references SHEET_FOOTER_CLEARANCE', () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require('fs');
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require('path');
+    const source: string = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '../../../../../screens/settings/categories/components/reassign_category_sheet.tsx',
+      ),
+      'utf8',
+    );
+    expect(source).toContain('SHEET_FOOTER_CLEARANCE');
+    expect(source).toContain('paddingBottom: SHEET_FOOTER_CLEARANCE');
+  });
+
+  it('SHEET_FOOTER_CLEARANCE is large enough to clear a CTA-height footer', () => {
+    // Defensive: the clearance value must exceed ctaHeight (52px on a reference device)
+    expect(SHEET_FOOTER_CLEARANCE).toBeGreaterThan(52);
   });
 });
 
