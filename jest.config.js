@@ -11,7 +11,6 @@ module.exports = {
     '/dist/',
     '/android/',
     '/ios/',
-    '/.claude/',
     '<rootDir>/.worktrees/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],
