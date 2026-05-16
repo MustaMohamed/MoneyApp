@@ -115,7 +115,7 @@ export default function DashboardScreenV2() {
       ) : (
         <>
           <Tabs value={segment} onValueChange={onTabChange}>
-            <Tabs.List className="mt-2 mb-2 w-full">
+            <Tabs.List className="mx-4 mt-2 mb-2">
               <Tabs.Indicator />
               <Tabs.Trigger value="overview" className="flex-1">
                 <Tabs.Label>{Strings.dashboardSegmentOverview}</Tabs.Label>
