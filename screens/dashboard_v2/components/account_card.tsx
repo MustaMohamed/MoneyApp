@@ -192,9 +192,9 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
       {/* Accent bar — dynamic color stays inline */}
       <View style={{ height: ms(3), width: '100%', backgroundColor: color }} />
 
-      <View style={{ padding: ms(12), gap: ms(8) }}>
+      <View style={{ paddingHorizontal: ms(12), paddingVertical: ms(9), gap: ms(6) }}>
         {/* Card top */}
-        <View style={{ gap: ms(6) }}>
+        <View style={{ gap: ms(5) }}>
           {/* Name row */}
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: ms(5) }}>
             <Text
@@ -252,7 +252,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         <View className="border-t border-border" style={{ height: Size.hairline }} />
 
         {/* Info rows */}
-        <View style={{ gap: ms(5) }}>
+        <View style={{ gap: ms(4) }}>
           {infoRows.map((row, i) => (
             <View
               key={i}
