@@ -19,6 +19,63 @@ jest.mock('react-native-reanimated', () => {
     withTiming: (v: unknown) => v,
     withSpring: (v: unknown) => v,
     withDelay: (_d: number, v: unknown) => v,
+    runOnJS: (fn: (...args: unknown[]) => unknown) => fn,
+  };
+});
+
+jest.mock('react-native-gesture-handler', () => {
+  const React = jest.requireActual('react');
+  const { View } = jest.requireActual('react-native');
+  const passThrough = ({ children }: { children?: React.ReactNode }) =>
+    React.createElement(View, null, children);
+  return {
+    GestureDetector: passThrough,
+    GestureHandlerRootView: View,
+    Gesture: {
+      Pan: () => ({
+        activeOffsetX: () => ({
+          failOffsetY: () => ({
+            onEnd: () => ({}),
+          }),
+        }),
+      }),
+    },
+  };
+});
+
+jest.mock('heroui-native', () => {
+  const React = jest.requireActual('react');
+  const { View, Pressable, Text } = jest.requireActual('react-native');
+  const TabsContext = React.createContext({} as { onValueChange?: (v: string) => void });
+
+  const Tabs = ({
+    children,
+    onValueChange,
+  }: {
+    children: React.ReactNode;
+    onValueChange?: (v: string) => void;
+  }) =>
+    React.createElement(
+      TabsContext.Provider,
+      { value: { onValueChange } },
+      React.createElement(View, null, children),
+    );
+  Tabs.List = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(View, null, children);
+  Tabs.Indicator = () => null;
+  Tabs.Trigger = ({ value, children }: { value: string; children: React.ReactNode }) => {
+    const ctx = React.useContext(TabsContext);
+    return React.createElement(
+      Pressable,
+      { onPress: () => ctx.onValueChange?.(value) },
+      children,
+    );
+  };
+  Tabs.Label = ({ children }: { children: React.ReactNode }) =>
+    React.createElement(Text, null, children);
+  return {
+    Tabs,
+    cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   };
 });
 

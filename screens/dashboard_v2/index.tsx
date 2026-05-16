@@ -1,7 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, RefreshControl, View } from 'react-native';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Tabs } from 'heroui-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -9,9 +11,9 @@ import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import type { DashboardSegment } from './types';
 import { useDashboardV2 } from './dashboard.hook';
 import { useDashboardAnim } from './dashboard.anim';
-import { SegmentSwitcher } from './components/segment_switcher';
 import { TotalBalanceStrip } from './components/total_balance_strip';
 import { HeroCard } from './components/hero_card';
 import { StatCards } from './components/stat_cards';
@@ -58,6 +60,33 @@ export default function DashboardScreenV2() {
   const segment = state.selectedSegment;
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
 
+  const onTabChange = useCallback(
+    (value: string) => setSelectedSegment(value as DashboardSegment),
+    [setSelectedSegment],
+  );
+
+  // Swipe left → Accounts; swipe right → Overview.
+  // activeOffsetX gates activation on clear horizontal intent so the carousel's
+  // own horizontal scroll wins inside the Accounts segment. setSelectedSegment
+  // is a no-op when called with the already-active segment, so we don't gate
+  // by current value on the worklet side.
+  const SWIPE_THRESHOLD = 50;
+  const swipeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-30, 30])
+        .failOffsetY([-15, 15])
+        .onEnd((e) => {
+          'worklet';
+          if (e.translationX < -SWIPE_THRESHOLD) {
+            runOnJS(setSelectedSegment)('accounts');
+          } else if (e.translationX > SWIPE_THRESHOLD) {
+            runOnJS(setSelectedSegment)('overview');
+          }
+        }),
+    [setSelectedSegment],
+  );
+
   return (
     <Screen edges={['top']}>
       <View
@@ -85,22 +114,33 @@ export default function DashboardScreenV2() {
         <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
         <>
-          <SegmentSwitcher value={segment} onChange={setSelectedSegment} />
+          <Tabs value={segment} onValueChange={onTabChange}>
+            <Tabs.List className="mx-4 mt-2 mb-2">
+              <Tabs.Indicator />
+              <Tabs.Trigger value="overview">
+                <Tabs.Label>{Strings.dashboardSegmentOverview}</Tabs.Label>
+              </Tabs.Trigger>
+              <Tabs.Trigger value="accounts">
+                <Tabs.Label>{Strings.dashboardSegmentAccounts}</Tabs.Label>
+              </Tabs.Trigger>
+            </Tabs.List>
+          </Tabs>
 
-          <ScreenScroll
-            refreshControl={
-              <RefreshControl
-                refreshing={state.refreshing}
-                onRefresh={refresh}
-                tintColor={Colors.shared.cairoGold}
-              />
-            }
-          >
-            <Animated.View
-              key={segment}
-              entering={FadeIn.duration(200)}
-              exiting={FadeOut.duration(150)}
+          <GestureDetector gesture={swipeGesture}>
+            <ScreenScroll
+              refreshControl={
+                <RefreshControl
+                  refreshing={state.refreshing}
+                  onRefresh={refresh}
+                  tintColor={Colors.shared.cairoGold}
+                />
+              }
             >
+              <Animated.View
+                key={segment}
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+              >
               {segment === 'overview' ? (
                 <>
                   <Animated.View style={heroStyle}>
@@ -164,8 +204,9 @@ export default function DashboardScreenV2() {
                   <View style={{ height: Spacing.xxl }} />
                 </>
               )}
-            </Animated.View>
-          </ScreenScroll>
+              </Animated.View>
+            </ScreenScroll>
+          </GestureDetector>
         </>
       )}
 
