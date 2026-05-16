@@ -65,7 +65,26 @@ describe('computeLiquidityBreakdown', () => {
 
   it('returns zeros for empty input (L-02)', () => {
     const result = computeLiquidityBreakdown([], 48.85);
-    expect(result).toEqual({ liquidEgp: 0, liquidCount: 0, reserveEgp: 0, reserveCount: 0 });
+    expect(result).toEqual({
+      liquidEgp: 0,
+      liquidCount: 0,
+      liquidAccounts: [],
+      reserveEgp: 0,
+      reserveCount: 0,
+      reserveAccounts: [],
+    });
+  });
+
+  it('includes per-tier accounts ordered by balance descending', () => {
+    const accounts: Account[] = [
+      mkAccount({ id: '1', name: 'CIB', type: AccountType.Bank, current_balance: 5000 }),
+      mkAccount({ id: '2', name: 'Cash', type: AccountType.PhysicalWallet, current_balance: 2000 }),
+      mkAccount({ id: '3', name: 'QNB', type: AccountType.Bank, current_balance: 10000 }),
+      mkAccount({ id: '4', name: 'Savings', type: AccountType.PhysicalSavings, current_balance: 3000 }),
+    ];
+    const result = computeLiquidityBreakdown(accounts, 48.85);
+    expect(result.liquidAccounts.map((a) => a.name)).toEqual(['QNB', 'CIB', 'Cash']);
+    expect(result.reserveAccounts.map((a) => a.name)).toEqual(['Savings']);
   });
 
   it('returns zero reserve when no PhysicalSavings present', () => {
@@ -95,9 +114,23 @@ describe('computeLiabilitiesBreakdown', () => {
     ];
     const result = computeLiabilitiesBreakdown(accounts, 48.85);
     expect(result).toEqual([
-      { id: '2', name: 'Visa B', balanceEgp: 4080 },
-      { id: '1', name: 'Visa A', balanceEgp: 1000 },
+      { id: '2', name: 'Visa B', balanceEgp: 4080, statementDueDay: null },
+      { id: '1', name: 'Visa A', balanceEgp: 1000, statementDueDay: null },
     ]);
+  });
+
+  it('carries statement_due_day through to the row', () => {
+    const accounts: Account[] = [
+      mkAccount({
+        id: '1',
+        name: 'Visa',
+        type: AccountType.CreditCard,
+        current_balance: 1000,
+        statement_due_day: 28,
+      } as never),
+    ];
+    const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
+    expect(row.statementDueDay).toBe(28);
   });
 
   it('returns an empty array when no credit cards', () => {

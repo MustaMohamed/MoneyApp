@@ -158,7 +158,7 @@ describe('useDashboardV2', () => {
   it('exposes liabilities memo with credit cards only', () => {
     const { result } = renderHook(() => useDashboardV2());
     expect(result.current.state.liabilities).toEqual([
-      { id: 'a3', name: 'Visa', balanceEgp: 4080 },
+      { id: 'a3', name: 'Visa', balanceEgp: 4080, statementDueDay: null },
     ]);
   });
 

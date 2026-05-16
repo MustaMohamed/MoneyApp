@@ -49,3 +49,17 @@ export function toLocalDateString(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * Next due-date label for a credit-card statement day, formatted "MMM d"
+ * (e.g. "May 28"). If `dueDay` already passed this month, returns the date
+ * in the next month. Consumers: AccountCard, NetWorthBreakdownSheet.
+ */
+export function nextDueDate(dueDay: number, now: Date = new Date()): string {
+  const thisMonthDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
+  const target =
+    thisMonthDue.getDate() < now.getDate() || thisMonthDue.getMonth() < now.getMonth()
+      ? new Date(now.getFullYear(), now.getMonth() + 1, dueDay)
+      : thisMonthDue;
+  return target.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}

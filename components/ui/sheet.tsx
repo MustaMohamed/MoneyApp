@@ -56,13 +56,14 @@ export interface SheetProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
-  size: 'sm' | 'lg';
+  size: 'sm' | 'md' | 'lg';
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
 
-const SNAP_POINTS: Record<'sm' | 'lg', string[]> = {
+const SNAP_POINTS: Record<'sm' | 'md' | 'lg', string[]> = {
   sm: ['50%'],
+  md: ['75%'],
   // 92% rather than 85%: sheets sit inside <Screen> which already loses ~80px
   // to safe area + Stack header, so 85% of that parent felt cramped. 92% gives
   // noticeably more room without going full-screen (which feels modal, not sheet).

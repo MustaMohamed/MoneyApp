@@ -8,7 +8,9 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import { formatAmount } from '@/utils/format_amount';
+import { nextDueDate } from '@/utils/format_date';
 import type {
+  AccountRow,
   LiabilityRow,
   LiquidityBreakdown,
 } from '@/screens/dashboard/dashboard.helpers';
@@ -27,6 +29,7 @@ interface NetWorthBreakdownSheetProps {
 
 const LIQUID_COLOR = Colors.dark.positive;
 const RESERVE_COLOR = Colors.dark.gold;
+const LIABILITY_COLOR = Colors.dark.negative;
 
 export function NetWorthBreakdownSheet({
   visible,
@@ -89,22 +92,32 @@ export function NetWorthBreakdownSheet({
               </View>
             )}
             {showLiquid && (
-              <LegendRow
-                color={LIQUID_COLOR}
-                label={Strings.dashboardBreakdownLiquid}
-                caption={Strings.dashboardBreakdownLiquidCaption}
-                value={liquidity.liquidEgp}
-                count={liquidity.liquidCount}
-              />
+              <>
+                <LegendRow
+                  color={LIQUID_COLOR}
+                  label={Strings.dashboardBreakdownLiquid}
+                  caption={Strings.dashboardBreakdownLiquidCaption}
+                  value={liquidity.liquidEgp}
+                  count={liquidity.liquidCount}
+                />
+                {liquidity.liquidAccounts.map((acc) => (
+                  <AccountSubRow key={acc.id} account={acc} />
+                ))}
+              </>
             )}
             {showReserve && (
-              <LegendRow
-                color={RESERVE_COLOR}
-                label={Strings.dashboardBreakdownReserve}
-                caption={Strings.dashboardBreakdownReserveCaption}
-                value={liquidity.reserveEgp}
-                count={liquidity.reserveCount}
-              />
+              <>
+                <LegendRow
+                  color={RESERVE_COLOR}
+                  label={Strings.dashboardBreakdownReserve}
+                  caption={Strings.dashboardBreakdownReserveCaption}
+                  value={liquidity.reserveEgp}
+                  count={liquidity.reserveCount}
+                />
+                {liquidity.reserveAccounts.map((acc) => (
+                  <AccountSubRow key={acc.id} account={acc} />
+                ))}
+              </>
             )}
           </View>
 
@@ -120,16 +133,19 @@ export function NetWorthBreakdownSheet({
                   )}
                 </Text>
                 {liabilities.map((row) => (
-                  <View
+                  <LegendRow
                     key={row.id}
-                    className="flex-row justify-between py-2"
-                    style={{ flexDirection: 'row' }}
-                  >
-                    <Text className="text-foreground">{row.name}</Text>
-                    <Text className="font-semibold" style={{ color: Colors.dark.negative }}>
-                      −{formatAmount(row.balanceEgp)}
-                    </Text>
-                  </View>
+                    color={LIABILITY_COLOR}
+                    label={row.name}
+                    caption={
+                      row.statementDueDay != null && row.statementDueDay > 0
+                        ? `due ${nextDueDate(row.statementDueDay)}`
+                        : undefined
+                    }
+                    value={row.balanceEgp}
+                    valueColor={LIABILITY_COLOR}
+                    negative
+                  />
                 ))}
                 <View className="h-px bg-separator mt-1 mb-2" />
                 <View
@@ -153,12 +169,14 @@ export function NetWorthBreakdownSheet({
 interface LegendRowProps {
   color: string;
   label: string;
-  caption: string;
+  caption?: string;
   value: number;
-  count: number;
+  count?: number;
+  valueColor?: string;
+  negative?: boolean;
 }
 
-function LegendRow({ color, label, caption, value, count }: LegendRowProps) {
+function LegendRow({ color, label, caption, value, count, valueColor, negative }: LegendRowProps) {
   return (
     <View
       className="flex-row items-center justify-between py-2"
@@ -169,12 +187,32 @@ function LegendRow({ color, label, caption, value, count }: LegendRowProps) {
         <View>
           <View style={{ flexDirection: 'row', gap: ms(4) }}>
             <Text className="text-foreground font-semibold">{label}</Text>
-            <Text className="text-muted font-normal">({count})</Text>
+            {count !== undefined && (
+              <Text className="text-muted font-normal">({count})</Text>
+            )}
           </View>
-          <Text variant="caption" className="text-muted">{caption}</Text>
+          {caption && <Text variant="caption" className="text-muted">{caption}</Text>}
         </View>
       </View>
-      <Text className="font-semibold text-foreground">{formatAmount(value)}</Text>
+      <Text className="font-semibold" style={valueColor ? { color: valueColor } : undefined}>
+        {negative ? `−${formatAmount(value)}` : formatAmount(value)}
+      </Text>
+    </View>
+  );
+}
+
+function AccountSubRow({ account }: { account: AccountRow }) {
+  return (
+    <View
+      className="flex-row justify-between"
+      style={{ flexDirection: 'row', paddingVertical: ms(4), paddingLeft: ms(20) }}
+    >
+      <Text variant="caption" className="text-muted">
+        {account.name}
+      </Text>
+      <Text variant="caption" className="text-foreground font-medium">
+        {formatAmount(account.balanceEgp)}
+      </Text>
     </View>
   );
 }
