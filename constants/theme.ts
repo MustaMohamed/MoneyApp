@@ -23,6 +23,7 @@ export const Colors = {
     gold: '#D4A44C',
     positive: '#4CAF82',
     negative: '#E05A42',
+    warning: '#D4830A',
     dangerBg: 'rgba(224, 90, 66, 0.12)',
     overlayWhite7: 'rgba(255, 255, 255, 0.07)',
   },
@@ -37,6 +38,7 @@ export const Colors = {
     gold: '#C9973A',
     positive: '#3D7A5F',
     negative: '#C0442A',
+    warning: '#B86E08',
   },
   shared: {
     cairoGold: '#C9973A',

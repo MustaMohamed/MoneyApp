@@ -152,6 +152,23 @@ export const Strings = {
   dashMonthSpentTitle: 'Spent This Month',
   dashSeeAll: 'See all',
 
+  // §5 Dashboard v2 — segments + breakdown sheet
+  dashboardSegmentOverview: 'Overview',
+  dashboardSegmentAccounts: 'Accounts',
+  dashboardTotalBalance: 'Total balance',
+  dashboardAccountsLabel: 'Accounts',
+  dashboardBreakdownTitle: 'Net Worth',
+  dashboardBreakdownNetWorthLabel: 'Net Worth',
+  dashboardBreakdownAssetsHeader: (egp: string, count: number) =>
+    `${egp} EGP · ${count} ${count === 1 ? 'acct' : 'accts'}`,
+  dashboardBreakdownLiabilitiesHeader: (egp: string, count: number) =>
+    `${egp} EGP · ${count} ${count === 1 ? 'card' : 'cards'}`,
+  dashboardBreakdownLiquid: 'Liquid',
+  dashboardBreakdownReserve: 'Reserve',
+  dashboardBreakdownLiquidCaption: 'Bank, Smart Wallet, Cash',
+  dashboardBreakdownReserveCaption: 'Savings',
+  dashboardBreakdownTotalDebt: 'Total debt',
+
   // Account Detail (U3)
   accountDetailEdit: 'Edit',
   accountDetailSave: 'Save',
