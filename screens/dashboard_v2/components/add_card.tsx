@@ -8,17 +8,18 @@ import { Colors } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 interface AddCardProps {
+  width: number;
   onPress: () => void;
 }
 
 const ACCENT = Colors.shared.cairoGold;
 
-export function AddCard({ onPress }: AddCardProps) {
+export function AddCard({ width, onPress }: AddCardProps) {
   return (
     <Pressable
       onPress={onPress}
       className="bg-surface rounded-2xl border border-border overflow-hidden"
-      style={{ width: ms(180), marginLeft: ms(4), alignSelf: 'stretch' }}
+      style={{ width, marginLeft: ms(4), alignSelf: 'stretch' }}
       accessibilityRole="button"
       accessibilityLabel={Strings.emptyAccountsCta}
     >

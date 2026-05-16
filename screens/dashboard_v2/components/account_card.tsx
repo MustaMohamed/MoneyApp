@@ -164,10 +164,11 @@ interface AccountCardProps {
   account: Account;
   rate: number;
   stats: AccountStats | undefined;
+  width: number;
   onPress: () => void;
 }
 
-export function AccountCard({ account, rate, stats, onPress }: AccountCardProps) {
+export function AccountCard({ account, rate, stats, width, onPress }: AccountCardProps) {
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
   const balanceColor = isCreditCard ? Colors.dark.negative : Colors.dark.gold;
@@ -184,7 +185,7 @@ export function AccountCard({ account, rate, stats, onPress }: AccountCardProps)
     <Pressable
       onPress={onPress}
       className="bg-surface rounded-2xl border border-border overflow-hidden"
-      style={{ width: ms(180), marginLeft: ms(4) }}
+      style={{ width, marginLeft: ms(4) }}
       accessibilityRole="button"
       accessibilityLabel={account.name}
     >
