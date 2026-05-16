@@ -47,6 +47,8 @@ export function HeroCard({
   return (
     <Pressable
       onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={Strings.dashAvailableToSpend}
       className="mx-4 mt-4 rounded-2xl border border-border overflow-hidden"
     >
       <LinearGradient
@@ -134,7 +136,9 @@ export function HeroCard({
             size={ms(11)}
             color={Colors.dark.text1}
           />
-          <Text className="text-xs text-foreground">{formatAmount(assetsUsd, 0)} USD</Text>
+          <Text className="text-xs text-foreground">
+            {rate > 0 ? `${formatAmount(assetsUsd, 0)} USD` : '— USD'}
+          </Text>
         </View>
         <View
           className="flex-row items-center rounded-full px-2 py-1"

@@ -22,6 +22,7 @@ function renderSheet(props: Partial<React.ComponentProps<typeof NetWorthBreakdow
         liabilitiesEgp={4080}
         netWorthEgp={38420}
         netWorthUsd={786}
+        rate={48.85}
         liquidity={{ liquidEgp: 32500, liquidCount: 3, reserveEgp: 10000, reserveCount: 1 }}
         liabilities={[{ id: 'a3', name: 'Visa Credit', balanceEgp: 4080 }]}
         {...props}
@@ -77,5 +78,11 @@ describe('NetWorthBreakdownSheet', () => {
     expect(getByText('Card B')).toBeTruthy();
     expect(getByText('Total debt')).toBeTruthy();
     expect(getByText(/6,000/)).toBeTruthy();
+  });
+
+  it('renders "— USD" when rate is 0 (spec §5.3)', () => {
+    const { getByText, queryByText } = renderSheet({ rate: 0, netWorthUsd: 0 });
+    expect(getByText('— USD')).toBeTruthy();
+    expect(queryByText(/≈ 0 USD/)).toBeNull();
   });
 });

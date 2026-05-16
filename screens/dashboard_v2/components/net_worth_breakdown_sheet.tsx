@@ -20,6 +20,7 @@ interface NetWorthBreakdownSheetProps {
   liabilitiesEgp: number;
   netWorthEgp: number;
   netWorthUsd: number;
+  rate: number;
   liquidity: LiquidityBreakdown;
   liabilities: LiabilityRow[];
 }
@@ -34,6 +35,7 @@ export function NetWorthBreakdownSheet({
   liabilitiesEgp,
   netWorthEgp,
   netWorthUsd,
+  rate,
   liquidity,
   liabilities,
 }: NetWorthBreakdownSheetProps) {
@@ -60,7 +62,7 @@ export function NetWorthBreakdownSheet({
               <Text className="text-base text-muted font-medium">EGP</Text>
             </Text>
             <Text variant="caption" className="text-muted mt-1">
-              ≈ {formatAmount(netWorthUsd, 0)} USD
+              {rate > 0 ? `≈ ${formatAmount(netWorthUsd, 0)} USD` : '— USD'}
             </Text>
           </View>
 

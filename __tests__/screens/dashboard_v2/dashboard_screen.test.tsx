@@ -173,4 +173,11 @@ describe('DashboardScreenV2', () => {
     fireEvent.press(getByLabelText('Settings'));
     expect(goToSettings).toHaveBeenCalledTimes(1);
   });
+
+  it('tapping HeroCard calls setBreakdownVisible(true)', () => {
+    mockHookReturn = makeHookReturn({ accounts: [mkAccount()] });
+    const { getByLabelText } = render(<DashboardScreenV2 />);
+    fireEvent.press(getByLabelText('Available to Spend'));
+    expect(setBreakdownVisible).toHaveBeenCalledWith(true);
+  });
 });

@@ -124,7 +124,7 @@ export function useDashboardV2() {
 
   useEffect(() => {
     loadStats(accountState.accounts.map((a) => a.id));
-  }, [accountState.accounts]);
+  }, [accountState.accounts, loadStats]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);

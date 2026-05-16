@@ -176,6 +176,7 @@ export default function DashboardScreenV2() {
         liabilitiesEgp={state.netWorth.liabilitiesEgp}
         netWorthEgp={state.netWorth.netWorthEgp}
         netWorthUsd={state.netWorth.netWorthUsd}
+        rate={state.rate}
         liquidity={state.liquidity}
         liabilities={state.liabilities}
       />

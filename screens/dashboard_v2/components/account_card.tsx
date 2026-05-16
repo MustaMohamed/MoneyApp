@@ -24,7 +24,7 @@ function availableCreditColor(available: number, limit: number): string {
   if (limit <= 0) return Colors.dark.text2;
   const pct = available / limit;
   if (pct > 0.5) return Colors.dark.positive;
-  if (pct >= 0.2) return '#D4830A';
+  if (pct >= 0.2) return Colors.dark.warning;
   return Colors.dark.negative;
 }
 
