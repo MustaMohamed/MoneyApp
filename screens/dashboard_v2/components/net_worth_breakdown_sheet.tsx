@@ -227,7 +227,7 @@ function LegendRow({
 
 // Account sub-rows align horizontally with the LegendRow label above them.
 // LegendRow's label starts at: icon width (ms(16)) + icon→label gap (ms(10)) = ms(26).
-const SUB_ROW_INDENT = ms(26);
+const SUB_ROW_INDENT = ms(27.5);
 
 function AccountSubRow({ account }: { account: AccountRow }) {
   return (
