@@ -190,15 +190,15 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
       accessibilityLabel={account.name}
     >
       {/* Accent bar — dynamic color stays inline */}
-      <View style={{ height: ms(3), width: '100%', backgroundColor: color }} />
+      <View style={{ height: ms(4), width: '100%', backgroundColor: color }} />
 
-      <View className="p-2" style={{ gap: ms(4) }}>
+      <View style={{ padding: ms(14), gap: ms(10) }}>
         {/* Card top */}
-        <View style={{ gap: ms(4) }}>
+        <View style={{ gap: ms(8) }}>
           {/* Name row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: ms(4) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: ms(6) }}>
             <Text
-              variant="label"
+              variant="title"
               className="text-foreground font-bold"
               numberOfLines={1}
               style={{ flex: 1 }}
@@ -211,35 +211,35 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
               style={{
                 borderWidth: 1,
                 borderColor: color + '55',
-                paddingHorizontal: ms(6),
-                paddingVertical: ms(2),
+                paddingHorizontal: ms(8),
+                paddingVertical: ms(3),
               }}
             >
-              <Text variant="caption" className="text-muted font-semibold">
+              <Text variant="label" className="text-muted font-semibold">
                 {account.currency}
               </Text>
             </View>
           </View>
 
           {/* Balance row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
             {/* Icon box — dynamic background color stays inline */}
             <View
               className="rounded"
               style={{
-                width: ms(24),
-                height: ms(24),
-                borderRadius: ms(5),
+                width: ms(36),
+                height: ms(36),
+                borderRadius: ms(8),
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 backgroundColor: color + '22',
               }}
             >
-              <MaterialCommunityIcons name={icon} size={ms(12)} color={color} />
+              <MaterialCommunityIcons name={icon} size={ms(18)} color={color} />
             </View>
             <Text
-              variant="body"
+              variant="numMd"
               numberOfLines={1}
               style={{ flex: 1, color: balanceColor }}
             >
@@ -252,27 +252,27 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         <View className="border-t border-border" style={{ height: Size.hairline }} />
 
         {/* Info rows */}
-        <View style={{ gap: ms(2) }}>
+        <View style={{ gap: ms(6) }}>
           {infoRows.map((row, i) => (
             <View
               key={i}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: ms(4) }}
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: ms(6) }}
             >
-              <Text variant="caption" className="text-muted" style={{ flexShrink: 0 }}>
+              <Text variant="label" className="text-muted" style={{ flexShrink: 0 }}>
                 {row.label}
               </Text>
               <View
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: ms(2) }}
+                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: ms(3) }}
               >
                 {row.icon && (
                   <MaterialCommunityIcons
                     name={row.icon === 'up' ? 'trending-up' : 'trending-down'}
-                    size={ms(10)}
+                    size={ms(14)}
                     color={row.valueColor ?? Colors.dark.text1}
                   />
                 )}
                 <Text
-                  variant="caption"
+                  variant="label"
                   numberOfLines={1}
                   style={[
                     { textAlign: 'right' },
@@ -290,7 +290,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         {showProgress && (
           <View
             className="border-border overflow-hidden"
-            style={{ height: ms(3), borderRadius: ms(2), backgroundColor: Colors.dark.border }}
+            style={{ height: ms(4), borderRadius: ms(2), backgroundColor: Colors.dark.border }}
           >
             <View
               style={{

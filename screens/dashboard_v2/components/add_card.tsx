@@ -24,26 +24,26 @@ export function AddCard({ width, onPress }: AddCardProps) {
       accessibilityLabel={Strings.emptyAccountsCta}
     >
       {/* Accent bar — mirrors AccountCard's account-color accent */}
-      <View style={{ height: ms(3), width: '100%', backgroundColor: ACCENT }} />
+      <View style={{ height: ms(4), width: '100%', backgroundColor: ACCENT }} />
 
       <View
-        className="flex-1 items-center justify-center p-2"
-        style={{ gap: ms(6) }}
+        className="flex-1 items-center justify-center"
+        style={{ gap: ms(10), padding: ms(14) }}
       >
         <View
           style={{
-            width: ms(36),
-            height: ms(36),
-            borderRadius: ms(18),
+            width: ms(52),
+            height: ms(52),
+            borderRadius: ms(26),
             alignItems: 'center',
             justifyContent: 'center',
             backgroundColor: ACCENT + '22',
           }}
         >
-          <MaterialCommunityIcons name="plus" size={ms(22)} color={ACCENT} />
+          <MaterialCommunityIcons name="plus" size={ms(30)} color={ACCENT} />
         </View>
         <Text
-          variant="caption"
+          variant="label"
           className="font-semibold"
           style={{ color: ACCENT }}
         >
