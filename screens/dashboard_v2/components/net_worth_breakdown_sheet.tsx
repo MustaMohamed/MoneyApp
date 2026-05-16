@@ -225,11 +225,15 @@ function LegendRow({
   );
 }
 
+// Account sub-rows align horizontally with the LegendRow label above them.
+// LegendRow's label starts at: icon width (ms(16)) + icon→label gap (ms(10)) = ms(26).
+const SUB_ROW_INDENT = ms(26);
+
 function AccountSubRow({ account }: { account: AccountRow }) {
   return (
     <View
       className="flex-row justify-between"
-      style={{ flexDirection: 'row', paddingVertical: ms(4), paddingLeft: ms(20) }}
+      style={{ flexDirection: 'row', paddingVertical: ms(4), paddingLeft: SUB_ROW_INDENT }}
     >
       <Text variant="caption" className="text-muted">
         {account.name}
