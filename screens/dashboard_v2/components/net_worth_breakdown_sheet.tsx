@@ -1,6 +1,7 @@
 import React from 'react';
 import { View } from 'react-native';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
@@ -14,6 +15,8 @@ import type {
   LiabilityRow,
   LiquidityBreakdown,
 } from '@/screens/dashboard/dashboard.helpers';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface NetWorthBreakdownSheetProps {
   visible: boolean;
@@ -95,6 +98,7 @@ export function NetWorthBreakdownSheet({
               <>
                 <LegendRow
                   color={LIQUID_COLOR}
+                  icon="wallet-outline"
                   label={Strings.dashboardBreakdownLiquid}
                   caption={Strings.dashboardBreakdownLiquidCaption}
                   value={liquidity.liquidEgp}
@@ -109,6 +113,7 @@ export function NetWorthBreakdownSheet({
               <>
                 <LegendRow
                   color={RESERVE_COLOR}
+                  icon="piggy-bank"
                   label={Strings.dashboardBreakdownReserve}
                   caption={Strings.dashboardBreakdownReserveCaption}
                   value={liquidity.reserveEgp}
@@ -136,6 +141,7 @@ export function NetWorthBreakdownSheet({
                   <LegendRow
                     key={row.id}
                     color={LIABILITY_COLOR}
+                    icon="credit-card"
                     label={row.name}
                     caption={
                       row.statementDueDay != null && row.statementDueDay > 0
@@ -168,6 +174,7 @@ export function NetWorthBreakdownSheet({
 
 interface LegendRowProps {
   color: string;
+  icon?: IconName;
   label: string;
   caption?: string;
   value: number;
@@ -176,14 +183,31 @@ interface LegendRowProps {
   negative?: boolean;
 }
 
-function LegendRow({ color, label, caption, value, count, valueColor, negative }: LegendRowProps) {
+function LegendRow({
+  color,
+  icon,
+  label,
+  caption,
+  value,
+  count,
+  valueColor,
+  negative,
+}: LegendRowProps) {
   return (
     <View
       className="flex-row items-center justify-between py-2"
       style={{ flexDirection: 'row' }}
     >
-      <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
-        <View style={{ width: ms(8), height: ms(8), borderRadius: ms(4), backgroundColor: color }} />
+      <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(10) }}>
+        {icon ? (
+          <View style={{ width: ms(16), alignItems: 'center', justifyContent: 'center' }}>
+            <MaterialCommunityIcons name={icon} size={ms(16)} color={color} />
+          </View>
+        ) : (
+          <View
+            style={{ width: ms(8), height: ms(8), borderRadius: ms(4), backgroundColor: color }}
+          />
+        )}
         <View>
           <View style={{ flexDirection: 'row', gap: ms(4) }}>
             <Text className="text-foreground font-semibold">{label}</Text>
