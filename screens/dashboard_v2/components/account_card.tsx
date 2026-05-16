@@ -196,7 +196,14 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         {/* Card top */}
         <View style={{ gap: ms(5) }}>
           {/* Name row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: ms(5) }}>
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: ms(5),
+            }}
+          >
             <Text
               variant="title"
               className="text-foreground font-bold"
@@ -256,13 +263,24 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
           {infoRows.map((row, i) => (
             <View
               key={i}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: ms(5) }}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: ms(5),
+              }}
             >
               <Text variant="caption" className="text-muted" style={{ flexShrink: 0 }}>
                 {row.label}
               </Text>
               <View
-                style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: ms(3) }}
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: ms(3),
+                }}
               >
                 {row.icon && (
                   <MaterialCommunityIcons

@@ -26,10 +26,7 @@ export function AddCard({ width, onPress }: AddCardProps) {
       {/* Accent bar — mirrors AccountCard's account-color accent */}
       <View style={{ height: ms(3), width: '100%', backgroundColor: ACCENT }} />
 
-      <View
-        className="flex-1 items-center justify-center"
-        style={{ gap: ms(8), padding: ms(12) }}
-      >
+      <View className="flex-1 items-center justify-center" style={{ gap: ms(8), padding: ms(12) }}>
         <View
           style={{
             width: ms(44),
@@ -42,11 +39,7 @@ export function AddCard({ width, onPress }: AddCardProps) {
         >
           <MaterialCommunityIcons name="plus" size={ms(25)} color={ACCENT} />
         </View>
-        <Text
-          variant="caption"
-          className="font-semibold"
-          style={{ color: ACCENT }}
-        >
+        <Text variant="caption" className="font-semibold" style={{ color: ACCENT }}>
           {Strings.emptyAccountsCta}
         </Text>
       </View>

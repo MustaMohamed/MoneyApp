@@ -80,7 +80,12 @@ describe('computeLiquidityBreakdown', () => {
       mkAccount({ id: '1', name: 'CIB', type: AccountType.Bank, current_balance: 5000 }),
       mkAccount({ id: '2', name: 'Cash', type: AccountType.PhysicalWallet, current_balance: 2000 }),
       mkAccount({ id: '3', name: 'QNB', type: AccountType.Bank, current_balance: 10000 }),
-      mkAccount({ id: '4', name: 'Savings', type: AccountType.PhysicalSavings, current_balance: 3000 }),
+      mkAccount({
+        id: '4',
+        name: 'Savings',
+        type: AccountType.PhysicalSavings,
+        current_balance: 3000,
+      }),
     ];
     const result = computeLiquidityBreakdown(accounts, 48.85);
     expect(result.liquidAccounts.map((a) => a.name)).toEqual(['QNB', 'CIB', 'Cash']);

@@ -19,15 +19,20 @@ export function TotalBalanceStrip({ assetsEgp, accountsCount }: TotalBalanceStri
         colors={[Colors.shared.heroGrad1, Colors.shared.heroGrad2]}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: ms(16), paddingVertical: ms(12) }}
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: ms(16),
+          paddingVertical: ms(12),
+        }}
       >
         <View>
           <RNText className="text-muted uppercase tracking-wide text-xs">
             {Strings.dashboardTotalBalance}
           </RNText>
           <RNText className="text-2xl font-bold text-accent mt-1">
-            {formatAmount(assetsEgp)}{' '}
-            <RNText className="text-base text-muted">EGP</RNText>
+            {formatAmount(assetsEgp)} <RNText className="text-base text-muted">EGP</RNText>
           </RNText>
         </View>
         <View style={{ alignItems: 'flex-end' }}>

@@ -47,18 +47,31 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
           <View
             className="items-center justify-center rounded-full"
-            style={{ width: ms(22), height: ms(22), backgroundColor: Colors.shared.cairoGold + '22' }}
+            style={{
+              width: ms(22),
+              height: ms(22),
+              backgroundColor: Colors.shared.cairoGold + '22',
+            }}
           >
-            <MaterialCommunityIcons name="calendar-check" size={ms(13)} color={Colors.shared.cairoGold} />
+            <MaterialCommunityIcons
+              name="calendar-check"
+              size={ms(13)}
+              color={Colors.shared.cairoGold}
+            />
           </View>
           <Text variant="caption" className="text-foreground font-semibold">
             {Strings.dashboardCommitmentsTitle}
           </Text>
         </View>
-        <Text variant="caption" className="text-muted">{monthLabel}</Text>
+        <Text variant="caption" className="text-muted">
+          {monthLabel}
+        </Text>
       </View>
 
-      <View className="flex-row items-center justify-between" style={{ flexDirection: 'row', gap: ms(8) }}>
+      <View
+        className="flex-row items-center justify-between"
+        style={{ flexDirection: 'row', gap: ms(8) }}
+      >
         <View className="flex-1" style={{ flex: 1 }}>
           <Text variant="hint" className="text-muted uppercase text-xs">
             {Strings.commitmentsTotalCommitted}

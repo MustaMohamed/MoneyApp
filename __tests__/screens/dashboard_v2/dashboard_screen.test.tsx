@@ -65,11 +65,7 @@ jest.mock('heroui-native', () => {
   Tabs.Indicator = () => null;
   Tabs.Trigger = ({ value, children }: { value: string; children: React.ReactNode }) => {
     const ctx = React.useContext(TabsContext);
-    return React.createElement(
-      Pressable,
-      { onPress: () => ctx.onValueChange?.(value) },
-      children,
-    );
+    return React.createElement(Pressable, { onPress: () => ctx.onValueChange?.(value) }, children);
   };
   Tabs.Label = ({ children }: { children: React.ReactNode }) =>
     React.createElement(Text, null, children);
@@ -132,10 +128,7 @@ function mkAccount(overrides: Partial<Account> = {}): Account {
   } as Account;
 }
 
-function makeHookReturn(opts: {
-  accounts?: Account[];
-  selectedSegment?: 'overview' | 'accounts';
-}) {
+function makeHookReturn(opts: { accounts?: Account[]; selectedSegment?: 'overview' | 'accounts' }) {
   const accounts = opts.accounts ?? [];
   const groupedAccounts: Partial<Record<AccountType, Account[]>> = {};
   for (const a of accounts) {
@@ -155,13 +148,13 @@ function makeHookReturn(opts: {
         netWorthUsd: 20,
       },
       liquidity: {
-      liquidEgp: 1000,
-      liquidCount: accounts.length,
-      liquidAccounts: accounts.map((a) => ({ id: a.id, name: a.name, balanceEgp: 1000 })),
-      reserveEgp: 0,
-      reserveCount: 0,
-      reserveAccounts: [],
-    },
+        liquidEgp: 1000,
+        liquidCount: accounts.length,
+        liquidAccounts: accounts.map((a) => ({ id: a.id, name: a.name, balanceEgp: 1000 })),
+        reserveEgp: 0,
+        reserveCount: 0,
+        reserveAccounts: [],
+      },
       liabilities: [],
       groupedAccounts,
       statsMap: {},

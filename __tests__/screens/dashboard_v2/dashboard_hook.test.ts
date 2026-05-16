@@ -27,9 +27,7 @@ jest.mock('@/database/account_stats', () => ({
 }));
 
 jest.mock('@/database/transactions', () => ({
-  getMonthExpenseStats: jest
-    .fn()
-    .mockResolvedValue({ totalEgp: 0, usdNative: 0, count: 0 }),
+  getMonthExpenseStats: jest.fn().mockResolvedValue({ totalEgp: 0, usdNative: 0, count: 0 }),
 }));
 
 jest.mock('@/repositories/commitment.repository', () => ({
@@ -91,9 +89,15 @@ let uiState = {
   refreshing: false,
   selectedSegment: 'overview' as 'overview' | 'accounts',
 };
-const setBreakdownVisible = jest.fn((v: boolean) => { uiState.isBreakdownVisible = v; });
-const setRefreshing = jest.fn((v: boolean) => { uiState.refreshing = v; });
-const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => { uiState.selectedSegment = s; });
+const setBreakdownVisible = jest.fn((v: boolean) => {
+  uiState.isBreakdownVisible = v;
+});
+const setRefreshing = jest.fn((v: boolean) => {
+  uiState.refreshing = v;
+});
+const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
+  uiState.selectedSegment = s;
+});
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   (useAccountStore as jest.Mock).mockImplementation((sel: any) =>

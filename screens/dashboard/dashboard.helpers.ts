@@ -60,10 +60,7 @@ const LIQUID_TYPES: ReadonlySet<AccountType> = new Set([
 
 const RESERVE_TYPES: ReadonlySet<AccountType> = new Set([AccountType.PhysicalSavings]);
 
-export function computeLiquidityBreakdown(
-  accounts: Account[],
-  rate: number,
-): LiquidityBreakdown {
+export function computeLiquidityBreakdown(accounts: Account[], rate: number): LiquidityBreakdown {
   let liquidEgp = 0;
   let reserveEgp = 0;
   const liquidAccounts: AccountRow[] = [];
@@ -71,8 +68,7 @@ export function computeLiquidityBreakdown(
 
   for (const a of accounts) {
     if (a.is_archived) continue;
-    const balanceEgp =
-      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
     if (LIQUID_TYPES.has(a.type)) {
       liquidEgp += balanceEgp;
       liquidAccounts.push({ id: a.id, name: a.name, balanceEgp });
@@ -99,16 +95,12 @@ export interface LiabilityRow extends AccountRow {
   statementDueDay: number | null;
 }
 
-export function computeLiabilitiesBreakdown(
-  accounts: Account[],
-  rate: number,
-): LiabilityRow[] {
+export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): LiabilityRow[] {
   const rows: LiabilityRow[] = [];
   for (const a of accounts) {
     if (a.is_archived) continue;
     if (a.type !== AccountType.CreditCard) continue;
-    const balanceEgp =
-      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    const balanceEgp = a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
     rows.push({
       id: a.id,
       name: a.name,

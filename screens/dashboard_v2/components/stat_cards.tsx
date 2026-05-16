@@ -10,7 +10,20 @@ import { formatAmount } from '@/utils/format_amount';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] as const;
+const SHORT_MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const;
 
 interface StatCardsProps {
   netWorthEgp: number;
@@ -46,8 +59,16 @@ export function StatCards({
   const prevMonthLabel = SHORT_MONTHS[(monthIdx + 11) % 12] ?? '';
   const deltaPositive = monthSpendDeltaPct != null && monthSpendDeltaPct < 0;
   const deltaNegative = monthSpendDeltaPct != null && monthSpendDeltaPct > 0;
-  const deltaColor = deltaPositive ? Colors.dark.positive : deltaNegative ? Colors.dark.negative : Colors.dark.text2;
-  const deltaIcon: IconName = deltaPositive ? 'trending-down' : deltaNegative ? 'trending-up' : 'trending-neutral';
+  const deltaColor = deltaPositive
+    ? Colors.dark.positive
+    : deltaNegative
+      ? Colors.dark.negative
+      : Colors.dark.text2;
+  const deltaIcon: IconName = deltaPositive
+    ? 'trending-down'
+    : deltaNegative
+      ? 'trending-up'
+      : 'trending-neutral';
 
   return (
     <View className="flex-row mx-4 mt-2" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -80,7 +101,14 @@ export function StatCards({
         <View className="flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
           <View className="flex-1" style={{ flex: 1 }}>
             <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-              <View style={{ width: ms(6), height: ms(6), borderRadius: ms(3), backgroundColor: Colors.dark.positive }} />
+              <View
+                style={{
+                  width: ms(6),
+                  height: ms(6),
+                  borderRadius: ms(3),
+                  backgroundColor: Colors.dark.positive,
+                }}
+              />
               <Text variant="hint" className="text-muted text-xs">
                 {Strings.dashAssetsLabel} ({assetsCount})
               </Text>
@@ -91,7 +119,14 @@ export function StatCards({
           </View>
           <View className="flex-1" style={{ flex: 1 }}>
             <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-              <View style={{ width: ms(6), height: ms(6), borderRadius: ms(3), backgroundColor: Colors.dark.negative }} />
+              <View
+                style={{
+                  width: ms(6),
+                  height: ms(6),
+                  borderRadius: ms(3),
+                  backgroundColor: Colors.dark.negative,
+                }}
+              />
               <Text variant="hint" className="text-muted text-xs">
                 {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
               </Text>
@@ -118,15 +153,21 @@ export function StatCards({
           <Text variant="hint" className="flex-1 uppercase text-muted text-xs">
             {Strings.dashMonthSpentTitle}
           </Text>
-          <Text variant="hint" className="text-muted text-xs">{monthLabel}</Text>
+          <Text variant="hint" className="text-muted text-xs">
+            {monthLabel}
+          </Text>
         </View>
         <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
           {formatAmount(monthSpentEgp)} <Text className="text-xs text-muted font-medium">EGP</Text>
         </Text>
         <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
-          {formatAmount(monthSpentUsd, 0)} <Text className="text-xs text-muted font-medium">USD</Text>
+          {formatAmount(monthSpentUsd, 0)}{' '}
+          <Text className="text-xs text-muted font-medium">USD</Text>
         </Text>
-        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row', gap: ms(8) }}>
+        <View
+          className="flex-row items-center justify-between"
+          style={{ flexDirection: 'row', gap: ms(8) }}
+        >
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
             <View
               className="flex-row items-center rounded-full"
@@ -143,9 +184,13 @@ export function StatCards({
                 {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
               </Text>
             </View>
-            <Text variant="hint" className="text-muted text-xs">vs {prevMonthLabel}</Text>
+            <Text variant="hint" className="text-muted text-xs">
+              vs {prevMonthLabel}
+            </Text>
           </View>
-          <Text variant="hint" className="text-muted text-xs">{monthSpendCount} txs</Text>
+          <Text variant="hint" className="text-muted text-xs">
+            {monthSpendCount} txs
+          </Text>
         </View>
       </View>
     </View>

@@ -5,9 +5,7 @@ import { TotalBalanceStrip } from '@/screens/dashboard_v2/components/total_balan
 
 describe('TotalBalanceStrip', () => {
   it('renders the formatted EGP balance and account count', () => {
-    const { getByText } = render(
-      <TotalBalanceStrip assetsEgp={42500} accountsCount={4} />,
-    );
+    const { getByText } = render(<TotalBalanceStrip assetsEgp={42500} accountsCount={4} />);
     expect(getByText(/42,500/)).toBeTruthy();
     expect(getByText('EGP')).toBeTruthy();
     expect(getByText('4')).toBeTruthy();
@@ -16,9 +14,7 @@ describe('TotalBalanceStrip', () => {
   });
 
   it('renders zero gracefully', () => {
-    const { getByText } = render(
-      <TotalBalanceStrip assetsEgp={0} accountsCount={0} />,
-    );
+    const { getByText } = render(<TotalBalanceStrip assetsEgp={0} accountsCount={0} />);
     expect(getByText('0')).toBeTruthy();
   });
 });

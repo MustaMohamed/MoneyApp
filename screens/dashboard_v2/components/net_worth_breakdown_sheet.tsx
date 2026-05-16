@@ -86,9 +86,7 @@ export function NetWorthBreakdownSheet({
                 className="rounded overflow-hidden mb-2"
                 style={{ height: ms(6), flexDirection: 'row' }}
               >
-                {showLiquid && (
-                  <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />
-                )}
+                {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
                 {showReserve && (
                   <View style={{ flex: reservePct, backgroundColor: RESERVE_COLOR }} />
                 )}
@@ -154,10 +152,7 @@ export function NetWorthBreakdownSheet({
                   />
                 ))}
                 <View className="h-px bg-separator mt-1 mb-2" />
-                <View
-                  className="flex-row justify-between"
-                  style={{ flexDirection: 'row' }}
-                >
+                <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
                   <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
                   <Text className="font-bold" style={{ color: Colors.dark.gold }}>
                     {formatAmount(totalDebt)}
@@ -194,10 +189,7 @@ function LegendRow({
   negative,
 }: LegendRowProps) {
   return (
-    <View
-      className="flex-row items-center justify-between py-2"
-      style={{ flexDirection: 'row' }}
-    >
+    <View className="flex-row items-center justify-between py-2" style={{ flexDirection: 'row' }}>
       <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(10) }}>
         {icon ? (
           <View style={{ width: ms(16), alignItems: 'center', justifyContent: 'center' }}>
@@ -211,11 +203,13 @@ function LegendRow({
         <View>
           <View style={{ flexDirection: 'row', gap: ms(4) }}>
             <Text className="text-foreground font-semibold">{label}</Text>
-            {count !== undefined && (
-              <Text className="text-muted font-normal">({count})</Text>
-            )}
+            {count !== undefined && <Text className="text-muted font-normal">({count})</Text>}
           </View>
-          {caption && <Text variant="caption" className="text-muted">{caption}</Text>}
+          {caption && (
+            <Text variant="caption" className="text-muted">
+              {caption}
+            </Text>
+          )}
         </View>
       </View>
       <Text className="font-semibold" style={valueColor ? { color: valueColor } : undefined}>

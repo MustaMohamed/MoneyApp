@@ -178,11 +178,21 @@ export function useDashboardV2() {
     let skipped = 0;
     for (const p of dashDataState.currentMonthCommitmentPayments) {
       switch (p.status) {
-        case CommitmentPaymentStatus.Paid: paid++; break;
-        case CommitmentPaymentStatus.Overdue: overdue++; break;
-        case CommitmentPaymentStatus.Due: due++; break;
-        case CommitmentPaymentStatus.Upcoming: upcoming++; break;
-        case CommitmentPaymentStatus.Skipped: skipped++; break;
+        case CommitmentPaymentStatus.Paid:
+          paid++;
+          break;
+        case CommitmentPaymentStatus.Overdue:
+          overdue++;
+          break;
+        case CommitmentPaymentStatus.Due:
+          due++;
+          break;
+        case CommitmentPaymentStatus.Upcoming:
+          upcoming++;
+          break;
+        case CommitmentPaymentStatus.Skipped:
+          skipped++;
+          break;
       }
     }
     return { paid, overdue, due, upcoming, skipped, total: paid + overdue + due + upcoming };

@@ -141,69 +141,69 @@ export default function DashboardScreenV2() {
                 entering={FadeIn.duration(200)}
                 exiting={FadeOut.duration(150)}
               >
-              {segment === 'overview' ? (
-                <>
-                  <Animated.View style={heroStyle}>
-                    <HeroCard
-                      assetsEgp={state.netWorth.assetsEgp}
-                      assetsUsd={state.netWorth.assetsUsd}
-                      rate={state.rate}
-                      isManualOverride={state.isManualOverride}
-                      assetsCount={state.accountCounts.assets}
-                      liabilitiesCount={state.accountCounts.liabilities}
-                      onPress={() => setBreakdownVisible(true)}
-                    />
-                  </Animated.View>
-
-                  <Animated.View entering={statsEntering}>
-                    <StatCards
-                      netWorthEgp={state.netWorth.netWorthEgp}
-                      assetsEgp={state.netWorth.assetsEgp}
-                      liabilitiesEgp={state.netWorth.liabilitiesEgp}
-                      assetsCount={state.accountCounts.assets}
-                      liabilitiesCount={state.accountCounts.liabilities}
-                      monthSpentEgp={state.monthSpend.currentEgp}
-                      monthSpentUsd={state.monthSpend.currentUsdNative}
-                      monthSpendDeltaPct={state.monthSpend.deltaPct}
-                      monthSpendCount={state.monthSpend.currentCount}
-                      spendYearMonth={state.monthSpend.yearMonth}
-                    />
-                  </Animated.View>
-
-                  <CommitmentsCard
-                    counts={state.commitments.counts}
-                    totalsByCurrency={state.commitments.totalsByCurrency}
-                    yearMonth={state.commitments.yearMonth}
-                    onPress={goToCommitments}
-                  />
-
-                  <View style={{ height: Spacing.xxl }} />
-                </>
-              ) : (
-                <>
-                  <TotalBalanceStrip
-                    assetsEgp={state.netWorth.assetsEgp}
-                    accountsCount={totalAccountsCount}
-                  />
-                  {visibleTypes.map((type, index) => (
-                    <Animated.View key={type} entering={sectionEntering(index)}>
-                      <SectionHeader
-                        title={SECTION_TITLES[type]}
-                        count={state.groupedAccounts[type]?.length ?? 0}
-                      />
-                      <AccountCarousel
-                        type={type}
-                        accounts={state.groupedAccounts[type] ?? []}
+                {segment === 'overview' ? (
+                  <>
+                    <Animated.View style={heroStyle}>
+                      <HeroCard
+                        assetsEgp={state.netWorth.assetsEgp}
+                        assetsUsd={state.netWorth.assetsUsd}
                         rate={state.rate}
-                        statsMap={state.statsMap}
-                        onAccountPress={goToAccount}
-                        onAddPress={goToAddAccount}
+                        isManualOverride={state.isManualOverride}
+                        assetsCount={state.accountCounts.assets}
+                        liabilitiesCount={state.accountCounts.liabilities}
+                        onPress={() => setBreakdownVisible(true)}
                       />
                     </Animated.View>
-                  ))}
-                  <View style={{ height: Spacing.xxl }} />
-                </>
-              )}
+
+                    <Animated.View entering={statsEntering}>
+                      <StatCards
+                        netWorthEgp={state.netWorth.netWorthEgp}
+                        assetsEgp={state.netWorth.assetsEgp}
+                        liabilitiesEgp={state.netWorth.liabilitiesEgp}
+                        assetsCount={state.accountCounts.assets}
+                        liabilitiesCount={state.accountCounts.liabilities}
+                        monthSpentEgp={state.monthSpend.currentEgp}
+                        monthSpentUsd={state.monthSpend.currentUsdNative}
+                        monthSpendDeltaPct={state.monthSpend.deltaPct}
+                        monthSpendCount={state.monthSpend.currentCount}
+                        spendYearMonth={state.monthSpend.yearMonth}
+                      />
+                    </Animated.View>
+
+                    <CommitmentsCard
+                      counts={state.commitments.counts}
+                      totalsByCurrency={state.commitments.totalsByCurrency}
+                      yearMonth={state.commitments.yearMonth}
+                      onPress={goToCommitments}
+                    />
+
+                    <View style={{ height: Spacing.xxl }} />
+                  </>
+                ) : (
+                  <>
+                    <TotalBalanceStrip
+                      assetsEgp={state.netWorth.assetsEgp}
+                      accountsCount={totalAccountsCount}
+                    />
+                    {visibleTypes.map((type, index) => (
+                      <Animated.View key={type} entering={sectionEntering(index)}>
+                        <SectionHeader
+                          title={SECTION_TITLES[type]}
+                          count={state.groupedAccounts[type]?.length ?? 0}
+                        />
+                        <AccountCarousel
+                          type={type}
+                          accounts={state.groupedAccounts[type] ?? []}
+                          rate={state.rate}
+                          statsMap={state.statsMap}
+                          onAccountPress={goToAccount}
+                          onAddPress={goToAddAccount}
+                        />
+                      </Animated.View>
+                    ))}
+                    <View style={{ height: Spacing.xxl }} />
+                  </>
+                )}
               </Animated.View>
             </ScreenScroll>
           </GestureDetector>

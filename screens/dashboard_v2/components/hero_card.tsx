@@ -72,7 +72,10 @@ export function HeroCard({
         }}
       />
 
-      <View className="flex-row items-center justify-between px-5 pt-5" style={{ flexDirection: 'row' }}>
+      <View
+        className="flex-row items-center justify-between px-5 pt-5"
+        style={{ flexDirection: 'row' }}
+      >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
           <View
             className="items-center justify-center rounded-full"
@@ -123,10 +126,7 @@ export function HeroCard({
         {formatAmount(assetsEgp)} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
       </Text>
 
-      <View
-        className="flex-row flex-wrap px-5 pb-5"
-        style={{ flexDirection: 'row', gap: ms(6) }}
-      >
+      <View className="flex-row flex-wrap px-5 pb-5" style={{ flexDirection: 'row', gap: ms(6) }}>
         <View
           className="flex-row items-center rounded-full px-2 py-1"
           style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
