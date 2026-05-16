@@ -25,9 +25,10 @@
 4. **Net Worth Breakdown sheet — REDESIGN.** Replaces the legacy sheet. Built on §3's `Sheet` primitive at `size="lg"`. New layout: Net Worth headline (EGP + USD) · Assets section with Liquid/Reserve split bar + legend · Liabilities section with per-card itemisation.
 5. **Liquid/Reserve computation.** New helper `computeLiquidityBreakdown(accounts, rate)` — Liquid = Bank + SmartWallet + PhysicalWallet · Reserve = PhysicalSavings.
 6. **Per-card liabilities helper.** New `computeLiabilitiesBreakdown(accounts, rate)` returning `{name, balanceEgp}[]` for CreditCard accounts.
-7. **FAB.** §5 consumes the §3 `FAB` primitive. `onPress` → `/transactions/transaction_form`. No `onLongPress` (§1 deviation — see §3 below).
-8. **`newDashboard` flag retirement.** §1 added `newDashboard: false` in feature flags; §5 ships the new dashboard behind this flag, then flips it on and removes the flag plus the legacy branch at end of §5.
-9. **Legacy `react-native-actions-sheet` consumer removal.** Old `net_worth_breakdown_sheet.tsx` is replaced (not migrated) with the redesigned `Sheet`-based version. The legacy dep stays in the project until §9 retires the last consumers.
+7. **`newDashboard` flag retirement.** §1 added `newDashboard: false` in feature flags; §5 ships the new dashboard behind this flag, then flips it on and removes the flag plus the legacy branch at end of §5.
+8. **Legacy `react-native-actions-sheet` consumer removal.** Old `net_worth_breakdown_sheet.tsx` is replaced (not migrated) with the redesigned `Sheet`-based version. The legacy dep stays in the project until §9 retires the last consumers.
+
+**FAB (out of scope for §5 — implementation note):** §3 already built the global `FAB` and wired it into `app/(app)/(tabs)/_layout.tsx` with tap = Add Transaction and long-press = mini-menu (Add Transaction · Add Account · Add Commitment). The FAB primitive's own contract states *"Ownership: consumed by app/(app)/(tabs)/_layout.tsx only. Screens do not mount or control the FAB."* §5 therefore makes **no FAB changes**. The Dashboard tab inherits the existing FAB from the tab layout unchanged.
 
 **What does NOT ship in §5 (explicit out-of-scope):**
 - Net-worth trend / sparkline (requires historical snapshots — new persistence, parked for post-§9).
@@ -42,16 +43,15 @@
 
 ## 2. Deviations from §1 Foundation
 
-§1 prescribed: (a) a single-scroll Dashboard with hero + stats + commitments + carousels stacked vertically and (b) a global "+" FAB on every tab with **tap = Add Transaction · long-press = mini-menu** (Add Tx · Add Bill · Add Account).
+§1 prescribed a single-scroll Dashboard with hero + stats + commitments + carousels stacked vertically.
 
-§5 deviates explicitly on two points:
+§5 deviates explicitly on one point:
 
 | §1 prescription | §5 actual | Rationale (recorded for audit) |
 |---|---|---|
 | Single-scroll layout | 2-segment IA (Overview / Accounts) | Direction from human — Accounts deserve a first-class surface, not a buried bottom half. §1 already acknowledged "sequence may be reordered post-§1" and §5 extends that latitude to per-section IA refinements. |
-| FAB tap + long-press menu | FAB tap only | Direction from human — keep the "+" affordance single-purpose for §5. §3's `FAB` primitive supports `onLongPress`; §5 simply leaves the handler undefined. §6 / §8 may wire it later if needed. |
 
-No other §1 commitments are altered.
+No other §1 commitments are altered. The §1 FAB prescription (tap = Add Tx, long-press = mini-menu) is unaffected — §3 implemented it in the tab layout and §5 does not touch the FAB (see §1.8 above).
 
 ---
 
@@ -60,7 +60,7 @@ No other §1 commitments are altered.
 ### 3.1 Screen anatomy
 
 ```
-DashboardScreen  (app/(app)/(tabs)/dashboard/index.tsx → screens/dashboard/index.tsx)
+DashboardScreenV2  (screens/dashboard_v2/index.tsx)
 │
 ├── <Screen>                                         (full-screen wrapper, edges = ['top'])
 │   ├── Header (sticky, in-flow)
@@ -86,8 +86,19 @@ DashboardScreen  (app/(app)/(tabs)/dashboard/index.tsx → screens/dashboard/ind
 │   │
 │   └── NetWorthBreakdownSheet (overlay, Sheet primitive — see §6)
 │
-└── FAB  (overlay, bottom-right)                     ← NEW for Dashboard
-    └── onPress = router.push('/transactions/transaction_form')
+└── (Global FAB — rendered by app/(app)/(tabs)/_layout.tsx, outside this screen)
+```
+
+Route file `app/(app)/(tabs)/dashboard/index.tsx` is a flag-branch component (same pattern as §2):
+
+```tsx
+import { FeatureFlags } from '@/constants/feature_flags';
+import DashboardScreenV1 from '@/screens/dashboard';
+import DashboardScreenV2 from '@/screens/dashboard_v2';
+
+export default function DashboardRoute() {
+  return FeatureFlags.newDashboard ? <DashboardScreenV2 /> : <DashboardScreenV1 />;
+}
 ```
 
 ### 3.2 Empty state
@@ -96,8 +107,8 @@ When `accountState.accounts.length === 0`:
 
 - `SegmentSwitcher` is **not rendered**.
 - The body is the existing `<EmptyState variant="accounts" onAction={goToAddAccount} actionLabel={Strings.emptyAccountsCta} />`, full-screen, centred.
-- The FAB is **not rendered** (no transactions can exist without an account; the empty-state CTA covers the only meaningful action).
 - The breakdown sheet is unreachable (no HeroCard).
+- The global FAB remains visible — it is owned by the tab layout and not affected by Dashboard's empty state. Tapping it routes to the Add Transaction form, which has its own no-accounts guard (out of §5 scope; lives in §7).
 
 Once at least one account exists, the full segmented layout appears immediately on next render. No animation, no flag transition.
 
@@ -108,9 +119,11 @@ Once at least one account exists, the full segmented layout appears immediately 
 - **Segment swap animation:** Cross-fade only (Reanimated `Animated.View` with `FadeIn.duration(200)` / `FadeOut.duration(150)`). No horizontal slide — slide would conflict with the horizontal scroll gesture of the Accounts segment's `AccountCarousel` rows.
 - **Refresh control:** Pull-to-refresh in the segment body works in both segments and triggers the same `refresh()` handler (reload accounts → cascade-reload stats and spend).
 
-### 3.4 Header and FAB persistence
+### 3.4 Header persistence
 
-Header and FAB are persistent across segments. They are siblings of the scroll view, not children, so the scroll body can change without re-mounting them. The settings cog is unchanged from today (boxy back-button style, `Size.iconBack` token, `Spacing.sm` corners).
+The header is persistent across segments. It is a sibling of the scroll view, not a child, so the scroll body can change without re-mounting it. The settings cog is unchanged from today (boxy back-button style, `Size.iconBack` token, `Spacing.sm` corners).
+
+The global FAB is owned by `app/(app)/(tabs)/_layout.tsx` (built in §3); it is not part of `DashboardScreenV2`.
 
 ---
 
@@ -421,26 +434,45 @@ return {
 
 ### 6.4 Component file map
 
+§5 uses the **v1/v2 directory split pattern** established by §2. The existing `screens/dashboard/` tree (V1) is left untouched during development. All new code lives in `screens/dashboard_v2/`. Shared helpers are added to the V1 helpers file because they are pure functions with no V1/V2 divergence; both versions can import them, though only V2 uses the new ones.
+
+**New tree — `screens/dashboard_v2/`:**
+
+| File | Notes |
+|---|---|
+| `screens/dashboard_v2/index.tsx` | **New.** Uses `<Screen>` + `<ScreenScroll>`. Sticky header (wordmark + cog). Sticky `SegmentSwitcher` below header. Body swaps by `state.selectedSegment`. Renders `NetWorthBreakdownSheet` as overlay. Empty state when `accounts.length === 0`. **No FAB** (owned by tab layout). |
+| `screens/dashboard_v2/dashboard.hook.ts` | **New.** Mirrors V1 hook plus: `liquidity` memo, `liabilities` memo, `selectedSegment` state, `setSelectedSegment` setter, `useFocusEffect` segment reset. |
+| `screens/dashboard_v2/dashboard.state.ts` | **New.** Same shape as V1 plus `selectedSegment: 'overview' \| 'accounts'`. |
+| `screens/dashboard_v2/dashboard.store.ts` | **New.** Identical to V1 store (data state). |
+| `screens/dashboard_v2/dashboard.anim.ts` | **New.** Same entering animations as V1; segment swap relies on `key={segment}` on the wrapper `Animated.View` so entering re-fires. |
+| `screens/dashboard_v2/components/segment_switcher.tsx` | **New.** HeroUI Native segmented control. Two segments. Props: `value`, `onChange`, `overviewLabel`, `accountsLabel`. |
+| `screens/dashboard_v2/components/total_balance_strip.tsx` | **New.** Compact gradient strip per §4.2. Props: `assetsEgp`, `accountsCount`. |
+| `screens/dashboard_v2/components/hero_card.tsx` | **New** (HeroUI-native equivalent of V1's). Linear gradient + grid texture preserved. Tap → breakdown sheet. |
+| `screens/dashboard_v2/components/stat_cards.tsx` | **New** (HeroUI re-skin). |
+| `screens/dashboard_v2/components/commitments_card.tsx` | **New** (HeroUI re-skin). |
+| `screens/dashboard_v2/components/account_carousel.tsx` | **New** (HeroUI re-skin). |
+| `screens/dashboard_v2/components/account_card.tsx` | **New** (HeroUI re-skin). Month In/Out from `statsMap`. |
+| `screens/dashboard_v2/components/add_card.tsx` | **New** (HeroUI re-skin). Dashed border via className. |
+| `screens/dashboard_v2/components/section_header.tsx` | **New** (HeroUI re-skin). With count chip. |
+| `screens/dashboard_v2/components/net_worth_breakdown_sheet.tsx` | **New.** Built on §3 `Sheet` (`size="lg"`). Layout per §4.3. |
+
+**Shared / cross-cutting:**
+
 | File | Action |
 |---|---|
-| `screens/dashboard/index.tsx` | **Rewrite.** Replaces `SafeAreaView` with `<Screen>`. Adds `SegmentSwitcher` and FAB. Branches body by `state.selectedSegment`. Behind `newDashboard` flag during migration. |
-| `screens/dashboard/components/segment_switcher.tsx` | **New.** HeroUI Native segmented control. Two segments (`'overview'`, `'accounts'`). Props: `value`, `onChange`, `overviewLabel`, `accountsLabel`. |
-| `screens/dashboard/components/total_balance_strip.tsx` | **New.** Compact card per §4.2. Props: `assetsEgp`, `accountsCount`. |
-| `screens/dashboard/components/hero_card.tsx` | **Re-skin.** Convert RN primitives to HeroUI Native (`Card`, `Text`, `Chip`). Replace inline styles with Cairo Nights tokens via Uniwind classNames. Preserve `LinearGradient`, `GridTexture`, glow, manual badge, `onPress`. |
-| `screens/dashboard/components/stat_cards.tsx` | **Re-skin.** Convert to HeroUI primitives + Uniwind. Split bar uses `bg-positive` / `bg-negative` className tokens. |
-| `screens/dashboard/components/commitments_card.tsx` | **Re-skin.** Convert to HeroUI primitives. Keep `LinearGradient` for the progress bar fill. |
-| `screens/dashboard/components/account_carousel.tsx` | **Re-skin.** Same FlatList wiring; HeroUI for any inline labels. |
-| `screens/dashboard/components/account_card.tsx` | **Re-skin.** Keep Month In/Out stats from `statsMap`. |
-| `screens/dashboard/components/add_card.tsx` | **Re-skin.** Dashed border via `border-dashed border-separator` className. |
-| `screens/dashboard/components/section_header.tsx` | **Re-skin.** Add count chip on the right. |
-| `screens/dashboard/components/net_worth_breakdown_sheet.tsx` | **Rewrite.** Replaces legacy `react-native-actions-sheet` consumer. Built on §3 `Sheet` (`size="lg"`). New props: `assetsEgp`, `liabilitiesEgp`, `netWorthEgp`, `netWorthUsd`, `liquidity: LiquidityBreakdown`, `liabilities: LiabilityRow[]`, plus existing `visible`, `onClose`. Internal layout per §4.3. |
-| `screens/dashboard/dashboard.helpers.ts` | **Extend.** Add `computeLiquidityBreakdown`, `computeLiabilitiesBreakdown`. |
-| `screens/dashboard/dashboard.hook.ts` | **Extend.** Add liquidity / liabilities memos, `selectedSegment`, `setSelectedSegment`, focus-reset. |
-| `screens/dashboard/dashboard.state.ts` | **Extend.** Add `selectedSegment` + setter. |
-| `screens/dashboard/dashboard.store.ts` | **No change.** |
-| `screens/dashboard/dashboard.anim.ts` | **No change.** Entering animations re-fire on segment swap via `key={segment}` on the wrapper `Animated.View`. |
+| `screens/dashboard/dashboard.helpers.ts` | **Extend.** Add `computeLiquidityBreakdown`, `computeLiabilitiesBreakdown`. Existing exports unchanged. Both V1 and V2 import from this file; V1 only uses the existing exports. |
+| `app/(app)/(tabs)/dashboard/index.tsx` | **Replace.** Was `export { default } from '@/screens/dashboard';`. Becomes a flag-branch component (see §3.1 code block above). |
 | `constants/strings.ts` | **Extend.** New keys per §9 below. |
-| `constants/feature_flags.ts` (created by §1) | **Edit.** `newDashboard` flag stays `false` through dev; flip to `true` once §5 ships; delete the entry and the legacy branch in the final §5 commit. |
+| `constants/feature_flags.ts` | **Edit.** `newDashboard` flag stays `false` through dev; flip to `true` in the promotion commit. |
+
+**Cleanup commit (last task of §5, per `constants/feature_flags.ts` cleanup rule):**
+
+| Path | Cleanup action |
+|---|---|
+| `screens/dashboard/` | Delete the entire V1 directory. |
+| `app/(app)/(tabs)/dashboard/index.tsx` | Restore to one-liner: `export { default } from '@/screens/dashboard_v2';`. |
+| `constants/feature_flags.ts` | Remove the `newDashboard` entry. |
+| `CLAUDE.md` | Remove `screens/dashboard/components/net_worth_breakdown_sheet.tsx` from the §3 legacy `react-native-actions-sheet` migration list. |
 
 ### 6.5 Routing
 
@@ -469,14 +501,18 @@ No schema changes. No new migrations. No new queries.
 
 ## 7. Migration Strategy
 
-Standard strangler-fig pattern from §1:
+Standard v1/v2 directory split (same pattern §2 used):
 
-1. **Build new dashboard alongside old**, branched by the `newDashboard` flag inside `screens/dashboard/index.tsx`. The new path uses `<Screen>`, segments, FAB, new sheet. The old path is the existing `SafeAreaView` + legacy sheet code.
-2. **Local QA** with flag `true`. All Jest tests pass for both paths during this window (parameterise where useful).
-3. **Flip flag default** in `constants/feature_flags.ts` to `true`. Commit.
-4. **Final §5 commit:** delete the legacy branch in `index.tsx`, delete the legacy `net_worth_breakdown_sheet.tsx` code (now superseded), remove the `newDashboard` entry from feature flags and the import in `index.tsx`.
+1. **Build V2 in parallel** in `screens/dashboard_v2/`. V1 stays untouched. Route file `app/(app)/(tabs)/dashboard/index.tsx` becomes a flag-branch component (see §3.1).
+2. **Local QA** with flag flipped to `true`. All Jest tests pass for both V1 (existing tests unchanged) and V2 (new tests).
+3. **Promotion commit:** flip `FeatureFlags.newDashboard` from `false` to `true`. Per `constants/feature_flags.ts` rule, the flag flip lands in the same commit that promotes V2 to the active route — no earlier, no separate commit.
+4. **Cleanup commit (within 5 business days of promotion, per the same feature-flag rule):**
+   - Delete `screens/dashboard/` entirely (V1 tree).
+   - Restore `app/(app)/(tabs)/dashboard/index.tsx` to the one-line re-export: `export { default } from '@/screens/dashboard_v2';`.
+   - Remove `newDashboard` from `FeatureFlags`.
+   - Remove `screens/dashboard/components/net_worth_breakdown_sheet.tsx` from the CLAUDE.md legacy migration list.
 
-`react-native-actions-sheet` stays installed; this section retires the consumer, but the dependency is removed only after the last consumer migrates (no earlier than §9 per CLAUDE.md).
+`react-native-actions-sheet` stays installed; §5 retires this domain's consumer, but the dependency is removed only after the last consumer migrates (no earlier than §9 per CLAUDE.md).
 
 ---
 
@@ -572,16 +608,15 @@ Existing keys preserved (no rename): `dashAvailableToSpend`, `dashNetWorthTitle`
 
 §5 ships when **all** of these are true:
 
-1. `newDashboard` feature flag is removed; the legacy code path in `screens/dashboard/index.tsx` is deleted.
-2. `screens/dashboard/components/net_worth_breakdown_sheet.tsx` no longer imports from `react-native-actions-sheet`. The CLAUDE.md migration-list line for this file is removed.
-3. Overview segment renders HeroCard, StatCards, and CommitmentsCard with identical data and identical tap behaviour to today's dashboard.
+1. After cleanup, `screens/dashboard/` no longer exists; the dashboard route renders `DashboardScreenV2` directly; `FeatureFlags.newDashboard` no longer exists.
+2. The legacy `net_worth_breakdown_sheet.tsx` is removed with the V1 tree. The CLAUDE.md migration-list line for this file is removed in the same cleanup commit.
+3. Overview segment renders HeroCard, StatCards, and CommitmentsCard with identical data and identical tap behaviour to today's V1 dashboard.
 4. Accounts segment renders TotalBalanceStrip plus visible-type carousels in `TYPE_ORDER`. Empty-type sections are hidden. AddCard taps route to `/accounts/add_account`.
 5. Net Worth Breakdown sheet renders Net Worth (EGP + USD), Assets section with Liquid/Reserve split, and Liabilities section with per-card rows. Hides Liabilities section when count = 0; hides Reserve / Liquid legend row when its tier is zero. Closes on swipe-down, scrim tap, and X-button.
-6. FAB taps route to `/transactions/transaction_form`. Long-press does nothing.
-7. `useFocusEffect` resets `selectedSegment` to `'overview'`.
-8. All tests pass at the thresholds in §8.5.
-9. No new hex literals, no new hardcoded pixel values, no new hardcoded user-visible copy outside `constants/strings.ts`.
-10. The full design renders correctly on iPhone SE (smallest target) and on a Pixel 4 (large Android) — confirmed by manual smoke check before flag flip.
+6. `useFocusEffect` resets `selectedSegment` to `'overview'`.
+7. All tests pass at the thresholds in §8.5.
+8. No new hex literals, no new hardcoded pixel values, no new hardcoded user-visible copy outside `constants/strings.ts`.
+9. The full design renders correctly on iPhone SE (smallest target) and on a Pixel 4 (large Android) — confirmed by manual smoke check before flag flip.
 
 ---
 
