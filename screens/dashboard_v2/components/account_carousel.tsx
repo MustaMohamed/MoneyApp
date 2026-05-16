@@ -8,9 +8,9 @@ import type { Account } from '@/store/account.store';
 import { AccountCard } from './account_card';
 import { AddCard } from './add_card';
 
-// Cards take 65% of screen width so one card dominates the viewport and the
+// Cards take 55% of screen width so one card dominates the viewport and the
 // next card peeks at the edge — invites horizontal scroll without losing focus.
-const CARD_WIDTH_RATIO = 0.65;
+const CARD_WIDTH_RATIO = 0.55;
 
 interface AccountCarouselProps {
   type: AccountType;

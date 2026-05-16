@@ -8,7 +8,7 @@ import { AccountColors, Colors, Size } from '@/constants/theme';
 import type { AccountStats } from '@/database/account_stats';
 import type { Account } from '@/store/account.store';
 import { formatAmount } from '@/utils/format_amount';
-import { ms } from '@/utils/responsive';
+import { ms, msFont } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -190,18 +190,18 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
       accessibilityLabel={account.name}
     >
       {/* Accent bar — dynamic color stays inline */}
-      <View style={{ height: ms(4), width: '100%', backgroundColor: color }} />
+      <View style={{ height: ms(3), width: '100%', backgroundColor: color }} />
 
-      <View style={{ padding: ms(14), gap: ms(10) }}>
+      <View style={{ padding: ms(12), gap: ms(8) }}>
         {/* Card top */}
-        <View style={{ gap: ms(8) }}>
+        <View style={{ gap: ms(6) }}>
           {/* Name row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: ms(6) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: ms(5) }}>
             <Text
               variant="title"
               className="text-foreground font-bold"
               numberOfLines={1}
-              style={{ flex: 1 }}
+              style={{ flex: 1, fontSize: msFont(17) }}
             >
               {account.name}
             </Text>
@@ -211,37 +211,37 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
               style={{
                 borderWidth: 1,
                 borderColor: color + '55',
-                paddingHorizontal: ms(8),
-                paddingVertical: ms(3),
+                paddingHorizontal: ms(6),
+                paddingVertical: ms(2),
               }}
             >
-              <Text variant="label" className="text-muted font-semibold">
+              <Text variant="caption" className="text-muted font-semibold">
                 {account.currency}
               </Text>
             </View>
           </View>
 
           {/* Balance row */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
             {/* Icon box — dynamic background color stays inline */}
             <View
               className="rounded"
               style={{
-                width: ms(36),
-                height: ms(36),
-                borderRadius: ms(8),
+                width: ms(30),
+                height: ms(30),
+                borderRadius: ms(7),
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
                 backgroundColor: color + '22',
               }}
             >
-              <MaterialCommunityIcons name={icon} size={ms(18)} color={color} />
+              <MaterialCommunityIcons name={icon} size={ms(15)} color={color} />
             </View>
             <Text
               variant="numMd"
               numberOfLines={1}
-              style={{ flex: 1, color: balanceColor }}
+              style={{ flex: 1, color: balanceColor, fontSize: msFont(17) }}
             >
               {formatAmount(account.current_balance)} {account.currency}
             </Text>
@@ -252,13 +252,13 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         <View className="border-t border-border" style={{ height: Size.hairline }} />
 
         {/* Info rows */}
-        <View style={{ gap: ms(6) }}>
+        <View style={{ gap: ms(5) }}>
           {infoRows.map((row, i) => (
             <View
               key={i}
-              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: ms(6) }}
+              style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: ms(5) }}
             >
-              <Text variant="label" className="text-muted" style={{ flexShrink: 0 }}>
+              <Text variant="caption" className="text-muted" style={{ flexShrink: 0 }}>
                 {row.label}
               </Text>
               <View
@@ -267,12 +267,12 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
                 {row.icon && (
                   <MaterialCommunityIcons
                     name={row.icon === 'up' ? 'trending-up' : 'trending-down'}
-                    size={ms(14)}
+                    size={ms(12)}
                     color={row.valueColor ?? Colors.dark.text1}
                   />
                 )}
                 <Text
-                  variant="label"
+                  variant="caption"
                   numberOfLines={1}
                   style={[
                     { textAlign: 'right' },
@@ -290,7 +290,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         {showProgress && (
           <View
             className="border-border overflow-hidden"
-            style={{ height: ms(4), borderRadius: ms(2), backgroundColor: Colors.dark.border }}
+            style={{ height: ms(3), borderRadius: ms(2), backgroundColor: Colors.dark.border }}
           >
             <View
               style={{
