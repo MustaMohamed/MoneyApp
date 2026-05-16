@@ -36,3 +36,65 @@ export function groupAccountsByType(accounts: Account[]): Partial<Record<Account
   }
   return groups;
 }
+
+export interface LiquidityBreakdown {
+  liquidEgp: number;
+  liquidCount: number;
+  reserveEgp: number;
+  reserveCount: number;
+}
+
+const LIQUID_TYPES: ReadonlySet<AccountType> = new Set([
+  AccountType.Bank,
+  AccountType.SmartWallet,
+  AccountType.PhysicalWallet,
+]);
+
+const RESERVE_TYPES: ReadonlySet<AccountType> = new Set([AccountType.PhysicalSavings]);
+
+export function computeLiquidityBreakdown(
+  accounts: Account[],
+  rate: number,
+): LiquidityBreakdown {
+  let liquidEgp = 0;
+  let liquidCount = 0;
+  let reserveEgp = 0;
+  let reserveCount = 0;
+
+  for (const a of accounts) {
+    if (a.is_archived) continue;
+    const balanceEgp =
+      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    if (LIQUID_TYPES.has(a.type)) {
+      liquidEgp += balanceEgp;
+      liquidCount++;
+    } else if (RESERVE_TYPES.has(a.type)) {
+      reserveEgp += balanceEgp;
+      reserveCount++;
+    }
+  }
+
+  return { liquidEgp, liquidCount, reserveEgp, reserveCount };
+}
+
+export interface LiabilityRow {
+  id: string;
+  name: string;
+  balanceEgp: number;
+}
+
+export function computeLiabilitiesBreakdown(
+  accounts: Account[],
+  rate: number,
+): LiabilityRow[] {
+  const rows: LiabilityRow[] = [];
+  for (const a of accounts) {
+    if (a.is_archived) continue;
+    if (a.type !== AccountType.CreditCard) continue;
+    const balanceEgp =
+      a.currency === Currency.USD ? a.current_balance * rate : a.current_balance;
+    rows.push({ id: a.id, name: a.name, balanceEgp: Math.abs(balanceEgp) });
+  }
+  rows.sort((a, b) => b.balanceEgp - a.balanceEgp);
+  return rows;
+}
