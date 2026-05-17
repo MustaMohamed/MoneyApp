@@ -90,19 +90,40 @@ describe('getPeriodTotals', () => {
   it('sums income and expense egp_amounts within the date range', async () => {
     const db = await sqlite.openDatabaseAsync(':memory:');
     await insertRow(db, {
-      id: 't1', type: 'income', amount: 25000, currency: 'EGP', egp_amount: 25000,
-      account_id: 'a1', transaction_date: '2026-05-01', transaction_time: '09:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't1',
+      type: 'income',
+      amount: 25000,
+      currency: 'EGP',
+      egp_amount: 25000,
+      account_id: 'a1',
+      transaction_date: '2026-05-01',
+      transaction_time: '09:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
     await insertRow(db, {
-      id: 't2', type: 'expense', amount: 285, currency: 'EGP', egp_amount: 285,
-      account_id: 'a1', transaction_date: '2026-05-15', transaction_time: '19:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't2',
+      type: 'expense',
+      amount: 285,
+      currency: 'EGP',
+      egp_amount: 285,
+      account_id: 'a1',
+      transaction_date: '2026-05-15',
+      transaction_time: '19:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
     await insertRow(db, {
-      id: 't3', type: 'expense', amount: 920, currency: 'EGP', egp_amount: 920,
-      account_id: 'a1', transaction_date: '2026-05-31', transaction_time: '18:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't3',
+      type: 'expense',
+      amount: 920,
+      currency: 'EGP',
+      egp_amount: 920,
+      account_id: 'a1',
+      transaction_date: '2026-05-31',
+      transaction_time: '18:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
 
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
@@ -112,14 +133,30 @@ describe('getPeriodTotals', () => {
   it('excludes transfer and cc_payment rows', async () => {
     const db = await sqlite.openDatabaseAsync(':memory:');
     await insertRow(db, {
-      id: 't1', type: 'transfer', amount: 5000, currency: 'EGP', egp_amount: 5000,
-      account_id: 'a1', to_account_id: 'a2', transaction_date: '2026-05-15', transaction_time: '12:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't1',
+      type: 'transfer',
+      amount: 5000,
+      currency: 'EGP',
+      egp_amount: 5000,
+      account_id: 'a1',
+      to_account_id: 'a2',
+      transaction_date: '2026-05-15',
+      transaction_time: '12:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
     await insertRow(db, {
-      id: 't2', type: 'cc_payment', amount: 4080, currency: 'EGP', egp_amount: 4080,
-      account_id: 'a1', to_account_id: 'a3', transaction_date: '2026-05-20', transaction_time: '11:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't2',
+      type: 'cc_payment',
+      amount: 4080,
+      currency: 'EGP',
+      egp_amount: 4080,
+      account_id: 'a1',
+      to_account_id: 'a3',
+      transaction_date: '2026-05-20',
+      transaction_time: '11:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
     expect(result).toEqual({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 });
@@ -128,14 +165,28 @@ describe('getPeriodTotals', () => {
   it('excludes rows outside the date range', async () => {
     const db = await sqlite.openDatabaseAsync(':memory:');
     await insertRow(db, {
-      id: 't1', type: 'expense', amount: 100, currency: 'EGP', egp_amount: 100,
-      account_id: 'a1', transaction_date: '2026-04-30', transaction_time: '10:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't1',
+      type: 'expense',
+      amount: 100,
+      currency: 'EGP',
+      egp_amount: 100,
+      account_id: 'a1',
+      transaction_date: '2026-04-30',
+      transaction_time: '10:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
     await insertRow(db, {
-      id: 't2', type: 'expense', amount: 200, currency: 'EGP', egp_amount: 200,
-      account_id: 'a1', transaction_date: '2026-06-01', transaction_time: '10:00:00',
-      created_at: 'X', updated_at: 'X',
+      id: 't2',
+      type: 'expense',
+      amount: 200,
+      currency: 'EGP',
+      egp_amount: 200,
+      account_id: 'a1',
+      transaction_date: '2026-06-01',
+      transaction_time: '10:00:00',
+      created_at: 'X',
+      updated_at: 'X',
     });
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
     expect(result).toEqual({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 });

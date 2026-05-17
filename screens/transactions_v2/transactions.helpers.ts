@@ -38,9 +38,10 @@ export function computeCarouselPills(now: Date = new Date()): CarouselPill[] {
   return pills;
 }
 
-export function resolvePeriod(
-  selection: CarouselSelection,
-): { from: string | undefined; to: string | undefined } {
+export function resolvePeriod(selection: CarouselSelection): {
+  from: string | undefined;
+  to: string | undefined;
+} {
   switch (selection.type) {
     case 'all':
       return { from: undefined, to: undefined };
