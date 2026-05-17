@@ -53,15 +53,12 @@ export function useFilterSheet() {
     })),
   );
 
-  // When the sheet opens, seed the draft from the currently applied filters,
-  // but only if the draft is currently empty (so an externally pre-set draft is preserved).
-  const draftIsEmpty = countActiveFilters(filterStoreState.draft) === 0;
+  // When the sheet opens, seed the draft from the currently applied filters.
   useEffect(() => {
-    if (filterState.visible && draftIsEmpty) {
+    if (filterState.visible) {
       setDraft(txScreenState.appliedFilters);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterState.visible]);
+  }, [filterState.visible, txScreenState.appliedFilters, setDraft]);
 
   const applyDraft = useCallback(() => {
     setAppliedFilters(filterStoreState.draft);

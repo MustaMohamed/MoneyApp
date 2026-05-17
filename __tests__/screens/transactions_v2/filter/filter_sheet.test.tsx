@@ -76,8 +76,9 @@ describe('FilterSheet', () => {
   });
 
   it('Reset clears all draft filters', () => {
+    // Seed via appliedFilters so the re-seed-on-open effect picks them up.
     act(() => {
-      useFilterStore.getState().setDraft({
+      useTransactionsScreenStore.getState().setAppliedFilters({
         accountIds: ['a1'],
         categoryIds: ['c1'],
         amountCurrency: Currency.EGP,
@@ -93,8 +94,10 @@ describe('FilterSheet', () => {
   });
 
   it('Apply commits the draft to appliedFilters and closes the sheet', () => {
+    // Seed via appliedFilters so the re-seed-on-open effect picks them up,
+    // then open — the effect seeds the draft with accountIds: ['a1'].
     act(() => {
-      useFilterStore.getState().setDraft({
+      useTransactionsScreenStore.getState().setAppliedFilters({
         accountIds: ['a1'],
         categoryIds: [],
         amountCurrency: Currency.EGP,
