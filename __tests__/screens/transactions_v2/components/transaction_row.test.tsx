@@ -76,7 +76,12 @@ function mkTx(p: Partial<Transaction> = {}): Transaction {
 describe('TransactionRow — left column', () => {
   it('shows category name as the title for expense', () => {
     const { getByText } = render(
-      <TransactionRow tx={mkTx()} account={mkAccount()} category={mkCategory()} onPress={() => {}} />,
+      <TransactionRow
+        tx={mkTx()}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
     );
     expect(getByText('Food')).toBeTruthy();
   });
@@ -126,7 +131,12 @@ describe('TransactionRow — left column', () => {
 
   it('omits the note line when note is null', () => {
     const { queryByText } = render(
-      <TransactionRow tx={mkTx()} account={mkAccount()} category={mkCategory()} onPress={() => {}} />,
+      <TransactionRow
+        tx={mkTx()}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
     );
     // No specific text to find; just assert that a generic note placeholder is absent.
     expect(queryByText(/^"/)).toBeNull();
@@ -134,7 +144,12 @@ describe('TransactionRow — left column', () => {
 
   it('shows account name for expense/income', () => {
     const { getByText } = render(
-      <TransactionRow tx={mkTx()} account={mkAccount()} category={mkCategory()} onPress={() => {}} />,
+      <TransactionRow
+        tx={mkTx()}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
     );
     expect(getByText('CIB')).toBeTruthy();
   });
@@ -167,7 +182,12 @@ describe('TransactionRow — left column', () => {
 describe('TransactionRow — right column', () => {
   it('shows signed native amount + currency code', () => {
     const { getByText } = render(
-      <TransactionRow tx={mkTx()} account={mkAccount()} category={mkCategory()} onPress={() => {}} />,
+      <TransactionRow
+        tx={mkTx()}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
     );
     expect(getByText('−285 EGP')).toBeTruthy();
   });
@@ -187,7 +207,13 @@ describe('TransactionRow — right column', () => {
   it('omits sign prefix for transfer', () => {
     const { getByText } = render(
       <TransactionRow
-        tx={mkTx({ type: TransactionType.Transfer, category_id: null, to_account_id: 'a2', amount: 5000, egp_amount: 5000 })}
+        tx={mkTx({
+          type: TransactionType.Transfer,
+          category_id: null,
+          to_account_id: 'a2',
+          amount: 5000,
+          egp_amount: 5000,
+        })}
         account={mkAccount()}
         toAccount={mkAccount({ id: 'a2', name: 'QNB Reserve' })}
         onPress={() => {}}
@@ -214,8 +240,14 @@ describe('TransactionRow — right column', () => {
     const { getByText } = render(
       <TransactionRow
         tx={mkTx({
-          type: TransactionType.Transfer, category_id: null, to_account_id: 'a2',
-          currency: Currency.USD, amount: 100, egp_amount: 4885, to_amount: 4885, exchange_rate: 48.85,
+          type: TransactionType.Transfer,
+          category_id: null,
+          to_account_id: 'a2',
+          currency: Currency.USD,
+          amount: 100,
+          egp_amount: 4885,
+          to_amount: 4885,
+          exchange_rate: 48.85,
         })}
         account={mkAccount({ name: 'Wise USD', currency: Currency.USD })}
         toAccount={mkAccount({ id: 'a2', name: 'CIB' })}
@@ -228,7 +260,12 @@ describe('TransactionRow — right column', () => {
 
   it('omits the EGP-equivalent line when currency is EGP', () => {
     const { queryByText } = render(
-      <TransactionRow tx={mkTx()} account={mkAccount()} category={mkCategory()} onPress={() => {}} />,
+      <TransactionRow
+        tx={mkTx()}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
     );
     expect(queryByText(/≈/)).toBeNull();
     expect(queryByText(/@ /)).toBeNull();
@@ -236,7 +273,12 @@ describe('TransactionRow — right column', () => {
 
   it('shows time in 12h format', () => {
     const { getByText } = render(
-      <TransactionRow tx={mkTx()} account={mkAccount()} category={mkCategory()} onPress={() => {}} />,
+      <TransactionRow
+        tx={mkTx()}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
     );
     expect(getByText('7:14 PM')).toBeTruthy();
   });

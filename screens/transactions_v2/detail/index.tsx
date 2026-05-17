@@ -94,11 +94,11 @@ export default function TransactionDetailScreenV2(): React.ReactElement {
                 toCurrency={state.derived.transferFlow.toCurrency}
                 onPressFrom={() =>
                   state.derived?.transferFlow &&
-                  router.push(`/accounts/${state.derived.transferFlow.fromAccount?.id}`)
+                  router.push(`/accounts/${state.derived.transferFlow.fromAccount.id}`)
                 }
                 onPressTo={() =>
                   state.derived?.transferFlow &&
-                  router.push(`/accounts/${state.derived.transferFlow.toAccount?.id}`)
+                  router.push(`/accounts/${state.derived.transferFlow.toAccount.id}`)
                 }
               />
             ) : null}

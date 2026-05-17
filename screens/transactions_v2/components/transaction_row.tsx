@@ -88,7 +88,13 @@ function pickIcon(tx: Transaction, category?: Category): IconName {
   return (category?.icon as IconName) ?? FALLBACK_ICON;
 }
 
-export function TransactionRow({ tx, account, toAccount, category, onPress }: Props): React.ReactElement {
+export function TransactionRow({
+  tx,
+  account,
+  toAccount,
+  category,
+  onPress,
+}: Props): React.ReactElement {
   const { scale, onPressIn, onPressOut } = useRowPressScale();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
@@ -109,8 +115,14 @@ export function TransactionRow({ tx, account, toAccount, category, onPress }: Pr
         style={[{ flexDirection: 'row', alignItems: 'flex-start' }, animStyle]}
         className="px-4 py-3 gap-3 border-b border-separator"
       >
-        <View className={`w-9 h-9 rounded-lg items-center justify-center mt-0.5 ${iconBgClass(tx.type)}`}>
-          <MaterialCommunityIcons name={pickIcon(tx, category)} size={18} color={category?.color ?? '#D4AF37'} />
+        <View
+          className={`w-9 h-9 rounded-lg items-center justify-center mt-0.5 ${iconBgClass(tx.type)}`}
+        >
+          <MaterialCommunityIcons
+            name={pickIcon(tx, category)}
+            size={18}
+            color={category?.color ?? '#D4AF37'}
+          />
         </View>
         <View className="flex-1 min-w-0">
           <View className="flex-row items-center gap-2 flex-wrap">
@@ -122,12 +134,17 @@ export function TransactionRow({ tx, account, toAccount, category, onPress }: Pr
               {note}
             </Text>
           ) : null}
-          <Text className="font-inter font-medium text-[10.5px] text-foreground/55 mt-1" numberOfLines={1}>
+          <Text
+            className="font-inter font-medium text-[10.5px] text-foreground/55 mt-1"
+            numberOfLines={1}
+          >
             {ctx}
           </Text>
         </View>
         <View className="items-end">
-          <Text className={`font-sora font-bold text-[14px] ${amountColorClass(tx.type)}`}>{nativeText}</Text>
+          <Text className={`font-sora font-bold text-[14px] ${amountColorClass(tx.type)}`}>
+            {nativeText}
+          </Text>
           {showEquiv ? (
             <Text className="font-inter font-medium text-[10px] text-foreground/60 mt-0.5">
               {egpText}

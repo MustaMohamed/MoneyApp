@@ -3,11 +3,7 @@ import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { Text } from '@/components/ui/text';
-import {
-  computeDeltaPct,
-  polarityColor,
-  type TotalsMetric,
-} from '../transactions.helpers';
+import { computeDeltaPct, polarityColor, type TotalsMetric } from '../transactions.helpers';
 import type { PeriodTotals } from '@/database/transactions';
 
 interface Props {
@@ -52,7 +48,9 @@ function Cell({
       </Text>
       <Text className={`font-sora font-bold text-[15px] mt-1 ${valueClass}`}>{value}</Text>
       {deltaPct !== null ? (
-        <Text className={`font-inter text-[10px] mt-1 ${deltaColorClass(polarityColor(metric, deltaPct))}`}>
+        <Text
+          className={`font-inter text-[10px] mt-1 ${deltaColorClass(polarityColor(metric, deltaPct))}`}
+        >
           {deltaLabel(deltaPct)}
         </Text>
       ) : null}

@@ -16,7 +16,13 @@ jest.mock('heroui-native', () => {
 
 jest.mock('react-native-reanimated', () => {
   const { View } = jest.requireActual('react-native');
-  return { __esModule: true, default: { View }, View, useSharedValue: () => ({ value: 0 }), useAnimatedStyle: () => ({}) };
+  return {
+    __esModule: true,
+    default: { View },
+    View,
+    useSharedValue: () => ({ value: 0 }),
+    useAnimatedStyle: () => ({}),
+  };
 });
 
 // Mock V1 edit transaction sheet and its state/store to avoid
@@ -35,7 +41,13 @@ jest.mock('@/screens/transactions/transaction_form/edit_transaction.state', () =
 jest.mock('@/screens/transactions/transaction_form/edit_transaction.store', () => ({
   useEditTransactionStore: Object.assign(
     jest.fn(() => ({ state: { editingTx: undefined } })),
-    { getState: () => ({ state: { editingTx: undefined }, reset: jest.fn(), loadFromTx: jest.fn() }) },
+    {
+      getState: () => ({
+        state: { editingTx: undefined },
+        reset: jest.fn(),
+        loadFromTx: jest.fn(),
+      }),
+    },
   ),
 }));
 

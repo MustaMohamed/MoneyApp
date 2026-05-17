@@ -27,10 +27,16 @@ export function AccountAccordion({
 
   return (
     <View className="rounded-xl border border-separator bg-surface mb-2 p-3.5">
-      <Pressable onPress={onToggleSection} accessibilityRole="button" accessibilityState={{ expanded }}>
+      <Pressable
+        onPress={onToggleSection}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
         <View className="flex-row justify-between items-center">
           <View className="flex-row items-center gap-2">
-            <Text className="font-inter font-semibold text-[13px]">{Strings.filterSectionAccounts}</Text>
+            <Text className="font-inter font-semibold text-[13px]">
+              {Strings.filterSectionAccounts}
+            </Text>
             {selectedIds.length > 0 ? (
               <View className="px-1.5 rounded-full bg-accent/15 min-w-[18px] items-center">
                 <Text className="font-inter font-bold text-[10px] text-accent">

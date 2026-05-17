@@ -146,25 +146,23 @@ export function useTransactionDetail(id: string) {
         : (account?.name ?? Strings.unknownAccount),
       accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
       originalAmountText:
-        tx.currency === Currency.USD
-          ? `${numberFmt.format(tx.amount)} USD`
-          : undefined,
+        tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
       exchangeRateText:
-        tx.exchange_rate !== null
-          ? `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP`
-          : undefined,
+        tx.exchange_rate !== null ? `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP` : undefined,
       noteText: tx.note?.trim() || Strings.detailNoteEmpty,
       category,
       isTransferLike: tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment,
       transferFlow:
-        tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment
+        (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) &&
+        account &&
+        toAccount
           ? {
               fromAccount: account,
               toAccount,
               fromAmount: tx.amount,
               fromCurrency: tx.currency,
               toAmount: tx.to_amount ?? tx.egp_amount,
-              toCurrency: toAccount?.currency ?? tx.currency,
+              toCurrency: toAccount.currency,
             }
           : null,
     };

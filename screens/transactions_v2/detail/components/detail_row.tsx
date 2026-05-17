@@ -26,7 +26,9 @@ export function DetailRow({
   showDivider = true,
 }: Props): React.ReactElement {
   return (
-    <View className={`px-4 py-3 flex-row items-center gap-3 ${showDivider ? 'border-b border-separator' : ''}`}>
+    <View
+      className={`px-4 py-3 flex-row items-center gap-3 ${showDivider ? 'border-b border-separator' : ''}`}
+    >
       <View className="w-7 h-7 rounded-md bg-foreground/5 items-center justify-center">
         <MaterialCommunityIcons name={icon} size={14} color="#F0EEE6" />
       </View>
@@ -34,7 +36,10 @@ export function DetailRow({
         <Text className="font-inter font-semibold text-[10.5px] uppercase tracking-wide text-foreground/55">
           {label}
         </Text>
-        <Text className={`font-inter text-[13px] mt-0.5 ${muted ? 'italic text-foreground/60' : 'font-medium'}`} numberOfLines={2}>
+        <Text
+          className={`font-inter text-[13px] mt-0.5 ${muted ? 'italic text-foreground/60' : 'font-medium'}`}
+          numberOfLines={2}
+        >
           {value}
         </Text>
         {sublabel ? (

@@ -11,7 +11,11 @@ import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 
 export function useFilterSheet() {
-  const { state: filterState, close, setOpenSection } = useFilterState(
+  const {
+    state: filterState,
+    close,
+    setOpenSection,
+  } = useFilterState(
     useShallow((s) => ({
       state: s.state,
       close: s.close,
@@ -43,10 +47,7 @@ export function useFilterSheet() {
   const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
-  const {
-    state: txScreenState,
-    setAppliedFilters,
-  } = useTransactionsScreenStore(
+  const { state: txScreenState, setAppliedFilters } = useTransactionsScreenStore(
     useShallow((s) => ({
       state: s.state,
       setAppliedFilters: s.setAppliedFilters,

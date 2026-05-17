@@ -41,7 +41,12 @@ export function FilterSheet(): React.ReactElement | null {
       <Sheet.Body>
         {/* Reset link row — Sheet has no headerRight slot so it lives here */}
         <View
-          style={{ flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 16, paddingBottom: 8 }}
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+          }}
         >
           <Pressable
             onPress={f.resetDraft}

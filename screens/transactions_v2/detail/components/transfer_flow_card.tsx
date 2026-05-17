@@ -47,7 +47,8 @@ function Cell({
         {account.name}
       </Text>
       <Text className="font-sora font-semibold text-[11px] text-foreground/85 mt-0.5">
-        {signPrefix}{numberFmt.format(amount)} {currency}
+        {signPrefix}
+        {numberFmt.format(amount)} {currency}
       </Text>
     </View>
   );

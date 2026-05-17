@@ -13,7 +13,11 @@ import { FilterSheet } from '@/screens/transactions_v2/filter';
 jest.mock('@/components/ui/sheet', () => {
   const React = jest.requireActual('react');
   const { View } = jest.requireActual('react-native');
-  const Sheet = (props: { visible: boolean; children: React.ReactNode; footer?: React.ReactNode }) =>
+  const Sheet = (props: {
+    visible: boolean;
+    children: React.ReactNode;
+    footer?: React.ReactNode;
+  }) =>
     props.visible ? React.createElement(View, null, props.children, props.footer ?? null) : null;
   Sheet.Body = ({ children }: { children: React.ReactNode }) =>
     React.createElement(View, null, children);
@@ -32,7 +36,15 @@ jest.mock('@/components/ui/button', () => {
   const React = jest.requireActual('react');
   const { Pressable, Text } = jest.requireActual('react-native');
   return {
-    Button: ({ label, onPress, disabled }: { label: string; onPress?: () => void; disabled?: boolean }) =>
+    Button: ({
+      label,
+      onPress,
+      disabled,
+    }: {
+      label: string;
+      onPress?: () => void;
+      disabled?: boolean;
+    }) =>
       React.createElement(
         Pressable,
         { onPress: disabled ? undefined : onPress, accessibilityState: { disabled: !!disabled } },
@@ -48,14 +60,34 @@ beforeEach(() => {
   useAccountStore.setState({
     state: {
       accounts: [
-        { id: 'a1', name: 'CIB', type: 'bank', currency: 'EGP', current_balance: 0, opening_balance: 0, is_archived: 0, color: '#D4AF37', created_at: 'X', updated_at: 'X' } as never,
+        {
+          id: 'a1',
+          name: 'CIB',
+          type: 'bank',
+          currency: 'EGP',
+          current_balance: 0,
+          opening_balance: 0,
+          is_archived: 0,
+          color: '#D4AF37',
+          created_at: 'X',
+          updated_at: 'X',
+        } as never,
       ],
     },
   } as never);
   useCategoryStore.setState({
     state: {
       categories: [
-        { id: 'c1', name: 'Food', icon: 'silverware-fork-knife', color: '#FFAA66', type: 'expense', is_archived: 0, created_at: 'X', updated_at: 'X' } as never,
+        {
+          id: 'c1',
+          name: 'Food',
+          icon: 'silverware-fork-knife',
+          color: '#FFAA66',
+          type: 'expense',
+          is_archived: 0,
+          created_at: 'X',
+          updated_at: 'X',
+        } as never,
       ],
     },
   } as never);

@@ -12,7 +12,12 @@ interface Props {
   onConfirm: () => void;
 }
 
-export function DeleteConfirmDialog({ visible, busy, onCancel, onConfirm }: Props): React.ReactElement {
+export function DeleteConfirmDialog({
+  visible,
+  busy,
+  onCancel,
+  onConfirm,
+}: Props): React.ReactElement {
   return (
     <Modal
       transparent
@@ -21,7 +26,10 @@ export function DeleteConfirmDialog({ visible, busy, onCancel, onConfirm }: Prop
       animationType="fade"
       statusBarTranslucent
     >
-      <View className="flex-1 items-center justify-center px-6" style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <View
+        className="flex-1 items-center justify-center px-6"
+        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      >
         <View className="w-full rounded-2xl bg-surface border border-separator p-6">
           <Text className="font-sora font-bold text-[17px] text-foreground mb-3">
             {Strings.deleteConfirmTitle}

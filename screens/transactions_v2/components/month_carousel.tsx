@@ -67,10 +67,7 @@ export function MonthCarousel({
   }, [currentKey, pillOffsets]);
 
   const snapToOffsets = useMemo(
-    () =>
-      pills
-        .map((p) => pillOffsets[pillKey(p)])
-        .filter((x): x is number => x !== undefined),
+    () => pills.map((p) => pillOffsets[pillKey(p)]).filter((x): x is number => x !== undefined),
     [pills, pillOffsets],
   );
 

@@ -39,10 +39,16 @@ export function AmountAccordion({
 
   return (
     <View className="rounded-xl border border-separator bg-surface mb-2 p-3.5">
-      <Pressable onPress={onToggleSection} accessibilityRole="button" accessibilityState={{ expanded }}>
+      <Pressable
+        onPress={onToggleSection}
+        accessibilityRole="button"
+        accessibilityState={{ expanded }}
+      >
         <View className="flex-row justify-between items-center">
           <View className="flex-row items-center gap-2">
-            <Text className="font-inter font-semibold text-[13px]">{Strings.filterSectionAmount}</Text>
+            <Text className="font-inter font-semibold text-[13px]">
+              {Strings.filterSectionAmount}
+            </Text>
             {active ? (
               <View className="px-1.5 rounded-full bg-accent/15 items-center">
                 <Text className="font-inter font-bold text-[10px] text-accent">1</Text>
@@ -72,7 +78,9 @@ export function AmountAccordion({
                   onPress={() => onChangeCurrency(c as Currency)}
                   className={`flex-1 py-1.5 rounded-md items-center ${sel ? 'bg-default/40' : ''}`}
                 >
-                  <Text className={`font-inter font-semibold text-[11px] ${sel ? 'text-accent' : 'text-foreground/60'}`}>
+                  <Text
+                    className={`font-inter font-semibold text-[11px] ${sel ? 'text-accent' : 'text-foreground/60'}`}
+                  >
                     {c}
                   </Text>
                 </Pressable>
