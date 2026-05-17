@@ -1,44 +1,38 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { View } from 'react-native';
 
-import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { Colors } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 
 interface SectionHeaderProps {
   title: string;
-  onSeeAll?: () => void;
+  count?: number;
 }
 
-export function SectionHeader({ title, onSeeAll }: SectionHeaderProps) {
+export function SectionHeader({ title, count }: SectionHeaderProps) {
   return (
-    <View style={styles.row}>
-      <Text style={styles.title}>{title}</Text>
-      {onSeeAll && (
-        <Pressable onPress={onSeeAll} hitSlop={8}>
-          <Text style={styles.seeAll}>{Strings.dashSeeAll}</Text>
-        </Pressable>
+    <View
+      className="flex-row items-center justify-between mx-4 mt-4 mb-2"
+      style={{ flexDirection: 'row' }}
+    >
+      <Text variant="hint" className="text-muted uppercase tracking-wide text-xs font-semibold">
+        {title}
+      </Text>
+      {count !== undefined && count > 0 && (
+        <View
+          className="rounded-full"
+          style={{
+            paddingHorizontal: ms(8),
+            paddingVertical: ms(2),
+            backgroundColor: Colors.shared.cairoGold + '22',
+          }}
+        >
+          <Text className="text-xs font-bold" style={{ color: Colors.shared.cairoGold }}>
+            {count}
+          </Text>
+        </View>
       )}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.sm,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.xs,
-  },
-  title: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.micro,
-    color: Colors.shared.cairoGold,
-    letterSpacing: 1,
-  },
-  seeAll: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-});

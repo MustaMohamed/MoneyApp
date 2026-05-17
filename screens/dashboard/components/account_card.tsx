@@ -1,13 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { AccountColors, Colors, Size } from '@/constants/theme';
 import type { AccountStats } from '@/database/account_stats';
 import type { Account } from '@/store/account.store';
 import { formatAmount } from '@/utils/format_amount';
-import { ms } from '@/utils/responsive';
+import { ms, msFont } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -23,7 +24,7 @@ function availableCreditColor(available: number, limit: number): string {
   if (limit <= 0) return Colors.dark.text2;
   const pct = available / limit;
   if (pct > 0.5) return Colors.dark.positive;
-  if (pct >= 0.2) return '#D4830A';
+  if (pct >= 0.2) return Colors.dark.warning;
   return Colors.dark.negative;
 }
 
@@ -163,10 +164,11 @@ interface AccountCardProps {
   account: Account;
   rate: number;
   stats: AccountStats | undefined;
+  width: number;
   onPress: () => void;
 }
 
-export function AccountCard({ account, rate, stats, onPress }: AccountCardProps) {
+export function AccountCard({ account, rate, stats, width, onPress }: AccountCardProps) {
   const color = account.color ?? AccountColors[0];
   const isCreditCard = account.type === AccountType.CreditCard;
   const balanceColor = isCreditCard ? Colors.dark.negative : Colors.dark.gold;
@@ -180,45 +182,120 @@ export function AccountCard({ account, rate, stats, onPress }: AccountCardProps)
   const progressColor = availableCreditColor(available, limit);
 
   return (
-    <Pressable onPress={onPress} style={styles.card}>
-      <View style={[styles.accentBar, { backgroundColor: color }]} />
-      <View style={styles.body}>
-        <View style={styles.cardTop}>
-          <View style={styles.topRow}>
-            <Text style={styles.name} numberOfLines={1}>
+    <Pressable
+      onPress={onPress}
+      className="bg-surface rounded-2xl border border-border overflow-hidden"
+      style={{ width, marginLeft: ms(4) }}
+      accessibilityRole="button"
+      accessibilityLabel={account.name}
+    >
+      {/* Accent bar — dynamic color stays inline */}
+      <View style={{ height: ms(3), width: '100%', backgroundColor: color }} />
+
+      <View style={{ paddingHorizontal: ms(12), paddingVertical: ms(9), gap: ms(6) }}>
+        {/* Card top */}
+        <View style={{ gap: ms(5) }}>
+          {/* Name row */}
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: ms(5),
+            }}
+          >
+            <Text
+              variant="title"
+              className="text-foreground font-bold"
+              numberOfLines={1}
+              style={{ flex: 1, fontSize: msFont(17) }}
+            >
               {account.name}
             </Text>
-            <View style={[styles.currencyPill, { borderColor: color + '55' }]}>
-              <Text style={styles.currencyPillText}>{account.currency}</Text>
+            {/* Currency pill — border color is dynamic */}
+            <View
+              className="rounded"
+              style={{
+                borderWidth: 1,
+                borderColor: color + '55',
+                paddingHorizontal: ms(6),
+                paddingVertical: ms(2),
+              }}
+            >
+              <Text variant="caption" className="text-muted font-semibold">
+                {account.currency}
+              </Text>
             </View>
           </View>
-          <View style={styles.balanceRow}>
-            <View style={[styles.iconBox, { backgroundColor: color + '22' }]}>
-              <MaterialCommunityIcons name={icon} size={ms(12)} color={color} />
+
+          {/* Balance row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
+            {/* Icon box — dynamic background color stays inline */}
+            <View
+              className="rounded"
+              style={{
+                width: ms(30),
+                height: ms(30),
+                borderRadius: ms(7),
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                backgroundColor: color + '22',
+              }}
+            >
+              <MaterialCommunityIcons name={icon} size={ms(15)} color={color} />
             </View>
-            <Text style={[styles.balance, { color: balanceColor }]} numberOfLines={1}>
+            <Text
+              variant="numMd"
+              numberOfLines={1}
+              style={{ flex: 1, color: balanceColor, fontSize: msFont(17) }}
+            >
               {formatAmount(account.current_balance)} {account.currency}
             </Text>
           </View>
         </View>
 
-        <View style={styles.divider} />
+        {/* Divider */}
+        <View className="border-t border-border" style={{ height: Size.hairline }} />
 
-        <View style={styles.infoSection}>
+        {/* Info rows */}
+        <View style={{ gap: ms(4) }}>
           {infoRows.map((row, i) => (
-            <View key={i} style={styles.infoRow}>
-              <Text style={styles.infoLabel}>{row.label}</Text>
-              <View style={styles.infoValueRow}>
+            <View
+              key={i}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: ms(5),
+              }}
+            >
+              <Text variant="caption" className="text-muted" style={{ flexShrink: 0 }}>
+                {row.label}
+              </Text>
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: ms(3),
+                }}
+              >
                 {row.icon && (
                   <MaterialCommunityIcons
                     name={row.icon === 'up' ? 'trending-up' : 'trending-down'}
-                    size={ms(10)}
+                    size={ms(12)}
                     color={row.valueColor ?? Colors.dark.text1}
                   />
                 )}
                 <Text
-                  style={[styles.infoValue, row.valueColor ? { color: row.valueColor } : undefined]}
+                  variant="caption"
                   numberOfLines={1}
+                  style={[
+                    { textAlign: 'right' },
+                    row.valueColor ? { color: row.valueColor } : undefined,
+                  ]}
                 >
                   {row.value}
                 </Text>
@@ -227,13 +304,19 @@ export function AccountCard({ account, rate, stats, onPress }: AccountCardProps)
           ))}
         </View>
 
+        {/* Credit progress bar */}
         {showProgress && (
-          <View style={styles.progressTrack}>
+          <View
+            className="border-border overflow-hidden"
+            style={{ height: ms(3), borderRadius: ms(2), backgroundColor: Colors.dark.border }}
+          >
             <View
-              style={[
-                styles.progressFill,
-                { width: `${progressPct * 100}%`, backgroundColor: progressColor },
-              ]}
+              style={{
+                height: '100%',
+                borderRadius: ms(2),
+                width: `${progressPct * 100}%`,
+                backgroundColor: progressColor,
+              }}
             />
           </View>
         )}
@@ -241,107 +324,3 @@ export function AccountCard({ account, rate, stats, onPress }: AccountCardProps)
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    width: ms(180),
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    overflow: 'hidden',
-    marginLeft: Spacing.xs,
-  },
-  accentBar: { height: ms(3), width: '100%' },
-  body: {
-    padding: Spacing.xs,
-    gap: Spacing.xs,
-  },
-  cardTop: {
-    gap: ms(4),
-  },
-  infoSection: {
-    gap: ms(2),
-  },
-  topRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xxs,
-  },
-  name: {
-    flex: 1,
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
-  },
-  currencyPill: {
-    borderWidth: 1,
-    borderRadius: ms(3),
-    paddingHorizontal: Spacing.xxs + ms(2),
-    paddingVertical: ms(2),
-  },
-  currencyPillText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  balanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  iconBox: {
-    width: ms(24),
-    height: ms(24),
-    borderRadius: ms(5),
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  balance: {
-    flex: 1,
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.body,
-  },
-  divider: {
-    height: Size.hairline,
-    backgroundColor: Colors.dark.border,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  infoValueRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: ms(2),
-  },
-  infoLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    flexShrink: 0,
-  },
-  infoValue: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-    textAlign: 'right',
-  },
-  progressTrack: {
-    height: ms(3),
-    borderRadius: ms(2),
-    backgroundColor: Colors.dark.border,
-    overflow: 'hidden',
-    marginTop: -Spacing.xxs,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: ms(2),
-  },
-});

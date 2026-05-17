@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
-import { TotalBalanceStrip } from '@/screens/dashboard_v2/components/total_balance_strip';
+import { TotalBalanceStrip } from '@/screens/dashboard/components/total_balance_strip';
 
 describe('TotalBalanceStrip', () => {
   it('renders the formatted EGP balance and account count', () => {

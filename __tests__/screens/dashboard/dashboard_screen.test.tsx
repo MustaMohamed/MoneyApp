@@ -4,6 +4,8 @@ import { fireEvent, render } from '@testing-library/react-native';
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/store/account.store';
 
+import DashboardScreen from '@/screens/dashboard';
+
 jest.mock('react-native-reanimated', () => {
   const React = jest.requireActual('react');
   const View = ({ children, style }: { children?: React.ReactNode; style?: unknown }) =>
@@ -60,22 +62,24 @@ jest.mock('heroui-native', () => {
       { value: { onValueChange } },
       React.createElement(View, null, children),
     );
-  Tabs.List = ({ children }: { children: React.ReactNode }) =>
+  const TabsList = ({ children }: { children: React.ReactNode }) =>
     React.createElement(View, null, children);
-  Tabs.Indicator = () => null;
-  Tabs.Trigger = ({ value, children }: { value: string; children: React.ReactNode }) => {
+  const TabsIndicator = () => null;
+  const TabsTrigger = ({ value, children }: { value: string; children: React.ReactNode }) => {
     const ctx = React.useContext(TabsContext);
     return React.createElement(Pressable, { onPress: () => ctx.onValueChange?.(value) }, children);
   };
-  Tabs.Label = ({ children }: { children: React.ReactNode }) =>
+  const TabsLabel = ({ children }: { children: React.ReactNode }) =>
     React.createElement(Text, null, children);
+  Tabs.List = TabsList;
+  Tabs.Indicator = TabsIndicator;
+  Tabs.Trigger = TabsTrigger;
+  Tabs.Label = TabsLabel;
   return {
     Tabs,
     cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
   };
 });
-
-import DashboardScreenV2 from '@/screens/dashboard_v2';
 
 // Mock the hook directly — screen test is about wiring, not hook logic.
 // Hook is tested separately in dashboard_hook.test.ts.
@@ -90,11 +94,11 @@ const goToCommitments = jest.fn();
 
 let mockHookReturn: any;
 
-jest.mock('@/screens/dashboard_v2/dashboard.hook', () => ({
-  useDashboardV2: () => mockHookReturn,
+jest.mock('@/screens/dashboard/dashboard.hook', () => ({
+  useDashboard: () => mockHookReturn,
 }));
 
-jest.mock('@/screens/dashboard_v2/dashboard.anim', () => ({
+jest.mock('@/screens/dashboard/dashboard.anim', () => ({
   useDashboardAnim: () => ({
     heroStyle: {},
     startEntrance: jest.fn(),
@@ -196,10 +200,10 @@ beforeEach(() => {
   goToCommitments.mockReset();
 });
 
-describe('DashboardScreenV2', () => {
+describe('DashboardScreen', () => {
   it('renders the empty state when there are zero accounts', () => {
     mockHookReturn = makeHookReturn({ accounts: [] });
-    const { getByText, queryByText } = render(<DashboardScreenV2 />);
+    const { getByText, queryByText } = render(<DashboardScreen />);
     expect(queryByText('Overview')).toBeNull();
     expect(queryByText('Accounts')).toBeNull();
     // EmptyState renders its variant-driven CTA via Strings.emptyAccountsCta.
@@ -208,7 +212,7 @@ describe('DashboardScreenV2', () => {
 
   it('renders Overview segment by default with at least one account', () => {
     mockHookReturn = makeHookReturn({ accounts: [mkAccount()] });
-    const { getByText } = render(<DashboardScreenV2 />);
+    const { getByText } = render(<DashboardScreen />);
     expect(getByText('Overview')).toBeTruthy();
     expect(getByText('Accounts')).toBeTruthy();
     expect(getByText('Available to Spend')).toBeTruthy();
@@ -219,21 +223,21 @@ describe('DashboardScreenV2', () => {
       accounts: [mkAccount()],
       selectedSegment: 'accounts',
     });
-    const { getByText, queryByText } = render(<DashboardScreenV2 />);
+    const { getByText, queryByText } = render(<DashboardScreen />);
     expect(queryByText('Available to Spend')).toBeNull();
     expect(getByText('Total balance')).toBeTruthy();
   });
 
   it('tapping the settings cog calls goToSettings', () => {
     mockHookReturn = makeHookReturn({ accounts: [] });
-    const { getByLabelText } = render(<DashboardScreenV2 />);
+    const { getByLabelText } = render(<DashboardScreen />);
     fireEvent.press(getByLabelText('Settings'));
     expect(goToSettings).toHaveBeenCalledTimes(1);
   });
 
   it('tapping HeroCard calls setBreakdownVisible(true)', () => {
     mockHookReturn = makeHookReturn({ accounts: [mkAccount()] });
-    const { getByLabelText } = render(<DashboardScreenV2 />);
+    const { getByLabelText } = render(<DashboardScreen />);
     fireEvent.press(getByLabelText('Available to Spend'));
     expect(setBreakdownVisible).toHaveBeenCalledWith(true);
   });

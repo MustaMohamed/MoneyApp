@@ -1,10 +1,12 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import React from 'react';
+import { Pressable, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms, msFont } from '@/utils/responsive';
+import { Colors } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { formatMonthYear } from '@/utils/format_date';
 
 interface Props {
@@ -36,43 +38,75 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
       : totalEntries.map(([cur, amt]) => `${numberFmt.format(amt)} ${cur}`).join('  ·  ');
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
-      <View style={styles.titleRow}>
-        <View style={styles.titleBox}>
-          <View style={styles.iconBadge}>
+    <Pressable
+      onPress={onPress}
+      className="mx-4 mt-4 rounded-2xl bg-surface border border-border px-4 py-3"
+      style={{ gap: ms(8) }}
+    >
+      <View className="flex-row justify-between items-center" style={{ flexDirection: 'row' }}>
+        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+          <View
+            className="items-center justify-center rounded-full"
+            style={{
+              width: ms(22),
+              height: ms(22),
+              backgroundColor: Colors.shared.cairoGold + '22',
+            }}
+          >
             <MaterialCommunityIcons
               name="calendar-check"
               size={ms(13)}
               color={Colors.shared.cairoGold}
             />
           </View>
-          <Text style={styles.title}>{Strings.dashboardCommitmentsTitle}</Text>
+          <Text variant="caption" className="text-foreground font-semibold">
+            {Strings.dashboardCommitmentsTitle}
+          </Text>
         </View>
-        <Text style={styles.month}>{monthLabel}</Text>
+        <Text variant="caption" className="text-muted">
+          {monthLabel}
+        </Text>
       </View>
 
-      <View style={styles.heroRow}>
-        <View style={styles.heroLeft}>
-          <Text style={styles.heroLabel}>{Strings.commitmentsTotalCommitted}</Text>
-          <Text style={styles.heroAmount} numberOfLines={1}>
+      <View
+        className="flex-row items-center justify-between"
+        style={{ flexDirection: 'row', gap: ms(8) }}
+      >
+        <View className="flex-1" style={{ flex: 1 }}>
+          <Text variant="hint" className="text-muted uppercase text-xs">
+            {Strings.commitmentsTotalCommitted}
+          </Text>
+          <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
             {totalsLine}
           </Text>
         </View>
-        <View style={styles.progressBadge}>
-          <Text style={styles.progressPct}>{progressPct}%</Text>
+        <View
+          className="rounded-full"
+          style={{
+            paddingHorizontal: ms(12),
+            paddingVertical: ms(3),
+            backgroundColor: Colors.shared.cairoGold + '22',
+          }}
+        >
+          <Text className="text-base font-bold" style={{ color: Colors.shared.cairoGold }}>
+            {progressPct}%
+          </Text>
         </View>
       </View>
 
-      <View style={styles.track}>
+      <View
+        className="rounded overflow-hidden"
+        style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+      >
         <LinearGradient
           colors={[Colors.shared.cairoGold, Colors.dark.gold]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[styles.fill, { width: `${progressPct}%` }]}
+          style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
         />
       </View>
 
-      <View style={styles.statsRow}>
+      <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
         <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
         <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
         <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
@@ -85,106 +119,11 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
 
 function Stat({ icon, color, value }: { icon: IconName; color: string; value: number }) {
   return (
-    <View style={styles.stat}>
+    <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
       <MaterialCommunityIcons name={icon} size={ms(13)} color={color} />
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text variant="caption" style={{ color }} className="font-semibold">
+        {value}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    marginHorizontal: Spacing.md,
-    marginTop: Spacing.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    gap: Spacing.xs,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  titleBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  iconBadge: {
-    width: ms(22),
-    height: ms(22),
-    borderRadius: ms(11),
-    backgroundColor: Colors.shared.cairoGold + '22',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
-    letterSpacing: 0.3,
-  },
-  month: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  heroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  heroLeft: { flex: 1, gap: ms(1) },
-  heroLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(10),
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  heroAmount: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: msFont(16),
-    color: Colors.dark.text1,
-  },
-  progressBadge: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: ms(3),
-    borderRadius: Radius.pill,
-    backgroundColor: Colors.shared.cairoGold + '22',
-  },
-  progressPct: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: msFont(13),
-    color: Colors.shared.cairoGold,
-  },
-  track: {
-    height: ms(3),
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: ms(2),
-    overflow: 'hidden',
-  },
-  fill: {
-    height: ms(3),
-    borderRadius: ms(2),
-  },
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  stat: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(4),
-  },
-  statValue: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
-  },
-});
