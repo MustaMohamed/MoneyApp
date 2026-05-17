@@ -7,6 +7,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty_state';
 import { Strings } from '@/constants/strings';
+import { GoldTokens } from '@/constants/theme_tokens';
 
 import { AddTransactionSheet } from '@/screens/transactions/transaction_form';
 import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
@@ -101,7 +102,9 @@ export default function TransactionsScreenV2(): React.ReactElement {
           <TransactionRow
             tx={item}
             account={t.state.accountsById.get(item.account_id)}
-            toAccount={item.to_account_id ? t.state.accountsById.get(item.to_account_id) : undefined}
+            toAccount={
+              item.to_account_id ? t.state.accountsById.get(item.to_account_id) : undefined
+            }
             category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
             onPress={() => t.goToDetail(item.id)}
           />
@@ -109,15 +112,15 @@ export default function TransactionsScreenV2(): React.ReactElement {
         ListEmptyComponent={
           <EmptyState
             variant={t.state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
-            onAction={openAddTx}
+            onAction={t.state.emptyVariant === 'noData' ? openAddTx : t.resetFilters}
           />
         }
         refreshControl={
           <RefreshControl
             refreshing={t.state.refreshing}
             onRefresh={t.onRefresh}
-            tintColor="#D4AF37"
-            colors={['#D4AF37']}
+            tintColor={GoldTokens[500]}
+            colors={[GoldTokens[500]]}
           />
         }
         onEndReached={t.onEndReached}

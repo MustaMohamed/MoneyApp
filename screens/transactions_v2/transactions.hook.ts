@@ -14,11 +14,7 @@ import { Strings } from '@/constants/strings';
 import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { useFilterStore } from './filter/filter.store';
-import {
-  currentYearMonth,
-  previousPeriod,
-  resolvePeriod,
-} from './transactions.helpers';
+import { currentYearMonth, previousPeriod, resolvePeriod } from './transactions.helpers';
 import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
@@ -115,7 +111,9 @@ export function useTransactions() {
         console.error('[transactions_v2] loadTotals failed:', err);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [txScreenState.period, txState.transactions]);
 
   useFocusEffect(
@@ -127,7 +125,10 @@ export function useTransactions() {
         useTransactionsState.getState().reset();
         useFilterState.getState().reset();
         useFilterStore.getState().resetDraft();
-        useTransactionStore.getState().setQuery({}).catch(() => {});
+        useTransactionStore
+          .getState()
+          .setQuery({})
+          .catch(() => {});
       };
     }, []),
   );
@@ -160,6 +161,10 @@ export function useTransactions() {
   function handleOpenFilter() {
     setDraft(txScreenState.appliedFilters);
     openFilter();
+  }
+
+  function resetFilters() {
+    useTransactionsScreenStore.getState().reset();
   }
 
   async function onRefresh() {
@@ -204,6 +209,7 @@ export function useTransactions() {
     onEndReached: loadMore,
     onRefresh,
     openFilter: handleOpenFilter,
+    resetFilters,
     goToDetail: (id: string) => router.push(`/transactions/detail/${id}`),
   };
 }
