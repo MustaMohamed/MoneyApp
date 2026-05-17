@@ -39,9 +39,11 @@ export function formatSelectionSummary(names: string[], allLabel: string): strin
 }
 
 export function formatAmountSummary(f: AdvancedFilters): string {
-  if (f.amountMin === undefined && f.amountMax === undefined) return Strings.filterSummaryAmountEmpty;
+  if (f.amountMin === undefined && f.amountMax === undefined)
+    return Strings.filterSummaryAmountEmpty;
   const cur = f.amountCurrency;
-  if (f.amountMin !== undefined && f.amountMax !== undefined) return `${f.amountMin}–${f.amountMax} ${cur}`;
+  if (f.amountMin !== undefined && f.amountMax !== undefined)
+    return `${f.amountMin}–${f.amountMax} ${cur}`;
   if (f.amountMax !== undefined) return `Up to ${f.amountMax} ${cur}`;
   return `From ${f.amountMin} ${cur}`;
 }
