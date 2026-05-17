@@ -5,6 +5,7 @@ import { tv } from 'tailwind-variants';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { GoldTokens, SemanticTokens } from '@/constants/theme_tokens';
 
 export type TypeBadgeKind = 'commitment' | 'goal' | 'bill';
 export type TypeBadgeSize = 'sm' | 'md';
@@ -18,8 +19,8 @@ const wrap = tv({
   base: 'flex-row items-center rounded-full border',
   variants: {
     type: {
-      commitment: 'bg-cairoGold/15 border-cairoGold/30',
-      goal: 'bg-positive/15 border-positive/30',
+      commitment: 'bg-accent/15 border-accent/30',
+      goal: 'bg-success/15 border-success/30',
       bill: 'bg-warning/15 border-warning/30',
     },
     size: {
@@ -34,8 +35,8 @@ const labelVariants = tv({
   base: 'font-inter font-semibold',
   variants: {
     type: {
-      commitment: 'text-cairoGold',
-      goal: 'text-positive',
+      commitment: 'text-accent',
+      goal: 'text-success',
       bill: 'text-warning',
     },
     size: {
@@ -53,9 +54,9 @@ const ICON: Record<TypeBadgeKind, React.ComponentProps<typeof MaterialCommunityI
 };
 
 const ICON_COLOR: Record<TypeBadgeKind, string> = {
-  commitment: '#D4AF37',
-  goal: '#6EE7B7',
-  bill: '#FFAE5C',
+  commitment: GoldTokens[500],
+  goal: SemanticTokens.positive,
+  bill: SemanticTokens.warning,
 };
 
 const LABEL: Record<TypeBadgeKind, string> = {
