@@ -12,11 +12,12 @@ import { CategoryAccordion } from './components/category_accordion';
 import { AmountAccordion } from './components/amount_accordion';
 import { useFilterSheet } from './filter.hook';
 
-export function FilterSheet(): React.ReactElement | null {
+export function FilterSheet(): React.ReactElement {
   const f = useFilterSheet();
 
-  if (!f.state.visible) return null;
-
+  // Sheet must stay mounted between opens. Unmounting drops the BottomSheetLib
+  // ref, and the next mount fires snapToIndex(0) before the library has
+  // initialized — the open silently no-ops. Sheet handles visibility itself.
   return (
     <Sheet
       visible={f.state.visible}
