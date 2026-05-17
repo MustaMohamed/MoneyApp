@@ -126,6 +126,11 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
       ref={sheetRef}
       index={-1}
       snapPoints={SNAP_POINTS[size]}
+      // v5 defaults this to true, which makes the sheet size to its content
+      // and SILENTLY IGNORE snapPoints when content is shorter. That breaks
+      // the sm/md/lg contract — collapsed accordions or short forms snap to
+      // 25-30% instead of 92%. Disable so snap points are absolute.
+      enableDynamicSizing={false}
       enablePanDownToClose
       keyboardBehavior="extend"
       onClose={onClose}
