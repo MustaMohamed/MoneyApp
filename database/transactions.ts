@@ -343,6 +343,38 @@ export interface UpdateTransactionInput {
   transaction_time: string;
 }
 
+export interface PeriodTotals {
+  incomeEgp: number;
+  expenseEgp: number;
+  netEgp: number;
+}
+
+/**
+ * Aggregate income and expense `egp_amount` for transactions in
+ * `[from, to]` (inclusive on both ends). Excludes transfers and cc_payments
+ * (they move money between user-owned accounts and do not change net worth).
+ */
+export async function getPeriodTotals(
+  db: SQLiteDatabase,
+  range: { from: string; to: string },
+): Promise<PeriodTotals> {
+  const row = await db.getFirstAsync<{
+    income: number | null;
+    expense: number | null;
+  }>(
+    `SELECT
+       COALESCE(SUM(CASE WHEN type = 'income'  THEN egp_amount ELSE 0 END), 0) AS income,
+       COALESCE(SUM(CASE WHEN type = 'expense' THEN egp_amount ELSE 0 END), 0) AS expense
+     FROM transactions
+     WHERE transaction_date >= ?
+       AND transaction_date <= ?`,
+    [range.from, range.to],
+  );
+  const incomeEgp = row?.income ?? 0;
+  const expenseEgp = row?.expense ?? 0;
+  return { incomeEgp, expenseEgp, netEgp: incomeEgp - expenseEgp };
+}
+
 export async function updateTransaction(
   db: SQLiteDatabase,
   id: string,
