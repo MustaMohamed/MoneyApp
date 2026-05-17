@@ -64,7 +64,12 @@ jest.mock('@/components/ui/input', () => {
 });
 
 // Mock stores used via getState in the screen
-const mockAddTxState = { state: { visible: false }, open: jest.fn(), close: jest.fn(), reset: jest.fn() };
+const mockAddTxState = {
+  state: { visible: false },
+  open: jest.fn(),
+  close: jest.fn(),
+  reset: jest.fn(),
+};
 const mockAddTxStore = { reset: jest.fn() };
 const mockFilterState = {
   state: { visible: false, dateRangeSheetVisible: false, openSection: null },
@@ -132,11 +137,14 @@ function makeReturn(overrides: any = {}) {
       previousLabel: null,
       ...stateOverrides,
     },
-    setSearchQuery, setActiveFilter, setPeriod,
+    setSearchQuery,
+    setActiveFilter,
+    setPeriod,
     setCustomRange: jest.fn(),
     clearSearch: jest.fn(),
     onEndReached: jest.fn(),
-    onRefresh, openFilter,
+    onRefresh,
+    openFilter,
     goToDetail: jest.fn(),
     ...restOverrides,
   };
