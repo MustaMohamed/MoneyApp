@@ -133,6 +133,16 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 
 Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirection: 'row' }}` / `style={{ flex: 1 }}` for layout-critical containers rather than `className="flex-row"` / `className="flex-1"`. Keep `className` for colors, padding, gap, typography.
 
+## Components
+
+**HeroUI Native primitives first. Build custom only when no HeroUI primitive fits.**
+
+Before writing a new component, check the HeroUI Native catalog (Tabs, Card, Chip, ListGroup, Accordion, Input, Button, Badge, Avatar, Skeleton, etc.) and the project wrappers in `components/ui/` (`Screen`, `ScreenScroll`, `Sheet`, `Text`, `EmptyState`, `SettingsSection`, `FAB`). Compose those.
+
+The HeroUI Native migration exists to retire custom components — reintroducing custom ones brings back the maintenance burden we paid to remove. If a HeroUI primitive almost fits but needs tweaks, prefer composing/wrapping it over building a parallel implementation.
+
+(§5 example: a custom `SegmentSwitcher` was replaced with `Tabs` from `heroui-native` before merge.)
+
 ## Bottom Sheets
 
 **New pattern (§3+): use `Sheet` from `components/ui/sheet.tsx`.**
