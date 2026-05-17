@@ -586,4 +586,10 @@ export const Strings = {
   detailFlowToLabel: 'To',
   detailFlowCategoryLabel: 'Category',
   detailFlowSourceLabel: 'Source',
+
+  // §6 Transactions — Detail screen V2 actions + states
+  detailDeleteButton: 'Delete',
+  detailEditButton: 'Edit Transaction',
+  detailNotFoundTitle: 'Transaction not found',
+  detailNotFoundBody: 'This transaction may have been deleted.',
 } as const;
