@@ -3,10 +3,11 @@ import { useDashboardState } from '@/screens/dashboard/dashboard.state';
 beforeEach(() => useDashboardState.getState().reset());
 
 describe('useDashboardState', () => {
-  it('starts with both flags false', () => {
+  it('starts with the expected initial state', () => {
     const s = useDashboardState.getState().state;
     expect(s.isBreakdownVisible).toBe(false);
     expect(s.refreshing).toBe(false);
+    expect(s.selectedSegment).toBe('overview');
   });
 
   it('setBreakdownVisible toggles', () => {
@@ -23,13 +24,21 @@ describe('useDashboardState', () => {
     expect(useDashboardState.getState().state.refreshing).toBe(false);
   });
 
-  it('reset clears both', () => {
+  it('setSelectedSegment switches between overview and accounts', () => {
+    useDashboardState.getState().setSelectedSegment('accounts');
+    expect(useDashboardState.getState().state.selectedSegment).toBe('accounts');
+    useDashboardState.getState().setSelectedSegment('overview');
+    expect(useDashboardState.getState().state.selectedSegment).toBe('overview');
+  });
+
+  it('reset clears all fields back to initial state', () => {
     useDashboardState.setState({
-      state: { isBreakdownVisible: true, refreshing: true },
+      state: { isBreakdownVisible: true, refreshing: true, selectedSegment: 'accounts' },
     });
     useDashboardState.getState().reset();
     const s = useDashboardState.getState().state;
     expect(s.isBreakdownVisible).toBe(false);
     expect(s.refreshing).toBe(false);
+    expect(s.selectedSegment).toBe('overview');
   });
 });

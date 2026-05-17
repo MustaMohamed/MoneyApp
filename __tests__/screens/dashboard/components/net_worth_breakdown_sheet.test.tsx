@@ -2,15 +2,15 @@ import React from 'react';
 import { render } from '@testing-library/react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { NetWorthBreakdownSheet } from '@/screens/dashboard/components/net_worth_breakdown_sheet';
+
 jest.mock('react-native-gesture-handler', () => {
-  const { View, TouchableOpacity } = require('react-native');
+  const { View, TouchableOpacity } = jest.requireActual('react-native');
   return {
     GestureHandlerRootView: View,
     TouchableOpacity,
   };
 });
-
-import { NetWorthBreakdownSheet } from '@/screens/dashboard_v2/components/net_worth_breakdown_sheet';
 
 const DEFAULT_LIQUIDITY = {
   liquidEgp: 32500,

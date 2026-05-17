@@ -11,9 +11,14 @@ import { useCommitmentStore } from '@/store/commitment.store';
 import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { commitmentRepository } from '@/repositories/commitment.repository';
 import { toLocalDateString } from '@/utils/format_date';
+import {
+  computeLiabilitiesBreakdown,
+  computeLiquidityBreakdown,
+  computeNetWorth,
+  groupAccountsByType,
+} from '@/screens/dashboard/dashboard.helpers';
 import { useDashboardState } from './dashboard.state';
 import { useDashboardStore } from './dashboard.store';
-import { computeNetWorth, groupAccountsByType } from './dashboard.helpers';
 
 function getCurrentYearMonth(): string {
   return toLocalDateString(new Date()).slice(0, 7);
@@ -32,11 +37,13 @@ export function useDashboard() {
     state: dashUiState,
     setBreakdownVisible,
     setRefreshing,
+    setSelectedSegment,
   } = useDashboardState(
     useShallow((s) => ({
       state: s.state,
       setBreakdownVisible: s.setBreakdownVisible,
       setRefreshing: s.setRefreshing,
+      setSelectedSegment: s.setSelectedSegment,
     })),
   );
   const {
@@ -82,8 +89,6 @@ export function useDashboard() {
     }
   }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
 
-  // Reload when commitments change (added/edited/deactivated) or shared payments
-  // change (mark-as-paid/skip) — both signals indicate current month may have shifted.
   useEffect(() => {
     loadCurrentMonthCommitmentPayments();
   }, [loadCurrentMonthCommitmentPayments, commitmentState.commitments, commitmentState.payments]);
@@ -92,11 +97,10 @@ export function useDashboard() {
     useCallback(() => {
       loadCurrentMonthCommitmentPayments();
       loadMonthSpend();
-    }, [loadCurrentMonthCommitmentPayments, loadMonthSpend]),
+      setSelectedSegment('overview');
+    }, [loadCurrentMonthCommitmentPayments, loadMonthSpend, setSelectedSegment]),
   );
 
-  // Reload spend stats when accounts list changes (proxy for transaction add/edit/delete:
-  // those mutate balances which mutate accounts, triggering this effect).
   useEffect(() => {
     loadMonthSpend();
   }, [loadMonthSpend, accountState.accounts]);
@@ -120,7 +124,7 @@ export function useDashboard() {
 
   useEffect(() => {
     loadStats(accountState.accounts.map((a) => a.id));
-  }, [accountState.accounts]);
+  }, [accountState.accounts, loadStats]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -133,6 +137,14 @@ export function useDashboard() {
 
   const netWorth = useMemo(
     () => computeNetWorth(accountState.accounts, currencyState.rate),
+    [accountState.accounts, currencyState.rate],
+  );
+  const liquidity = useMemo(
+    () => computeLiquidityBreakdown(accountState.accounts, currencyState.rate),
+    [accountState.accounts, currencyState.rate],
+  );
+  const liabilities = useMemo(
+    () => computeLiabilitiesBreakdown(accountState.accounts, currencyState.rate),
     [accountState.accounts, currencyState.rate],
   );
   const groupedAccounts = useMemo(
@@ -149,13 +161,13 @@ export function useDashboard() {
 
   const accountCounts = useMemo(() => {
     let assets = 0;
-    let liabilities = 0;
+    let liabilitiesCount = 0;
     for (const a of accountState.accounts) {
       if (a.is_archived) continue;
-      if (a.type === AccountType.CreditCard) liabilities++;
+      if (a.type === AccountType.CreditCard) liabilitiesCount++;
       else assets++;
     }
-    return { assets, liabilities };
+    return { assets, liabilities: liabilitiesCount };
   }, [accountState.accounts]);
 
   const commitmentCounts = useMemo(() => {
@@ -209,10 +221,13 @@ export function useDashboard() {
       rate: currencyState.rate,
       isManualOverride: currencyState.isManualOverride,
       netWorth,
+      liquidity,
+      liabilities,
       groupedAccounts,
       statsMap: dashDataState.statsMap,
       isBreakdownVisible: dashUiState.isBreakdownVisible,
       refreshing: dashUiState.refreshing,
+      selectedSegment: dashUiState.selectedSegment,
       monthSpend: {
         currentEgp: dashDataState.currentMonthSpend.totalEgp,
         currentUsdNative: dashDataState.currentMonthSpend.usdNative,
@@ -229,6 +244,7 @@ export function useDashboard() {
       },
     },
     setBreakdownVisible,
+    setSelectedSegment,
     refresh,
     goToAccount,
     goToAddAccount,

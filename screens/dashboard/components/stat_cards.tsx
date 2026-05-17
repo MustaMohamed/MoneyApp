@@ -1,9 +1,11 @@
+import React from 'react';
+import { View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { StyleSheet, Text, View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms, msFont } from '@/utils/responsive';
+import { Colors } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import { formatAmount } from '@/utils/format_amount';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -50,15 +52,11 @@ export function StatCards({
 }: StatCardsProps) {
   const netNegative = netWorthEgp < 0;
   const netColor = netNegative ? Colors.dark.negative : Colors.dark.positive;
-
-  // Mini bar split — assets vs liabilities. Use abs since liabilities are positive numbers here.
   const total = assetsEgp + Math.abs(liabilitiesEgp);
   const assetsPct = total > 0 ? assetsEgp / total : 1;
-
   const monthIdx = parseInt(spendYearMonth.split('-')[1], 10) - 1;
   const monthLabel = SHORT_MONTHS[monthIdx] ?? '';
   const prevMonthLabel = SHORT_MONTHS[(monthIdx + 11) % 12] ?? '';
-  // For spending, an increase is *bad* (negative for the user) — flip semantics.
   const deltaPositive = monthSpendDeltaPct != null && monthSpendDeltaPct < 0;
   const deltaNegative = monthSpendDeltaPct != null && monthSpendDeltaPct > 0;
   const deltaColor = deltaPositive
@@ -73,42 +71,67 @@ export function StatCards({
       : 'trending-neutral';
 
   return (
-    <View style={styles.row}>
+    <View className="flex-row mx-4 mt-2" style={{ flexDirection: 'row', gap: ms(8) }}>
       {/* Net Worth */}
-      <View style={styles.card}>
-        <View style={styles.titleRow}>
-          <View style={[styles.iconBadge, { backgroundColor: netColor + '22' }]}>
+      <View
+        className="flex-1 rounded-2xl bg-surface border border-border p-3"
+        style={{ flex: 1, gap: ms(6) }}
+      >
+        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
+          <View
+            className="items-center justify-center rounded-full"
+            style={{ width: ms(20), height: ms(20), backgroundColor: netColor + '22' }}
+          >
             <MaterialCommunityIcons name="scale-balance" size={ms(13)} color={netColor} />
           </View>
-          <Text style={styles.title}>{Strings.dashNetWorthTitle}</Text>
+          <Text variant="hint" className="flex-1 uppercase text-muted text-xs">
+            {Strings.dashNetWorthTitle}
+          </Text>
         </View>
-        <Text style={[styles.value, { color: netColor }]} numberOfLines={1}>
-          {formatAmount(netWorthEgp)} <Text style={styles.valueCurrency}>EGP</Text>
+        <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
+          {formatAmount(netWorthEgp)} <Text className="text-xs text-muted font-medium">EGP</Text>
         </Text>
-        <View style={styles.splitTrack}>
-          <View style={[styles.splitAssets, { flex: assetsPct }]} />
-          <View style={[styles.splitLiabs, { flex: 1 - assetsPct }]} />
+        <View
+          className="rounded overflow-hidden bg-default flex-row"
+          style={{ flexDirection: 'row', height: ms(4) }}
+        >
+          <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
+          <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
         </View>
-        <View style={styles.legendRow}>
-          <View style={styles.legendItem}>
-            <View style={styles.legendHeader}>
-              <View style={[styles.dot, { backgroundColor: Colors.dark.positive }]} />
-              <Text style={styles.legendLabel}>
+        <View className="flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
+          <View className="flex-1" style={{ flex: 1 }}>
+            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
+              <View
+                style={{
+                  width: ms(6),
+                  height: ms(6),
+                  borderRadius: ms(3),
+                  backgroundColor: Colors.dark.positive,
+                }}
+              />
+              <Text variant="hint" className="text-muted text-xs">
                 {Strings.dashAssetsLabel} ({assetsCount})
               </Text>
             </View>
-            <Text style={styles.legendValue} numberOfLines={1}>
+            <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
               {formatAmount(assetsEgp)}
             </Text>
           </View>
-          <View style={styles.legendItem}>
-            <View style={styles.legendHeader}>
-              <View style={[styles.dot, { backgroundColor: Colors.dark.negative }]} />
-              <Text style={styles.legendLabel}>
+          <View className="flex-1" style={{ flex: 1 }}>
+            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
+              <View
+                style={{
+                  width: ms(6),
+                  height: ms(6),
+                  borderRadius: ms(3),
+                  backgroundColor: Colors.dark.negative,
+                }}
+              />
+              <Text variant="hint" className="text-muted text-xs">
                 {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
               </Text>
             </View>
-            <Text style={styles.legendValue} numberOfLines={1}>
+            <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
               {formatAmount(liabilitiesEgp)}
             </Text>
           </View>
@@ -116,165 +139,60 @@ export function StatCards({
       </View>
 
       {/* Spent This Month */}
-      <View style={styles.card}>
-        <View style={styles.titleRow}>
-          <View style={[styles.iconBadge, { backgroundColor: Colors.dark.negative + '22' }]}>
+      <View
+        className="flex-1 rounded-2xl bg-surface border border-border p-3"
+        style={{ flex: 1, gap: ms(6) }}
+      >
+        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
+          <View
+            className="items-center justify-center rounded-full"
+            style={{ width: ms(20), height: ms(20), backgroundColor: Colors.dark.negative + '22' }}
+          >
             <MaterialCommunityIcons name="cash-minus" size={ms(13)} color={Colors.dark.negative} />
           </View>
-          <Text style={styles.title}>{Strings.dashMonthSpentTitle}</Text>
-          <Text style={styles.month}>{monthLabel}</Text>
+          <Text variant="hint" className="flex-1 uppercase text-muted text-xs">
+            {Strings.dashMonthSpentTitle}
+          </Text>
+          <Text variant="hint" className="text-muted text-xs">
+            {monthLabel}
+          </Text>
         </View>
-        <Text style={styles.value} numberOfLines={1}>
-          {formatAmount(monthSpentEgp)} <Text style={styles.valueCurrency}>EGP</Text>
+        <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+          {formatAmount(monthSpentEgp)} <Text className="text-xs text-muted font-medium">EGP</Text>
         </Text>
-        <Text style={styles.value} numberOfLines={1}>
-          {formatAmount(monthSpentUsd, 0)} <Text style={styles.valueCurrency}>USD</Text>
+        <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+          {formatAmount(monthSpentUsd, 0)}{' '}
+          <Text className="text-xs text-muted font-medium">USD</Text>
         </Text>
-        <View style={styles.spendMeta}>
-          <View style={styles.deltaWrap}>
-            <View style={[styles.deltaChip, { backgroundColor: deltaColor + '22' }]}>
+        <View
+          className="flex-row items-center justify-between"
+          style={{ flexDirection: 'row', gap: ms(8) }}
+        >
+          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
+            <View
+              className="flex-row items-center rounded-full"
+              style={{
+                flexDirection: 'row',
+                gap: ms(3),
+                paddingHorizontal: ms(8),
+                paddingVertical: ms(2),
+                backgroundColor: deltaColor + '22',
+              }}
+            >
               <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
-              <Text style={[styles.deltaText, { color: deltaColor }]}>
+              <Text className="text-xs font-semibold" style={{ color: deltaColor }}>
                 {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
               </Text>
             </View>
-            <Text style={styles.deltaCaption}>vs {prevMonthLabel}</Text>
+            <Text variant="hint" className="text-muted text-xs">
+              vs {prevMonthLabel}
+            </Text>
           </View>
-          <Text style={styles.txCount}>{monthSpendCount} txs</Text>
+          <Text variant="hint" className="text-muted text-xs">
+            {monthSpendCount} txs
+          </Text>
         </View>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    marginHorizontal: Spacing.sm,
-    marginTop: Spacing.xs,
-    gap: Spacing.xs,
-  },
-  card: {
-    flex: 1,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: Radius.md,
-    padding: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    gap: Spacing.xs,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  iconBadge: {
-    width: ms(20),
-    height: ms(20),
-    borderRadius: ms(10),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: {
-    flex: 1,
-    fontFamily: FontFamily.interMedium,
-    fontSize: msFont(10),
-    color: Colors.dark.text2,
-    letterSpacing: 0.3,
-    textTransform: 'uppercase',
-    marginLeft: ms(2),
-  },
-  month: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: msFont(9),
-    color: Colors.dark.text2,
-  },
-  value: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: msFont(16),
-    color: Colors.dark.text1,
-  },
-  valueCurrency: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: msFont(11),
-    color: Colors.dark.text2,
-  },
-  splitTrack: {
-    flexDirection: 'row',
-    height: ms(4),
-    borderRadius: ms(2),
-    overflow: 'hidden',
-    backgroundColor: Colors.dark.surfaceEl,
-  },
-  splitAssets: {
-    backgroundColor: Colors.dark.positive,
-  },
-  splitLiabs: {
-    backgroundColor: Colors.dark.negative,
-  },
-  legendRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: ms(2),
-    gap: Spacing.xs,
-  },
-  legendItem: {
-    flex: 1,
-    gap: ms(2),
-  },
-  legendHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(4),
-  },
-  dot: {
-    width: ms(6),
-    height: ms(6),
-    borderRadius: ms(3),
-  },
-  legendLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(9),
-    color: Colors.dark.text2,
-  },
-  legendValue: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: msFont(11),
-    color: Colors.dark.text1,
-  },
-  spendMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xs,
-  },
-  deltaWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(5),
-    flexShrink: 1,
-  },
-  deltaChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(3),
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: ms(2),
-    borderRadius: Radius.pill,
-  },
-  deltaText: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: msFont(10),
-  },
-  deltaCaption: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(9),
-    color: Colors.dark.text2,
-    flexShrink: 1,
-  },
-  txCount: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(10),
-    color: Colors.dark.text2,
-  },
-});

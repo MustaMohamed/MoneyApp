@@ -1,11 +1,16 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React from 'react';
+import { ScrollView, useWindowDimensions } from 'react-native';
 
 import { AccountType } from '@/constants/enums';
-import { Spacing } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 import type { AccountStats } from '@/database/account_stats';
 import type { Account } from '@/store/account.store';
 import { AccountCard } from './account_card';
 import { AddCard } from './add_card';
+
+// Cards take 55% of screen width so one card dominates the viewport and the
+// next card peeks at the edge — invites horizontal scroll without losing focus.
+const CARD_WIDTH_RATIO = 0.55;
 
 interface AccountCarouselProps {
   type: AccountType;
@@ -17,18 +22,25 @@ interface AccountCarouselProps {
 }
 
 export function AccountCarousel({
-  type,
   accounts,
   rate,
   statsMap,
   onAccountPress,
   onAddPress,
 }: AccountCarouselProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = windowWidth * CARD_WIDTH_RATIO;
+
   return (
     <ScrollView
       horizontal
       showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={{
+        paddingHorizontal: ms(16),
+        paddingVertical: ms(4),
+        gap: ms(8),
+        alignItems: 'stretch',
+      }}
     >
       {accounts.map((account) => (
         <AccountCard
@@ -36,16 +48,11 @@ export function AccountCarousel({
           account={account}
           rate={rate}
           stats={statsMap[account.id]}
+          width={cardWidth}
           onPress={() => onAccountPress(account.id)}
         />
       ))}
-      <AddCard type={type} onPress={onAddPress} />
-      <View style={styles.tail} />
+      <AddCard onPress={onAddPress} width={cardWidth} />
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  content: { paddingLeft: Spacing.sm, alignItems: 'stretch', paddingVertical: Spacing.xs },
-  tail: { width: Spacing.sm },
-});

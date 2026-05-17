@@ -1,10 +1,10 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
-import { useDashboardV2 } from '@/screens/dashboard_v2/dashboard.hook';
+import { useDashboard } from '@/screens/dashboard/dashboard.hook';
 
 // All stores are mocked so no real Zustand stores are instantiated.
-// useDashboardV2State is mocked but backed by a simple object so tests
+// useDashboardState is mocked but backed by a simple object so tests
 // can inspect and mutate selectedSegment directly.
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
@@ -37,14 +37,14 @@ jest.mock('@/repositories/commitment.repository', () => ({
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
-jest.mock('@/screens/dashboard_v2/dashboard.store', () => ({ useDashboardV2Store: jest.fn() }));
-jest.mock('@/screens/dashboard_v2/dashboard.state', () => ({ useDashboardV2State: jest.fn() }));
+jest.mock('@/screens/dashboard/dashboard.store', () => ({ useDashboardStore: jest.fn() }));
+jest.mock('@/screens/dashboard/dashboard.state', () => ({ useDashboardState: jest.fn() }));
 
 const { useAccountStore } = jest.requireMock('@/store/account.store');
 const { useCurrencyStore } = jest.requireMock('@/store/currency.store');
 const { useCommitmentStore } = jest.requireMock('@/store/commitment.store');
-const { useDashboardV2Store } = jest.requireMock('@/screens/dashboard_v2/dashboard.store');
-const { useDashboardV2State } = jest.requireMock('@/screens/dashboard_v2/dashboard.state');
+const { useDashboardStore } = jest.requireMock('@/screens/dashboard/dashboard.store');
+const { useDashboardState } = jest.requireMock('@/screens/dashboard/dashboard.state');
 
 const BASE_ACCOUNTS = [
   {
@@ -109,7 +109,7 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
   (useCommitmentStore as jest.Mock).mockImplementation((sel: any) =>
     sel({ state: { commitments: [], payments: [] } }),
   );
-  (useDashboardV2Store as jest.Mock).mockImplementation((sel: any) =>
+  (useDashboardStore as jest.Mock).mockImplementation((sel: any) =>
     sel({
       state: {
         statsMap: {},
@@ -122,7 +122,7 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
       setMonthSpendStats: jest.fn(),
     }),
   );
-  (useDashboardV2State as jest.Mock).mockImplementation((sel: any) =>
+  (useDashboardState as jest.Mock).mockImplementation((sel: any) =>
     sel({
       state: uiState,
       setBreakdownVisible,
@@ -141,26 +141,26 @@ beforeEach(() => {
   setupMocks();
 });
 
-describe('useDashboardV2', () => {
+describe('useDashboard', () => {
   it('defaults selectedSegment to overview', () => {
-    const { result } = renderHook(() => useDashboardV2());
+    const { result } = renderHook(() => useDashboard());
     expect(result.current.state.selectedSegment).toBe('overview');
   });
 
   it('setSelectedSegment updates state', () => {
-    const { result } = renderHook(() => useDashboardV2());
+    const { result } = renderHook(() => useDashboard());
     act(() => result.current.setSelectedSegment('accounts'));
     expect(setSelectedSegment).toHaveBeenCalledWith('accounts');
   });
 
   it('exposes liquidity memo computed from accounts', () => {
-    const { result } = renderHook(() => useDashboardV2());
+    const { result } = renderHook(() => useDashboard());
     expect(result.current.state.liquidity.liquidEgp).toBe(27000);
     expect(result.current.state.liquidity.reserveEgp).toBe(10000);
   });
 
   it('exposes liabilities memo with credit cards only', () => {
-    const { result } = renderHook(() => useDashboardV2());
+    const { result } = renderHook(() => useDashboard());
     expect(result.current.state.liabilities).toEqual([
       { id: 'a3', name: 'Visa', balanceEgp: 4080, statementDueDay: null },
     ]);
@@ -168,7 +168,7 @@ describe('useDashboardV2', () => {
 
   it('useFocusEffect resets segment to overview', () => {
     uiState.selectedSegment = 'accounts';
-    renderHook(() => useDashboardV2());
+    renderHook(() => useDashboard());
     act(() => {
       capturedFocusCallback?.();
     });

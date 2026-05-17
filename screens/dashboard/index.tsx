@@ -1,15 +1,20 @@
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { Pressable, RefreshControl, View } from 'react-native';
+import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Tabs } from 'heroui-native';
 
-import { EmptyState } from '@/components/empty_states';
+import { EmptyState } from '@/components/ui/empty_state';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import type { DashboardSegment } from './types';
 import { useDashboard } from './dashboard.hook';
 import { useDashboardAnim } from './dashboard.anim';
+import { TotalBalanceStrip } from './components/total_balance_strip';
 import { HeroCard } from './components/hero_card';
 import { StatCards } from './components/stat_cards';
 import { CommitmentsCard } from './components/commitments_card';
@@ -37,6 +42,7 @@ export default function DashboardScreen() {
   const {
     state,
     setBreakdownVisible,
+    setSelectedSegment,
     refresh,
     goToAccount,
     goToAddAccount,
@@ -47,88 +53,161 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     startEntrance();
-  }, []);
+  }, [startEntrance]);
 
   const hasAccounts = state.accounts.length > 0;
   const visibleTypes = TYPE_ORDER.filter((t) => state.groupedAccounts[t]?.length);
+  const segment = state.selectedSegment;
+  const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
+
+  const onTabChange = useCallback(
+    (value: string) => setSelectedSegment(value as DashboardSegment),
+    [setSelectedSegment],
+  );
+
+  // Swipe left → Accounts; swipe right → Overview.
+  // activeOffsetX gates activation on clear horizontal intent so the carousel's
+  // own horizontal scroll wins inside the Accounts segment. setSelectedSegment
+  // is a no-op when called with the already-active segment, so we don't gate
+  // by current value on the worklet side.
+  const SWIPE_THRESHOLD = 50;
+  const swipeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .activeOffsetX([-30, 30])
+        .failOffsetY([-15, 15])
+        .onEnd((e) => {
+          'worklet';
+          if (e.translationX < -SWIPE_THRESHOLD) {
+            runOnJS(setSelectedSegment)('accounts');
+          } else if (e.translationX > SWIPE_THRESHOLD) {
+            runOnJS(setSelectedSegment)('overview');
+          }
+        }),
+    [setSelectedSegment],
+  );
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.wordmark}>MoneyApp</Text>
-        <Pressable onPress={goToSettings} style={styles.settingsBtn}>
+    <Screen edges={['top']}>
+      <View
+        className="flex-row items-center justify-between px-4"
+        style={{ flexDirection: 'row', height: Size.headerHeight }}
+      >
+        <Text
+          className="font-bold"
+          style={{ fontFamily: FontFamily.soraBold, fontSize: Type.title }}
+        >
+          MoneyApp
+        </Text>
+        <Pressable
+          onPress={goToSettings}
+          accessibilityRole="button"
+          accessibilityLabel="Settings"
+          className="items-center justify-center rounded-lg bg-surface border border-border"
+          style={{ width: Size.backBtn, height: Size.backBtn }}
+        >
           <MaterialCommunityIcons name="cog" size={Size.iconMd} color={Colors.dark.text2} />
         </Pressable>
       </View>
 
       {!hasAccounts ? (
-        <EmptyState
-          variant="accounts"
-          onAction={goToAddAccount}
-          actionLabel={Strings.emptyAccountsCta}
-        />
+        <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
-        <ScrollView
-          style={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={state.refreshing}
-              onRefresh={refresh}
-              tintColor={Colors.shared.cairoGold}
-            />
-          }
-        >
-          <Animated.View style={heroStyle}>
-            <HeroCard
-              assetsEgp={state.netWorth.assetsEgp}
-              assetsUsd={state.netWorth.assetsUsd}
-              rate={state.rate}
-              isManualOverride={state.isManualOverride}
-              assetsCount={state.accountCounts.assets}
-              liabilitiesCount={state.accountCounts.liabilities}
-              onPress={() => setBreakdownVisible(true)}
-            />
-          </Animated.View>
+        <>
+          <Tabs value={segment} onValueChange={onTabChange}>
+            <Tabs.List className="mx-4 mt-2 mb-2">
+              <Tabs.Indicator />
+              <Tabs.Trigger value="overview" className="flex-1">
+                <Tabs.Label>{Strings.dashboardSegmentOverview}</Tabs.Label>
+              </Tabs.Trigger>
+              <Tabs.Trigger value="accounts" className="flex-1">
+                <Tabs.Label>{Strings.dashboardSegmentAccounts}</Tabs.Label>
+              </Tabs.Trigger>
+            </Tabs.List>
+          </Tabs>
 
-          <Animated.View entering={statsEntering}>
-            <StatCards
-              netWorthEgp={state.netWorth.netWorthEgp}
-              assetsEgp={state.netWorth.assetsEgp}
-              liabilitiesEgp={state.netWorth.liabilitiesEgp}
-              assetsCount={state.accountCounts.assets}
-              liabilitiesCount={state.accountCounts.liabilities}
-              monthSpentEgp={state.monthSpend.currentEgp}
-              monthSpentUsd={state.monthSpend.currentUsdNative}
-              monthSpendDeltaPct={state.monthSpend.deltaPct}
-              monthSpendCount={state.monthSpend.currentCount}
-              spendYearMonth={state.monthSpend.yearMonth}
-            />
-          </Animated.View>
+          <GestureDetector gesture={swipeGesture}>
+            <ScreenScroll
+              refreshControl={
+                <RefreshControl
+                  refreshing={state.refreshing}
+                  onRefresh={refresh}
+                  tintColor={Colors.shared.cairoGold}
+                />
+              }
+            >
+              <Animated.View
+                key={segment}
+                entering={FadeIn.duration(200)}
+                exiting={FadeOut.duration(150)}
+              >
+                {segment === 'overview' ? (
+                  <>
+                    <Animated.View style={heroStyle}>
+                      <HeroCard
+                        assetsEgp={state.netWorth.assetsEgp}
+                        assetsUsd={state.netWorth.assetsUsd}
+                        rate={state.rate}
+                        isManualOverride={state.isManualOverride}
+                        assetsCount={state.accountCounts.assets}
+                        liabilitiesCount={state.accountCounts.liabilities}
+                        onPress={() => setBreakdownVisible(true)}
+                      />
+                    </Animated.View>
 
-          <CommitmentsCard
-            counts={state.commitments.counts}
-            totalsByCurrency={state.commitments.totalsByCurrency}
-            yearMonth={state.commitments.yearMonth}
-            onPress={goToCommitments}
-          />
+                    <Animated.View entering={statsEntering}>
+                      <StatCards
+                        netWorthEgp={state.netWorth.netWorthEgp}
+                        assetsEgp={state.netWorth.assetsEgp}
+                        liabilitiesEgp={state.netWorth.liabilitiesEgp}
+                        assetsCount={state.accountCounts.assets}
+                        liabilitiesCount={state.accountCounts.liabilities}
+                        monthSpentEgp={state.monthSpend.currentEgp}
+                        monthSpentUsd={state.monthSpend.currentUsdNative}
+                        monthSpendDeltaPct={state.monthSpend.deltaPct}
+                        monthSpendCount={state.monthSpend.currentCount}
+                        spendYearMonth={state.monthSpend.yearMonth}
+                      />
+                    </Animated.View>
 
-          {visibleTypes.map((type, index) => (
-            <Animated.View key={type} entering={sectionEntering(index)}>
-              <SectionHeader title={SECTION_TITLES[type]} />
-              <AccountCarousel
-                type={type}
-                accounts={state.groupedAccounts[type] ?? []}
-                rate={state.rate}
-                statsMap={state.statsMap}
-                onAccountPress={goToAccount}
-                onAddPress={goToAddAccount}
-              />
-            </Animated.View>
-          ))}
+                    <CommitmentsCard
+                      counts={state.commitments.counts}
+                      totalsByCurrency={state.commitments.totalsByCurrency}
+                      yearMonth={state.commitments.yearMonth}
+                      onPress={goToCommitments}
+                    />
 
-          <View style={styles.bottomPad} />
-        </ScrollView>
+                    <View style={{ height: Spacing.xxl }} />
+                  </>
+                ) : (
+                  <>
+                    <TotalBalanceStrip
+                      assetsEgp={state.netWorth.assetsEgp}
+                      accountsCount={totalAccountsCount}
+                    />
+                    {visibleTypes.map((type, index) => (
+                      <Animated.View key={type} entering={sectionEntering(index)}>
+                        <SectionHeader
+                          title={SECTION_TITLES[type]}
+                          count={state.groupedAccounts[type]?.length ?? 0}
+                        />
+                        <AccountCarousel
+                          type={type}
+                          accounts={state.groupedAccounts[type] ?? []}
+                          rate={state.rate}
+                          statsMap={state.statsMap}
+                          onAccountPress={goToAccount}
+                          onAddPress={goToAddAccount}
+                        />
+                      </Animated.View>
+                    ))}
+                    <View style={{ height: Spacing.xxl }} />
+                  </>
+                )}
+              </Animated.View>
+            </ScreenScroll>
+          </GestureDetector>
+        </>
       )}
 
       <NetWorthBreakdownSheet
@@ -138,35 +217,10 @@ export default function DashboardScreen() {
         liabilitiesEgp={state.netWorth.liabilitiesEgp}
         netWorthEgp={state.netWorth.netWorthEgp}
         netWorthUsd={state.netWorth.netWorthUsd}
+        rate={state.rate}
+        liquidity={state.liquidity}
+        liabilities={state.liabilities}
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.dark.bg },
-  header: {
-    height: Size.headerHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.sm,
-  },
-  wordmark: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-  },
-  settingsBtn: {
-    width: Size.backBtn,
-    height: Size.backBtn,
-    backgroundColor: Colors.dark.surface,
-    borderRadius: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scroll: { flex: 1 },
-  bottomPad: { height: Spacing.xxl },
-});
