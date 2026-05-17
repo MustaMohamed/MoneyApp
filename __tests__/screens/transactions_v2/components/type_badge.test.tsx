@@ -1,0 +1,40 @@
+import React from 'react';
+import { render } from '@testing-library/react-native';
+
+import { TypeBadge } from '@/components/ui/type_badge';
+
+jest.mock('heroui-native', () => {
+  const { View, Text } = jest.requireActual('react-native');
+  return {
+    cn: (...args: unknown[]) => args.filter(Boolean).join(' '),
+    View,
+    Text,
+  };
+});
+
+describe('TypeBadge', () => {
+  it('renders Commitment label', () => {
+    const { getByText } = render(<TypeBadge type="commitment" />);
+    expect(getByText('Commitment')).toBeTruthy();
+  });
+
+  it('renders Goal label', () => {
+    const { getByText } = render(<TypeBadge type="goal" />);
+    expect(getByText('Goal')).toBeTruthy();
+  });
+
+  it('renders Bill label', () => {
+    const { getByText } = render(<TypeBadge type="bill" />);
+    expect(getByText('Bill')).toBeTruthy();
+  });
+
+  it('accepts size prop and renders without crashing', () => {
+    const { getByText } = render(<TypeBadge type="commitment" size="md" />);
+    expect(getByText('Commitment')).toBeTruthy();
+  });
+
+  it('exposes accessibilityLabel matching the type', () => {
+    const { getByLabelText } = render(<TypeBadge type="commitment" />);
+    expect(getByLabelText('Commitment')).toBeTruthy();
+  });
+});
