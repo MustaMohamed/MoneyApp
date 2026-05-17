@@ -116,20 +116,20 @@ export function useTransactions() {
       }
     })();
     return () => { cancelled = true; };
-  }, [txScreenState.period]);
+  }, [txScreenState.period, txState.transactions]);
 
   useFocusEffect(
     useCallback(() => {
       return () => {
         const fresh = currentYearMonth();
-        setPeriod({ type: 'month', yearMonth: fresh });
+        useTransactionsScreenStore.getState().setPeriod({ type: 'month', yearMonth: fresh });
         useTransactionsScreenStore.getState().reset();
         useTransactionsState.getState().reset();
         useFilterState.getState().reset();
         useFilterStore.getState().resetDraft();
         useTransactionStore.getState().setQuery({}).catch(() => {});
       };
-    }, [setPeriod]),
+    }, []),
   );
 
   const accountsById = useMemo(
