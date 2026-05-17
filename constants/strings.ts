@@ -532,4 +532,58 @@ export const Strings = {
   // §4 EmptyState — categories variant
   emptyStateCategoriesHeadline: 'No categories yet',
   emptyStateCategoriesDescription: 'Your categories will appear here.',
+
+  // §6 Transactions — Month carousel
+  carouselAllLabel: 'All',
+  carouselCustomLabel: 'Custom',
+  carouselCustomActiveLabel: (from: string, to: string) => `${from} → ${to}`,
+  carouselMonthShort: (yearMonth: string) => {
+    const [y, m] = yearMonth.split('-').map(Number);
+    const labels = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return `${labels[m - 1]} ${y}`;
+  },
+
+  // §6 Transactions — Totals strip
+  totalsIncome: 'Income',
+  totalsExpense: 'Expense',
+  totalsNet: 'Net',
+  totalsVsPrev: (prevLabel: string) => `vs ${prevLabel}`,
+
+  // §6 Transactions — Type badges
+  typeBadgeCommitment: 'Commitment',
+  typeBadgeGoal: 'Goal',
+  typeBadgeBill: 'Bill',
+
+  // §6 Transactions — Filter sheet additions
+  filterSummaryAccountsEmpty: 'All accounts',
+  filterSummaryCategoriesEmpty: 'All categories',
+  filterSummaryAmountEmpty: 'Any amount',
+  filterAmountMinLabel: 'Min',
+  filterAmountMaxLabel: 'Max',
+
+  // §6 Transactions — Date range picker sheet (carousel Custom pill)
+  dateRangePickerTitle: 'Custom range',
+  dateRangePickerFromLabel: 'From',
+  dateRangePickerToLabel: 'To',
+  dateRangePickerConfirm: 'Apply',
+  dateRangePickerCancel: 'Cancel',
+
+  // §6 Transactions — Detail flow (TransferFlowCard labels)
+  detailFlowFromLabel: 'From',
+  detailFlowToLabel: 'To',
+  detailFlowCategoryLabel: 'Category',
+  detailFlowSourceLabel: 'Source',
 } as const;
