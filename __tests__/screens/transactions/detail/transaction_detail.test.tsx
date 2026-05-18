@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
-import TransactionDetailScreenV2 from '@/screens/transactions/detail';
+import TransactionDetailScreen from '@/screens/transactions/detail';
 
 jest.mock('expo-router', () => ({
   router: { back: jest.fn(), push: jest.fn() },
@@ -61,8 +61,8 @@ jest.mock('@/screens/transactions/detail/detail.hook', () => ({
   }),
 }));
 
-describe('TransactionDetailScreenV2 smoke', () => {
+describe('TransactionDetailScreen smoke', () => {
   it('mounts without throwing', () => {
-    expect(() => render(<TransactionDetailScreenV2 />)).not.toThrow();
+    expect(() => render(<TransactionDetailScreen />)).not.toThrow();
   });
 });

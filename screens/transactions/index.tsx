@@ -24,7 +24,7 @@ import { FilterSheet } from './filter';
 import { useFilterState } from './filter/filter.state';
 import { useTransactions } from './transactions.hook';
 
-export default function TransactionsScreenV2(): React.ReactElement {
+export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
   const { state: addTxState, open: openAddTx } = useAddTransactionState(
     useShallow((s) => ({ state: s.state, open: s.open })),

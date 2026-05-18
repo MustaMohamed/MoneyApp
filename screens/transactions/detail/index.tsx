@@ -22,7 +22,7 @@ import { NotFoundState } from './components/not_found_state';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import { useTransactionDetail } from './detail.hook';
 
-export default function TransactionDetailScreenV2(): React.ReactElement {
+export default function TransactionDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
