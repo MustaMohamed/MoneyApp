@@ -31,7 +31,9 @@ const mockTxExpense: Transaction = {
   updated_at: 'now',
 };
 
-const mockAccountEGP = {
+import type { Account } from '@/database/entities/account.entity';
+
+const mockAccountEGP: Account = {
   id: 'a1',
   name: 'Cash',
   type: AccountType.PhysicalWallet,
@@ -39,11 +41,14 @@ const mockAccountEGP = {
   opening_balance: 0,
   current_balance: 1000,
   color: '#fff',
-  is_archived: 0,
-  icon: 'cash',
-  minimum_payment: null,
   credit_limit: null,
-  statement_day: null,
+  revolving_balance: null,
+  minimum_payment: null,
+  statement_due_day: null,
+  interest_tracking: 0,
+  apr: null,
+  is_archived: 0,
+  sort_order: 0,
   created_at: 'now',
   updated_at: 'now',
 };

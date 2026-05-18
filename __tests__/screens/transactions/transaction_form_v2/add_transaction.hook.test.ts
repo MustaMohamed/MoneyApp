@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
@@ -11,7 +11,9 @@ import { useAddTransactionStore } from '@/screens/transactions/transaction_form_
 
 // AccountType.Cash does not exist in the enum; PhysicalWallet is a non-CC
 // asset type that satisfies all "non-credit-card" rules in the schema.
-const mockAccountEGP = {
+import type { Account } from '@/database/entities/account.entity';
+
+const mockAccountEGP: Account = {
   id: 'a1',
   name: 'Cash',
   type: AccountType.PhysicalWallet,
@@ -19,11 +21,14 @@ const mockAccountEGP = {
   opening_balance: 0,
   current_balance: 1000,
   color: '#fff',
-  is_archived: 0,
-  icon: 'cash',
-  minimum_payment: null,
   credit_limit: null,
-  statement_day: null,
+  revolving_balance: null,
+  minimum_payment: null,
+  statement_due_day: null,
+  interest_tracking: 0,
+  apr: null,
+  is_archived: 0,
+  sort_order: 0,
   created_at: 'now',
   updated_at: 'now',
 };
@@ -44,18 +49,24 @@ const mockAccountCC2 = {
 const mockCategoryExpense = {
   id: 'c1',
   name: 'Food',
-  type: 'expense' as const,
+  type: CategoryType.Expense,
   icon: 'food',
   color: '#fff',
+  is_default: 0 as const,
+  sort_order: 0,
   created_at: 'now',
+  updated_at: 'now',
 };
 const mockCategoryIncome = {
   id: 'c2',
   name: 'Salary',
-  type: 'income' as const,
+  type: CategoryType.Income,
   icon: 'cash',
   color: '#fff',
+  is_default: 0 as const,
+  sort_order: 1,
   created_at: 'now',
+  updated_at: 'now',
 };
 
 beforeEach(() => {
