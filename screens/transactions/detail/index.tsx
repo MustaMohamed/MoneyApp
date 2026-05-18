@@ -9,9 +9,23 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
 
-import { EditTransactionSheet } from '@/screens/transactions/transaction_form';
-import { useEditTransactionState } from '@/screens/transactions/transaction_form/edit_transaction.state';
-import { useEditTransactionStore } from '@/screens/transactions/transaction_form/edit_transaction.store';
+import { FeatureFlags } from '@/constants/feature_flags';
+import { EditTransactionSheet as EditTransactionSheetV1 } from '@/screens/transactions/transaction_form';
+import { useEditTransactionState as useEditTransactionStateV1 } from '@/screens/transactions/transaction_form/edit_transaction.state';
+import { useEditTransactionStore as useEditTransactionStoreV1 } from '@/screens/transactions/transaction_form/edit_transaction.store';
+import { EditTransactionSheet as EditTransactionSheetV2 } from '@/screens/transactions/transaction_form_v2';
+import { useEditTransactionState as useEditTransactionStateV2 } from '@/screens/transactions/transaction_form_v2/edit_transaction.state';
+import { useEditTransactionStore as useEditTransactionStoreV2 } from '@/screens/transactions/transaction_form_v2/edit_transaction.store';
+
+const EditTransactionSheet = FeatureFlags.newAddTransaction
+  ? EditTransactionSheetV2
+  : EditTransactionSheetV1;
+const useEditTransactionState = FeatureFlags.newAddTransaction
+  ? useEditTransactionStateV2
+  : useEditTransactionStateV1;
+const useEditTransactionStore = FeatureFlags.newAddTransaction
+  ? useEditTransactionStoreV2
+  : useEditTransactionStoreV1;
 
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
