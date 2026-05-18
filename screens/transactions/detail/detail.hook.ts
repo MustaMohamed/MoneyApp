@@ -117,48 +117,54 @@ export function useTransactionDetail(id: string) {
 
   const derived = useMemo(() => {
     if (!txDetailDataState.tx) return null;
-    const account = accountsById.get(txDetailDataState.tx.account_id);
-    const toAccount = txDetailDataState.tx.to_account_id
-      ? accountsById.get(txDetailDataState.tx.to_account_id)
-      : undefined;
-    const category = txDetailDataState.tx.category_id
-      ? categoriesById.get(txDetailDataState.tx.category_id)
-      : undefined;
+    const tx = txDetailDataState.tx;
+    const account = accountsById.get(tx.account_id);
+    const toAccount = tx.to_account_id ? accountsById.get(tx.to_account_id) : undefined;
+    const category = tx.category_id ? categoriesById.get(tx.category_id) : undefined;
     const { title } = formatTransactionTitle({
-      tx: txDetailDataState.tx,
+      tx,
       account,
       toAccount,
       category,
     });
 
-    const time = formatTime12h(txDetailDataState.tx.transaction_time);
-    const dateLong = formatLongDate(txDetailDataState.tx.transaction_date);
+    const time = formatTime12h(tx.transaction_time);
+    const dateLong = formatLongDate(tx.transaction_date);
 
     return {
       title,
-      amountText: signedAmount(txDetailDataState.tx),
+      amountText: signedAmount(tx),
       dateTimeText: `${dateLong} · ${time}`,
       categoryLabel:
         category?.name ??
-        (txDetailDataState.tx.type === TransactionType.Transfer ||
-        txDetailDataState.tx.type === TransactionType.CCPayment
-          ? TYPE_BADGE[txDetailDataState.tx.type]
+        (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment
+          ? TYPE_BADGE[tx.type]
           : Strings.uncategorized),
-      categoryBadge: TYPE_BADGE[txDetailDataState.tx.type],
+      categoryBadge: TYPE_BADGE[tx.type],
       accountLabel: toAccount
         ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
         : (account?.name ?? Strings.unknownAccount),
       accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
       originalAmountText:
-        txDetailDataState.tx.currency === Currency.USD
-          ? `${numberFmt.format(txDetailDataState.tx.amount)} USD`
-          : undefined,
+        tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
       exchangeRateText:
-        txDetailDataState.tx.exchange_rate !== null
-          ? `1 USD = ${numberFmt.format(txDetailDataState.tx.exchange_rate)} EGP`
-          : undefined,
-      noteText: txDetailDataState.tx.note?.trim() || Strings.detailNoteEmpty,
+        tx.exchange_rate !== null ? `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP` : undefined,
+      noteText: tx.note?.trim() || Strings.detailNoteEmpty,
       category,
+      isTransferLike: tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment,
+      transferFlow:
+        (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) &&
+        account &&
+        toAccount
+          ? {
+              fromAccount: account,
+              toAccount,
+              fromAmount: tx.amount,
+              fromCurrency: tx.currency,
+              toAmount: tx.to_amount ?? tx.egp_amount,
+              toCurrency: toAccount.currency,
+            }
+          : null,
     };
   }, [txDetailDataState.tx, accountsById, categoriesById]);
 

@@ -1,17 +1,12 @@
+import React from 'react';
+import { View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View } from 'react-native';
-import Animated from 'react-native-reanimated';
-import Svg, { Defs, Pattern, Path, Rect } from 'react-native-svg';
 
+import { Text } from '@/components/ui/text';
+import { TypeBadge } from '@/components/ui/type_badge';
 import { TransactionType } from '@/constants/enums';
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { ms, msFont } from '@/utils/responsive';
-import { heroEntering } from '../detail.anim';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface Props {
   tx: Transaction;
@@ -21,107 +16,89 @@ interface Props {
   dateTimeText: string;
 }
 
-function colorFor(tx: Transaction, category?: Category): { color: string; icon: IconName } {
-  switch (tx.type) {
-    case TransactionType.Expense:
-      return {
-        color: Colors.dark.negative,
-        icon: (category?.icon as IconName) ?? 'shape-outline',
-      };
+function typeColor(type: TransactionType): string {
+  switch (type) {
     case TransactionType.Income:
-      return {
-        color: Colors.dark.positive,
-        icon: (category?.icon as IconName) ?? 'shape-outline',
-      };
+      return '#6EE7B7';
     case TransactionType.Transfer:
-      return { color: Colors.shared.transferBlue, icon: 'swap-horizontal' };
+      return '#D4AF37';
     case TransactionType.CCPayment:
-      return { color: Colors.shared.ccPlum, icon: 'credit-card-refund' };
+      return '#D699E8';
+    default:
+      return '#F0EEE6';
   }
 }
 
-export function DetailHero({ tx, category, amountText, title, dateTimeText }: Props) {
-  const { color, icon } = colorFor(tx, category);
-  const tintBg = color.length === 7 ? `${color}2E` : color; // 18% opacity tint
+function typeLabel(type: TransactionType): string {
+  switch (type) {
+    case TransactionType.Income:
+      return 'Income';
+    case TransactionType.Transfer:
+      return 'Transfer';
+    case TransactionType.CCPayment:
+      return 'CC Payment';
+    default:
+      return 'Expense';
+  }
+}
 
+export function DetailHero({
+  tx,
+  category,
+  amountText,
+  title,
+  dateTimeText,
+}: Props): React.ReactElement {
   return (
-    <Animated.View entering={heroEntering} style={styles.wrap}>
-      <LinearGradient
-        colors={[Colors.shared.heroGrad1, Colors.shared.heroGrad2, Colors.shared.heroGrad3]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <GridTexture />
-      <View pointerEvents="none" style={[styles.glow, { backgroundColor: color, opacity: 0.25 }]} />
-      <View style={[styles.iconBox, { backgroundColor: tintBg }]}>
-        <MaterialCommunityIcons name={icon} size={ms(28)} color={color} />
+    <View className="px-4 pt-6 pb-4 items-center">
+      <View className="flex-row gap-2 mb-3">
+        <View
+          className="px-2.5 py-0.5 rounded-full border"
+          style={{
+            borderColor: `${typeColor(tx.type)}55`,
+            backgroundColor: `${typeColor(tx.type)}1A`,
+          }}
+        >
+          <Text
+            className="font-inter font-semibold text-[10.5px]"
+            style={{ color: typeColor(tx.type) }}
+          >
+            {typeLabel(tx.type)}
+          </Text>
+        </View>
+        {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
       </View>
-      <Text style={[styles.amount, { color }]} numberOfLines={1}>
+      <Text
+        className="font-sora font-extrabold text-[36px] leading-none"
+        style={{ color: typeColor(tx.type), letterSpacing: -0.5 }}
+      >
         {amountText}
       </Text>
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
+      {category ? (
+        <View
+          className="flex-row items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full"
+          style={{
+            backgroundColor: `${category.color ?? '#888'}1F`,
+            borderWidth: 1,
+            borderColor: `${category.color ?? '#888'}40`,
+          }}
+        >
+          <MaterialCommunityIcons
+            name={(category.icon as never) ?? 'shape-outline'}
+            size={14}
+            color={category.color ?? '#888'}
+          />
+          <Text
+            className="font-inter font-semibold text-[11px]"
+            style={{ color: category.color ?? '#888' }}
+          >
+            {category.name}
+          </Text>
+        </View>
+      ) : null}
+      <Text className="font-inter text-[11px] text-foreground/55 mt-2">
+        {title} · {dateTimeText}
       </Text>
-      <Text style={styles.meta} numberOfLines={1}>
-        {dateTimeText}
-      </Text>
-    </Animated.View>
+    </View>
   );
 }
-
-function GridTexture() {
-  return (
-    <Svg style={StyleSheet.absoluteFill}>
-      <Defs>
-        <Pattern id="grid" width="26" height="26" patternUnits="userSpaceOnUse">
-          <Path d="M 26 0 L 0 0 0 26" fill="none" stroke="#FFFFFF" strokeWidth="1" opacity="0.02" />
-        </Pattern>
-      </Defs>
-      <Rect width="100%" height="100%" fill="url(#grid)" />
-    </Svg>
-  );
-}
-
-const styles = StyleSheet.create({
-  wrap: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.lg,
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  glow: {
-    position: 'absolute',
-    top: -ms(40),
-    right: -ms(40),
-    width: ms(160),
-    height: ms(160),
-    borderRadius: ms(80),
-  },
-  iconBox: {
-    width: ms(52),
-    height: ms(52),
-    borderRadius: Radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.md,
-  },
-  amount: {
-    fontFamily: FontFamily.soraExtra,
-    fontSize: msFont(36),
-    marginBottom: Spacing.xs,
-  },
-  title: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: msFont(16),
-    color: Colors.dark.text1,
-    opacity: 0.7,
-  },
-  meta: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(12),
-    color: Colors.dark.text1,
-    opacity: 0.35,
-    marginTop: Spacing.xxs,
-  },
-});

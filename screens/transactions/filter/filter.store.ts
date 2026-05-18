@@ -1,52 +1,43 @@
 import { create } from 'zustand';
 
-import { Currency, DatePreset } from '@/constants/enums';
+import { Currency } from '@/constants/enums';
 
 export interface AdvancedFilters {
   accountIds: string[];
   categoryIds: string[];
-  datePreset: DatePreset;
-  customDateFrom?: string;
-  customDateTo?: string;
   amountCurrency: Currency;
   amountMin?: number;
   amountMax?: number;
 }
 
-export const EMPTY_FILTERS: AdvancedFilters = {
+export const EMPTY_FILTERS_V2: AdvancedFilters = {
   accountIds: [],
   categoryIds: [],
-  datePreset: DatePreset.AllTime,
   amountCurrency: Currency.EGP,
 };
 
-interface FilterDrawerStoreShape {
+interface DraftShape {
   draft: AdvancedFilters;
 }
 
-interface FilterDrawerStore {
-  state: FilterDrawerStoreShape;
+interface FilterStore {
+  state: DraftShape;
   setDraft: (next: AdvancedFilters) => void;
   resetDraft: () => void;
   toggleAccountId: (id: string) => void;
   toggleCategoryId: (id: string) => void;
-  setDatePreset: (p: DatePreset) => void;
-  setCustomDateRange: (from?: string, to?: string) => void;
   setAmountMin: (v?: number) => void;
   setAmountMax: (v?: number) => void;
   setAmountCurrency: (c: Currency) => void;
 }
 
-const INITIAL_STATE: FilterDrawerStoreShape = {
-  draft: EMPTY_FILTERS,
-};
+const INITIAL_STATE: DraftShape = { draft: EMPTY_FILTERS_V2 };
 
-export const useFilterDrawerStore = create<FilterDrawerStore>((set) => ({
+export const useFilterStore = create<FilterStore>((set) => ({
   state: INITIAL_STATE,
 
   setDraft: (next) => set((s) => ({ state: { ...s.state, draft: next } })),
-
-  resetDraft: () => set((s) => ({ state: { ...s.state, draft: EMPTY_FILTERS } })),
+  resetDraft: () => set((s) => ({ state: { ...s.state, draft: EMPTY_FILTERS_V2 } })),
 
   toggleAccountId: (id) =>
     set((s) => ({
@@ -70,22 +61,6 @@ export const useFilterDrawerStore = create<FilterDrawerStore>((set) => ({
           categoryIds: s.state.draft.categoryIds.includes(id)
             ? s.state.draft.categoryIds.filter((x) => x !== id)
             : [...s.state.draft.categoryIds, id],
-        },
-      },
-    })),
-
-  setDatePreset: (p) =>
-    set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, datePreset: p } } })),
-
-  setCustomDateRange: (from, to) =>
-    set((s) => ({
-      state: {
-        ...s.state,
-        draft: {
-          ...s.state.draft,
-          customDateFrom: from,
-          customDateTo: to,
-          datePreset: DatePreset.Custom,
         },
       },
     })),

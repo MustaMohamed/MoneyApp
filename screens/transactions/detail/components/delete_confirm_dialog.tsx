@@ -1,7 +1,9 @@
-import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { ActivityIndicator, Modal, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 
 interface Props {
   visible: boolean;
@@ -10,7 +12,12 @@ interface Props {
   onConfirm: () => void;
 }
 
-export function DeleteConfirmDialog({ visible, busy, onCancel, onConfirm }: Props) {
+export function DeleteConfirmDialog({
+  visible,
+  busy,
+  onCancel,
+  onConfirm,
+}: Props): React.ReactElement {
   return (
     <Modal
       transparent
@@ -19,79 +26,43 @@ export function DeleteConfirmDialog({ visible, busy, onCancel, onConfirm }: Prop
       animationType="fade"
       statusBarTranslucent
     >
-      <View style={styles.overlay}>
-        <View style={styles.dialog}>
-          <Text style={styles.title}>{Strings.deleteConfirmTitle}</Text>
-          <Text style={styles.body}>{Strings.deleteConfirmBody}</Text>
-          <View style={styles.btnRow}>
-            <Pressable onPress={onCancel} disabled={busy} style={[styles.btn, styles.cancelBtn]}>
-              <Text style={styles.cancelText}>{Strings.deleteCancel}</Text>
-            </Pressable>
-            <Pressable onPress={onConfirm} disabled={busy} style={[styles.btn, styles.deleteBtn]}>
+      <View
+        className="flex-1 items-center justify-center px-6"
+        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+      >
+        <View className="w-full rounded-2xl bg-surface border border-separator p-6">
+          <Text className="font-sora font-bold text-[17px] text-foreground mb-3">
+            {Strings.deleteConfirmTitle}
+          </Text>
+          <Text className="font-inter text-[14px] text-foreground/70 mb-6 leading-[22px]">
+            {Strings.deleteConfirmBody}
+          </Text>
+          <View className="flex-row gap-3">
+            <View className="flex-1">
+              <Button
+                variant="outline"
+                label={Strings.deleteCancel}
+                onPress={onCancel}
+                isDisabled={busy}
+              />
+            </View>
+            <View className="flex-1">
               {busy ? (
-                <ActivityIndicator color={Colors.dark.text1} />
+                <View className="h-12 items-center justify-center rounded-xl bg-danger">
+                  <ActivityIndicator color="#FFFFFF" />
+                </View>
               ) : (
-                <Text style={styles.deleteText}>{Strings.deleteTransaction}</Text>
+                <Button
+                  variant="danger"
+                  label={Strings.deleteTransaction}
+                  onPress={onConfirm}
+                  isDisabled={busy}
+                />
               )}
-            </Pressable>
+            </View>
           </View>
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-  },
-  dialog: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: Radius.lg,
-    padding: Spacing.lg,
-    width: '100%',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  title: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    marginBottom: Spacing.sm,
-  },
-  body: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-    marginBottom: Spacing.lg,
-    lineHeight: 22,
-  },
-  btnRow: { flexDirection: 'row', gap: Spacing.sm },
-  btn: {
-    flex: 1,
-    height: Size.dialogButton,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelBtn: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  deleteBtn: { backgroundColor: Colors.dark.negative },
-  cancelText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  deleteText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-});

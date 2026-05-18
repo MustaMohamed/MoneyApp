@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
 
-import { MonthCarousel } from '@/screens/transactions_v2/components/month_carousel';
+import { MonthCarousel } from '@/screens/transactions/components/month_carousel';
 
 jest.mock('heroui-native', () => {
   const { View, Text } = jest.requireActual('react-native');

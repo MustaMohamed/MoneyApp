@@ -1,188 +1,100 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect, useRef } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import ActionSheet, { ScrollView, type ActionSheetRef } from 'react-native-actions-sheet';
+import React from 'react';
+import { Pressable, View } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Text } from '@/components/ui/text';
+import { Button } from '@/components/ui/button';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
-import { useFilterDrawer } from './filter.hook';
-import { FilterAccountPicker } from './components/filter_account_picker';
-import { FilterAmountSection } from './components/filter_amount_section';
-import { FilterCategoryPicker } from './components/filter_category_picker';
-import { FilterDateCustomPicker } from './components/filter_date_custom_picker';
-import { FilterDateSection } from './components/filter_date_section';
-import { FilterSectionRow } from './components/filter_section_row';
 
-const WINDOW_HEIGHT = Dimensions.get('window').height;
+import { AccountAccordion } from './components/account_accordion';
+import { CategoryAccordion } from './components/category_accordion';
+import { AmountAccordion } from './components/amount_accordion';
+import { useFilterSheet } from './filter.hook';
 
-export function FilterDrawer() {
-  const f = useFilterDrawer();
-  const sheetRef = useRef<ActionSheetRef>(null);
+/**
+ * Must remain mounted at all times — never wrap in `{condition && <FilterSheet />}`.
+ *
+ * Sheet drives BottomSheetLib's open/close imperatively via the ref. Unmounting
+ * the wrapper drops the ref; on the next mount, `snapToIndex(0)` fires before
+ * BottomSheetLib finishes initializing and silently no-ops, so the sheet
+ * never reopens. See the body comment for the full trace.
+ */
+export function FilterSheet(): React.ReactElement {
+  const f = useFilterSheet();
 
-  useEffect(() => {
-    if (f.state.visible) sheetRef.current?.show();
-    else sheetRef.current?.hide();
-  }, [f.state.visible]);
-
+  // Sheet must stay mounted between opens. Unmounting drops the BottomSheetLib
+  // ref, and the next mount fires snapToIndex(0) before the library has
+  // initialized — the open silently no-ops. Sheet handles visibility itself.
   return (
-    <ActionSheet
-      ref={sheetRef}
+    <Sheet
+      visible={f.state.visible}
       onClose={f.close}
-      gestureEnabled
-      useBottomSafeAreaPadding={false}
-      containerStyle={styles.sheet}
-      indicatorStyle={styles.handle}
+      size="lg"
+      title={Strings.filterTitle}
+      footer={
+        <View className="px-4 pt-3 pb-6">
+          <Button
+            variant="primary"
+            label={
+              f.state.draftCount > 0
+                ? Strings.filterApplyWithCount(f.state.draftCount)
+                : Strings.filterApply
+            }
+            onPress={f.applyDraft}
+            disabled={f.state.draftCount === 0}
+          />
+        </View>
+      }
     >
-      <View style={styles.header}>
-        <Pressable onPress={() => sheetRef.current?.hide()} hitSlop={8}>
-          <MaterialCommunityIcons name="close" size={Size.iconMd} color={Colors.dark.text2} />
-        </Pressable>
-        <Text style={styles.title}>{Strings.filterTitle}</Text>
-        <Pressable onPress={f.resetDraft} hitSlop={8}>
-          <Text style={styles.resetLabel}>{Strings.filterReset}</Text>
-        </Pressable>
-      </View>
+      <Sheet.Body>
+        {/* Reset link row — Sheet has no headerRight slot so it lives here */}
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            paddingHorizontal: 16,
+            paddingBottom: 8,
+          }}
+        >
+          <Pressable
+            onPress={f.resetDraft}
+            accessibilityRole="button"
+            accessibilityLabel="Reset filters"
+          >
+            <Text className="font-inter font-semibold text-[12px] text-accent">
+              {Strings.filterReset}
+            </Text>
+          </Pressable>
+        </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <Animated.View entering={FadeInDown.duration(250)} style={styles.rowWrap}>
-          <FilterSectionRow
-            label={Strings.filterSectionAccounts}
-            summary={f.state.selectedAccountSummary}
-            isActive={f.state.draft.accountIds.length > 0}
-            onPress={() => f.setAccountPickerVisible(true)}
+        <BottomSheetScrollView
+          contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: SHEET_FOOTER_CLEARANCE }}
+        >
+          <AccountAccordion
+            accounts={f.state.accounts}
+            selectedIds={f.state.draft.accountIds}
+            expanded={f.state.openSection === 'accounts'}
+            onToggleSection={() => f.toggleSection('accounts')}
+            onToggleId={f.toggleAccountId}
           />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(80).duration(250)} style={styles.rowWrap}>
-          <FilterSectionRow
-            label={Strings.filterSectionCategories}
-            summary={f.state.selectedCategorySummary}
-            isActive={f.state.draft.categoryIds.length > 0}
-            onPress={() => f.setCategoryPickerVisible(true)}
+          <CategoryAccordion
+            categories={f.state.categories}
+            selectedIds={f.state.draft.categoryIds}
+            expanded={f.state.openSection === 'categories'}
+            onToggleSection={() => f.toggleSection('categories')}
+            onToggleId={f.toggleCategoryId}
           />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(160).duration(250)}>
-          <FilterDateSection
-            preset={f.state.draft.datePreset}
-            customFrom={f.state.draft.customDateFrom}
-            customTo={f.state.draft.customDateTo}
-            onSelectPreset={f.setDatePreset}
-            onOpenCustomPicker={() => f.setCustomDatePickerVisible(true)}
-          />
-        </Animated.View>
-
-        <Animated.View entering={FadeInDown.delay(240).duration(250)}>
-          <FilterAmountSection
-            currency={f.state.draft.amountCurrency}
-            min={f.state.draft.amountMin}
-            max={f.state.draft.amountMax}
+          <AmountAccordion
+            draft={f.state.draft}
+            expanded={f.state.openSection === 'amount'}
+            onToggleSection={() => f.toggleSection('amount')}
             onChangeCurrency={f.setAmountCurrency}
             onChangeMin={f.setAmountMin}
             onChangeMax={f.setAmountMax}
           />
-        </Animated.View>
-      </ScrollView>
-
-      <View style={styles.footer}>
-        <Pressable
-          onPress={f.applyDraft}
-          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-        >
-          <Text style={styles.ctaLabel}>
-            {f.state.draftActiveCount > 0
-              ? Strings.filterApplyWithCount(f.state.draftActiveCount)
-              : Strings.filterApply}
-          </Text>
-        </Pressable>
-      </View>
-
-      <FilterAccountPicker
-        visible={f.state.accountPickerVisible}
-        accounts={f.state.pickerAccounts}
-        selectedIds={f.state.draft.accountIds}
-        onToggle={f.toggleAccountId}
-        onClose={() => f.setAccountPickerVisible(false)}
-      />
-
-      <FilterCategoryPicker
-        visible={f.state.categoryPickerVisible}
-        categories={f.state.pickerCategories}
-        selectedIds={f.state.draft.categoryIds}
-        onToggle={f.toggleCategoryId}
-        onClose={() => f.setCategoryPickerVisible(false)}
-      />
-
-      <FilterDateCustomPicker
-        visible={f.state.customDatePickerVisible}
-        initialFrom={f.state.draft.customDateFrom}
-        initialTo={f.state.draft.customDateTo}
-        onClose={() => f.setCustomDatePickerVisible(false)}
-        onConfirm={(from, to) => {
-          f.setCustomDateRange(from, to);
-          f.setCustomDatePickerVisible(false);
-        }}
-      />
-    </ActionSheet>
+        </BottomSheetScrollView>
+      </Sheet.Body>
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    height: WINDOW_HEIGHT * 0.85,
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-  },
-  handle: {
-    backgroundColor: Colors.dark.border,
-    width: Size.sheetHandle.width,
-    height: Size.sheetHandle.height,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-  },
-  title: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-  },
-  resetLabel: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.body,
-    color: Colors.shared.cairoGold,
-  },
-  scroll: { flexGrow: 1, flexShrink: 1 },
-  scrollContent: { gap: Spacing.md, paddingBottom: Spacing.xl, paddingTop: Spacing.xs },
-  rowWrap: { paddingHorizontal: Spacing.md },
-  footer: {
-    paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.surface,
-  },
-  cta: {
-    height: Size.ctaHeight,
-    backgroundColor: Colors.shared.cairoGold,
-    borderRadius: Radius.cta,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaPressed: { opacity: 0.85 },
-  ctaLabel: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.shared.midnightBlue,
-  },
-});
