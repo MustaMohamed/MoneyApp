@@ -16,7 +16,7 @@
 export const FeatureFlags = {
   newOnboarding: false, // §2 — flip when Onboarding section lands
   newSettings: false, // §4
-  newTransactions: false, // §6
+  newTransactions: true, // §6
   newAddTransaction: false, // §7 (sheet)
   newCommitments: false, // §8
   newAccounts: false, // §9
