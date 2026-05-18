@@ -23,6 +23,13 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 
+// Sheet writes to the global sheet_visibility store on every open/close so the
+// FAB (rendered in app/(app)/(tabs)/_layout.tsx, a sibling of <Tabs>) can hide
+// while a sheet is up. Sheets are mounted inside route screens; the FAB is
+// outside the route. They share no React ancestor we could plumb through, so
+// React Context isn't an option here. Sheet is the only place that knows when
+// a sheet is open regardless of which screen mounted it — making it the right
+// publisher. See store/sheet_visibility.store.ts for the counter contract.
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import BottomSheetLib, {
   BottomSheetBackdrop,
@@ -48,9 +55,14 @@ import { ms } from '@/utils/responsive';
  *   inspection. Exporting a constant lets consumers compose it explicitly in
  *   contentContainerStyle — simple, typed, and visible at the call site.
  *
- * Value = footer paddingTop (Spacing.xs) + CTA height (Size.ctaHeight) +
- *         footer paddingBottom (Spacing.lg) + extra breathing room (ms(20))
- *         ≈ ms(8) + ms(52) + ms(20) + ms(20) = ms(100).
+ * Value breakdown — matches the footer styles below (`styles.footer`) plus a
+ * little breathing room so the last scrollable item never feels glued to the
+ * CTA:
+ *   Size.ctaHeight (ms(52))         — the primary Button inside the footer
+ * + Spacing.xs     (ms(8))          — footer paddingTop
+ * + Spacing.lg     (ms(20))         — footer paddingBottom
+ * + ms(20)                          — breathing room
+ * = Size.ctaHeight + ms(48)         — collapsed for clarity in the expression.
  */
 export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
 

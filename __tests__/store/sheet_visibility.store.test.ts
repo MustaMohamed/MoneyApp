@@ -29,9 +29,12 @@ describe('useSheetVisibilityStore', () => {
     expect(useSheetVisibilityStore.getState().state.count).toBe(0);
   });
 
-  it('decrement does not go below 0 (guard against leaked decrements)', () => {
+  it('decrement does not go below 0 and warns in dev (guard against leaked decrements)', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     useSheetVisibilityStore.getState().decrement();
     expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[sheet_visibility]'));
+    warnSpy.mockRestore();
   });
 
   it('stacked sheets: increment twice, decrement twice → count reaches 0', () => {
