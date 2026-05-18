@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
@@ -34,7 +34,7 @@ const mockTxExpense: Transaction = {
 const mockAccountEGP = {
   id: 'a1',
   name: 'Cash',
-  type: AccountType.Cash,
+  type: AccountType.PhysicalWallet,
   currency: Currency.EGP,
   opening_balance: 0,
   current_balance: 1000,
@@ -50,18 +50,24 @@ const mockAccountEGP = {
 const mockCategoryFood = {
   id: 'c1',
   name: 'Food',
-  type: 'expense' as const,
+  type: CategoryType.Expense,
   icon: 'food',
   color: '#fff',
+  is_default: 0 as const,
+  sort_order: 0,
   created_at: 'now',
+  updated_at: 'now',
 };
 const mockCategoryShop = {
   id: 'c2',
   name: 'Shopping',
-  type: 'expense' as const,
+  type: CategoryType.Expense,
   icon: 'cart',
   color: '#fff',
+  is_default: 0 as const,
+  sort_order: 1,
   created_at: 'now',
+  updated_at: 'now',
 };
 
 beforeEach(() => {
