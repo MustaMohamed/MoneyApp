@@ -22,6 +22,8 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
+
+import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import BottomSheetLib, {
   BottomSheetBackdrop,
   BottomSheetFooter,
@@ -84,17 +86,30 @@ function SheetBody({ children }: { children: React.ReactNode }) {
 
 export function Sheet({ visible, onClose, title, size, footer, children }: SheetProps) {
   const sheetRef = useRef<BottomSheetMethods>(null);
+  const increment = useSheetVisibilityStore((s) => s.increment);
+  const decrement = useSheetVisibilityStore((s) => s.decrement);
 
   // @gorhom/bottom-sheet v5 treats the `index` prop as initial-only in many code
   // paths. Changing it from 0 to -1 after mount does not reliably trigger a close.
   // Drive open/close state imperatively via the ref instead.
+  //
+  // Also update the global FAB-hiding counter so the FAB does not obscure the
+  // sheet footer while a sheet is open.
   useEffect(() => {
     if (visible) {
       sheetRef.current?.snapToIndex(0);
+      increment();
+      return () => {
+        // Cleanup: decrement when the sheet unmounts while visible, so the
+        // counter never leaks (e.g. component unmounted without a close call).
+        decrement();
+      };
     } else {
       sheetRef.current?.close();
     }
-  }, [visible]);
+    // No cleanup needed for the invisible branch — nothing was incremented.
+    return undefined;
+  }, [visible, increment, decrement]);
 
   const renderBackdrop = useCallback(
     (props: BottomSheetBackdropProps) => (
