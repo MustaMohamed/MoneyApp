@@ -44,7 +44,7 @@ function useFABActions() {
   };
 }
 
-function FABOverlay() {
+export function FABOverlay() {
   const { handleAddTransaction, handleAddAccount, handleAddCommitment } = useFABActions();
   const pathname = usePathname();
   // useBottomTabBarHeight() throws when called outside <Tabs> context.

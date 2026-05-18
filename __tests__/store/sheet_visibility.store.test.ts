@@ -4,8 +4,7 @@ import { act } from '@testing-library/react-native';
 import { useAnySheetOpen, useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 
 beforeEach(() => {
-  // Reset to initial state before each test
-  useSheetVisibilityStore.setState({ state: { count: 0 } });
+  useSheetVisibilityStore.getState().reset();
 });
 
 describe('useSheetVisibilityStore', () => {
@@ -41,6 +40,15 @@ describe('useSheetVisibilityStore', () => {
     useSheetVisibilityStore.getState().decrement();
     expect(useSheetVisibilityStore.getState().state.count).toBe(1);
     useSheetVisibilityStore.getState().decrement();
+    expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+  });
+
+  it('reset() returns count to 0 from any value', () => {
+    useSheetVisibilityStore.getState().increment();
+    useSheetVisibilityStore.getState().increment();
+    useSheetVisibilityStore.getState().increment();
+    expect(useSheetVisibilityStore.getState().state.count).toBe(3);
+    useSheetVisibilityStore.getState().reset();
     expect(useSheetVisibilityStore.getState().state.count).toBe(0);
   });
 });

@@ -12,6 +12,14 @@ import { CategoryAccordion } from './components/category_accordion';
 import { AmountAccordion } from './components/amount_accordion';
 import { useFilterSheet } from './filter.hook';
 
+/**
+ * Must remain mounted at all times — never wrap in `{condition && <FilterSheet />}`.
+ *
+ * Sheet drives BottomSheetLib's open/close imperatively via the ref. Unmounting
+ * the wrapper drops the ref; on the next mount, `snapToIndex(0)` fires before
+ * BottomSheetLib finishes initializing and silently no-ops, so the sheet
+ * never reopens. See the body comment for the full trace.
+ */
 export function FilterSheet(): React.ReactElement {
   const f = useFilterSheet();
 

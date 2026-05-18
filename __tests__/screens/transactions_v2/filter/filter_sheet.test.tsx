@@ -156,15 +156,24 @@ describe('FilterSheet', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Accordion toggle — stale-closure regression guard (Issue B)
+// Accordion toggle — stale-closure regression guard
 //
 // The toggle used to read f.state.openSection from an arrow function captured
-// at render time. If the re-render from the first tap hadn't propagated before
-// the second tap fired, the second tap would re-open the same section instead
-// of closing it. toggleSection() now uses a Zustand functional updater to read
-// the current value at call time, not at render time.
+// in JSX at render time. On Android Fabric inside BottomSheetScrollView, if a
+// second tap fired before the re-render from the first tap propagated, the
+// closure still held the pre-tap value and re-opened the section instead of
+// closing it.
+//
+// REAL REGRESSION GUARDS: the fireEvent.press tests below. They exercise the
+// JSX-bound `() => f.toggleSection('...')` handler — that path is where the
+// stale closure used to live. If someone reverts the JSX back to the
+// closure-capturing ternary, these tests fail.
+//
+// The store-level toggleSection tests further down are unit-level coverage of
+// the action itself (open→close, close→open, functional updater composition).
+// They do NOT, by themselves, guard against a JSX regression.
 // ---------------------------------------------------------------------------
-describe('FilterSheet accordion toggle (Issue B — stale-closure fix)', () => {
+describe('FilterSheet accordion toggle (stale-closure regression guard)', () => {
   it('pressing Accounts when closed sets openSection to "accounts"', () => {
     act(() => useFilterState.getState().open());
     const { getByText } = render(<FilterSheet />);
@@ -175,7 +184,7 @@ describe('FilterSheet accordion toggle (Issue B — stale-closure fix)', () => {
   it('pressing Accounts when already open sets openSection back to null', () => {
     act(() => {
       useFilterState.getState().open();
-      useFilterState.getState().setOpenSection('accounts');
+      useFilterState.getState().toggleSection('accounts');
     });
     const { getByText } = render(<FilterSheet />);
     fireEvent.press(getByText('Accounts'));
@@ -192,7 +201,7 @@ describe('FilterSheet accordion toggle (Issue B — stale-closure fix)', () => {
   it('pressing Categories when already open sets openSection back to null', () => {
     act(() => {
       useFilterState.getState().open();
-      useFilterState.getState().setOpenSection('categories');
+      useFilterState.getState().toggleSection('categories');
     });
     const { getByText } = render(<FilterSheet />);
     fireEvent.press(getByText('Categories'));
@@ -219,7 +228,7 @@ describe('FilterSheet accordion toggle (Issue B — stale-closure fix)', () => {
   it('toggleSection closes Amount via store action', () => {
     act(() => {
       useFilterState.getState().open();
-      useFilterState.getState().setOpenSection('amount');
+      useFilterState.getState().toggleSection('amount');
     });
     expect(useFilterState.getState().state.openSection).toBe('amount');
     act(() => {
@@ -228,12 +237,14 @@ describe('FilterSheet accordion toggle (Issue B — stale-closure fix)', () => {
     expect(useFilterState.getState().state.openSection).toBeNull();
   });
 
-  it('toggleSection functional updater reads current state — simulated rapid double-tap closes', () => {
-    // Simulate the stale-closure scenario: two toggleSection calls fired in
-    // quick succession without a re-render in between. With the functional
-    // updater each call reads the store state at call time, so they compose:
+  it('toggleSection composes correctly when called twice with no re-render between', () => {
+    // Unit-level proof that the functional updater reads current state at call
+    // time. Two calls in the same act() pass without a re-render in between:
     //   first call:  null → 'accounts'
     //   second call: 'accounts' → null
+    // (This does NOT reproduce the original JSX closure-capture bug — that's
+    // what the fireEvent.press tests above are for. This is just coverage of
+    // the action's composability.)
     act(() => {
       useFilterState.getState().toggleSection('accounts');
       useFilterState.getState().toggleSection('accounts');
