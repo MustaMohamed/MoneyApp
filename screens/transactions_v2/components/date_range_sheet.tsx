@@ -55,29 +55,39 @@ export function DateRangeSheet({
       }
     >
       <Sheet.Body>
-        <View className="px-4 py-2">
-          <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/60 mb-1">
-            {Strings.dateRangePickerFromLabel}
-          </Text>
-          <DateTimePicker
-            value={from}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={(_, d) => d && setFrom(d)}
-            maximumDate={to}
-          />
-          <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/60 mt-4 mb-1">
-            {Strings.dateRangePickerToLabel}
-          </Text>
-          <DateTimePicker
-            value={to}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={(_, d) => d && setTo(d)}
-            minimumDate={from}
-            maximumDate={new Date()}
-          />
-        </View>
+        {/*
+          Only mount the DateTimePickers while the sheet is visible. On Android
+          @react-native-community/datetimepicker with display="default" pops its
+          native modal the moment the component is rendered into the tree —
+          mounting the closed Sheet otherwise pops the picker on screen load.
+          iOS uses display="inline" which renders in place, so this gate also
+          avoids carrying inactive picker state.
+        */}
+        {visible ? (
+          <View className="px-4 py-2">
+            <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/60 mb-1">
+              {Strings.dateRangePickerFromLabel}
+            </Text>
+            <DateTimePicker
+              value={from}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={(_, d) => d && setFrom(d)}
+              maximumDate={to}
+            />
+            <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/60 mt-4 mb-1">
+              {Strings.dateRangePickerToLabel}
+            </Text>
+            <DateTimePicker
+              value={to}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              onChange={(_, d) => d && setTo(d)}
+              minimumDate={from}
+              maximumDate={new Date()}
+            />
+          </View>
+        ) : null}
       </Sheet.Body>
     </Sheet>
   );

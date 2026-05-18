@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, Size } from '@/constants/theme';
 import { FAB } from '@/components/ui/fab';
+import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -43,7 +44,7 @@ function useFABActions() {
   };
 }
 
-function FABOverlay() {
+export function FABOverlay() {
   const { handleAddTransaction, handleAddAccount, handleAddCommitment } = useFABActions();
   const pathname = usePathname();
   // useBottomTabBarHeight() throws when called outside <Tabs> context.
@@ -52,6 +53,7 @@ function FABOverlay() {
   const bottomOffset = insets.bottom + Size.tabBarHeight + ms(16);
 
   const isSettingsRoute = pathname.startsWith('/settings');
+  const anySheetOpen = useAnySheetOpen();
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
@@ -59,7 +61,7 @@ function FABOverlay() {
         onAddTransaction={handleAddTransaction}
         onAddAccount={handleAddAccount}
         onAddCommitment={handleAddCommitment}
-        hidden={isSettingsRoute}
+        hidden={isSettingsRoute || anySheetOpen}
         bottomOffset={bottomOffset}
       />
     </View>

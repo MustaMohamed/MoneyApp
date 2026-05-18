@@ -12,11 +12,20 @@ import { CategoryAccordion } from './components/category_accordion';
 import { AmountAccordion } from './components/amount_accordion';
 import { useFilterSheet } from './filter.hook';
 
-export function FilterSheet(): React.ReactElement | null {
+/**
+ * Must remain mounted at all times — never wrap in `{condition && <FilterSheet />}`.
+ *
+ * Sheet drives BottomSheetLib's open/close imperatively via the ref. Unmounting
+ * the wrapper drops the ref; on the next mount, `snapToIndex(0)` fires before
+ * BottomSheetLib finishes initializing and silently no-ops, so the sheet
+ * never reopens. See the body comment for the full trace.
+ */
+export function FilterSheet(): React.ReactElement {
   const f = useFilterSheet();
 
-  if (!f.state.visible) return null;
-
+  // Sheet must stay mounted between opens. Unmounting drops the BottomSheetLib
+  // ref, and the next mount fires snapToIndex(0) before the library has
+  // initialized — the open silently no-ops. Sheet handles visibility itself.
   return (
     <Sheet
       visible={f.state.visible}
@@ -66,26 +75,20 @@ export function FilterSheet(): React.ReactElement | null {
             accounts={f.state.accounts}
             selectedIds={f.state.draft.accountIds}
             expanded={f.state.openSection === 'accounts'}
-            onToggleSection={() =>
-              f.setOpenSection(f.state.openSection === 'accounts' ? null : 'accounts')
-            }
+            onToggleSection={() => f.toggleSection('accounts')}
             onToggleId={f.toggleAccountId}
           />
           <CategoryAccordion
             categories={f.state.categories}
             selectedIds={f.state.draft.categoryIds}
             expanded={f.state.openSection === 'categories'}
-            onToggleSection={() =>
-              f.setOpenSection(f.state.openSection === 'categories' ? null : 'categories')
-            }
+            onToggleSection={() => f.toggleSection('categories')}
             onToggleId={f.toggleCategoryId}
           />
           <AmountAccordion
             draft={f.state.draft}
             expanded={f.state.openSection === 'amount'}
-            onToggleSection={() =>
-              f.setOpenSection(f.state.openSection === 'amount' ? null : 'amount')
-            }
+            onToggleSection={() => f.toggleSection('amount')}
             onChangeCurrency={f.setAmountCurrency}
             onChangeMin={f.setAmountMin}
             onChangeMax={f.setAmountMax}
