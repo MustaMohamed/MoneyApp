@@ -76,8 +76,30 @@ jest.mock('heroui-native', () => {
 
   const Separator = (props) => React.createElement(View, { testID: 'separator', ...props });
 
+  // BottomSheet compound component mock.
+  // Renders children when isOpen=true; calls onOpenChange(false) via Close.
+  const BottomSheetPortal = ({ children }) => React.createElement(React.Fragment, null, children);
+  const BottomSheetOverlay = () => null;
+  const BottomSheetContent = ({ children }) =>
+    React.createElement(View, { testID: 'bottom-sheet-content' }, children);
+  const BottomSheetClose = ({ onPress }) =>
+    React.createElement(View, { testID: 'bottom-sheet-close', onPress });
+  const BottomSheetTitle = ({ children }) =>
+    React.createElement(RNText, { testID: 'bottom-sheet-title' }, children);
+
+  function BottomSheet({ isOpen, onOpenChange, children }) {
+    if (!isOpen) return null;
+    return React.createElement(View, { testID: 'heroui-bottom-sheet' }, children);
+  }
+  BottomSheet.Portal = BottomSheetPortal;
+  BottomSheet.Overlay = BottomSheetOverlay;
+  BottomSheet.Content = BottomSheetContent;
+  BottomSheet.Close = BottomSheetClose;
+  BottomSheet.Title = BottomSheetTitle;
+
   return {
     cn: (...args) => args.filter(Boolean).flat(Infinity).join(' '),
+    BottomSheet,
     Button,
     TextField,
     Input,
