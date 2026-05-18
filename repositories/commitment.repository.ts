@@ -173,6 +173,7 @@ export class CommitmentRepository implements ICommitmentRepository {
       transaction_date: details.paid_date,
       transaction_time: now.slice(11, 19),
       commitment_payment_id: paymentId,
+      installment_id: null,
       created_at: now,
       updated_at: now,
     };

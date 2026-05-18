@@ -44,6 +44,7 @@ const mockTx: Transaction = {
   to_amount: null,
   minimum_payment_snapshot: null,
   commitment_payment_id: null,
+  installment_id: null,
   created_at: '2026-05-01T10:00:00Z',
   updated_at: '2026-05-01T10:00:00Z',
 };

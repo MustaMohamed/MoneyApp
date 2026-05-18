@@ -21,6 +21,7 @@ function tx(date: string, time = '10:00:00', id = `tx-${date}-${time}`): Transac
     transaction_date: date,
     transaction_time: time,
     commitment_payment_id: null,
+    installment_id: null,
     created_at: `${date}T${time}.000Z`,
     updated_at: `${date}T${time}.000Z`,
   };
