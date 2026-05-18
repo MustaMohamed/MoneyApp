@@ -11,8 +11,7 @@ interface SheetVisibilityStore {
 export const useSheetVisibilityStore = create<SheetVisibilityStore>((set) => ({
   state: INITIAL_STATE,
   increment: () => set((s) => ({ state: { ...s.state, count: s.state.count + 1 } })),
-  decrement: () =>
-    set((s) => ({ state: { ...s.state, count: Math.max(0, s.state.count - 1) } })),
+  decrement: () => set((s) => ({ state: { ...s.state, count: Math.max(0, s.state.count - 1) } })),
 }));
 
 /** Returns true when at least one Sheet is currently open. */
