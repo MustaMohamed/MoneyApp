@@ -13,7 +13,9 @@ describe('migration011 — seed CC Balance Transfer In/Out categories', () => {
     const db = freshDb();
     db.exec(migration011.up);
     const row = db
-      .prepare("SELECT id, name, type, icon, color FROM categories WHERE id = 'cc-balance-transfer-in'")
+      .prepare(
+        "SELECT id, name, type, icon, color FROM categories WHERE id = 'cc-balance-transfer-in'",
+      )
       .get() as { id: string; name: string; type: string; icon: string; color: string } | undefined;
     expect(row).toEqual({
       id: 'cc-balance-transfer-in',
@@ -29,7 +31,9 @@ describe('migration011 — seed CC Balance Transfer In/Out categories', () => {
     const db = freshDb();
     db.exec(migration011.up);
     const row = db
-      .prepare("SELECT id, name, type, icon, color FROM categories WHERE id = 'cc-balance-transfer-out'")
+      .prepare(
+        "SELECT id, name, type, icon, color FROM categories WHERE id = 'cc-balance-transfer-out'",
+      )
       .get() as { id: string; name: string; type: string; icon: string; color: string } | undefined;
     expect(row).toEqual({
       id: 'cc-balance-transfer-out',

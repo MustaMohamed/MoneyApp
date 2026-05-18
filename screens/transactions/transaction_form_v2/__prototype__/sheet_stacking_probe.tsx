@@ -48,7 +48,9 @@ export default function SheetStackingProbe(): React.ReactElement {
             <BottomSheet.Close />
             <BottomSheet.Title>Inner picker</BottomSheet.Title>
             <View className="flex-1 items-center justify-center px-6">
-              <Text className="text-foreground">If you can read this on top of the outer sheet, stacking works.</Text>
+              <Text className="text-foreground">
+                If you can read this on top of the outer sheet, stacking works.
+              </Text>
             </View>
           </BottomSheet.Content>
         </BottomSheet.Portal>

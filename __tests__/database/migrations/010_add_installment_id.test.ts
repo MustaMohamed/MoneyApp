@@ -25,7 +25,7 @@ describe('migration010 — add installment_id', () => {
   it('adds an installment_id column to transactions', () => {
     const db = freshDb();
     db.exec(migration010.up);
-    const cols = db.prepare("PRAGMA table_info(transactions)").all() as { name: string }[];
+    const cols = db.prepare('PRAGMA table_info(transactions)').all() as { name: string }[];
     const names = cols.map((c) => c.name);
     expect(names).toContain('installment_id');
     db.close();
@@ -34,9 +34,10 @@ describe('migration010 — add installment_id', () => {
   it('installment_id is nullable', () => {
     const db = freshDb();
     db.exec(migration010.up);
-    const cols = db
-      .prepare("PRAGMA table_info(transactions)")
-      .all() as { name: string; notnull: number }[];
+    const cols = db.prepare('PRAGMA table_info(transactions)').all() as {
+      name: string;
+      notnull: number;
+    }[];
     const col = cols.find((c) => c.name === 'installment_id');
     expect(col?.notnull).toBe(0);
     db.close();
@@ -54,9 +55,9 @@ describe('migration010 — add installment_id', () => {
       `INSERT INTO transactions (id, type, amount, currency, egp_amount, exchange_rate, to_amount, minimum_payment_snapshot, account_id, to_account_id, category_id, note, transaction_date, transaction_time, commitment_payment_id, created_at, updated_at) VALUES ('t1','expense',10,'EGP',10,NULL,NULL,NULL,'a1',NULL,'c1',NULL,'2026-05-18','12:00:00',NULL,'now','now')`,
     ).run();
     db.exec(migration010.up);
-    const row = db
-      .prepare("SELECT installment_id FROM transactions WHERE id = 't1'")
-      .get() as { installment_id: string | null };
+    const row = db.prepare("SELECT installment_id FROM transactions WHERE id = 't1'").get() as {
+      installment_id: string | null;
+    };
     expect(row?.installment_id).toBeNull();
     db.close();
   });
@@ -73,9 +74,9 @@ describe('migration010 — add installment_id', () => {
     db.prepare(
       `INSERT INTO transactions (id, type, amount, currency, egp_amount, exchange_rate, to_amount, minimum_payment_snapshot, account_id, to_account_id, category_id, note, transaction_date, transaction_time, commitment_payment_id, installment_id, created_at, updated_at) VALUES ('t2','expense',20,'EGP',20,NULL,NULL,NULL,'a1',NULL,'c1',NULL,'2026-05-18','12:00:00',NULL,'inst-123','now','now')`,
     ).run();
-    const row = db
-      .prepare("SELECT installment_id FROM transactions WHERE id = 't2'")
-      .get() as { installment_id: string | null };
+    const row = db.prepare("SELECT installment_id FROM transactions WHERE id = 't2'").get() as {
+      installment_id: string | null;
+    };
     expect(row?.installment_id).toBe('inst-123');
     db.close();
   });

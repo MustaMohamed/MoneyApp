@@ -70,7 +70,13 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
           repo.set(RATE_UPDATED_AT_KEY, now),
         ]);
         set((s) => ({
-          state: { ...s.state, rate, lastFetched: now, isManualOverride: false, rate_updated_at: now },
+          state: {
+            ...s.state,
+            rate,
+            lastFetched: now,
+            isManualOverride: false,
+            rate_updated_at: now,
+          },
         }));
       } catch (err) {
         console.error('[currencyStore] fetchRate failed:', err);

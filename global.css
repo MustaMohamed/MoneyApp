@@ -37,8 +37,8 @@
     --link: #d4a44c;
 
     /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
-    --info: 73 158 224;        /* #4A9EE0 — Transfer accent */
-    --accent-cc: 155 115 212;  /* #9B73D4 — CC Payment accent */
+    --info: 73 158 224; /* #4A9EE0 — Transfer accent */
+    --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
   }
 
   @variant light {
@@ -75,8 +75,8 @@
     --link: #d4a44c;
 
     /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
-    --info: 73 158 224;        /* #4A9EE0 — Transfer accent */
-    --accent-cc: 155 115 212;  /* #9B73D4 — CC Payment accent */
+    --info: 73 158 224; /* #4A9EE0 — Transfer accent */
+    --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
   }
 }
 
