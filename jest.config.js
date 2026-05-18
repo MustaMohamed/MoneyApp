@@ -11,7 +11,11 @@ module.exports = {
     '/dist/',
     '/android/',
     '/ios/',
-    '/.claude/',
+    // <rootDir>-anchored so parallel @dev agents running inside
+    // .claude/worktrees/agent-XXX/ can discover their own tests.
+    // An un-anchored '/.claude/' matched the absolute path of every
+    // worktree test file and silently dropped them.
+    '<rootDir>/.claude/',
     '<rootDir>/.worktrees/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],
