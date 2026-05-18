@@ -6,6 +6,8 @@ React Native (Expo) personal finance app — local-only, no bank connections.
 
 **Always branch before any work.** Never commit to `main`. (`feat/x`, `refactor/x`, `fix/x`)
 
+**Run local CI parity before every push to a PR.** The six CI jobs on `.github/workflows/pr-checks.yml` (format check, lint, typecheck, unit tests, expo-doctor, Android prebuild dry-run) must all pass locally before any `git push` that targets a PR branch. CI is the last line of defence, not the first — pushing red wastes action minutes, stalls reviewers, and (worst) hides the actual failure under retries. The one-liner is in `Commands` below.
+
 ## The Team (Specialist Roles)
 
 Work runs through the superpowers skill flow. These personas contribute domain expertise during specific phases — they do not replace the skills.
@@ -53,6 +55,21 @@ npx expo prebuild --clean && npx expo run:android   # local dev build
 eas build --profile development --platform android  # cloud dev build
 npm run test:coverage   # thresholds: 80% lines / 95% functions / 100% branches
 ```
+
+**Pre-push CI parity** — run this before every `git push` to a PR branch. Stops on the first failure. Mirrors `.github/workflows/pr-checks.yml` step-for-step.
+
+```bash
+npm run format:check \
+  && npm run lint \
+  && npm run typecheck \
+  && npm test -- --ci \
+  && npx --yes expo-doctor \
+  && npx expo prebuild --no-install --platform android \
+  && test -d android \
+  && echo "✓ CI parity green — safe to push"
+```
+
+If any step fails: fix it, re-run the chain from the top, repeat until green. Then push. Never push hoping CI will catch it.
 
 ## Project Structure
 
