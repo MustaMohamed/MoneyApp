@@ -46,14 +46,32 @@ function Cell({
       <Text className="font-inter font-semibold text-[9px] tracking-wide uppercase text-foreground/55">
         {label}
       </Text>
-      <Text className={`font-sora font-bold text-[15px] mt-1 ${valueClass}`}>{value}</Text>
-      {deltaPct !== null ? (
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          marginTop: 4,
+          gap: 6,
+        }}
+      >
         <Text
-          className={`font-inter text-[10px] mt-1 ${deltaColorClass(polarityColor(metric, deltaPct))}`}
+          className={`font-sora font-bold text-[15px] ${valueClass}`}
+          style={{ flexShrink: 1 }}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
         >
-          {deltaLabel(deltaPct)}
+          {value}
         </Text>
-      ) : null}
+        {deltaPct !== null ? (
+          <Text
+            className={`font-inter text-[10px] ${deltaColorClass(polarityColor(metric, deltaPct))}`}
+          >
+            {deltaLabel(deltaPct)}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
