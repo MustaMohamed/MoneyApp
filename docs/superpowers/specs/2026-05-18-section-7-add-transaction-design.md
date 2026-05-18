@@ -16,11 +16,12 @@ Replace the legacy Add / Edit Transaction form with a modern implementation buil
 ### Scope (in)
 
 1. Migrate `AddTransactionSheet` and `EditTransactionSheet` off `react-native-actions-sheet`. Remove the 3 last legacy consumers in this tree.
-2. Redesign the form UI: type selector, amount hero, account / category pickers, cross-currency row, date + time, save CTA.
-3. Ratify and tighten financial rules (positive amounts, type-driven sign, CC payment / transfer constraints, cross-currency math, rounding policy).
-4. Drop the time picker from the UI (auto-populate `transaction_time` from device clock); keep the DB column unchanged.
-5. Add an `installment_id` nullable FK column on `transactions` to receive §8's installments work without a schema migration mid-stream. No UX.
-6. Add a blocking empty state inside the sheet when the user has zero accounts.
+2. **Adopt HeroUI Native `BottomSheet` as the new sheet primitive** for the §7 form (not the project's `Sheet` wrapper at `components/ui/sheet.tsx`). v1.0.3 ships this primitive — it was missed when the wrapper was authored in §3. The wrapper itself stays for §3–§6 consumers (no regression).
+3. Redesign the form UI: type selector, amount hero, account / category pickers, cross-currency row, date + time, save CTA.
+4. Ratify and tighten financial rules (positive amounts, type-driven sign, CC payment / transfer constraints, cross-currency math, rounding policy).
+5. Drop the time picker from the UI (auto-populate `transaction_time` from device clock); keep the DB column unchanged.
+6. Add an `installment_id` nullable FK column on `transactions` to receive §8's installments work without a schema migration mid-stream. No UX.
+7. Add a blocking empty state inside the sheet when the user has zero accounts.
 
 ### Non-goals (out)
 
@@ -31,18 +32,29 @@ Replace the legacy Add / Edit Transaction form with a modern implementation buil
 - New copy direction / voice / branding outside the existing `Strings` keys.
 - Recurring transactions (lives in §8 commitments).
 - Live FX feed (out of scope for this app entirely).
+- **Migrating the project's `Sheet` wrapper at `components/ui/sheet.tsx` or its §3–§6 consumers** to HeroUI `BottomSheet`. That's a future cross-section cleanup bundle. §7 introduces the new pattern in one place; the rest follows later.
 
 ---
 
 ## 2. Product & UX (Marcus)
 
-### 2.1 Container — bottom sheet, `Sheet` at `size="lg"`
+### 2.1 Container — HeroUI `BottomSheet` (v1.0.3) with a single snap point at 92%
 
-Keep the bottom sheet. Add Transaction is a transient action initiated from multiple surfaces (dashboard FAB, transaction list, account detail, future commitments). A full-screen modal route would force a navigation push and break the sense of "I'm still where I was". Use `Sheet` from `components/ui/sheet.tsx` at `size="lg"` (≈92% screen height, matching the current `WINDOW_HEIGHT * 0.92`).
+Keep the bottom sheet pattern. Add Transaction is a transient action initiated from multiple surfaces (dashboard FAB, transaction list, account detail, future commitments). A full-screen modal route would force a navigation push and break the sense of "I'm still where I was".
 
-Sheet header: title + close icon, sticky.
-Sheet body: `BottomSheetScrollView` from `@gorhom/bottom-sheet` (NOT from `react-native`).
-Sheet footer: sticky CTA outside the scroll view.
+Use HeroUI Native `BottomSheet` directly — anatomy: `BottomSheet → Portal → Overlay + Content`. v1.0.3 ships this primitive (`@gorhom/bottom-sheet` is its engine; the wrapper adds Portal/Overlay/keyboard plumbing). The project's existing `Sheet` wrapper at `components/ui/sheet.tsx` is NOT used in §7 — see Non-goals.
+
+Content config: a single `snapPoints={['92%']}` (matching the current `WINDOW_HEIGHT * 0.92`), with `enableOverDrag={false}` and `enableDynamicSizing={false}` per HeroUI's scrollable-content guidance (otherwise the sheet absorbs scroll gestures or grows with content). `contentContainerClassName="h-full"` so the inner scroll view has a bounded parent.
+
+Content layout:
+- `BottomSheet.Title` at top — Sora Semi, body type.
+- `BottomSheet.Close` at top right.
+- TypeTabs row beneath the title.
+- Hero amount row.
+- `BottomSheetScrollView` from `@gorhom/bottom-sheet` (NOT from `react-native`) for the form fields.
+- Sticky CTA footer using `BottomSheetFooter` from `@gorhom/bottom-sheet`.
+
+Close handling: control via `BottomSheet`'s `isOpen` + `onOpenChange` props (per HeroUI's "Handling Close Callbacks" note — `Content.onClose` only fires on swipe-down, but `onOpenChange` fires for all close paths: swipe, overlay press, close button, programmatic).
 
 ### 2.2 Type selector — HeroUI `Tabs`, four tabs, per-type accent color
 
@@ -368,37 +380,62 @@ Schema lives in `add_transaction.hook.ts` and `edit_transaction.hook.ts` (one ea
 
 ### 4.5 Key API patterns
 
-#### Sheet shell (declarative)
+#### Sheet shell (HeroUI BottomSheet anatomy)
 
 ```tsx
-import { Sheet } from '@/components/ui/sheet';
-import { useShallow } from 'zustand/react/shallow';
+import { BottomSheet } from 'heroui-native';
+import { BottomSheetScrollView, BottomSheetFooter } from '@gorhom/bottom-sheet';
 
 export function AddTransactionSheet({ visible, onClose }: AddProps) {
   const hook = useAddTransaction(onClose);
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={Strings.addTxTitle} size="lg">
-      <Sheet.Body>
-        {hook.state.hasAccounts ? <TransactionFormBody {...hook.state} {...hook} /> : <NoAccountsEmpty onAddAccount={...} />}
-      </Sheet.Body>
-    </Sheet>
+    <BottomSheet isOpen={visible} onOpenChange={(open) => !open && onClose()}>
+      <BottomSheet.Portal>
+        <BottomSheet.Overlay />
+        <BottomSheet.Content
+          snapPoints={['92%']}
+          enableOverDrag={false}
+          enableDynamicSizing={false}
+          contentContainerClassName="h-full"
+          footerComponent={(footerProps) => (
+            <BottomSheetFooter {...footerProps} bottomInset={0}>
+              <SaveCta saving={hook.state.saving} onPress={hook.handleSave} />
+            </BottomSheetFooter>
+          )}
+        >
+          <BottomSheet.Close />
+          <BottomSheet.Title>{Strings.addTxTitle}</BottomSheet.Title>
+          {hook.state.hasAccounts ? (
+            <TransactionFormBody {...hook.state} {...hook} />
+          ) : (
+            <NoAccountsEmpty onAddAccount={...} />
+          )}
+        </BottomSheet.Content>
+      </BottomSheet.Portal>
+    </BottomSheet>
   );
 }
 ```
 
-No `useRef`, no `.show()` / `.hide()`. Pure declarative props.
+Controlled via `isOpen` + `onOpenChange` (NOT via `useRef`). `onOpenChange(false)` covers all close paths (swipe, overlay press, close button, programmatic).
 
 #### Sheet-on-sheet stacking
 
-Account picker and category picker render as siblings of the form body, each in their own `Sheet`, gated by `state.showAccountPicker` / `state.showCategoryPicker`. Gorhom v5 supports stacking — verified in §6 (DateRangeSheet stacked with FilterSheet).
+Account picker and category picker render as siblings to the form's `BottomSheet`, each as its own `BottomSheet` instance gated by `state.showAccountPicker` / `state.showCategoryPicker`. HeroUI uses `FullWindowOverlay` (iOS) and `Portal` for the underlying render — multiple instances should stack via their own portals.
+
+**This is unproven in our codebase** — gorhom v5 supports stacking via §6's DateRangeSheet + FilterSheet, but those used our `Sheet` wrapper, not HeroUI BottomSheet's Portal/FullWindowOverlay model. Validated as Risk #1 with a contingency (full-screen modal pickers) in §4.9.
 
 ```tsx
-<Sheet visible={state.showAccountPicker} onClose={() => setShowAccountPicker(false)} title="From" size="md">
-  <Sheet.Body>
-    <BottomSheetFlatList data={accountsForFrom} renderItem={...} />
-  </Sheet.Body>
-</Sheet>
+<BottomSheet isOpen={state.showAccountPicker} onOpenChange={(open) => setShowAccountPicker(open)}>
+  <BottomSheet.Portal>
+    <BottomSheet.Overlay />
+    <BottomSheet.Content snapPoints={['60%']} enableOverDrag={false} enableDynamicSizing={false} contentContainerClassName="h-full">
+      <BottomSheet.Title>{Strings.addTxPickFromTitle}</BottomSheet.Title>
+      <BottomSheetFlatList data={accountsForFrom} renderItem={...} />
+    </BottomSheet.Content>
+  </BottomSheet.Portal>
+</BottomSheet>
 ```
 
 #### Date picker (§6 imperative pattern)
@@ -428,12 +465,12 @@ Account picker and category picker render as siblings of the form body, each in 
 
 Two `TextInput`s in the V2 form can summon the system keyboard: the **note** field and (when override mode is active) the **exchange rate** `Input`. The custom numpad sits below them in the form layout. When either input is focused, the system keyboard would cover the numpad and force a layout collision.
 
-Two options:
+Two layers of handling:
 
-- **A:** Hide the numpad when any `TextInput` is focused, restore on blur.
-- **B:** Always render the numpad and let the system keyboard cover it. Visual jank.
+1. **HeroUI `BottomSheet.Content` keyboard plumbing** — pass `keyboardBehavior="extend"` (or `"interactive"`) and `keyboardShouldPersistTaps="handled"` on the inner `BottomSheetScrollView`. This is HeroUI's documented pattern for sheets containing text inputs.
+2. **Numpad visibility toggle** — hide the numpad when a `TextInput` is focused, restore on blur. Wire via `Keyboard.addListener('keyboardDidShow' / 'keyboardDidHide')` in `transaction_form_body.tsx`. The numpad is conditionally rendered based on a `keyboardVisible` boolean held in `transaction_form_body.state.ts` (UI state, per CLAUDE.md anatomy convention).
 
-Use **Option A**. Wire via `Keyboard.addListener('keyboardDidShow' / 'keyboardDidHide')` in `transaction_form_body.tsx`. The numpad is conditionally rendered based on a `keyboardVisible` boolean held in `transaction_form_body.state.ts` (UI state, per CLAUDE.md anatomy convention).
+Note: HeroUI v3 ships a `useBottomSheetAwareHandlers` hook that would clean this up significantly (wire `onFocus`/`onBlur` directly to inputs). v1.0.3 (our installed version) does not export it. Flagged as a follow-up refinement when we upgrade.
 
 ### 4.6 Strings & seed data
 
@@ -498,7 +535,7 @@ Cleanup PR follows immediately after the flag flip PR per the 5-business-day rul
 
 | # | Risk | Severity | Mitigation |
 |---|---|---|---|
-| 1 | Sheet-on-sheet gesture conflict or backdrop bleed on Android Fabric (gorhom v5) | **HIGH** | Validate on real device in the very first implementation wave (a 1-screen prototype before any picker UI). If broken, fall back to rendering pickers as full-screen modals — captured as a contingency in the plan, not mid-build. |
+| 1 | HeroUI `BottomSheet` Portal stacking — two instances open at once (form + picker) on Android Fabric. HeroUI uses `FullWindowOverlay` (iOS) and React-Native-Screens portal; multi-portal behavior is unproven in this codebase | **HIGH** | Validate on real device as the very first implementation step — spin up a 1-screen prototype with two stacked `BottomSheet` instances before any picker UI is built. If broken, fall back to rendering pickers as full-screen modals (Expo Router stack route) — captured as a contingency in the plan, not mid-build. |
 | 2 | Numpad + system keyboard coexistence | MEDIUM | Option A from §4.5: hide numpad on `keyboardDidShow`. Wired into `transaction_form_body.tsx`. |
 | 3 | HeroUI Tabs per-item active-color API | LOW | Tariq evaluates `Tabs` API during plan-writing. If insufficient, use `tv()`-composed row — already-known pattern in this codebase. Decision made before any task begins. |
 | 4 | Floating-point rounding accumulating in net-worth aggregations | MEDIUM | `roundMoney()` helper (§3.2) applied to every persisted monetary field. Unit-tested. |
@@ -527,6 +564,7 @@ These are issues that need a decision but don't block spec sign-off. Each is cap
 For the spec to be considered shipped:
 
 - [ ] All 3 legacy `react-native-actions-sheet` consumers in `transaction_form/` are removed.
+- [ ] V2 transaction_form files import `BottomSheet` from `heroui-native`. **No import from `@/components/ui/sheet`** in V2 transaction_form code.
 - [ ] Add Transaction and Edit Transaction sheets work end-to-end on Android and iOS device builds (manual QA matrix).
 - [ ] All 4 type flows save and reverse correctly (`addTransaction`, `updateTransaction`, `deleteTransaction`).
 - [ ] Cross-currency math passes the 5 conversion-branch unit tests with banker's rounding applied.
@@ -534,7 +572,8 @@ For the spec to be considered shipped:
 - [ ] No hardcoded hex literals in any V2 file (`#4A9EE0`, `#9B73D4` are promoted to tokens; account-color hex stays via `style={{ backgroundColor }}` per CLAUDE.md).
 - [ ] Time picker UI is gone; `transaction_time` is still persisted on save.
 - [ ] Coverage thresholds (80/95/100) hold or improve.
-- [ ] CLAUDE.md `Bottom Sheets` legacy consumers list is shortened by 3 entries.
+- [ ] CLAUDE.md `Bottom Sheets` legacy actions-sheet consumers list is shortened by 3 entries.
+- [ ] CLAUDE.md `Bottom Sheets` section is updated to note HeroUI `BottomSheet` is the new pattern for new code; the project's `Sheet` wrapper is now a migration target (§3–§6 consumers stay until a future cleanup bundle).
 - [ ] CLAUDE.md `Business Rules` gets the CC balance-transfer workaround entry.
 - [ ] `transaction.entity.ts` gets the `installment_id` field with docstring; migration 010 ships.
 
