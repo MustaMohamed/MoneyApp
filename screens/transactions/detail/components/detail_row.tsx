@@ -1,8 +1,8 @@
+import React from 'react';
+import { View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { StyleSheet, Text, View } from 'react-native';
 
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms, msFont } from '@/utils/responsive';
+import { Text } from '@/components/ui/text';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -22,79 +22,35 @@ export function DetailRow({
   value,
   badge,
   sublabel,
-  muted,
+  muted = false,
   showDivider = true,
-}: Props) {
+}: Props): React.ReactElement {
   return (
-    <View style={[styles.row, !showDivider && styles.noDivider]}>
-      <View style={styles.iconBox}>
-        <MaterialCommunityIcons name={icon} size={ms(16)} color={Colors.dark.text2} />
+    <View
+      className={`px-4 py-3 flex-row items-center gap-3 ${showDivider ? 'border-b border-separator' : ''}`}
+    >
+      <View className="w-7 h-7 rounded-md bg-foreground/5 items-center justify-center">
+        <MaterialCommunityIcons name={icon} size={14} color="#F0EEE6" />
       </View>
-      <View style={styles.center}>
-        <Text style={styles.label}>{label}</Text>
-        <Text style={[styles.value, muted && styles.valueMuted]} numberOfLines={2}>
+      <View className="flex-1 min-w-0">
+        <Text className="font-inter font-semibold text-[10.5px] uppercase tracking-wide text-foreground/55">
+          {label}
+        </Text>
+        <Text
+          className={`font-inter text-[13px] mt-0.5 ${muted ? 'italic text-foreground/60' : 'font-medium'}`}
+          numberOfLines={2}
+        >
           {value}
         </Text>
-        {sublabel && <Text style={styles.sublabel}>{sublabel}</Text>}
+        {sublabel ? (
+          <Text className="font-inter text-[10.5px] text-foreground/55 mt-0.5">{sublabel}</Text>
+        ) : null}
       </View>
-      {badge && (
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{badge}</Text>
+      {badge ? (
+        <View className="px-2 py-0.5 rounded-full bg-accent/15 border border-accent/30">
+          <Text className="font-inter font-semibold text-[9.5px] text-accent">{badge}</Text>
         </View>
-      )}
+      ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  noDivider: { borderBottomWidth: 0 },
-  iconBox: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: Radius.sm,
-    backgroundColor: Colors.dark.surfaceEl,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  center: { flex: 1 },
-  label: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: msFont(11),
-    color: Colors.dark.text2,
-    letterSpacing: 0.4,
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  value: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  valueMuted: { color: Colors.dark.text2 },
-  sublabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(11),
-    color: Colors.dark.text2,
-    marginTop: 2,
-  },
-  badge: {
-    backgroundColor: Colors.dark.surfaceEl,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radius.pill,
-  },
-  badgeText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: msFont(10),
-    color: Colors.dark.text2,
-    letterSpacing: 0.3,
-  },
-});

@@ -1,37 +1,45 @@
 import { create } from 'zustand';
 
-interface FilterDrawerStateShape {
+type AccordionSection = 'accounts' | 'categories' | 'amount' | null;
+
+interface FilterStateShape {
   visible: boolean;
-  accountPickerVisible: boolean;
-  categoryPickerVisible: boolean;
-  customDatePickerVisible: boolean;
+  openSection: AccordionSection;
+  dateRangeSheetVisible: boolean;
 }
 
-interface FilterDrawerState {
-  state: FilterDrawerStateShape;
+interface FilterState {
+  state: FilterStateShape;
   open: () => void;
   close: () => void;
-  setAccountPickerVisible: (v: boolean) => void;
-  setCategoryPickerVisible: (v: boolean) => void;
-  setCustomDatePickerVisible: (v: boolean) => void;
+  /**
+   * Toggles the given section open/closed using a functional updater so the
+   * current value of openSection is read at call time, not at render time.
+   * This prevents the stale-closure bug where a second tap on an already-open
+   * header re-opens it because the arrow function in JSX captured an outdated
+   * openSection value from the previous render. Use this from JSX — there is
+   * no plain `setOpenSection` setter to invite the bug back.
+   */
+  toggleSection: (target: AccordionSection) => void;
+  setDateRangeSheetVisible: (v: boolean) => void;
   reset: () => void;
 }
 
-const INITIAL_STATE: FilterDrawerStateShape = {
+const INITIAL_STATE: FilterStateShape = {
   visible: false,
-  accountPickerVisible: false,
-  categoryPickerVisible: false,
-  customDatePickerVisible: false,
+  openSection: null,
+  dateRangeSheetVisible: false,
 };
 
-export const useFilterDrawerState = create<FilterDrawerState>((set) => ({
+export const useFilterState = create<FilterState>((set) => ({
   state: INITIAL_STATE,
   open: () => set((s) => ({ state: { ...s.state, visible: true } })),
-  close: () => set({ state: INITIAL_STATE }),
-  setAccountPickerVisible: (v) => set((s) => ({ state: { ...s.state, accountPickerVisible: v } })),
-  setCategoryPickerVisible: (v) =>
-    set((s) => ({ state: { ...s.state, categoryPickerVisible: v } })),
-  setCustomDatePickerVisible: (v) =>
-    set((s) => ({ state: { ...s.state, customDatePickerVisible: v } })),
+  close: () => set((s) => ({ state: { ...s.state, visible: false, openSection: null } })),
+  toggleSection: (target) =>
+    set((s) => ({
+      state: { ...s.state, openSection: s.state.openSection === target ? null : target },
+    })),
+  setDateRangeSheetVisible: (v) =>
+    set((s) => ({ state: { ...s.state, dateRangeSheetVisible: v } })),
   reset: () => set({ state: INITIAL_STATE }),
 }));

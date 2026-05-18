@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
-import { TotalsStrip } from '@/screens/transactions_v2/components/totals_strip';
+import { TotalsStrip } from '@/screens/transactions/components/totals_strip';
 
 jest.mock('heroui-native', () => {
   const { View, Text } = jest.requireActual('react-native');

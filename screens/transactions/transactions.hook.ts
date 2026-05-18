@@ -1,31 +1,40 @@
-import { useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
+import { getDb } from '@/database/client';
+import { getPeriodTotals, type PeriodTotals } from '@/database/transactions';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useTransactionStore } from '@/store/transaction.store';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
+import { Strings } from '@/constants/strings';
 
 import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
-import { useFilterDrawerState } from './filter/filter.state';
-import { useFilterDrawerStore } from './filter/filter.store';
+import { useFilterState } from './filter/filter.state';
+import { useFilterStore } from './filter/filter.store';
+import { currentYearMonth, previousPeriod, resolvePeriod } from './transactions.helpers';
 import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 
 export function useTransactions() {
+  const router = useRouter();
+
   const {
     state: txScreenState,
     setSearchQuery,
     setActiveFilter,
+    setPeriod,
     clearSearch,
   } = useTransactionsScreenStore(
     useShallow((s) => ({
       state: s.state,
       setSearchQuery: s.setSearchQuery,
       setActiveFilter: s.setActiveFilter,
+      setPeriod: s.setPeriod,
       clearSearch: s.clearSearch,
     })),
   );
@@ -46,22 +55,83 @@ export function useTransactions() {
   const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
 
-  const { setDraft } = useFilterDrawerStore(useShallow((s) => ({ setDraft: s.setDraft })));
-  const { open: openDrawer } = useFilterDrawerState(useShallow((s) => ({ open: s.open })));
+  const { open: openFilter } = useFilterState(useShallow((s) => ({ open: s.open })));
+  const { setDraft } = useFilterStore(useShallow((s) => ({ setDraft: s.setDraft })));
 
   const refreshing = useTransactionsState((s) => s.state.refreshing);
   const setRefreshing = useTransactionsState((s) => s.setRefreshing);
 
   const debouncedSearch = useDebouncedValue(txScreenState.searchQuery, 300);
 
+  const [totals, setTotals] = useState<{
+    current: PeriodTotals;
+    previous: PeriodTotals | null;
+  } | null>(null);
+  const [customRange, setCustomRange] = useState<{ from: string; to: string } | null>(null);
+
   useEffect(() => {
     const trimmed = debouncedSearch.trim();
+    const periodRange = resolvePeriod(txScreenState.period);
     setQuery({
       search: trimmed || undefined,
       type: txScreenState.activeFilter === 'all' ? undefined : txScreenState.activeFilter,
+      dateFrom: periodRange.from,
+      dateTo: periodRange.to,
       ...toQueryFilters(txScreenState.appliedFilters),
     }).catch(() => {});
-  }, [debouncedSearch, txScreenState.activeFilter, txScreenState.appliedFilters, setQuery]);
+  }, [
+    debouncedSearch,
+    txScreenState.activeFilter,
+    txScreenState.appliedFilters,
+    txScreenState.period,
+    setQuery,
+  ]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const periodRange = resolvePeriod(txScreenState.period);
+      if (!periodRange.from || !periodRange.to) {
+        setTotals(null);
+        return;
+      }
+      try {
+        const db = await getDb();
+        const current = await getPeriodTotals(db, { from: periodRange.from, to: periodRange.to });
+        const prev = previousPeriod(txScreenState.period);
+        const previous = prev
+          ? await (async () => {
+              const r = resolvePeriod(prev);
+              if (!r.from || !r.to) return null;
+              return getPeriodTotals(db, { from: r.from, to: r.to });
+            })()
+          : null;
+        if (!cancelled) setTotals({ current, previous });
+      } catch (err) {
+        console.error('[transactions] loadTotals failed:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [txScreenState.period, txState.transactions]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        const fresh = currentYearMonth();
+        useTransactionsScreenStore.getState().setPeriod({ type: 'month', yearMonth: fresh });
+        useTransactionsScreenStore.getState().reset();
+        useTransactionsState.getState().reset();
+        useFilterState.getState().reset();
+        useFilterStore.getState().resetDraft();
+        useTransactionStore
+          .getState()
+          .setQuery({})
+          .catch(() => {});
+      };
+    }, []),
+  );
 
   const accountsById = useMemo(
     () => new Map(accountState.accounts.map((a) => [a.id, a])),
@@ -71,12 +141,10 @@ export function useTransactions() {
     () => new Map(categoryState.categories.map((c) => [c.id, c])),
     [categoryState.categories],
   );
-
   const sections = useMemo(
     () => groupTransactionsByDate(txState.transactions),
     [txState.transactions],
   );
-
   const activeFilterCount = useMemo(
     () => countActiveFilters(txScreenState.appliedFilters),
     [txScreenState.appliedFilters],
@@ -90,9 +158,13 @@ export function useTransactions() {
         ? 'noResults'
         : 'noData';
 
-  function openFilter() {
+  function handleOpenFilter() {
     setDraft(txScreenState.appliedFilters);
-    openDrawer();
+    openFilter();
+  }
+
+  function resetFilters() {
+    useTransactionsScreenStore.getState().reset();
   }
 
   async function onRefresh() {
@@ -100,11 +172,17 @@ export function useTransactions() {
     try {
       await refresh();
     } catch (err) {
-      console.error('[useTransactions] onRefresh failed:', err);
+      console.error('[transactions] onRefresh failed:', err);
     } finally {
       setRefreshing(false);
     }
   }
+
+  const previousLabel = useMemo(() => {
+    const prev = previousPeriod(txScreenState.period);
+    if (!prev || prev.type !== 'month') return null;
+    return Strings.carouselMonthShort(prev.yearMonth);
+  }, [txScreenState.period]);
 
   return {
     state: {
@@ -115,15 +193,23 @@ export function useTransactions() {
       emptyVariant,
       searchQuery: txScreenState.searchQuery,
       activeFilter: txScreenState.activeFilter,
+      period: txScreenState.period,
+      customRange,
       accountsById,
       categoriesById,
       activeFilterCount,
+      totals,
+      previousLabel,
     },
     setSearchQuery,
     setActiveFilter,
+    setPeriod,
+    setCustomRange,
     clearSearch,
     onEndReached: loadMore,
     onRefresh,
-    openFilter,
+    openFilter: handleOpenFilter,
+    resetFilters,
+    goToDetail: (id: string) => router.push(`/transactions/detail/${id}`),
   };
 }

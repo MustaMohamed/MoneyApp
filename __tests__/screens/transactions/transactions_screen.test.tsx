@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
 
-import TransactionsScreenV2 from '@/screens/transactions_v2';
+import TransactionsScreen from '@/screens/transactions';
 
 jest.mock('react-native-reanimated', () => {
   const { View } = jest.requireActual('react-native');
@@ -89,7 +89,7 @@ jest.mock('@/screens/transactions/transaction_form/add_transaction.store', () =>
   useAddTransactionStore: { getState: jest.fn(() => mockAddTxStore) },
 }));
 
-jest.mock('@/screens/transactions_v2/filter/filter.state', () => ({
+jest.mock('@/screens/transactions/filter/filter.state', () => ({
   useFilterState: Object.assign(
     jest.fn((sel: any) => sel(mockFilterState)),
     { getState: jest.fn(() => mockFilterState) },
@@ -100,8 +100,8 @@ jest.mock('@/screens/transactions_v2/filter/filter.state', () => ({
 jest.mock('@/screens/transactions/transaction_form', () => ({
   AddTransactionSheet: () => null,
 }));
-jest.mock('@/screens/transactions_v2/filter', () => ({ FilterSheet: () => null }));
-jest.mock('@/screens/transactions_v2/components/date_range_sheet', () => ({
+jest.mock('@/screens/transactions/filter', () => ({ FilterSheet: () => null }));
+jest.mock('@/screens/transactions/components/date_range_sheet', () => ({
   DateRangeSheet: () => null,
 }));
 
@@ -113,7 +113,7 @@ const openFilter = jest.fn();
 
 let mockReturn: any;
 
-jest.mock('@/screens/transactions_v2/transactions.hook', () => ({
+jest.mock('@/screens/transactions/transactions.hook', () => ({
   useTransactions: () => mockReturn,
 }));
 
@@ -158,28 +158,28 @@ beforeEach(() => {
   openFilter.mockReset();
 });
 
-describe('TransactionsScreenV2', () => {
+describe('TransactionsScreen', () => {
   it('renders empty state when no transactions', () => {
     mockReturn = makeReturn();
-    const { getByText } = render(<TransactionsScreenV2 />);
+    const { getByText } = render(<TransactionsScreen />);
     expect(getByText('Add Transaction')).toBeTruthy();
   });
 
   it('renders header title', () => {
     mockReturn = makeReturn();
-    const { getByText } = render(<TransactionsScreenV2 />);
+    const { getByText } = render(<TransactionsScreen />);
     expect(getByText('Transactions')).toBeTruthy();
   });
 
   it('renders carousel pills', () => {
     mockReturn = makeReturn();
-    const { getByText } = render(<TransactionsScreenV2 />);
+    const { getByText } = render(<TransactionsScreen />);
     expect(getByText('Custom')).toBeTruthy();
   });
 
   it('renders type chips', () => {
     mockReturn = makeReturn();
-    const { getByText } = render(<TransactionsScreenV2 />);
+    const { getByText } = render(<TransactionsScreen />);
     expect(getByText('Income')).toBeTruthy();
     expect(getByText('Expense')).toBeTruthy();
     expect(getByText('Transfer')).toBeTruthy();
@@ -187,7 +187,7 @@ describe('TransactionsScreenV2', () => {
 
   it('does NOT render the TotalsStrip vs-caption when period is "all"', () => {
     mockReturn = makeReturn({ state: { period: { type: 'all' } } });
-    const { queryByText } = render(<TransactionsScreenV2 />);
+    const { queryByText } = render(<TransactionsScreen />);
     expect(queryByText(/^vs /)).toBeNull();
   });
 
@@ -202,7 +202,7 @@ describe('TransactionsScreenV2', () => {
         },
       },
     });
-    const { getByText } = render(<TransactionsScreenV2 />);
+    const { getByText } = render(<TransactionsScreen />);
     expect(getByText('vs Apr 2026')).toBeTruthy();
   });
 });

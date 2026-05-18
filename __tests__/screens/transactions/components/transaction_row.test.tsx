@@ -6,7 +6,7 @@ import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
-import { TransactionRow } from '@/screens/transactions_v2/components/transaction_row';
+import { TransactionRow } from '@/screens/transactions/components/transaction_row';
 
 jest.mock('react-native-reanimated', () => {
   const React = jest.requireActual('react');
