@@ -44,10 +44,10 @@ const indicator = tv({
 });
 
 const TABS: Array<{ type: TransactionType; label: string }> = [
-  { type: TransactionType.Expense, label: Strings.txTypeExpense ?? 'Expense' },
-  { type: TransactionType.Income, label: Strings.txTypeIncome ?? 'Income' },
-  { type: TransactionType.Transfer, label: Strings.txTypeTransfer ?? 'Transfer' },
-  { type: TransactionType.CCPayment, label: Strings.txTypeCcPayment ?? 'CC Payment' },
+  { type: TransactionType.Expense, label: Strings.addTxTypeExpense },
+  { type: TransactionType.Income, label: Strings.addTxTypeIncome },
+  { type: TransactionType.Transfer, label: Strings.addTxTypeTransfer },
+  { type: TransactionType.CCPayment, label: Strings.addTxTypeCCPayment },
 ];
 
 interface Props {
