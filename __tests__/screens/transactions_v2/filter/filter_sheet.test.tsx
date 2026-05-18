@@ -154,3 +154,90 @@ describe('FilterSheet', () => {
     expect(queryByText('Date')).toBeNull();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Accordion toggle — stale-closure regression guard (Issue B)
+//
+// The toggle used to read f.state.openSection from an arrow function captured
+// at render time. If the re-render from the first tap hadn't propagated before
+// the second tap fired, the second tap would re-open the same section instead
+// of closing it. toggleSection() now uses a Zustand functional updater to read
+// the current value at call time, not at render time.
+// ---------------------------------------------------------------------------
+describe('FilterSheet accordion toggle (Issue B — stale-closure fix)', () => {
+  it('pressing Accounts when closed sets openSection to "accounts"', () => {
+    act(() => useFilterState.getState().open());
+    const { getByText } = render(<FilterSheet />);
+    fireEvent.press(getByText('Accounts'));
+    expect(useFilterState.getState().state.openSection).toBe('accounts');
+  });
+
+  it('pressing Accounts when already open sets openSection back to null', () => {
+    act(() => {
+      useFilterState.getState().open();
+      useFilterState.getState().setOpenSection('accounts');
+    });
+    const { getByText } = render(<FilterSheet />);
+    fireEvent.press(getByText('Accounts'));
+    expect(useFilterState.getState().state.openSection).toBeNull();
+  });
+
+  it('pressing Categories when closed sets openSection to "categories"', () => {
+    act(() => useFilterState.getState().open());
+    const { getByText } = render(<FilterSheet />);
+    fireEvent.press(getByText('Categories'));
+    expect(useFilterState.getState().state.openSection).toBe('categories');
+  });
+
+  it('pressing Categories when already open sets openSection back to null', () => {
+    act(() => {
+      useFilterState.getState().open();
+      useFilterState.getState().setOpenSection('categories');
+    });
+    const { getByText } = render(<FilterSheet />);
+    fireEvent.press(getByText('Categories'));
+    expect(useFilterState.getState().state.openSection).toBeNull();
+  });
+
+  // Amount accordion press tests use the store directly to avoid rendering
+  // the expanded AmountAccordion body, which contains <Input> from heroui-native
+  // that the minimal heroui-native mock in this file does not cover.
+  // The JSX path calls f.toggleSection('amount') which delegates to the same
+  // Zustand action tested here, so coverage of the functional updater is intact.
+
+  it('toggleSection opens Amount via store action', () => {
+    act(() => {
+      useFilterState.getState().open();
+    });
+    expect(useFilterState.getState().state.openSection).toBeNull();
+    act(() => {
+      useFilterState.getState().toggleSection('amount');
+    });
+    expect(useFilterState.getState().state.openSection).toBe('amount');
+  });
+
+  it('toggleSection closes Amount via store action', () => {
+    act(() => {
+      useFilterState.getState().open();
+      useFilterState.getState().setOpenSection('amount');
+    });
+    expect(useFilterState.getState().state.openSection).toBe('amount');
+    act(() => {
+      useFilterState.getState().toggleSection('amount');
+    });
+    expect(useFilterState.getState().state.openSection).toBeNull();
+  });
+
+  it('toggleSection functional updater reads current state — simulated rapid double-tap closes', () => {
+    // Simulate the stale-closure scenario: two toggleSection calls fired in
+    // quick succession without a re-render in between. With the functional
+    // updater each call reads the store state at call time, so they compose:
+    //   first call:  null → 'accounts'
+    //   second call: 'accounts' → null
+    act(() => {
+      useFilterState.getState().toggleSection('accounts');
+      useFilterState.getState().toggleSection('accounts');
+    });
+    expect(useFilterState.getState().state.openSection).toBeNull();
+  });
+});

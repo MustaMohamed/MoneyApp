@@ -15,11 +15,13 @@ export function useFilterSheet() {
     state: filterState,
     close,
     setOpenSection,
+    toggleSection,
   } = useFilterState(
     useShallow((s) => ({
       state: s.state,
       close: s.close,
       setOpenSection: s.setOpenSection,
+      toggleSection: s.toggleSection,
     })),
   );
   const {
@@ -79,6 +81,7 @@ export function useFilterSheet() {
     },
     close,
     setOpenSection,
+    toggleSection,
     resetDraft,
     toggleAccountId,
     toggleCategoryId,

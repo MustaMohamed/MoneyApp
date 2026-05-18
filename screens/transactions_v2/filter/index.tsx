@@ -67,26 +67,20 @@ export function FilterSheet(): React.ReactElement {
             accounts={f.state.accounts}
             selectedIds={f.state.draft.accountIds}
             expanded={f.state.openSection === 'accounts'}
-            onToggleSection={() =>
-              f.setOpenSection(f.state.openSection === 'accounts' ? null : 'accounts')
-            }
+            onToggleSection={() => f.toggleSection('accounts')}
             onToggleId={f.toggleAccountId}
           />
           <CategoryAccordion
             categories={f.state.categories}
             selectedIds={f.state.draft.categoryIds}
             expanded={f.state.openSection === 'categories'}
-            onToggleSection={() =>
-              f.setOpenSection(f.state.openSection === 'categories' ? null : 'categories')
-            }
+            onToggleSection={() => f.toggleSection('categories')}
             onToggleId={f.toggleCategoryId}
           />
           <AmountAccordion
             draft={f.state.draft}
             expanded={f.state.openSection === 'amount'}
-            onToggleSection={() =>
-              f.setOpenSection(f.state.openSection === 'amount' ? null : 'amount')
-            }
+            onToggleSection={() => f.toggleSection('amount')}
             onChangeCurrency={f.setAmountCurrency}
             onChangeMin={f.setAmountMin}
             onChangeMax={f.setAmountMax}
