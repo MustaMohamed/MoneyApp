@@ -28,7 +28,7 @@ Replace the legacy Add / Edit Transaction form with a modern implementation buil
 - Negative amounts / explicit refund flow (model refunds as positive income).
 - Optional categories on transfers / CC payments.
 - Scheduled or future-dated transactions (`maximumDate = today` stays).
-- CC → CC balance transfer as a new transaction type (documented workaround).
+- CC → CC balance transfer support — the form blocks CC source via rule 3 (see §3.1) and that's the answer for §7. Deferred to a future phase for a proper transaction-type extension.
 - New copy direction / voice / branding outside the existing `Strings` keys.
 - Recurring transactions (lives in §8 commitments).
 - Live FX feed (out of scope for this app entirely).
@@ -258,15 +258,13 @@ The form-level rule "`exchange_rate` required when either side is USD" fires cor
 
 Action: edit `database/entities/transaction.entity.ts` comment on `exchange_rate` to add the USD→USD clarification.
 
-### 3.5 CC → CC balance transfer — blocked at form, workaround documented
+### 3.5 CC → CC balance transfer — blocked at form, deferred to a future phase
 
 A CC-to-CC balance transfer (one CC pays off another) is fundamentally different from both transfer and cc_payment (it involves two liabilities). It cannot be correctly modeled with the four-type taxonomy.
 
-For §7: form continues to block this (current rule 3 holds). For users who need to record it, document the workaround in CLAUDE.md `Business Rules`:
+For §7: the form blocks this (rule 3 in §3.1 — CC Payment source must be a non-CC asset). That's the complete answer.
 
-> Recording a CC-to-CC balance transfer: split into two transactions — (1) Income on the receiving card with category "CC Balance Transfer In", (2) Expense on the originating card with category "CC Balance Transfer Out". Net-worth queries that aggregate `egp_amount` must exclude transactions tagged with these categories.
-
-Required category seeds in migration: `"CC Balance Transfer In"` (income) and `"CC Balance Transfer Out"` (expense). Marker for downstream reporting. See migration plan in §4.6.
+A paired Income/Expense workaround with seed marker categories was considered and **rejected** in design review (post-spec-sign-off): the marker categories would pollute the normal category picker, force §9's net-worth query to special-case two specific IDs, and lie about the operation's true shape (a liability shift, not income or expense). When CC → CC balance transfer becomes a needed feature, it gets its own transaction type in a dedicated spec.
 
 ### 3.6 Refunds and negative amounts
 
@@ -376,7 +374,7 @@ Schema lives in `add_transaction.hook.ts` and `edit_transaction.hook.ts` (one ea
 
 1. Apply `roundMoney()` to `egp_amount` and `to_amount` in `onValid()` before passing to `addTransaction()` / `updateTransaction()`.
 2. `time` is no longer user-input; default to `new Date().toTimeString().slice(0, 8)` at form-open; not re-validated.
-3. Categories list filter: when type is Income, surface the seeded `"Refund — *"` and `"CC Balance Transfer In"` categories. When type is Expense, surface `"CC Balance Transfer Out"`. (Marker categories from 3.5/3.6.)
+3. Categories list filter: standard `category.type === 'income' | 'expense'` filter against the user's existing category set. No seed categories specific to §7.
 
 ### 4.5 Key API patterns
 
@@ -486,25 +484,9 @@ addTxRateSourceCustom: 'Custom rate',
 addTxRateLastUpdated: 'Last updated {{date}}',
 addTxRateReset: 'Reset to global',
 addTxEgpPreview: '≈ {{amount}} EGP',
-ccBalanceTransferInCategoryName: 'CC Balance Transfer In',
-ccBalanceTransferOutCategoryName: 'CC Balance Transfer Out',
 ```
 
-Seed data migration `database/migrations/011_add_cc_balance_transfer_categories.ts` — follows the `009_add_other_income_category.ts` pattern:
-
-```ts
-export const migration011 = {
-  version: 11,
-  up: `
-    INSERT OR IGNORE INTO categories (id, name, type, icon, color, created_at)
-    VALUES
-      ('cc-balance-transfer-in',  'CC Balance Transfer In',  'income',  'swap-horizontal', '#9B73D4', strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-      ('cc-balance-transfer-out', 'CC Balance Transfer Out', 'expense', 'swap-horizontal', '#9B73D4', strftime('%Y-%m-%dT%H:%M:%fZ','now'));
-  `,
-};
-```
-
-Append to `database/migrations/index.ts`. Color reuses the CC Payment accent (the same `#9B73D4` that §2.2 promotes to `text-accent-cc`); icon `swap-horizontal` matches the semantic of a sideways money move. Both values are final, not placeholders — Dev does not need to choose at implementation time.
+No new seed-data migrations in §7. (The CC Balance Transfer marker-category migration originally proposed here was dropped in design review — see §3.5.)
 
 ### 4.7 Tests
 
@@ -517,7 +499,6 @@ Append to `database/migrations/index.ts`. Color reuses the CC Payment accent (th
 | `__tests__/screens/transactions/transaction_form/components/date_row.test.tsx` | iOS + Android paths; maximumDate; §6 imperative pattern. |
 | `__tests__/screens/transactions/transaction_form/components/no_accounts_empty.test.tsx` | Renders when accounts.length === 0; CTA navigates correctly. |
 | `__tests__/database/migrations/010_add_installment_id.test.ts` | Column added; existing transactions get NULL. |
-| `__tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts` | Both seed categories inserted with correct type/icon/color; idempotent re-run. |
 
 Coverage targets per CLAUDE.md: 80% lines / 95% functions / 100% branches.
 
@@ -542,7 +523,6 @@ Cleanup PR follows immediately after the flag flip PR per the 5-business-day rul
 | 5 | Stale stored exchange rate producing incorrect `egp_amount` for USD transactions | MEDIUM | Surface `rate_updated_at` in the rate row subtitle; warn-color when >30 days stale. User can update via settings flow (existing). |
 | 6 | Banker's-rounding implementation edge cases at exact-half values | LOW | Unit tests at `__tests__/utils/money.test.ts` cover 0.005 / 0.015 / 0.025 / 0.035 to lock the invariant. |
 | 7 | Migration 010 with FK to non-existent `installments` table | LOW | SQLite tolerates lazy FK definition. Verified with a unit test on the migration that inserts a transaction post-migration. |
-| 8 | CC balance-transfer workaround leaking into net-worth queries | MEDIUM (cross-section to §9) | Document in CLAUDE.md `Business Rules`. Net-worth queries in §9 (Accounts) must exclude the two marker categories. **Flagged here, owned by §9 spec.** |
 
 ---
 
@@ -553,7 +533,7 @@ These are issues that need a decision but don't block spec sign-off. Each is cap
 1. **HeroUI Tabs per-item active color API** — Tariq investigates during plan-writing. Fallback (`tv()` row) is documented. Decision before implementation begins.
 2. **Sheet-on-sheet on Android Fabric** — Tariq's first implementation step is a device prototype to validate. Contingency (full-screen pickers) captured.
 3. **Numpad keyboard coexistence** — Resolved (Option A in §4.5).
-4. **CC balance-transfer query design** — Flagged to §9, not a §7 blocker.
+4. *(removed — see §3.5)*
 5. **Stored rate `rate_updated_at` source** — Implementation detail; Tariq locates the source field at plan-writing time (likely `currency_store.rate_updated_at`, or backfilled from `app_settings.updated_at`).
 6. **Add-account navigation target** — `/accounts/add` exists? Sarah confirms at plan time. If not, the CTA dismisses the sheet and the user manually navigates via settings — graceful fallback.
 
@@ -574,7 +554,6 @@ For the spec to be considered shipped:
 - [ ] Coverage thresholds (80/95/100) hold or improve.
 - [ ] CLAUDE.md `Bottom Sheets` legacy actions-sheet consumers list is shortened by 3 entries.
 - [ ] CLAUDE.md `Bottom Sheets` section is updated to note HeroUI `BottomSheet` is the new pattern for new code; the project's `Sheet` wrapper is now a migration target (§3–§6 consumers stay until a future cleanup bundle).
-- [ ] CLAUDE.md `Business Rules` gets the CC balance-transfer workaround entry.
 - [ ] `transaction.entity.ts` gets the `installment_id` field with docstring; migration 010 ships.
 
 ---

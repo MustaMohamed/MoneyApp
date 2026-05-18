@@ -20,7 +20,7 @@ Group A (Shared infra)              ─── no deps ──► start immediatel
   Task 2:  Theme tokens (--info, --accent-cc)
   Task 3:  Strings — add §7 keys
   Task 4:  Migration 010 — installment_id column
-  Task 5:  Migration 011 — seed CC Balance Transfer In/Out
+  Task 5:  REMOVED — see Task 5 tombstone below (CC Balance Transfer marker categories dropped in design review)
   Task 6:  Transaction entity — add installment_id field
   Task 7:  Currency store — add rate_updated_at
 
@@ -93,11 +93,9 @@ screens/transactions/transaction_form_v2/
 utils/money.ts                                       # roundMoney() helper
 
 database/migrations/010_add_installment_id.ts        # ALTER TABLE transactions ADD COLUMN
-database/migrations/011_add_cc_balance_transfer_categories.ts   # seed two marker categories
 
 __tests__/utils/money.test.ts
 __tests__/database/migrations/010_add_installment_id.test.ts
-__tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts
 __tests__/screens/transactions/transaction_form_v2/add_transaction.hook.test.ts
 __tests__/screens/transactions/transaction_form_v2/edit_transaction.hook.test.ts
 __tests__/screens/transactions/transaction_form_v2/components/type_tabs.test.tsx
@@ -117,12 +115,12 @@ constants/strings.ts                                 # +new §7 keys
 constants/theme_tokens.ts                            # +Info, +AccentCC tokens
 global.css                                           # +--info, +--accent-cc CSS vars
 database/entities/transaction.entity.ts              # +installment_id field
-database/migrations/index.ts                         # +migration010, +migration011
+database/migrations/index.ts                         # +migration010
 store/currency.store.ts                              # +rate_updated_at field
 screens/transactions/index.tsx                       # flag-branch the AddTransactionSheet import
 screens/transactions/detail/index.tsx                # flag-branch the EditTransactionSheet import
 constants/feature_flags.ts                           # Task 26 only: newAddTransaction false → true
-CLAUDE.md                                            # Task 27: legacy actions-sheet list shortened; Bottom Sheets section noting HeroUI BottomSheet new pattern; Business Rules CC balance-transfer entry
+CLAUDE.md                                            # Task 27: legacy actions-sheet list shortened; Bottom Sheets section noting HeroUI BottomSheet new pattern
 __tests__/feature_flags.test.ts                      # Task 26 + 27: match new flag state
 ```
 
@@ -372,10 +370,6 @@ addTxRateLastUpdated: 'Last updated {date}',
 addTxRateReset: 'Reset to global',
 addTxRateStale: 'Rate may be stale',
 addTxEgpPreview: '≈ {amount} EGP',
-
-// §7: Marker categories for CC balance transfer workaround (see CLAUDE.md Business Rules)
-ccBalanceTransferInCategoryName: 'CC Balance Transfer In',
-ccBalanceTransferOutCategoryName: 'CC Balance Transfer Out',
 ```
 
 - [ ] **Step 2: Sanity-check with `tsc`**
@@ -390,8 +384,7 @@ git add constants/strings.ts
 git commit -m "$(cat <<'EOF'
 feat(§7): add Strings keys for Add Transaction sheet
 
-Empty-state copy, exchange-rate display states, EGP preview, and the two
-marker-category names for the CC balance-transfer workaround.
+Empty-state copy, exchange-rate display states, EGP preview.
 EOF
 )"
 ```
@@ -559,122 +552,23 @@ EOF
 
 ---
 
-## Task 5: Migration 011 — seed CC Balance Transfer categories
+## Task 5: REMOVED — CC Balance Transfer marker categories dropped in design review
 
-**Files:**
-- Create: `database/migrations/011_add_cc_balance_transfer_categories.ts`
-- Modify: `database/migrations/index.ts`
-- Test: `__tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts`
+**Original scope (no longer in effect):** Migration 011 was going to seed two pre-existing categories — `cc-balance-transfer-in` (income) and `cc-balance-transfer-out` (expense) — as marker categories so users could record CC→CC balance transfers as paired Income/Expense entries while net-worth queries (§9) excluded them.
 
-- [ ] **Step 1: Write the failing test**
+**Why dropped (post-spec-sign-off design review):**
+- The marker categories would have appeared in the normal Income/Expense category picker on every Add Transaction, polluting the list for an edge case most users will never hit.
+- The workaround misrepresents what's happening: a CC→CC balance transfer is a liability shift, not income or expense.
+- §9 would have inherited the burden of special-casing two specific category IDs in net-worth queries.
+- The form's CC Payment rule (rule 3 in spec §3.1) already blocks CC sources — that's the complete and correct answer for §7. CC→CC balance transfers belong to a future spec that introduces a proper transaction type.
 
-Create `__tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts`:
+**If this task was already executed in your branch** (it was — commit `2886dcd` landed it before the review), revert it via:
+- Delete `database/migrations/011_add_cc_balance_transfer_categories.ts`
+- Delete `__tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts`
+- In `database/migrations/index.ts`: remove the `migration011` import and the `migration011` entry from the `MIGRATIONS` array
+- In `constants/strings.ts`: remove `ccBalanceTransferInCategoryName`, `ccBalanceTransferOutCategoryName`, and the comment block above them
 
-```typescript
-import { openDatabaseSync } from 'expo-sqlite';
-import { migration003 } from '@/database/migrations/003_create_categories';
-import { migration011 } from '@/database/migrations/011_add_cc_balance_transfer_categories';
-
-describe('migration011 — seed CC Balance Transfer In/Out categories', () => {
-  function freshDb() {
-    const db = openDatabaseSync(':memory:');
-    db.execSync(migration003.up);
-    return db;
-  }
-
-  it('inserts the CC Balance Transfer In category as income', () => {
-    const db = freshDb();
-    db.execSync(migration011.up);
-    const row = db.getFirstSync<{ id: string; name: string; type: string; icon: string; color: string }>(
-      "SELECT id, name, type, icon, color FROM categories WHERE id = 'cc-balance-transfer-in'",
-    );
-    expect(row).toEqual({
-      id: 'cc-balance-transfer-in',
-      name: 'CC Balance Transfer In',
-      type: 'income',
-      icon: 'swap-horizontal',
-      color: '#9B73D4',
-    });
-  });
-
-  it('inserts the CC Balance Transfer Out category as expense', () => {
-    const db = freshDb();
-    db.execSync(migration011.up);
-    const row = db.getFirstSync<{ id: string; name: string; type: string; icon: string; color: string }>(
-      "SELECT id, name, type, icon, color FROM categories WHERE id = 'cc-balance-transfer-out'",
-    );
-    expect(row).toEqual({
-      id: 'cc-balance-transfer-out',
-      name: 'CC Balance Transfer Out',
-      type: 'expense',
-      icon: 'swap-horizontal',
-      color: '#9B73D4',
-    });
-  });
-
-  it('is idempotent — re-running does not duplicate or throw', () => {
-    const db = freshDb();
-    db.execSync(migration011.up);
-    expect(() => db.execSync(migration011.up)).not.toThrow();
-    const rows = db.getAllSync<{ id: string }>("SELECT id FROM categories WHERE id LIKE 'cc-balance-transfer-%'");
-    expect(rows).toHaveLength(2);
-  });
-});
-```
-
-- [ ] **Step 2: Run test — expect failure**
-
-Run: `npx jest __tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts`
-Expected: FAIL — module not found.
-
-- [ ] **Step 3: Create the migration**
-
-Create `database/migrations/011_add_cc_balance_transfer_categories.ts`:
-
-```typescript
-export const migration011 = {
-  version: 11,
-  up: `
-    INSERT OR IGNORE INTO categories (id, name, type, icon, color, created_at)
-    VALUES
-      ('cc-balance-transfer-in',  'CC Balance Transfer In',  'income',  'swap-horizontal', '#9B73D4', strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-      ('cc-balance-transfer-out', 'CC Balance Transfer Out', 'expense', 'swap-horizontal', '#9B73D4', strftime('%Y-%m-%dT%H:%M:%fZ','now'));
-  `,
-};
-```
-
-`INSERT OR IGNORE` makes the migration idempotent — if a future user-initiated category already uses the same `id` strings, this is a no-op rather than a crash.
-
-- [ ] **Step 4: Register in `database/migrations/index.ts`**
-
-```typescript
-import { migration011 } from './011_add_cc_balance_transfer_categories';
-// ...
-
-export const MIGRATIONS: Migration[] = [
-  // ...migration001 through migration010...
-  migration011,
-];
-```
-
-- [ ] **Step 5: Run tests — expect pass**
-
-Run: `npx jest __tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts`
-Expected: PASS — 3 tests green.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add database/migrations/011_add_cc_balance_transfer_categories.ts database/migrations/index.ts __tests__/database/migrations/011_add_cc_balance_transfer_categories.test.ts
-git commit -m "$(cat <<'EOF'
-feat(§7): migration 011 — seed CC Balance Transfer In/Out marker categories
-
-Users record a CC-to-CC balance transfer as a paired Income/Expense per
-the workaround documented in the §7 spec. These two marker categories
-let net-worth queries (§9) exclude the workaround entries cleanly.
-EOF
-)"
-```
+Subsequent task numbering (Tasks 6, 7, …) is unchanged — Task 5's slot is left intentionally empty in the parallel execution map.
 
 ---
 
@@ -5107,13 +5001,7 @@ Open `CLAUDE.md` and apply three updates:
    **HeroUI `BottomSheet` (§7+):** New code uses `BottomSheet` from `heroui-native` directly (Portal/Overlay/Content anatomy). The project's `Sheet` wrapper at `components/ui/sheet.tsx` remains in place for §3–§6 consumers (settings sheets, dashboard breakdown sheet, accounts pay sheet, etc.) and is queued for retirement in a future cleanup bundle.
    ```
 
-3. **Business Rules — add the CC balance-transfer workaround:**
-
-   After the existing numbered list, append:
-
-   ```markdown
-   10. CC → CC balance transfers: not a first-class transaction type. Record as a paired Income on the receiving card (category: "CC Balance Transfer In") + Expense on the originating card (category: "CC Balance Transfer Out"). Net-worth queries (§9 Accounts) must exclude transactions tagged with these two seed categories.
-   ```
+3. *(Step 3 removed — the CC balance-transfer Business-Rules entry was dropped along with the marker categories in design review. See the Task 5 tombstone for context.)*
 
 - [ ] **Step 9: Run full test suite**
 
@@ -5234,7 +5122,7 @@ screens/transactions/transaction_form_v2/
 | §3 Rules 1–10 | Tasks 20, 21 | ✅ |
 | §3.2 Banker's rounding | Task 1 (utility); Tasks 20, 21 (applied) | ✅ |
 | §3.4 USD→USD clarification in docstring | Task 6 | ✅ |
-| §3.5 CC→CC workaround marker categories | Task 5 | ✅ |
+| §3.5 CC→CC blocked, deferred | Form's CC Payment source rule (already in Task 20 schema) | ✅ (no Task 5 — see Task 5 tombstone) |
 | §3.7 Stale rate display | Tasks 7, 14 | ✅ |
 | §3.8 Installment hook column | Tasks 4, 6 | ✅ |
 | §4 Architecture (folder, state, APIs) | Tasks 9, 10, 22, 23 | ✅ |

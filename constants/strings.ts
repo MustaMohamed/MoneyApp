@@ -603,8 +603,4 @@ export const Strings = {
   addTxRateReset: 'Reset to global',
   addTxRateStale: 'Rate may be stale',
   addTxEgpPreview: '≈ {amount} EGP',
-
-  // §7: Marker categories for CC balance transfer workaround (see CLAUDE.md Business Rules)
-  ccBalanceTransferInCategoryName: 'CC Balance Transfer In',
-  ccBalanceTransferOutCategoryName: 'CC Balance Transfer Out',
 } as const;

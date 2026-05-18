@@ -8,7 +8,6 @@ import { migration007 } from './007_create_commitment_payments';
 import { migration008 } from './008_add_commitment_payment_id';
 import { migration009 } from './009_add_other_income_category';
 import { migration010 } from './010_add_installment_id';
-import { migration011 } from './011_add_cc_balance_transfer_categories';
 
 export interface Migration {
   version: number;
@@ -26,5 +25,4 @@ export const MIGRATIONS: Migration[] = [
   migration008,
   migration009,
   migration010,
-  migration011,
 ];
