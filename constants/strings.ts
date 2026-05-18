@@ -272,6 +272,7 @@ export const Strings = {
   addTxRateSubCustom: 'EGP per 1 USD · custom rate',
   addTxRateOverrideLabel: 'Override',
   addTxSaveCta: 'Save',
+  editTxSaveCta: 'Save Changes',
   addTxErrAmountRequired: 'Enter an amount',
   addTxErrAmountZero: 'Amount must be greater than 0',
   addTxErrAccountRequired: 'Select an account',
