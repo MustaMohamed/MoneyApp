@@ -592,4 +592,19 @@ export const Strings = {
   detailEditButton: 'Edit Transaction',
   detailNotFoundTitle: 'Transaction not found',
   detailNotFoundBody: 'This transaction may have been deleted.',
+
+  // §7: Add / Edit Transaction
+  addTxNoAccountsTitle: 'No Accounts Yet',
+  addTxNoAccountsBody: 'Add an account first to record transactions.',
+  addTxNoAccountsCta: 'Add Account',
+  addTxRateSourceStored: 'Using stored rate',
+  addTxRateSourceCustom: 'Custom rate',
+  addTxRateLastUpdated: 'Last updated {date}',
+  addTxRateReset: 'Reset to global',
+  addTxRateStale: 'Rate may be stale',
+  addTxEgpPreview: '≈ {amount} EGP',
+
+  // §7: Marker categories for CC balance transfer workaround (see CLAUDE.md Business Rules)
+  ccBalanceTransferInCategoryName: 'CC Balance Transfer In',
+  ccBalanceTransferOutCategoryName: 'CC Balance Transfer Out',
 } as const;
