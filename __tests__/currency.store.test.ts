@@ -12,11 +12,12 @@ function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
 }
 
 describe('currencyStore initial state', () => {
-  it('starts with rate=50, lastFetched=null, isManualOverride=false', () => {
+  it('starts with rate=50, lastFetched=null, isManualOverride=false, rate_updated_at=null', () => {
     const store = createCurrencyStore(makeRepo());
     expect(store.getState().state.rate).toBe(50);
     expect(store.getState().state.lastFetched).toBeNull();
     expect(store.getState().state.isManualOverride).toBe(false);
+    expect(store.getState().state.rate_updated_at).toBeNull();
   });
 });
 
@@ -151,6 +152,74 @@ describe('currencyStore.reset', () => {
       rate: 50,
       lastFetched: null,
       isManualOverride: false,
+      rate_updated_at: null,
     });
+  });
+});
+
+describe('currencyStore — rate_updated_at', () => {
+  it('initializes rate_updated_at to null', () => {
+    const store = createCurrencyStore(makeRepo());
+    expect(store.getState().state.rate_updated_at).toBeNull();
+  });
+
+  it('sets rate_updated_at to current ISO timestamp when fetchRate is called', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ rates: { EGP: 55.5 } }),
+    } as unknown as Response);
+    const before = new Date().toISOString();
+    const store = createCurrencyStore(makeRepo());
+    await store.getState().fetchRate();
+    const after = new Date().toISOString();
+    const ts = store.getState().state.rate_updated_at;
+    expect(ts).not.toBeNull();
+    expect(ts! >= before).toBe(true);
+    expect(ts! <= after).toBe(true);
+    global.fetch = originalFetch;
+  });
+
+  it('sets rate_updated_at to current ISO timestamp when setManualRate is called', async () => {
+    const before = new Date().toISOString();
+    const store = createCurrencyStore(makeRepo());
+    await store.getState().setManualRate(55.5);
+    const after = new Date().toISOString();
+    const ts = store.getState().state.rate_updated_at;
+    expect(ts).not.toBeNull();
+    expect(ts! >= before).toBe(true);
+    expect(ts! <= after).toBe(true);
+  });
+
+  it('persists rate_updated_at to repo on fetchRate', async () => {
+    const originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue({
+      json: jest.fn().mockResolvedValue({ rates: { EGP: 55.5 } }),
+    } as unknown as Response);
+    const repo = makeRepo();
+    const store = createCurrencyStore(repo);
+    await store.getState().fetchRate();
+    expect(repo.set).toHaveBeenCalledWith(
+      'usd_rate_updated_at',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    );
+    global.fetch = originalFetch;
+  });
+
+  it('persists rate_updated_at to repo on setManualRate', async () => {
+    const repo = makeRepo();
+    const store = createCurrencyStore(repo);
+    await store.getState().setManualRate(48.5);
+    expect(repo.set).toHaveBeenCalledWith(
+      'usd_rate_updated_at',
+      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    );
+  });
+
+  it('restores rate_updated_at to null on reset', async () => {
+    const store = createCurrencyStore(makeRepo());
+    await store.getState().setManualRate(48.5);
+    expect(store.getState().state.rate_updated_at).not.toBeNull();
+    store.getState().reset();
+    expect(store.getState().state.rate_updated_at).toBeNull();
   });
 });
