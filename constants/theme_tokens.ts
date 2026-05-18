@@ -29,6 +29,15 @@ export const SemanticTokens = {
   info: '#4A7ABF',
 } as const;
 
+// §7: Transfer + CC Payment accent colors (must mirror global.css)
+export const InfoTokens = {
+  500: '#4A9EE0',
+} as const;
+
+export const AccentCCTokens = {
+  500: '#9B73D4',
+} as const;
+
 // 4 standalone cultural accents.
 // plum and rose are NOT standalone accents — they exist only in AcctTokens below.
 export const AccentTokens = {
