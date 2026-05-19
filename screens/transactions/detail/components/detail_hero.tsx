@@ -1,6 +1,6 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
@@ -71,17 +71,17 @@ export function DetailHero({
   dateTimeText,
 }: Props): React.ReactElement {
   return (
-    <View className="px-4 pt-6 pb-4 items-center">
-      <View className="flex-row gap-2 mb-3">
+    <View className="items-center px-4 pt-6 pb-4">
+      <View className="mb-3 flex-row gap-2">
         <View
-          className="px-2.5 py-0.5 rounded-full border"
+          className="rounded-full border px-2.5 py-0.5"
           style={{
             borderColor: `${typeColor(tx.type)}55`,
             backgroundColor: `${typeColor(tx.type)}1A`,
           }}
         >
           <Text
-            className="font-inter font-semibold text-[10.5px]"
+            className="font-inter text-[10.5px] font-semibold"
             style={{ color: typeColor(tx.type) }}
           >
             {typeLabel(tx.type)}
@@ -90,14 +90,14 @@ export function DetailHero({
         {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
       </View>
       <Text
-        className="font-sora font-extrabold text-[36px] leading-none"
+        className="font-sora text-[36px] leading-none font-extrabold"
         style={{ color: typeColor(tx.type), letterSpacing: -0.5 }}
       >
         {amountText}
       </Text>
       {category ? (
         <View
-          className="flex-row items-center gap-1.5 mt-4 px-3 py-1.5 rounded-full"
+          className="mt-4 flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
           style={{
             backgroundColor: `${category.color ?? '#888'}1F`,
             borderWidth: 1,
@@ -110,15 +110,15 @@ export function DetailHero({
             color={category.color ?? '#888'}
           />
           <Text
-            className="font-inter font-semibold text-[11px]"
+            className="font-inter text-[11px] font-semibold"
             style={{ color: category.color ?? '#888' }}
           >
             {category.name}
           </Text>
         </View>
       ) : null}
-      <Text className="font-inter text-center text-[18px] text-foreground/55 mt-2">{title}</Text>
-      <Text className="font-inter text-[11px] text-foreground/55 mt-2">{dateTimeText}</Text>
+      <Text className="font-inter text-foreground/55 mt-2 text-center text-[18px]">{title}</Text>
+      <Text className="font-inter text-foreground/55 mt-2 text-[11px]">{dateTimeText}</Text>
     </View>
   );
 }

@@ -1,11 +1,10 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
-
 import { TransactionRow } from '@/screens/transactions/components/transaction_row';
 
 jest.mock('react-native-reanimated', () => {

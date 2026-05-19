@@ -1,4 +1,5 @@
 import { PixelRatio } from 'react-native';
+
 import { ms, msFont, responsiveScale } from '@/utils/responsive';
 
 describe('responsiveScale', () => {

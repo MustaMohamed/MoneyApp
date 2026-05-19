@@ -1,11 +1,11 @@
 import { AccountType, Currency } from '@/constants/enums';
-import type { Account } from '@/store/account.store';
 import {
   computeLiabilitiesBreakdown,
   computeLiquidityBreakdown,
   computeNetWorth,
   groupAccountsByType,
 } from '@/screens/dashboard/dashboard.helpers';
+import type { Account } from '@/store/account.store';
 
 const makeAccount = (overrides: Partial<Account> = {}): Account => ({
   id: 'acc-1',

@@ -1,9 +1,9 @@
 // Run zod_config side-effect before any test so the global error map is set
 import '@/utils/zod_config';
-import { createAddAccountSchema } from '@/utils/schemas/add_account.schema';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/store/account.store';
+import { createAddAccountSchema } from '@/utils/schemas/add_account.schema';
 
 const emptyAccounts: Account[] = [];
 

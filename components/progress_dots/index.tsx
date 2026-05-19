@@ -2,6 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Size, Spacing } from '@/constants/theme';
+
 import { useDotAnim } from './progress_dots.anim';
 
 type Props = { totalSteps: number; currentStep: number };

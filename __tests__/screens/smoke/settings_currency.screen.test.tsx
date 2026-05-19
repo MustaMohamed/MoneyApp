@@ -1,8 +1,8 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
-import CurrencyScreen from '@/screens/settings/currency/index';
 import { Strings } from '@/constants/strings';
+import CurrencyScreen from '@/screens/settings/currency/index';
 
 jest.mock('react-native-reanimated', () => ({
   default: { View: require('react-native').View },

@@ -1,6 +1,6 @@
+import { Input } from 'heroui-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { Input } from 'heroui-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -63,7 +63,7 @@ export function ExchangeRateRow({
       : Strings.addTxRateSourceStored;
 
   return (
-    <View className="mt-3 rounded-md border border-accent/30 bg-accent/10 px-3 py-3">
+    <View className="border-accent/30 bg-accent/10 mt-3 rounded-md border px-3 py-3">
       <Pressable
         testID="exchange-rate-row"
         onPress={() => {
@@ -72,10 +72,10 @@ export function ExchangeRateRow({
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
-          <Text className="font-sora font-semibold text-[14px] text-foreground">Exchange Rate</Text>
-          <Text className="font-inter text-[11px] text-muted mt-0.5">{subtitle}</Text>
+          <Text className="font-sora text-foreground text-[14px] font-semibold">Exchange Rate</Text>
+          <Text className="font-inter text-muted mt-0.5 text-[11px]">{subtitle}</Text>
           {stale ? (
-            <Text className="font-inter text-[11px] text-warning mt-0.5">
+            <Text className="font-inter text-warning mt-0.5 text-[11px]">
               {Strings.addTxRateStale}
             </Text>
           ) : null}
@@ -91,22 +91,22 @@ export function ExchangeRateRow({
             />
           </View>
         ) : (
-          <Text className="font-sora font-semibold text-[15px] text-foreground">{value}</Text>
+          <Text className="font-sora text-foreground text-[15px] font-semibold">{value}</Text>
         )}
       </Pressable>
 
       {/* Live EGP preview */}
-      <Text className="font-inter text-[12px] text-muted mt-2">
+      <Text className="font-inter text-muted mt-2 text-[12px]">
         {Strings.addTxEgpPreview.replace('{amount}', formatPreviewAmount(amount, value))}
       </Text>
 
       {overrideEnabled ? (
         <Pressable onPress={onToggleOverride} className="mt-2 self-end">
-          <Text className="font-inter text-[12px] text-accent">{Strings.addTxRateReset}</Text>
+          <Text className="font-inter text-accent text-[12px]">{Strings.addTxRateReset}</Text>
         </Pressable>
       ) : null}
 
-      {error ? <Text className="font-inter text-[11px] text-danger mt-1">{error}</Text> : null}
+      {error ? <Text className="font-inter text-danger mt-1 text-[11px]">{error}</Text> : null}
     </View>
   );
 }

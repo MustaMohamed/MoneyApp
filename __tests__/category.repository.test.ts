@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { MIGRATIONS } from '@/database/migrations';
 import { CategoryType } from '@/constants/enums';
+import { MIGRATIONS } from '@/database/migrations';
 import { CategoryRepository, type NewCategoryInput } from '@/repositories/category.repository';
 
 const sqlite = SQLite as unknown as { __reset: () => void };

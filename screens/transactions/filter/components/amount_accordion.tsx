@@ -1,11 +1,12 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React, { useState, useEffect } from 'react';
 import { Pressable, View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
-import { Strings } from '@/constants/strings';
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+
 import { formatAmountSummary, parseAmountInput } from '../filter.helpers';
 import type { AdvancedFilters } from '../filter.store';
 
@@ -38,25 +39,25 @@ export function AmountAccordion({
   const active = draft.amountMin !== undefined || draft.amountMax !== undefined;
 
   return (
-    <View className="rounded-xl border border-separator bg-surface mb-2 p-3.5">
+    <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Pressable
         onPress={onToggleSection}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
       >
-        <View className="flex-row justify-between items-center">
+        <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
-            <Text className="font-inter font-semibold text-[13px]">
+            <Text className="font-inter text-[13px] font-semibold">
               {Strings.filterSectionAmount}
             </Text>
             {active ? (
-              <View className="px-1.5 rounded-full bg-accent/15 items-center">
-                <Text className="font-inter font-bold text-[10px] text-accent">1</Text>
+              <View className="bg-accent/15 items-center rounded-full px-1.5">
+                <Text className="font-inter text-accent text-[10px] font-bold">1</Text>
               </View>
             ) : null}
           </View>
           <View className="flex-row items-center gap-1.5">
-            <Text className="font-inter text-[11px] text-foreground/60" numberOfLines={1}>
+            <Text className="font-inter text-foreground/60 text-[11px]" numberOfLines={1}>
               {expanded ? '' : summary}
             </Text>
             <MaterialCommunityIcons
@@ -69,17 +70,17 @@ export function AmountAccordion({
       </Pressable>
       {expanded ? (
         <View className="mt-3">
-          <View className="flex-row gap-1.5 bg-background p-1 rounded-lg mb-3">
+          <View className="bg-background mb-3 flex-row gap-1.5 rounded-lg p-1">
             {(['EGP', 'USD'] as const).map((c) => {
               const sel = draft.amountCurrency === c;
               return (
                 <Pressable
                   key={c}
                   onPress={() => onChangeCurrency(c as Currency)}
-                  className={`flex-1 py-1.5 rounded-md items-center ${sel ? 'bg-default/40' : ''}`}
+                  className={`flex-1 items-center rounded-md py-1.5 ${sel ? 'bg-default/40' : ''}`}
                 >
                   <Text
-                    className={`font-inter font-semibold text-[11px] ${sel ? 'text-accent' : 'text-foreground/60'}`}
+                    className={`font-inter text-[11px] font-semibold ${sel ? 'text-accent' : 'text-foreground/60'}`}
                   >
                     {c}
                   </Text>
@@ -89,7 +90,7 @@ export function AmountAccordion({
           </View>
           <View className="flex-row gap-2">
             <View className="flex-1">
-              <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/55 mb-1">
+              <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
                 {Strings.filterAmountMinLabel}
               </Text>
               <Input
@@ -103,7 +104,7 @@ export function AmountAccordion({
               />
             </View>
             <View className="flex-1">
-              <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/55 mb-1">
+              <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
                 {Strings.filterAmountMaxLabel}
               </Text>
               <Input

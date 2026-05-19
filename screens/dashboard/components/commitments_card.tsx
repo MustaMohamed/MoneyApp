@@ -1,13 +1,13 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 import { formatMonthYear } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
 
 interface Props {
   counts: {
@@ -40,10 +40,10 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
   return (
     <Pressable
       onPress={onPress}
-      className="mx-4 mt-4 rounded-2xl bg-surface border border-border px-4 py-3"
+      className="bg-surface border-border mx-4 mt-4 rounded-2xl border px-4 py-3"
       style={{ gap: ms(8) }}
     >
-      <View className="flex-row justify-between items-center" style={{ flexDirection: 'row' }}>
+      <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
           <View
             className="items-center justify-center rounded-full"
@@ -73,10 +73,10 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
         style={{ flexDirection: 'row', gap: ms(8) }}
       >
         <View className="flex-1" style={{ flex: 1 }}>
-          <Text variant="hint" className="text-muted uppercase text-xs">
+          <Text variant="hint" className="text-muted text-xs uppercase">
             {Strings.commitmentsTotalCommitted}
           </Text>
-          <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+          <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
             {totalsLine}
           </Text>
         </View>
@@ -95,7 +95,7 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
       </View>
 
       <View
-        className="rounded overflow-hidden"
+        className="overflow-hidden rounded"
         style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
       >
         <LinearGradient

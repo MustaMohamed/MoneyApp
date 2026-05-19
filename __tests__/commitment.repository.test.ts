@@ -1,11 +1,12 @@
-import { getDb } from '@/database/client';
 import {
-  addCommitment,
-  deactivateCommitment,
-  getCommitmentById,
-  getCommitments,
-  updateCommitment,
-} from '@/database/commitments';
+  AmountType,
+  CommitmentPaymentStatus,
+  Currency,
+  DurationType,
+  RecurrencePeriod,
+  TransactionType,
+} from '@/constants/enums';
+import { getDb } from '@/database/client';
 import {
   addPayments,
   deleteUnpaidPaymentsByCommitment,
@@ -19,13 +20,12 @@ import {
   updatePaymentStatus,
 } from '@/database/commitment_payments';
 import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-  TransactionType,
-} from '@/constants/enums';
+  addCommitment,
+  deactivateCommitment,
+  getCommitmentById,
+  getCommitments,
+  updateCommitment,
+} from '@/database/commitments';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import {

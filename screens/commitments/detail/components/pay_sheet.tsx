@@ -10,9 +10,9 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import { ms } from '@/utils/responsive';
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
+import { ms } from '@/utils/responsive';
 
 import { usePaySheet } from './pay_sheet.hook';
 

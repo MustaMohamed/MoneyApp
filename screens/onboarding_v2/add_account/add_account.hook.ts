@@ -1,17 +1,17 @@
-import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { AccountType, OnboardingStep } from '@/constants/enums';
+import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useZodForm } from '@/utils/use_zod_form.hook';
 import { backOrReplace } from '@/utils/onboarding_nav';
-import { AcctTokens } from '@/constants/theme_tokens';
-import { AccountType, OnboardingStep } from '@/constants/enums';
 import {
   createAddAccountSchema,
   type AddAccountFormData,
 } from '@/utils/schemas/add_account.schema';
+import { useZodForm } from '@/utils/use_zod_form.hook';
 
 // The 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4).
 // Used by the color picker in index.tsx. Exported so the screen can render the row.

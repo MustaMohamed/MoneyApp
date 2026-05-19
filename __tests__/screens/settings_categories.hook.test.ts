@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useCategoryStore } from '@/store/category.store';
 import { useCategories } from '@/screens/settings/categories/categories.hook';
+import { useCategoryStore } from '@/store/category.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({

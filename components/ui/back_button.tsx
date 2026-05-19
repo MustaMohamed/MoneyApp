@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 /**
  * BackButton — canonical 36×36 boxy back-button matching the N2 (onboarding_v2) style.
  *
@@ -7,7 +8,6 @@
  * Visual: w-9 h-9 rounded-[8px] bg-surface border border-border, chevron-left icon.
  */
 import React from 'react';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Pressable } from '@/components/ui/pressable';
 import { Size } from '@/constants/theme';
@@ -21,7 +21,7 @@ export function BackButton({ onPress }: BackButtonProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="w-9 h-9 rounded-[8px] bg-surface border border-border items-center justify-center"
+      className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
       accessibilityRole="button"
       accessibilityLabel="Go back"
     >

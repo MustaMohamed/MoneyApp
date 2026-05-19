@@ -1,13 +1,13 @@
-import { useMemo, useCallback, useRef } from 'react';
 import { router, useFocusEffect } from 'expo-router';
+import { useMemo, useCallback, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useCommitmentStore } from '@/store/commitment.store';
-import { useCategoryStore } from '@/store/category.store';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
+import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import { useCategoryStore } from '@/store/category.store';
+import { useCommitmentStore } from '@/store/commitment.store';
 
 import { useCommitmentsScreenState } from './commitments.state';
 

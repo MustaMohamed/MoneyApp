@@ -1,5 +1,6 @@
 import { Strings } from '@/constants/strings';
 import type { TransactionListFilters } from '@/store/transaction.store';
+
 import type { AdvancedFilters } from './filter.store';
 
 export function countActiveFilters(f: AdvancedFilters): number {

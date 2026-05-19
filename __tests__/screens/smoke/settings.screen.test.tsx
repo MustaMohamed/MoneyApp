@@ -1,8 +1,8 @@
-import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import React from 'react';
 
-import SettingsScreen from '@/screens/settings/index';
 import { Strings } from '@/constants/strings';
+import SettingsScreen from '@/screens/settings/index';
 
 jest.mock('react-native-reanimated', () => ({
   default: { View: require('react-native').View },

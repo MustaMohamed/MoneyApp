@@ -1,8 +1,8 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
 import { useShallow } from 'zustand/react/shallow';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';

@@ -7,7 +7,7 @@ interface Props {
 
 export function DetailRowsCard({ children }: Props): React.ReactElement {
   return (
-    <View className="mx-4 mt-4 rounded-2xl bg-surface border border-separator overflow-hidden">
+    <View className="bg-surface border-separator mx-4 mt-4 overflow-hidden rounded-2xl border">
       {children}
     </View>
   );

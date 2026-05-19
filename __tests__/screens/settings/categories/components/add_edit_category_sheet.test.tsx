@@ -40,22 +40,22 @@ jest.mock('@/screens/settings/categories/components/add_edit_category_sheet.stat
 
 // Bottom-sheet is mocked via __mocks__/@gorhom/bottom-sheet.tsx (moduleNameMapper)
 
+import { render, fireEvent } from '@testing-library/react-native';
 // ---------------------------------------------------------------------------
 // Imports
 // ---------------------------------------------------------------------------
 import React from 'react';
-import { render, fireEvent } from '@testing-library/react-native';
 
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
-import { useCategoryStore } from '@/store/category.store';
-import { useAddEditCategorySheetState } from '@/screens/settings/categories/components/add_edit_category_sheet.state';
 import {
   AddEditCategorySheet,
   createCategorySchema,
 } from '@/screens/settings/categories/components/add_edit_category_sheet';
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { useAddEditCategorySheetState } from '@/screens/settings/categories/components/add_edit_category_sheet.state';
+import { useCategoryStore } from '@/store/category.store';
 import type { Category } from '@/store/category.store';
 
 // ---------------------------------------------------------------------------

@@ -18,9 +18,9 @@
 import { renderHook } from '@testing-library/react-native';
 
 import { useCommitmentDetail } from '@/screens/commitments/detail/detail.hook';
-import { useCommitmentStore } from '@/store/commitment.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
+import { useCommitmentStore } from '@/store/commitment.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({

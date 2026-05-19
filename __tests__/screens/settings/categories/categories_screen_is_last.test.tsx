@@ -8,8 +8,8 @@
  * query CategoryRow instances via UNSAFE_getAllByType and inspect their isLast prop.
  */
 
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 // ---------------------------------------------------------------------------
 // Module mocks (must be declared before imports of the module under test)
@@ -99,9 +99,9 @@ jest.mock('@/screens/settings/categories/categories.hook', () => ({
 // Import under test (after mocks)
 // ---------------------------------------------------------------------------
 
-import CategoriesScreen from '@/screens/settings/categories/index';
-import { CategoryRow } from '@/screens/settings/categories/components/category_row';
 import { CategoryType } from '@/constants/enums';
+import { CategoryRow } from '@/screens/settings/categories/components/category_row';
+import CategoriesScreen from '@/screens/settings/categories/index';
 import type { Category } from '@/store/category.store';
 
 // ---------------------------------------------------------------------------

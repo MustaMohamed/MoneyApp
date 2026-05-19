@@ -1,15 +1,16 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import { ms, msFont } from '@/utils/responsive';
 import { formatShortDate } from '@/utils/format_date';
+import { ms, msFont } from '@/utils/responsive';
+
 import { cardEntering } from '../detail.anim';
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });

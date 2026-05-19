@@ -1,12 +1,12 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 import { formatAmount } from '@/utils/format_amount';
+import { ms } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -71,10 +71,10 @@ export function StatCards({
       : 'trending-neutral';
 
   return (
-    <View className="flex-row mx-4 mt-2" style={{ flexDirection: 'row', gap: ms(8) }}>
+    <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
       {/* Net Worth */}
       <View
-        className="flex-1 rounded-2xl bg-surface border border-border p-3"
+        className="bg-surface border-border flex-1 rounded-2xl border p-3"
         style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
@@ -84,15 +84,15 @@ export function StatCards({
           >
             <MaterialCommunityIcons name="scale-balance" size={ms(13)} color={netColor} />
           </View>
-          <Text variant="hint" className="flex-1 uppercase text-muted text-xs">
+          <Text variant="hint" className="text-muted flex-1 text-xs uppercase">
             {Strings.dashNetWorthTitle}
           </Text>
         </View>
         <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
-          {formatAmount(netWorthEgp)} <Text className="text-xs text-muted font-medium">EGP</Text>
+          {formatAmount(netWorthEgp)} <Text className="text-muted text-xs font-medium">EGP</Text>
         </Text>
         <View
-          className="rounded overflow-hidden bg-default flex-row"
+          className="bg-default flex-row overflow-hidden rounded"
           style={{ flexDirection: 'row', height: ms(4) }}
         >
           <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
@@ -113,7 +113,7 @@ export function StatCards({
                 {Strings.dashAssetsLabel} ({assetsCount})
               </Text>
             </View>
-            <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+            <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
               {formatAmount(assetsEgp)}
             </Text>
           </View>
@@ -131,7 +131,7 @@ export function StatCards({
                 {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
               </Text>
             </View>
-            <Text className="text-xs font-semibold text-foreground" numberOfLines={1}>
+            <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
               {formatAmount(liabilitiesEgp)}
             </Text>
           </View>
@@ -140,7 +140,7 @@ export function StatCards({
 
       {/* Spent This Month */}
       <View
-        className="flex-1 rounded-2xl bg-surface border border-border p-3"
+        className="bg-surface border-border flex-1 rounded-2xl border p-3"
         style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
@@ -150,19 +150,19 @@ export function StatCards({
           >
             <MaterialCommunityIcons name="cash-minus" size={ms(13)} color={Colors.dark.negative} />
           </View>
-          <Text variant="hint" className="flex-1 uppercase text-muted text-xs">
+          <Text variant="hint" className="text-muted flex-1 text-xs uppercase">
             {Strings.dashMonthSpentTitle}
           </Text>
           <Text variant="hint" className="text-muted text-xs">
             {monthLabel}
           </Text>
         </View>
-        <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
-          {formatAmount(monthSpentEgp)} <Text className="text-xs text-muted font-medium">EGP</Text>
+        <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+          {formatAmount(monthSpentEgp)} <Text className="text-muted text-xs font-medium">EGP</Text>
         </Text>
-        <Text className="text-lg font-bold text-foreground" numberOfLines={1}>
+        <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
           {formatAmount(monthSpentUsd, 0)}{' '}
-          <Text className="text-xs text-muted font-medium">USD</Text>
+          <Text className="text-muted text-xs font-medium">USD</Text>
         </Text>
         <View
           className="flex-row items-center justify-between"

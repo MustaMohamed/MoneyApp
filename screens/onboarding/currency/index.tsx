@@ -2,14 +2,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BackButton } from '@/components/ui/back_button';
 import { ProgressDots } from '@/components/progress_dots';
+import { BackButton } from '@/components/ui/back_button';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { Currency } from '@/constants/enums';
 
-import { useCurrency } from './currency.hook';
 import { CurrencyRow, type RowConfig } from './components/currency_row';
+import { useCurrency } from './currency.hook';
 
 const ROWS: RowConfig[] = [
   {

@@ -10,6 +10,7 @@ import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import { ms, msFont } from '@/utils/responsive';
+
 import { useChipPressScale } from '../commitments.anim';
 import type { CommitmentStatusFilter } from '../commitments.state';
 

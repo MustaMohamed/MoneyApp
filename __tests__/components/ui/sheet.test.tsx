@@ -1,7 +1,8 @@
-import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react-native';
 import fs from 'fs';
 import path from 'path';
+
+import { render, fireEvent, act } from '@testing-library/react-native';
+import React from 'react';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 jest.mock('heroui-native', () => ({

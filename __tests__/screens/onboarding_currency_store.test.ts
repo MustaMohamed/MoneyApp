@@ -1,5 +1,5 @@
-import { useCurrencyStore } from '@/screens/onboarding/currency/currency.store';
 import { Currency } from '@/constants/enums';
+import { useCurrencyStore } from '@/screens/onboarding/currency/currency.store';
 
 beforeEach(() => useCurrencyStore.getState().reset());
 

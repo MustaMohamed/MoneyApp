@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useOnboardingStore } from '@/store/onboarding.store';
 import { useSecurity } from '@/screens/onboarding/security/security.hook';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({

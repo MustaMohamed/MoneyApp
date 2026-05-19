@@ -1,5 +1,5 @@
-import type React from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import type React from 'react';
 import { create } from 'zustand';
 
 import { CategoryType } from '@/constants/enums';

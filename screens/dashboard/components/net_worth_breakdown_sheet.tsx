@@ -1,20 +1,20 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { View } from 'react-native';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
-import { formatAmount } from '@/utils/format_amount';
-import { nextDueDate } from '@/utils/format_date';
 import type {
   AccountRow,
   LiabilityRow,
   LiquidityBreakdown,
 } from '@/screens/dashboard/dashboard.helpers';
+import { formatAmount } from '@/utils/format_amount';
+import { nextDueDate } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -60,12 +60,12 @@ export function NetWorthBreakdownSheet({
         <BottomSheetScrollView contentContainerStyle={{ paddingBottom: ms(24) }}>
           {/* Net Worth headline */}
           <View className="px-4 pt-2">
-            <Text variant="hint" className="text-muted uppercase tracking-wide text-xs">
+            <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
               {Strings.dashboardBreakdownNetWorthLabel}
             </Text>
-            <Text className="font-bold mt-1" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
+            <Text className="mt-1 font-bold" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
               {formatAmount(netWorthEgp)}{' '}
-              <Text className="text-base text-muted font-medium">EGP</Text>
+              <Text className="text-muted text-base font-medium">EGP</Text>
             </Text>
             <Text variant="caption" className="text-muted mt-1">
               {rate > 0 ? `≈ ${formatAmount(netWorthUsd, 0)} USD` : '— USD'}
@@ -73,17 +73,17 @@ export function NetWorthBreakdownSheet({
           </View>
 
           {/* Divider */}
-          <View className="h-px bg-separator mx-4 my-4" />
+          <View className="bg-separator mx-4 my-4 h-px" />
 
           {/* Assets */}
           <View className="px-4">
-            <Text variant="hint" className="text-muted uppercase tracking-wide text-xs mb-2">
+            <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
               {Strings.dashAssetsLabel} ·{' '}
               {Strings.dashboardBreakdownAssetsHeader(formatAmount(assetsEgp), assetsAccountCount)}
             </Text>
             {assetsTotal > 0 && (
               <View
-                className="rounded overflow-hidden mb-2"
+                className="mb-2 overflow-hidden rounded"
                 style={{ height: ms(6), flexDirection: 'row' }}
               >
                 {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
@@ -126,9 +126,9 @@ export function NetWorthBreakdownSheet({
 
           {showLiabilities && (
             <>
-              <View className="h-px bg-separator mx-4 my-4" />
+              <View className="bg-separator mx-4 my-4 h-px" />
               <View className="px-4">
-                <Text variant="hint" className="text-muted uppercase tracking-wide text-xs mb-2">
+                <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
                   {Strings.dashLiabilitiesLabel} ·{' '}
                   {Strings.dashboardBreakdownLiabilitiesHeader(
                     formatAmount(liabilitiesEgp),
@@ -151,7 +151,7 @@ export function NetWorthBreakdownSheet({
                     negative
                   />
                 ))}
-                <View className="h-px bg-separator mt-1 mb-2" />
+                <View className="bg-separator mt-1 mb-2 h-px" />
                 <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
                   <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
                   <Text className="font-bold" style={{ color: Colors.dark.gold }}>

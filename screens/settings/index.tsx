@@ -1,12 +1,13 @@
-import { View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { ListGroup } from 'heroui-native';
+import { View } from 'react-native';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Spacing } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+
 import { useSettings } from './settings.hook';
 
 export default function SettingsScreen() {

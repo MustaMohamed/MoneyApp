@@ -13,16 +13,16 @@ interface Props {
 
 export function NoAccountsEmpty({ onAddAccount }: Props): React.ReactElement {
   return (
-    <View className="flex-1 items-center justify-center px-6 py-8 gap-4">
+    <View className="flex-1 items-center justify-center gap-4 px-6 py-8">
       <MaterialCommunityIcons name="bank-off" size={56} color={CoreTokens.text2} />
-      <Text className="font-sora font-semibold text-[17px] text-foreground text-center">
+      <Text className="font-sora text-foreground text-center text-[17px] font-semibold">
         {Strings.addTxNoAccountsTitle}
       </Text>
-      <Text className="font-inter text-[13px] text-muted text-center">
+      <Text className="font-inter text-muted text-center text-[13px]">
         {Strings.addTxNoAccountsBody}
       </Text>
       <Button testID="no-accounts-cta" onPress={onAddAccount} variant="primary">
-        <Text className="font-sora font-semibold text-[15px]">{Strings.addTxNoAccountsCta}</Text>
+        <Text className="font-sora text-[15px] font-semibold">{Strings.addTxNoAccountsCta}</Text>
       </Button>
     </View>
   );

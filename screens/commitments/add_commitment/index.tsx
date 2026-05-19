@@ -1,8 +1,9 @@
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
+import { Colors } from '@/constants/theme';
+
 import { CommitmentFormBody } from '../components/commitment_form_body';
 import { useAddCommitment } from './add_commitment.hook';
 

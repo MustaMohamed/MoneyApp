@@ -3,14 +3,15 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useShallow } from 'zustand/react/shallow';
 
 import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
+import { OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useShallow } from 'zustand/react/shallow';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { OnboardingStep } from '@/constants/enums';
+
 import { useWelcomeAnim } from './welcome.anim';
 
 export default function WelcomeScreen() {

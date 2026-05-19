@@ -1,7 +1,7 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { MIGRATIONS } from '@/database/migrations';
+import { CategoryType } from '@/constants/enums';
 import {
   addCategory,
   deleteCategory,
@@ -10,8 +10,8 @@ import {
   reassignCategory,
   updateCategory,
 } from '@/database/categories';
-import { CategoryType } from '@/constants/enums';
 import type { Category } from '@/database/entities/category.entity';
+import { MIGRATIONS } from '@/database/migrations';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;

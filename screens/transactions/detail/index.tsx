@@ -3,12 +3,11 @@ import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { BackButton } from '@/components/ui/back_button';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
-
 import { EditTransactionSheet } from '@/screens/transactions/transaction_form';
 import { useEditTransactionState } from '@/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/screens/transactions/transaction_form/edit_transaction.store';
@@ -18,8 +17,8 @@ import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
 import { DetailHero } from './components/detail_hero';
 import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
-import { NoteCard } from './components/note_card';
 import { NotFoundState } from './components/not_found_state';
+import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import { useTransactionDetail } from './detail.hook';
 
@@ -60,9 +59,9 @@ export default function TransactionDetailScreen(): React.ReactElement {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View className="h-14 flex-row items-center justify-between px-2 border-b border-separator">
+      <View className="border-separator h-14 flex-row items-center justify-between border-b px-2">
         <BackButton onPress={() => router.back()} />
-        <Text className="font-sora font-semibold text-[15px] text-foreground">
+        <Text className="font-sora text-foreground text-[15px] font-semibold">
           {Strings.detailHeader}
         </Text>
         <View className="w-10" />

@@ -1,5 +1,5 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import { TotalsStrip } from '@/screens/transactions/components/totals_strip';
 

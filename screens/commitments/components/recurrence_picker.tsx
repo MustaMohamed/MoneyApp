@@ -1,10 +1,11 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
+
 import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 
 interface Props {

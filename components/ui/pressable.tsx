@@ -1,3 +1,4 @@
+import { cn } from 'heroui-native';
 import React from 'react';
 import {
   Pressable as RNPressable,
@@ -5,7 +6,6 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
-import { cn } from 'heroui-native';
 
 const HIT_SLOP = { top: 12, bottom: 12, left: 12, right: 12 } as const;
 

@@ -1,5 +1,5 @@
-import { useDashboardStore } from '@/screens/dashboard/dashboard.store';
 import type { AccountStats } from '@/database/account_stats';
+import { useDashboardStore } from '@/screens/dashboard/dashboard.store';
 
 beforeEach(() => useDashboardStore.getState().reset());
 

@@ -1,10 +1,4 @@
 import {
-  COMMITMENT_SCHEMA,
-  buildAddDefaults,
-  buildEditDefaults,
-  detectPreset,
-} from '@/screens/commitments/commitment_form.shared';
-import {
   AmountType,
   Currency,
   DurationType,
@@ -12,6 +6,12 @@ import {
   RecurrencePreset,
 } from '@/constants/enums';
 import type { Commitment } from '@/database/entities/commitment.entity';
+import {
+  COMMITMENT_SCHEMA,
+  buildAddDefaults,
+  buildEditDefaults,
+  detectPreset,
+} from '@/screens/commitments/commitment_form.shared';
 
 const VALID_BASE = {
   amountType: AmountType.Fixed,

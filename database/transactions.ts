@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Currency, TransactionType } from '@/constants/enums';
+
 import type { Transaction } from './entities/transaction.entity';
 
 export interface MonthExpenseStats {

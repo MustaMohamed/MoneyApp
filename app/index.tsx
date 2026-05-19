@@ -1,8 +1,8 @@
 import { type Href, Redirect } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useOnboardingStore } from '@/store/onboarding.store';
 import { type OnboardingStep } from '@/constants/enums';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 const STEP_HREF: Record<OnboardingStep, Href> = {
   O1: '/(onboarding)/welcome',

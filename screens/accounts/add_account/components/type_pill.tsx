@@ -2,9 +2,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { Strings } from '@/constants/strings';
 import { AccountType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+
 import { useTypePillAnim } from '../add_account.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];

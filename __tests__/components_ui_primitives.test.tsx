@@ -1,10 +1,11 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 import { TextInput } from 'react-native';
+
 import { Box } from '@/components/ui/box';
-import { Text } from '@/components/ui/text';
-import { Pressable } from '@/components/ui/pressable';
 import { Input } from '@/components/ui/input';
+import { Pressable } from '@/components/ui/pressable';
+import { Text } from '@/components/ui/text';
 
 describe('Box', () => {
   it('renders children', () => {

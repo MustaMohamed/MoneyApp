@@ -2,8 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Radius, Size, Spacing, Type, FontFamily } from '@/constants/theme';
 import type { Currency } from '@/constants/enums';
+import { Radius, Size, Spacing, Type, FontFamily } from '@/constants/theme';
+
 import { useCurrencyRowAnim } from '../currency.anim';
 
 export type RowConfig = {

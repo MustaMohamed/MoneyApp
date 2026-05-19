@@ -1,7 +1,6 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { MIGRATIONS } from '@/database/migrations';
 import { CommitmentPaymentStatus, Currency, TransactionType } from '@/constants/enums';
 import {
   addPayments,
@@ -17,6 +16,7 @@ import {
 } from '@/database/commitment_payments';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
+import { MIGRATIONS } from '@/database/migrations';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;

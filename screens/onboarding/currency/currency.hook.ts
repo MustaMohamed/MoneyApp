@@ -1,9 +1,10 @@
 import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
-import { backOrReplace } from '@/utils/onboarding_nav';
 import { Currency, OnboardingStep } from '@/constants/enums';
 import { useOnboardingStore } from '@/store/onboarding.store';
+import { backOrReplace } from '@/utils/onboarding_nav';
+
 import { useCurrencyStore } from './currency.store';
 
 export function useCurrency() {

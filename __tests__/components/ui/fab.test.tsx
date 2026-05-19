@@ -1,6 +1,6 @@
+import { render, fireEvent } from '@testing-library/react-native';
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { render, fireEvent } from '@testing-library/react-native';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));

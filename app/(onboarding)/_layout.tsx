@@ -1,8 +1,8 @@
 import { Redirect, Stack } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useOnboardingStore } from '@/store/onboarding.store';
 import { Colors } from '@/constants/theme';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 export type OnboardingStackParams = {
   welcome: undefined;

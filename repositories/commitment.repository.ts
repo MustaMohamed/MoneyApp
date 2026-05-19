@@ -1,14 +1,7 @@
 import uuid from 'react-native-uuid';
 
+import { CommitmentPaymentStatus, TransactionType } from '@/constants/enums';
 import { getDb } from '@/database/client';
-import {
-  addCommitment,
-  deactivateCommitment,
-  getCommitmentById,
-  getCommitments,
-  updateCommitment,
-  type UpdateCommitmentData,
-} from '@/database/commitments';
 import {
   addPayments,
   deleteUnpaidPaymentsByCommitment,
@@ -21,10 +14,17 @@ import {
   markCommitmentAsPaid,
   updatePaymentStatus,
 } from '@/database/commitment_payments';
+import {
+  addCommitment,
+  deactivateCommitment,
+  getCommitmentById,
+  getCommitments,
+  updateCommitment,
+  type UpdateCommitmentData,
+} from '@/database/commitments';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { CommitmentPaymentStatus, TransactionType } from '@/constants/enums';
 
 export type NewCommitmentInput = Omit<Commitment, 'id' | 'created_at' | 'updated_at' | 'is_active'>;
 export type UpdateCommitmentInput = Pick<

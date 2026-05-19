@@ -1,18 +1,18 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import { DateHeader } from '@/screens/transactions/components/date_header';
+import { ms } from '@/utils/responsive';
 
 import { useCommitments } from './commitments.hook';
 import { CommitmentRow } from './components/commitment_row';
-import { MonthNavigator } from './components/month_navigator';
-import { SummaryHeader } from './components/summary_header';
 import { CommitmentsEmptyState } from './components/empty_state';
+import { MonthNavigator } from './components/month_navigator';
 import { StatusFilterChips } from './components/status_filter_chips';
-import { DateHeader } from '@/screens/transactions/components/date_header';
+import { SummaryHeader } from './components/summary_header';
 
 export default function CommitmentsScreen() {
   const t = useCommitments();

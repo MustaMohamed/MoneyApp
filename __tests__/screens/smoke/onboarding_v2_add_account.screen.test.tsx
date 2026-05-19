@@ -1,7 +1,8 @@
-import React from 'react';
 import fs from 'fs';
 import path from 'path';
+
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import AddAccountScreenV2 from '@/screens/onboarding_v2/add_account';
 

@@ -1,13 +1,13 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { MIGRATIONS } from '@/database/migrations';
 import { Currency, TransactionType } from '@/constants/enums';
+import { MIGRATIONS } from '@/database/migrations';
+import * as transactionsModule from '@/database/transactions';
 import {
   TransactionRepository,
   type NewTransactionInput,
 } from '@/repositories/transaction.repository';
-import * as transactionsModule from '@/database/transactions';
 
 // Override global UUID mock with a counter so each add() gets a unique id
 let mockUuidCounter = 0;

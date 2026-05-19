@@ -1,4 +1,5 @@
 import { FadeInUp, ZoomIn } from 'react-native-reanimated';
+
 import { useFirstMountEntering } from '@/utils/use_first_mount_entering.hook';
 
 export function useReadyAnim() {

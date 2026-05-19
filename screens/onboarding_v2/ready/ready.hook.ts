@@ -1,10 +1,11 @@
 import { useShallow } from 'zustand/react/shallow';
 
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useReadyState } from './ready.state';
+
 import { computeTotalBalance } from './ready.helpers';
-import { Strings } from '@/constants/strings';
+import { useReadyState } from './ready.state';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 

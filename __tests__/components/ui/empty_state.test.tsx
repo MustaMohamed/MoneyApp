@@ -1,9 +1,8 @@
-import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
-
-import { Strings } from '@/constants/strings';
+import React from 'react';
 
 import { EmptyState } from '@/components/ui/empty_state';
+import { Strings } from '@/constants/strings';
 
 // String key tests stay at top
 describe('EmptyState strings', () => {

@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   TextField as HTextField,
   Input as HInput,
@@ -6,6 +5,7 @@ import {
   Description,
   type InputProps as HInputProps,
 } from 'heroui-native';
+import React from 'react';
 
 import { FontFamily, Spacing, Type } from '@/constants/theme';
 

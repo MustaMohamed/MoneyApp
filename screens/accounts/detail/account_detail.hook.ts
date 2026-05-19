@@ -1,12 +1,13 @@
-import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AccountColors } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
+import { AccountColors } from '@/constants/theme';
 import { useAccountStore } from '@/store/account.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
+
 import { useAccountDetailState } from './account_detail.state';
 
 export function useAccountDetail() {

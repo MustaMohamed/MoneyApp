@@ -30,11 +30,11 @@ export function DeleteConfirmDialog({
         className="flex-1 items-center justify-center px-6"
         style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       >
-        <View className="w-full rounded-2xl bg-surface border border-separator p-6">
-          <Text className="font-sora font-bold text-[17px] text-foreground mb-3">
+        <View className="bg-surface border-separator w-full rounded-2xl border p-6">
+          <Text className="font-sora text-foreground mb-3 text-[17px] font-bold">
             {Strings.deleteConfirmTitle}
           </Text>
-          <Text className="font-inter text-[14px] text-foreground/70 mb-6 leading-[22px]">
+          <Text className="font-inter text-foreground/70 mb-6 text-[14px] leading-[22px]">
             {Strings.deleteConfirmBody}
           </Text>
           <View className="flex-row gap-3">
@@ -48,7 +48,7 @@ export function DeleteConfirmDialog({
             </View>
             <View className="flex-1">
               {busy ? (
-                <View className="h-12 items-center justify-center rounded-xl bg-danger">
+                <View className="bg-danger h-12 items-center justify-center rounded-xl">
                   <ActivityIndicator color="#FFFFFF" />
                 </View>
               ) : (

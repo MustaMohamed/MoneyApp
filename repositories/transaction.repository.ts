@@ -1,6 +1,8 @@
 import uuid from 'react-native-uuid';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { getDb } from '@/database/client';
+import type { Transaction } from '@/database/entities/transaction.entity';
 import {
   addTransaction,
   deleteTransaction,
@@ -11,8 +13,6 @@ import {
   type TransactionListQuery,
   type UpdateTransactionInput,
 } from '@/database/transactions';
-import { getDb } from '@/database/client';
-import type { Transaction } from '@/database/entities/transaction.entity';
 
 export type { TransactionListQuery, UpdateTransactionInput };
 

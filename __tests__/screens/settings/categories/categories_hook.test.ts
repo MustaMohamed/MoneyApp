@@ -37,11 +37,12 @@ jest.mock('@/screens/settings/categories/categories.store', () => ({
 // Imports
 // ---------------------------------------------------------------------------
 import { act, renderHook } from '@testing-library/react-native';
+
 import { PROTECTED_CATEGORY_IDS } from '@/constants/enums';
-import { useCategoryStore } from '@/store/category.store';
 import { getCategoryTransactionCount } from '@/database/categories';
 import { getDb } from '@/database/client';
 import { useCategories } from '@/screens/settings/categories/categories.hook';
+import { useCategoryStore } from '@/store/category.store';
 import type { Category } from '@/store/category.store';
 
 // Real Zustand stores — bypassing the mock for shape tests

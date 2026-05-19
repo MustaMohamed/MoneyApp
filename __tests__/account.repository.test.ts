@@ -4,10 +4,10 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
+import { AccountType, Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { AccountRepository } from '@/repositories/account.repository';
 import type { NewAccountInput } from '@/repositories/account.repository';
-import { AccountType, Currency } from '@/constants/enums';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;

@@ -87,7 +87,7 @@ export function CategoryPickerSheet({
                         color={iconColor}
                       />
                       <Text
-                        className={`font-inter text-[10px] mt-1 ${isSelected ? 'text-accent' : 'text-foreground'}`}
+                        className={`font-inter mt-1 text-[10px] ${isSelected ? 'text-accent' : 'text-foreground'}`}
                         numberOfLines={1}
                       >
                         {cat.name}

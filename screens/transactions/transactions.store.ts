@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { TransactionType } from '@/constants/enums';
+
 import { EMPTY_FILTERS_V2, type AdvancedFilters } from './filter/filter.store';
 import { currentYearMonth, type CarouselSelection } from './transactions.helpers';
 

@@ -1,12 +1,13 @@
+import { Accordion } from 'heroui-native';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
-import { Accordion } from 'heroui-native';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+
 import { useCurrencyScreen } from './currency.hook';
 
 export default function CurrencyScreen() {
@@ -29,8 +30,8 @@ export default function CurrencyScreen() {
     <Screen edges={['bottom']}>
       <ScreenScroll showsVerticalScrollIndicator={false}>
         {/* Rate card */}
-        <View className="mx-4 mt-4 bg-surface rounded-2xl p-5 border border-border">
-          <Text className="text-muted text-xs font-inter-medium uppercase tracking-wider mb-1">
+        <View className="bg-surface border-border mx-4 mt-4 rounded-2xl border p-5">
+          <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider uppercase">
             {Strings.currencyRateLabel}
           </Text>
           <Text
@@ -38,17 +39,17 @@ export default function CurrencyScreen() {
           >
             {rate.toFixed(2)}
           </Text>
-          <Text className="text-muted text-xs font-inter-regular mt-1">
+          <Text className="text-muted font-inter-regular mt-1 text-xs">
             {Strings.currencyRateSub}
           </Text>
           {isManualOverride && (
-            <View className="self-start mt-2 bg-default border border-accent rounded-full px-2 py-0.5">
-              <Text className="text-accent text-xs font-sora-semi">
+            <View className="bg-default border-accent mt-2 self-start rounded-full border px-2 py-0.5">
+              <Text className="text-accent font-sora-semi text-xs">
                 {Strings.currencyManualLabel}
               </Text>
             </View>
           )}
-          <Text className="text-muted text-xs font-inter-regular mt-3">
+          <Text className="text-muted font-inter-regular mt-3 text-xs">
             {Strings.currencyLastFetched}: {formattedDate}
           </Text>
         </View>
@@ -66,7 +67,7 @@ export default function CurrencyScreen() {
 
         {/* Fetch error message */}
         {fetchError !== '' && (
-          <Text className="text-danger text-sm font-inter-regular mx-4 mt-2">{fetchError}</Text>
+          <Text className="text-danger font-inter-regular mx-4 mt-2 text-sm">{fetchError}</Text>
         )}
 
         {/* Manual override — HeroUI Accordion */}
@@ -78,14 +79,14 @@ export default function CurrencyScreen() {
                   <Text className="text-foreground font-inter-medium text-base">
                     {Strings.currencyManualLabel}
                   </Text>
-                  <Text className="text-muted text-xs font-inter-regular mt-0.5">
+                  <Text className="text-muted font-inter-regular mt-0.5 text-xs">
                     {Strings.currencyManualSub}
                   </Text>
                 </View>
                 <Accordion.Indicator />
               </Accordion.Trigger>
               <Accordion.Content>
-                <Text className="text-accent text-xs font-sora-bold uppercase tracking-widest mb-2">
+                <Text className="text-accent font-sora-bold mb-2 text-xs tracking-widest uppercase">
                   {Strings.currencyRateLabel}
                 </Text>
                 <Controller
@@ -118,7 +119,7 @@ export default function CurrencyScreen() {
         </View>
 
         {/* Footer note — EGP immutability */}
-        <Text className="text-muted text-xs font-inter-regular text-center mx-6 mt-6 mb-8">
+        <Text className="text-muted font-inter-regular mx-6 mt-6 mb-8 text-center text-xs">
           {Strings.currencyFooterNote}
         </Text>
       </ScreenScroll>

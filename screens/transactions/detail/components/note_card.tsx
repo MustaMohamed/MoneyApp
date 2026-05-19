@@ -31,17 +31,17 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
   return (
     <View
       testID="detail-note-card"
-      className="mx-4 mt-4 rounded-2xl bg-surface border border-separator p-4"
+      className="bg-surface border-separator mx-4 mt-4 rounded-2xl border p-4"
     >
-      <View className="flex-row items-center gap-2 mb-2">
-        <View className="w-7 h-7 rounded-md bg-foreground/5 items-center justify-center">
+      <View className="mb-2 flex-row items-center gap-2">
+        <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
           <MaterialCommunityIcons name="text" size={14} color="#F0EEE6" />
         </View>
-        <Text className="font-inter font-semibold text-[10.5px] uppercase tracking-wide text-foreground/55">
+        <Text className="font-inter text-foreground/55 text-[10.5px] font-semibold tracking-wide uppercase">
           {Strings.detailNote}
         </Text>
       </View>
-      <Text className="font-inter text-[13px] text-foreground font-medium">{trimmed}</Text>
+      <Text className="font-inter text-foreground text-[13px] font-medium">{trimmed}</Text>
     </View>
   );
 }

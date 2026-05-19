@@ -1,3 +1,4 @@
+import { act, fireEvent, render } from '@testing-library/react-native';
 /**
  * date_range_sheet.test.tsx
  *
@@ -15,7 +16,6 @@
  */
 import React from 'react';
 import { Platform } from 'react-native';
-import { act, fireEvent, render } from '@testing-library/react-native';
 
 import { DateRangeSheet } from '@/screens/transactions/components/date_range_sheet';
 

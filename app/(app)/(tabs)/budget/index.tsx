@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { EmptyState } from '@/components/empty_states';
 import { Colors } from '@/constants/theme';
 

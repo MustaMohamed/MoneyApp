@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+
 import type { Commitment } from './entities/commitment.entity';
 
 export async function getCommitments(db: SQLiteDatabase): Promise<Commitment[]> {

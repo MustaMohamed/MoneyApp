@@ -1,3 +1,4 @@
+import { render, act } from '@testing-library/react-native';
 /**
  * tabs_layout_fab_overlay.test.tsx
  *
@@ -14,7 +15,6 @@
  * sheet footers — the bug PR #79 originally fixed. These tests fail.
  */
 import React from 'react';
-import { render, act } from '@testing-library/react-native';
 
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 

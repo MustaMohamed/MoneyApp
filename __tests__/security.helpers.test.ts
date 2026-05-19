@@ -1,5 +1,5 @@
-import { canProceed } from '@/screens/onboarding/security/security.helpers';
 import { SecurityChoice } from '@/constants/enums';
+import { canProceed } from '@/screens/onboarding/security/security.helpers';
 
 describe('canProceed', () => {
   it('returns false when no choice has been made', () => {

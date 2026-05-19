@@ -1,6 +1,7 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 import { Text } from 'react-native';
+
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 
 describe('Screen', () => {

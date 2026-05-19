@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { useOnboardingStore } from '@/store/onboarding.store';
 import { Currency, OnboardingStep } from '@/constants/enums';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 export function useWelcome() {
   const {

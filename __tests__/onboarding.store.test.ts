@@ -3,13 +3,13 @@
 
 import * as SecureStore from 'expo-secure-store';
 
+import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
+import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 import {
   createOnboardingStore,
   loadOnboardingState,
   useOnboardingStore,
 } from '@/store/onboarding.store';
-import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
-import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
 
 const secure = SecureStore as unknown as {
   setItemAsync: jest.Mock;

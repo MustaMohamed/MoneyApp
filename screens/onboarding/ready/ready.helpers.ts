@@ -1,5 +1,5 @@
-import { Strings } from '@/constants/strings';
 import { SecurityChoice } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/store/account.store';
 
 export function computeTotalBalance(accounts: Account[]): number {

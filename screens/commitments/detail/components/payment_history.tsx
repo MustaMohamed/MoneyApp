@@ -6,6 +6,7 @@ import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { msFont } from '@/utils/responsive';
+
 import { historyEntering } from '../detail.anim';
 import { PaymentRow } from './payment_row';
 

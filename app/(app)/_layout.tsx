@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-
-import { Colors } from '@/constants/theme';
+import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Colors } from '@/constants/theme';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';

@@ -1,7 +1,8 @@
 {
   "name": "moneyapp",
-  "main": "expo-router/entry",
   "version": "1.0.0",
+  "private": true,
+  "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
@@ -88,7 +89,6 @@
     "react-test-renderer": "^19.2.0",
     "typescript": "~5.9.2"
   },
-  "private": true,
   "lint-staged": {
     "*.{ts,tsx,js,cjs,mjs}": [
       "oxlint --fix",

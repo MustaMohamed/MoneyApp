@@ -13,10 +13,10 @@ interface SectionHeaderProps {
 export function SectionHeader({ title, count }: SectionHeaderProps) {
   return (
     <View
-      className="flex-row items-center justify-between mx-4 mt-4 mb-2"
+      className="mx-4 mt-4 mb-2 flex-row items-center justify-between"
       style={{ flexDirection: 'row' }}
     >
-      <Text variant="hint" className="text-muted uppercase tracking-wide text-xs font-semibold">
+      <Text variant="hint" className="text-muted text-xs font-semibold tracking-wide uppercase">
         {title}
       </Text>
       {count !== undefined && count > 0 && (

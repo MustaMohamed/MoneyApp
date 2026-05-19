@@ -1,5 +1,5 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { NetWorthBreakdownSheet } from '@/screens/dashboard/components/net_worth_breakdown_sheet';

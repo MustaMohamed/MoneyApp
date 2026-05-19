@@ -14,13 +14,13 @@
  * StyleSheet.flatten is used to resolve registered style IDs to plain objects.
  */
 
+import { render } from '@testing-library/react-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { render } from '@testing-library/react-native';
 
+import { CategoryType } from '@/constants/enums';
 import { CategoryRow } from '@/screens/settings/categories/components/category_row';
 import type { Category } from '@/store/category.store';
-import { CategoryType } from '@/constants/enums';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 

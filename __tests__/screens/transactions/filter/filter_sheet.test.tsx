@@ -1,14 +1,13 @@
-import React from 'react';
 import { fireEvent, render, act } from '@testing-library/react-native';
+import React from 'react';
 
 import { Currency } from '@/constants/enums';
-import { useAccountStore } from '@/store/account.store';
-import { useCategoryStore } from '@/store/category.store';
-import { useTransactionsScreenStore } from '@/screens/transactions/transactions.store';
+import { FilterSheet } from '@/screens/transactions/filter';
 import { useFilterState } from '@/screens/transactions/filter/filter.state';
 import { useFilterStore } from '@/screens/transactions/filter/filter.store';
-
-import { FilterSheet } from '@/screens/transactions/filter';
+import { useTransactionsScreenStore } from '@/screens/transactions/transactions.store';
+import { useAccountStore } from '@/store/account.store';
+import { useCategoryStore } from '@/store/category.store';
 
 jest.mock('@/components/ui/sheet', () => {
   const React = jest.requireActual('react');

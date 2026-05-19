@@ -1,6 +1,6 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -18,7 +18,7 @@ export function AddCard({ width, onPress }: AddCardProps) {
   return (
     <Pressable
       onPress={onPress}
-      className="bg-surface rounded-2xl border border-border overflow-hidden"
+      className="bg-surface border-border overflow-hidden rounded-2xl border"
       style={{ width, marginLeft: ms(4), alignSelf: 'stretch' }}
       accessibilityRole="button"
       accessibilityLabel={Strings.emptyAccountsCta}

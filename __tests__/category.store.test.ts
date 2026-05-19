@@ -1,7 +1,7 @@
 import { CategoryType } from '@/constants/enums';
-import { createCategoryStore } from '@/store/category.store';
-import type { ICategoryRepository } from '@/repositories/category.repository';
 import type { Category } from '@/database/entities/category.entity';
+import type { ICategoryRepository } from '@/repositories/category.repository';
+import { createCategoryStore } from '@/store/category.store';
 
 const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'cat-1',

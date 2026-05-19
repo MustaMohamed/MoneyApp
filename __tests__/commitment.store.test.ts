@@ -5,10 +5,10 @@ import {
   DurationType,
   Currency,
 } from '@/constants/enums';
-import { createCommitmentStore } from '@/store/commitment.store';
-import type { ICommitmentRepository } from '@/repositories/commitment.repository';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import type { ICommitmentRepository } from '@/repositories/commitment.repository';
+import { createCommitmentStore } from '@/store/commitment.store';
 
 // ---------------------------------------------------------------------------
 // Mock computeDueDates so we can control its output
