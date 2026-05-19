@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { Pressable, View } from 'react-native';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
@@ -16,11 +16,17 @@ interface Props {
   onClose: () => void;
 }
 
-// 4-column grid (was 3) keeps each cell tighter on phone widths so more
-// categories are visible at once. With ~16-20 cats per type, 4 columns means
-// 4-5 rows fit on screen before scroll is needed — and when it IS needed,
-// BottomSheetFlatList's gesture handling is reliable.
+// 4-column grid keeps cells tight enough that most phones fit 4-5 rows
+// before scroll is needed.
 const NUM_COLUMNS = 4;
+const GAP = 10;
+const PADDING = 12;
+
+function chunk<T>(arr: T[], n: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+}
 
 export function CategoryPickerSheet({
   visible,
@@ -30,58 +36,81 @@ export function CategoryPickerSheet({
   onSelect,
   onClose,
 }: Props): React.ReactElement {
+  // Fixed cell width derived from the actual screen width keeps cells the
+  // SAME SIZE across every row. The previous `style={{ flex: 1 }}` approach
+  // worked for full rows but stretched the last partial row's items to fill
+  // the available width (22 expense cats → last row of 2 = 2× larger cells).
+  // Computing the width once here makes every cell identical and lets the
+  // last partial row centre via `justifyContent`.
+  const { width: screenWidth } = useWindowDimensions();
+  const cellWidth = (screenWidth - PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
+
+  const rows = chunk(categories, NUM_COLUMNS);
+
   return (
     <Sheet visible={visible} onClose={onClose} title={title} size="lg">
       <Sheet.Body>
-        <BottomSheetFlatList
-          data={categories}
-          keyExtractor={(c) => c.id}
-          numColumns={NUM_COLUMNS}
-          // paddingBottom: 32 keeps the last row clear of the sheet's bottom
-          // edge so it never looks cropped. gap:10 between rows matches the
-          // columnWrapperStyle gap for a uniform grid.
-          contentContainerStyle={{ padding: 12, paddingBottom: 32, gap: 10 }}
-          columnWrapperStyle={{ gap: 10 }}
+        <BottomSheetScrollView
+          contentContainerStyle={{ padding: PADDING, paddingBottom: 32, gap: GAP }}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item: cat }) => {
-            const isSelected = cat.id === selectedId;
-            // Icon colour: each category has its own colour (e.g. food =
-            // warm orange, transport = blue). Selected wins with the gold
-            // accent so the picker still has a clear "this one" signal.
-            const iconColor = isSelected ? GoldTokens[500] : (cat.color ?? CoreTokens.text1);
+        >
+          {rows.map((row, ri) => {
+            // Partial last row: centre the items instead of left-aligning so
+            // they read as "remaining cats" rather than "incomplete row".
+            const isPartial = row.length < NUM_COLUMNS;
             return (
-              <Pressable
-                key={cat.id}
-                testID={`category-picker-cell-${cat.id}`}
-                onPress={() => onSelect(cat)}
-                style={{ flex: 1, aspectRatio: 1 }}
-                className={`items-center justify-center rounded-md border ${isSelected ? 'border-accent bg-accent/10' : 'border-border bg-default'}`}
+              <View
+                key={ri}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: isPartial ? 'center' : 'flex-start',
+                  gap: GAP,
+                }}
               >
-                <MaterialCommunityIcons
-                  name={(cat.icon as any) ?? 'tag'}
-                  // 22px (was 26) — fits the denser 4-col cell without
-                  // crowding the label below.
-                  size={22}
-                  color={iconColor}
-                />
-                <Text
-                  className={`font-inter text-[10px] mt-1 ${isSelected ? 'text-accent' : 'text-foreground'}`}
-                  numberOfLines={1}
-                >
-                  {cat.name}
-                </Text>
-                {isSelected ? (
-                  <View
-                    testID={`category-picker-cell-${cat.id}-selected`}
-                    className="absolute top-1 right-1"
-                  >
-                    <MaterialCommunityIcons name="check-circle" size={12} color={GoldTokens[500]} />
-                  </View>
-                ) : null}
-              </Pressable>
+                {row.map((cat) => {
+                  const isSelected = cat.id === selectedId;
+                  // Icon colour: each category has its own colour (e.g. food =
+                  // warm orange, transport = blue). Selected wins with the gold
+                  // accent so the picker still has a clear "this one" signal.
+                  const iconColor = isSelected ? GoldTokens[500] : (cat.color ?? CoreTokens.text1);
+                  return (
+                    <Pressable
+                      key={cat.id}
+                      testID={`category-picker-cell-${cat.id}`}
+                      onPress={() => onSelect(cat)}
+                      style={{ width: cellWidth, aspectRatio: 1 }}
+                      className={`items-center justify-center rounded-md border ${isSelected ? 'border-accent bg-accent/10' : 'border-border bg-default'}`}
+                    >
+                      <MaterialCommunityIcons
+                        name={(cat.icon as any) ?? 'tag'}
+                        size={22}
+                        color={iconColor}
+                      />
+                      <Text
+                        className={`font-inter text-[10px] mt-1 ${isSelected ? 'text-accent' : 'text-foreground'}`}
+                        numberOfLines={1}
+                      >
+                        {cat.name}
+                      </Text>
+                      {isSelected ? (
+                        <View
+                          testID={`category-picker-cell-${cat.id}-selected`}
+                          className="absolute top-1 right-1"
+                        >
+                          <MaterialCommunityIcons
+                            name="check-circle"
+                            size={12}
+                            color={GoldTokens[500]}
+                          />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
             );
-          }}
-        />
+          })}
+        </BottomSheetScrollView>
       </Sheet.Body>
     </Sheet>
   );
