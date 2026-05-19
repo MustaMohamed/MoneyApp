@@ -13,6 +13,7 @@ jest.mock('@gorhom/bottom-sheet', () => {
 });
 
 const baseProps = {
+  visible: true,
   locked: false,
   type: TransactionType.Expense,
   onSelectType: () => {},

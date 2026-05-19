@@ -13,7 +13,7 @@
  * lifts content above the keyboard.
  */
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
@@ -38,6 +38,16 @@ interface Props {
   onChange: (v: string) => void;
   type: TransactionType;
   currency: Currency;
+  /**
+   * When the parent sheet's visible prop transitions false → true, AmountHero
+   * focuses its TextInput so the system decimal-pad keyboard opens
+   * automatically. The user requested this from §7 QA: opening the sheet and
+   * having to tap the amount before typing was an extra step that the legacy
+   * numpad implicitly skipped (it was always "open"). A short delay lets the
+   * sheet's snap animation settle before keyboard animation begins so the
+   * two don't visually fight.
+   */
+  visible?: boolean;
 }
 
 /**
@@ -59,7 +69,35 @@ function sanitize(text: string): string {
   return decimals.length === 0 && cleaned.endsWith('.') ? `${integer}.` : `${integer}.${decimals}`;
 }
 
-export function AmountHero({ amountStr, onChange, type, currency }: Props): React.ReactElement {
+/**
+ * Minimal ref shape we need at runtime: just `.focus()`. BottomSheetTextInput
+ * forwards refs to react-native-gesture-handler's TextInput (not RN's), and
+ * the two TextInput types diverge at the type level even though both expose
+ * `focus()`. Typing the ref as the surface we actually use sidesteps the
+ * cross-package type clash without resorting to `any`.
+ */
+type FocusableRef = { focus: () => void } | null;
+
+export function AmountHero({
+  amountStr,
+  onChange,
+  type,
+  currency,
+  visible,
+}: Props): React.ReactElement {
+  const inputRef = useRef<FocusableRef>(null);
+
+  useEffect(() => {
+    if (visible) {
+      // 250ms ≈ the BottomSheet snap animation duration. Focusing earlier
+      // causes the keyboard to begin animating up while the sheet is still
+      // mid-snap, producing a visible content jump as the snap target shifts.
+      const timer = setTimeout(() => inputRef.current?.focus(), 250);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [visible]);
+
   return (
     <View
       style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}
@@ -67,6 +105,11 @@ export function AmountHero({ amountStr, onChange, type, currency }: Props): Reac
     >
       <Text className="font-inter text-[15px] text-muted">{currency}</Text>
       <BottomSheetTextInput
+        // Cast through unknown to the broad Ref<any>: the upstream component's
+        // ref type comes from react-native-gesture-handler's TextInput while
+        // our FocusableRef only describes the methods we call. Both refer to
+        // the same runtime object — the cast is structural-only.
+        ref={inputRef as unknown as React.Ref<any>}
         testID="amount-hero-value"
         value={amountStr}
         onChangeText={(t) => onChange(sanitize(t))}

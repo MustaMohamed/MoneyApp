@@ -15,6 +15,12 @@ import { ExchangeRateRow } from './components/exchange_rate_row';
 import { TypeTabs } from './components/type_tabs';
 
 interface Props {
+  /**
+   * Forwarded from the parent sheet so AmountHero can auto-focus its
+   * TextInput (and thereby open the system decimal-pad keyboard) every
+   * time the sheet transitions from hidden → visible.
+   */
+  visible: boolean;
   locked: boolean;
   type: TransactionType;
   onSelectType: (t: TransactionType) => void;
@@ -53,6 +59,7 @@ interface Props {
 
 export function TransactionFormBody(props: Props): React.ReactElement {
   const {
+    visible,
     locked,
     type,
     onSelectType,
@@ -89,7 +96,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     <View style={{ flex: 1 }}>
       <TypeTabs active={type} onSelect={onSelectType} disabled={locked} />
 
-      <AmountHero amountStr={amountStr} onChange={setAmountStr} type={type} currency={currency} />
+      <AmountHero
+        visible={visible}
+        amountStr={amountStr}
+        onChange={setAmountStr}
+        type={type}
+        currency={currency}
+      />
       {amountError ? (
         <Text className="font-inter text-[11px] text-danger text-center mt-1">{amountError}</Text>
       ) : null}

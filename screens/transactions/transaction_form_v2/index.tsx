@@ -60,6 +60,7 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
         <Sheet.Body>
           {hook.state.hasAccounts ? (
             <TransactionFormBody
+              visible={visible}
               locked={false}
               type={hook.state.type}
               onSelectType={hook.setType}
@@ -172,6 +173,7 @@ function EditSheetInner({
       >
         <Sheet.Body>
           <TransactionFormBody
+            visible={visible}
             locked={true}
             type={hook.state.type}
             onSelectType={() => {}}

@@ -243,6 +243,12 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.dark.border,
     paddingTop: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.lg,
+    // 12px (sm) gives the CTA enough breathing room from the sheet's bottom
+    // edge without the "big empty space" reported during §7 QA. The prior
+    // 20px (lg) compounded with consumer wrappers (filter, date-range,
+    // reassign, add-edit) that all add their own pb-6 — visually loose. With
+    // SaveCta's outer wrapper now removed, this padding is the ONLY thing
+    // separating the button from the sheet edge.
+    paddingBottom: Spacing.sm,
   },
 });
