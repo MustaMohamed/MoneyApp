@@ -1,8 +1,21 @@
-import { BottomSheet } from 'heroui-native';
-import { BottomSheetFooter } from '@gorhom/bottom-sheet';
+/**
+ * §7 Add / Edit Transaction sheets.
+ *
+ * Spec originally targeted HeroUI Native's `BottomSheet` primitive. On-device
+ * smoke test surfaced a "sheet won't open" symptom that we couldn't reproduce
+ * in a controlled environment without device logs. Switched to the project's
+ * `Sheet` wrapper at `components/ui/sheet.tsx` — the same wrapper §3-§6 sheets
+ * use successfully. The HeroUI primitive remains available in node_modules
+ * (`heroui-native`) for a future bundle that revisits portal setup.
+ *
+ * The Sheet wrapper provides: title + close button + sticky footer slot +
+ * declarative `visible` prop. No refs, no ActionSheet ref-based imperative
+ * `.show()` calls (V1's source of jank).
+ */
 import { router } from 'expo-router';
 import { useCallback } from 'react';
 
+import { Sheet } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
@@ -29,66 +42,57 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
 
   return (
     <>
-      <BottomSheet isOpen={visible} onOpenChange={(open) => !open && onClose()}>
-        <BottomSheet.Portal>
-          <BottomSheet.Overlay />
-          <BottomSheet.Content
-            snapPoints={['92%']}
-            enableOverDrag={false}
-            enableDynamicSizing={false}
-            contentContainerClassName="h-full"
-            footerComponent={(fp: any) =>
-              hook.state.hasAccounts ? (
-                <BottomSheetFooter {...fp} bottomInset={0}>
-                  <SaveCta
-                    saving={hook.state.saving}
-                    onPress={hook.handleSave}
-                    label={Strings.addTxSaveCta}
-                  />
-                </BottomSheetFooter>
-              ) : (
-                <></>
-              )
-            }
-          >
-            <BottomSheet.Close />
-            <BottomSheet.Title>{Strings.addTxTitle}</BottomSheet.Title>
-            {hook.state.hasAccounts ? (
-              <TransactionFormBody
-                locked={false}
-                type={hook.state.type}
-                onSelectType={hook.setType}
-                amountStr={hook.state.amountStr}
-                handleNumpad={hook.handleNumpad}
-                amountError={hook.state.errors.amount}
-                selectedAccount={hook.state.selectedAccount}
-                onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
-                accountError={hook.state.errors.account}
-                selectedToAccount={hook.state.selectedToAccount}
-                onOpenToPicker={() => hook.setShowToPicker(true)}
-                toAccountError={hook.state.errors.toAccount}
-                selectedCategory={hook.state.selectedCategory}
-                onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-                categoryError={hook.state.errors.category}
-                isUSD={hook.state.isUSD}
-                exchangeRate={hook.state.exchangeRate}
-                setExchangeRate={hook.setExchangeRate}
-                rateOverride={hook.state.rateOverride}
-                toggleRateOverride={hook.toggleRateOverride}
-                rateUpdatedAt={hook.state.rateUpdatedAt}
-                rateError={hook.state.errors.rate}
-                date={hook.state.date}
-                setDate={hook.setDate}
-                note={hook.state.note}
-                setNote={hook.setNote}
-                currency={hook.state.selectedAccount?.currency ?? ('EGP' as any)}
-              />
-            ) : (
-              <NoAccountsEmpty onAddAccount={handleAddAccount} />
-            )}
-          </BottomSheet.Content>
-        </BottomSheet.Portal>
-      </BottomSheet>
+      <Sheet
+        visible={visible}
+        onClose={onClose}
+        title={Strings.addTxTitle}
+        size="lg"
+        footer={
+          hook.state.hasAccounts ? (
+            <SaveCta
+              saving={hook.state.saving}
+              onPress={hook.handleSave}
+              label={Strings.addTxSaveCta}
+            />
+          ) : undefined
+        }
+      >
+        <Sheet.Body>
+          {hook.state.hasAccounts ? (
+            <TransactionFormBody
+              locked={false}
+              type={hook.state.type}
+              onSelectType={hook.setType}
+              amountStr={hook.state.amountStr}
+              handleNumpad={hook.handleNumpad}
+              amountError={hook.state.errors.amount}
+              selectedAccount={hook.state.selectedAccount}
+              onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
+              accountError={hook.state.errors.account}
+              selectedToAccount={hook.state.selectedToAccount}
+              onOpenToPicker={() => hook.setShowToPicker(true)}
+              toAccountError={hook.state.errors.toAccount}
+              selectedCategory={hook.state.selectedCategory}
+              onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
+              categoryError={hook.state.errors.category}
+              isUSD={hook.state.isUSD}
+              exchangeRate={hook.state.exchangeRate}
+              setExchangeRate={hook.setExchangeRate}
+              rateOverride={hook.state.rateOverride}
+              toggleRateOverride={hook.toggleRateOverride}
+              rateUpdatedAt={hook.state.rateUpdatedAt}
+              rateError={hook.state.errors.rate}
+              date={hook.state.date}
+              setDate={hook.setDate}
+              note={hook.state.note}
+              setNote={hook.setNote}
+              currency={hook.state.selectedAccount?.currency ?? ('EGP' as any)}
+            />
+          ) : (
+            <NoAccountsEmpty onAddAccount={handleAddAccount} />
+          )}
+        </Sheet.Body>
+      </Sheet>
 
       <AccountPickerSheet
         visible={hook.state.showAccountPicker}
@@ -153,58 +157,51 @@ function EditSheetInner({
 
   return (
     <>
-      <BottomSheet isOpen={visible} onOpenChange={(open) => !open && onClose()}>
-        <BottomSheet.Portal>
-          <BottomSheet.Overlay />
-          <BottomSheet.Content
-            snapPoints={['92%']}
-            enableOverDrag={false}
-            enableDynamicSizing={false}
-            contentContainerClassName="h-full"
-            footerComponent={(fp: any) => (
-              <BottomSheetFooter {...fp} bottomInset={0}>
-                <SaveCta
-                  saving={hook.state.saving}
-                  onPress={hook.handleSave}
-                  label={Strings.editTxSaveCta}
-                />
-              </BottomSheetFooter>
-            )}
-          >
-            <BottomSheet.Close />
-            <BottomSheet.Title>{Strings.editTxTitle}</BottomSheet.Title>
-            <TransactionFormBody
-              locked={true}
-              type={hook.state.type}
-              onSelectType={() => {}}
-              amountStr={hook.state.amountStr}
-              handleNumpad={hook.handleNumpad}
-              amountError={hook.state.errors.amount}
-              selectedAccount={hook.state.selectedAccount}
-              onOpenAccountPicker={() => {}}
-              accountError={undefined}
-              selectedToAccount={hook.state.selectedToAccount}
-              onOpenToPicker={() => {}}
-              toAccountError={undefined}
-              selectedCategory={hook.state.selectedCategory}
-              onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-              categoryError={hook.state.errors.category}
-              isUSD={hook.state.isUSD}
-              exchangeRate={hook.state.exchangeRate}
-              setExchangeRate={hook.setExchangeRate}
-              rateOverride={hook.state.rateOverride}
-              toggleRateOverride={hook.toggleRateOverride}
-              rateUpdatedAt={hook.state.rateUpdatedAt}
-              rateError={hook.state.errors.rate}
-              date={hook.state.date}
-              setDate={hook.setDate}
-              note={hook.state.note}
-              setNote={hook.setNote}
-              currency={hook.state.selectedAccount?.currency ?? ('EGP' as any)}
-            />
-          </BottomSheet.Content>
-        </BottomSheet.Portal>
-      </BottomSheet>
+      <Sheet
+        visible={visible}
+        onClose={onClose}
+        title={Strings.editTxTitle}
+        size="lg"
+        footer={
+          <SaveCta
+            saving={hook.state.saving}
+            onPress={hook.handleSave}
+            label={Strings.editTxSaveCta}
+          />
+        }
+      >
+        <Sheet.Body>
+          <TransactionFormBody
+            locked={true}
+            type={hook.state.type}
+            onSelectType={() => {}}
+            amountStr={hook.state.amountStr}
+            handleNumpad={hook.handleNumpad}
+            amountError={hook.state.errors.amount}
+            selectedAccount={hook.state.selectedAccount}
+            onOpenAccountPicker={() => {}}
+            accountError={undefined}
+            selectedToAccount={hook.state.selectedToAccount}
+            onOpenToPicker={() => {}}
+            toAccountError={undefined}
+            selectedCategory={hook.state.selectedCategory}
+            onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
+            categoryError={hook.state.errors.category}
+            isUSD={hook.state.isUSD}
+            exchangeRate={hook.state.exchangeRate}
+            setExchangeRate={hook.setExchangeRate}
+            rateOverride={hook.state.rateOverride}
+            toggleRateOverride={hook.toggleRateOverride}
+            rateUpdatedAt={hook.state.rateUpdatedAt}
+            rateError={hook.state.errors.rate}
+            date={hook.state.date}
+            setDate={hook.setDate}
+            note={hook.state.note}
+            setNote={hook.setNote}
+            currency={hook.state.selectedAccount?.currency ?? ('EGP' as any)}
+          />
+        </Sheet.Body>
+      </Sheet>
 
       <CategoryPickerSheet
         visible={hook.state.showCategoryPicker}

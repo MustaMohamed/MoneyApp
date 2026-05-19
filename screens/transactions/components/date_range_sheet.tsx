@@ -14,6 +14,10 @@ interface Props {
   initialTo?: string;
   onClose: () => void;
   onConfirm: (from: string, to: string) => void;
+  /** Optional — when provided, a "Reset" link renders top-right. Parent decides
+   *  what reset means (typically: clear custom range, switch back to default
+   *  period, close sheet). */
+  onReset?: () => void;
 }
 
 export function DateRangeSheet({
@@ -22,6 +26,7 @@ export function DateRangeSheet({
   initialTo,
   onClose,
   onConfirm,
+  onReset,
 }: Props): React.ReactElement {
   const [from, setFrom] = useState<Date>(() => (initialFrom ? new Date(initialFrom) : new Date()));
   const [to, setTo] = useState<Date>(() => (initialTo ? new Date(initialTo) : new Date()));
@@ -42,7 +47,7 @@ export function DateRangeSheet({
       visible={visible}
       onClose={onClose}
       title={Strings.dateRangePickerTitle}
-      size="md"
+      snapPoints={['55%']}
       footer={
         <View className="px-4 pt-3 pb-6 flex-row gap-2">
           <View className="flex-1">
@@ -59,6 +64,27 @@ export function DateRangeSheet({
       }
     >
       <Sheet.Body>
+        {onReset ? (
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'flex-end',
+              paddingHorizontal: 16,
+              paddingBottom: 4,
+            }}
+          >
+            <Pressable
+              testID="date-range-reset"
+              onPress={onReset}
+              accessibilityRole="button"
+              accessibilityLabel="Reset date range"
+            >
+              <Text className="font-inter font-semibold text-[12px] text-accent">
+                {Strings.filterReset}
+              </Text>
+            </Pressable>
+          </View>
+        ) : null}
         {/*
           Picker mounting strategy is platform-split:
           - iOS uses display="inline", which renders the calendar in place and

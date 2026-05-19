@@ -30,7 +30,7 @@ export function FilterSheet(): React.ReactElement {
     <Sheet
       visible={f.state.visible}
       onClose={f.close}
-      size="lg"
+      snapPoints={['45%', '92%']}
       title={Strings.filterTitle}
       footer={
         <View className="px-4 pt-3 pb-6">

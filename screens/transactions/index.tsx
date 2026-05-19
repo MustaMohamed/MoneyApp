@@ -160,6 +160,11 @@ export default function TransactionsScreen(): React.ReactElement {
           t.setPeriod({ type: 'custom', from, to });
           setDateRangeSheetVisible(false);
         }}
+        onReset={() => {
+          t.setCustomRange(null);
+          t.setPeriod({ type: 'all' });
+          setDateRangeSheetVisible(false);
+        }}
       />
     </Screen>
   );

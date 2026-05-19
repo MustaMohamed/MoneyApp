@@ -70,7 +70,15 @@ export interface SheetProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
-  size: 'sm' | 'md' | 'lg';
+  /**
+   * Either pick a preset size (sm/md/lg) OR pass explicit `snapPoints` for
+   * sheets that need a different stop. Examples of `snapPoints`:
+   *   ['40%']            — short, fixed (date range picker, simple confirm)
+   *   ['45%', '92%']     — opens compact, user can drag to full (filter accordion)
+   * If `snapPoints` is set it overrides `size`.
+   */
+  size?: 'sm' | 'md' | 'lg';
+  snapPoints?: string[];
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -96,7 +104,8 @@ function SheetBody({ children }: { children: React.ReactNode }) {
   return <View style={styles.body}>{children}</View>;
 }
 
-export function Sheet({ visible, onClose, title, size, footer, children }: SheetProps) {
+export function Sheet({ visible, onClose, title, size, snapPoints, footer, children }: SheetProps) {
+  const resolvedSnapPoints = snapPoints ?? SNAP_POINTS[size ?? 'lg'];
   const sheetRef = useRef<BottomSheetMethods>(null);
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
@@ -152,7 +161,7 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
     <BottomSheetLib
       ref={sheetRef}
       index={-1}
-      snapPoints={SNAP_POINTS[size]}
+      snapPoints={resolvedSnapPoints}
       // v5 defaults this to true, which makes the sheet size to its content
       // and SILENTLY IGNORE snapPoints when content is shorter. That breaks
       // the sm/md/lg contract — collapsed accordions or short forms snap to
