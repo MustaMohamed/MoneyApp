@@ -200,6 +200,10 @@ describe('TransactionsScreen', () => {
     expect(getByText('Income')).toBeTruthy();
     expect(getByText('Expense')).toBeTruthy();
     expect(getByText('Transfer')).toBeTruthy();
+    // CC Payment was historically missing from the filter chip set even
+    // though the underlying TransactionFilter type already supports it.
+    // Lock the chip in place so a regression is caught immediately.
+    expect(getByText('CC Payment')).toBeTruthy();
   });
 
   it('does NOT render the TotalsStrip vs-caption when period is "all"', () => {
