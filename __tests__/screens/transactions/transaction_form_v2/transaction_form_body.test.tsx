@@ -3,12 +3,21 @@ import { render } from '@testing-library/react-native';
 import { Currency, TransactionType } from '@/constants/enums';
 import { TransactionFormBody } from '@/screens/transactions/transaction_form_v2/transaction_form_body';
 
+// @gorhom/bottom-sheet pulls in reanimated + gesture-handler at import time;
+// substitute lightweight RN equivalents so we can render the body in isolation.
+// Behavior of the inputs/scroll itself isn't asserted here — those are covered
+// by AmountHero's own test.
+jest.mock('@gorhom/bottom-sheet', () => {
+  const { TextInput, ScrollView } = jest.requireActual('react-native');
+  return { BottomSheetTextInput: TextInput, BottomSheetScrollView: ScrollView };
+});
+
 const baseProps = {
   locked: false,
   type: TransactionType.Expense,
   onSelectType: () => {},
   amountStr: '0',
-  handleNumpad: () => {},
+  setAmountStr: () => {},
   amountError: undefined,
   selectedAccount: null,
   onOpenAccountPicker: () => {},
@@ -51,9 +60,12 @@ describe('TransactionFormBody', () => {
     expect(queryByTestId('exchange-rate-row')).toBeTruthy();
   });
 
-  it('shows the Numpad when keyboard is hidden, hides it when a TextInput is focused', () => {
-    // Default: numpad visible
-    const { getByTestId } = render(<TransactionFormBody {...baseProps} />);
-    expect(getByTestId('numpad-key-0')).toBeTruthy();
+  it('does not render the legacy Numpad keys (replaced by system decimal-pad keyboard)', () => {
+    const { queryByTestId } = render(<TransactionFormBody {...baseProps} />);
+    // Custom 4×3 numpad is gone — AmountHero now uses BottomSheetTextInput
+    // with keyboardType="decimal-pad" so the system keyboard drives entry.
+    expect(queryByTestId('numpad-key-0')).toBeNull();
+    expect(queryByTestId('numpad-key-decimal')).toBeNull();
+    expect(queryByTestId('numpad-key-backspace')).toBeNull();
   });
 });

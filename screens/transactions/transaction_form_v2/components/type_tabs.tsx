@@ -5,13 +5,6 @@ import { Text } from '@/components/ui/text';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
-const tab = tv({
-  base: 'flex-1 items-center justify-center py-3',
-  variants: {
-    active: { true: '', false: '' },
-  },
-});
-
 const label = tv({
   base: 'font-inter text-[13px]',
   variants: {
@@ -32,7 +25,6 @@ const label = tv({
 });
 
 const indicator = tv({
-  base: 'h-[2px] mt-1 w-full',
   variants: {
     type: {
       expense: 'bg-danger text-danger',
@@ -57,6 +49,12 @@ interface Props {
 }
 
 export function TypeTabs({ active, onSelect, disabled }: Props): React.ReactElement {
+  // The row owns the 1px bottom separator. Each active tab's 2px indicator
+  // absolutely positions at bottom: -1 so its bottom edge meets the row's
+  // bottom edge — the indicator visually sits ON the separator line, masking
+  // it across the active tab's width. This is the standard Material-tabs
+  // pattern; the previous implementation rendered the indicator INSIDE the
+  // tab content flow (with mt-1), producing two parallel horizontal lines.
   return (
     <View style={{ flexDirection: 'row' }} className="border-b border-separator">
       {TABS.map(({ type, label: lbl }) => {
@@ -69,14 +67,17 @@ export function TypeTabs({ active, onSelect, disabled }: Props): React.ReactElem
             accessibilityState={{ selected: isActive, disabled }}
             disabled={disabled}
             onPress={() => onSelect(type)}
-            className={tab({ active: isActive })}
+            style={{ position: 'relative' }}
+            className="flex-1 items-center justify-center py-3"
           >
             <Text className={label({ active: isActive, type })}>{lbl}</Text>
             {isActive ? (
-              <View testID={`type-tab-indicator-${type}`} className={indicator({ type })} />
-            ) : (
-              <View className="h-[2px] mt-1 w-full" />
-            )}
+              <View
+                testID={`type-tab-indicator-${type}`}
+                style={{ position: 'absolute', bottom: -1, left: 0, right: 0, height: 2 }}
+                className={indicator({ type })}
+              />
+            ) : null}
           </Pressable>
         );
       })}

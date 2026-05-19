@@ -146,9 +146,15 @@ export function useAddTransaction(onClose: () => void) {
   const {
     state: storeState,
     setType,
+    setAmountStr,
     handleNumpad,
   } = useAddTransactionStore(
-    useShallow((s) => ({ state: s.state, setType: s.setType, handleNumpad: s.handleNumpad })),
+    useShallow((s) => ({
+      state: s.state,
+      setType: s.setType,
+      setAmountStr: s.setAmountStr,
+      handleNumpad: s.handleNumpad,
+    })),
   );
   const {
     state: uiState,
@@ -394,6 +400,7 @@ export function useAddTransaction(onClose: () => void) {
       rateUpdatedAt: currencyState.rate_updated_at,
     },
     setType,
+    setAmountStr,
     handleNumpad,
     setDate: (v: string) => form.setValue('date', v),
     setNote: (v: string) => form.setValue('note', v),

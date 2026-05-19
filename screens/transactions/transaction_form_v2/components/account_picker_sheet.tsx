@@ -29,7 +29,7 @@ export function AccountPickerSheet({
   const data = excludeId ? accounts.filter((a) => a.id !== excludeId) : accounts;
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={title} size="md">
+    <Sheet visible={visible} onClose={onClose} title={title} snapPoints={['50%']}>
       <Sheet.Body>
         <BottomSheetFlatList
           data={data}

@@ -64,7 +64,7 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
               type={hook.state.type}
               onSelectType={hook.setType}
               amountStr={hook.state.amountStr}
-              handleNumpad={hook.handleNumpad}
+              setAmountStr={hook.setAmountStr}
               amountError={hook.state.errors.amount}
               selectedAccount={hook.state.selectedAccount}
               onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
@@ -176,7 +176,7 @@ function EditSheetInner({
             type={hook.state.type}
             onSelectType={() => {}}
             amountStr={hook.state.amountStr}
-            handleNumpad={hook.handleNumpad}
+            setAmountStr={hook.setAmountStr}
             amountError={hook.state.errors.amount}
             selectedAccount={hook.state.selectedAccount}
             onOpenAccountPicker={() => {}}

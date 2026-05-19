@@ -12,6 +12,12 @@ interface AddTransactionStoreShape {
 interface AddTransactionStore {
   state: AddTransactionStoreShape;
   setType: (type: TransactionType) => void;
+  /**
+   * Direct amount setter for the editable AmountHero TextInput (system
+   * decimal-pad keyboard). Replaces the custom numpad UI; `handleNumpad`
+   * stays for legacy hook tests but is no longer wired to any component.
+   */
+  setAmountStr: (value: string) => void;
   handleNumpad: (action: NumpadAction, value?: string) => void;
   reset: () => void;
 }
@@ -25,6 +31,8 @@ export const useAddTransactionStore = create<AddTransactionStore>((set) => ({
   state: INITIAL_STATE,
 
   setType: (type) => set((s) => ({ state: { ...s.state, type, amountStr: '0' } })),
+
+  setAmountStr: (value) => set((s) => ({ state: { ...s.state, amountStr: value } })),
 
   handleNumpad: (action, value) =>
     set((s) => {

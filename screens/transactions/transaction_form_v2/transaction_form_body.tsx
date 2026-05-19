@@ -1,8 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { useEffect } from 'react';
-import { Keyboard, Pressable, TextInput, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
+import { Pressable, TextInput, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
@@ -14,16 +12,21 @@ import type { Category } from '@/database/entities/category.entity';
 import { AmountHero } from './components/amount_hero';
 import { DateRow } from './components/date_row';
 import { ExchangeRateRow } from './components/exchange_rate_row';
-import { Numpad } from './components/numpad';
 import { TypeTabs } from './components/type_tabs';
-import { useTransactionFormBodyState } from './transaction_form_body.state';
 
 interface Props {
   locked: boolean;
   type: TransactionType;
   onSelectType: (t: TransactionType) => void;
   amountStr: string;
-  handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
+  /**
+   * Editable amount entry replaces the custom 4×3 Numpad. The system
+   * decimal-pad keyboard drives this via AmountHero's BottomSheetTextInput.
+   * Kept the legacy `handleNumpad` prop optional so existing tests that
+   * stubbed it don't have to change shape; passing it is harmless.
+   */
+  setAmountStr: (v: string) => void;
+  handleNumpad?: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
   amountError?: string;
   selectedAccount: Account | null;
   onOpenAccountPicker: () => void;
@@ -54,7 +57,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     type,
     onSelectType,
     amountStr,
-    handleNumpad,
+    setAmountStr,
     amountError,
     selectedAccount,
     onOpenAccountPicker,
@@ -79,28 +82,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     currency,
   } = props;
 
-  const {
-    state: bodyState,
-    setKeyboardVisible,
-    reset,
-  } = useTransactionFormBodyState(
-    useShallow((s) => ({
-      state: s.state,
-      setKeyboardVisible: s.setKeyboardVisible,
-      reset: s.reset,
-    })),
-  );
-
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setKeyboardVisible(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setKeyboardVisible(false));
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-      reset();
-    };
-  }, []);
-
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const amountNum = parseFloat(amountStr) || 0;
 
@@ -108,14 +89,21 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     <View style={{ flex: 1 }}>
       <TypeTabs active={type} onSelect={onSelectType} disabled={locked} />
 
-      <AmountHero amountStr={amountStr} type={type} currency={currency} />
+      <AmountHero amountStr={amountStr} onChange={setAmountStr} type={type} currency={currency} />
       {amountError ? (
         <Text className="font-inter text-[11px] text-danger text-center mt-1">{amountError}</Text>
       ) : null}
 
       <BottomSheetScrollView
-        contentContainerStyle={{ padding: 16, gap: 8 }}
+        // flex: 1 lets the ScrollView fill the remaining sheet height between
+        // the (TypeTabs + AmountHero) header and the sticky footer; the
+        // previous default sized to content, leaving the body unable to scroll
+        // when the system keyboard pushed content up. paddingBottom keeps the
+        // last row visible above the footer.
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 8 }}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         {/* From account */}
         <Pressable
@@ -246,8 +234,6 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           />
         </View>
       </BottomSheetScrollView>
-
-      {!bodyState.keyboardVisible ? <Numpad onPress={handleNumpad} /> : null}
     </View>
   );
 }

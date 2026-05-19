@@ -44,8 +44,16 @@ export function useEditTransaction(
     useShallow((s) => ({ updateTransaction: s.updateTransaction })),
   );
 
-  const { state: storeState, handleNumpad } = useEditTransactionStore(
-    useShallow((s) => ({ state: s.state, handleNumpad: s.handleNumpad })),
+  const {
+    state: storeState,
+    setAmountStr,
+    handleNumpad,
+  } = useEditTransactionStore(
+    useShallow((s) => ({
+      state: s.state,
+      setAmountStr: s.setAmountStr,
+      handleNumpad: s.handleNumpad,
+    })),
   );
   const {
     state: uiState,
@@ -198,6 +206,7 @@ export function useEditTransaction(
       showCategoryPicker: uiState.showCategoryPicker,
       rateUpdatedAt: currencyState.rate_updated_at,
     },
+    setAmountStr,
     handleNumpad,
     setDate: (v: string) => form.setValue('date', v),
     setNote: (v: string) => form.setValue('note', v),
