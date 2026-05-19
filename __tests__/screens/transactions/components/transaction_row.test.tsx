@@ -8,7 +8,6 @@ import type { Transaction } from '@/database/entities/transaction.entity';
 import { TransactionRow } from '@/screens/transactions/components/transaction_row';
 
 jest.mock('react-native-reanimated', () => {
-  const React = jest.requireActual('react');
   const { View } = jest.requireActual('react-native');
   return {
     __esModule: true,

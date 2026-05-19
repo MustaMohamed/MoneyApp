@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { formatMonthYear } from '@/utils/format_date';

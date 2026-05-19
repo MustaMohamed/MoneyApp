@@ -121,14 +121,16 @@ export function useEditTransaction(
   useEffect(() => {
     const parsed = parseFloat(storeState.amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-  }, [storeState.amountStr]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeState.amountStr]); // form is RHF's stable object; its identity never changes
 
   useEffect(() => {
     if (!uiState.visible) {
       form.reset(buildDefaultsFromTx(initialTx, currencyState.rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
-  }, [uiState.visible]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiState.visible]); // reset-on-close: fires only on visibility toggle; initialTx/form/rate are stable within a session
 
   async function onValid(data: EditTransactionFormValues) {
     setSaving(true);
@@ -168,7 +170,11 @@ export function useEditTransaction(
       };
       await updateTransaction(initialTx.id, update);
       await loadAccounts();
-      onSaved ? onSaved() : onClose();
+      if (onSaved) {
+        onSaved();
+      } else {
+        onClose();
+      }
     } catch {
       // error logged
     } finally {

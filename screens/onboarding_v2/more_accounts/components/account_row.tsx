@@ -29,7 +29,7 @@ const TYPE_LABELS: Record<AccountType, string> = {
 
 export function AccountRowV2({
   account,
-  index,
+  index: _index,
   entering,
 }: {
   account: Account;

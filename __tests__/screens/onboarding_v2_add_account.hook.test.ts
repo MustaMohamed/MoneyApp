@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { OnboardingStep, AccountType } from '@/constants/enums';
+import { AccountType } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAddAccountV2 } from '@/screens/onboarding_v2/add_account/add_account.hook';
 import { useAccountStore } from '@/store/account.store';

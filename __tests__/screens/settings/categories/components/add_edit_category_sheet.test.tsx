@@ -46,7 +46,6 @@ import { render, fireEvent } from '@testing-library/react-native';
 // ---------------------------------------------------------------------------
 import React from 'react';
 
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';

@@ -27,7 +27,7 @@ jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 jest.mock('@/components/ui/button', () => {
   const { Text, Pressable } = require('react-native');
   return {
-    Button: ({ label, onPress, testID, ...props }: any) => (
+    Button: ({ label, onPress, testID, ..._props }: any) => (
       <Pressable onPress={onPress} testID={testID} accessibilityLabel={label}>
         <Text>{label}</Text>
       </Pressable>

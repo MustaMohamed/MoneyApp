@@ -85,7 +85,7 @@ describe('Sheet snap-point contract', () => {
 
 describe('Sheet component', () => {
   it('renders children when visible is true', () => {
-    const { getByText } = render(
+    render(
       <Sheet visible={true} onClose={jest.fn()} size="sm">
         <Sheet.Body>
           <></>

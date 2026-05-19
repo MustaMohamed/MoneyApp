@@ -52,7 +52,7 @@ const BottomSheet = React.forwardRef<BottomSheetMockRef, BottomSheetProps>(
     {
       index: initialIndex,
       children,
-      onClose,
+      onClose: _onClose,
       backdropComponent: BackdropComponent,
       handleComponent: HandleComponent,
       footerComponent: FooterComponent,

@@ -5,7 +5,7 @@ import { Text } from '@/components/ui/text';
 // PROTECTED_CATEGORY_IDS intentionally not imported here — UI protection gate
 // now uses category.is_default === 1 (see: fix/section-4-lock-all-defaults).
 // The constant remains in constants/enums.ts as a documented historical artifact.
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Radius, Size, Spacing } from '@/constants/theme';
 import type { Category } from '@/store/category.store';
 import { ms } from '@/utils/responsive';
 

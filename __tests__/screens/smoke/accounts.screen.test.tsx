@@ -45,7 +45,7 @@ jest.mock('@/screens/accounts/add_account/add_account.hook', () => ({
       control: {},
       formState: { errors: {}, isSubmitting: false },
       setValue: jest.fn(),
-      handleSubmit: (fn: any) => jest.fn(),
+      handleSubmit: (_fn: any) => jest.fn(),
       watch: jest.fn(),
       reset: jest.fn(),
     },

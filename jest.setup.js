@@ -87,7 +87,7 @@ jest.mock('heroui-native', () => {
   const BottomSheetTitle = ({ children }) =>
     React.createElement(RNText, { testID: 'bottom-sheet-title' }, children);
 
-  function BottomSheet({ isOpen, onOpenChange, children }) {
+  function BottomSheet({ isOpen, onOpenChange: _onOpenChange, children }) {
     if (!isOpen) return null;
     return React.createElement(View, { testID: 'heroui-bottom-sheet' }, children);
   }

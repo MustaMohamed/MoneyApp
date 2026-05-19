@@ -50,7 +50,8 @@ export function useAccountDetail() {
     })),
   );
 
-  useEffect(() => () => reset(), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => reset(), []); // cleanup on unmount only; reset is a stable Zustand action
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {

@@ -2,7 +2,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import BottomSheetLib, {
   BottomSheetBackdrop,
   BottomSheetFooter,
-  BottomSheetView,
   type BottomSheetBackdropProps,
   type BottomSheetFooterProps,
 } from '@gorhom/bottom-sheet';

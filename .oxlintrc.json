@@ -41,6 +41,7 @@
   "ignorePatterns": [
     "node_modules/",
     ".expo/",
+    ".claude/",
     "dist/",
     "android/",
     "ios/",

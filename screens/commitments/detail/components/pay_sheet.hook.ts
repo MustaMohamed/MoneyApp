@@ -148,7 +148,8 @@ export function usePaySheet(
     return () => {
       cancelled = true;
     };
-  }, [paySheetState.visible, commitment?.id, payment?.id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paySheetState.visible, commitment?.id, payment?.id]); // commitment sub-props + form are stable; id deps already capture re-run signal
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;

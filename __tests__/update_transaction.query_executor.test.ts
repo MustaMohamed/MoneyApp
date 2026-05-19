@@ -113,12 +113,12 @@ describe('updateTransaction — custom mock db (unknown type and missing CC acco
     ccRows: unknown[] = [],
   ): Parameters<typeof updateTransaction>[0] {
     const runAsync = jest.fn().mockResolvedValue({ changes: 1, lastInsertRowId: 1 });
-    let getAllCallCount = 0;
+    let _getAllCallCount = 0;
     const getAllAsync = jest.fn().mockImplementation(async (sql: string) => {
       // First call: fetch the existing transaction row
       if (sql.includes('SELECT * FROM transactions')) return [fakeTxRow];
       // Subsequent calls within the transaction: return ccRows for CC account lookup
-      getAllCallCount++;
+      _getAllCallCount++;
       return ccRows;
     });
     const withTransactionAsync = jest.fn().mockImplementation(async (fn: () => Promise<void>) => {
