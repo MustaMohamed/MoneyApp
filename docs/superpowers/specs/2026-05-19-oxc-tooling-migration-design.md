@@ -37,10 +37,11 @@ Outcome: one linter, one formatter, both Rust-based, ~50–100× faster lint and
                 │  │   typescript, jsx-a11y, import      │    │
                 │  ├─────────────────────────────────────┤    │
                 │  │ JS Plugin Alpha bridge              │    │
-                │  │   → loads eslint-config-expo        │    │
-                │  │     (covers RN-specific rules:      │    │
-                │  │      no-raw-text, no-unused-styles, │    │
-                │  │      no-color-literals, etc.)       │    │
+                │  │   → loads eslint-plugin-expo for    │    │
+                │  │     3 Expo-specific rules:          │    │
+                │  │      use-dom-exports                │    │
+                │  │      no-env-var-destructuring       │    │
+                │  │      no-dynamic-env-var             │    │
                 │  ├─────────────────────────────────────┤    │
                 │  │ oxlint-tsgolint backend (Go)        │    │
                 │  │   → strict-type-checked preset      │    │
@@ -59,7 +60,7 @@ Outcome: one linter, one formatter, both Rust-based, ~50–100× faster lint and
 
 ### New config files
 
-- **`.oxlintrc.json`** — flat config; declares plugins (`react`, `react-hooks`, `typescript`, `jsx-a11y`, `import`), enables JS-plugin loading of `eslint-config-expo/flat`, lists the strict type-aware ruleset (enabled in PR2), declares ignores (`dist`, `android`, `ios`, `.expo`, `node_modules`).
+- **`.oxlintrc.json`** — declares native plugins (`react`, `typescript`, `jsx-a11y`, `import`; `react-hooks` is part of `react`), loads `eslint-plugin-expo` via `jsPlugins` to get the 3 Expo-specific rules, enables the strict type-aware ruleset (in PR2), declares `ignorePatterns` (`dist`, `android`, `ios`, `.expo`, `node_modules`, `coverage`). The other rules `eslint-config-expo` provides (core ESLint, React, import, typescript) are already covered by oxlint native plugins.
 - **`.oxfmtrc.json`** — declares formatting settings mirroring `.prettierrc`:
   - `printWidth: 100`
   - `singleQuote: true`
@@ -81,6 +82,7 @@ Outcome: one linter, one formatter, both Rust-based, ~50–100× faster lint and
 **Removed:**
 
 - `eslint`
+- `eslint-config-expo`
 - `eslint-config-prettier`
 - `prettier`
 
@@ -90,9 +92,9 @@ Outcome: one linter, one formatter, both Rust-based, ~50–100× faster lint and
 - `oxfmt` (exact-pin latest beta)
 - `oxlint-tsgolint` (exact-pin latest alpha)
 
-**Kept:**
+**Added (replacing the Expo-bridge dep):**
 
-- `eslint-config-expo` — retained because the JS-plugin bridge `require()`s it. ESLint itself goes; the config file ships as a transitive consumer of oxlint.
+- `eslint-plugin-expo` — promoted to a direct dev dep so the JS-plugin bridge can load it without going through `eslint-config-expo`'s flat-config wrapper.
 
 ### npm scripts (final, post-PR2)
 
@@ -194,7 +196,7 @@ Same six steps, same order — only the binaries behind `lint` and `format:check
 
 | Surface | PR1 verification | PR2 verification |
 | --- | --- | --- |
-| Linter coverage | Run `oxlint`; manually verify it catches a known violation in each of: `react-hooks/exhaustive-deps`, `react-native/no-raw-text` (from expo bridge), `import/no-unresolved`, `typescript/no-unused-vars`. Drop a deliberate violation into a scratch file, confirm flagged, delete. | Add `--type-aware`; same drill for `no-floating-promises`, `no-misused-promises`, `await-thenable`, `no-unsafe-assignment`. |
+| Linter coverage | Run `oxlint`; manually verify it catches a known violation in each of: `react-hooks/exhaustive-deps`, `expo/no-env-var-destructuring` (from JS Plugin Alpha bridge), `import/no-unresolved`, `typescript/no-unused-vars`. Drop a deliberate violation into a scratch file, confirm flagged, delete. | Add `--type-aware`; same drill for `no-floating-promises`, `no-misused-promises`, `await-thenable`, `no-unsafe-assignment`. |
 | Formatter parity | After `oxfmt` runs, spot-check 10 random `.tsx` files for sane output. Verify `// prettier-ignore` comments still suppress formatting. | n/a |
 | Tailwind sort | Confirm `cn(...)` calls sort classes; confirm `style={{ backgroundColor: hex }}` runtime-color escape hatch is untouched. | n/a |
 | Lint-staged | `git commit` a small change; confirm hook runs oxlint + oxfmt, not eslint + prettier. | Confirm hook still runs (no `--type-aware` in pre-commit). |
