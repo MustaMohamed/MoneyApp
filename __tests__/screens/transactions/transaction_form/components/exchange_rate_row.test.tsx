@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { ExchangeRateRow } from '@/screens/transactions/transaction_form_v2/components/exchange_rate_row';
+import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
 
 describe('ExchangeRateRow', () => {
   it('shows the stored rate value when overrideEnabled=false', () => {

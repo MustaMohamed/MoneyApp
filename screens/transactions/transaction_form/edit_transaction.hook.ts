@@ -9,24 +9,15 @@ import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useTransactionStore, type UpdateTransactionInput } from '@/store/transaction.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
-import type { Account } from '@/database/entities/account.entity';
+import { roundMoney } from '@/utils/money';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
+import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_transaction.helpers';
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 
-export type EditTransactionFormValues = {
-  amount: number;
-  categoryId: string;
-  note: string;
-  date: string;
-  time: string;
-  exchangeRate: string;
-};
-
 function createEditSchema(type: TransactionType) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-
   return z.object({
     amount: z
       .number({ error: Strings.addTxErrAmountRequired })
@@ -37,17 +28,6 @@ function createEditSchema(type: TransactionType) {
     time: z.string().min(1),
     exchangeRate: z.string(),
   });
-}
-
-function buildDefaults(tx: Transaction, rate: number): EditTransactionFormValues {
-  return {
-    amount: tx.amount,
-    categoryId: tx.category_id ?? '',
-    note: tx.note ?? '',
-    date: tx.transaction_date,
-    time: tx.transaction_time,
-    exchangeRate: String(tx.exchange_rate ?? rate),
-  };
 }
 
 export function useEditTransaction(
@@ -64,11 +44,19 @@ export function useEditTransaction(
     useShallow((s) => ({ updateTransaction: s.updateTransaction })),
   );
 
-  const { state: editTxStoreState, handleNumpad } = useEditTransactionStore(
-    useShallow((s) => ({ state: s.state, handleNumpad: s.handleNumpad })),
+  const {
+    state: storeState,
+    setAmountStr,
+    handleNumpad,
+  } = useEditTransactionStore(
+    useShallow((s) => ({
+      state: s.state,
+      setAmountStr: s.setAmountStr,
+      handleNumpad: s.handleNumpad,
+    })),
   );
   const {
-    state: editTxState,
+    state: uiState,
     setSaving,
     setShowCategoryPicker,
     setRateOverride,
@@ -83,22 +71,19 @@ export function useEditTransaction(
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-
   const schema = useMemo(() => createEditSchema(type), [type]);
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildDefaults(initialTx, currencyState.rate),
+    defaultValues: buildDefaultsFromTx(initialTx, currencyState.rate),
   });
 
   const categoryId = form.watch('categoryId');
   const note = form.watch('note');
   const date = form.watch('date');
-  const time = form.watch('time');
   const exchangeRate = form.watch('exchangeRate');
 
-  // Locked account (cannot be changed during edit)
   const selectedAccount = useMemo(
     () => accountState.accounts.find((a) => a.id === initialTx.account_id) ?? null,
     [accountState.accounts, initialTx.account_id],
@@ -110,7 +95,6 @@ export function useEditTransaction(
         : null,
     [accountState.accounts, initialTx.to_account_id],
   );
-
   const isUSD = selectedAccount?.currency === Currency.USD;
   const isToUSD = selectedToAccount?.currency === Currency.USD;
   const requiresRate = isUSD || (isTransferOrCC && isToUSD);
@@ -133,19 +117,17 @@ export function useEditTransaction(
     rate: form.formState.errors.exchangeRate?.message,
   };
 
-  // Sync numpad display string → RHF amount field
   useEffect(() => {
-    const parsed = parseFloat(editTxStoreState.amountStr);
+    const parsed = parseFloat(storeState.amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-  }, [editTxStoreState.amountStr]);
+  }, [storeState.amountStr]);
 
-  // When the sheet closes, reset the form and override flag to the original tx values
   useEffect(() => {
-    if (!editTxState.visible) {
-      form.reset(buildDefaults(initialTx, currencyState.rate));
+    if (!uiState.visible) {
+      form.reset(buildDefaultsFromTx(initialTx, currencyState.rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
-  }, [editTxState.visible]);
+  }, [uiState.visible]);
 
   async function onValid(data: EditTransactionFormValues) {
     setSaving(true);
@@ -156,23 +138,23 @@ export function useEditTransaction(
         data.exchangeRate && requiresRate ? parseFloat(data.exchangeRate) : undefined;
 
       const egp_amount =
-        fromCurrency === Currency.USD && parsedRate ? data.amount * parsedRate : data.amount;
+        fromCurrency === Currency.USD && parsedRate
+          ? roundMoney(data.amount * parsedRate)
+          : data.amount;
 
       let to_amount: number | undefined;
       if (isTransferOrCC && toCurrency !== undefined) {
         if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
-          to_amount = data.amount / parsedRate; // EGP → USD
+          to_amount = roundMoney(data.amount / parsedRate);
         } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
-          to_amount = egp_amount; // USD → EGP
+          to_amount = egp_amount;
         } else {
-          to_amount = data.amount; // same-currency
+          to_amount = data.amount;
         }
-        if (type === TransactionType.CCPayment) {
-          to_amount = egp_amount; // CC debt is always EGP-denominated
-        }
+        if (type === TransactionType.CCPayment) to_amount = egp_amount;
       }
 
-      const updateInput: UpdateTransactionInput = {
+      const update: UpdateTransactionInput = {
         amount: data.amount,
         currency: fromCurrency,
         egp_amount,
@@ -181,25 +163,22 @@ export function useEditTransaction(
         category_id: !isTransferOrCC ? data.categoryId : null,
         note: data.note.trim() || null,
         transaction_date: data.date,
-        transaction_time: data.time,
+        transaction_time: initialTx.transaction_time, // preserved — no time UI
       };
-
-      await updateTransaction(initialTx.id, updateInput);
+      await updateTransaction(initialTx.id, update);
       await loadAccounts();
       onSaved ? onSaved() : onClose();
     } catch {
-      // error logged by store
+      // error logged
     } finally {
       setSaving(false);
     }
   }
 
   function toggleRateOverride() {
-    const next = !editTxState.rateOverride;
+    const next = !uiState.rateOverride;
     setRateOverride(next);
-    if (!next) {
-      form.setValue('exchangeRate', String(currencyState.rate));
-    }
+    if (!next) form.setValue('exchangeRate', String(currencyState.rate));
   }
 
   function selectCategory(category: Category) {
@@ -210,27 +189,26 @@ export function useEditTransaction(
   return {
     state: {
       type,
-      amountStr: editTxStoreState.amountStr,
+      amountStr: storeState.amountStr,
       selectedAccount,
       selectedToAccount,
-      categoryId,
       selectedCategory,
-      date,
-      time,
+      categoryId,
       note,
+      date,
       exchangeRate,
-      rateOverride: editTxState.rateOverride,
+      rateOverride: uiState.rateOverride,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
-      saving: editTxState.saving,
+      saving: uiState.saving,
       visibleCategories,
-      showCategoryPicker: editTxState.showCategoryPicker,
+      showCategoryPicker: uiState.showCategoryPicker,
+      rateUpdatedAt: currencyState.rate_updated_at,
     },
-    form,
+    setAmountStr,
     handleNumpad,
     setDate: (v: string) => form.setValue('date', v),
-    setTime: (v: string) => form.setValue('time', v),
     setNote: (v: string) => form.setValue('note', v),
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
     toggleRateOverride,

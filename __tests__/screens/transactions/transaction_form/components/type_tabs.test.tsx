@@ -1,7 +1,7 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { TransactionType } from '@/constants/enums';
-import { TypeTabs } from '@/screens/transactions/transaction_form_v2/components/type_tabs';
+import { TypeTabs } from '@/screens/transactions/transaction_form/components/type_tabs';
 
 describe('TypeTabs', () => {
   it('renders all four type labels', () => {

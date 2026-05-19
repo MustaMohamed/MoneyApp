@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
-import { TransactionFormBody } from '@/screens/transactions/transaction_form_v2/transaction_form_body';
+import { TransactionFormBody } from '@/screens/transactions/transaction_form/transaction_form_body';
 
 // @gorhom/bottom-sheet pulls in reanimated + gesture-handler at import time;
 // substitute lightweight RN equivalents so we can render the body in isolation.

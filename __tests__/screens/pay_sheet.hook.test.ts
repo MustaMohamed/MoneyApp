@@ -7,6 +7,16 @@ import { usePaySheet } from '@/screens/commitments/detail/components/pay_sheet.h
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
+// §7 cleanup: pay_sheet now reads currency state to thread rate_updated_at
+// into the V2 ExchangeRateRow. Without this mock the real currency store
+// runs and trips an infinite re-render in the test renderer.
+jest.mock('@/store/currency.store', () => ({
+  useCurrencyStore: jest.fn((sel: any) =>
+    sel({
+      state: { rate: 55, isManualOverride: false, rate_updated_at: null },
+    }),
+  ),
+}));
 jest.mock('@/repositories/commitment.repository', () => ({
   commitmentRepository: {
     getLastPaidPayment: jest.fn().mockResolvedValue(null),

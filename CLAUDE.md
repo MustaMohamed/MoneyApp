@@ -207,7 +207,7 @@ import { BottomSheetScrollView, BottomSheetFlatList } from '@gorhom/bottom-sheet
 
 The old `react-native-actions-sheet` dep and its patch (`patches/react-native-actions-sheet+10.1.2.patch`) remain in the project during §4–§9 while existing consumers are migrated. No new code may import from `react-native-actions-sheet`. Each section migrates the sheets within its domain. The dep and patch are removed when the last consumer is gone (no earlier than §9).
 
-Legacy consumers still in-flight (as of §6): `screens/accounts/detail/components/adjust_balance_sheet.tsx`, `screens/commitments/detail/components/pay_sheet.tsx`, `screens/dashboard/components/net_worth_breakdown_sheet.tsx`, `screens/settings/categories/components/add_edit_category_sheet.tsx`, `screens/settings/categories/components/reassign_category_sheet.tsx`, `screens/transactions/transaction_form/components/account_picker_sheet.tsx`, `screens/transactions/transaction_form/components/category_picker_sheet.tsx`, `screens/transactions/transaction_form/index.tsx`.
+Legacy consumers still in-flight (as of §7 cleanup): `screens/accounts/detail/components/adjust_balance_sheet.tsx` (migrates in §9), `screens/commitments/detail/components/pay_sheet.tsx` (migrates in §8). The §7 transaction-form consumers, the dashboard net-worth-breakdown sheet, and both settings category sheets have all been migrated.
 
 ## Patches
 

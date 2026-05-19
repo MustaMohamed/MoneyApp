@@ -6,6 +6,7 @@ import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useCommitmentStore } from '@/store/commitment.store';
+import { useCurrencyStore } from '@/store/currency.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 import type { Account } from '@/database/entities/account.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
@@ -58,6 +59,13 @@ export function usePaySheet(
   const { state: accountState, loadAccounts } = useAccountStore(
     useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
   );
+  // Currency store gives the timestamp of the last stored exchange-rate
+  // update — ExchangeRateRow (V2) reads this to render the "Rate may be
+  // stale" warning when the stored rate is older than the staleness
+  // window. §7 promoted the V2 ExchangeRateRow to a required-prop API;
+  // pay_sheet now plumbs the timestamp through so the warning surfaces
+  // here too (commitments was on V1 ExchangeRateRow until §7 cleanup).
+  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
 
   const {
     markAsPaid,
@@ -179,6 +187,7 @@ export function usePaySheet(
       visible: paySheetState.visible,
       accountPickerVisible: paySheetState.accountPickerVisible,
       exchangeRateValue,
+      rateUpdatedAt: currencyState.rate_updated_at,
     },
     onSubmit: form.handleSubmit(onValid),
     openAccountPicker: () => setAccountPickerVisible(true),

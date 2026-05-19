@@ -29,21 +29,10 @@ const INITIAL_STATE: EditTransactionStateShape = {
 export const useEditTransactionState = create<EditTransactionState>((set) => ({
   state: INITIAL_STATE,
 
-  open: (tx) =>
-    set({
-      state: {
-        visible: true,
-        saving: false,
-        showCategoryPicker: false,
-        rateOverride: tx.exchange_rate !== null,
-      },
-    }),
-
+  open: () => set((s) => ({ state: { ...s.state, visible: true } })),
   close: () => set({ state: INITIAL_STATE }),
-
   setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
   setShowCategoryPicker: (v) => set((s) => ({ state: { ...s.state, showCategoryPicker: v } })),
   setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
-
   reset: () => set({ state: INITIAL_STATE }),
 }));

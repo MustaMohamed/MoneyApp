@@ -2,8 +2,6 @@ import { create } from 'zustand';
 
 import type { Transaction } from '@/database/entities/transaction.entity';
 
-type NumpadAction = 'digit' | 'decimal' | 'backspace';
-
 interface EditTransactionStoreShape {
   editingTx: Transaction | null;
   amountStr: string;
@@ -12,7 +10,13 @@ interface EditTransactionStoreShape {
 interface EditTransactionStore {
   state: EditTransactionStoreShape;
   loadFromTx: (tx: Transaction) => void;
-  handleNumpad: (action: NumpadAction, value?: string) => void;
+  /**
+   * Direct amount setter for the editable AmountHero TextInput (system
+   * decimal-pad keyboard). Replaces the custom numpad UI; `handleNumpad`
+   * stays for legacy hook tests but is no longer wired to any component.
+   */
+  setAmountStr: (value: string) => void;
+  handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
   reset: () => void;
 }
 
@@ -25,27 +29,23 @@ export const useEditTransactionStore = create<EditTransactionStore>((set) => ({
   state: INITIAL_STATE,
 
   loadFromTx: (tx) =>
-    set((s) => ({
+    set({
       state: {
-        ...s.state,
         editingTx: tx,
-        // Format amount: remove trailing ".0" for integers so numpad starts clean
-        amountStr: tx.amount % 1 === 0 ? String(Math.floor(tx.amount)) : String(tx.amount),
+        amountStr: String(tx.amount),
       },
-    })),
+    }),
+
+  setAmountStr: (value) => set((s) => ({ state: { ...s.state, amountStr: value } })),
 
   handleNumpad: (action, value) =>
     set((s) => {
       const prev = s.state.amountStr;
       if (action === 'backspace') {
-        return {
-          state: { ...s.state, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) },
-        };
+        return { state: { ...s.state, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) } };
       }
       if (action === 'decimal') {
-        return {
-          state: { ...s.state, amountStr: prev.includes('.') ? prev : prev + '.' },
-        };
+        return { state: { ...s.state, amountStr: prev.includes('.') ? prev : prev + '.' } };
       }
       const digit = value ?? '';
       if (prev === '0') {
