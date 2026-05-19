@@ -347,4 +347,51 @@ describe('TransactionRow — note row layout', () => {
     // Two lines max — wraps instead of single-line ellipsis truncation.
     expect(noteNode.props.numberOfLines).toBe(2);
   });
+
+  it('renders the note BELOW the header row (positional contract)', () => {
+    // Structural lock: the note Text must be a sibling AFTER the 3-column
+    // header row inside the outer Animated.View — never a child of the
+    // middle column (which would put it between the title and the account
+    // context line, i.e. "on top" of the amount row visually).
+    //
+    // We assert this by walking the rendered JSON tree: the Animated.View
+    // (the row container) must have its note as a later child than the
+    // header-row View that contains the title text "Food".
+    const tree = render(
+      <TransactionRow
+        tx={mkTx({ note: 'inline-note-marker-xyz' })}
+        account={mkAccount()}
+        category={mkCategory({ name: 'Food' })}
+        onPress={() => {}}
+      />,
+    ).toJSON();
+
+    // Walk the tree; collect ordered text strings encountered.
+    const sequence: string[] = [];
+    const visit = (node: unknown): void => {
+      if (node == null) return;
+      if (Array.isArray(node)) {
+        node.forEach(visit);
+        return;
+      }
+      if (typeof node === 'string') {
+        sequence.push(node);
+        return;
+      }
+      if (typeof node === 'object' && node !== null && 'children' in node) {
+        visit((node as { children: unknown }).children);
+      }
+    };
+    visit(tree);
+
+    const titleIdx = sequence.indexOf('Food');
+    const amountIdx = sequence.findIndex((s) => s.includes('285'));
+    const noteIdx = sequence.indexOf('inline-note-marker-xyz');
+
+    // Note must come AFTER both the title and the amount in source order
+    // (header row first, note row after) — guaranteeing the visual layout
+    // top → bottom is: title/ctx + amount, THEN note.
+    expect(noteIdx).toBeGreaterThan(titleIdx);
+    expect(noteIdx).toBeGreaterThan(amountIdx);
+  });
 });
