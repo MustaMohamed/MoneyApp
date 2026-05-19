@@ -28,5 +28,19 @@
   },
   "sortPackageJson": {
     "sortScripts": false
-  }
+  },
+  "ignorePatterns": [
+    "node_modules/**",
+    ".expo/**",
+    "dist/**",
+    "android/**",
+    "ios/**",
+    "coverage/**",
+    "assets/**",
+    ".claude/**",
+    "package-lock.json",
+    "yarn.lock",
+    "uniwind.d.ts",
+    "**/*.md"
+  ]
 }
