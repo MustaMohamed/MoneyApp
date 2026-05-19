@@ -35,6 +35,10 @@
     --separator: #2a3a4f;
     --focus: #d4a44c;
     --link: #d4a44c;
+
+    /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
+    --info: 73 158 224; /* #4A9EE0 — Transfer accent */
+    --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
   }
 
   @variant light {
@@ -69,6 +73,10 @@
     --separator: #2a3a4f;
     --focus: #d4a44c;
     --link: #d4a44c;
+
+    /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
+    --info: 73 158 224; /* #4A9EE0 — Transfer accent */
+    --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
   }
 }
 
@@ -103,6 +111,8 @@
   --color-separator: var(--separator);
   --color-focus: var(--focus);
   --color-link: var(--link);
+  --color-info: rgb(var(--info));
+  --color-accent-cc: rgb(var(--accent-cc));
 
   /* Gold gradient stops — not in HeroUI's semantic slots, used by Button + screens */
   --color-gold-400: #e0b968;

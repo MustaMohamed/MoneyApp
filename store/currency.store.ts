@@ -10,10 +10,13 @@ const RATE_KEY = 'usd_rate';
 const FETCHED_AT_KEY = 'usd_rate_fetched_at';
 const MANUAL_KEY = 'usd_rate_manual_override';
 
+const RATE_UPDATED_AT_KEY = 'usd_rate_updated_at';
+
 const INITIAL_STATE = {
   rate: 50,
   lastFetched: null as string | null,
   isManualOverride: false,
+  rate_updated_at: null as string | null,
 };
 
 interface CurrencyStore {
@@ -30,10 +33,11 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
     loadRate: async () => {
       try {
-        const [rateStr, fetchedAt, manualStr] = await Promise.all([
+        const [rateStr, fetchedAt, manualStr, rateUpdatedAt] = await Promise.all([
           repo.get(RATE_KEY),
           repo.get(FETCHED_AT_KEY),
           repo.get(MANUAL_KEY),
+          repo.get(RATE_UPDATED_AT_KEY),
         ]);
         if (rateStr !== null) {
           set((s) => ({
@@ -42,6 +46,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
               rate: parseFloat(rateStr),
               lastFetched: fetchedAt,
               isManualOverride: manualStr === 'true',
+              rate_updated_at: rateUpdatedAt,
             },
           }));
         }
@@ -62,8 +67,17 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
           repo.set(RATE_KEY, String(rate)),
           repo.set(FETCHED_AT_KEY, now),
           repo.set(MANUAL_KEY, 'false'),
+          repo.set(RATE_UPDATED_AT_KEY, now),
         ]);
-        set((s) => ({ state: { ...s.state, rate, lastFetched: now, isManualOverride: false } }));
+        set((s) => ({
+          state: {
+            ...s.state,
+            rate,
+            lastFetched: now,
+            isManualOverride: false,
+            rate_updated_at: now,
+          },
+        }));
       } catch (err) {
         console.error('[currencyStore] fetchRate failed:', err);
         throw err;
@@ -72,8 +86,13 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
     setManualRate: async (rate: number) => {
       try {
-        await Promise.all([repo.set(RATE_KEY, String(rate)), repo.set(MANUAL_KEY, 'true')]);
-        set((s) => ({ state: { ...s.state, rate, isManualOverride: true } }));
+        const now = new Date().toISOString();
+        await Promise.all([
+          repo.set(RATE_KEY, String(rate)),
+          repo.set(MANUAL_KEY, 'true'),
+          repo.set(RATE_UPDATED_AT_KEY, now),
+        ]);
+        set((s) => ({ state: { ...s.state, rate, isManualOverride: true, rate_updated_at: now } }));
       } catch (err) {
         console.error('[currencyStore] setManualRate failed:', err);
         throw err;

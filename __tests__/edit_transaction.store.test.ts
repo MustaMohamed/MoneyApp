@@ -21,6 +21,7 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     transaction_date: '2026-05-01',
     transaction_time: '10:00:00',
     commitment_payment_id: null,
+    installment_id: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,

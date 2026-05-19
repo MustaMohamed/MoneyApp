@@ -15,6 +15,11 @@ const OPTIONS: { value: TransactionFilter; label: string }[] = [
   { value: TransactionType.Income, label: 'Income' },
   { value: TransactionType.Expense, label: 'Expense' },
   { value: TransactionType.Transfer, label: 'Transfer' },
+  // CC Payment was missing — the filter has always had a CC Payment surface
+  // (TransactionFilter accepts every TransactionType), but the chip itself
+  // was never wired up. Without it, users cannot isolate credit-card
+  // payments from the rest of the ledger.
+  { value: TransactionType.CCPayment, label: 'CC Payment' },
 ];
 
 export function TypeChips({ value, onChange }: Props): React.ReactElement {

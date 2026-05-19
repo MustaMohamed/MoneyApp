@@ -7,6 +7,8 @@ import { Strings } from '@/constants/strings';
 import { Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
 
+import { getAccountTypeIcon } from '../detail.helpers';
+
 interface Props {
   fromAccount: Account;
   toAccount: Account;
@@ -41,7 +43,7 @@ function Cell({
         {label}
       </Text>
       <View className="w-9 h-9 rounded-lg bg-accent/15 items-center justify-center mt-1.5">
-        <MaterialCommunityIcons name="bank" size={16} color="#D4AF37" />
+        <MaterialCommunityIcons name={getAccountTypeIcon(account.type)} size={16} color="#D4AF37" />
       </View>
       <Text className="font-inter font-semibold text-[11.5px] text-foreground mt-1">
         {account.name}

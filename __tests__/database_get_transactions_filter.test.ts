@@ -99,6 +99,7 @@ async function insert(overrides: Partial<Transaction> = {}) {
     transaction_date: DATE,
     transaction_time: TIME,
     commitment_payment_id: null,
+    installment_id: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,

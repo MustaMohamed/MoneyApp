@@ -70,7 +70,15 @@ export interface SheetProps {
   visible: boolean;
   onClose: () => void;
   title?: string;
-  size: 'sm' | 'md' | 'lg';
+  /**
+   * Either pick a preset size (sm/md/lg) OR pass explicit `snapPoints` for
+   * sheets that need a different stop. Examples of `snapPoints`:
+   *   ['40%']            — short, fixed (date range picker, simple confirm)
+   *   ['45%', '92%']     — opens compact, user can drag to full (filter accordion)
+   * If `snapPoints` is set it overrides `size`.
+   */
+  size?: 'sm' | 'md' | 'lg';
+  snapPoints?: string[];
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -96,7 +104,8 @@ function SheetBody({ children }: { children: React.ReactNode }) {
   return <View style={styles.body}>{children}</View>;
 }
 
-export function Sheet({ visible, onClose, title, size, footer, children }: SheetProps) {
+export function Sheet({ visible, onClose, title, size, snapPoints, footer, children }: SheetProps) {
+  const resolvedSnapPoints = snapPoints ?? SNAP_POINTS[size ?? 'lg'];
   const sheetRef = useRef<BottomSheetMethods>(null);
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
@@ -152,14 +161,32 @@ export function Sheet({ visible, onClose, title, size, footer, children }: Sheet
     <BottomSheetLib
       ref={sheetRef}
       index={-1}
-      snapPoints={SNAP_POINTS[size]}
+      snapPoints={resolvedSnapPoints}
       // v5 defaults this to true, which makes the sheet size to its content
       // and SILENTLY IGNORE snapPoints when content is shorter. That breaks
       // the sm/md/lg contract — collapsed accordions or short forms snap to
       // 25-30% instead of 92%. Disable so snap points are absolute.
       enableDynamicSizing={false}
       enablePanDownToClose
-      keyboardBehavior="extend"
+      // Keyboard interaction:
+      //   - `interactive` lets the snap float up with the keyboard so the
+      //     footer (and the sticky CTA inside it) sits flush against the top
+      //     of the keyboard. The previous `extend` value tried to grow the
+      //     sheet vertically, but with a FIXED snap (enableDynamicSizing=
+      //     false) the sheet cannot grow past its snap point — the footer
+      //     stayed anchored to the snap's bottom edge while the keyboard
+      //     rose from the screen bottom, producing the big gap reported in
+      //     §7 QA.
+      //   - `keyboardBlurBehavior="restore"` snaps the sheet back to its
+      //     original height when the keyboard dismisses, so the form doesn't
+      //     stay floating mid-screen.
+      //   - `android_keyboardInputMode="adjustResize"` is required on Android
+      //     for @gorhom/bottom-sheet to receive the keyboard height; without
+      //     it the gesture handler computes layout against the full window
+      //     and the gap reappears.
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
       onClose={onClose}
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}
@@ -234,6 +261,12 @@ const styles = StyleSheet.create({
     borderTopColor: Colors.dark.border,
     paddingTop: Spacing.xs,
     paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.lg,
+    // 12px (sm) gives the CTA enough breathing room from the sheet's bottom
+    // edge without the "big empty space" reported during §7 QA. The prior
+    // 20px (lg) compounded with consumer wrappers (filter, date-range,
+    // reassign, add-edit) that all add their own pb-6 — visually loose. With
+    // SaveCta's outer wrapper now removed, this padding is the ONLY thing
+    // separating the button from the sheet edge.
+    paddingBottom: Spacing.sm,
   },
 });

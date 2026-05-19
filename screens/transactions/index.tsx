@@ -9,9 +9,23 @@ import { EmptyState } from '@/components/ui/empty_state';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
 
-import { AddTransactionSheet } from '@/screens/transactions/transaction_form';
-import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
-import { useAddTransactionStore } from '@/screens/transactions/transaction_form/add_transaction.store';
+import { FeatureFlags } from '@/constants/feature_flags';
+import { AddTransactionSheet as AddTransactionSheetV1 } from '@/screens/transactions/transaction_form';
+import { useAddTransactionState as useAddTransactionStateV1 } from '@/screens/transactions/transaction_form/add_transaction.state';
+import { useAddTransactionStore as useAddTransactionStoreV1 } from '@/screens/transactions/transaction_form/add_transaction.store';
+import { AddTransactionSheet as AddTransactionSheetV2 } from '@/screens/transactions/transaction_form_v2';
+import { useAddTransactionState as useAddTransactionStateV2 } from '@/screens/transactions/transaction_form_v2/add_transaction.state';
+import { useAddTransactionStore as useAddTransactionStoreV2 } from '@/screens/transactions/transaction_form_v2/add_transaction.store';
+
+const AddTransactionSheet = FeatureFlags.newAddTransaction
+  ? AddTransactionSheetV2
+  : AddTransactionSheetV1;
+const useAddTransactionState = FeatureFlags.newAddTransaction
+  ? useAddTransactionStateV2
+  : useAddTransactionStateV1;
+const useAddTransactionStore = FeatureFlags.newAddTransaction
+  ? useAddTransactionStoreV2
+  : useAddTransactionStoreV1;
 
 import { DateHeader } from './components/date_header';
 import { DateRangeSheet } from './components/date_range_sheet';
@@ -144,6 +158,11 @@ export default function TransactionsScreen(): React.ReactElement {
         onConfirm={(from, to) => {
           t.setCustomRange({ from, to });
           t.setPeriod({ type: 'custom', from, to });
+          setDateRangeSheetVisible(false);
+        }}
+        onReset={() => {
+          t.setCustomRange(null);
+          t.setPeriod({ type: 'all' });
           setDateRangeSheetVisible(false);
         }}
       />

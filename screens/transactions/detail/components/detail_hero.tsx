@@ -5,6 +5,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { TransactionType } from '@/constants/enums';
+import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
@@ -16,16 +17,36 @@ interface Props {
   dateTimeText: string;
 }
 
+/**
+ * Type-color mapping — aligned with §7's four-type colour system so the
+ * detail hero (badge tint, amount text, badge border) visually mirrors
+ * the Add Transaction tabs / AmountHero / list-row amount:
+ *   Expense     → SemanticTokens.negative (#E05A42 red)
+ *   Income      → SemanticTokens.positive (#4CAF82 green)
+ *   Transfer    → InfoTokens[500]          (#4A9EE0 blue)
+ *   CC Payment  → AccentCCTokens[500]      (#9B73D4 purple)
+ *
+ * The previous mapping had Income at a brighter mint green that didn't
+ * match the theme `--success` token, Transfer at gold (the accent
+ * colour, conflicting with `--info`), CC Payment at light lavender
+ * instead of the §7 purple, and Expense at off-white (no colour
+ * signal at all). The detail screen now matches the rest of the app.
+ *
+ * Inline hex values are used here (not `text-danger` / `bg-info`)
+ * because the badge/amount mix opacity-tinted strings (`${color}1A`,
+ * `${color}55`) with the base hex — Tailwind classes would lose the
+ * computed-opacity capability.
+ */
 function typeColor(type: TransactionType): string {
   switch (type) {
     case TransactionType.Income:
-      return '#6EE7B7';
+      return SemanticTokens.positive;
+    case TransactionType.Expense:
+      return SemanticTokens.negative;
     case TransactionType.Transfer:
-      return '#D4AF37';
+      return InfoTokens[500];
     case TransactionType.CCPayment:
-      return '#D699E8';
-    default:
-      return '#F0EEE6';
+      return AccentCCTokens[500];
   }
 }
 
@@ -96,9 +117,8 @@ export function DetailHero({
           </Text>
         </View>
       ) : null}
-      <Text className="font-inter text-[11px] text-foreground/55 mt-2">
-        {title} · {dateTimeText}
-      </Text>
+      <Text className="font-inter text-center text-[18px] text-foreground/55 mt-2">{title}</Text>
+      <Text className="font-inter text-[11px] text-foreground/55 mt-2">{dateTimeText}</Text>
     </View>
   );
 }

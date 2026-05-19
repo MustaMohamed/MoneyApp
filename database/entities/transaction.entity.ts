@@ -8,7 +8,13 @@ export interface Transaction {
   currency: Currency;
   /** Always stored in EGP for net-worth / analytics calculations. */
   egp_amount: number;
-  /** Rate captured at save time; set whenever a USD↔EGP conversion is involved. */
+  /**
+   * Rate captured at save time; set whenever a USD↔EGP conversion is involved.
+   *
+   * For USD → USD transfers this is still required: `to_amount = amount` (same-
+   * currency branch), but `egp_amount = amount × rate` is needed for net-worth
+   * tracking — so the rate is captured solely for the egp_amount calculation.
+   */
   exchange_rate: number | null;
   /**
    * Amount received by the TO account in the TO account's native currency.
@@ -42,6 +48,11 @@ export interface Transaction {
   transaction_time: string;
   /** FK to commitment_payments.id; set when this transaction fulfils a commitment payment. */
   commitment_payment_id: string | null;
+  /**
+   * FK to installments.id; set when this transaction is part of an installment plan.
+   * Reserved by §7; populated by §8 once the installments table ships.
+   */
+  installment_id: string | null;
   created_at: string;
   updated_at: string;
 }

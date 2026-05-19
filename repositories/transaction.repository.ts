@@ -106,6 +106,7 @@ export class TransactionRepository implements ITransactionRepository {
       transaction_date: data.transaction_date ?? today,
       transaction_time: data.transaction_time ?? time,
       commitment_payment_id: null,
+      installment_id: null,
       created_at: now,
       updated_at: now,
     };

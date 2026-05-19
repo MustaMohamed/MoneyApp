@@ -89,6 +89,20 @@ jest.mock('@/screens/transactions/transaction_form/add_transaction.store', () =>
   useAddTransactionStore: { getState: jest.fn(() => mockAddTxStore) },
 }));
 
+// §7: V2 paths mocked alongside V1 so the flag-branch (newAddTransaction) doesn't
+// reach the real V2 hook implementation, which would loop against the simplified
+// useShallow mock at line 43. Mocks collapse to a single set at Task 27 cleanup
+// when V2 takes over the V1 path.
+jest.mock('@/screens/transactions/transaction_form_v2/add_transaction.state', () => ({
+  useAddTransactionState: Object.assign(
+    jest.fn((sel: any) => sel(mockAddTxState)),
+    { getState: jest.fn(() => mockAddTxState) },
+  ),
+}));
+jest.mock('@/screens/transactions/transaction_form_v2/add_transaction.store', () => ({
+  useAddTransactionStore: { getState: jest.fn(() => mockAddTxStore) },
+}));
+
 jest.mock('@/screens/transactions/filter/filter.state', () => ({
   useFilterState: Object.assign(
     jest.fn((sel: any) => sel(mockFilterState)),
@@ -98,6 +112,9 @@ jest.mock('@/screens/transactions/filter/filter.state', () => ({
 
 // Mock subcomponents with complex deps
 jest.mock('@/screens/transactions/transaction_form', () => ({
+  AddTransactionSheet: () => null,
+}));
+jest.mock('@/screens/transactions/transaction_form_v2', () => ({
   AddTransactionSheet: () => null,
 }));
 jest.mock('@/screens/transactions/filter', () => ({ FilterSheet: () => null }));
@@ -183,6 +200,10 @@ describe('TransactionsScreen', () => {
     expect(getByText('Income')).toBeTruthy();
     expect(getByText('Expense')).toBeTruthy();
     expect(getByText('Transfer')).toBeTruthy();
+    // CC Payment was historically missing from the filter chip set even
+    // though the underlying TransactionFilter type already supports it.
+    // Lock the chip in place so a regression is caught immediately.
+    expect(getByText('CC Payment')).toBeTruthy();
   });
 
   it('does NOT render the TotalsStrip vs-caption when period is "all"', () => {

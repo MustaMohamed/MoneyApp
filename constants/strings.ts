@@ -272,6 +272,7 @@ export const Strings = {
   addTxRateSubCustom: 'EGP per 1 USD · custom rate',
   addTxRateOverrideLabel: 'Override',
   addTxSaveCta: 'Save',
+  editTxSaveCta: 'Save Changes',
   addTxErrAmountRequired: 'Enter an amount',
   addTxErrAmountZero: 'Amount must be greater than 0',
   addTxErrAccountRequired: 'Select an account',
@@ -592,4 +593,15 @@ export const Strings = {
   detailEditButton: 'Edit Transaction',
   detailNotFoundTitle: 'Transaction not found',
   detailNotFoundBody: 'This transaction may have been deleted.',
+
+  // §7: Add / Edit Transaction
+  addTxNoAccountsTitle: 'No Accounts Yet',
+  addTxNoAccountsBody: 'Add an account first to record transactions.',
+  addTxNoAccountsCta: 'Add Account',
+  addTxRateSourceStored: 'Using stored rate',
+  addTxRateSourceCustom: 'Custom rate',
+  addTxRateLastUpdated: 'Last updated {date}',
+  addTxRateReset: 'Reset to global',
+  addTxRateStale: 'Rate may be stale',
+  addTxEgpPreview: '≈ {amount} EGP',
 } as const;
