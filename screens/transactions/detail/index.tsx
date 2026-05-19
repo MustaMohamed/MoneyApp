@@ -32,6 +32,7 @@ import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
 import { DetailHero } from './components/detail_hero';
 import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
+import { NoteCard } from './components/note_card';
 import { NotFoundState } from './components/not_found_state';
 import { TransferFlowCard } from './components/transfer_flow_card';
 import { useTransactionDetail } from './detail.hook';
@@ -131,16 +132,27 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 value={state.derived.accountLabel}
                 sublabel={state.derived.accountTypeLabel}
               />
+              {/*
+                showDivider is false on the LAST visible row of the card so
+                the bottom doesn't render a hairline flush against the
+                card's own bottom border (avoids double-line artifact). The
+                last row depends on which conditional rows are present:
+                  DateTime is last when no Original Amount and no Rate
+                  Original Amount is last when no Rate
+                  Rate (when present) is always last
+              */}
               <DetailRow
                 icon="calendar"
                 label={Strings.detailDateTime}
                 value={state.derived.dateTimeText}
+                showDivider={!!state.derived.originalAmountText || !!state.derived.exchangeRateText}
               />
               {state.derived.originalAmountText ? (
                 <DetailRow
                   icon="currency-usd"
                   label={Strings.detailOriginalAmount}
                   value={state.derived.originalAmountText}
+                  showDivider={!!state.derived.exchangeRateText}
                 />
               ) : null}
               {state.derived.exchangeRateText ? (
@@ -149,16 +161,20 @@ export default function TransactionDetailScreen(): React.ReactElement {
                   label={Strings.detailExchangeRate}
                   value={state.derived.exchangeRateText}
                   badge={Strings.capturedBadge}
+                  showDivider={false}
                 />
               ) : null}
-              <DetailRow
-                icon="text"
-                label={Strings.detailNote}
-                value={state.derived.noteText}
-                muted={!state.tx.note}
-                showDivider={false}
-              />
             </DetailRowsCard>
+
+            {/*
+              Note lives in its OWN full-width card below the rows card —
+              mirrors the §7 list-row pattern where the note was lifted out of
+              the narrow middle column. A long note now wraps to as many
+              lines as it needs, instead of being chopped to two by the
+              DetailRow numberOfLines={2} ceiling. When the transaction has
+              no note, the card is omitted entirely (no empty placeholder).
+            */}
+            <NoteCard note={state.tx.note} />
 
             <ActionRow onEdit={handleEdit} onDelete={openDeleteConfirm} />
           </ScreenScroll>
