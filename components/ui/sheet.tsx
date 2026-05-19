@@ -168,7 +168,25 @@ export function Sheet({ visible, onClose, title, size, snapPoints, footer, child
       // 25-30% instead of 92%. Disable so snap points are absolute.
       enableDynamicSizing={false}
       enablePanDownToClose
-      keyboardBehavior="extend"
+      // Keyboard interaction:
+      //   - `interactive` lets the snap float up with the keyboard so the
+      //     footer (and the sticky CTA inside it) sits flush against the top
+      //     of the keyboard. The previous `extend` value tried to grow the
+      //     sheet vertically, but with a FIXED snap (enableDynamicSizing=
+      //     false) the sheet cannot grow past its snap point — the footer
+      //     stayed anchored to the snap's bottom edge while the keyboard
+      //     rose from the screen bottom, producing the big gap reported in
+      //     §7 QA.
+      //   - `keyboardBlurBehavior="restore"` snaps the sheet back to its
+      //     original height when the keyboard dismisses, so the form doesn't
+      //     stay floating mid-screen.
+      //   - `android_keyboardInputMode="adjustResize"` is required on Android
+      //     for @gorhom/bottom-sheet to receive the keyboard height; without
+      //     it the gesture handler computes layout against the full window
+      //     and the gap reappears.
+      keyboardBehavior="interactive"
+      keyboardBlurBehavior="restore"
+      android_keyboardInputMode="adjustResize"
       onClose={onClose}
       backdropComponent={renderBackdrop}
       handleComponent={SheetHandle}

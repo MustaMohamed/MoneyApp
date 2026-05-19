@@ -391,16 +391,25 @@ describe('AddEditCategorySheet — footer clearance padding', () => {
 });
 
 // ---------------------------------------------------------------------------
-// keyboardBehavior="extend" in sheet.tsx
+// keyboardBehavior in sheet.tsx — pinned to "interactive" so the footer
+// floats above the keyboard. "extend" left a visible gap between the
+// keyboard top and the sticky CTA (§7 QA round 3). Locking the value
+// here prevents accidental regression.
 // ---------------------------------------------------------------------------
-describe('Sheet primitive — keyboardBehavior extend', () => {
-  it('sheet.tsx passes keyboardBehavior="extend" to BottomSheetLib', () => {
+describe('Sheet primitive — keyboardBehavior', () => {
+  it('sheet.tsx passes keyboardBehavior="interactive" + adjustResize to BottomSheetLib', () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const fs = require('fs');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const path = require('path');
     const filePath = path.resolve(__dirname, '../../../../../components/ui/sheet.tsx');
     const source: string = fs.readFileSync(filePath, 'utf8');
-    expect(source).toContain('keyboardBehavior="extend"');
+    expect(source).toContain('keyboardBehavior="interactive"');
+    // Restore the snap when the keyboard dismisses (otherwise the sheet
+    // stays floating mid-screen at the keyboard-raised snap).
+    expect(source).toContain('keyboardBlurBehavior="restore"');
+    // Android needs adjustResize so @gorhom/bottom-sheet reads the keyboard
+    // height; without it the gap reappears.
+    expect(source).toContain('android_keyboardInputMode="adjustResize"');
   });
 });
