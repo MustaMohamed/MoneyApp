@@ -148,8 +148,8 @@ export function usePaySheet(
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paySheetState.visible, commitment?.id, payment?.id]); // commitment sub-props + form are stable; id deps already capture re-run signal
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- commitment?.id already captures commitment identity changes; form/accountState are stable refs
+  }, [paySheetState.visible, commitment?.id, payment?.id]);
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;

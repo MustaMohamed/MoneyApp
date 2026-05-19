@@ -121,16 +121,16 @@ export function useEditTransaction(
   useEffect(() => {
     const parsed = parseFloat(storeState.amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeState.amountStr]); // form is RHF's stable object; its identity never changes
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
+  }, [storeState.amountStr]);
 
   useEffect(() => {
     if (!uiState.visible) {
       form.reset(buildDefaultsFromTx(initialTx, currencyState.rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uiState.visible]); // reset-on-close: fires only on visibility toggle; initialTx/form/rate are stable within a session
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
+  }, [uiState.visible]);
 
   async function onValid(data: EditTransactionFormValues) {
     setSaving(true);
