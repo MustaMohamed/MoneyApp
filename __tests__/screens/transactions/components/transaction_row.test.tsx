@@ -283,3 +283,68 @@ describe('TransactionRow — right column', () => {
     expect(getByText('7:14 PM')).toBeTruthy();
   });
 });
+
+describe('TransactionRow — type-color contract', () => {
+  // The list rows mirror §7's four-type colour system so a glance at the
+  // transactions list tells you the same story as the Add Transaction
+  // tabs / AmountHero. These tests lock the mapping in case someone
+  // tweaks amountColorClass back to the old gold-accent fallback.
+  const cases: Array<[TransactionType, string]> = [
+    [TransactionType.Expense, 'text-danger'],
+    [TransactionType.Income, 'text-success'],
+    [TransactionType.Transfer, 'text-info'],
+    [TransactionType.CCPayment, 'text-accent-cc'],
+  ];
+
+  for (const [type, klass] of cases) {
+    it(`amount is rendered with ${klass} for ${type}`, () => {
+      const { getByText } = render(
+        <TransactionRow
+          tx={mkTx({
+            type,
+            // Transfer + CC Payment need to_account_id so the row renders without warnings.
+            category_id:
+              type === TransactionType.Expense || type === TransactionType.Income ? 'c1' : null,
+            to_account_id:
+              type === TransactionType.Transfer || type === TransactionType.CCPayment ? 'a2' : null,
+            amount: 100,
+            egp_amount: 100,
+          })}
+          account={mkAccount()}
+          toAccount={mkAccount({ id: 'a2', name: 'Other' })}
+          category={mkCategory()}
+          onPress={() => {}}
+        />,
+      );
+      // The amount text node — find by content via signPrefix + amount + currency.
+      // For Transfer/CC there is no sign prefix; for Expense '−', Income '+'.
+      const prefix =
+        type === TransactionType.Expense ? '−' : type === TransactionType.Income ? '+' : '';
+      const amountNode = getByText(`${prefix}100 EGP`);
+      expect(amountNode.props.className).toContain(klass);
+    });
+  }
+});
+
+describe('TransactionRow — note row layout', () => {
+  it('renders the note on its own row (not inline with the title block)', () => {
+    // The note moved out of the narrow middle column to a full-width row
+    // below the icon/title/amount block, so long notes get the whole row
+    // to wrap up to 2 lines instead of being truncated by ellipsis.
+    const { getByText } = render(
+      <TransactionRow
+        tx={mkTx({
+          note: 'Very long restaurant tab from team lunch on Wednesday at the new place downtown',
+        })}
+        account={mkAccount()}
+        category={mkCategory()}
+        onPress={() => {}}
+      />,
+    );
+    const noteNode = getByText(
+      'Very long restaurant tab from team lunch on Wednesday at the new place downtown',
+    );
+    // Two lines max — wraps instead of single-line ellipsis truncation.
+    expect(noteNode.props.numberOfLines).toBe(2);
+  });
+});
