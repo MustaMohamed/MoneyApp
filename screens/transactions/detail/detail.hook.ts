@@ -13,6 +13,7 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 import type { BadgeTone } from './components/detail_row';
 
+import { getAccountTypeIcon } from './detail.helpers';
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
 
@@ -160,6 +161,7 @@ export function useTransactionDetail(id: string) {
         ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
         : (account?.name ?? Strings.unknownAccount),
       accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
+      accountIcon: getAccountTypeIcon(account?.type),
       originalAmountText:
         tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
       exchangeRateText:

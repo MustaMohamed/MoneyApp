@@ -117,9 +117,8 @@ export function DetailHero({
           </Text>
         </View>
       ) : null}
-      <Text className="font-inter text-[11px] text-foreground/55 mt-2">
-        {title} · {dateTimeText}
-      </Text>
+      <Text className="font-inter text-center text-[18px] text-foreground/55 mt-2">{title}</Text>
+      <Text className="font-inter text-[11px] text-foreground/55 mt-2">{dateTimeText}</Text>
     </View>
   );
 }

@@ -127,7 +127,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 badgeTone={state.derived.categoryBadgeTone}
               />
               <DetailRow
-                icon="card-bulleted-outline"
+                icon={state.derived.accountIcon}
                 label={Strings.detailAccount}
                 value={state.derived.accountLabel}
                 sublabel={state.derived.accountTypeLabel}
