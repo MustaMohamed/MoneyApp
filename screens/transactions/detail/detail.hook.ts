@@ -11,6 +11,7 @@ import { useTransactionStore } from '@/store/transaction.store';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
+import type { BadgeTone } from './components/detail_row';
 
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
@@ -33,6 +34,19 @@ const TYPE_BADGE: Record<TransactionType, string> = {
   [TransactionType.Income]: Strings.typeBadgeIncome,
   [TransactionType.Transfer]: Strings.typeBadgeTransfer,
   [TransactionType.CCPayment]: Strings.typeBadgeCcPayment,
+};
+
+/**
+ * Maps each transaction type to its §7 four-type colour tone. Drives the
+ * category row's badge tint (Expense=red, Income=green, Transfer=blue,
+ * CCPayment=purple) so the detail screen tells the same colour story as
+ * the list rows and the Add Transaction form.
+ */
+const TYPE_BADGE_TONE: Record<TransactionType, BadgeTone> = {
+  [TransactionType.Expense]: 'danger',
+  [TransactionType.Income]: 'success',
+  [TransactionType.Transfer]: 'info',
+  [TransactionType.CCPayment]: 'accent-cc',
 };
 
 function formatLongDate(ymd: string): string {
@@ -141,6 +155,7 @@ export function useTransactionDetail(id: string) {
           ? TYPE_BADGE[tx.type]
           : Strings.uncategorized),
       categoryBadge: TYPE_BADGE[tx.type],
+      categoryBadgeTone: TYPE_BADGE_TONE[tx.type],
       accountLabel: toAccount
         ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
         : (account?.name ?? Strings.unknownAccount),

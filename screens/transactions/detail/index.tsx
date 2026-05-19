@@ -123,6 +123,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 label={Strings.detailCategory}
                 value={state.derived.categoryLabel}
                 badge={state.derived.categoryBadge}
+                badgeTone={state.derived.categoryBadgeTone}
               />
               <DetailRow
                 icon="card-bulleted-outline"
