@@ -1,14 +1,47 @@
-import { Platform, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React from 'react';
+import { Pressable, View } from 'react-native';
+import { Input } from 'heroui-native';
 
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { roundMoney } from '@/utils/money';
+
+const STALE_THRESHOLD_DAYS = 30;
+
+function isStale(rateUpdatedAt: string | null): boolean {
+  if (!rateUpdatedAt) return false;
+  const updated = new Date(rateUpdatedAt).getTime();
+  if (isNaN(updated)) return false;
+  const ageMs = Date.now() - updated;
+  return ageMs > STALE_THRESHOLD_DAYS * 24 * 60 * 60 * 1000;
+}
+
+function formatPreviewAmount(amount: number, rateStr: string): string {
+  const rate = parseFloat(rateStr);
+  if (isNaN(rate) || rate <= 0) return '—';
+  const egp = roundMoney(amount * rate);
+  return new Intl.NumberFormat('en-US', {
+    style: 'decimal',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(egp);
+}
+
+function formatDateShort(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+}
 
 interface Props {
   value: string;
   onChange: (v: string) => void;
   overrideEnabled: boolean;
   onToggleOverride: () => void;
+  rateUpdatedAt: string | null;
+  amount: number;
   error?: string;
 }
 
@@ -17,103 +50,63 @@ export function ExchangeRateRow({
   onChange,
   overrideEnabled,
   onToggleOverride,
+  rateUpdatedAt,
+  amount,
   error,
-}: Props) {
+}: Props): React.ReactElement {
+  const stale = isStale(rateUpdatedAt);
+
+  const subtitle = overrideEnabled
+    ? Strings.addTxRateSourceCustom
+    : rateUpdatedAt
+      ? `${Strings.addTxRateSourceStored} · ${Strings.addTxRateLastUpdated.replace('{date}', formatDateShort(rateUpdatedAt))}`
+      : Strings.addTxRateSourceStored;
+
   return (
-    <View style={styles.container}>
-      <View style={styles.row}>
-        <View style={styles.labels}>
-          <Text style={styles.label}>{Strings.addTxRateLabel}</Text>
-          <Text style={styles.sub}>
-            {overrideEnabled ? Strings.addTxRateSubCustom : Strings.addTxRateSubGlobal}
-          </Text>
+    <View className="mt-3 rounded-md border border-accent/30 bg-accent/10 px-3 py-3">
+      <Pressable
+        testID="exchange-rate-row"
+        onPress={() => {
+          if (!overrideEnabled) onToggleOverride();
+        }}
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+      >
+        <View style={{ flex: 1 }}>
+          <Text className="font-sora font-semibold text-[14px] text-foreground">Exchange Rate</Text>
+          <Text className="font-inter text-[11px] text-muted mt-0.5">{subtitle}</Text>
+          {stale ? (
+            <Text className="font-inter text-[11px] text-warning mt-0.5">
+              {Strings.addTxRateStale}
+            </Text>
+          ) : null}
         </View>
         {overrideEnabled ? (
-          <TextInput
-            style={styles.input}
-            value={value}
-            onChangeText={onChange}
-            keyboardType="decimal-pad"
-            placeholderTextColor={Colors.dark.text2}
-            placeholder="0.00"
-          />
+          <View style={{ width: 100 }}>
+            <Input
+              testID="exchange-rate-input"
+              value={value}
+              onChangeText={onChange}
+              keyboardType="decimal-pad"
+              placeholder="0.00"
+            />
+          </View>
         ) : (
-          <Text style={styles.rateText}>{value}</Text>
+          <Text className="font-sora font-semibold text-[15px] text-foreground">{value}</Text>
         )}
-        <View style={styles.switchWrap}>
-          <Text style={styles.overrideLabel}>{Strings.addTxRateOverrideLabel}</Text>
-          <Switch
-            value={overrideEnabled}
-            onValueChange={onToggleOverride}
-            trackColor={{ false: Colors.dark.border, true: '#D4830A55' }}
-            thumbColor={overrideEnabled ? '#D4830A' : Colors.dark.text2}
-            ios_backgroundColor={Colors.dark.border}
-          />
-        </View>
-      </View>
-      {error ? <Text style={styles.err}>{error}</Text> : null}
+      </Pressable>
+
+      {/* Live EGP preview */}
+      <Text className="font-inter text-[12px] text-muted mt-2">
+        {Strings.addTxEgpPreview.replace('{amount}', formatPreviewAmount(amount, value))}
+      </Text>
+
+      {overrideEnabled ? (
+        <Pressable onPress={onToggleOverride} className="mt-2 self-end">
+          <Text className="font-inter text-[12px] text-accent">{Strings.addTxRateReset}</Text>
+        </Pressable>
+      ) : null}
+
+      {error ? <Text className="font-inter text-[11px] text-danger mt-1">{error}</Text> : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { gap: Spacing.xxs },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D4830A1A',
-    borderWidth: 1,
-    borderColor: '#D4830A55',
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    gap: Spacing.sm,
-  },
-  labels: { flex: 1 },
-  label: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: '#D4830A',
-  },
-  sub: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  rateText: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-    minWidth: 80,
-    textAlign: 'right',
-  },
-  input: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: '#D4830A',
-    textAlign: 'right',
-    textAlignVertical: 'center',
-    minWidth: 80,
-    height: ms(36),
-    backgroundColor: Colors.dark.surface,
-    borderWidth: 1,
-    borderColor: '#D4830A',
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Platform.OS === 'ios' ? 0 : Spacing.xxs,
-  },
-  switchWrap: {
-    alignItems: 'center',
-    gap: 2,
-  },
-  overrideLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  err: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.negative,
-  },
-});

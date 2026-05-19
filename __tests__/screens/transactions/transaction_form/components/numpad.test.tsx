@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { Numpad } from '@/screens/transactions/transaction_form_v2/components/numpad';
+import { Numpad } from '@/screens/transactions/transaction_form/components/numpad';
 
 describe('Numpad', () => {
   it('renders digits 0-9 plus decimal and backspace', () => {

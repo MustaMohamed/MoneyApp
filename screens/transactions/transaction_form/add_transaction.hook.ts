@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -9,6 +9,7 @@ import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useTransactionStore } from '@/store/transaction.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
+import { roundMoney } from '@/utils/money';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { useAddTransactionState } from './add_transaction.state';
@@ -21,7 +22,6 @@ export type AddTransactionFormValues = {
   categoryId: string;
   note: string;
   date: string;
-  time: string;
   exchangeRate: string;
 };
 
@@ -40,7 +40,6 @@ function createSchema(type: TransactionType, accounts: Account[]) {
       categoryId: z.string(),
       note: z.string(),
       date: z.string().min(1),
-      time: z.string().min(1),
       exchangeRate: z.string(),
     })
     .superRefine((data, ctx) => {
@@ -51,7 +50,7 @@ function createSchema(type: TransactionType, accounts: Account[]) {
             message: Strings.addTxErrToRequired,
             path: ['toAccountId'],
           });
-        } else if (data.accountId && data.accountId === data.toAccountId) {
+        } else if (data.accountId === data.toAccountId) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrSameAccount,
@@ -65,17 +64,19 @@ function createSchema(type: TransactionType, accounts: Account[]) {
           path: ['categoryId'],
         });
       }
-      const account = accounts.find((a) => a.id === data.accountId);
-      const toAccount = accounts.find((a) => a.id === data.toAccountId);
+
+      const acc = accounts.find((a) => a.id === data.accountId);
+      const toAcc = accounts.find((a) => a.id === data.toAccountId);
+
       if (type === TransactionType.CCPayment) {
-        if (account && account.type === AccountType.CreditCard) {
+        if (acc?.type === AccountType.CreditCard) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrCcPaymentSourceMustBeAsset,
             path: ['accountId'],
           });
         }
-        if (toAccount && toAccount.type !== AccountType.CreditCard) {
+        if (toAcc && toAcc.type !== AccountType.CreditCard) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrCcPaymentTargetMustBeCC,
@@ -83,19 +84,16 @@ function createSchema(type: TransactionType, accounts: Account[]) {
           });
         }
       }
+
       if (type === TransactionType.Transfer) {
-        // Transfers move money between asset accounts. Anything involving a
-        // credit card belongs in a CC Payment instead — keep the two flows
-        // separate so the resulting transaction type accurately reflects the
-        // operation (and so the CC revolving/installment math is correct).
-        if (account && account.type === AccountType.CreditCard) {
+        if (acc?.type === AccountType.CreditCard) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrTransferNoCc,
             path: ['accountId'],
           });
         }
-        if (toAccount && toAccount.type === AccountType.CreditCard) {
+        if (toAcc?.type === AccountType.CreditCard) {
           ctx.addIssue({
             code: 'custom',
             message: Strings.addTxErrTransferNoCc,
@@ -103,10 +101,9 @@ function createSchema(type: TransactionType, accounts: Account[]) {
           });
         }
       }
-      // Rate is required when either account is USD (any conversion involves EGP↔USD).
+
       const needsRate =
-        account?.currency === Currency.USD ||
-        (isTransferOrCC && toAccount?.currency === Currency.USD);
+        acc?.currency === Currency.USD || (isTransferOrCC && toAcc?.currency === Currency.USD);
       if (needsRate) {
         if (!data.exchangeRate) {
           ctx.addIssue({
@@ -115,8 +112,8 @@ function createSchema(type: TransactionType, accounts: Account[]) {
             path: ['exchangeRate'],
           });
         } else {
-          const rate = parseFloat(data.exchangeRate);
-          if (isNaN(rate) || rate <= 0) {
+          const r = parseFloat(data.exchangeRate);
+          if (isNaN(r) || r <= 0) {
             ctx.addIssue({
               code: 'custom',
               message: Strings.addTxErrRateInvalid,
@@ -128,18 +125,12 @@ function createSchema(type: TransactionType, accounts: Account[]) {
     });
 }
 
-function buildDefaults(rate: number): AddTransactionFormValues {
-  const now = new Date().toISOString();
-  return {
-    amount: 0,
-    accountId: '',
-    toAccountId: '',
-    categoryId: '',
-    note: '',
-    date: now.slice(0, 10),
-    time: now.slice(11, 19),
-    exchangeRate: String(rate),
-  };
+function nowDateISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function nowTimeISO(): string {
+  return new Date().toTimeString().slice(0, 8);
 }
 
 export function useAddTransaction(onClose: () => void) {
@@ -153,14 +144,20 @@ export function useAddTransaction(onClose: () => void) {
   );
 
   const {
-    state: addTxStoreState,
+    state: storeState,
     setType,
+    setAmountStr,
     handleNumpad,
   } = useAddTransactionStore(
-    useShallow((s) => ({ state: s.state, setType: s.setType, handleNumpad: s.handleNumpad })),
+    useShallow((s) => ({
+      state: s.state,
+      setType: s.setType,
+      setAmountStr: s.setAmountStr,
+      handleNumpad: s.handleNumpad,
+    })),
   );
   const {
-    state: addTxState,
+    state: uiState,
     setSaving,
     setShowAccountPicker,
     setShowToPicker,
@@ -177,15 +174,29 @@ export function useAddTransaction(onClose: () => void) {
     })),
   );
 
+  // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
+  const openedTimeRef = useRef<string>(nowTimeISO());
+  useEffect(() => {
+    if (uiState.visible) openedTimeRef.current = nowTimeISO();
+  }, [uiState.visible]);
+
   const schema = useMemo(
-    () => createSchema(addTxStoreState.type, accountState.accounts),
-    [addTxStoreState.type, accountState.accounts],
+    () => createSchema(storeState.type, accountState.accounts),
+    [storeState.type, accountState.accounts],
   );
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildDefaults(currencyState.rate),
+    defaultValues: {
+      amount: 0,
+      accountId: '',
+      toAccountId: '',
+      categoryId: '',
+      note: '',
+      date: nowDateISO(),
+      exchangeRate: String(currencyState.rate),
+    },
   });
 
   const accountId = form.watch('accountId');
@@ -193,15 +204,12 @@ export function useAddTransaction(onClose: () => void) {
   const categoryId = form.watch('categoryId');
   const note = form.watch('note');
   const date = form.watch('date');
-  const time = form.watch('time');
   const exchangeRate = form.watch('exchangeRate');
 
   const selectedAccount = useMemo(
     () => accountState.accounts.find((a) => a.id === accountId) ?? null,
     [accountState.accounts, accountId],
   );
-  const isUSD = selectedAccount?.currency === Currency.USD;
-
   const selectedToAccount = useMemo(
     () => accountState.accounts.find((a) => a.id === toAccountId) ?? null,
     [accountState.accounts, toAccountId],
@@ -210,36 +218,40 @@ export function useAddTransaction(onClose: () => void) {
     () => categoryState.categories.find((c) => c.id === categoryId) ?? null,
     [categoryState.categories, categoryId],
   );
+
+  const isTransferOrCC =
+    storeState.type === TransactionType.Transfer || storeState.type === TransactionType.CCPayment;
+  const isUSD = selectedAccount?.currency === Currency.USD;
+  const isToUSD = selectedToAccount?.currency === Currency.USD;
+  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
+
   const visibleCategories = useMemo(
     () =>
       categoryState.categories.filter(
-        (c) => c.type === (addTxStoreState.type === TransactionType.Income ? 'income' : 'expense'),
+        (c) => c.type === (storeState.type === TransactionType.Income ? 'income' : 'expense'),
       ),
-    [categoryState.categories, addTxStoreState.type],
+    [categoryState.categories, storeState.type],
   );
 
-  // Picker eligibility:
-  //   CC payment: source = non-CC asset, target = CC.
-  //   Transfer:   neither side may be a CC (CC moves go through cc_payment).
-  //   Expense / Income: any account.
   const accountsForFrom = useMemo(() => {
     if (
-      addTxStoreState.type === TransactionType.CCPayment ||
-      addTxStoreState.type === TransactionType.Transfer
+      storeState.type === TransactionType.CCPayment ||
+      storeState.type === TransactionType.Transfer
     ) {
       return accountState.accounts.filter((a) => a.type !== AccountType.CreditCard);
     }
     return accountState.accounts;
-  }, [accountState.accounts, addTxStoreState.type]);
+  }, [accountState.accounts, storeState.type]);
+
   const accountsForTo = useMemo(() => {
-    if (addTxStoreState.type === TransactionType.CCPayment) {
+    if (storeState.type === TransactionType.CCPayment) {
       return accountState.accounts.filter((a) => a.type === AccountType.CreditCard);
     }
-    if (addTxStoreState.type === TransactionType.Transfer) {
+    if (storeState.type === TransactionType.Transfer) {
       return accountState.accounts.filter((a) => a.type !== AccountType.CreditCard);
     }
     return accountState.accounts;
-  }, [accountState.accounts, addTxStoreState.type]);
+  }, [accountState.accounts, storeState.type]);
 
   const errors = {
     amount: form.formState.errors.amount?.message,
@@ -249,32 +261,36 @@ export function useAddTransaction(onClose: () => void) {
     rate: form.formState.errors.exchangeRate?.message,
   };
 
-  // Sync numpad display string → RHF amount field
+  // Sync numpad → RHF amount
   useEffect(() => {
-    const parsed = parseFloat(addTxStoreState.amountStr);
+    const parsed = parseFloat(storeState.amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-  }, [addTxStoreState.amountStr]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeState.amountStr]);
 
-  // Clear only the type-dependent fields when type changes; preserve note/date/time/exchangeRate.
-  // (store already resets amountStr in setType)
+  // Clear type-dependent fields when type changes
   useEffect(() => {
     form.setValue('toAccountId', '');
     form.setValue('categoryId', '');
-  }, [addTxStoreState.type]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storeState.type]);
 
-  // When the sheet closes, reset the form and override flag so the next open starts clean.
+  // Reset form when sheet closes
   useEffect(() => {
-    if (!addTxState.visible) {
-      form.reset(buildDefaults(currencyState.rate));
+    if (!uiState.visible) {
+      form.reset({
+        amount: 0,
+        accountId: '',
+        toAccountId: '',
+        categoryId: '',
+        note: '',
+        date: nowDateISO(),
+        exchangeRate: String(currencyState.rate),
+      });
       setRateOverride(false);
     }
-  }, [addTxState.visible]);
-
-  const isTransferOrCC =
-    addTxStoreState.type === TransactionType.Transfer ||
-    addTxStoreState.type === TransactionType.CCPayment;
-  const isToUSD = selectedToAccount?.currency === Currency.USD;
-  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uiState.visible]);
 
   async function onValid(data: AddTransactionFormValues) {
     setSaving(true);
@@ -285,24 +301,26 @@ export function useAddTransaction(onClose: () => void) {
         data.exchangeRate && requiresRate ? parseFloat(data.exchangeRate) : undefined;
 
       const egp_amount =
-        fromCurrency === Currency.USD && parsedRate ? data.amount * parsedRate : data.amount;
+        fromCurrency === Currency.USD && parsedRate
+          ? roundMoney(data.amount * parsedRate)
+          : data.amount;
 
       let to_amount: number | undefined;
       if (isTransferOrCC && toCurrency !== undefined) {
         if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
-          to_amount = data.amount / parsedRate; // EGP → USD
+          to_amount = roundMoney(data.amount / parsedRate);
         } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
-          to_amount = egp_amount; // USD → EGP (EGP received = egp_amount)
+          to_amount = egp_amount;
         } else {
-          to_amount = data.amount; // same-currency (EGP→EGP or USD→USD)
+          to_amount = data.amount;
         }
-        if (addTxStoreState.type === TransactionType.CCPayment) {
-          to_amount = egp_amount; // CC debt is always EGP-denominated
+        if (storeState.type === TransactionType.CCPayment) {
+          to_amount = egp_amount;
         }
       }
 
       await addTransaction({
-        type: addTxStoreState.type,
+        type: storeState.type,
         amount: data.amount,
         currency: fromCurrency,
         egp_amount,
@@ -313,7 +331,7 @@ export function useAddTransaction(onClose: () => void) {
         category_id: !isTransferOrCC ? data.categoryId : undefined,
         note: data.note.trim() || undefined,
         transaction_date: data.date,
-        transaction_time: data.time,
+        transaction_time: openedTimeRef.current,
       });
       await loadAccounts();
       onClose();
@@ -325,11 +343,9 @@ export function useAddTransaction(onClose: () => void) {
   }
 
   function toggleRateOverride() {
-    const next = !addTxState.rateOverride;
+    const next = !uiState.rateOverride;
     setRateOverride(next);
-    if (!next) {
-      form.setValue('exchangeRate', String(currencyState.rate));
-    }
+    if (!next) form.setValue('exchangeRate', String(currencyState.rate));
   }
 
   function selectAccount(account: Account) {
@@ -357,36 +373,36 @@ export function useAddTransaction(onClose: () => void) {
 
   return {
     state: {
-      type: addTxStoreState.type,
-      amountStr: addTxStoreState.amountStr,
-      accountId,
+      type: storeState.type,
+      amountStr: storeState.amountStr,
       selectedAccount,
-      toAccountId,
       selectedToAccount,
-      categoryId,
       selectedCategory,
+      accountId,
+      toAccountId,
+      categoryId,
       date,
-      time,
       note,
       exchangeRate,
-      rateOverride: addTxState.rateOverride,
+      rateOverride: uiState.rateOverride,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
-      saving: addTxState.saving,
+      saving: uiState.saving,
       accounts: accountState.accounts,
+      hasAccounts: accountState.accounts.length > 0,
       accountsForFrom,
       accountsForTo,
       visibleCategories,
-      showAccountPicker: addTxState.showAccountPicker,
-      showToPicker: addTxState.showToPicker,
-      showCategoryPicker: addTxState.showCategoryPicker,
+      showAccountPicker: uiState.showAccountPicker,
+      showToPicker: uiState.showToPicker,
+      showCategoryPicker: uiState.showCategoryPicker,
+      rateUpdatedAt: currencyState.rate_updated_at,
     },
-    form,
     setType,
+    setAmountStr,
     handleNumpad,
     setDate: (v: string) => form.setValue('date', v),
-    setTime: (v: string) => form.setValue('time', v),
     setNote: (v: string) => form.setValue('note', v),
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
     toggleRateOverride,

@@ -1,4 +1,4 @@
-import { useAddTransactionState } from '@/screens/transactions/transaction_form_v2/add_transaction.state';
+import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
 
 describe('useAddTransactionState', () => {
   beforeEach(() => {

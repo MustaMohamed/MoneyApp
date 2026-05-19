@@ -93,13 +93,13 @@ jest.mock('@/screens/transactions/transaction_form/add_transaction.store', () =>
 // reach the real V2 hook implementation, which would loop against the simplified
 // useShallow mock at line 43. Mocks collapse to a single set at Task 27 cleanup
 // when V2 takes over the V1 path.
-jest.mock('@/screens/transactions/transaction_form_v2/add_transaction.state', () => ({
+jest.mock('@/screens/transactions/transaction_form/add_transaction.state', () => ({
   useAddTransactionState: Object.assign(
     jest.fn((sel: any) => sel(mockAddTxState)),
     { getState: jest.fn(() => mockAddTxState) },
   ),
 }));
-jest.mock('@/screens/transactions/transaction_form_v2/add_transaction.store', () => ({
+jest.mock('@/screens/transactions/transaction_form/add_transaction.store', () => ({
   useAddTransactionStore: { getState: jest.fn(() => mockAddTxStore) },
 }));
 
@@ -114,7 +114,7 @@ jest.mock('@/screens/transactions/filter/filter.state', () => ({
 jest.mock('@/screens/transactions/transaction_form', () => ({
   AddTransactionSheet: () => null,
 }));
-jest.mock('@/screens/transactions/transaction_form_v2', () => ({
+jest.mock('@/screens/transactions/transaction_form', () => ({
   AddTransactionSheet: () => null,
 }));
 jest.mock('@/screens/transactions/filter', () => ({ FilterSheet: () => null }));

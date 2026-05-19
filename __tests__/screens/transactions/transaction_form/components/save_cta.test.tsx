@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { SaveCta } from '@/screens/transactions/transaction_form_v2/components/save_cta';
+import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
 
 describe('SaveCta', () => {
   it('renders the provided label', () => {

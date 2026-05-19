@@ -55,16 +55,16 @@ jest.mock('@/screens/transactions/transaction_form/edit_transaction.store', () =
 // the real V2 EditTransactionSheet, which pulls in @gorhom/bottom-sheet via
 // the Sheet wrapper and trips the simplified reanimated mock. Mocks collapse
 // to a single set at Task 27 cleanup.
-jest.mock('@/screens/transactions/transaction_form_v2', () => ({
+jest.mock('@/screens/transactions/transaction_form', () => ({
   EditTransactionSheet: () => null,
 }));
-jest.mock('@/screens/transactions/transaction_form_v2/edit_transaction.state', () => ({
+jest.mock('@/screens/transactions/transaction_form/edit_transaction.state', () => ({
   useEditTransactionState: Object.assign(
     jest.fn(() => ({ state: { visible: false } })),
     { getState: () => ({ state: { visible: false }, close: jest.fn() }) },
   ),
 }));
-jest.mock('@/screens/transactions/transaction_form_v2/edit_transaction.store', () => ({
+jest.mock('@/screens/transactions/transaction_form/edit_transaction.store', () => ({
   useEditTransactionStore: Object.assign(
     jest.fn(() => ({ state: { editingTx: undefined } })),
     {

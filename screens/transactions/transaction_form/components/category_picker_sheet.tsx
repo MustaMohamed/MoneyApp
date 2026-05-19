@@ -1,22 +1,32 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef, FlatList } from 'react-native-actions-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { Sheet } from '@/components/ui/sheet';
+import { Text } from '@/components/ui/text';
+import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 
 interface Props {
   visible: boolean;
   title: string;
   categories: Category[];
-  selectedId?: string;
+  selectedId: string | undefined;
   onSelect: (category: Category) => void;
   onClose: () => void;
 }
 
-type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+// 4-column grid keeps cells tight enough that most phones fit 4-5 rows
+// before scroll is needed.
+const NUM_COLUMNS = 4;
+const GAP = 10;
+const PADDING = 12;
+
+function chunk<T>(arr: T[], n: number): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+}
 
 export function CategoryPickerSheet({
   visible,
@@ -25,123 +35,83 @@ export function CategoryPickerSheet({
   selectedId,
   onSelect,
   onClose,
-}: Props) {
-  const sheetRef = useRef<ActionSheetRef>(null);
+}: Props): React.ReactElement {
+  // Fixed cell width derived from the actual screen width keeps cells the
+  // SAME SIZE across every row. The previous `style={{ flex: 1 }}` approach
+  // worked for full rows but stretched the last partial row's items to fill
+  // the available width (22 expense cats → last row of 2 = 2× larger cells).
+  // Computing the width once here makes every cell identical and lets the
+  // last partial row centre via `justifyContent`.
+  const { width: screenWidth } = useWindowDimensions();
+  const cellWidth = (screenWidth - PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
-  useEffect(() => {
-    if (visible) sheetRef.current?.show();
-    else sheetRef.current?.hide();
-  }, [visible]);
+  const rows = chunk(categories, NUM_COLUMNS);
 
   return (
-    <ActionSheet
-      ref={sheetRef}
-      onClose={onClose}
-      gestureEnabled
-      useBottomSafeAreaPadding={false}
-      containerStyle={styles.sheet}
-      indicatorStyle={styles.handle}
-      snapPoints={[80]}
-    >
-      <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
-        <FlatList
-          data={categories}
-          keyExtractor={(c) => c.id}
-          numColumns={3}
-          columnWrapperStyle={styles.colWrapper}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => {
-            const isSelected = item.id === selectedId;
+    <Sheet visible={visible} onClose={onClose} title={title} size="lg">
+      <Sheet.Body>
+        <BottomSheetScrollView
+          contentContainerStyle={{ padding: PADDING, paddingBottom: 32, gap: GAP }}
+          showsVerticalScrollIndicator={false}
+        >
+          {rows.map((row, ri) => {
+            // Partial last row: centre the items instead of left-aligning so
+            // they read as "remaining cats" rather than "incomplete row".
+            const isPartial = row.length < NUM_COLUMNS;
             return (
-              <Pressable
-                style={({ pressed }) => [
-                  styles.cell,
-                  isSelected && styles.cellActive,
-                  pressed && styles.cellPressed,
-                ]}
-                onPress={() => onSelect(item)}
+              <View
+                key={ri}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: isPartial ? 'center' : 'flex-start',
+                  gap: GAP,
+                }}
               >
-                <View style={[styles.iconBox, { backgroundColor: item.color + '33' }]}>
-                  <MaterialCommunityIcons
-                    name={item.icon as MCIName}
-                    size={ms(22)}
-                    color={item.color}
-                  />
-                </View>
-                <Text style={styles.label} numberOfLines={2}>
-                  {item.name}
-                </Text>
-                {isSelected && (
-                  <View style={styles.check}>
-                    <MaterialCommunityIcons
-                      name="check-circle"
-                      size={ms(14)}
-                      color={Colors.shared.cairoGold}
-                    />
-                  </View>
-                )}
-              </Pressable>
+                {row.map((cat) => {
+                  const isSelected = cat.id === selectedId;
+                  // Icon colour: each category has its own colour (e.g. food =
+                  // warm orange, transport = blue). Selected wins with the gold
+                  // accent so the picker still has a clear "this one" signal.
+                  const iconColor = isSelected ? GoldTokens[500] : (cat.color ?? CoreTokens.text1);
+                  return (
+                    <Pressable
+                      key={cat.id}
+                      testID={`category-picker-cell-${cat.id}`}
+                      onPress={() => onSelect(cat)}
+                      style={{ width: cellWidth, aspectRatio: 1 }}
+                      className={`items-center justify-center rounded-md border ${isSelected ? 'border-accent bg-accent/10' : 'border-border bg-default'}`}
+                    >
+                      <MaterialCommunityIcons
+                        name={(cat.icon as any) ?? 'tag'}
+                        size={22}
+                        color={iconColor}
+                      />
+                      <Text
+                        className={`font-inter text-[10px] mt-1 ${isSelected ? 'text-accent' : 'text-foreground'}`}
+                        numberOfLines={1}
+                      >
+                        {cat.name}
+                      </Text>
+                      {isSelected ? (
+                        <View
+                          testID={`category-picker-cell-${cat.id}-selected`}
+                          className="absolute top-1 right-1"
+                        >
+                          <MaterialCommunityIcons
+                            name="check-circle"
+                            size={12}
+                            color={GoldTokens[500]}
+                          />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
+                })}
+              </View>
             );
-          }}
-        />
-      </View>
-    </ActionSheet>
+          })}
+        </BottomSheetScrollView>
+      </Sheet.Body>
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-  },
-  handle: {
-    backgroundColor: Colors.dark.border,
-    width: Size.sheetHandle.width,
-    height: Size.sheetHandle.height,
-  },
-  content: {
-    paddingHorizontal: Spacing.md,
-  },
-  title: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    marginBottom: Spacing.sm,
-    marginTop: Spacing.sm,
-  },
-  colWrapper: { gap: Spacing.xs, marginBottom: Spacing.xs },
-  listContent: { paddingBottom: Spacing.lg },
-  cell: {
-    flex: 1,
-    alignItems: 'center',
-    padding: Spacing.xs,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    gap: Spacing.xxs,
-  },
-  cellActive: {
-    borderColor: Colors.shared.cairoGold,
-  },
-  cellPressed: { opacity: 0.7 },
-  iconBox: {
-    width: ms(40),
-    height: ms(40),
-    borderRadius: ms(20),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  label: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  check: {
-    position: 'absolute',
-    top: Spacing.xxs,
-    right: Spacing.xxs,
-  },
-});

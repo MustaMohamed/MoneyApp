@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { CategoryPickerSheet } from '@/screens/transactions/transaction_form_v2/components/category_picker_sheet';
+import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
 import type { Category } from '@/database/entities/category.entity';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');

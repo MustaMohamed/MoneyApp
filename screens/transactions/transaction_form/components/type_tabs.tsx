@@ -1,78 +1,86 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
+import { tv } from 'tailwind-variants';
 
+import { Text } from '@/components/ui/text';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 
-const TABS: { type: TransactionType; label: string; color: string }[] = [
-  { type: TransactionType.Expense, label: Strings.addTxTypeExpense, color: Colors.dark.negative },
-  { type: TransactionType.Income, label: Strings.addTxTypeIncome, color: Colors.dark.positive },
-  { type: TransactionType.Transfer, label: Strings.addTxTypeTransfer, color: '#4A9EE0' },
-  { type: TransactionType.CCPayment, label: Strings.addTxTypeCCPayment, color: '#9B73D4' },
+const label = tv({
+  base: 'font-inter text-[13px]',
+  variants: {
+    active: { true: 'font-semibold', false: 'font-medium text-muted' },
+    type: {
+      expense: '',
+      income: '',
+      transfer: '',
+      cc_payment: '',
+    },
+  },
+  compoundVariants: [
+    { active: true, type: 'expense', class: 'text-danger' },
+    { active: true, type: 'income', class: 'text-success' },
+    { active: true, type: 'transfer', class: 'text-info' },
+    { active: true, type: 'cc_payment', class: 'text-accent-cc' },
+  ],
+});
+
+const indicator = tv({
+  variants: {
+    type: {
+      expense: 'bg-danger text-danger',
+      income: 'bg-success text-success',
+      transfer: 'bg-info text-info',
+      cc_payment: 'bg-accent-cc text-accent-cc',
+    },
+  },
+});
+
+const TABS: Array<{ type: TransactionType; label: string }> = [
+  { type: TransactionType.Expense, label: Strings.addTxTypeExpense },
+  { type: TransactionType.Income, label: Strings.addTxTypeIncome },
+  { type: TransactionType.Transfer, label: Strings.addTxTypeTransfer },
+  { type: TransactionType.CCPayment, label: Strings.addTxTypeCCPayment },
 ];
 
 interface Props {
   active: TransactionType;
-  onSelect: (type: TransactionType) => void;
-  disabled?: boolean;
+  onSelect: (t: TransactionType) => void;
+  disabled: boolean;
 }
 
-export function TypeTabs({ active, onSelect, disabled }: Props) {
+export function TypeTabs({ active, onSelect, disabled }: Props): React.ReactElement {
+  // The row owns the 1px bottom separator. Each active tab's 2px indicator
+  // absolutely positions at bottom: -1 so its bottom edge meets the row's
+  // bottom edge — the indicator visually sits ON the separator line, masking
+  // it across the active tab's width. This is the standard Material-tabs
+  // pattern; the previous implementation rendered the indicator INSIDE the
+  // tab content flow (with mt-1), producing two parallel horizontal lines.
   return (
-    <View style={styles.row}>
-      {TABS.map(({ type, label, color }) => {
+    <View style={{ flexDirection: 'row' }} className="border-b border-separator">
+      {TABS.map(({ type, label: lbl }) => {
         const isActive = type === active;
         return (
           <Pressable
             key={type}
-            style={[
-              styles.tab,
-              isActive && { borderBottomColor: color, borderBottomWidth: 2 },
-              disabled && !isActive && styles.tabDisabled,
-            ]}
-            onPress={() => !disabled && onSelect(type)}
-            hitSlop={4}
+            testID={`type-tab-${type}`}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive, disabled }}
+            disabled={disabled}
+            onPress={() => onSelect(type)}
+            style={{ position: 'relative' }}
+            className="flex-1 items-center justify-center py-3"
           >
-            <Text
-              style={[
-                styles.label,
-                isActive && { color },
-                disabled && !isActive && styles.labelDisabled,
-              ]}
-            >
-              {label}
-            </Text>
+            <Text className={label({ active: isActive, type })}>{lbl}</Text>
+            {isActive ? (
+              <View
+                testID={`type-tab-indicator-${type}`}
+                style={{ position: 'absolute', bottom: -1, left: 0, right: 0, height: 2 }}
+                className={indicator({ type })}
+              />
+            ) : null}
           </Pressable>
         );
       })}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-    marginHorizontal: -Spacing.md,
-    paddingHorizontal: Spacing.md,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  tabDisabled: {
-    opacity: 0.3,
-  },
-  label: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  labelDisabled: {
-    color: Colors.dark.text2,
-  },
-});

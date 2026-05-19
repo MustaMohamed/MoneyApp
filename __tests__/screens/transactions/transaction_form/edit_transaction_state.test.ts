@@ -1,4 +1,4 @@
-import { useEditTransactionState } from '@/screens/transactions/transaction_form_v2/edit_transaction.state';
+import { useEditTransactionState } from '@/screens/transactions/transaction_form/edit_transaction.state';
 
 describe('useEditTransactionState', () => {
   beforeEach(() => {

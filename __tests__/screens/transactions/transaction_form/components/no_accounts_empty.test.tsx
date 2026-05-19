@@ -1,6 +1,6 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
-import { NoAccountsEmpty } from '@/screens/transactions/transaction_form_v2/components/no_accounts_empty';
+import { NoAccountsEmpty } from '@/screens/transactions/transaction_form/components/no_accounts_empty';
 
 describe('NoAccountsEmpty', () => {
   it('renders the empty-state title and body', () => {

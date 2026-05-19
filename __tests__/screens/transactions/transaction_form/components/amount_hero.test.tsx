@@ -1,7 +1,7 @@
 import { fireEvent, render } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
-import { AmountHero } from '@/screens/transactions/transaction_form_v2/components/amount_hero';
+import { AmountHero } from '@/screens/transactions/transaction_form/components/amount_hero';
 
 // BottomSheetTextInput needs the BottomSheetModal provider at runtime; in
 // tests we substitute a plain RN TextInput so we can assert value/onChange

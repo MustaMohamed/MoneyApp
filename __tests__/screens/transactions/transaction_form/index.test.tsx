@@ -1,9 +1,6 @@
 import { render } from '@testing-library/react-native';
 
-import {
-  AddTransactionSheet,
-  EditTransactionSheet,
-} from '@/screens/transactions/transaction_form_v2';
+import { AddTransactionSheet, EditTransactionSheet } from '@/screens/transactions/transaction_form';
 import { useAccountStore } from '@/store/account.store';
 
 beforeEach(() => {

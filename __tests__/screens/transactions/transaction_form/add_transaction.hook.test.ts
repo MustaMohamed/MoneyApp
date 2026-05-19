@@ -5,9 +5,9 @@ import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useTransactionStore } from '@/store/transaction.store';
-import { useAddTransaction } from '@/screens/transactions/transaction_form_v2/add_transaction.hook';
-import { useAddTransactionState } from '@/screens/transactions/transaction_form_v2/add_transaction.state';
-import { useAddTransactionStore } from '@/screens/transactions/transaction_form_v2/add_transaction.store';
+import { useAddTransaction } from '@/screens/transactions/transaction_form/add_transaction.hook';
+import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
+import { useAddTransactionStore } from '@/screens/transactions/transaction_form/add_transaction.store';
 
 // AccountType.Cash does not exist in the enum; PhysicalWallet is a non-CC
 // asset type that satisfies all "non-credit-card" rules in the schema.

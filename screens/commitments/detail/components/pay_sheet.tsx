@@ -167,6 +167,13 @@ export function PaySheet({ commitment, payment }: Props) {
                 }}
                 overrideEnabled={true}
                 onToggleOverride={() => {}}
+                // V2 ExchangeRateRow added two required props in §7. Wire
+                // them in here: amount comes from the form (so the live
+                // EGP preview row renders alongside the rate input), and
+                // rateUpdatedAt drives the "Rate may be stale" warning
+                // when the stored rate is past the staleness window.
+                rateUpdatedAt={state.rateUpdatedAt}
+                amount={form.watch('amount') || 0}
                 error={rateError}
               />
             </View>

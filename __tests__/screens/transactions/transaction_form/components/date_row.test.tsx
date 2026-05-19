@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import { act, render, fireEvent } from '@testing-library/react-native';
 
-import { DateRow } from '@/screens/transactions/transaction_form_v2/components/date_row';
+import { DateRow } from '@/screens/transactions/transaction_form/components/date_row';
 
 // Render DateTimePicker as a plain View so onChange can be invoked directly
 // without hitting the native module's event-wrapper (which reads .timestamp
