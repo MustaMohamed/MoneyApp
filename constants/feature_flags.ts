@@ -14,9 +14,9 @@
  *    has merged to main. [sarah] enforces.
  */
 export const FeatureFlags = {
-    newOnboarding: false, // §2 — flip when Onboarding section lands
-    newSettings: false, // §4
-    newAddTransaction: true, // §7 (sheet)
-    newCommitments: false, // §8
-    newAccounts: false, // §9
+  newOnboarding: false, // §2 — flip when Onboarding section lands
+  newSettings: false, // §4
+  newAddTransaction: false, // §7 (sheet)
+  newCommitments: false, // §8
+  newAccounts: false, // §9
 } as const;
