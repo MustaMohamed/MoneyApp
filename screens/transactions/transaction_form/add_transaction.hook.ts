@@ -268,14 +268,14 @@ export function useAddTransaction(onClose: () => void) {
   useEffect(() => {
     const parsed = parseFloat(storeState.amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [storeState.amountStr]);
 
   // Clear type-dependent fields when type changes
   useEffect(() => {
     form.setValue('toAccountId', '');
     form.setValue('categoryId', '');
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [storeState.type]);
 
   // Reset form when sheet closes
@@ -292,7 +292,7 @@ export function useAddTransaction(onClose: () => void) {
       });
       setRateOverride(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [uiState.visible]);
 
   async function onValid(data: AddTransactionFormValues) {

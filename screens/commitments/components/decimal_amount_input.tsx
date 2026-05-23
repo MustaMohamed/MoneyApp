@@ -23,7 +23,7 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
       return;
     }
     if (parseFloat(state.text) !== value) syncToValue(String(value));
-  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps -- omit syncToValue/state.text to prevent sync loop
+  }, [value]); // oxlint-disable-line react-hooks/exhaustive-deps -- omit syncToValue/state.text to prevent sync loop
 
   return (
     <TextInput

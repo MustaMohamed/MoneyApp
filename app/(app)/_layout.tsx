@@ -27,7 +27,7 @@ export default function AppLayout() {
     loadRate()
       .then(() => fetchRate())
       .catch(() => {});
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, []); // run once on mount; all deps are stable Zustand store actions
 
   return (

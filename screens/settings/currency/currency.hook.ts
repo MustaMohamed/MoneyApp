@@ -38,7 +38,7 @@ export function useCurrencyScreen() {
     })),
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => resetState(), []); // cleanup on unmount only; resetState is a stable Zustand action
 
   const manualSchema = z.object({
