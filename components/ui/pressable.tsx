@@ -25,6 +25,7 @@ export function Pressable({
     <RNPressable
       className={cn(className)}
       hitSlop={hitSlop}
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- StyleProp<ViewStyle> includes array/null forms; casting for array composition is safe here
       style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }, style as ViewStyle]}
       {...props}
     >

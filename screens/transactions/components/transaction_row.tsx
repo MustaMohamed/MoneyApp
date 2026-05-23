@@ -11,6 +11,7 @@ import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
+import { toIconName } from '@/utils/icon_name_guard';
 
 import { useRowPressScale } from './transaction_row.anim';
 
@@ -98,7 +99,7 @@ function pickIcon(tx: Transaction, category?: Category): IconName {
   if (tx.type === TransactionType.Transfer) return 'swap-horizontal';
   if (tx.type === TransactionType.CCPayment) return 'credit-card-refund';
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- category can be undefined at runtime
-  return (category?.icon as IconName) ?? FALLBACK_ICON;
+  return toIconName(category?.icon, FALLBACK_ICON);
 }
 
 export function TransactionRow({

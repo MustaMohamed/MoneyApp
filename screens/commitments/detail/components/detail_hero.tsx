@@ -10,11 +10,10 @@ import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms, msFont } from '@/utils/responsive';
 
 import { heroEntering } from '../detail.anim';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
@@ -71,7 +70,7 @@ export function DetailHero({ commitment, category, payment, recurrenceLabel }: P
       />
       <View style={[styles.iconBox, { backgroundColor: tintBg }]}>
         <MaterialCommunityIcons
-          name={(category?.icon ?? 'tag-outline') as IconName}
+          name={toIconName(category?.icon, 'tag-outline')}
           size={ms(28)}
           color={iconColor}
         />

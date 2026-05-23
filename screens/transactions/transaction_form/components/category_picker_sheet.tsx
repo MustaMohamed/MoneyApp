@@ -6,6 +6,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
+import { toIconName } from '@/utils/icon_name_guard';
 
 interface Props {
   visible: boolean;
@@ -83,8 +84,7 @@ export function CategoryPickerSheet({
                       className={`items-center justify-center rounded-md border ${isSelected ? 'border-accent bg-accent/10' : 'border-border bg-default'}`}
                     >
                       <MaterialCommunityIcons
-                        // oxlint-disable-next-line typescript/no-explicit-any -- cat.icon is a DB-validated icon name string
-                        name={(cat.icon as any) ?? 'tag'}
+                        name={toIconName(cat.icon, 'tag')}
                         size={22}
                         color={iconColor}
                       />

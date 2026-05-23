@@ -109,7 +109,7 @@ export function AmountHero({
         // ref type comes from react-native-gesture-handler's TextInput while
         // our FocusableRef only describes the methods we call. Both refer to
         // the same runtime object — the cast is structural-only.
-        // oxlint-disable-next-line typescript/no-explicit-any -- structural cast for RNGH TextInput ref compatibility
+        // oxlint-disable-next-line typescript/no-explicit-any, typescript/no-unsafe-type-assertion -- structural cast for RNGH TextInput ref compatibility
         ref={inputRef as unknown as React.Ref<any>}
         testID="amount-hero-value"
         value={amountStr}

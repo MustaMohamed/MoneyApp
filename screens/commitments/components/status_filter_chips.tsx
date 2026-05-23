@@ -39,6 +39,7 @@ export function StatusFilterChips({ active, onChange }: Props) {
         {CHIPS.map((c) => (
           <Chip
             key={c.key}
+            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- labelKey values are hardcoded string literals from Strings keys; always defined
             label={Strings[c.labelKey] as string}
             isActive={active === c.key}
             onPress={() => onChange(c.key)}

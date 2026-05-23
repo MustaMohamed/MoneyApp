@@ -47,7 +47,7 @@ export default function WelcomeScreenV2() {
             style={{ flexDirection: 'row', width: '100%' }}
             className="gap-3"
           >
-            {(['EGP', 'USD'] as Currency[]).map((code) => (
+            {([Currency.EGP, Currency.USD] as const).map((code) => (
               <Pressable
                 key={code}
                 onPress={() => setSelected(code)}

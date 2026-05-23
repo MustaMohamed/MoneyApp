@@ -63,6 +63,7 @@ export default function DashboardScreen() {
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
 
   const onTabChange = useCallback(
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Tabs.onValueChange is string; tab values are always 'overview'|'accounts' per JSX
     (value: string) => setSelectedSegment(value as DashboardSegment),
     [setSelectedSegment],
   );

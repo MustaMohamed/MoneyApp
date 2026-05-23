@@ -12,6 +12,7 @@ import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -133,7 +134,7 @@ export function AddEditCategorySheet({
         reset({ name: editingCategory.name });
         initialize({
           type: editingCategory.type,
-          icon: editingCategory.icon as IconName,
+          icon: toIconName(editingCategory.icon, 'tag-outline'),
           color: editingCategory.color,
         });
       } else {

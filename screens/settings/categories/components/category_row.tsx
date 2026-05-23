@@ -7,9 +7,8 @@ import { Text } from '@/components/ui/text';
 // The constant remains in constants/enums.ts as a documented historical artifact.
 import { Colors, Radius, Size, Spacing } from '@/constants/theme';
 import type { Category } from '@/store/category.store';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface CategoryRowProps {
   category: Category;
@@ -34,7 +33,7 @@ export function CategoryRow({
       <View style={styles.left}>
         <View style={[styles.iconBox, { backgroundColor: category.color + '22' }]}>
           <MaterialCommunityIcons
-            name={category.icon as IconName}
+            name={toIconName(category.icon, 'tag-outline')}
             size={Size.iconSm}
             color={category.color}
           />

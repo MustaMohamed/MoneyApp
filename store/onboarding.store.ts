@@ -113,13 +113,16 @@ export async function loadOnboardingState(): Promise<{
 }
 
 function isOnboardingStep(v: string | null): v is OnboardingStep {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(OnboardingStep).includes(v as OnboardingStep);
 }
 
 function isCurrency(v: string | null): v is Currency {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(Currency).includes(v as Currency);
 }
 
 function isSecurityChoice(v: string | null): v is SecurityChoice {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(SecurityChoice).includes(v as SecurityChoice);
 }
