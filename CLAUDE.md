@@ -67,7 +67,7 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 
 ## Tech Stack
 
-Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (legacy, phasing out §4–§9; do NOT add new usages) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (installed; type-aware enabled in a follow-up PR)
+Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (legacy, phasing out §4–§9; do NOT add new usages) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
 
 ## Commands
 
