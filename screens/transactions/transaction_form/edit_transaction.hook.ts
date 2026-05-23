@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Currency, TransactionType } from '@/constants/enums';
+import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
@@ -107,7 +107,8 @@ export function useEditTransaction(
   const visibleCategories = useMemo(
     () =>
       categoryState.categories.filter(
-        (c) => c.type === (type === TransactionType.Income ? 'income' : 'expense'),
+        (c) =>
+          c.type === (type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
       ),
     [categoryState.categories, type],
   );

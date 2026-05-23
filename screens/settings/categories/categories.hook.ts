@@ -170,7 +170,9 @@ export function useCategories() {
    */
   const reassignOptions = catState.categories.filter(
     (c) =>
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
       c.type === catScreenDataState.categoryToDelete?.type &&
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
       c.id !== catScreenDataState.categoryToDelete?.id,
   );
 

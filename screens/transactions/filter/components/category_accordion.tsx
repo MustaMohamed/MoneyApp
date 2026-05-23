@@ -76,6 +76,7 @@ export function CategoryAccordion({
                 }
               >
                 <View
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
                   style={{ backgroundColor: c.color ?? '#888' }}
                   className="h-2 w-2 rounded-full"
                 />

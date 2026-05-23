@@ -56,7 +56,7 @@ const CATEGORY_ICONS: IconName[] = [
 
 export function createCategorySchema(
   categories: Category[],
-  activeTab: 'expense' | 'income',
+  activeTab: CategoryType,
   editingCategory?: Category | null,
 ) {
   const editingId = editingCategory?.id;
@@ -82,7 +82,7 @@ export function createCategorySchema(
 interface AddEditCategorySheetProps {
   visible: boolean;
   editingCategory: Category | null;
-  activeTab: 'expense' | 'income';
+  activeTab: CategoryType;
   onClose: () => void;
   onSave: (data: NewCategoryInput | UpdateCategoryInput) => Promise<void>;
 }
@@ -139,7 +139,7 @@ export function AddEditCategorySheet({
       } else {
         reset({ name: '' });
         initialize({
-          type: activeTab as CategoryType,
+          type: activeTab,
           icon: null,
           color: AccountColors[0],
         });
@@ -205,10 +205,10 @@ export function AddEditCategorySheet({
             <>
               <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
               <View style={styles.typeRow}>
-                {(['expense', 'income'] as const).map((t) => (
+                {([CategoryType.Expense, CategoryType.Income] as const).map((t) => (
                   <Pressable
                     key={t}
-                    onPress={() => setType(t as CategoryType)}
+                    onPress={() => setType(t)}
                     style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
                     accessibilityRole="button"
                     accessibilityState={{ selected: sheetState.type === t }}
@@ -219,7 +219,9 @@ export function AddEditCategorySheet({
                         sheetState.type === t && styles.typePillTextActive,
                       ]}
                     >
-                      {t === 'expense' ? Strings.categoriesTabExpense : Strings.categoriesTabIncome}
+                      {t === CategoryType.Expense
+                        ? Strings.categoriesTabExpense
+                        : Strings.categoriesTabIncome}
                     </Text>
                   </Pressable>
                 ))}

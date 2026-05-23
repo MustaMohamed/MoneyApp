@@ -91,13 +91,18 @@ export async function getAccountsStats(
   const result: Record<string, AccountStats> = {};
   for (const row of rows) {
     result[row.account_id] = {
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- SQL aggregates can return NULL even when typed non-nullable
       month_in: row.month_in ?? 0,
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- SQL aggregates can return NULL even when typed non-nullable
       month_out: row.month_out ?? 0,
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- SQL aggregates can return NULL even when typed non-nullable
       week_in: row.week_in ?? 0,
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- SQL aggregates can return NULL even when typed non-nullable
       week_out: row.week_out ?? 0,
     };
   }
   for (const id of accountIds) {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard for Record index access
     if (!result[id]) result[id] = { month_in: 0, month_out: 0, week_in: 0, week_out: 0 };
   }
   return result;

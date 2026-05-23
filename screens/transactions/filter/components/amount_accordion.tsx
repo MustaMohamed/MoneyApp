@@ -71,12 +71,12 @@ export function AmountAccordion({
       {expanded ? (
         <View className="mt-3">
           <View className="bg-background mb-3 flex-row gap-1.5 rounded-lg p-1">
-            {(['EGP', 'USD'] as const).map((c) => {
+            {([Currency.EGP, Currency.USD] as const).map((c) => {
               const sel = draft.amountCurrency === c;
               return (
                 <Pressable
                   key={c}
-                  onPress={() => onChangeCurrency(c as Currency)}
+                  onPress={() => onChangeCurrency(c)}
                   className={`flex-1 items-center rounded-md py-1.5 ${sel ? 'bg-default/40' : ''}`}
                 >
                   <Text

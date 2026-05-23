@@ -59,7 +59,7 @@ export default function WelcomeScreenV2() {
                     : 'border-border bg-default',
                 )}
               >
-                <Text className="text-[18px]">{code === 'EGP' ? '🇪🇬' : '🇺🇸'}</Text>
+                <Text className="text-[18px]">{code === Currency.EGP ? '🇪🇬' : '🇺🇸'}</Text>
                 <Text
                   variant="body"
                   className={cn(

@@ -5,7 +5,7 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
-import { TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -97,6 +97,7 @@ function iconBgClass(type: TransactionType): string {
 function pickIcon(tx: Transaction, category?: Category): IconName {
   if (tx.type === TransactionType.Transfer) return 'swap-horizontal';
   if (tx.type === TransactionType.CCPayment) return 'credit-card-refund';
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- category can be undefined at runtime
   return (category?.icon as IconName) ?? FALLBACK_ICON;
 }
 
@@ -114,7 +115,7 @@ export function TransactionRow({
   const note = tx.note?.trim() || null;
   const ctx = useMemo(() => accountContext(tx, account, toAccount), [tx, account, toAccount]);
 
-  const showEquiv = tx.currency !== 'EGP';
+  const showEquiv = tx.currency !== Currency.EGP;
   const equivPrefix =
     tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment ? '→ ' : '≈ ';
   const nativeText = `${signPrefix(tx.type)}${numberFmt.format(tx.amount)} ${tx.currency}`;

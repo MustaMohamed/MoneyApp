@@ -106,6 +106,7 @@ export function useTransactions() {
               return getPeriodTotals(db, { from: r.from, to: r.to });
             })()
           : null;
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
         if (!cancelled) setTotals({ current, previous });
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);

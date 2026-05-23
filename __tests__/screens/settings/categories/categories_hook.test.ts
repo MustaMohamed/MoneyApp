@@ -38,7 +38,7 @@ jest.mock('@/screens/settings/categories/categories.store', () => ({
 // ---------------------------------------------------------------------------
 import { act, renderHook } from '@testing-library/react-native';
 
-import { PROTECTED_CATEGORY_IDS } from '@/constants/enums';
+import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
 import { getCategoryTransactionCount } from '@/database/categories';
 import { getDb } from '@/database/client';
 import { useCategories } from '@/screens/settings/categories/categories.hook';
@@ -142,7 +142,7 @@ describe('useCategoriesScreenState — isDeleting', () => {
     realScreenState.getState().setShowAddSheet(true);
     realScreenState.getState().setShowDeleteConfirm(true);
     realScreenState.getState().setShowReassignSheet(true);
-    realScreenState.getState().setActiveTab('income');
+    realScreenState.getState().setActiveTab(CategoryType.Income);
     realScreenState.getState().reset();
     const { state } = realScreenState.getState();
     expect(state.isDeleting).toBe(false);

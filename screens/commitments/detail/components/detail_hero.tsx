@@ -44,7 +44,8 @@ export function DetailHero({ commitment, category, payment, recurrenceLabel }: P
   const isVariable = commitment.amount_type === AmountType.Variable;
   const isPaid = payment?.status === CommitmentPaymentStatus.Paid;
   const amount = isPaid
-    ? (payment?.amount_paid ?? payment?.amount_due ?? commitment.amount)
+    ? // oxlint-disable-next-line typescript/no-unnecessary-condition -- payment may be undefined at render time
+      (payment?.amount_paid ?? payment?.amount_due ?? commitment.amount)
     : (payment?.amount_due ?? commitment.amount);
   const showTilde = isVariable && !isPaid;
   const currency = payment?.currency ?? commitment.currency;

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
+import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import type { Category } from '@/store/category.store';
@@ -64,7 +65,7 @@ export default function CategoriesScreen() {
           gap: 3,
         }}
       >
-        {(['expense', 'income'] as const).map((tab) => (
+        {([CategoryType.Expense, CategoryType.Income] as const).map((tab) => (
           <Pressable
             key={tab}
             onPress={() => setActiveTab(tab)}
@@ -85,7 +86,9 @@ export default function CategoriesScreen() {
                   : 'text-muted font-inter-medium text-base'
               }
             >
-              {tab === 'expense' ? Strings.categoriesTabExpense : Strings.categoriesTabIncome}
+              {tab === CategoryType.Expense
+                ? Strings.categoriesTabExpense
+                : Strings.categoriesTabIncome}
             </Text>
           </Pressable>
         ))}

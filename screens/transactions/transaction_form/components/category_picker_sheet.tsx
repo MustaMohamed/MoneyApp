@@ -72,6 +72,7 @@ export function CategoryPickerSheet({
                   // Icon colour: each category has its own colour (e.g. food =
                   // warm orange, transport = blue). Selected wins with the gold
                   // accent so the picker still has a clear "this one" signal.
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- cat.color can be null despite type
                   const iconColor = isSelected ? GoldTokens[500] : (cat.color ?? CoreTokens.text1);
                   return (
                     <Pressable

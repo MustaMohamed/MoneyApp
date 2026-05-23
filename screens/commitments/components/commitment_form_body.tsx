@@ -208,6 +208,7 @@ export function CommitmentFormBody({
             render={({ field: { value, onChange, onBlur } }) => (
               <TextInput
                 style={styles.textInput}
+                // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
                 value={value ?? ''}
                 onChangeText={onChange}
                 onBlur={onBlur}

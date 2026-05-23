@@ -119,7 +119,7 @@ function makeSheetStateMock(
 const defaultProps = {
   visible: true,
   editingCategory: null as Category | null,
-  activeTab: 'expense' as const,
+  activeTab: CategoryType.Expense,
   onClose: jest.fn(),
   onSave: jest.fn().mockResolvedValue(undefined),
 };
@@ -276,14 +276,14 @@ describe('createCategorySchema — BLOCKER-1: max name length', () => {
   const categories: Category[] = [];
 
   it('accepts a name exactly 50 characters long', () => {
-    const schema = createCategorySchema(categories, 'expense');
+    const schema = createCategorySchema(categories, CategoryType.Expense);
     const name50 = 'A'.repeat(50);
     const result = schema.safeParse({ name: name50 });
     expect(result.success).toBe(true);
   });
 
   it('rejects a name that is 51 characters long with the too-long error', () => {
-    const schema = createCategorySchema(categories, 'expense');
+    const schema = createCategorySchema(categories, CategoryType.Expense);
     const name51 = 'A'.repeat(51);
     const result = schema.safeParse({ name: name51 });
     expect(result.success).toBe(false);
@@ -312,14 +312,14 @@ describe('createCategorySchema — BLOCKER-2: (name, type) scoped uniqueness', (
 
   it('allows same name across different types (Food expense + Food income both accepted)', () => {
     // expenseFood exists; we're adding an income category named "Food"
-    const schema = createCategorySchema([expenseFood], 'income');
+    const schema = createCategorySchema([expenseFood], CategoryType.Income);
     const result = schema.safeParse({ name: 'Food' });
     expect(result.success).toBe(true);
   });
 
   it('rejects same name within same type', () => {
     // expenseFood exists; we're adding another expense category named "Food"
-    const schema = createCategorySchema([expenseFood], 'expense');
+    const schema = createCategorySchema([expenseFood], CategoryType.Expense);
     const result = schema.safeParse({ name: 'Food' });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -329,7 +329,7 @@ describe('createCategorySchema — BLOCKER-2: (name, type) scoped uniqueness', (
   });
 
   it('duplicate check is case-insensitive within same type', () => {
-    const schema = createCategorySchema([expenseFood], 'expense');
+    const schema = createCategorySchema([expenseFood], CategoryType.Expense);
     const result = schema.safeParse({ name: 'food' });
     expect(result.success).toBe(false);
   });
@@ -337,7 +337,7 @@ describe('createCategorySchema — BLOCKER-2: (name, type) scoped uniqueness', (
   it('when editing, uses the editing category type (not activeTab) for scoping', () => {
     // editingCategory is expense "Food"; activeTab is "income" (stale/irrelevant).
     // Editing the same category — should not flag itself as duplicate.
-    const schema = createCategorySchema([expenseFood], 'income', expenseFood);
+    const schema = createCategorySchema([expenseFood], CategoryType.Income, expenseFood);
     const result = schema.safeParse({ name: 'Food' });
     expect(result.success).toBe(true);
   });
@@ -357,7 +357,11 @@ describe('createCategorySchema — BLOCKER-2: (name, type) scoped uniqueness', (
     };
     // editingCategory is expenseFood; renaming it to "Travel" should be rejected
     // because expenseTravel exists in the same type.
-    const schema = createCategorySchema([expenseFood, expenseTravel], 'income', expenseFood);
+    const schema = createCategorySchema(
+      [expenseFood, expenseTravel],
+      CategoryType.Income,
+      expenseFood,
+    );
     const result = schema.safeParse({ name: 'Travel' });
     expect(result.success).toBe(false);
     if (!result.success) {

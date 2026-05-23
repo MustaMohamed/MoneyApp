@@ -95,6 +95,7 @@ export async function loadOnboardingState(): Promise<{
   // Force-restart: if the new-onboarding flag is enabled and the persisted step is from
   // the old O* flow, restart from N1. This handles the flag-flip moment for testers.
   // No production users will be affected during the §2 window (flag ships as false).
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- intentional dead code guard; flag will flip when §2 ships
   if (FeatureFlags.newOnboarding && step.startsWith('O')) {
     step = OnboardingStep.N1;
     await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, OnboardingStep.N1);
