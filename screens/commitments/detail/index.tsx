@@ -2,18 +2,17 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/ui/back_button';
-
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-import { useCommitmentDetail } from './detail.hook';
 import { CurrentCycleCard } from './components/current_cycle_card';
-import { DetailsCard } from './components/details_card';
 import { DetailHero } from './components/detail_hero';
-import { PaymentHistory } from './components/payment_history';
+import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
+import { PaymentHistory } from './components/payment_history';
 import { SkipConfirmDialog } from './components/skip_confirm_dialog';
+import { useCommitmentDetail } from './detail.hook';
 
 export default function CommitmentDetailScreen() {
   const { state, confirmSkip, skipPayment, cancelSkip, openPaySheet, goToEdit, goBack } =

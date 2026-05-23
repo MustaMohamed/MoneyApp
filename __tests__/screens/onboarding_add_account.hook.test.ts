@@ -1,8 +1,8 @@
 import { renderHook } from '@testing-library/react-native';
 
+import { useAddAccount } from '@/screens/onboarding/add_account/add_account.hook';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useAddAccount } from '@/screens/onboarding/add_account/add_account.hook';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({

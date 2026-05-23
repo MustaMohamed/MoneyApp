@@ -2,9 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated, { type EntryOrExitLayoutType } from 'react-native-reanimated';
 
+import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { AccountType } from '@/constants/enums';
 import type { Account } from '@/store/account.store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];

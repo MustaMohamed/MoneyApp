@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+
 import { MIGRATIONS } from '@/database/migrations';
 
 let db: ReturnType<typeof Database>;

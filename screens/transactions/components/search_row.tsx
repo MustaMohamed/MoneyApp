@@ -1,6 +1,6 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
@@ -21,7 +21,7 @@ export function SearchRow({
   activeFilterCount,
 }: Props): React.ReactElement {
   return (
-    <View className="px-4 mt-3 flex-row items-center gap-2">
+    <View className="mt-3 flex-row items-center gap-2 px-4">
       <View className="flex-1">
         <Input
           value={value}
@@ -35,7 +35,7 @@ export function SearchRow({
           <Pressable
             onPress={onClear}
             accessibilityLabel="Clear search"
-            className="absolute right-2 top-2.5 w-7 h-7 items-center justify-center"
+            className="absolute top-2.5 right-2 h-7 w-7 items-center justify-center"
           >
             <MaterialCommunityIcons name="close-circle" size={16} color="#999" />
           </Pressable>
@@ -45,12 +45,12 @@ export function SearchRow({
         onPress={onOpenFilter}
         accessibilityRole="button"
         accessibilityLabel={`Filter${activeFilterCount > 0 ? `, ${activeFilterCount} active` : ''}`}
-        className="w-10 h-10 rounded-xl bg-default/40 items-center justify-center relative"
+        className="bg-default/40 relative h-10 w-10 items-center justify-center rounded-xl"
       >
         <MaterialCommunityIcons name="tune-variant" size={18} color="#F0EEE6" />
         {activeFilterCount > 0 ? (
-          <View className="absolute -top-1 -right-1 px-1.5 rounded-full bg-accent min-w-[16px] items-center">
-            <Text className="font-inter font-bold text-[9px] text-accent-foreground">
+          <View className="bg-accent absolute -top-1 -right-1 min-w-[16px] items-center rounded-full px-1.5">
+            <Text className="font-inter text-accent-foreground text-[9px] font-bold">
               {activeFilterCount}
             </Text>
           </View>

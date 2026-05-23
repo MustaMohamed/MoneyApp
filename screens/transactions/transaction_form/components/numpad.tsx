@@ -21,7 +21,7 @@ export function Numpad({ onPress }: Props): React.ReactElement {
   return (
     <View className="px-4 pb-4">
       {ROWS.map((row, ri) => (
-        <View key={ri} style={{ flexDirection: 'row' }} className="gap-2 mt-2">
+        <View key={ri} style={{ flexDirection: 'row' }} className="mt-2 gap-2">
           {row.map((key) => {
             if (key === 'decimal') {
               return (
@@ -29,9 +29,9 @@ export function Numpad({ onPress }: Props): React.ReactElement {
                   key="decimal"
                   testID="numpad-key-decimal"
                   onPress={() => onPress('decimal')}
-                  className="flex-1 h-14 rounded-md bg-default items-center justify-center"
+                  className="bg-default h-14 flex-1 items-center justify-center rounded-md"
                 >
-                  <Text className="font-sora font-semibold text-[20px] text-foreground">.</Text>
+                  <Text className="font-sora text-foreground text-[20px] font-semibold">.</Text>
                 </Pressable>
               );
             }
@@ -41,7 +41,7 @@ export function Numpad({ onPress }: Props): React.ReactElement {
                   key="backspace"
                   testID="numpad-key-backspace"
                   onPress={() => onPress('backspace')}
-                  className="flex-1 h-14 rounded-md bg-default items-center justify-center"
+                  className="bg-default h-14 flex-1 items-center justify-center rounded-md"
                 >
                   <MaterialCommunityIcons
                     name="backspace-outline"
@@ -56,9 +56,9 @@ export function Numpad({ onPress }: Props): React.ReactElement {
                 key={key}
                 testID={`numpad-key-${key}`}
                 onPress={() => onPress('digit', key)}
-                className="flex-1 h-14 rounded-md bg-default items-center justify-center"
+                className="bg-default h-14 flex-1 items-center justify-center rounded-md"
               >
-                <Text className="font-sora font-semibold text-[20px] text-foreground">{key}</Text>
+                <Text className="font-sora text-foreground text-[20px] font-semibold">{key}</Text>
               </Pressable>
             );
           })}

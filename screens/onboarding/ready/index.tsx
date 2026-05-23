@@ -7,8 +7,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useReady } from './ready.hook';
+
 import { useReadyAnim } from './ready.anim';
+import { useReady } from './ready.hook';
 
 export default function ReadyScreen() {
   const { state, handleComplete } = useReady();

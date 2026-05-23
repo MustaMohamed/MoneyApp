@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { Pressable, RefreshControl, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'heroui-native';
+import React, { useCallback, useEffect, useMemo } from 'react';
+import { Pressable, RefreshControl, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -11,16 +11,17 @@ import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
-import type { DashboardSegment } from './types';
-import { useDashboard } from './dashboard.hook';
-import { useDashboardAnim } from './dashboard.anim';
-import { TotalBalanceStrip } from './components/total_balance_strip';
-import { HeroCard } from './components/hero_card';
-import { StatCards } from './components/stat_cards';
-import { CommitmentsCard } from './components/commitments_card';
-import { SectionHeader } from './components/section_header';
+
 import { AccountCarousel } from './components/account_carousel';
+import { CommitmentsCard } from './components/commitments_card';
+import { HeroCard } from './components/hero_card';
 import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
+import { SectionHeader } from './components/section_header';
+import { StatCards } from './components/stat_cards';
+import { TotalBalanceStrip } from './components/total_balance_strip';
+import { useDashboardAnim } from './dashboard.anim';
+import { useDashboard } from './dashboard.hook';
+import type { DashboardSegment } from './types';
 
 const TYPE_ORDER: AccountType[] = [
   AccountType.Bank,
@@ -103,7 +104,7 @@ export default function DashboardScreen() {
           onPress={goToSettings}
           accessibilityRole="button"
           accessibilityLabel="Settings"
-          className="items-center justify-center rounded-lg bg-surface border border-border"
+          className="bg-surface border-border items-center justify-center rounded-lg border"
           style={{ width: Size.backBtn, height: Size.backBtn }}
         >
           <MaterialCommunityIcons name="cog" size={Size.iconMd} color={Colors.dark.text2} />

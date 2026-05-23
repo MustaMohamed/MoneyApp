@@ -11,6 +11,7 @@ import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { ms, msFont } from '@/utils/responsive';
+
 import { heroEntering } from '../detail.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];

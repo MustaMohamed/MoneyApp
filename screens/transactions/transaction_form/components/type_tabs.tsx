@@ -56,7 +56,7 @@ export function TypeTabs({ active, onSelect, disabled }: Props): React.ReactElem
   // pattern; the previous implementation rendered the indicator INSIDE the
   // tab content flow (with mt-1), producing two parallel horizontal lines.
   return (
-    <View style={{ flexDirection: 'row' }} className="border-b border-separator">
+    <View style={{ flexDirection: 'row' }} className="border-separator border-b">
       {TABS.map(({ type, label: lbl }) => {
         const isActive = type === active;
         return (

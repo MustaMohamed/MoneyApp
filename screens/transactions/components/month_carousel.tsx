@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView } from 'react-native';
 
-import { Strings } from '@/constants/strings';
 import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
+
 import {
   computeCarouselPills,
   type CarouselPill,
@@ -107,15 +108,15 @@ export function MonthCarousel({
             accessibilityState={{ selected }}
             className={
               selected
-                ? 'px-2.5 py-1.5 rounded-full bg-accent'
-                : 'px-2.5 py-1.5 rounded-full bg-default/40'
+                ? 'bg-accent rounded-full px-2.5 py-1.5'
+                : 'bg-default/40 rounded-full px-2.5 py-1.5'
             }
           >
             <Text
               className={
                 selected
-                  ? 'font-inter font-bold text-[11px] text-accent-foreground'
-                  : 'font-inter font-medium text-[11px] text-foreground/60'
+                  ? 'font-inter text-accent-foreground text-[11px] font-bold'
+                  : 'font-inter text-foreground/60 text-[11px] font-medium'
               }
             >
               {label}

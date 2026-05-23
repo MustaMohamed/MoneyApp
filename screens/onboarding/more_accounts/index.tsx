@@ -6,9 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ProgressDots } from '@/components/progress_dots';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useMoreAccounts } from './more_accounts.hook';
-import { useMoreAccountsAnim } from './more_accounts.anim';
+
 import { AccountRow } from './components/account_row';
+import { useMoreAccountsAnim } from './more_accounts.anim';
+import { useMoreAccounts } from './more_accounts.hook';
 
 export default function MoreAccountsScreen() {
   const { accounts, initialCount, handleAddAnother, handleDone } = useMoreAccounts();

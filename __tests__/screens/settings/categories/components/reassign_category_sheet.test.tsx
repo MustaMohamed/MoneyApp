@@ -67,15 +67,16 @@ const mockGetState = {
   }),
 };
 
+import { act, fireEvent, render } from '@testing-library/react-native';
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
 import React from 'react';
-import { act, fireEvent, render } from '@testing-library/react-native';
+
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { ReassignCategorySheet } from '@/screens/settings/categories/components/reassign_category_sheet';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
-import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import type { Category } from '@/store/category.store';
 
 // Attach getState to the mock (used by handleClose in the component)

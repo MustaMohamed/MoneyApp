@@ -1,6 +1,6 @@
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import React, { useState, useEffect } from 'react';
 import { Platform, Pressable, View } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
@@ -49,7 +49,7 @@ export function DateRangeSheet({
       title={Strings.dateRangePickerTitle}
       snapPoints={['55%']}
       footer={
-        <View className="px-4 pt-3 pb-6 flex-row gap-2">
+        <View className="flex-row gap-2 px-4 pt-3 pb-6">
           <View className="flex-1">
             <Button variant="ghost" label={Strings.dateRangePickerCancel} onPress={onClose} />
           </View>
@@ -79,7 +79,7 @@ export function DateRangeSheet({
               accessibilityRole="button"
               accessibilityLabel="Reset date range"
             >
-              <Text className="font-inter font-semibold text-[12px] text-accent">
+              <Text className="font-inter text-accent text-[12px] font-semibold">
                 {Strings.filterReset}
               </Text>
             </Pressable>
@@ -102,7 +102,7 @@ export function DateRangeSheet({
         */}
         {visible ? (
           <View className="px-4 py-2">
-            <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/60 mb-1">
+            <Text className="font-inter text-foreground/60 mb-1 text-[10px] font-semibold uppercase">
               {Strings.dateRangePickerFromLabel}
             </Text>
             {Platform.OS === 'ios' ? (
@@ -118,9 +118,9 @@ export function DateRangeSheet({
                 <Pressable
                   testID="date-range-from-trigger"
                   onPress={() => setShowFromPicker(true)}
-                  className="border border-border bg-default/30 rounded-lg px-3 py-3"
+                  className="border-border bg-default/30 rounded-lg border px-3 py-3"
                 >
-                  <Text className="font-inter text-[14px] text-foreground">
+                  <Text className="font-inter text-foreground text-[14px]">
                     {formatLongDate(toLocalDateString(from))}
                   </Text>
                 </Pressable>
@@ -138,7 +138,7 @@ export function DateRangeSheet({
                 ) : null}
               </>
             )}
-            <Text className="font-inter font-semibold text-[10px] uppercase text-foreground/60 mt-4 mb-1">
+            <Text className="font-inter text-foreground/60 mt-4 mb-1 text-[10px] font-semibold uppercase">
               {Strings.dateRangePickerToLabel}
             </Text>
             {Platform.OS === 'ios' ? (
@@ -155,9 +155,9 @@ export function DateRangeSheet({
                 <Pressable
                   testID="date-range-to-trigger"
                   onPress={() => setShowToPicker(true)}
-                  className="border border-border bg-default/30 rounded-lg px-3 py-3"
+                  className="border-border bg-default/30 rounded-lg border px-3 py-3"
                 >
-                  <Text className="font-inter text-[14px] text-foreground">
+                  <Text className="font-inter text-foreground text-[14px]">
                     {formatLongDate(toLocalDateString(to))}
                   </Text>
                 </Pressable>

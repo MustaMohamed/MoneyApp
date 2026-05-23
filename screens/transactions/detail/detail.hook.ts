@@ -5,14 +5,14 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { Transaction } from '@/database/entities/transaction.entity';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useTransactionStore } from '@/store/transaction.store';
-import type { Transaction } from '@/database/entities/transaction.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
-import type { BadgeTone } from './components/detail_row';
 
+import type { BadgeTone } from './components/detail_row';
 import { getAccountTypeIcon } from './detail.helpers';
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';

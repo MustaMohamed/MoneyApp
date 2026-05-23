@@ -49,6 +49,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Log oxlint version
+        run: npx oxlint --version
       - run: npm run lint
 
   format:
@@ -63,6 +65,8 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
+      - name: Log oxfmt version
+        run: npx oxfmt --version
       - run: npm run format:check
 
   doctor:

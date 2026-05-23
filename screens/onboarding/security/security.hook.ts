@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
-import { backOrReplace } from '@/utils/onboarding_nav';
 import { OnboardingStep, SecurityChoice } from '@/constants/enums';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useSecurityStore } from './security.store';
+import { backOrReplace } from '@/utils/onboarding_nav';
+
 import { canProceed } from './security.helpers';
+import { useSecurityStore } from './security.store';
 
 export function useSecurity() {
   const router = useRouter();

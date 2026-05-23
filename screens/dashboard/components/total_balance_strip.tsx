@@ -1,6 +1,6 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Text as RNText, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
@@ -14,7 +14,7 @@ interface TotalBalanceStripProps {
 
 export function TotalBalanceStrip({ assetsEgp, accountsCount }: TotalBalanceStripProps) {
   return (
-    <View className="mx-4 mt-2 mb-2 rounded-2xl overflow-hidden border border-border">
+    <View className="border-border mx-4 mt-2 mb-2 overflow-hidden rounded-2xl border">
       <LinearGradient
         colors={[Colors.shared.heroGrad1, Colors.shared.heroGrad2]}
         start={{ x: 0.1, y: 0 }}
@@ -28,18 +28,18 @@ export function TotalBalanceStrip({ assetsEgp, accountsCount }: TotalBalanceStri
         }}
       >
         <View>
-          <RNText className="text-muted uppercase tracking-wide text-xs">
+          <RNText className="text-muted text-xs tracking-wide uppercase">
             {Strings.dashboardTotalBalance}
           </RNText>
-          <RNText className="text-2xl font-bold text-accent mt-1">
-            {formatAmount(assetsEgp)} <RNText className="text-base text-muted">EGP</RNText>
+          <RNText className="text-accent mt-1 text-2xl font-bold">
+            {formatAmount(assetsEgp)} <RNText className="text-muted text-base">EGP</RNText>
           </RNText>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
-          <RNText className="text-muted uppercase tracking-wide text-xs">
+          <RNText className="text-muted text-xs tracking-wide uppercase">
             {Strings.dashboardAccountsLabel}
           </RNText>
-          <RNText className="text-base font-semibold text-foreground mt-1">
+          <RNText className="text-foreground mt-1 text-base font-semibold">
             {String(accountsCount)}
           </RNText>
         </View>

@@ -1,5 +1,5 @@
-import { Platform } from 'react-native';
 import { act, render, fireEvent } from '@testing-library/react-native';
+import { Platform } from 'react-native';
 
 import { DateRow } from '@/screens/transactions/transaction_form/components/date_row';
 

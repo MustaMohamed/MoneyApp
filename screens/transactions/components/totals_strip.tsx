@@ -1,10 +1,11 @@
 import React from 'react';
 import { View } from 'react-native';
 
-import { Strings } from '@/constants/strings';
 import { Text } from '@/components/ui/text';
-import { computeDeltaPct, polarityColor, type TotalsMetric } from '../transactions.helpers';
+import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/database/transactions';
+
+import { computeDeltaPct, polarityColor, type TotalsMetric } from '../transactions.helpers';
 
 interface Props {
   current: PeriodTotals;
@@ -43,7 +44,7 @@ function Cell({
 }): React.ReactElement {
   return (
     <View className={`flex-1 rounded-xl border px-3 py-2.5 ${cellClass}`}>
-      <Text className="font-inter font-semibold text-[9px] tracking-wide uppercase text-foreground/55">
+      <Text className="font-inter text-foreground/55 text-[9px] font-semibold tracking-wide uppercase">
         {label}
       </Text>
       <View
@@ -56,7 +57,7 @@ function Cell({
         }}
       >
         <Text
-          className={`font-sora font-bold text-[15px] ${valueClass}`}
+          className={`font-sora text-[15px] font-bold ${valueClass}`}
           style={{ flexShrink: 1 }}
           numberOfLines={1}
           adjustsFontSizeToFit
@@ -82,7 +83,7 @@ export function TotalsStrip({ current, previous, previousLabel }: Props): React.
   const netDelta = previous ? computeDeltaPct(current.netEgp, previous.netEgp) : null;
 
   return (
-    <View className="px-4 mt-3">
+    <View className="mt-3 px-4">
       <View style={{ flexDirection: 'row', gap: 8 }}>
         <Cell
           label={Strings.totalsIncome}
@@ -110,7 +111,7 @@ export function TotalsStrip({ current, previous, previousLabel }: Props): React.
         />
       </View>
       {previousLabel ? (
-        <Text className="text-center font-inter text-[9px] tracking-wide uppercase text-foreground/45 mt-2.5">
+        <Text className="font-inter text-foreground/45 mt-2.5 text-center text-[9px] tracking-wide uppercase">
           {Strings.totalsVsPrev(previousLabel)}
         </Text>
       ) : null}

@@ -1,11 +1,12 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+
 import { CommitmentFormBody } from '../components/commitment_form_body';
-import { useEditCommitment } from './edit_commitment.hook';
 import { DeactivateDialog } from './components/deactivate_dialog';
+import { useEditCommitment } from './edit_commitment.hook';
 
 export default function EditCommitmentScreen() {
   const { state, form, onSubmit, handleDeactivate, confirmDeactivate, cancelDeactivate } =

@@ -1,11 +1,11 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, usePathname } from 'expo-router';
+import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors, Size } from '@/constants/theme';
 import { FAB } from '@/components/ui/fab';
+import { Colors, Size } from '@/constants/theme';
 import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 

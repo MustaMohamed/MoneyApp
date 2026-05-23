@@ -31,7 +31,7 @@ function collectRouteFiles(dir) {
 
 const relFiles = collectRouteFiles(appDir).map((f) => './' + path.relative(appDir, f));
 
-function ctx(key) {
+function ctx(_key) {
   return {};
 }
 ctx.keys = () => relFiles;

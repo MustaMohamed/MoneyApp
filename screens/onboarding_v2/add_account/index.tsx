@@ -1,8 +1,8 @@
+import { cn } from 'heroui-native';
 import React from 'react';
+import { Controller, useWatch } from 'react-hook-form';
 import { Switch } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Controller, useWatch } from 'react-hook-form';
-import { cn } from 'heroui-native';
 
 import { ProgressDots } from '@/components/progress_dots';
 import { BackButton } from '@/components/ui/back_button';
@@ -12,11 +12,12 @@ import { Input } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { Strings } from '@/constants/strings';
 import { AccountType, Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
-import { useAddAccountV2, ACCOUNT_COLORS } from './add_account.hook';
+
 import { useAddAccountAnim } from './add_account.anim';
+import { useAddAccountV2, ACCOUNT_COLORS } from './add_account.hook';
 import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
 const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
@@ -54,7 +55,7 @@ export default function AddAccountScreenV2() {
         <Text variant="title" className="font-soraBold">
           {Strings.o4Title}
         </Text>
-        <Box className="w-9 h-9" />
+        <Box className="h-9 w-9" />
       </Box>
 
       <ProgressDots totalSteps={4} currentStep={2} />
@@ -64,7 +65,7 @@ export default function AddAccountScreenV2() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Account Type */}
-        <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
+        <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
           {Strings.o4SectionType}
         </Text>
         <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
@@ -80,7 +81,7 @@ export default function AddAccountScreenV2() {
 
         {/* Account Name */}
         <Box className="pt-1">
-          <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
+          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionName}
           </Text>
           <Controller
@@ -101,7 +102,7 @@ export default function AddAccountScreenV2() {
             <Animated.Text
               entering={errorEntering}
               exiting={errorExiting}
-              className="text-negative font-inter text-[12px] mt-1"
+              className="text-negative font-inter mt-1 text-[12px]"
             >
               {errors.name.message}
             </Animated.Text>
@@ -110,7 +111,7 @@ export default function AddAccountScreenV2() {
 
         {/* Currency */}
         <Box className="pt-1">
-          <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
+          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionCurrency}
           </Text>
           <Box style={{ flexDirection: 'row' }} className="gap-2">
@@ -120,7 +121,7 @@ export default function AddAccountScreenV2() {
                 onPress={() => form.setValue('currency', code)}
                 style={{ flex: 1 }}
                 className={cn(
-                  'py-3 px-3 rounded-[10px] border-[1.5px] items-center justify-center',
+                  'items-center justify-center rounded-[10px] border-[1.5px] px-3 py-3',
                   selectedCurrency === code
                     ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
                     : 'border-border bg-default',
@@ -142,7 +143,7 @@ export default function AddAccountScreenV2() {
 
         {/* Balance */}
         <Box className="pt-1">
-          <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
+          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionBalance}
           </Text>
           <Controller
@@ -163,7 +164,7 @@ export default function AddAccountScreenV2() {
             <Animated.Text
               entering={errorEntering}
               exiting={errorExiting}
-              className="text-negative font-inter text-[12px] mt-1"
+              className="text-negative font-inter mt-1 text-[12px]"
             >
               {errors.balance.message}
             </Animated.Text>
@@ -172,7 +173,7 @@ export default function AddAccountScreenV2() {
 
         {/* Color picker */}
         <Box className="pt-1">
-          <Text variant="hint" className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest">
+          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionColor}
           </Text>
           <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
@@ -184,8 +185,8 @@ export default function AddAccountScreenV2() {
               >
                 <Box
                   className={cn(
-                    'w-8 h-8 rounded-full',
-                    selectedColor === color && 'border-2 border-gold-500 scale-110',
+                    'h-8 w-8 rounded-full',
+                    selectedColor === color && 'border-gold-500 scale-110 border-2',
                   )}
                   style={{ backgroundColor: color }}
                 />
@@ -201,7 +202,7 @@ export default function AddAccountScreenV2() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest"
+                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionRevolving}
               </Text>
@@ -223,7 +224,7 @@ export default function AddAccountScreenV2() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest"
+                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionLimit}
               </Text>
@@ -245,7 +246,7 @@ export default function AddAccountScreenV2() {
                 <Animated.Text
                   entering={errorEntering}
                   exiting={errorExiting}
-                  className="text-negative font-inter text-[12px] mt-1"
+                  className="text-negative font-inter mt-1 text-[12px]"
                 >
                   {errors.credit_limit.message}
                 </Animated.Text>
@@ -256,7 +257,7 @@ export default function AddAccountScreenV2() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest"
+                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionMinPayment}
               </Text>
@@ -281,7 +282,7 @@ export default function AddAccountScreenV2() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest"
+                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionDueDay}
               </Text>
@@ -321,7 +322,7 @@ export default function AddAccountScreenV2() {
               <Animated.View entering={aprEntering} exiting={aprExiting} className="pt-1">
                 <Text
                   variant="hint"
-                  className="pt-2 pb-2 font-soraBold text-gold-500 tracking-widest"
+                  className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
                 >
                   {Strings.o4SectionApr}
                 </Text>
@@ -346,7 +347,7 @@ export default function AddAccountScreenV2() {
                   <Animated.Text
                     entering={errorEntering}
                     exiting={errorExiting}
-                    className="text-negative font-inter text-[12px] mt-1"
+                    className="text-negative font-inter mt-1 text-[12px]"
                   >
                     {errors.apr.message}
                   </Animated.Text>
@@ -358,7 +359,7 @@ export default function AddAccountScreenV2() {
       </ScreenScroll>
 
       {/* CTA bar */}
-      <Box className="border-t border-separator pt-2 px-4 pb-6">
+      <Box className="border-separator border-t px-4 pt-2 pb-6">
         <Animated.View style={btnAnim}>
           <Button
             variant="primary"

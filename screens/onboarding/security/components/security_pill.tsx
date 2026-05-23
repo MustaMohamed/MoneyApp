@@ -2,9 +2,10 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { Strings } from '@/constants/strings';
 import { SecurityChoice } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+
 import { useSecurityPillAnim } from '../security.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];

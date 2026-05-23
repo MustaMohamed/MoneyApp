@@ -1,6 +1,6 @@
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useRef } from 'react';
 import { useForm, type UseFormProps, type FieldValues, type Resolver } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import type { $ZodType } from 'zod/v4/core';
 
 // Zod v4's ZodType<T> has Input=unknown, but zodResolver requires Input extends FieldValues.

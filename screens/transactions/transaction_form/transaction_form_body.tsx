@@ -104,7 +104,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         currency={currency}
       />
       {amountError ? (
-        <Text className="font-inter text-[11px] text-danger text-center mt-1">{amountError}</Text>
+        <Text className="font-inter text-danger mt-1 text-center text-[11px]">{amountError}</Text>
       ) : null}
 
       <BottomSheetScrollView
@@ -123,11 +123,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           testID="from-account-row"
           onPress={locked ? undefined : onOpenAccountPicker}
           disabled={locked}
-          className="rounded-md bg-default px-3 py-3"
+          className="bg-default rounded-md px-3 py-3"
           style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
         >
           <View style={{ flex: 1 }}>
-            <Text className="font-inter text-[11px] text-muted">
+            <Text className="font-inter text-muted text-[11px]">
               {isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -141,7 +141,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   }}
                 />
               ) : null}
-              <Text className="font-sora font-semibold text-[15px] text-foreground">
+              <Text className="font-sora text-foreground text-[15px] font-semibold">
                 {selectedAccount?.name ?? Strings.addTxPickAccountTitle}
               </Text>
             </View>
@@ -153,7 +153,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           />
         </Pressable>
         {accountError ? (
-          <Text className="font-inter text-[11px] text-danger">{accountError}</Text>
+          <Text className="font-inter text-danger text-[11px]">{accountError}</Text>
         ) : null}
 
         {/* To account */}
@@ -163,11 +163,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               testID="to-account-row"
               onPress={locked ? undefined : onOpenToPicker}
               disabled={locked}
-              className="rounded-md bg-default px-3 py-3"
+              className="bg-default rounded-md px-3 py-3"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
             >
               <View style={{ flex: 1 }}>
-                <Text className="font-inter text-[11px] text-muted">{Strings.addTxToLabel}</Text>
+                <Text className="font-inter text-muted text-[11px]">{Strings.addTxToLabel}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {selectedToAccount ? (
                     <View
@@ -179,7 +179,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                       }}
                     />
                   ) : null}
-                  <Text className="font-sora font-semibold text-[15px] text-foreground">
+                  <Text className="font-sora text-foreground text-[15px] font-semibold">
                     {selectedToAccount?.name ?? Strings.addTxPickToTitle}
                   </Text>
                 </View>
@@ -191,7 +191,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               />
             </Pressable>
             {toAccountError ? (
-              <Text className="font-inter text-[11px] text-danger">{toAccountError}</Text>
+              <Text className="font-inter text-danger text-[11px]">{toAccountError}</Text>
             ) : null}
           </>
         ) : null}
@@ -202,21 +202,21 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             <Pressable
               testID="category-row"
               onPress={onOpenCategoryPicker}
-              className="rounded-md bg-default px-3 py-3"
+              className="bg-default rounded-md px-3 py-3"
               style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
             >
               <View style={{ flex: 1 }}>
-                <Text className="font-inter text-[11px] text-muted">
+                <Text className="font-inter text-muted text-[11px]">
                   {Strings.addTxCategoryLabel}
                 </Text>
-                <Text className="font-sora font-semibold text-[15px] text-foreground">
+                <Text className="font-sora text-foreground text-[15px] font-semibold">
                   {selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
                 </Text>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
             </Pressable>
             {categoryError ? (
-              <Text className="font-inter text-[11px] text-danger">{categoryError}</Text>
+              <Text className="font-inter text-danger text-[11px]">{categoryError}</Text>
             ) : null}
           </>
         ) : null}
@@ -236,14 +236,14 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         <DateRow value={date} onChange={setDate} />
 
         {/* Note */}
-        <View className="rounded-md bg-default px-3 py-3">
-          <Text className="font-inter text-[11px] text-muted">{Strings.addTxNoteLabel}</Text>
+        <View className="bg-default rounded-md px-3 py-3">
+          <Text className="font-inter text-muted text-[11px]">{Strings.addTxNoteLabel}</Text>
           <TextInput
             value={note}
             onChangeText={setNote}
             placeholder={Strings.addTxNotePlaceholder}
             placeholderTextColor={CoreTokens.text2}
-            className="font-inter text-[14px] text-foreground p-0"
+            className="font-inter text-foreground p-0 text-[14px]"
           />
         </View>
       </BottomSheetScrollView>

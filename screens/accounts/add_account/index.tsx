@@ -1,15 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { Controller, useWatch } from 'react-hook-form';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import { Controller, useWatch } from 'react-hook-form';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/ui/back_button';
+import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { AccountType, Currency } from '@/constants/enums';
-import { useAddAccountApp } from './add_account.hook';
+
 import { useAddAccountAnim } from './add_account.anim';
+import { useAddAccountApp } from './add_account.hook';
 import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
 const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];

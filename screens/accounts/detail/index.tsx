@@ -5,14 +5,14 @@ import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { BackButton } from '@/components/ui/back_button';
-
-import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { Strings } from '@/constants/strings';
-import { useAccountDetail } from './account_detail.hook';
+import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+
 import { useAccountDetailAnim } from './account_detail.anim';
-import { MiniChart } from './components/mini_chart';
+import { useAccountDetail } from './account_detail.hook';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
+import { MiniChart } from './components/mini_chart';
 
 const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 

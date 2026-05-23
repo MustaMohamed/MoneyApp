@@ -1,7 +1,7 @@
-import { createAccountStore } from '@/store/account.store';
-import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
-import type { Account } from '@/database/entities/account.entity';
 import { AccountType, Currency } from '@/constants/enums';
+import type { Account } from '@/database/entities/account.entity';
+import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
+import { createAccountStore } from '@/store/account.store';
 
 const mockAccount: Account = {
   id: 'test-id',

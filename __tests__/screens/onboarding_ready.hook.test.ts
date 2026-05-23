@@ -1,8 +1,8 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useOnboardingStore } from '@/store/onboarding.store';
-import { useAccountStore } from '@/store/account.store';
 import { useReady } from '@/screens/onboarding/ready/ready.hook';
+import { useAccountStore } from '@/store/account.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));

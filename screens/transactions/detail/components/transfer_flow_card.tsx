@@ -1,10 +1,10 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Text } from '@/components/ui/text';
-import { Strings } from '@/constants/strings';
 import { Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 
 import { getAccountTypeIcon } from '../detail.helpers';
@@ -39,16 +39,16 @@ function Cell({
 }): React.ReactElement {
   const inner = (
     <View className="flex-1 items-center">
-      <Text className="font-inter font-semibold text-[9.5px] uppercase tracking-wide text-foreground/55">
+      <Text className="font-inter text-foreground/55 text-[9.5px] font-semibold tracking-wide uppercase">
         {label}
       </Text>
-      <View className="w-9 h-9 rounded-lg bg-accent/15 items-center justify-center mt-1.5">
+      <View className="bg-accent/15 mt-1.5 h-9 w-9 items-center justify-center rounded-lg">
         <MaterialCommunityIcons name={getAccountTypeIcon(account.type)} size={16} color="#D4AF37" />
       </View>
-      <Text className="font-inter font-semibold text-[11.5px] text-foreground mt-1">
+      <Text className="font-inter text-foreground mt-1 text-[11.5px] font-semibold">
         {account.name}
       </Text>
-      <Text className="font-sora font-semibold text-[11px] text-foreground/85 mt-0.5">
+      <Text className="font-sora text-foreground/85 mt-0.5 text-[11px] font-semibold">
         {signPrefix}
         {numberFmt.format(amount)} {currency}
       </Text>
@@ -81,7 +81,7 @@ export function TransferFlowCard({
   onPressTo,
 }: Props): React.ReactElement {
   return (
-    <View className="mt-4 mx-4 p-3.5 rounded-2xl bg-surface border border-accent/18 flex-row items-center gap-2">
+    <View className="bg-surface border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5">
       <Cell
         label={Strings.detailFlowFromLabel}
         account={fromAccount}

@@ -1,13 +1,14 @@
 import { FlashList } from '@shopify/flash-list';
 import { Pressable, View } from 'react-native';
 
-import { Strings } from '@/constants/strings';
-import { Screen } from '@/components/ui/screen';
 import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
 import { EmptyState } from '@/components/ui/empty_state';
+import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 import type { Category } from '@/store/category.store';
+
 import { useCategories } from './categories.hook';
 import { AddEditCategorySheet } from './components/add_edit_category_sheet';
 import { CategoryRow } from './components/category_row';
@@ -106,7 +107,7 @@ export default function CategoriesScreen() {
             getItemType={(item) => item.type}
             renderItem={({ item, index }) =>
               item.type === 'header' ? (
-                <Text className="text-muted text-xs font-inter-medium tracking-wider mb-1">
+                <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider">
                   {item.label}
                 </Text>
               ) : (
@@ -124,11 +125,11 @@ export default function CategoriesScreen() {
       </View>
 
       {/* Bottom CTA or limit message */}
-      <View className="border-t border-separator pt-2 px-4 pb-6">
+      <View className="border-separator border-t px-4 pt-2 pb-6">
         {!state.isAtLimit ? (
           <Button label={Strings.categoriesAddBtn} variant="primary" onPress={openAddSheet} />
         ) : (
-          <Text className="text-muted text-xs font-inter-regular text-center py-3">
+          <Text className="text-muted font-inter-regular py-3 text-center text-xs">
             {Strings.categoriesLimitMsg}
           </Text>
         )}

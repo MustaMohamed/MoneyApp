@@ -26,14 +26,14 @@ export function SaveCta({ saving, onPress, label }: Props): React.ReactElement {
       testID="save-cta"
       onPress={saving ? undefined : onPress}
       disabled={saving}
-      className="h-[52px] rounded-[13px] items-center justify-center"
+      className="h-[52px] items-center justify-center rounded-[13px]"
       style={{ backgroundColor: GoldTokens[500] }}
     >
       {saving ? (
         <ActivityIndicator testID="save-cta-spinner" color={Colors.shared.midnightBlue} />
       ) : (
         <Text
-          className="font-sora font-bold text-[15px]"
+          className="font-sora text-[15px] font-bold"
           style={{ color: Colors.shared.midnightBlue }}
         >
           {label}

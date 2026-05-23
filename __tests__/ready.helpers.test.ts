@@ -1,9 +1,9 @@
+import { AccountType, Currency, SecurityChoice } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import {
   computeTotalBalance,
   resolveSecurityLabel,
 } from '@/screens/onboarding/ready/ready.helpers';
-import { AccountType, Currency, SecurityChoice } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import type { Account } from '@/store/account.store';
 
 const account = (opening_balance: number): Account => ({

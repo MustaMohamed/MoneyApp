@@ -1,14 +1,13 @@
+import { useFocusEffect } from 'expo-router';
 import React, { useCallback } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
+import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { EmptyState } from '@/components/ui/empty_state';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
-
 import { AddTransactionSheet } from '@/screens/transactions/transaction_form';
 import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/screens/transactions/transaction_form/add_transaction.store';
@@ -61,7 +60,7 @@ export default function TransactionsScreen(): React.ReactElement {
   return (
     <Screen edges={['top']}>
       <View className="px-4 pt-3 pb-1">
-        <Text className="font-sora font-bold text-[19px] text-foreground">
+        <Text className="font-sora text-foreground text-[19px] font-bold">
           {Strings.transactions}
         </Text>
       </View>

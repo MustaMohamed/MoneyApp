@@ -1,9 +1,10 @@
-import { useCallback, useRef } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+
+import { OnboardingStep } from '@/constants/enums';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { OnboardingStep } from '@/constants/enums';
 
 export function useMoreAccounts() {
   const router = useRouter();

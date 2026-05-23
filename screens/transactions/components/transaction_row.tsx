@@ -1,16 +1,17 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
-import { TransactionType } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
+import { TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
+
 import { useRowPressScale } from './transaction_row.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -122,7 +123,7 @@ export function TransactionRow({
 
   return (
     <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-      <Animated.View style={[animStyle]} className="px-4 py-3 border-b border-separator">
+      <Animated.View style={[animStyle]} className="border-separator border-b px-4 py-3">
         {/*
           Top: 3-column flex row (icon · title+ctx · amount-block).
           The middle column carries the title and account context. The note
@@ -133,7 +134,7 @@ export function TransactionRow({
         */}
         <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
           <View
-            className={`w-9 h-9 rounded-lg items-center justify-center mt-0.5 ${iconBgClass(tx.type)}`}
+            className={`mt-0.5 h-9 w-9 items-center justify-center rounded-lg ${iconBgClass(tx.type)}`}
           >
             <MaterialCommunityIcons
               name={pickIcon(tx, category)}
@@ -141,29 +142,29 @@ export function TransactionRow({
               color={category?.color ?? '#D4AF37'}
             />
           </View>
-          <View className="flex-1 min-w-0">
-            <View className="flex-row items-center gap-2 flex-wrap">
-              <Text className="font-sora font-bold text-[13px] text-foreground">{title}</Text>
+          <View className="min-w-0 flex-1">
+            <View className="flex-row flex-wrap items-center gap-2">
+              <Text className="font-sora text-foreground text-[13px] font-bold">{title}</Text>
               {tx.commitment_payment_id != null ? <TypeBadge type="commitment" /> : null}
             </View>
             <Text
-              className="font-inter font-medium text-[10.5px] text-foreground/55 mt-1"
+              className="font-inter text-foreground/55 mt-1 text-[10.5px] font-medium"
               numberOfLines={1}
             >
               {ctx}
             </Text>
           </View>
           <View className="items-end">
-            <Text className={`font-sora font-bold text-[14px] ${amountColorClass(tx.type)}`}>
+            <Text className={`font-sora text-[14px] font-bold ${amountColorClass(tx.type)}`}>
               {nativeText}
             </Text>
             {showEquiv ? (
-              <Text className="font-inter font-medium text-[10px] text-foreground/60 mt-0.5">
+              <Text className="font-inter text-foreground/60 mt-0.5 text-[10px] font-medium">
                 {egpText}
                 {rateText ? <Text className="opacity-70"> {rateText}</Text> : null}
               </Text>
             ) : null}
-            <Text className="font-inter text-[10px] text-foreground/40 mt-0.5">
+            <Text className="font-inter text-foreground/40 mt-0.5 text-[10px]">
               {formatTime12h(tx.transaction_time)}
             </Text>
           </View>
@@ -178,7 +179,7 @@ export function TransactionRow({
         */}
         {note != null ? (
           <Text
-            className="font-inter italic text-[11.5px] text-muted mt-1.5 pl-12"
+            className="font-inter text-muted mt-1.5 pl-12 text-[11.5px] italic"
             numberOfLines={2}
           >
             {note}

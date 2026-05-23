@@ -12,8 +12,8 @@
  * overflow and paint over the tab switcher — blocking all touches.
  */
 
-import React from 'react';
 import { render, fireEvent } from '@testing-library/react-native';
+import React from 'react';
 
 import { Strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';

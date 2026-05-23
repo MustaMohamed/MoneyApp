@@ -20,11 +20,11 @@ import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
 import { useAddTransaction } from './add_transaction.hook';
-import { useEditTransaction } from './edit_transaction.hook';
 import { AccountPickerSheet } from './components/account_picker_sheet';
 import { CategoryPickerSheet } from './components/category_picker_sheet';
 import { NoAccountsEmpty } from './components/no_accounts_empty';
 import { SaveCta } from './components/save_cta';
+import { useEditTransaction } from './edit_transaction.hook';
 import { TransactionFormBody } from './transaction_form_body';
 
 interface AddProps {

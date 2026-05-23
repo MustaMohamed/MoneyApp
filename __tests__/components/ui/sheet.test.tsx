@@ -1,7 +1,8 @@
-import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react-native';
 import fs from 'fs';
 import path from 'path';
+
+import { render, fireEvent, act } from '@testing-library/react-native';
+import React from 'react';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 jest.mock('heroui-native', () => ({
@@ -84,7 +85,7 @@ describe('Sheet snap-point contract', () => {
 
 describe('Sheet component', () => {
   it('renders children when visible is true', () => {
-    const { getByText } = render(
+    render(
       <Sheet visible={true} onClose={jest.fn()} size="sm">
         <Sheet.Body>
           <></>

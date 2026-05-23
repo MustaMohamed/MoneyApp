@@ -1,17 +1,17 @@
-import { useEffect, useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { AccountType, OnboardingStep } from '@/constants/enums';
+import { AccountColors } from '@/constants/theme';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
-import { useZodForm } from '@/utils/use_zod_form.hook';
 import { backOrReplace } from '@/utils/onboarding_nav';
-import { AccountColors } from '@/constants/theme';
-import { AccountType, OnboardingStep } from '@/constants/enums';
 import {
   createAddAccountSchema,
   type AddAccountFormData,
 } from '@/utils/schemas/add_account.schema';
+import { useZodForm } from '@/utils/use_zod_form.hook';
 
 export function useAddAccount() {
   const router = useRouter();

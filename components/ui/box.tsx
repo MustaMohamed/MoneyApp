@@ -1,6 +1,6 @@
+import { cn } from 'heroui-native';
 import React from 'react';
 import { View, type ViewProps } from 'react-native';
-import { cn } from 'heroui-native';
 
 export interface BoxProps extends ViewProps {
   className?: string;

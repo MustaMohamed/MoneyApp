@@ -1,9 +1,9 @@
-import { View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { View } from 'react-native';
 
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
-import { Strings } from '@/constants/strings';
 import { BackButton } from '@/components/ui/back_button';
+import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 
 /**
  * SettingsBackButton — wraps BackButton in a padded View so the boxy button

@@ -1,13 +1,14 @@
-import React from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import Animated from 'react-native-reanimated';
 import { cn } from 'heroui-native';
+import React from 'react';
+import Animated from 'react-native-reanimated';
 
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
-import { Strings } from '@/constants/strings';
 import { AccountType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { GoldTokens, CoreTokens } from '@/constants/theme_tokens';
+
 import { useTypePillAnim } from '../add_account.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -56,7 +57,7 @@ export function TypePill({
         }}
         style={{ flexDirection: 'row' }}
         className={cn(
-          'items-center gap-2 py-3 px-3 rounded-[8px] border-[1.5px]',
+          'items-center gap-2 rounded-[8px] border-[1.5px] px-3 py-3',
           isSelected ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]' : 'border-border bg-default',
         )}
       >

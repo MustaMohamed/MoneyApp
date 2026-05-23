@@ -101,9 +101,9 @@ export function AmountHero({
   return (
     <View
       style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}
-      className="py-4 gap-2 border-b border-separator"
+      className="border-separator gap-2 border-b py-4"
     >
-      <Text className="font-inter text-[15px] text-muted">{currency}</Text>
+      <Text className="font-inter text-muted text-[15px]">{currency}</Text>
       <BottomSheetTextInput
         // Cast through unknown to the broad Ref<any>: the upstream component's
         // ref type comes from react-native-gesture-handler's TextInput while

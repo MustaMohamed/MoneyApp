@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { CoreTokens } from '@/constants/theme_tokens';
 import { Strings } from '@/constants/strings';
+import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate } from '@/utils/format_date';
 
 interface Props {
@@ -39,12 +39,12 @@ export function DateRow({ value, onChange }: Props): React.ReactElement {
       <Pressable
         testID="date-row"
         onPress={handlePress}
-        className="rounded-md bg-default px-3 py-3"
+        className="bg-default rounded-md px-3 py-3"
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View>
-          <Text className="font-inter text-[11px] text-muted">{Strings.addTxDateLabel}</Text>
-          <Text className="font-sora font-semibold text-[15px] text-foreground">{formatted}</Text>
+          <Text className="font-inter text-muted text-[11px]">{Strings.addTxDateLabel}</Text>
+          <Text className="font-sora text-foreground text-[15px] font-semibold">{formatted}</Text>
         </View>
         <MaterialCommunityIcons name="calendar" size={18} color={CoreTokens.text2} />
       </Pressable>

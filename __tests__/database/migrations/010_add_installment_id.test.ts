@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+
 import { migration001 } from '@/database/migrations/001_create_accounts';
 import { migration003 } from '@/database/migrations/003_create_categories';
 import { migration004 } from '@/database/migrations/004_create_transactions';

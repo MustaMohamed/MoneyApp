@@ -1,9 +1,8 @@
-import { useEffect } from 'react';
 import { Stack } from 'expo-router';
-
-import { Colors } from '@/constants/theme';
+import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Colors } from '@/constants/theme';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
@@ -28,7 +27,8 @@ export default function AppLayout() {
     loadRate()
       .then(() => fetchRate())
       .catch(() => {});
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // run once on mount; all deps are stable Zustand store actions
 
   return (
     <Stack

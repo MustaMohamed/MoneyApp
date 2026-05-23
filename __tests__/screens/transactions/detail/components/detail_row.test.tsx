@@ -1,5 +1,5 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import { DetailRow } from '@/screens/transactions/detail/components/detail_row';
 

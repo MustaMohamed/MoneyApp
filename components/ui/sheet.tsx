@@ -1,3 +1,11 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import BottomSheetLib, {
+  BottomSheetBackdrop,
+  BottomSheetFooter,
+  type BottomSheetBackdropProps,
+  type BottomSheetFooterProps,
+} from '@gorhom/bottom-sheet';
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
 /**
  * Sheet — declarative bottom sheet primitive.
  *
@@ -23,6 +31,8 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { TouchableOpacity } from 'react-native-gesture-handler';
 
+import { Text } from '@/components/ui/text';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 // Sheet writes to the global sheet_visibility store on every open/close so the
 // FAB (rendered in app/(app)/(tabs)/_layout.tsx, a sibling of <Tabs>) can hide
 // while a sheet is up. Sheets are mounted inside route screens; the FAB is
@@ -31,18 +41,6 @@ import { TouchableOpacity } from 'react-native-gesture-handler';
 // a sheet is open regardless of which screen mounted it — making it the right
 // publisher. See store/sheet_visibility.store.ts for the counter contract.
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
-import BottomSheetLib, {
-  BottomSheetBackdrop,
-  BottomSheetFooter,
-  BottomSheetView,
-  type BottomSheetBackdropProps,
-  type BottomSheetFooterProps,
-} from '@gorhom/bottom-sheet';
-import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
 
 /**

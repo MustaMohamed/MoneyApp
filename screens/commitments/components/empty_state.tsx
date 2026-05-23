@@ -1,5 +1,5 @@
-import { Strings } from '@/constants/strings';
 import { EmptyState } from '@/components/empty_states';
+import { Strings } from '@/constants/strings';
 
 interface CommitmentsEmptyStateProps {
   onAdd: () => void;

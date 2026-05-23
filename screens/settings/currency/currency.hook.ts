@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
+
 import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
@@ -37,7 +38,8 @@ export function useCurrencyScreen() {
     })),
   );
 
-  useEffect(() => () => resetState(), []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => resetState(), []); // cleanup on unmount only; resetState is a stable Zustand action
 
   const manualSchema = z.object({
     rate: z.string().refine(

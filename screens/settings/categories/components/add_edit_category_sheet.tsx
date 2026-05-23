@@ -1,20 +1,20 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { z } from 'zod/v4';
+import { useShallow } from 'zustand/react/shallow';
 
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
-import { useShallow } from 'zustand/react/shallow';
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
+import { ms } from '@/utils/responsive';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { useAddEditCategorySheetState } from './add_edit_category_sheet.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -145,7 +145,8 @@ export function AddEditCategorySheet({
         });
       }
     }
-  }, [visible, editingCategory, activeTab]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
 
   const handleSave = handleSubmit(async ({ name }) => {
     if (!sheetState.selectedIcon) {

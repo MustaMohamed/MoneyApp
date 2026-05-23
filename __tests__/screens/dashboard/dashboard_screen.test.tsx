@@ -1,10 +1,9 @@
-import React from 'react';
 import { fireEvent, render } from '@testing-library/react-native';
+import React from 'react';
 
 import { AccountType, Currency } from '@/constants/enums';
-import type { Account } from '@/store/account.store';
-
 import DashboardScreen from '@/screens/dashboard';
+import type { Account } from '@/store/account.store';
 
 jest.mock('react-native-reanimated', () => {
   const React = jest.requireActual('react');

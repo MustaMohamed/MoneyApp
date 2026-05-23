@@ -1,9 +1,8 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
-
 import { TransferFlowCard } from '@/screens/transactions/detail/components/transfer_flow_card';
 
 // MaterialCommunityIcons is mocked to a plain string component — the icon

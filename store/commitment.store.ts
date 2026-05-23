@@ -1,5 +1,7 @@
+import uuid from 'react-native-uuid';
 import { create } from 'zustand';
 
+import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import {
@@ -10,8 +12,6 @@ import {
   type PaymentDetails,
 } from '@/repositories/commitment.repository';
 import { computeDueDates } from '@/utils/compute_due_dates';
-import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
-import uuid from 'react-native-uuid';
 
 export type {
   Commitment,

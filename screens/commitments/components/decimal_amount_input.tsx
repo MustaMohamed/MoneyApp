@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
 import { Colors, FontFamily, Type } from '@/constants/theme';
+
 import { useDecimalInputState } from './decimal_amount_input.state';
 
 interface Props extends Omit<

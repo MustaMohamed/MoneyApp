@@ -1,13 +1,14 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { StyleSheet, Text, View } from 'react-native';
 import Animated from 'react-native-reanimated';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Account } from '@/database/entities/account.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
-import { ms, msFont } from '@/utils/responsive';
 import { formatLongDate } from '@/utils/format_date';
+import { ms, msFont } from '@/utils/responsive';
+
 import { cardEntering } from '../detail.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];

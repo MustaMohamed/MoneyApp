@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+
 import { MIGRATIONS } from '@/database/migrations';
 import { migration004 } from '@/database/migrations/004_create_transactions';
 import { migration005 } from '@/database/migrations/005_add_transaction_native_amounts';

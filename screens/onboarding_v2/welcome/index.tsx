@@ -1,6 +1,6 @@
+import { cn } from 'heroui-native';
 import React from 'react';
 import Animated from 'react-native-reanimated';
-import { cn } from 'heroui-native';
 
 import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
@@ -11,8 +11,9 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { useWelcome } from './welcome.hook';
+
 import { useWelcomeAnim } from './welcome.anim';
+import { useWelcome } from './welcome.hook';
 
 export default function WelcomeScreenV2() {
   const { state, setSelected, onContinue } = useWelcome();
@@ -29,10 +30,10 @@ export default function WelcomeScreenV2() {
           </Animated.View>
 
           <Animated.View entering={headlineEntering} className="items-center gap-1">
-            <Text variant="hero" className="text-center font-soraExtra">
+            <Text variant="hero" className="font-soraExtra text-center">
               {Strings.o1Headline}
             </Text>
-            <Text variant="body" className="text-muted text-center mt-1">
+            <Text variant="body" className="text-muted mt-1 text-center">
               {Strings.o1Subtext}
             </Text>
           </Animated.View>
@@ -52,7 +53,7 @@ export default function WelcomeScreenV2() {
                 onPress={() => setSelected(code)}
                 style={{ flex: 1 }}
                 className={cn(
-                  'flex-row items-center justify-center gap-2 py-3 rounded-[10px] border-[1.5px]',
+                  'flex-row items-center justify-center gap-2 rounded-[10px] border-[1.5px] py-3',
                   state.selected === code
                     ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
                     : 'border-border bg-default',
@@ -72,7 +73,7 @@ export default function WelcomeScreenV2() {
             ))}
           </Animated.View>
 
-          <Box className="mt-3 bg-surface rounded-[10px] px-4 py-3 w-full">
+          <Box className="bg-surface mt-3 w-full rounded-[10px] px-4 py-3">
             <Text variant="caption" className="text-muted">
               {Strings.n1CurrencyNote}
             </Text>
@@ -80,7 +81,7 @@ export default function WelcomeScreenV2() {
         </Box>
       </ScreenScroll>
 
-      <Box className="border-t border-separator pt-2 px-4 pb-6">
+      <Box className="border-separator border-t px-4 pt-2 pb-6">
         <Animated.View entering={ctaEntering}>
           <Button variant="primary" label={Strings.o1Cta} onPress={onContinue} />
         </Animated.View>

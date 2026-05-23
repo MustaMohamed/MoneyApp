@@ -1,11 +1,11 @@
-import React from 'react';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import React from 'react';
 import Animated, { type EntryOrExitLayoutType } from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
-import { Strings } from '@/constants/strings';
 import { AccountType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/store/account.store';
 
@@ -29,7 +29,7 @@ const TYPE_LABELS: Record<AccountType, string> = {
 
 export function AccountRowV2({
   account,
-  index,
+  index: _index,
   entering,
 }: {
   account: Account;
@@ -45,11 +45,11 @@ export function AccountRowV2({
     <Animated.View entering={entering}>
       <Box
         style={{ flexDirection: 'row' }}
-        className="items-center gap-3 px-3 py-3 rounded-[8px] bg-surface border border-border"
+        className="bg-surface border-border items-center gap-3 rounded-[8px] border px-3 py-3"
       >
         {/* Icon container — runtime hex from account.color; inline style is the only correct approach */}
         <Box
-          className="w-10 h-10 rounded-[8px] items-center justify-center border border-border"
+          className="border-border h-10 w-10 items-center justify-center rounded-[8px] border"
           style={{ backgroundColor: account.color ?? undefined }}
         >
           <MaterialCommunityIcons name={icon} size={20} color={CoreTokens.text1} />

@@ -3,6 +3,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useEffect, useMemo } from 'react';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -13,29 +14,29 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { useShallow } from 'zustand/react/shallow';
 
 import { BackButton } from '@/components/ui/back_button';
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
-import { formatLongDate, toLocalDateString } from '@/utils/format_date';
-import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
-import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
+import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
+import { formatLongDate, toLocalDateString } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
+
 import {
   type CommitmentFormValues,
   PRESET_MAP,
   SET_OPTS,
   detectPreset,
 } from '../commitment_form.shared';
-import { RecurrencePicker } from './recurrence_picker';
-import { DurationPicker } from './duration_picker';
-import { DecimalAmountInput } from './decimal_amount_input';
 import { useCommitmentFormBodyState } from './commitment_form_body.state';
+import { DecimalAmountInput } from './decimal_amount_input';
+import { DurationPicker } from './duration_picker';
+import { RecurrencePicker } from './recurrence_picker';
 
 const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
 const CURRENCIES: Currency[] = [Currency.EGP, Currency.USD];

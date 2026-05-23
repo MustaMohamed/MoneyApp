@@ -1,5 +1,5 @@
-import { useSecurityStore } from '@/screens/onboarding/security/security.store';
 import { SecurityChoice } from '@/constants/enums';
+import { useSecurityStore } from '@/screens/onboarding/security/security.store';
 
 beforeEach(() => useSecurityStore.getState().reset());
 

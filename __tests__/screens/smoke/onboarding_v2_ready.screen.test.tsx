@@ -1,5 +1,5 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import ReadyScreenV2 from '@/screens/onboarding_v2/ready';
 

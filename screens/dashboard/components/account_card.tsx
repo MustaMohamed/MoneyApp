@@ -184,7 +184,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
   return (
     <Pressable
       onPress={onPress}
-      className="bg-surface rounded-2xl border border-border overflow-hidden"
+      className="bg-surface border-border overflow-hidden rounded-2xl border"
       style={{ width, marginLeft: ms(4) }}
       accessibilityRole="button"
       accessibilityLabel={account.name}
@@ -256,7 +256,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
         </View>
 
         {/* Divider */}
-        <View className="border-t border-border" style={{ height: Size.hairline }} />
+        <View className="border-border border-t" style={{ height: Size.hairline }} />
 
         {/* Info rows */}
         <View style={{ gap: ms(4) }}>

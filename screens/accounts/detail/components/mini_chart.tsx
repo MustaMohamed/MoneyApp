@@ -1,9 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
-import { formatAmount } from '@/utils/format_amount';
 import type { Account } from '@/store/account.store';
+import { formatAmount } from '@/utils/format_amount';
+import { ms } from '@/utils/responsive';
 
 interface MiniChartProps {
   account: Account;

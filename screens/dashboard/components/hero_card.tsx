@@ -1,14 +1,14 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import Svg, { Defs, Pattern, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 import { formatAmount } from '@/utils/format_amount';
+import { ms } from '@/utils/responsive';
 
 interface HeroCardProps {
   assetsEgp: number;
@@ -49,7 +49,7 @@ export function HeroCard({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={Strings.dashAvailableToSpend}
-      className="mx-4 mt-4 rounded-2xl border border-border overflow-hidden"
+      className="border-border mx-4 mt-4 overflow-hidden rounded-2xl border"
     >
       <LinearGradient
         colors={[Colors.shared.heroGrad1, Colors.shared.heroGrad2, Colors.shared.heroGrad3]}
@@ -112,7 +112,7 @@ export function HeroCard({
                 backgroundColor: Colors.shared.cairoGold,
               }}
             />
-            <Text className="uppercase text-xs" style={{ color: Colors.shared.cairoGold }}>
+            <Text className="text-xs uppercase" style={{ color: Colors.shared.cairoGold }}>
               Manual
             </Text>
           </View>
@@ -120,7 +120,7 @@ export function HeroCard({
       </View>
 
       <Text
-        className="px-5 mt-3 mb-2 font-bold"
+        className="mt-3 mb-2 px-5 font-bold"
         style={{ color: Colors.dark.gold, fontSize: ms(32) }}
       >
         {formatAmount(assetsEgp)} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
@@ -136,7 +136,7 @@ export function HeroCard({
             size={ms(11)}
             color={Colors.dark.text1}
           />
-          <Text className="text-xs text-foreground">
+          <Text className="text-foreground text-xs">
             {rate > 0 ? `${formatAmount(assetsUsd, 0)} USD` : '— USD'}
           </Text>
         </View>
@@ -145,14 +145,14 @@ export function HeroCard({
           style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
         >
           <MaterialCommunityIcons name="swap-horizontal" size={ms(11)} color={Colors.dark.text1} />
-          <Text className="text-xs text-foreground">1 USD = {rate.toFixed(2)} EGP</Text>
+          <Text className="text-foreground text-xs">1 USD = {rate.toFixed(2)} EGP</Text>
         </View>
         <View
           className="flex-row items-center rounded-full px-2 py-1"
           style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
         >
           <MaterialCommunityIcons name="bank-outline" size={ms(11)} color={Colors.dark.text1} />
-          <Text className="text-xs text-foreground">{totalAccounts} accounts</Text>
+          <Text className="text-foreground text-xs">{totalAccounts} accounts</Text>
         </View>
       </View>
     </Pressable>

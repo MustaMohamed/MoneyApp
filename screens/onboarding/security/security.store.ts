@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+
 import type { SecurityChoice } from '@/constants/enums';
 
 const INITIAL_STATE = { selected: undefined as SecurityChoice | undefined };

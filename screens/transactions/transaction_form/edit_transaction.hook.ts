@@ -4,14 +4,15 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import type { Category } from '@/database/entities/category.entity';
+import type { Transaction } from '@/database/entities/transaction.entity';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 import { useTransactionStore, type UpdateTransactionInput } from '@/store/transaction.store';
-import { useZodForm } from '@/utils/use_zod_form.hook';
 import { roundMoney } from '@/utils/money';
-import type { Category } from '@/database/entities/category.entity';
-import type { Transaction } from '@/database/entities/transaction.entity';
+import { useZodForm } from '@/utils/use_zod_form.hook';
+
 import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_transaction.helpers';
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
@@ -120,6 +121,7 @@ export function useEditTransaction(
   useEffect(() => {
     const parsed = parseFloat(storeState.amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
   }, [storeState.amountStr]);
 
   useEffect(() => {
@@ -127,6 +129,7 @@ export function useEditTransaction(
       form.reset(buildDefaultsFromTx(initialTx, currencyState.rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
   }, [uiState.visible]);
 
   async function onValid(data: EditTransactionFormValues) {
@@ -167,7 +170,11 @@ export function useEditTransaction(
       };
       await updateTransaction(initialTx.id, update);
       await loadAccounts();
-      onSaved ? onSaved() : onClose();
+      if (onSaved) {
+        onSaved();
+      } else {
+        onClose();
+      }
     } catch {
       // error logged
     } finally {

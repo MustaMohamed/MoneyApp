@@ -1,14 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Controller, useWatch } from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
+import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
-import type { UseFormReturn } from 'react-hook-form';
+import { ms } from '@/utils/responsive';
+
 import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 
 interface Props {

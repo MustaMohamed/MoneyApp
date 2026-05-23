@@ -1,10 +1,11 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
+
 import { formatSelectionSummary } from '../filter.helpers';
 
 interface Props {
@@ -26,27 +27,27 @@ export function AccountAccordion({
   const summary = formatSelectionSummary(selectedNames, Strings.filterSummaryAccountsEmpty);
 
   return (
-    <View className="rounded-xl border border-separator bg-surface mb-2 p-3.5">
+    <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Pressable
         onPress={onToggleSection}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
       >
-        <View className="flex-row justify-between items-center">
+        <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-2">
-            <Text className="font-inter font-semibold text-[13px]">
+            <Text className="font-inter text-[13px] font-semibold">
               {Strings.filterSectionAccounts}
             </Text>
             {selectedIds.length > 0 ? (
-              <View className="px-1.5 rounded-full bg-accent/15 min-w-[18px] items-center">
-                <Text className="font-inter font-bold text-[10px] text-accent">
+              <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
+                <Text className="font-inter text-accent text-[10px] font-bold">
                   {selectedIds.length}
                 </Text>
               </View>
             ) : null}
           </View>
           <View className="flex-row items-center gap-1.5">
-            <Text className="font-inter text-[11px] text-foreground/60" numberOfLines={1}>
+            <Text className="font-inter text-foreground/60 text-[11px]" numberOfLines={1}>
               {expanded ? '' : summary}
             </Text>
             <MaterialCommunityIcons
@@ -58,7 +59,7 @@ export function AccountAccordion({
         </View>
       </Pressable>
       {expanded ? (
-        <View className="flex-row gap-1.5 flex-wrap mt-3">
+        <View className="mt-3 flex-row flex-wrap gap-1.5">
           {accounts.map((a) => {
             const selected = selectedIds.includes(a.id);
             return (
@@ -70,19 +71,19 @@ export function AccountAccordion({
                 accessibilityLabel={`${a.name}, account filter`}
                 className={
                   selected
-                    ? 'px-2.5 py-1.5 rounded-full bg-accent/15 border border-accent/50 flex-row items-center gap-1.5'
-                    : 'px-2.5 py-1.5 rounded-full bg-default/40 border border-transparent flex-row items-center gap-1.5'
+                    ? 'bg-accent/15 border-accent/50 flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
+                    : 'bg-default/40 flex-row items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1.5'
                 }
               >
                 <View
                   style={{ backgroundColor: a.color ?? '#888' }}
-                  className="w-2 h-2 rounded-full"
+                  className="h-2 w-2 rounded-full"
                 />
                 <Text
                   className={
                     selected
-                      ? 'font-inter font-semibold text-[11.5px] text-accent'
-                      : 'font-inter font-medium text-[11.5px] text-foreground/70'
+                      ? 'font-inter text-accent text-[11.5px] font-semibold'
+                      : 'font-inter text-foreground/70 text-[11.5px] font-medium'
                   }
                 >
                   {a.name}

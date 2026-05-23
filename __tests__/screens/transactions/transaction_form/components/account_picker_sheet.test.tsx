@@ -1,8 +1,8 @@
 import { render, fireEvent } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
-import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import type { Account } from '@/database/entities/account.entity';
+import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');
 

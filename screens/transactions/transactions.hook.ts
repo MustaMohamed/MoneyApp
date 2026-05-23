@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { getPeriodTotals, type PeriodTotals } from '@/database/transactions';
 import { useAccountStore } from '@/store/account.store';
@@ -9,7 +10,6 @@ import { useCategoryStore } from '@/store/category.store';
 import { useTransactionStore } from '@/store/transaction.store';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
-import { Strings } from '@/constants/strings';
 
 import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';

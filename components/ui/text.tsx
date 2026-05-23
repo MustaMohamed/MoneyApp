@@ -1,7 +1,7 @@
+import { cn } from 'heroui-native';
 import React from 'react';
 import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 import { tv, type VariantProps } from 'tailwind-variants';
-import { cn } from 'heroui-native';
 
 const textVariants = tv({
   base: 'text-foreground',

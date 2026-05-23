@@ -1,7 +1,7 @@
+import { cn } from 'heroui-native';
 import React from 'react';
 import { ScrollView, type ScrollViewProps, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type SafeAreaViewProps } from 'react-native-safe-area-context';
-import { cn } from 'heroui-native';
 
 export interface ScreenProps extends Omit<SafeAreaViewProps, 'style'> {
   className?: string;

@@ -41,7 +41,7 @@ export function AccountPickerSheet({
                 testID={`account-picker-row-${item.id}`}
                 onPress={() => onSelect(item)}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
-                className="px-4 py-3 gap-3 border-b border-separator"
+                className="border-separator gap-3 border-b px-4 py-3"
               >
                 <View
                   style={{
@@ -52,10 +52,10 @@ export function AccountPickerSheet({
                   }}
                 />
                 <View style={{ flex: 1 }}>
-                  <Text className="font-sora font-semibold text-[15px] text-foreground">
+                  <Text className="font-sora text-foreground text-[15px] font-semibold">
                     {item.name}
                   </Text>
-                  <Text className="font-inter text-[12px] text-muted">
+                  <Text className="font-inter text-muted text-[12px]">
                     {new Intl.NumberFormat('en-US', { style: 'decimal' }).format(
                       item.current_balance,
                     )}{' '}

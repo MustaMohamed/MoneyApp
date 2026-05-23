@@ -1,4 +1,5 @@
 import Database from 'better-sqlite3';
+
 import { migration003 } from '@/database/migrations/003_create_categories';
 
 let db: ReturnType<typeof Database>;

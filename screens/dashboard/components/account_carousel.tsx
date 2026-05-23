@@ -2,9 +2,10 @@ import React from 'react';
 import { ScrollView, useWindowDimensions } from 'react-native';
 
 import { AccountType } from '@/constants/enums';
-import { ms } from '@/utils/responsive';
 import type { AccountStats } from '@/database/account_stats';
 import type { Account } from '@/store/account.store';
+import { ms } from '@/utils/responsive';
+
 import { AccountCard } from './account_card';
 import { AddCard } from './add_card';
 

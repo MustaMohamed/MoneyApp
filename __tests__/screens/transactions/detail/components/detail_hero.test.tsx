@@ -1,10 +1,9 @@
-import React from 'react';
 import { render } from '@testing-library/react-native';
+import React from 'react';
 
 import { TransactionType, Currency } from '@/constants/enums';
 import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/database/entities/transaction.entity';
-
 import { DetailHero } from '@/screens/transactions/detail/components/detail_hero';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => 'MaterialCommunityIcons');

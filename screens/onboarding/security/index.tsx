@@ -3,12 +3,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BackButton } from '@/components/ui/back_button';
 import { ProgressDots } from '@/components/progress_dots';
+import { BackButton } from '@/components/ui/back_button';
 import { Strings } from '@/constants/strings';
 import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useSecurity } from './security.hook';
+
 import { SecurityPill, PILLS } from './components/security_pill';
+import { useSecurity } from './security.hook';
 
 export default function SecurityScreen() {
   const { selected, setSelected, onContinue, onBack } = useSecurity();

@@ -1,5 +1,5 @@
-import { useCommitmentDetailState } from '@/screens/commitments/detail/detail.state';
 import { usePaySheetState } from '@/screens/commitments/detail/components/pay_sheet.state';
+import { useCommitmentDetailState } from '@/screens/commitments/detail/detail.state';
 
 beforeEach(() => {
   useCommitmentDetailState.getState().reset();

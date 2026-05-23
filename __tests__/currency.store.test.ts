@@ -1,5 +1,5 @@
-import { createCurrencyStore } from '@/store/currency.store';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
+import { createCurrencyStore } from '@/store/currency.store';
 
 function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
   const db: Record<string, string> = { ...seed };

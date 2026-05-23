@@ -1,12 +1,12 @@
-import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import React from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
-import { Text } from '@/components/ui/text';
 import { ms } from '@/utils/responsive';
 
 export type EmptyStateVariant =

@@ -3,10 +3,9 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { getCategoryTransactionCount } from '@/database/categories';
 import { getDb } from '@/database/client';
-import { PROTECTED_CATEGORY_IDS } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { useCategoryStore } from '@/store/category.store';
+
 import { useCategoriesScreenState } from './categories.state';
 import { useCategoriesScreenStore } from './categories.store';
 

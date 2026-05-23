@@ -1,14 +1,16 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { ms, msFont } from '@/utils/responsive';
-import { formatShortDate } from '@/utils/format_date';
+
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import type { Commitment } from '@/database/entities/commitment.entity';
+import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
+import type { Commitment } from '@/database/entities/commitment.entity';
+import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import { formatShortDate } from '@/utils/format_date';
+import { ms, msFont } from '@/utils/responsive';
+
 import { useRowPressScale } from '../commitments.anim';
 
 const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {

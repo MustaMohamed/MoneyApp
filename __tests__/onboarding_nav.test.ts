@@ -1,5 +1,6 @@
-import { backOrReplace } from '@/utils/onboarding_nav';
 import type { Href, Router } from 'expo-router';
+
+import { backOrReplace } from '@/utils/onboarding_nav';
 
 function makeRouter(canGoBack: boolean): Router {
   return {

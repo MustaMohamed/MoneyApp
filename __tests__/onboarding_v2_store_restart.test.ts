@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
-import { OnboardingStep } from '@/constants/enums';
 
+import { OnboardingStep } from '@/constants/enums';
 // Import after mocks are in place
 import { loadOnboardingState } from '@/store/onboarding.store';
 

@@ -1,15 +1,15 @@
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { Pressable, View } from 'react-native';
-import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
+import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
-import { Button } from '@/components/ui/button';
 import { Strings } from '@/constants/strings';
 
 import { AccountAccordion } from './components/account_accordion';
-import { CategoryAccordion } from './components/category_accordion';
 import { AmountAccordion } from './components/amount_accordion';
+import { CategoryAccordion } from './components/category_accordion';
 import { useFilterSheet } from './filter.hook';
 
 /**
@@ -62,7 +62,7 @@ export function FilterSheet(): React.ReactElement {
             accessibilityRole="button"
             accessibilityLabel="Reset filters"
           >
-            <Text className="font-inter font-semibold text-[12px] text-accent">
+            <Text className="font-inter text-accent text-[12px] font-semibold">
               {Strings.filterReset}
             </Text>
           </Pressable>

@@ -4,20 +4,20 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { useAccountStore } from '@/store/account.store';
-import { useCategoryStore } from '@/store/category.store';
-import { useCommitmentStore } from '@/store/commitment.store';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { commitmentRepository } from '@/repositories/commitment.repository';
+import { useAccountStore } from '@/store/account.store';
+import { useCategoryStore } from '@/store/category.store';
+import { useCommitmentStore } from '@/store/commitment.store';
 import { formatLongDate } from '@/utils/format_date';
 
+import { usePaySheetState } from './components/pay_sheet.state';
 import {
   useCommitmentDetailState,
   useCommitmentDetailScreenData,
   type DetailViewState,
 } from './detail.state';
-import { usePaySheetState } from './components/pay_sheet.state';
 
 const PERIOD_LABEL: Record<RecurrencePeriod, string> = {
   [RecurrencePeriod.Days]: Strings.commitmentsRecurrencePeriodDay,
@@ -136,7 +136,8 @@ export function useCommitmentDetail() {
     return () => {
       cancelled = true;
     };
-  }, [commitment?.id, commitmentState.payments, setAllPayments, setViewState]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [commitment?.id, commitmentState.payments, setAllPayments, setViewState]); // commitment?.id captures identity changes; full object dep would cause spurious re-fetches
 
   // Cleanup on unmount
   useEffect(() => {

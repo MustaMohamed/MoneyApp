@@ -9,8 +9,8 @@ interface Props {
 
 export function DateHeader({ label }: Props): React.ReactElement {
   return (
-    <View className="px-4 pt-3 pb-1.5 bg-background">
-      <Text className="font-inter font-semibold text-[10px] tracking-wide uppercase text-muted">
+    <View className="bg-background px-4 pt-3 pb-1.5">
+      <Text className="font-inter text-muted text-[10px] font-semibold tracking-wide uppercase">
         {label}
       </Text>
     </View>
