@@ -28,6 +28,7 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
   return (
     <TextInput
       {...rest}
+      placeholderTextColor={Colors.dark.text2}
       style={[styles.input, hasError ? styles.inputError : null, style]}
       value={state.text}
       keyboardType="decimal-pad"
