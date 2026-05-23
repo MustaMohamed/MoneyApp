@@ -1,11 +1,10 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, RefreshControl, SectionList, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { RefreshControl, SectionList, View } from 'react-native';
 
+import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import { GoldTokens } from '@/constants/theme_tokens';
 import { DateHeader } from '@/screens/transactions/components/date_header';
-import { ms } from '@/utils/responsive';
 
 import { useCommitments } from './commitments.hook';
 import { CommitmentRow } from './components/commitment_row';
@@ -18,9 +17,11 @@ export default function CommitmentsScreen() {
   const t = useCommitments();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{Strings.commitmentsTitle}</Text>
+    <Screen edges={['top']}>
+      <View className="border-separator h-14 justify-center border-b px-4">
+        <Text className="font-sora text-foreground text-[20px] font-semibold">
+          {Strings.commitmentsTitle}
+        </Text>
       </View>
 
       {t.state.isEmpty ? (
@@ -59,56 +60,13 @@ export default function CommitmentsScreen() {
           refreshControl={
             <RefreshControl
               refreshing={t.state.refreshing}
-              onRefresh={() => {
-                void t.onRefresh();
-              }}
-              tintColor={Colors.shared.cairoGold}
+              onRefresh={() => void t.onRefresh()}
+              tintColor={GoldTokens[500]}
             />
           }
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
         />
       )}
-
-      <Pressable
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-        onPress={t.goToAdd}
-      >
-        <MaterialCommunityIcons name="plus" size={ms(28)} color={Colors.shared.midnightBlue} />
-      </Pressable>
-    </SafeAreaView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.dark.bg },
-  header: {
-    height: Size.headerHeight,
-    paddingHorizontal: Spacing.md,
-    justifyContent: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  title: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-  },
-  listContent: { flexGrow: 1, paddingBottom: Spacing.xxl + ms(56) },
-  fab: {
-    position: 'absolute',
-    bottom: Spacing.xl,
-    right: Spacing.md,
-    width: ms(56),
-    height: ms(56),
-    borderRadius: ms(28),
-    backgroundColor: Colors.shared.cairoGold,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-  },
-  fabPressed: { opacity: 0.85 },
-});
