@@ -1,18 +1,19 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { useAnimatedStyle } from 'react-native-reanimated';
+import { Pressable, View } from 'react-native';
 
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { formatShortDate } from '@/utils/format_date';
 import { toIconName } from '@/utils/icon_name_guard';
-import { ms, msFont } from '@/utils/responsive';
 
-import { useRowPressScale } from '../commitments.anim';
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
@@ -29,8 +30,6 @@ const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
   [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const STATUS_ICONS: Record<CommitmentPaymentStatus, IconName> = {
   [CommitmentPaymentStatus.Overdue]: 'alert-circle',
@@ -50,9 +49,6 @@ interface CommitmentRowProps {
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 export function CommitmentRow({ payment, commitment, category, onPress }: CommitmentRowProps) {
-  const { scale, onPressIn, onPressOut } = useRowPressScale();
-  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
-
   const statusColor = STATUS_COLORS[payment.status];
   const statusLabel = STATUS_LABELS[payment.status];
   const isVariable = commitment?.amount_type === AmountType.Variable;
@@ -62,92 +58,57 @@ export function CommitmentRow({ payment, commitment, category, onPress }: Commit
     : (payment.amount_due ?? commitment?.amount);
   const formattedAmount = amount != null ? numberFmt.format(amount) : '—';
   const showTilde = isVariable && !isPaid;
-  const iconBg = category?.color ? `${category.color}2E` : Colors.dark.surfaceEl;
+  const iconBg = category?.color ? `${category.color}2E` : CoreTokens.surfaceEl;
 
   return (
-    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-      <Animated.View style={[styles.row, animStyle]}>
-        <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${commitment?.name ?? ''}, ${showTilde ? '~' : ''}${formattedAmount} ${payment.currency}, ${statusLabel}`}
+      style={{ flexDirection: 'row', alignItems: 'center' }}
+      className="border-separator min-h-[48px] gap-2 border-b px-4 py-2"
+    >
+      <View
+        style={{ backgroundColor: iconBg, width: 36, height: 36 }}
+        className="items-center justify-center rounded-md"
+      >
+        <MaterialCommunityIcons
+          name={toIconName(category?.icon, 'tag-outline')}
+          size={18}
+          color={category?.color ?? CoreTokens.text2}
+        />
+      </View>
+      <Box style={{ flex: 1 }}>
+        <Text className="font-inter text-foreground text-[15px] font-medium" numberOfLines={1}>
+          {commitment?.name ?? '—'}
+        </Text>
+        <Text className="font-inter text-muted mt-0.5 text-[11px]" numberOfLines={1}>
+          {formatShortDate(payment.due_date)}
+        </Text>
+      </Box>
+      <View style={{ alignItems: 'flex-end' }} className="gap-1">
+        <Text className="font-sora text-foreground text-[15px] font-bold">
+          {showTilde ? '~' : ''}
+          {formattedAmount} {payment.currency}
+        </Text>
+        <View
+          style={{
+            backgroundColor: `${statusColor}22`,
+            flexDirection: 'row',
+            alignItems: 'center',
+          }}
+          className="gap-0.5 rounded-full px-1.5 py-0.5"
+        >
           <MaterialCommunityIcons
-            name={toIconName(category?.icon, 'tag-outline')}
-            size={ms(18)}
-            color={category?.color ?? Colors.dark.text2}
+            name={STATUS_ICONS[payment.status]}
+            size={11}
+            color={statusColor}
           />
-        </View>
-        <View style={styles.center}>
-          <Text style={styles.title} numberOfLines={1}>
-            {commitment?.name ?? '—'}
-          </Text>
-          <Text style={styles.subtitle} numberOfLines={1}>
-            {formatShortDate(payment.due_date)}
+          <Text className="font-inter text-[10px]" style={{ color: statusColor }}>
+            {statusLabel}
           </Text>
         </View>
-        <View style={styles.right}>
-          <Text style={styles.amount}>
-            {showTilde ? '~' : ''}
-            {formattedAmount} {payment.currency}
-          </Text>
-          <View style={[styles.statusBadge, { backgroundColor: `${statusColor}22` }]}>
-            <MaterialCommunityIcons
-              name={STATUS_ICONS[payment.status]}
-              size={msFont(11)}
-              color={statusColor}
-            />
-            <Text style={[styles.statusText, { color: statusColor }]}>{statusLabel}</Text>
-          </View>
-        </View>
-      </Animated.View>
+      </View>
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    minHeight: ms(48),
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-    backgroundColor: Colors.dark.bg,
-  },
-  iconBox: {
-    width: ms(36),
-    height: ms(36),
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  center: { flex: 1 },
-  title: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  subtitle: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(11),
-    color: Colors.dark.text2,
-    marginTop: 2,
-  },
-  right: { alignItems: 'flex-end', gap: ms(4) },
-  amount: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.dark.text1,
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(3),
-    paddingHorizontal: ms(6),
-    paddingVertical: ms(2),
-    borderRadius: Radius.pill,
-  },
-  statusText: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: msFont(10),
-  },
-});
