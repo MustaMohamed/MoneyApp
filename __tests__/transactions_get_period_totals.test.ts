@@ -197,4 +197,11 @@ describe('getPeriodTotals', () => {
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
     expect(result).toEqual({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 });
   });
+
+  it('falls back to zeros when the aggregate row is null', async () => {
+    const db = await sqlite.openDatabaseAsync(':memory:');
+    sqlite.__fakeDb.getFirstAsync.mockResolvedValueOnce(null);
+    const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
+    expect(result).toEqual({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 });
+  });
 });
