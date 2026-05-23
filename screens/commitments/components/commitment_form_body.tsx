@@ -259,7 +259,7 @@ export function CommitmentFormBody({
                   className={
                     isActive
                       ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                      : 'bg-default/40 rounded-full border border-transparent px-3 py-1'
+                      : 'bg-default/40 border-border rounded-full border px-3 py-1'
                   }
                 >
                   <Text
@@ -338,7 +338,7 @@ export function CommitmentFormBody({
                     className={
                       isActive
                         ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                        : 'bg-default/40 rounded-full border border-transparent px-3 py-1'
+                        : 'bg-default/40 border-border rounded-full border px-3 py-1'
                     }
                   >
                     <Text
