@@ -1,17 +1,17 @@
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { GoldTokens } from '@/constants/theme_tokens';
 
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
 import { DetailsCard } from './components/details_card';
 import { PaySheet } from './components/pay_sheet';
 import { PaymentHistory } from './components/payment_history';
-import { SkipConfirmDialog } from './components/skip_confirm_dialog';
+import { SkipConfirmSheet } from './components/skip_confirm_sheet';
 import { useCommitmentDetail } from './detail.hook';
 
 export default function CommitmentDetailScreen() {
@@ -19,117 +19,86 @@ export default function CommitmentDetailScreen() {
     useCommitmentDetail();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <View style={styles.header}>
+    <Screen edges={['top', 'bottom']}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center' }}
+        className="border-separator h-14 justify-between border-b px-2"
+      >
         <BackButton onPress={goBack} />
-        <Text style={styles.title}>{state.commitment?.name ?? ''}</Text>
+        <Text
+          className="font-sora text-foreground flex-1 text-center text-[20px] font-semibold"
+          numberOfLines={1}
+        >
+          {state.commitment?.name ?? ''}
+        </Text>
         {state.viewState === 'ready' && state.commitment ? (
-          <Pressable onPress={goToEdit} style={styles.editBtn} hitSlop={8}>
-            <Text style={styles.editText}>{Strings.commitmentsDetailEdit}</Text>
+          <Pressable
+            onPress={goToEdit}
+            hitSlop={8}
+            className="min-w-[44px] items-center justify-center px-1"
+          >
+            <Text
+              className="font-inter text-[15px] font-semibold"
+              style={{ color: GoldTokens[500] }}
+            >
+              {Strings.commitmentsDetailEdit}
+            </Text>
           </Pressable>
         ) : (
-          <View style={styles.editBtn} />
+          <View className="min-w-[44px]" />
         )}
       </View>
 
-      {state.viewState === 'loading' && (
-        <View style={styles.center}>
-          <ActivityIndicator color={Colors.shared.cairoGold} />
+      {state.viewState === 'loading' ? (
+        <View style={{ flex: 1 }} className="items-center justify-center">
+          <ActivityIndicator color={GoldTokens[500]} />
         </View>
-      )}
+      ) : null}
 
-      {state.viewState === 'notFound' && (
-        <View style={styles.center}>
-          <Text style={styles.notFoundText}>{Strings.commitmentsDetailNotFound}</Text>
+      {state.viewState === 'notFound' ? (
+        <View style={{ flex: 1 }} className="items-center justify-center">
+          <Text className="font-inter text-muted text-[15px]">
+            {Strings.commitmentsDetailNotFound}
+          </Text>
         </View>
-      )}
+      ) : null}
 
-      {state.viewState === 'ready' && state.commitment && (
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      {state.viewState === 'ready' && state.commitment ? (
+        <ScreenScroll
+          contentContainerStyle={{ paddingBottom: 40 }}
+          showsVerticalScrollIndicator={false}
+        >
           <DetailHero
             commitment={state.commitment}
             category={state.category}
             payment={state.payment}
             recurrenceLabel={state.recurrenceLabel}
           />
-
-          {state.payment && (
+          {state.payment ? (
             <CurrentCycleCard
               payment={state.payment}
               commitment={state.commitment}
               onMarkAsPaid={openPaySheet}
               onSkip={confirmSkip}
             />
-          )}
-
+          ) : null}
           <DetailsCard
             commitment={state.commitment}
             account={state.account}
             recurrenceLabel={state.recurrenceLabel}
             durationLabel={state.durationLabel}
           />
-
           <PaymentHistory payments={state.allPayments} commitment={state.commitment} />
-
-          <View style={styles.bottomPad} />
-        </ScrollView>
-      )}
+        </ScreenScroll>
+      ) : null}
 
       <PaySheet commitment={state.commitment} payment={state.payment} />
 
-      <SkipConfirmDialog
+      <SkipConfirmSheet
         visible={state.skipConfirmVisible}
         onCancel={cancelSkip}
-        onConfirm={() => {
-          void skipPayment();
-        }}
+        onConfirm={() => void skipPayment()}
       />
-    </SafeAreaView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.dark.bg },
-  header: {
-    height: Size.headerHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  backBtn: {
-    width: Size.backBtn,
-    height: Size.backBtn,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editBtn: {
-    minWidth: Size.backBtn,
-    height: Size.backBtn,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: ms(4),
-  },
-  title: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-    flex: 1,
-    textAlign: 'center',
-  },
-  editText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    color: Colors.dark.gold,
-  },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  notFoundText: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  scroll: { paddingBottom: ms(40) },
-  bottomPad: { height: ms(16) },
-});
