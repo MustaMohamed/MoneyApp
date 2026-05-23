@@ -45,6 +45,8 @@ interface CommitmentFormBodyProps {
   onSubmit: () => void;
   title: string;
   locked?: boolean;
+  /** Optional slot rendered between the scroll content and the SaveCta footer — used by EditCommitmentScreen to render the Deactivate link inside the Screen layout. */
+  footerExtra?: React.ReactNode;
 }
 
 export function CommitmentFormBody({
@@ -55,6 +57,7 @@ export function CommitmentFormBody({
   onSubmit,
   title,
   locked,
+  footerExtra,
 }: CommitmentFormBodyProps) {
   const [
     amountType,
@@ -493,6 +496,8 @@ export function CommitmentFormBody({
           />
         </View>
       </ScreenScroll>
+
+      {footerExtra ?? null}
 
       {/* CTA footer */}
       <View className="border-separator border-t px-4 pt-2 pb-6">
