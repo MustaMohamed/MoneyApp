@@ -114,7 +114,9 @@ export default function CategoriesScreen() {
                 <CategoryRow
                   category={item.category}
                   onEdit={() => openEditSheet(item.category)}
-                  onDelete={() => handleDeletePress(item.category)}
+                  onDelete={() => {
+                    void handleDeletePress(item.category);
+                  }}
                   isDeleteDisabled={state.isDeleting}
                   isLast={index === listData.length - 1 || listData[index + 1]?.type === 'header'}
                 />
@@ -147,7 +149,9 @@ export default function CategoriesScreen() {
       <DeleteConfirmationDialog
         visible={state.showDeleteConfirm}
         categoryName={state.categoryToDelete?.name ?? ''}
-        onConfirm={handleDeleteConfirm}
+        onConfirm={() => {
+          void handleDeleteConfirm();
+        }}
         onCancel={closeDeleteFlow}
       />
 

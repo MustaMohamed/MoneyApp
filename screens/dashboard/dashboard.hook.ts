@@ -91,19 +91,19 @@ export function useDashboard() {
   }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
 
   useEffect(() => {
-    loadCurrentMonthCommitmentPayments();
+    void loadCurrentMonthCommitmentPayments();
   }, [loadCurrentMonthCommitmentPayments, commitmentState.commitments, commitmentState.payments]);
 
   useFocusEffect(
     useCallback(() => {
-      loadCurrentMonthCommitmentPayments();
-      loadMonthSpend();
+      void loadCurrentMonthCommitmentPayments();
+      void loadMonthSpend();
       setSelectedSegment('overview');
     }, [loadCurrentMonthCommitmentPayments, loadMonthSpend, setSelectedSegment]),
   );
 
   useEffect(() => {
-    loadMonthSpend();
+    void loadMonthSpend();
   }, [loadMonthSpend, accountState.accounts]);
 
   const loadStats = useCallback(
@@ -124,7 +124,7 @@ export function useDashboard() {
   );
 
   useEffect(() => {
-    loadStats(accountState.accounts.map((a) => a.id));
+    void loadStats(accountState.accounts.map((a) => a.id));
   }, [accountState.accounts, loadStats]);
 
   const refresh = useCallback(async () => {

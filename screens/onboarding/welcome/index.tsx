@@ -40,7 +40,12 @@ export default function WelcomeScreen() {
       </View>
 
       <Animated.View entering={ctaEntering} style={styles.ctaBar}>
-        <Pressable onPress={onGetStarted} style={styles.ctaPress}>
+        <Pressable
+          onPress={() => {
+            void onGetStarted();
+          }}
+          style={styles.ctaPress}
+        >
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
             start={{ x: 0, y: 0 }}

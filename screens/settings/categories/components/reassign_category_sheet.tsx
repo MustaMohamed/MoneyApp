@@ -60,7 +60,9 @@ export function ReassignCategorySheet({
   const footer = (
     <Pressable
       testID="reassign-cta"
-      onPress={handleConfirm}
+      onPress={() => {
+        void handleConfirm();
+      }}
       style={[
         styles.cta,
         (!reassignState.selectedId || reassignState.isLoading) && styles.ctaDisabled,

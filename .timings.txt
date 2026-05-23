@@ -1,0 +1,7 @@
+Baseline (ESLint + Prettier):
+  lint:         1.671s
+  format:check: 1.887s
+
+Post-migration (oxlint + oxfmt, no --type-aware yet):
+  lint:         0.512s
+  format:check: 0.551s

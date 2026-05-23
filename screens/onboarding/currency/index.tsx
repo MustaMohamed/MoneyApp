@@ -63,7 +63,12 @@ export default function CurrencyScreen() {
       </View>
 
       <View style={styles.ctaBar}>
-        <Pressable onPress={onContinue} style={styles.ctaPress}>
+        <Pressable
+          onPress={() => {
+            void onContinue();
+          }}
+          style={styles.ctaPress}
+        >
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
             start={{ x: 0, y: 0 }}

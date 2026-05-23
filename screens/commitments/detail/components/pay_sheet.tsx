@@ -234,7 +234,9 @@ export function PaySheet({ commitment, payment }: Props) {
           <View style={[styles.footer, (state.saving || isAlreadyPaid) && styles.ctaDisabled]}>
             <Pressable
               style={styles.ctaPress}
-              onPress={onSubmit}
+              onPress={() => {
+                void onSubmit();
+              }}
               disabled={state.saving || isAlreadyPaid}
             >
               <LinearGradient

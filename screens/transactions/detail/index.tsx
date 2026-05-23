@@ -168,7 +168,9 @@ export default function TransactionDetailScreen(): React.ReactElement {
             visible={state.confirmVisible}
             busy={state.deleting}
             onCancel={closeDeleteConfirm}
-            onConfirm={confirmDelete}
+            onConfirm={() => {
+              void confirmDelete();
+            }}
           />
 
           <EditTransactionSheet

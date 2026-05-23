@@ -89,7 +89,7 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const periodRange = resolvePeriod(txScreenState.period);
       if (!periodRange.from || !periodRange.to) {
         setTotals(null);
@@ -180,7 +180,7 @@ export function useTransactions() {
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(txScreenState.period);
-    if (!prev || prev.type !== 'month') return null;
+    if (prev?.type !== 'month') return null;
     return Strings.carouselMonthShort(prev.yearMonth);
   }, [txScreenState.period]);
 

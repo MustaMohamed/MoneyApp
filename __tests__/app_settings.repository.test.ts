@@ -27,7 +27,7 @@ beforeAll(() => {
   });
 
   mocked.getFirstAsync.mockImplementation(async (sql: string, ...params: unknown[]) => {
-    return (realDb.prepare(sql).get(...(params as never[])) as unknown) ?? null;
+    return realDb.prepare(sql).get(...(params as never[])) ?? null;
   });
 });
 

@@ -13,7 +13,7 @@ export function useLayoutInit() {
   useEffect(() => {
     let onboardingComplete = false;
 
-    (async () => {
+    void (async () => {
       try {
         const db = await getDb();
         await runMigrations(db);

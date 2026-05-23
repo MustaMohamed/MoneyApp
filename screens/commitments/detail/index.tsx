@@ -80,7 +80,9 @@ export default function CommitmentDetailScreen() {
       <SkipConfirmDialog
         visible={state.skipConfirmVisible}
         onCancel={cancelSkip}
-        onConfirm={skipPayment}
+        onConfirm={() => {
+          void skipPayment();
+        }}
       />
     </SafeAreaView>
   );

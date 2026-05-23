@@ -91,7 +91,13 @@ export default function MoreAccountsScreenV2() {
 
       {/* CTA */}
       <Box className="border-separator border-t px-4 pt-2 pb-6">
-        <Button variant="primary" label={Strings.o5Cta} onPress={handleContinue} />
+        <Button
+          variant="primary"
+          label={Strings.o5Cta}
+          onPress={() => {
+            void handleContinue();
+          }}
+        />
       </Box>
     </Screen>
   );

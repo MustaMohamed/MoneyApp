@@ -64,7 +64,7 @@ export default function AccountDetailScreen() {
           <Pressable
             onPress={() => {
               triggerEditToggle();
-              handleSave();
+              void handleSave();
             }}
             disabled={isSaving}
             style={[styles.iconBtn, styles.saveBtn]}
@@ -175,7 +175,9 @@ export default function AccountDetailScreen() {
         currentBalance={account.current_balance}
         currency={account.currency}
         onClose={() => setAdjustVisible(false)}
-        onSave={handleAdjustBalance}
+        onSave={(newBalance: number) => {
+          void handleAdjustBalance(newBalance);
+        }}
         isLoading={isAdjusting}
       />
 
@@ -183,7 +185,9 @@ export default function AccountDetailScreen() {
         visible={isArchiveVisible}
         account={account}
         onClose={() => setArchiveVisible(false)}
-        onConfirm={handleArchive}
+        onConfirm={() => {
+          void handleArchive();
+        }}
         isLoading={isArchiving}
       />
     </SafeAreaView>

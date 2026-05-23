@@ -54,7 +54,12 @@ export default function MoreAccountsScreen() {
       <Text style={styles.hint}>{Strings.o5SettingsHint}</Text>
 
       <View style={styles.ctaBar}>
-        <Pressable onPress={handleDone} style={styles.ctaPress}>
+        <Pressable
+          onPress={() => {
+            void handleDone();
+          }}
+          style={styles.ctaPress}
+        >
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
             start={{ x: 0, y: 0 }}

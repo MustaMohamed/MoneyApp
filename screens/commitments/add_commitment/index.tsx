@@ -17,7 +17,9 @@ export default function AddCommitmentScreen() {
         categories={state.categories}
         accounts={state.accounts}
         saving={state.saving}
-        onSubmit={onSubmit}
+        onSubmit={() => {
+          void onSubmit();
+        }}
         title={Strings.commitmentsAddTitle}
       />
     </SafeAreaView>

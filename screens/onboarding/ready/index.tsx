@@ -51,7 +51,13 @@ export default function ReadyScreen() {
       </View>
 
       <Animated.View entering={ctaEntering} style={styles.ctaBar}>
-        <Pressable onPress={handleComplete} disabled={completing} style={styles.ctaPress}>
+        <Pressable
+          onPress={() => {
+            void handleComplete();
+          }}
+          disabled={completing}
+          style={styles.ctaPress}
+        >
           <LinearGradient
             colors={['#C9973A', '#D4A44C']}
             start={{ x: 0, y: 0 }}

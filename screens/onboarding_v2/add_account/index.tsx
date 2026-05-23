@@ -366,7 +366,7 @@ export default function AddAccountScreenV2() {
             label={Strings.o4Cta}
             onPress={() => {
               triggerBtnPress();
-              handleSave();
+              void handleSave();
             }}
             disabled={isSubmitting}
           />

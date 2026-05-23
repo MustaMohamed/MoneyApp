@@ -83,7 +83,13 @@ export default function WelcomeScreenV2() {
 
       <Box className="border-separator border-t px-4 pt-2 pb-6">
         <Animated.View entering={ctaEntering}>
-          <Button variant="primary" label={Strings.o1Cta} onPress={onContinue} />
+          <Button
+            variant="primary"
+            label={Strings.o1Cta}
+            onPress={() => {
+              void onContinue();
+            }}
+          />
         </Animated.View>
       </Box>
     </Screen>

@@ -68,7 +68,7 @@
   ],
   "overrides": [
     {
-      "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}"],
+      "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}", "__mocks__/**/*.{ts,tsx,js}"],
       "rules": {
         "react/display-name": "off",
         "typescript/no-unsafe-type-assertion": "warn",

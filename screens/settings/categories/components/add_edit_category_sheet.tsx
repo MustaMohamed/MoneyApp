@@ -169,7 +169,9 @@ export function AddEditCategorySheet({
   const footer = (
     <Pressable
       testID="add-edit-category-save-btn"
-      onPress={handleSave}
+      onPress={() => {
+        void handleSave();
+      }}
       style={[styles.cta, sheetState.isLoading && styles.ctaDisabled]}
       disabled={sheetState.isLoading}
       accessibilityRole="button"
@@ -298,7 +300,7 @@ function NameField({
         style={[styles.input, error ? styles.inputError : null]}
         placeholder={placeholder}
         placeholderTextColor={Colors.dark.text2}
-        value={field.value as string}
+        value={field.value}
         onChangeText={field.onChange}
         maxLength={50}
         accessibilityLabel={placeholder}

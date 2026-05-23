@@ -59,7 +59,9 @@ export default function CommitmentsScreen() {
           refreshControl={
             <RefreshControl
               refreshing={t.state.refreshing}
-              onRefresh={t.onRefresh}
+              onRefresh={() => {
+                void t.onRefresh();
+              }}
               tintColor={Colors.shared.cairoGold}
             />
           }

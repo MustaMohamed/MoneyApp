@@ -212,6 +212,7 @@ export function FAB({
                   accessibilityLabel={item.label}
                 >
                   <MaterialCommunityIcons
+                    // oxlint-disable-next-line typescript/no-explicit-any -- icon names are validated at FAB call site
                     name={item.icon as any}
                     size={ms(18)}
                     color={Colors.dark.text1}

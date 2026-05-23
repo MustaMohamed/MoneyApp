@@ -221,7 +221,7 @@ function setupMocks(
   capturedSetShowDeleteConfirm = jest.fn();
   capturedSetShowReassignSheet = jest.fn();
 
-  (mockedState as jest.Mock).mockImplementation((sel: any) =>
+  mockedState.mockImplementation((sel: any) =>
     sel({
       state: {
         activeTab: 'expense',
@@ -238,7 +238,7 @@ function setupMocks(
     }),
   );
 
-  (mockedStore as jest.Mock).mockImplementation((sel: any) =>
+  mockedStore.mockImplementation((sel: any) =>
     sel({
       state: {
         editingCategory: null,

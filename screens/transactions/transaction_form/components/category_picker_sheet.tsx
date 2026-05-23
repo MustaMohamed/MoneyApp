@@ -82,6 +82,7 @@ export function CategoryPickerSheet({
                       className={`items-center justify-center rounded-md border ${isSelected ? 'border-accent bg-accent/10' : 'border-border bg-default'}`}
                     >
                       <MaterialCommunityIcons
+                        // oxlint-disable-next-line typescript/no-explicit-any -- cat.icon is a DB-validated icon name string
                         name={(cat.icon as any) ?? 'tag'}
                         size={22}
                         color={iconColor}

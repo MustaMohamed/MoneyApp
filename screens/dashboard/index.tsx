@@ -132,7 +132,9 @@ export default function DashboardScreen() {
               refreshControl={
                 <RefreshControl
                   refreshing={state.refreshing}
-                  onRefresh={refresh}
+                  onRefresh={() => {
+                    void refresh();
+                  }}
                   tintColor={Colors.shared.cairoGold}
                 />
               }

@@ -48,7 +48,7 @@ export function useAddAccountApp() {
       currency: data.currency,
       opening_balance: parseFloat(data.balance),
       color: data.selected_color,
-      interest_tracking: (data.interest_tracking ? 1 : 0) as 0 | 1,
+      interest_tracking: data.interest_tracking ? 1 : 0,
       sort_order: accountState.accounts.length,
       credit_limit: isCC && data.credit_limit?.trim() ? parseFloat(data.credit_limit) : null,
       revolving_balance:

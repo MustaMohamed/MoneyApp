@@ -117,12 +117,16 @@ export default function TransactionsScreen(): React.ReactElement {
         refreshControl={
           <RefreshControl
             refreshing={t.state.refreshing}
-            onRefresh={t.onRefresh}
+            onRefresh={() => {
+              void t.onRefresh();
+            }}
             tintColor={GoldTokens[500]}
             colors={[GoldTokens[500]]}
           />
         }
-        onEndReached={t.onEndReached}
+        onEndReached={() => {
+          void t.onEndReached();
+        }}
         onEndReachedThreshold={0.5}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
       />

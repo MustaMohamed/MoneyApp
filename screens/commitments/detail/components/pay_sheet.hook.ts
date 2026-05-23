@@ -143,7 +143,7 @@ export function usePaySheet(
       }
     }
 
-    prefill();
+    void prefill();
 
     return () => {
       cancelled = true;
