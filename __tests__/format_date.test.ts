@@ -2,6 +2,7 @@ import {
   formatShortDate,
   formatLongDate,
   formatMonthYear,
+  nextDueDate,
   toLocalDateString,
 } from '@/utils/format_date';
 
@@ -50,5 +51,23 @@ describe('toLocalDateString', () => {
   });
   it('handles a typical mid-month date', () => {
     expect(toLocalDateString(new Date(2025, 10, 9))).toBe('2025-11-09');
+  });
+});
+
+describe('nextDueDate', () => {
+  it('rolls to next month when the due day has already passed', () => {
+    expect(nextDueDate(5, new Date(2026, 4, 20))).toBe('Jun 5');
+  });
+
+  it('stays in the current month when the due day is still ahead', () => {
+    expect(nextDueDate(20, new Date(2026, 4, 5))).toBe('May 20');
+  });
+
+  it('treats today as still due this month (boundary)', () => {
+    expect(nextDueDate(15, new Date(2026, 4, 15))).toBe('May 15');
+  });
+
+  it('defaults "now" to the current date when omitted', () => {
+    expect(nextDueDate(15)).toMatch(/^[A-Z][a-z]{2} \d{1,2}$/);
   });
 });
