@@ -53,6 +53,11 @@ export function FABOverlay() {
   const bottomOffset = insets.bottom + Size.tabBarHeight + ms(16);
 
   const isSettingsRoute = pathname.startsWith('/settings');
+  // The commitment detail/add/edit screens are pushed routes nested INSIDE the
+  // tabs group, so this FAB overlay (a sibling of <Tabs>) floats over them and
+  // collides with their bottom Save/Pay CTAs. Hide it on any /commitments/ sub-route
+  // — the FAB is a list-level "add" affordance, not a form/detail one.
+  const isCommitmentSubRoute = pathname.startsWith('/commitments/');
   const anySheetOpen = useAnySheetOpen();
 
   return (
@@ -61,7 +66,7 @@ export function FABOverlay() {
         onAddTransaction={handleAddTransaction}
         onAddAccount={handleAddAccount}
         onAddCommitment={handleAddCommitment}
-        hidden={isSettingsRoute || anySheetOpen}
+        hidden={isSettingsRoute || isCommitmentSubRoute || anySheetOpen}
         bottomOffset={bottomOffset}
       />
     </View>
