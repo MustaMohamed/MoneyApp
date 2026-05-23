@@ -75,8 +75,7 @@
         "typescript/no-unsafe-return": "warn",
         "typescript/no-unsafe-member-access": "warn",
         "typescript/no-unsafe-call": "warn",
-        "typescript/no-unsafe-argument": "warn",
-        "typescript/no-require-imports": "off"
+        "typescript/no-unsafe-argument": "warn"
       }
     },
     {
