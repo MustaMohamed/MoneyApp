@@ -50,7 +50,7 @@ export function useAccountDetail() {
     })),
   );
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => reset(), []); // cleanup on unmount only; reset is a stable Zustand action
 
   useEffect(() => {

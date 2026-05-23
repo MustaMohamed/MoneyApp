@@ -68,7 +68,7 @@ export function useEditCommitment() {
   useEffect(() => {
     if (!commitment) return;
     form.reset(buildEditDefaults(commitment));
-  }, [commitment]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [commitment]); // oxlint-disable-line react-hooks/exhaustive-deps
 
   // Cleanup on unmount
   useEffect(() => {

@@ -146,7 +146,7 @@ export function AddEditCategorySheet({
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
 
   const handleSave = handleSubmit(async ({ name }) => {

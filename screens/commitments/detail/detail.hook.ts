@@ -136,7 +136,7 @@ export function useCommitmentDetail() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [commitment?.id, commitmentState.payments, setAllPayments, setViewState]); // commitment?.id captures identity changes; full object dep would cause spurious re-fetches
 
   // Cleanup on unmount

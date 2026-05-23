@@ -110,7 +110,7 @@ export function FAB({
       opacity.value = withDelay(index * 40, withTiming(1, { duration: 150 }));
     });
     // Shared values from useSharedValue are stable refs — empty deps array is correct.
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // oxlint-disable-line react-hooks/exhaustive-deps
 
   const closeMenu = useCallback(() => {
     rotation.value = withTiming(0, { duration: 200 });
@@ -126,7 +126,7 @@ export function FAB({
     // Delay state change to let close animation finish (see CLOSE_DURATION_MS).
     setTimeout(() => setMenuOpen(false), CLOSE_DURATION_MS);
     // Shared values from useSharedValue are stable refs — empty deps array is correct.
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // oxlint-disable-line react-hooks/exhaustive-deps
 
   const onLongPress = useCallback(
     (event: HandlerStateChangeEvent<LongPressGestureHandlerEventPayload>) => {
