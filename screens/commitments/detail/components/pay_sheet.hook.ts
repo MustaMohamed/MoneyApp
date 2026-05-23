@@ -160,6 +160,7 @@ export function usePaySheet(
         account_id: data.account_id,
         paid_date: data.paid_date,
         exchange_rate_snapshot: data.exchange_rate,
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
       await loadAccounts();

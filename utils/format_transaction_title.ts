@@ -24,6 +24,7 @@ export function formatTransactionTitle({
 }: FormatTitleArgs): FormattedTitle {
   const accountName = account?.name ?? Strings.unknownAccount;
   const toAccountName = toAccount?.name ?? Strings.unknownAccount;
+  // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined (empty-string blank note)
   const note = tx.note?.trim() || undefined;
 
   switch (tx.type) {

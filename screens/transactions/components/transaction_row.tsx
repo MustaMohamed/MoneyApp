@@ -113,6 +113,7 @@ export function TransactionRow({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const title = useMemo(() => categoryTitle(tx, category), [tx, category]);
+  // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to null (blank note → no note row rendered)
   const note = tx.note?.trim() || null;
   const ctx = useMemo(() => accountContext(tx, account, toAccount), [tx, account, toAccount]);
 

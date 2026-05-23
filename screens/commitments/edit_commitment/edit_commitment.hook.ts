@@ -89,6 +89,7 @@ export function useEditCommitment() {
         recurrence_period: data.recurrencePeriod,
         start_date: data.startDate,
         account_id: data.accountId ?? null,
+        // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to null
         notes: data.notes?.trim() || null,
         duration_type: data.durationType,
         end_date: data.durationType === DurationType.UntilDate ? (data.endDate ?? null) : null,

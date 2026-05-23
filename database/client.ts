@@ -5,13 +5,11 @@ import { MIGRATIONS } from './migrations';
 let dbPromise: Promise<SQLite.SQLiteDatabase> | null = null;
 
 export function getDb(): Promise<SQLite.SQLiteDatabase> {
-  if (!dbPromise) {
-    dbPromise = (async () => {
-      const db = await SQLite.openDatabaseAsync('moneyapp.db');
-      await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
-      return db;
-    })();
-  }
+  dbPromise ??= (async () => {
+    const db = await SQLite.openDatabaseAsync('moneyapp.db');
+    await db.execAsync('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+    return db;
+  })();
   return dbPromise;
 }
 

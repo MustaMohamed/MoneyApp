@@ -68,6 +68,18 @@
   ],
   "overrides": [
     {
+      "files": ["scripts/**/*.{ts,tsx,js}", "metro.config.js", "babel.config.js"],
+      "rules": {
+        "typescript/no-unsafe-assignment": "warn",
+        "typescript/no-explicit-any": "warn",
+        "typescript/no-unsafe-return": "warn",
+        "typescript/no-unsafe-member-access": "warn",
+        "typescript/no-unsafe-call": "warn",
+        "typescript/no-unsafe-argument": "warn",
+        "typescript/no-require-imports": "off"
+      }
+    },
+    {
       "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}", "__mocks__/**/*.{ts,tsx,js}"],
       "rules": {
         "react/display-name": "off",

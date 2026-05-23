@@ -166,6 +166,7 @@ export function useTransactionDetail(id: string) {
         tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
       exchangeRateText:
         tx.exchange_rate !== null ? `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP` : undefined,
+      // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string falls back to the 'No note' label
       noteText: tx.note?.trim() || Strings.detailNoteEmpty,
       category,
       isTransferLike: tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment,
