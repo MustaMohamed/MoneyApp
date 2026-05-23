@@ -5,12 +5,13 @@ import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
-import { TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
+import { toIconName } from '@/utils/icon_name_guard';
 
 import { useRowPressScale } from './transaction_row.anim';
 
@@ -97,7 +98,8 @@ function iconBgClass(type: TransactionType): string {
 function pickIcon(tx: Transaction, category?: Category): IconName {
   if (tx.type === TransactionType.Transfer) return 'swap-horizontal';
   if (tx.type === TransactionType.CCPayment) return 'credit-card-refund';
-  return (category?.icon as IconName) ?? FALLBACK_ICON;
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- category can be undefined at runtime
+  return toIconName(category?.icon, FALLBACK_ICON);
 }
 
 export function TransactionRow({
@@ -111,10 +113,11 @@ export function TransactionRow({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   const title = useMemo(() => categoryTitle(tx, category), [tx, category]);
+  // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to null (blank note → no note row rendered)
   const note = tx.note?.trim() || null;
   const ctx = useMemo(() => accountContext(tx, account, toAccount), [tx, account, toAccount]);
 
-  const showEquiv = tx.currency !== 'EGP';
+  const showEquiv = tx.currency !== Currency.EGP;
   const equivPrefix =
     tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment ? '→ ' : '≈ ';
   const nativeText = `${signPrefix(tx.type)}${numberFmt.format(tx.amount)} ${tx.currency}`;

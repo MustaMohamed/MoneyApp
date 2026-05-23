@@ -59,7 +59,9 @@ export default function CurrencyScreen() {
           <Button
             label={Strings.currencyFetchCta}
             variant="secondary"
-            onPress={handleFetchRate}
+            onPress={() => {
+              void handleFetchRate();
+            }}
             isDisabled={isFetching}
             isLoading={isFetching}
           />
@@ -108,7 +110,9 @@ export default function CurrencyScreen() {
                   <Button
                     label={Strings.currencySaveCta}
                     variant="primary"
-                    onPress={handleSaveManualRate}
+                    onPress={() => {
+                      void handleSaveManualRate();
+                    }}
                     isDisabled={isSaving}
                     isLoading={isSaving}
                   />

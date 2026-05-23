@@ -64,6 +64,7 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
             render={({ field: { value, onChange, onBlur } }) => (
               <TextInput
                 style={[styles.everyInput, everyError ? styles.inputError : null]}
+                // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null/undefined at reset
                 value={value != null ? String(value) : ''}
                 onChangeText={(v) => {
                   if (v === '') {

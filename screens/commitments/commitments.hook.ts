@@ -143,15 +143,15 @@ export function useCommitments() {
         newYear--;
       }
       const newYearMonth = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-      setSelectedMonth(newYearMonth);
+      void setSelectedMonth(newYearMonth);
     },
     [commitmentState.selectedMonth, setSelectedMonth],
   );
 
   useFocusEffect(
     useCallback(() => {
-      loadCommitments();
-      loadPaymentsForMonth(selectedMonthRef.current);
+      void loadCommitments();
+      void loadPaymentsForMonth(selectedMonthRef.current);
     }, [loadCommitments, loadPaymentsForMonth]),
   );
 

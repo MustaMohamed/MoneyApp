@@ -48,7 +48,9 @@ export default function SecurityScreen() {
 
       <View style={styles.ctaBar}>
         <Pressable
-          onPress={onContinue}
+          onPress={() => {
+            void onContinue();
+          }}
           disabled={ctaDisabled}
           style={[styles.ctaPress, ctaDisabled && styles.ctaPressDisabled]}
         >

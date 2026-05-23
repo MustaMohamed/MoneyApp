@@ -36,7 +36,25 @@
     "react/display-name": "off",
     "expo/use-dom-exports": "error",
     "expo/no-env-var-destructuring": "error",
-    "expo/no-dynamic-env-var": "error"
+    "expo/no-dynamic-env-var": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    "typescript/no-unsafe-assignment": "error",
+    "typescript/no-unsafe-argument": "error",
+    "typescript/no-unsafe-call": "error",
+    "typescript/no-unsafe-member-access": "error",
+    "typescript/no-unsafe-return": "error",
+    "typescript/no-unsafe-type-assertion": "error",
+    "typescript/no-unsafe-enum-comparison": "error",
+    "typescript/no-deprecated": "error",
+    "typescript/no-unnecessary-condition": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-redundant-type-constituents": "warn",
+    "typescript/prefer-nullish-coalescing": "warn",
+    "typescript/prefer-optional-chain": "warn",
+    "typescript/unbound-method": "warn"
   },
   "ignorePatterns": [
     "node_modules/",
@@ -50,9 +68,32 @@
   ],
   "overrides": [
     {
-      "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}"],
+      "files": ["scripts/**/*.{ts,tsx,js}", "metro.config.js", "babel.config.js"],
       "rules": {
-        "react/display-name": "off"
+        "typescript/no-unsafe-assignment": "warn",
+        "typescript/no-explicit-any": "warn",
+        "typescript/no-unsafe-return": "warn",
+        "typescript/no-unsafe-member-access": "warn",
+        "typescript/no-unsafe-call": "warn",
+        "typescript/no-unsafe-argument": "warn"
+      }
+    },
+    {
+      "files": ["jest.setup.js", "__tests__/**/*.{ts,tsx,js}", "__mocks__/**/*.{ts,tsx,js}"],
+      "rules": {
+        "react/display-name": "off",
+        "typescript/no-unsafe-type-assertion": "warn",
+        "typescript/no-explicit-any": "warn",
+        "typescript/no-unsafe-assignment": "warn",
+        "typescript/no-unsafe-return": "warn",
+        "typescript/no-unsafe-member-access": "warn",
+        "typescript/no-unsafe-call": "warn",
+        "typescript/no-unsafe-argument": "warn",
+        "typescript/no-unnecessary-type-assertion": "warn",
+        "typescript/no-unnecessary-condition": "warn",
+        "typescript/no-unsafe-enum-comparison": "warn",
+        "typescript/no-floating-promises": "warn",
+        "typescript/no-deprecated": "warn"
       }
     }
   ]

@@ -95,6 +95,7 @@ export async function loadOnboardingState(): Promise<{
   // Force-restart: if the new-onboarding flag is enabled and the persisted step is from
   // the old O* flow, restart from N1. This handles the flag-flip moment for testers.
   // No production users will be affected during the §2 window (flag ships as false).
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- intentional dead code guard; flag will flip when §2 ships
   if (FeatureFlags.newOnboarding && step.startsWith('O')) {
     step = OnboardingStep.N1;
     await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, OnboardingStep.N1);
@@ -112,13 +113,16 @@ export async function loadOnboardingState(): Promise<{
 }
 
 function isOnboardingStep(v: string | null): v is OnboardingStep {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(OnboardingStep).includes(v as OnboardingStep);
 }
 
 function isCurrency(v: string | null): v is Currency {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(Currency).includes(v as Currency);
 }
 
 function isSecurityChoice(v: string | null): v is SecurityChoice {
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(SecurityChoice).includes(v as SecurityChoice);
 }

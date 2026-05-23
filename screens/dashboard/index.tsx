@@ -3,7 +3,8 @@ import { Tabs } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -62,6 +63,7 @@ export default function DashboardScreen() {
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
 
   const onTabChange = useCallback(
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Tabs.onValueChange is string; tab values are always 'overview'|'accounts' per JSX
     (value: string) => setSelectedSegment(value as DashboardSegment),
     [setSelectedSegment],
   );
@@ -80,9 +82,9 @@ export default function DashboardScreen() {
         .onEnd((e) => {
           'worklet';
           if (e.translationX < -SWIPE_THRESHOLD) {
-            runOnJS(setSelectedSegment)('accounts');
+            scheduleOnRN(setSelectedSegment, 'accounts');
           } else if (e.translationX > SWIPE_THRESHOLD) {
-            runOnJS(setSelectedSegment)('overview');
+            scheduleOnRN(setSelectedSegment, 'overview');
           }
         }),
     [setSelectedSegment],
@@ -132,7 +134,9 @@ export default function DashboardScreen() {
               refreshControl={
                 <RefreshControl
                   refreshing={state.refreshing}
-                  onRefresh={refresh}
+                  onRefresh={() => {
+                    void refresh();
+                  }}
                   tintColor={Colors.shared.cairoGold}
                 />
               }

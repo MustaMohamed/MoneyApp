@@ -20,7 +20,7 @@ type Store = ReturnType<typeof createStore>;
 
 export function useDecimalInputState(initialText: string) {
   const storeRef = useRef<Store | null>(null);
-  if (storeRef.current === null) storeRef.current = createStore(initialText);
+  storeRef.current ??= createStore(initialText);
   return storeRef.current(
     useShallow((s) => ({ state: s.state, setText: s.setText, syncToValue: s.syncToValue })),
   );

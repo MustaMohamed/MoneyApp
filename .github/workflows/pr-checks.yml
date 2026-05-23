@@ -49,7 +49,7 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Log oxlint version
+      - name: Log oxlint version (type-aware enabled)
         run: npx oxlint --version
       - run: npm run lint
 

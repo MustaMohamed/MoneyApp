@@ -105,6 +105,7 @@ export function useCategories() {
     } else {
       // addCategory throws 'already exists' on name+type collision — caller catches
       // and surfaces as categoriesErrNameDuplicate form error (TC-06)
+      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- else-branch means editingCategory is null, so data is always NewCategoryInput
       await addCategory(data as NewCategoryInput);
     }
     closeSheet();
@@ -170,7 +171,9 @@ export function useCategories() {
    */
   const reassignOptions = catState.categories.filter(
     (c) =>
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
       c.type === catScreenDataState.categoryToDelete?.type &&
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
       c.id !== catScreenDataState.categoryToDelete?.id,
   );
 

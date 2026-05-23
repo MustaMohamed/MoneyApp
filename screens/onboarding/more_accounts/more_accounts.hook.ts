@@ -16,7 +16,7 @@ export function useMoreAccounts() {
 
   useFocusEffect(
     useCallback(() => {
-      useAccountStore.getState().loadAccounts();
+      void useAccountStore.getState().loadAccounts();
     }, []),
   );
 

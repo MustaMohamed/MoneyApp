@@ -83,10 +83,10 @@ describe('Input', () => {
     expect(getByText('This field is required')).toBeTruthy();
   });
 
-  it('supports deprecated hasError prop', () => {
+  it('shows helperText in error state via isInvalid', () => {
     const { getByText } = render(
-      <Input hasError helperText="Error via hasError" placeholder="Name" />,
+      <Input isInvalid helperText="Error via isInvalid" placeholder="Name" />,
     );
-    expect(getByText('Error via hasError')).toBeTruthy();
+    expect(getByText('Error via isInvalid')).toBeTruthy();
   });
 });

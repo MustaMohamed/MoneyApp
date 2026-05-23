@@ -32,6 +32,7 @@ import Animated, {
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 export interface FABProps {
@@ -212,7 +213,7 @@ export function FAB({
                   accessibilityLabel={item.label}
                 >
                   <MaterialCommunityIcons
-                    name={item.icon as any}
+                    name={toIconName(item.icon, 'dots-horizontal')}
                     size={ms(18)}
                     color={Colors.dark.text1}
                   />
@@ -223,6 +224,7 @@ export function FAB({
           })}
 
         {/* FAB button — primary action on tap, mini menu on long-press */}
+        {/* oxlint-disable-next-line typescript/no-deprecated -- Gesture.LongPress() requires GestureDetector which conflicts with the nested Pressable onPress handler; full migration deferred to §9 RNGH cleanup */}
         <LongPressGestureHandler onHandlerStateChange={onLongPress} minDurationMs={500}>
           <Pressable
             testID="fab-button"

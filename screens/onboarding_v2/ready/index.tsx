@@ -74,7 +74,9 @@ export default function ReadyScreenV2() {
           <Button
             variant="primary"
             label={Strings.o6Cta}
-            onPress={handleComplete}
+            onPress={() => {
+              void handleComplete();
+            }}
             disabled={completing}
           />
         </Animated.View>

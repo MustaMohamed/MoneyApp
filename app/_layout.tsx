@@ -21,8 +21,8 @@ import { Colors } from '@/constants/theme';
 import { useReadyStore } from '@/store/ready.store';
 import { useLayoutInit } from '@/utils/use_layout_init.hook';
 
-SplashScreen.preventAutoHideAsync();
-SystemUI.setBackgroundColorAsync(Colors.dark.bg);
+void SplashScreen.preventAutoHideAsync();
+void SystemUI.setBackgroundColorAsync(Colors.dark.bg);
 
 const AppTheme = {
   ...DarkTheme,
@@ -50,7 +50,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     if (fontsLoaded && readyState.ready) {
-      SplashScreen.hideAsync();
+      void SplashScreen.hideAsync();
     }
   }, [fontsLoaded, readyState.ready]);
 

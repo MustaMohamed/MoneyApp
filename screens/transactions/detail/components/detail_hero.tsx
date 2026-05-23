@@ -8,6 +8,7 @@ import { TransactionType } from '@/constants/enums';
 import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
+import { toIconName } from '@/utils/icon_name_guard';
 
 interface Props {
   tx: Transaction;
@@ -99,18 +100,23 @@ export function DetailHero({
         <View
           className="mt-4 flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
           style={{
+            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
             backgroundColor: `${category.color ?? '#888'}1F`,
             borderWidth: 1,
+            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
             borderColor: `${category.color ?? '#888'}40`,
           }}
         >
           <MaterialCommunityIcons
-            name={(category.icon as never) ?? 'shape-outline'}
+            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB can return null icon despite entity type
+            name={toIconName(category.icon, 'shape-outline')}
             size={14}
+            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
             color={category.color ?? '#888'}
           />
           <Text
             className="font-inter text-[11px] font-semibold"
+            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
             style={{ color: category.color ?? '#888' }}
           >
             {category.name}

@@ -89,7 +89,7 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const periodRange = resolvePeriod(txScreenState.period);
       if (!periodRange.from || !periodRange.to) {
         setTotals(null);
@@ -106,6 +106,7 @@ export function useTransactions() {
               return getPeriodTotals(db, { from: r.from, to: r.to });
             })()
           : null;
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
         if (!cancelled) setTotals({ current, previous });
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
@@ -180,7 +181,7 @@ export function useTransactions() {
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(txScreenState.period);
-    if (!prev || prev.type !== 'month') return null;
+    if (prev?.type !== 'month') return null;
     return Strings.carouselMonthShort(prev.yearMonth);
   }, [txScreenState.period]);
 

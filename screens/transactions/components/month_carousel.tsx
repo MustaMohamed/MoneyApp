@@ -62,12 +62,14 @@ export function MonthCarousel({
   // Auto-scroll to the selected pill when its offset is measured or selection changes
   useEffect(() => {
     const offset = pillOffsets[currentKey];
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard for Record index access
     if (offset !== undefined && scrollRef.current) {
       scrollRef.current.scrollTo({ x: offset, animated: false });
     }
   }, [currentKey, pillOffsets]);
 
   const snapToOffsets = useMemo(
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- runtime guard for Record index access
     () => pills.map((p) => pillOffsets[pillKey(p)]).filter((x): x is number => x !== undefined),
     [pills, pillOffsets],
   );

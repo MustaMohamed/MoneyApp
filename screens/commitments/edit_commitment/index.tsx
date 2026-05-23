@@ -19,7 +19,9 @@ export default function EditCommitmentScreen() {
         categories={state.categories}
         accounts={state.accounts}
         saving={state.saving}
-        onSubmit={onSubmit}
+        onSubmit={() => {
+          void onSubmit();
+        }}
         title={Strings.commitmentsEditTitle}
       />
       <Pressable style={styles.deactivateBtn} onPress={handleDeactivate}>
@@ -29,7 +31,9 @@ export default function EditCommitmentScreen() {
         visible={state.deactivateDialogVisible}
         busy={state.saving}
         onCancel={cancelDeactivate}
-        onConfirm={confirmDeactivate}
+        onConfirm={() => {
+          void confirmDeactivate();
+        }}
       />
     </SafeAreaView>
   );

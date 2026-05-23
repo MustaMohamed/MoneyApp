@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 
+import { CategoryType } from '@/constants/enums';
+
 interface CategoriesScreenStateShape {
-  activeTab: 'expense' | 'income';
+  activeTab: CategoryType;
   showAddSheet: boolean;
   showDeleteConfirm: boolean;
   showReassignSheet: boolean;
@@ -10,7 +12,7 @@ interface CategoriesScreenStateShape {
 
 interface CategoriesScreenState {
   state: CategoriesScreenStateShape;
-  setActiveTab: (tab: 'expense' | 'income') => void;
+  setActiveTab: (tab: CategoryType) => void;
   setShowAddSheet: (v: boolean) => void;
   setShowDeleteConfirm: (v: boolean) => void;
   setShowReassignSheet: (v: boolean) => void;
@@ -19,7 +21,7 @@ interface CategoriesScreenState {
 }
 
 const INITIAL_STATE: CategoriesScreenStateShape = {
-  activeTab: 'expense',
+  activeTab: CategoryType.Expense,
   showAddSheet: false,
   showDeleteConfirm: false,
   showReassignSheet: false,

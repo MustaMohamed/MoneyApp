@@ -26,6 +26,7 @@ const ACCOUNT_TYPE_ICONS: Record<AccountType, IconName> = {
 
 export function getAccountTypeIcon(type: string | undefined): IconName {
   if (type && type in ACCOUNT_TYPE_ICONS) {
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- 'in' guard confirms type is a valid AccountType key
     return ACCOUNT_TYPE_ICONS[type as AccountType];
   }
   return 'card-bulleted-outline';

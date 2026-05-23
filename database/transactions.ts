@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { Currency, TransactionType } from '@/constants/enums';
+import type { Currency } from '@/constants/enums';
+import { TransactionType } from '@/constants/enums';
 
 import type { Transaction } from './entities/transaction.entity';
 
@@ -85,19 +86,19 @@ export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promi
 
     const now = tx.updated_at;
 
-    if (tx.type === 'expense') {
+    if (tx.type === TransactionType.Expense) {
       // Debit FROM account by native face-value amount.
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
         [tx.amount, now, tx.account_id],
       );
-    } else if (tx.type === 'income') {
+    } else if (tx.type === TransactionType.Income) {
       // Credit FROM account by native face-value amount.
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [tx.amount, now, tx.account_id],
       );
-    } else if (tx.type === 'transfer') {
+    } else if (tx.type === TransactionType.Transfer) {
       // FROM account loses native amount; TO account gains its native equivalent.
       // Fall back to egp_amount for legacy rows where to_amount was not yet populated.
       const transferToAmt = tx.to_amount ?? tx.egp_amount;
@@ -109,7 +110,8 @@ export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promi
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [transferToAmt, now, tx.to_account_id],
       );
-    } else if (tx.type === 'cc_payment') {
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- exhaustive narrowing; last branch is always CCPayment
+    } else if (tx.type === TransactionType.CCPayment) {
       // Debit source asset account by its native currency amount.
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
@@ -121,6 +123,7 @@ export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promi
         'SELECT revolving_balance FROM accounts WHERE id = ?',
         [tx.to_account_id],
       );
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]; runtime guard needed
       const revolving = cc?.revolving_balance ?? 0;
       const installmentDue = tx.minimum_payment_snapshot ?? 0;
       const toAmt = tx.to_amount ?? tx.egp_amount;
@@ -282,6 +285,7 @@ export async function getTransactionById(
 export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise<void> {
   const rows = await db.getAllAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [id]);
   const tx = rows[0];
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]; runtime guard needed
   if (!tx) return;
 
   await db.withTransactionAsync(async () => {
@@ -289,17 +293,17 @@ export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise
 
     const now = new Date().toISOString();
 
-    if (tx.type === 'expense') {
+    if (tx.type === TransactionType.Expense) {
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [tx.amount, now, tx.account_id],
       );
-    } else if (tx.type === 'income') {
+    } else if (tx.type === TransactionType.Income) {
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
         [tx.amount, now, tx.account_id],
       );
-    } else if (tx.type === 'transfer') {
+    } else if (tx.type === TransactionType.Transfer) {
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [tx.amount, now, tx.account_id],
@@ -309,7 +313,8 @@ export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise
         'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
         [toAmt, now, tx.to_account_id],
       );
-    } else if (tx.type === 'cc_payment') {
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- exhaustive narrowing; last branch is always CCPayment
+    } else if (tx.type === TransactionType.CCPayment) {
       // Restore asset account.
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
@@ -383,25 +388,26 @@ export async function updateTransaction(
 ): Promise<void> {
   const rows = await db.getAllAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [id]);
   const existing = rows[0];
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]; runtime guard needed
   if (!existing) return;
 
   const now = new Date().toISOString();
 
   await db.withTransactionAsync(async () => {
-    if (existing.type === 'expense') {
+    if (existing.type === TransactionType.Expense) {
       // Delta in the account's native currency.
       const delta = updates.amount - existing.amount;
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
         [delta, now, existing.account_id],
       );
-    } else if (existing.type === 'income') {
+    } else if (existing.type === TransactionType.Income) {
       const delta = updates.amount - existing.amount;
       await db.runAsync(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [delta, now, existing.account_id],
       );
-    } else if (existing.type === 'transfer') {
+    } else if (existing.type === TransactionType.Transfer) {
       const deltaFrom = updates.amount - existing.amount;
       const newToAmt = updates.to_amount ?? updates.egp_amount;
       const oldToAmt = existing.to_amount ?? existing.egp_amount;
@@ -414,7 +420,8 @@ export async function updateTransaction(
         'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
         [deltaTo, now, existing.to_account_id],
       );
-    } else if (existing.type === 'cc_payment') {
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- exhaustive narrowing; last branch is always CCPayment
+    } else if (existing.type === TransactionType.CCPayment) {
       // Simple delta math is incorrect for CC because installment-first split is non-linear.
       // Strategy: reverse old payment using snapshot, then apply new payment using current CC state.
 
@@ -447,7 +454,9 @@ export async function updateTransaction(
       }>('SELECT revolving_balance, minimum_payment FROM accounts WHERE id = ?', [
         existing.to_account_id,
       ]);
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]
       const newRevolving = ccForApply?.revolving_balance ?? 0;
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]
       const newMinPayment = ccForApply?.minimum_payment ?? 0;
       const newToAmt = updates.to_amount ?? updates.egp_amount;
       const newInstallmentCovered = Math.min(newToAmt, newMinPayment);
@@ -465,11 +474,12 @@ export async function updateTransaction(
 
     // Snapshot the new minimum_payment for cc_payment updates so future reversals stay accurate.
     let newMinPaymentSnapshot: number | null = null;
-    if (existing.type === 'cc_payment') {
+    if (existing.type === TransactionType.CCPayment) {
       const [ccSnap] = await db.getAllAsync<{ minimum_payment: number | null }>(
         'SELECT minimum_payment FROM accounts WHERE id = ?',
         [existing.to_account_id],
       );
+      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]
       newMinPaymentSnapshot = ccSnap?.minimum_payment ?? null;
     }
 

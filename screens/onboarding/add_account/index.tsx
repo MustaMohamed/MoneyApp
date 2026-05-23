@@ -305,7 +305,7 @@ export default function AddAccountScreen() {
           <Pressable
             onPress={() => {
               triggerBtnPress();
-              handleSave();
+              void handleSave();
             }}
             disabled={isSubmitting}
             style={[styles.ctaPress, isSubmitting && styles.ctaPressDisabled]}

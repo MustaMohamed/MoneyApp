@@ -73,7 +73,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
         </View>
       ) : state.viewState === 'notFound' ? (
         <NotFoundState />
-      ) : state.viewState === 'ready' && state.tx && state.derived ? (
+      ) : // oxlint-disable-next-line typescript/no-unnecessary-condition -- explicit state check for readability; state.tx/derived guards are real
+      state.viewState === 'ready' && state.tx && state.derived ? (
         <>
           <ScreenScroll>
             <DetailHero
@@ -168,7 +169,9 @@ export default function TransactionDetailScreen(): React.ReactElement {
             visible={state.confirmVisible}
             busy={state.deleting}
             onCancel={closeDeleteConfirm}
-            onConfirm={confirmDelete}
+            onConfirm={() => {
+              void confirmDelete();
+            }}
           />
 
           <EditTransactionSheet

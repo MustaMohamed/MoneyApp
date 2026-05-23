@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { useCallback } from 'react';
 
 import { Sheet } from '@/components/ui/sheet';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
@@ -37,7 +38,8 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
 
   const handleAddAccount = useCallback(() => {
     onClose();
-    router.push('/accounts/add' as any);
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- expo-router typed route string
+    router.push('/accounts/add' as unknown as Parameters<typeof router.push>[0]);
   }, [onClose]);
 
   return (
@@ -51,7 +53,9 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
           hook.state.hasAccounts ? (
             <SaveCta
               saving={hook.state.saving}
-              onPress={hook.handleSave}
+              onPress={() => {
+                void hook.handleSave();
+              }}
               label={Strings.addTxSaveCta}
             />
           ) : undefined
@@ -87,7 +91,7 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
               setDate={hook.setDate}
               note={hook.state.note}
               setNote={hook.setNote}
-              currency={hook.state.selectedAccount?.currency ?? ('EGP' as any)}
+              currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
             />
           ) : (
             <NoAccountsEmpty onAddAccount={handleAddAccount} />
@@ -166,7 +170,9 @@ function EditSheetInner({
         footer={
           <SaveCta
             saving={hook.state.saving}
-            onPress={hook.handleSave}
+            onPress={() => {
+              void hook.handleSave();
+            }}
             label={Strings.editTxSaveCta}
           />
         }
@@ -200,7 +206,7 @@ function EditSheetInner({
             setDate={hook.setDate}
             note={hook.state.note}
             setNote={hook.setNote}
-            currency={hook.state.selectedAccount?.currency ?? ('EGP' as any)}
+            currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
           />
         </Sheet.Body>
       </Sheet>

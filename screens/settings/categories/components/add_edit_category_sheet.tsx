@@ -12,6 +12,7 @@ import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -56,7 +57,7 @@ const CATEGORY_ICONS: IconName[] = [
 
 export function createCategorySchema(
   categories: Category[],
-  activeTab: 'expense' | 'income',
+  activeTab: CategoryType,
   editingCategory?: Category | null,
 ) {
   const editingId = editingCategory?.id;
@@ -82,7 +83,7 @@ export function createCategorySchema(
 interface AddEditCategorySheetProps {
   visible: boolean;
   editingCategory: Category | null;
-  activeTab: 'expense' | 'income';
+  activeTab: CategoryType;
   onClose: () => void;
   onSave: (data: NewCategoryInput | UpdateCategoryInput) => Promise<void>;
 }
@@ -133,13 +134,13 @@ export function AddEditCategorySheet({
         reset({ name: editingCategory.name });
         initialize({
           type: editingCategory.type,
-          icon: editingCategory.icon as IconName,
+          icon: toIconName(editingCategory.icon, 'tag-outline'),
           color: editingCategory.color,
         });
       } else {
         reset({ name: '' });
         initialize({
-          type: activeTab as CategoryType,
+          type: activeTab,
           icon: null,
           color: AccountColors[0],
         });
@@ -169,7 +170,9 @@ export function AddEditCategorySheet({
   const footer = (
     <Pressable
       testID="add-edit-category-save-btn"
-      onPress={handleSave}
+      onPress={() => {
+        void handleSave();
+      }}
       style={[styles.cta, sheetState.isLoading && styles.ctaDisabled]}
       disabled={sheetState.isLoading}
       accessibilityRole="button"
@@ -203,10 +206,10 @@ export function AddEditCategorySheet({
             <>
               <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
               <View style={styles.typeRow}>
-                {(['expense', 'income'] as const).map((t) => (
+                {([CategoryType.Expense, CategoryType.Income] as const).map((t) => (
                   <Pressable
                     key={t}
-                    onPress={() => setType(t as CategoryType)}
+                    onPress={() => setType(t)}
                     style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
                     accessibilityRole="button"
                     accessibilityState={{ selected: sheetState.type === t }}
@@ -217,7 +220,9 @@ export function AddEditCategorySheet({
                         sheetState.type === t && styles.typePillTextActive,
                       ]}
                     >
-                      {t === 'expense' ? Strings.categoriesTabExpense : Strings.categoriesTabIncome}
+                      {t === CategoryType.Expense
+                        ? Strings.categoriesTabExpense
+                        : Strings.categoriesTabIncome}
                     </Text>
                   </Pressable>
                 ))}
@@ -298,7 +303,7 @@ function NameField({
         style={[styles.input, error ? styles.inputError : null]}
         placeholder={placeholder}
         placeholderTextColor={Colors.dark.text2}
-        value={field.value as string}
+        value={field.value}
         onChangeText={field.onChange}
         maxLength={50}
         accessibilityLabel={placeholder}

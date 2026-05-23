@@ -8,9 +8,8 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
 import type { Category } from '@/store/category.store';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface ReassignCategorySheetProps {
   visible: boolean;
@@ -60,7 +59,9 @@ export function ReassignCategorySheet({
   const footer = (
     <Pressable
       testID="reassign-cta"
-      onPress={handleConfirm}
+      onPress={() => {
+        void handleConfirm();
+      }}
       style={[
         styles.cta,
         (!reassignState.selectedId || reassignState.isLoading) && styles.ctaDisabled,
@@ -102,7 +103,7 @@ export function ReassignCategorySheet({
             >
               <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
                 <MaterialCommunityIcons
-                  name={item.icon as IconName}
+                  name={toIconName(item.icon, 'tag-outline')}
                   size={Size.iconXs}
                   color={item.color}
                 />

@@ -9,6 +9,7 @@ import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { formatShortDate } from '@/utils/format_date';
+import { toIconName } from '@/utils/icon_name_guard';
 import { ms, msFont } from '@/utils/responsive';
 
 import { useRowPressScale } from '../commitments.anim';
@@ -68,11 +69,7 @@ export function CommitmentRow({ payment, commitment, category, onPress }: Commit
       <Animated.View style={[styles.row, animStyle]}>
         <View style={[styles.iconBox, { backgroundColor: iconBg }]}>
           <MaterialCommunityIcons
-            name={
-              (category?.icon ?? 'tag-outline') as React.ComponentProps<
-                typeof MaterialCommunityIcons
-              >['name']
-            }
+            name={toIconName(category?.icon, 'tag-outline')}
             size={ms(18)}
             color={category?.color ?? Colors.dark.text2}
           />

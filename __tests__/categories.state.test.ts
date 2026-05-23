@@ -1,3 +1,4 @@
+import { CategoryType } from '@/constants/enums';
 import { useCategoriesScreenState } from '@/screens/settings/categories/categories.state';
 
 beforeEach(() => useCategoriesScreenState.getState().reset());
@@ -5,17 +6,17 @@ beforeEach(() => useCategoriesScreenState.getState().reset());
 describe('useCategoriesScreenState', () => {
   it('starts with activeTab=expense and all sheets hidden', () => {
     const s = useCategoriesScreenState.getState().state;
-    expect(s.activeTab).toBe('expense');
+    expect(s.activeTab).toBe(CategoryType.Expense);
     expect(s.showAddSheet).toBe(false);
     expect(s.showDeleteConfirm).toBe(false);
     expect(s.showReassignSheet).toBe(false);
   });
 
   it('setActiveTab switches between expense and income', () => {
-    useCategoriesScreenState.getState().setActiveTab('income');
-    expect(useCategoriesScreenState.getState().state.activeTab).toBe('income');
-    useCategoriesScreenState.getState().setActiveTab('expense');
-    expect(useCategoriesScreenState.getState().state.activeTab).toBe('expense');
+    useCategoriesScreenState.getState().setActiveTab(CategoryType.Income);
+    expect(useCategoriesScreenState.getState().state.activeTab).toBe(CategoryType.Income);
+    useCategoriesScreenState.getState().setActiveTab(CategoryType.Expense);
+    expect(useCategoriesScreenState.getState().state.activeTab).toBe(CategoryType.Expense);
   });
 
   it('setShowAddSheet toggles', () => {
@@ -42,7 +43,7 @@ describe('useCategoriesScreenState', () => {
   it('reset returns to defaults', () => {
     useCategoriesScreenState.setState({
       state: {
-        activeTab: 'income',
+        activeTab: CategoryType.Income,
         showAddSheet: true,
         showDeleteConfirm: true,
         showReassignSheet: true,
@@ -51,7 +52,7 @@ describe('useCategoriesScreenState', () => {
     });
     useCategoriesScreenState.getState().reset();
     const s = useCategoriesScreenState.getState().state;
-    expect(s.activeTab).toBe('expense');
+    expect(s.activeTab).toBe(CategoryType.Expense);
     expect(s.showAddSheet).toBe(false);
     expect(s.showDeleteConfirm).toBe(false);
     expect(s.showReassignSheet).toBe(false);

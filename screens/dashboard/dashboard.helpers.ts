@@ -31,7 +31,7 @@ export function computeNetWorth(accounts: Account[], rate: number): NetWorthResu
 export function groupAccountsByType(accounts: Account[]): Partial<Record<AccountType, Account[]>> {
   const groups: Partial<Record<AccountType, Account[]>> = {};
   for (const a of accounts) {
-    if (!groups[a.type]) groups[a.type] = [];
+    groups[a.type] ??= [];
     groups[a.type]!.push(a);
   }
   return groups;

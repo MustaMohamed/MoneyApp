@@ -59,6 +59,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
     fetchRate: async () => {
       try {
         const res = await fetch(Config.currencyRateUrl);
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- API response shape validated by upstream; full Zod parse deferred
         const json = (await res.json()) as { rates: Record<string, number> };
         const rate = json.rates['EGP'];
         if (!rate) throw new Error('[currencyStore] EGP not in API response');

@@ -47,7 +47,7 @@ export default function WelcomeScreenV2() {
             style={{ flexDirection: 'row', width: '100%' }}
             className="gap-3"
           >
-            {(['EGP', 'USD'] as Currency[]).map((code) => (
+            {([Currency.EGP, Currency.USD] as const).map((code) => (
               <Pressable
                 key={code}
                 onPress={() => setSelected(code)}
@@ -59,7 +59,7 @@ export default function WelcomeScreenV2() {
                     : 'border-border bg-default',
                 )}
               >
-                <Text className="text-[18px]">{code === 'EGP' ? '🇪🇬' : '🇺🇸'}</Text>
+                <Text className="text-[18px]">{code === Currency.EGP ? '🇪🇬' : '🇺🇸'}</Text>
                 <Text
                   variant="body"
                   className={cn(
@@ -83,7 +83,13 @@ export default function WelcomeScreenV2() {
 
       <Box className="border-separator border-t px-4 pt-2 pb-6">
         <Animated.View entering={ctaEntering}>
-          <Button variant="primary" label={Strings.o1Cta} onPress={onContinue} />
+          <Button
+            variant="primary"
+            label={Strings.o1Cta}
+            onPress={() => {
+              void onContinue();
+            }}
+          />
         </Animated.View>
       </Box>
     </Screen>

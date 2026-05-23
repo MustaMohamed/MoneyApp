@@ -6,6 +6,7 @@ import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
+import { toIconName } from '@/utils/icon_name_guard';
 
 interface Props {
   visible: boolean;
@@ -72,6 +73,7 @@ export function CategoryPickerSheet({
                   // Icon colour: each category has its own colour (e.g. food =
                   // warm orange, transport = blue). Selected wins with the gold
                   // accent so the picker still has a clear "this one" signal.
+                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- cat.color can be null despite type
                   const iconColor = isSelected ? GoldTokens[500] : (cat.color ?? CoreTokens.text1);
                   return (
                     <Pressable
@@ -82,7 +84,7 @@ export function CategoryPickerSheet({
                       className={`items-center justify-center rounded-md border ${isSelected ? 'border-accent bg-accent/10' : 'border-border bg-default'}`}
                     >
                       <MaterialCommunityIcons
-                        name={(cat.icon as any) ?? 'tag'}
+                        name={toIconName(cat.icon, 'tag')}
                         size={22}
                         color={iconColor}
                       />
