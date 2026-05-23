@@ -1,17 +1,23 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import { Input } from 'heroui-native';
 import { useEffect, useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
-import { Platform, Pressable, View } from 'react-native';
+import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
+import {
+  AmountType,
+  CategoryType,
+  Currency,
+  DurationType,
+  RecurrencePeriod,
+} from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -86,6 +92,13 @@ export function CommitmentFormBody({
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId),
     [categories, categoryId],
+  );
+  // Commitments are recurring obligations (expenses) — never income. The picker
+  // only offers expense categories. selectedCategory above stays on the full list
+  // so a legacy commitment saved with an income category still shows its name.
+  const expenseCategories = useMemo(
+    () => categories.filter((c) => c.type === CategoryType.Expense),
+    [categories],
   );
   const selectedAccount = useMemo(
     () => accounts.find((a) => a.id === accountId),
@@ -204,15 +217,21 @@ export function CommitmentFormBody({
             control={form.control}
             name="name"
             render={({ field: { value, onChange, onBlur } }) => (
-              <Input
+              <TextInput
                 // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
                 value={value ?? ''}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 placeholder={Strings.commitmentsNamePlaceholder}
+                placeholderTextColor={Colors.dark.text2}
                 maxLength={50}
-                isDisabled={locked}
-                isInvalid={!!errors.name}
+                editable={!locked}
+                style={{
+                  fontFamily: FontFamily.soraSemi,
+                  fontSize: Type.body,
+                  color: Colors.dark.text1,
+                  paddingVertical: 0,
+                }}
               />
             )}
           />
@@ -483,14 +502,22 @@ export function CommitmentFormBody({
             control={form.control}
             name="notes"
             render={({ field: { value, onChange, onBlur } }) => (
-              <Input
+              <TextInput
                 value={value ?? ''}
                 onChangeText={(v) => onChange(v || undefined)}
                 onBlur={onBlur}
                 placeholder={Strings.addTxNotePlaceholder}
+                placeholderTextColor={Colors.dark.text2}
                 multiline
                 numberOfLines={3}
-                style={{ minHeight: 72, textAlignVertical: 'top' }}
+                style={{
+                  fontFamily: FontFamily.interRegular,
+                  fontSize: Type.body,
+                  color: Colors.dark.text1,
+                  minHeight: 72,
+                  textAlignVertical: 'top',
+                  paddingVertical: 0,
+                }}
               />
             )}
           />
@@ -507,7 +534,7 @@ export function CommitmentFormBody({
       <CategoryPickerSheet
         visible={bodyState.categoryPickerVisible}
         title={Strings.addTxPickCategoryTitle}
-        categories={categories}
+        categories={expenseCategories}
         selectedId={categoryId}
         onSelect={selectCategory}
         onClose={() => setCategoryPickerVisible(false)}
