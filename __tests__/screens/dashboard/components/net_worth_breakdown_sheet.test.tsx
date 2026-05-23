@@ -5,10 +5,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NetWorthBreakdownSheet } from '@/screens/dashboard/components/net_worth_breakdown_sheet';
 
 jest.mock('react-native-gesture-handler', () => {
-  const { View, TouchableOpacity } = jest.requireActual('react-native');
+  const { View, TouchableOpacity, Pressable } = jest.requireActual('react-native');
   return {
     GestureHandlerRootView: View,
     TouchableOpacity,
+    Pressable,
   };
 });
 

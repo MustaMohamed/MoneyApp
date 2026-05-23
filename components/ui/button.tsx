@@ -42,7 +42,7 @@ export function Button({
           colors={[GoldTokens[400], GoldTokens[600]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={[StyleSheet.absoluteFillObject, { borderRadius: 13 }]}
+          style={[StyleSheet.absoluteFill, { borderRadius: 13 }]}
           pointerEvents="none"
         />
         <HButton.Label className="text-accent-foreground">{content}</HButton.Label>

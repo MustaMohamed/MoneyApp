@@ -3,7 +3,8 @@ import { Tabs } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { Pressable, RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut, runOnJS } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -80,9 +81,9 @@ export default function DashboardScreen() {
         .onEnd((e) => {
           'worklet';
           if (e.translationX < -SWIPE_THRESHOLD) {
-            runOnJS(setSelectedSegment)('accounts');
+            scheduleOnRN(setSelectedSegment, 'accounts');
           } else if (e.translationX > SWIPE_THRESHOLD) {
-            runOnJS(setSelectedSegment)('overview');
+            scheduleOnRN(setSelectedSegment, 'overview');
           }
         }),
     [setSelectedSegment],

@@ -68,7 +68,7 @@ export default function PrimitivesPreview() {
         Input
       </Text>
       <Input placeholder="Normal state — field border" className="mb-3" />
-      <Input placeholder="Error state — invalid border" hasError className="mb-6" />
+      <Input placeholder="Error state — invalid border" isInvalid className="mb-6" />
 
       <Text variant="body" className="mb-2">
         Pressable

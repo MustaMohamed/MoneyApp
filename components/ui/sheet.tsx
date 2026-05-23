@@ -29,7 +29,7 @@ import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/typ
  */
 import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
+import { Pressable as GHPressable } from 'react-native-gesture-handler';
 
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
@@ -194,7 +194,7 @@ export function Sheet({ visible, onClose, title, size, snapPoints, footer, child
       {title !== undefined && (
         <View testID="sheet-header" style={styles.header}>
           <Text style={styles.title}>{title}</Text>
-          <TouchableOpacity
+          <GHPressable
             testID="sheet-close-btn"
             onPress={onClose}
             style={styles.closeBtn}
@@ -203,7 +203,7 @@ export function Sheet({ visible, onClose, title, size, snapPoints, footer, child
             accessibilityRole="button"
           >
             <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
-          </TouchableOpacity>
+          </GHPressable>
         </View>
       )}
 

@@ -13,7 +13,7 @@ import { toLocalDateString } from '@/utils/format_date';
 
 export const COMMITMENT_SCHEMA = z
   .object({
-    amountType: z.nativeEnum(AmountType),
+    amountType: z.enum(AmountType),
     name: z
       .string()
       .min(1, Strings.commitmentsErrNameRequired)
@@ -22,18 +22,18 @@ export const COMMITMENT_SCHEMA = z
       .number({ error: Strings.commitmentsErrAmountRequired })
       .positive(Strings.commitmentsErrAmountPositive)
       .optional(),
-    currency: z.nativeEnum(Currency),
+    currency: z.enum(Currency),
     categoryId: z.string().min(1, Strings.commitmentsErrCategoryRequired),
     recurrenceEvery: z
       .number()
       .int()
       .min(1, Strings.commitmentsErrEveryMin)
       .max(365, Strings.commitmentsErrEveryMax),
-    recurrencePeriod: z.nativeEnum(RecurrencePeriod),
+    recurrencePeriod: z.enum(RecurrencePeriod),
     startDate: z.string().min(1, Strings.commitmentsErrStartDateRequired),
     accountId: z.string().optional(),
     notes: z.string().optional(),
-    durationType: z.nativeEnum(DurationType),
+    durationType: z.enum(DurationType),
     endDate: z.string().optional(),
     endAfterCount: z.number().int().min(1).optional(),
   })

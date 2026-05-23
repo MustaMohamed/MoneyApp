@@ -94,7 +94,7 @@ export default function AddAccountScreenV2() {
                 onBlur={onBlur}
                 placeholder={Strings.o4NamePlaceholder}
                 maxLength={30}
-                hasError={!!errors.name}
+                isInvalid={!!errors.name}
               />
             )}
           />
@@ -156,7 +156,7 @@ export default function AddAccountScreenV2() {
                 onBlur={onBlur}
                 placeholder={Strings.o4BalancePlaceholder}
                 keyboardType="decimal-pad"
-                hasError={!!errors.balance}
+                isInvalid={!!errors.balance}
               />
             )}
           />
@@ -238,7 +238,7 @@ export default function AddAccountScreenV2() {
                     onBlur={onBlur}
                     placeholder={Strings.o4CreditLimitPlaceholder}
                     keyboardType="decimal-pad"
-                    hasError={!!errors.credit_limit}
+                    isInvalid={!!errors.credit_limit}
                   />
                 )}
               />
@@ -336,7 +336,7 @@ export default function AddAccountScreenV2() {
                       onBlur={onBlur}
                       placeholder={Strings.o4AprPlaceholder}
                       keyboardType="decimal-pad"
-                      hasError={!!errors.apr}
+                      isInvalid={!!errors.apr}
                     />
                   )}
                 />

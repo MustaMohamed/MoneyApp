@@ -5,6 +5,10 @@ import { AccountType, Currency } from '@/constants/enums';
 import DashboardScreen from '@/screens/dashboard';
 import type { Account } from '@/store/account.store';
 
+jest.mock('react-native-worklets', () => ({
+  scheduleOnRN: (fn: (...args: unknown[]) => unknown) => fn,
+}));
+
 jest.mock('react-native-reanimated', () => {
   const React = jest.requireActual('react');
   const View = ({ children, style }: { children?: React.ReactNode; style?: unknown }) =>
@@ -26,12 +30,13 @@ jest.mock('react-native-reanimated', () => {
 
 jest.mock('react-native-gesture-handler', () => {
   const React = jest.requireActual('react');
-  const { View } = jest.requireActual('react-native');
+  const { View, Pressable } = jest.requireActual('react-native');
   const passThrough = ({ children }: { children?: React.ReactNode }) =>
     React.createElement(View, null, children);
   return {
     GestureDetector: passThrough,
     GestureHandlerRootView: View,
+    Pressable,
     Gesture: {
       Pan: () => ({
         activeOffsetX: () => ({

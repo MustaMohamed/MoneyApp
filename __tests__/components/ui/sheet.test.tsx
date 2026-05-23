@@ -10,11 +10,11 @@ jest.mock('heroui-native', () => ({
 }));
 jest.mock('expo-linear-gradient', () => ({ LinearGradient: 'LinearGradient' }));
 
-// Mock react-native-gesture-handler — TouchableOpacity delegates to RN's
-// TouchableOpacity so fireEvent.press works in tests.
+// Mock react-native-gesture-handler — Pressable delegates to RN's
+// Pressable so fireEvent.press works in tests.
 jest.mock('react-native-gesture-handler', () => {
-  const { TouchableOpacity } = require('react-native');
-  return { TouchableOpacity };
+  const { Pressable } = require('react-native');
+  return { Pressable };
 });
 
 // Uses the __mocks__/@gorhom/bottom-sheet.tsx mock automatically via moduleNameMapper.
@@ -175,18 +175,18 @@ describe('Sheet component', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Bug A — close button uses TouchableOpacity from react-native-gesture-handler
-// (Round 7 approach). This ensures the gesture system on Android forwards
-// touches to the button correctly when it sits directly inside BottomSheetLib
-// without a BottomSheetView wrapper.
+// Bug A — close button uses Pressable from react-native-gesture-handler
+// (migrated from TouchableOpacity in oxc-tooling-pr2). This ensures the
+// gesture system on Android forwards touches to the button correctly when
+// it sits directly inside BottomSheetLib without a BottomSheetView wrapper.
 //
 // If this still doesn't fix close on device, the next step is to switch to
 // BottomSheetModal (Portal-based, fully isolated gesture stack). Flag to @tariq.
 // ---------------------------------------------------------------------------
-describe('Sheet close button — gesture-handler TouchableOpacity (Bug A)', () => {
-  it('imports TouchableOpacity from react-native-gesture-handler', () => {
+describe('Sheet close button — gesture-handler Pressable (Bug A)', () => {
+  it('imports Pressable from react-native-gesture-handler', () => {
     expect(SHEET_SOURCE).toContain(
-      "import { TouchableOpacity } from 'react-native-gesture-handler'",
+      "import { Pressable as GHPressable } from 'react-native-gesture-handler'",
     );
   });
 

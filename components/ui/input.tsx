@@ -14,8 +14,6 @@ export interface InputProps extends HInputProps {
   label?: string;
   helperText?: string;
   isRequired?: boolean;
-  /** @deprecated use isInvalid */
-  hasError?: boolean;
 }
 
 export function Input({
@@ -23,13 +21,12 @@ export function Input({
   label,
   helperText,
   isInvalid,
-  hasError,
   isDisabled,
   isRequired,
   style,
   ...inputProps
 }: InputProps) {
-  const invalid = isInvalid ?? hasError ?? false;
+  const invalid = isInvalid ?? false;
   return (
     <HTextField isInvalid={invalid} isDisabled={isDisabled} isRequired={isRequired}>
       {label ? <Label>{label}</Label> : null}
