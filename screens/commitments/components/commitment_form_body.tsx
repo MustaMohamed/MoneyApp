@@ -1,31 +1,24 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { Input } from 'heroui-native';
 import { useEffect, useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { BackButton } from '@/components/ui/back_button';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
+import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
-import { ms } from '@/utils/responsive';
 
 import {
   type CommitmentFormValues,
@@ -38,7 +31,6 @@ import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
 
-const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
 const CURRENCIES: Currency[] = [Currency.EGP, Currency.USD];
 const AMOUNT_TYPES: { key: AmountType; label: string }[] = [
   { key: AmountType.Fixed, label: Strings.commitmentsAmountFixed },
@@ -183,61 +175,80 @@ export function CommitmentFormBody({
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.kav}
-    >
-      <View style={styles.header}>
+    <Screen edges={['top', 'bottom']}>
+      <View
+        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        className="border-separator h-14 border-b px-2"
+      >
         <BackButton onPress={() => router.back()} />
-        <Text style={styles.headerTitle}>{title}</Text>
-        <View style={styles.backBtn} />
+        <Text className="font-sora text-foreground flex-1 text-center text-[17px] font-semibold">
+          {title}
+        </Text>
+        <View className="w-11" />
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+      <ScreenScroll
+        contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Name */}
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>{Strings.commitmentsFieldName}</Text>
+        <View className="bg-default gap-1 rounded-2xl px-3 py-3">
+          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            {Strings.commitmentsFieldName}
+          </Text>
           <Controller
             control={form.control}
             name="name"
             render={({ field: { value, onChange, onBlur } }) => (
-              <TextInput
-                style={styles.textInput}
+              <Input
                 // oxlint-disable-next-line typescript/no-unnecessary-condition -- RHF field value can be null at reset
                 value={value ?? ''}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 placeholder={Strings.commitmentsNamePlaceholder}
-                placeholderTextColor={Colors.dark.text2}
                 maxLength={50}
-                editable={!locked}
-                multiline={false}
-                numberOfLines={1}
+                isDisabled={locked}
+                isInvalid={!!errors.name}
               />
             )}
           />
+          {errors.name ? (
+            <Text className="font-inter text-danger text-[11px]">{errors.name}</Text>
+          ) : null}
         </View>
-        {errors.name ? <Text style={styles.err}>{errors.name}</Text> : null}
 
         {/* Amount Type toggle */}
-        <View style={styles.field}>
-          <Text style={styles.fieldLabel}>{Strings.commitmentsFieldAmountType}</Text>
-          <View style={styles.chipRow}>
+        <View className="bg-default gap-2 rounded-2xl px-3 py-3">
+          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            {Strings.commitmentsFieldAmountType}
+          </Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
             {AMOUNT_TYPES.map(({ key, label }) => {
-              const active = amountType === key;
+              const isActive = amountType === key;
               return (
                 <Pressable
                   key={key}
-                  style={[styles.chip, active && styles.chipActive]}
                   onPress={() => handleAmountTypeChange(key)}
                   disabled={locked}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: isActive }}
+                  accessibilityLabel={label}
+                  className={
+                    isActive
+                      ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
+                      : 'bg-default/40 rounded-full border border-transparent px-3 py-1'
+                  }
                 >
-                  <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
+                  <Text
+                    className={
+                      isActive
+                        ? 'font-inter text-accent text-[11px] font-semibold'
+                        : 'font-inter text-foreground/65 text-[11px] font-medium'
+                    }
+                  >
+                    {label}
+                  </Text>
                 </Pressable>
               );
             })}
@@ -245,22 +256,26 @@ export function CommitmentFormBody({
         </View>
 
         {/* Amount + Currency row */}
-        <View style={styles.amountRow}>
-          <View style={[styles.field, styles.amountField]}>
-            {amountType === AmountType.Variable ? (
-              <View style={styles.fieldLabelRow}>
-                <Text style={styles.fieldLabel}>{Strings.commitmentsFieldEstimatedAmount}</Text>
-                <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
-              </View>
-            ) : (
-              <Text style={styles.fieldLabel}>{Strings.commitmentsFieldAmount}</Text>
-            )}
+        <View style={{ flexDirection: 'row' }} className="gap-2">
+          {/* Amount field */}
+          <View style={{ flex: 3 }} className="bg-default gap-1 rounded-2xl px-3 py-3">
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
+              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+                {amountType === AmountType.Variable
+                  ? Strings.commitmentsFieldEstimatedAmount
+                  : Strings.commitmentsFieldAmount}
+              </Text>
+              {amountType === AmountType.Variable ? (
+                <Text className="font-inter text-muted text-[10px]">
+                  {Strings.commitmentsOptional}
+                </Text>
+              ) : null}
+            </View>
             <Controller
               control={form.control}
               name="amount"
               render={({ field: { value, onChange, onBlur } }) => (
                 <DecimalAmountInput
-                  style={styles.textInput}
                   value={value}
                   onChange={onChange}
                   onBlur={onBlur}
@@ -270,56 +285,87 @@ export function CommitmentFormBody({
                       ? Strings.commitmentsEstimatedAmountPlaceholder
                       : Strings.commitmentsAmountPlaceholder
                   }
-                  placeholderTextColor={Colors.dark.text2}
                   editable={!locked}
                   multiline={false}
                   numberOfLines={1}
                 />
               )}
             />
+            {errors.amount ? (
+              <Text className="font-inter text-danger text-[11px]">{errors.amount}</Text>
+            ) : null}
           </View>
-          <View style={[styles.field, styles.currencyField]}>
-            <Text style={styles.fieldLabel}>{Strings.commitmentsFieldCurrency}</Text>
-            <View style={styles.currencyChipRow}>
+
+          {/* Currency field */}
+          <View style={{ flex: 2 }} className="bg-default gap-2 rounded-2xl px-3 py-3">
+            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              {Strings.commitmentsFieldCurrency}
+            </Text>
+            <View style={{ flexDirection: 'row' }} className="gap-2">
               {CURRENCIES.map((c) => {
-                const active = currency === c;
+                const isActive = currency === c;
                 return (
                   <Pressable
                     key={c}
-                    style={[styles.chip, styles.currencyChip, active && styles.chipActive]}
                     onPress={() => form.setValue('currency', c, SET_OPTS)}
                     disabled={locked}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isActive }}
+                    accessibilityLabel={c}
+                    style={{ flex: 1, alignItems: 'center' }}
+                    className={
+                      isActive
+                        ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
+                        : 'bg-default/40 rounded-full border border-transparent px-3 py-1'
+                    }
                   >
-                    <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{c}</Text>
+                    <Text
+                      className={
+                        isActive
+                          ? 'font-inter text-accent text-[11px] font-semibold'
+                          : 'font-inter text-foreground/65 text-[11px] font-medium'
+                      }
+                    >
+                      {c}
+                    </Text>
                   </Pressable>
                 );
               })}
             </View>
           </View>
         </View>
-        {errors.amount ? <Text style={styles.err}>{errors.amount}</Text> : null}
 
         {/* Category picker row */}
         <Pressable
-          style={styles.field}
           onPress={() => setCategoryPickerVisible(true)}
           disabled={locked}
+          className="bg-default gap-1 rounded-2xl px-3 py-3"
+          accessibilityRole="button"
+          accessibilityLabel={Strings.commitmentsFieldCategory}
         >
-          <Text style={styles.fieldLabel}>{Strings.commitmentsFieldCategory}</Text>
-          <View style={styles.fieldValue}>
+          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            {Strings.commitmentsFieldCategory}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
             {selectedCategory ? (
-              <Text style={styles.fieldValueText}>{selectedCategory.name}</Text>
+              <Text className="font-sora text-foreground flex-1 text-[15px] font-semibold">
+                {selectedCategory.name}
+              </Text>
             ) : (
-              <Text style={styles.fieldPlaceholder}>{Strings.addTxPickCategoryTitle}</Text>
+              <Text className="font-inter text-muted flex-1 text-[15px]">
+                {Strings.addTxPickCategoryTitle}
+              </Text>
             )}
             <MaterialCommunityIcons
               name={locked ? 'lock-outline' : 'chevron-right'}
-              size={ms(18)}
-              color={Colors.dark.text2}
+              size={18}
+              color={CoreTokens.text2}
             />
           </View>
+          {errors.category ? (
+            <Text className="font-inter text-danger text-[11px]">{errors.category}</Text>
+          ) : null}
         </Pressable>
-        {errors.category ? <Text style={styles.err}>{errors.category}</Text> : null}
 
         {/* Recurrence */}
         <RecurrencePicker
@@ -330,68 +376,83 @@ export function CommitmentFormBody({
 
         {/* Start Date */}
         <Pressable
-          style={[styles.field, errors.startDate ? styles.inputError : null]}
           onPress={openStartDatePicker}
           disabled={locked}
+          className="bg-default gap-1 rounded-2xl px-3 py-3"
+          accessibilityRole="button"
+          accessibilityLabel={Strings.commitmentsFieldStartDate}
         >
-          <Text style={styles.fieldLabel}>{Strings.commitmentsFieldStartDate}</Text>
-          <View style={styles.fieldValue}>
-            <Text style={startDate ? styles.fieldValueText : styles.fieldPlaceholder}>
+          <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+            {Strings.commitmentsFieldStartDate}
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+            <Text
+              className={
+                startDate
+                  ? 'font-sora text-foreground flex-1 text-[15px] font-semibold'
+                  : 'font-inter text-muted flex-1 text-[15px]'
+              }
+            >
               {formattedStartDate}
             </Text>
             <MaterialCommunityIcons
               name={locked ? 'lock-outline' : 'calendar'}
-              size={ms(18)}
-              color={Colors.dark.text2}
+              size={18}
+              color={CoreTokens.text2}
             />
           </View>
+          {errors.startDate ? (
+            <Text className="font-inter text-danger text-[11px]">{errors.startDate}</Text>
+          ) : null}
         </Pressable>
-        {errors.startDate ? <Text style={styles.err}>{errors.startDate}</Text> : null}
 
-        {bodyState.showStartDatePicker && (
-          <View style={styles.iosPickerWrap}>
-            <View style={styles.iosPickerHeader}>
-              <Pressable hitSlop={8} onPress={() => setShowStartDatePicker(false)}>
-                <Text style={styles.iosPickerDone}>{Strings.commitmentsDone}</Text>
-              </Pressable>
-            </View>
-            <DateTimePicker
-              value={startDateAsDate}
-              mode="date"
-              display="spinner"
-              themeVariant="dark"
-              onChange={(_, d) => {
-                if (d) form.setValue('startDate', toLocalDateString(d), SET_OPTS);
-              }}
-            />
-          </View>
-        )}
+        {bodyState.showStartDatePicker ? (
+          <DateTimePicker
+            value={startDateAsDate}
+            mode="date"
+            display="spinner"
+            themeVariant="dark"
+            onChange={(_, d) => {
+              if (d) form.setValue('startDate', toLocalDateString(d), SET_OPTS);
+            }}
+          />
+        ) : null}
 
         {/* Default Account (optional) */}
         <Pressable
-          style={styles.field}
           onPress={() => setAccountPickerVisible(true)}
           disabled={locked}
+          className="bg-default gap-1 rounded-2xl px-3 py-3"
+          accessibilityRole="button"
+          accessibilityLabel={Strings.commitmentsFieldDefaultAccount}
         >
-          <View style={styles.fieldLabelRow}>
-            <Text style={styles.fieldLabel}>{Strings.commitmentsFieldDefaultAccount}</Text>
-            <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
+            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              {Strings.commitmentsFieldDefaultAccount}
+            </Text>
+            <Text className="font-inter text-muted text-[10px]">{Strings.commitmentsOptional}</Text>
           </View>
-          <View style={styles.fieldValue}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
             {selectedAccount ? (
               <>
                 <View
-                  style={[
-                    styles.dot,
-                    { backgroundColor: selectedAccount.color ?? Colors.dark.border },
-                  ]}
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: 5,
+                    backgroundColor: selectedAccount.color ?? CoreTokens.border,
+                  }}
                 />
-                <Text style={styles.fieldValueText}>{selectedAccount.name}</Text>
+                <Text className="font-sora text-foreground flex-1 text-[15px] font-semibold">
+                  {selectedAccount.name}
+                </Text>
               </>
             ) : (
-              <Text style={styles.fieldPlaceholder}>{Strings.addTxPickAccountTitle}</Text>
+              <Text className="font-inter text-muted flex-1 text-[15px]">
+                {Strings.addTxPickAccountTitle}
+              </Text>
             )}
-            <MaterialCommunityIcons name="chevron-right" size={ms(18)} color={Colors.dark.text2} />
+            <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
           </View>
         </Pressable>
 
@@ -408,45 +469,36 @@ export function CommitmentFormBody({
         />
 
         {/* Notes (optional) */}
-        <View style={styles.field}>
-          <View style={styles.fieldLabelRow}>
-            <Text style={styles.fieldLabel}>{Strings.commitmentsFieldNotes}</Text>
-            <Text style={styles.optionalBadge}>{Strings.commitmentsOptional}</Text>
+        <View className="bg-default gap-1 rounded-2xl px-3 py-3">
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
+            <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+              {Strings.commitmentsFieldNotes}
+            </Text>
+            <Text className="font-inter text-muted text-[10px]">{Strings.commitmentsOptional}</Text>
           </View>
           <Controller
             control={form.control}
             name="notes"
             render={({ field: { value, onChange, onBlur } }) => (
-              <TextInput
-                style={styles.notesInput}
+              <Input
                 value={value ?? ''}
                 onChangeText={(v) => onChange(v || undefined)}
                 onBlur={onBlur}
                 placeholder={Strings.addTxNotePlaceholder}
-                placeholderTextColor={Colors.dark.text2}
                 multiline
                 numberOfLines={3}
+                style={{ minHeight: 72, textAlignVertical: 'top' }}
               />
             )}
           />
         </View>
-      </ScrollView>
+      </ScreenScroll>
 
-      {/* CTA */}
-      <View style={[styles.footer, saving && styles.ctaDisabled]}>
-        <Pressable style={styles.ctaPress} onPress={onSubmit} disabled={saving}>
-          <LinearGradient
-            colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cta}
-          >
-            <Text style={styles.ctaLabel}>{Strings.commitmentsSave}</Text>
-          </LinearGradient>
-        </Pressable>
+      {/* CTA footer */}
+      <View className="border-separator border-t px-4 pt-2 pb-6">
+        <SaveCta saving={saving} onPress={onSubmit} label={Strings.commitmentsSave} />
       </View>
 
-      {/* Pickers */}
       <CategoryPickerSheet
         visible={bodyState.categoryPickerVisible}
         title={Strings.addTxPickCategoryTitle}
@@ -463,151 +515,6 @@ export function CommitmentFormBody({
         onSelect={selectAccount}
         onClose={() => setAccountPickerVisible(false)}
       />
-    </KeyboardAvoidingView>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  kav: { flex: 1 },
-  header: {
-    height: Size.headerHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  backBtn: {
-    width: Size.backBtn,
-    height: Size.backBtn,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    flex: 1,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  scroll: { flex: 1, paddingHorizontal: Spacing.md },
-  scrollContent: { gap: Spacing.sm, paddingBottom: Spacing.md, paddingTop: Spacing.sm },
-  field: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    gap: Spacing.xxs,
-  },
-  fieldLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  fieldLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  optionalBadge: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  fieldValue: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  fieldValueText: {
-    flex: 1,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  fieldPlaceholder: {
-    flex: 1,
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  dot: { width: ms(10), height: ms(10), borderRadius: ms(5) },
-  textInput: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-    paddingVertical: 0,
-  },
-  inputError: {
-    borderWidth: 1,
-    borderColor: Colors.dark.negative,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs,
-  },
-  chipRow: { flexDirection: 'row', gap: Spacing.xs, flexWrap: 'wrap' },
-  currencyChipRow: { flexDirection: 'row', gap: Spacing.xs },
-  currencyChip: { flex: 1, alignItems: 'center' },
-  chip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  chipActive: { borderColor: Colors.shared.cairoGold, backgroundColor: CHIP_ACTIVE_BG },
-  chipLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  chipLabelActive: { color: Colors.shared.cairoGold },
-  amountRow: { flexDirection: 'row', gap: Spacing.sm },
-  amountField: { flex: 3 },
-  currencyField: { flex: 2 },
-  notesInput: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-    paddingVertical: 0,
-    minHeight: ms(60),
-    textAlignVertical: 'top',
-  },
-  err: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.negative,
-    marginTop: -Spacing.xxs,
-  },
-  footer: {
-    paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.xxs,
-    borderTopWidth: 1,
-    borderTopColor: Colors.dark.surface,
-  },
-  ctaPress: { borderRadius: Radius.cta, overflow: 'hidden' },
-  cta: {
-    height: Size.ctaHeight,
-    borderRadius: Radius.cta,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaDisabled: { opacity: 0.5 },
-  ctaLabel: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.shared.midnightBlue,
-  },
-  iosPickerWrap: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-  },
-  iosPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: Spacing.sm,
-    paddingTop: Spacing.xs,
-  },
-  iosPickerDone: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.shared.cairoGold,
-  },
-});
