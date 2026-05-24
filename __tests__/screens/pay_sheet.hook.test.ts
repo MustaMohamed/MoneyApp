@@ -26,10 +26,11 @@ jest.mock('@/repositories/commitment.repository', () => ({
 jest.mock('@/screens/commitments/detail/components/pay_sheet.state', () => ({
   usePaySheetState: jest.fn((sel: any) =>
     sel({
-      state: { visible: false, saving: false, accountPickerVisible: false },
+      state: { visible: false, saving: false, accountPickerVisible: false, rateOverride: false },
       setVisible: jest.fn(),
       setSaving: jest.fn(),
       setAccountPickerVisible: jest.fn(),
+      setRateOverride: jest.fn(),
       reset: jest.fn(),
     }),
   ),

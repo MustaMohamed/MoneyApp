@@ -457,6 +457,12 @@ export const Strings = {
   commitmentsPayAmount: 'Amount',
   commitmentsPayAccount: 'Pay from Account',
   commitmentsPayDate: 'Payment Date',
+  // §8: pay sheet date field upgraded from free-text to a date picker (OQ-2).
+  // commitmentsPayDate (the field label) already exists and is reused. This is
+  // the placeholder shown on the picker trigger when no date is chosen yet —
+  // reuses the existing long-date format produced by formatLongDate at runtime,
+  // so this key is only the fallback empty-state hint.
+  commitmentsPayDatePlaceholder: 'Select date',
   commitmentsPayNotes: 'Notes',
   commitmentsPayConfirm: 'Confirm Payment',
   commitmentsPayErrAmountRequired: 'Amount is required',
@@ -509,6 +515,9 @@ export const Strings = {
   emptyFilteredHeadline: 'No results',
   emptyFilteredDescription: 'Try adjusting your filters.',
   emptyFilteredClearCta: 'Clear Filters',
+  emptyCommitmentsMonthHeadline: 'Nothing this month',
+  emptyCommitmentsMonthDescription:
+    'No commitments scheduled for this month. Use the arrows above to browse other months.',
 
   // §4 Settings root — row descriptions
   settingsCurrencyDescription: 'Set your default currency and exchange rate',

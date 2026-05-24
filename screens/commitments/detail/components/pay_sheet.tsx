@@ -1,18 +1,22 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
+import { Input } from 'heroui-native';
+import { useState } from 'react';
 import { Controller } from 'react-hook-form';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import ActionSheet, { ScrollView, type ActionSheetRef } from 'react-native-actions-sheet';
+import { Platform, Pressable, View } from 'react-native';
 
+import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
+import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
-import { ms } from '@/utils/responsive';
+import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
+import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 import { usePaySheet } from './pay_sheet.hook';
 
@@ -24,139 +28,167 @@ interface Props {
 }
 
 export function PaySheet({ commitment, payment }: Props) {
-  const sheetRef = useRef<ActionSheetRef>(null);
-  const { form, state, onSubmit, openAccountPicker, closeAccountPicker, selectAccount } =
-    usePaySheet(commitment, payment);
+  const {
+    form,
+    state,
+    onSubmit,
+    openAccountPicker,
+    closeAccountPicker,
+    selectAccount,
+    setVisible,
+    toggleRateOverride,
+    setPaidDate,
+  } = usePaySheet(commitment, payment);
+
+  const [showIosDate, setShowIosDate] = useState(false);
 
   const isAlreadyPaid =
     payment?.status === CommitmentPaymentStatus.Paid ||
     payment?.status === CommitmentPaymentStatus.Skipped;
-
-  useEffect(() => {
-    if (state.visible) sheetRef.current?.show();
-    else sheetRef.current?.hide();
-  }, [state.visible]);
+  const isVariable = commitment?.amount_type === AmountType.Variable;
 
   const amountError = form.formState.errors.amount?.message;
   const accountError = form.formState.errors.account_id?.message;
   const rateError = form.formState.errors.exchange_rate?.message;
 
-  const isVariable = commitment?.amount_type === AmountType.Variable;
-
   const exchangeRateStr = state.exchangeRateValue != null ? String(state.exchangeRateValue) : '';
-
+  const amountWatch = form.watch('amount');
+  const paidDate = form.watch('paid_date');
   const convertedTotal =
     state.requiresRate && state.exchangeRateValue && state.exchangeRateValue > 0
-      ? form.watch('amount') * state.exchangeRateValue
+      ? amountWatch * state.exchangeRateValue
       : undefined;
+
+  const paidDateAsDate = paidDate ? new Date(paidDate + 'T00:00:00') : new Date();
+
+  function openDatePicker() {
+    if (Platform.OS === 'android') {
+      DateTimePickerAndroid.open({
+        value: paidDateAsDate,
+        mode: 'date',
+        onChange: (_, d) => {
+          if (d) setPaidDate(toLocalDateString(d));
+        },
+      });
+    } else {
+      setShowIosDate((v) => !v);
+    }
+  }
+
+  function close() {
+    setVisible(false);
+  }
 
   return (
     <>
-      <ActionSheet
-        ref={sheetRef}
-        gestureEnabled
-        useBottomSafeAreaPadding={false}
-        containerStyle={styles.sheet}
-        indicatorStyle={styles.handle}
+      <Sheet
+        visible={state.visible}
+        onClose={close}
+        title={commitment ? Strings.commitmentsPayTitle(commitment.name) : ''}
+        size="lg"
+        footer={
+          <SaveCta
+            saving={state.saving || isAlreadyPaid}
+            onPress={() => void onSubmit()}
+            label={Strings.commitmentsPayConfirm}
+          />
+        }
       >
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {commitment ? Strings.commitmentsPayTitle(commitment.name) : ''}
-            </Text>
+        <Sheet.Body>
+          <BottomSheetScrollView
+            contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: SHEET_FOOTER_CLEARANCE }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
             {payment ? (
-              <Text style={styles.headerSub}>
+              <Text className="font-inter text-muted mb-3 text-[12px]">
                 {payment.due_date} · {payment.currency} ·{' '}
                 {isVariable ? Strings.commitmentsAmountVariable : Strings.commitmentsAmountFixed}
               </Text>
             ) : null}
-          </View>
 
-          {/* Amount */}
-          <View style={styles.field}>
-            <Text style={styles.label}>{Strings.commitmentsPayAmount}</Text>
-            <View style={styles.amountRow}>
-              <Controller
-                control={form.control}
-                name="amount"
-                render={({ field }) => (
-                  <TextInput
-                    style={[
-                      styles.input,
-                      styles.amountInput,
-                      amountError ? styles.inputError : null,
-                    ]}
-                    value={field.value > 0 ? String(field.value) : ''}
-                    onChangeText={(v) => {
-                      const parsed = parseFloat(v);
-                      field.onChange(isNaN(parsed) ? 0 : parsed);
-                    }}
-                    keyboardType="decimal-pad"
-                    placeholder={isVariable ? Strings.commitmentsAmountPlaceholder : undefined}
-                    placeholderTextColor={Colors.dark.text2}
-                    returnKeyType="done"
+            {/* Amount */}
+            <View className="mb-3 gap-1">
+              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+                {Strings.commitmentsPayAmount}
+              </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+                <View style={{ flex: 1 }}>
+                  <Controller
+                    control={form.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <Input
+                        value={field.value > 0 ? String(field.value) : ''}
+                        onChangeText={(v) => {
+                          const parsed = parseFloat(v);
+                          field.onChange(isNaN(parsed) ? 0 : parsed);
+                        }}
+                        keyboardType="decimal-pad"
+                        placeholder={isVariable ? Strings.commitmentsAmountPlaceholder : undefined}
+                        isInvalid={!!amountError}
+                        returnKeyType="done"
+                      />
+                    )}
                   />
-                )}
-              />
-              {commitment ? (
-                <View style={styles.currencyChip}>
-                  <Text style={styles.currencyChipText}>{commitment.currency}</Text>
                 </View>
-              ) : null}
-            </View>
-            {amountError ? <Text style={styles.errText}>{amountError}</Text> : null}
-          </View>
-
-          {/* Account Picker Row */}
-          <View style={styles.field}>
-            <Text style={styles.label}>{Strings.commitmentsPayAccount}</Text>
-            <Pressable
-              style={({ pressed }) => [styles.pickerRow, pressed && styles.pressed]}
-              onPress={openAccountPicker}
-            >
-              {state.selectedAccount ? (
-                <View style={styles.pickerRowContent}>
-                  <View
-                    style={[
-                      styles.dot,
-                      { backgroundColor: state.selectedAccount.color ?? Colors.dark.surfaceEl },
-                    ]}
-                  />
-                  <View style={styles.pickerInfo}>
-                    <Text style={styles.pickerName}>{state.selectedAccount.name}</Text>
-                    <Text style={styles.pickerBalance}>
-                      {numberFmt.format(state.selectedAccount.current_balance)}{' '}
-                      {state.selectedAccount.currency}
+                {commitment ? (
+                  <View className="bg-default border-border rounded-md border px-3 py-2">
+                    <Text className="font-sora text-muted text-[15px] font-semibold">
+                      {commitment.currency}
                     </Text>
                   </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={ms(18)}
-                    color={Colors.dark.text2}
-                  />
-                </View>
-              ) : (
-                <View style={styles.pickerRowContent}>
-                  <Text style={styles.pickerPlaceholder}>{Strings.commitmentsPayAccount}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={ms(18)}
-                    color={Colors.dark.text2}
-                  />
-                </View>
-              )}
-            </Pressable>
-            {accountError ? <Text style={styles.errText}>{accountError}</Text> : null}
-          </View>
+                ) : null}
+              </View>
+              {amountError ? (
+                <Text className="font-inter text-danger text-[11px]">{amountError}</Text>
+              ) : null}
+            </View>
 
-          {/* Exchange Rate (conditional) */}
-          {state.requiresRate ? (
-            <View style={styles.field}>
+            {/* Pay-from account */}
+            <View className="mb-3 gap-1">
+              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+                {Strings.commitmentsPayAccount}
+              </Text>
+              <Pressable
+                onPress={openAccountPicker}
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                className="bg-default border-border gap-2 rounded-md border px-3 py-3"
+              >
+                {state.selectedAccount ? (
+                  <>
+                    <View
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: 6,
+                        backgroundColor: state.selectedAccount.color ?? CoreTokens.surfaceEl,
+                      }}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text className="font-sora text-foreground text-[15px] font-semibold">
+                        {state.selectedAccount.name}
+                      </Text>
+                      <Text className="font-inter text-muted text-[12px]">
+                        {numberFmt.format(state.selectedAccount.current_balance)}{' '}
+                        {state.selectedAccount.currency}
+                      </Text>
+                    </View>
+                  </>
+                ) : (
+                  <Text className="font-inter text-muted flex-1 text-[15px]">
+                    {Strings.commitmentsPayAccount}
+                  </Text>
+                )}
+                <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
+              </Pressable>
+              {accountError ? (
+                <Text className="font-inter text-danger text-[11px]">{accountError}</Text>
+              ) : null}
+            </View>
+
+            {/* Exchange rate (conditional) */}
+            {state.requiresRate ? (
               <ExchangeRateRow
                 value={exchangeRateStr}
                 onChange={(v) => {
@@ -165,92 +197,80 @@ export function PaySheet({ commitment, payment }: Props) {
                     shouldValidate: false,
                   });
                 }}
-                overrideEnabled={true}
-                onToggleOverride={() => {}}
-                // V2 ExchangeRateRow added two required props in §7. Wire
-                // them in here: amount comes from the form (so the live
-                // EGP preview row renders alongside the rate input), and
-                // rateUpdatedAt drives the "Rate may be stale" warning
-                // when the stored rate is past the staleness window.
+                overrideEnabled={state.rateOverride}
+                onToggleOverride={toggleRateOverride}
                 rateUpdatedAt={state.rateUpdatedAt}
-                amount={form.watch('amount') || 0}
+                amount={amountWatch || 0}
                 error={rateError}
               />
-            </View>
-          ) : null}
+            ) : null}
 
-          {/* Converted Total (conditional) */}
-          {state.requiresRate && convertedTotal != null ? (
-            <View style={styles.convertedRow}>
-              <Text style={styles.convertedLabel}>= </Text>
-              <Text style={styles.convertedValue}>
-                {numberFmt.format(convertedTotal)} {state.selectedAccount?.currency}
+            {/* Converted total (conditional) */}
+            {state.requiresRate && convertedTotal != null ? (
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }} className="mt-2">
+                <Text className="font-sora text-foreground text-[15px] font-semibold">
+                  = {numberFmt.format(convertedTotal)} {state.selectedAccount?.currency}
+                </Text>
+              </View>
+            ) : null}
+
+            {/* Date — upgraded to date picker (OQ-2) */}
+            <View className="mt-3 mb-3 gap-1">
+              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+                {Strings.commitmentsPayDate}
               </Text>
-            </View>
-          ) : null}
-
-          {/* Date */}
-          <View style={styles.field}>
-            <Text style={styles.label}>{Strings.commitmentsPayDate}</Text>
-            <Controller
-              control={form.control}
-              name="paid_date"
-              render={({ field }) => (
-                <TextInput
-                  style={styles.input}
-                  value={field.value}
-                  onChangeText={field.onChange}
-                  placeholder={Strings.commitmentDateInputFormat}
-                  placeholderTextColor={Colors.dark.text2}
-                  keyboardType="numbers-and-punctuation"
-                  returnKeyType="done"
-                />
-              )}
-            />
-          </View>
-
-          {/* Notes */}
-          <View style={styles.field}>
-            <Text style={styles.label}>{Strings.commitmentsPayNotes}</Text>
-            <Controller
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <TextInput
-                  style={[styles.input, styles.notesInput]}
-                  value={field.value ?? ''}
-                  onChangeText={field.onChange}
-                  placeholder={Strings.commitmentsOptional}
-                  placeholderTextColor={Colors.dark.text2}
-                  multiline
-                  numberOfLines={3}
-                  textAlignVertical="top"
-                />
-              )}
-            />
-          </View>
-
-          {/* CTA */}
-          <View style={[styles.footer, (state.saving || isAlreadyPaid) && styles.ctaDisabled]}>
-            <Pressable
-              style={styles.ctaPress}
-              onPress={() => {
-                void onSubmit();
-              }}
-              disabled={state.saving || isAlreadyPaid}
-            >
-              <LinearGradient
-                colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.cta}
+              <Pressable
+                onPress={openDatePicker}
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                className="bg-default border-border gap-2 rounded-md border px-3 py-3"
               >
-                <Text style={styles.ctaLabel}>{Strings.commitmentsPayConfirm}</Text>
-              </LinearGradient>
-            </Pressable>
-          </View>
-        </ScrollView>
-      </ActionSheet>
+                <Text
+                  className={
+                    paidDate
+                      ? 'font-sora text-foreground flex-1 text-[15px]'
+                      : 'font-inter text-muted flex-1 text-[15px]'
+                  }
+                >
+                  {paidDate ? formatLongDate(paidDate) : Strings.commitmentsPayDatePlaceholder}
+                </Text>
+                <MaterialCommunityIcons name="calendar" size={18} color={CoreTokens.text2} />
+              </Pressable>
+              {Platform.OS === 'ios' && showIosDate ? (
+                <DateTimePicker
+                  value={paidDateAsDate}
+                  mode="date"
+                  display="spinner"
+                  themeVariant="dark"
+                  onChange={(_, d) => {
+                    if (d) setPaidDate(toLocalDateString(d));
+                  }}
+                />
+              ) : null}
+            </View>
+
+            {/* Notes */}
+            <View className="mb-3 gap-1">
+              <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
+                {Strings.commitmentsPayNotes}
+              </Text>
+              <Controller
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <Input
+                    value={field.value ?? ''}
+                    onChangeText={field.onChange}
+                    placeholder={Strings.commitmentsOptional}
+                    multiline
+                    numberOfLines={3}
+                    style={{ minHeight: 72, textAlignVertical: 'top' }}
+                  />
+                )}
+              />
+            </View>
+          </BottomSheetScrollView>
+        </Sheet.Body>
+      </Sheet>
 
       <AccountPickerSheet
         visible={state.accountPickerVisible}
@@ -263,167 +283,3 @@ export function PaySheet({ commitment, payment }: Props) {
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-  },
-  handle: {
-    backgroundColor: Colors.dark.border,
-    width: Size.sheetHandle.width,
-    height: Size.sheetHandle.height,
-  },
-  content: {
-    paddingHorizontal: Spacing.md,
-    paddingBottom: Spacing.xxl,
-  },
-  header: {
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.md,
-    gap: ms(4),
-  },
-  headerTitle: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-  },
-  headerSub: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  field: {
-    marginBottom: Spacing.sm,
-    gap: Spacing.xxs,
-  },
-  label: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  input: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Platform.OS === 'ios' ? Spacing.sm : Spacing.xs,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  inputError: {
-    borderColor: Colors.dark.negative,
-  },
-  amountRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  amountInput: {
-    flex: 1,
-  },
-  currencyChip: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Platform.OS === 'ios' ? Spacing.sm : Spacing.xs,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  currencyChipText: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  notesInput: {
-    minHeight: ms(72),
-    fontFamily: FontFamily.interRegular,
-  },
-  errText: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.negative,
-  },
-  pickerRow: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  pressed: { opacity: 0.7 },
-  pickerRowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  dot: {
-    width: ms(12),
-    height: ms(12),
-    borderRadius: ms(6),
-  },
-  pickerInfo: { flex: 1 },
-  pickerName: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  pickerBalance: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  pickerPlaceholder: {
-    flex: 1,
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  convertedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginBottom: Spacing.xs,
-    paddingHorizontal: Spacing.xs,
-  },
-  convertedLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  convertedValue: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.bodyStrong,
-    color: Colors.dark.text1,
-  },
-  footer: {
-    marginTop: Spacing.sm,
-  },
-  ctaDisabled: {
-    opacity: 0.5,
-  },
-  ctaPress: {
-    borderRadius: Radius.cta,
-    overflow: 'hidden',
-    height: Size.ctaHeight,
-  },
-  cta: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.cta,
-  },
-  ctaLabel: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.bodyStrong,
-    color: Colors.shared.midnightBlue,
-  },
-});

@@ -1,14 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
-import { Controller, useWatch } from 'react-hook-form';
-import type { UseFormReturn } from 'react-hook-form';
-import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Input } from 'heroui-native';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Platform, Pressable, View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
-import { ms } from '@/utils/responsive';
 
 import { type CommitmentFormValues, SET_OPTS } from '../commitment_form.shared';
 
@@ -19,8 +19,6 @@ interface Props {
   showEndDatePicker: boolean;
   setShowEndDatePicker: (v: boolean) => void;
 }
-
-const CHIP_ACTIVE_BG = Colors.shared.cairoGold + '22';
 
 const DURATION_TYPES: { key: DurationType; label: string }[] = [
   { key: DurationType.Forever, label: Strings.commitmentsDurationForever },
@@ -57,192 +55,102 @@ export function DurationPicker({
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.label}>{Strings.commitmentsFieldDuration}</Text>
+    <View className="bg-default gap-2 rounded-2xl px-3 py-3">
+      <Text className="font-inter text-muted text-[11px]">{Strings.commitmentsFieldDuration}</Text>
 
-      {/* Type chips */}
-      <View style={styles.chipRow}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
         {DURATION_TYPES.map(({ key, label }) => {
-          const active = durationType === key;
+          const isActive = durationType === key;
           return (
             <Pressable
               key={key}
-              style={[styles.chip, active && styles.chipActive]}
               onPress={() => onDurationTypeChange(key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={label}
+              className={
+                isActive
+                  ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
+                  : 'bg-default/40 border-border rounded-full border px-3 py-1'
+              }
             >
-              <Text style={[styles.chipLabel, active && styles.chipLabelActive]}>{label}</Text>
+              <Text
+                className={
+                  isActive
+                    ? 'font-inter text-accent text-[11px] font-semibold'
+                    : 'font-inter text-foreground/65 text-[11px] font-medium'
+                }
+              >
+                {label}
+              </Text>
             </Pressable>
           );
         })}
       </View>
 
-      {/* AfterCount conditional */}
-      {durationType === DurationType.AfterCount && (
-        <View style={styles.conditionalRow}>
-          <Text style={styles.conditionalLabel}>{Strings.commitmentsDurationStopAfter}</Text>
-          <Controller
-            control={form.control}
-            name="endAfterCount"
-            render={({ field: { value, onChange, onBlur } }) => (
-              <TextInput
-                style={[styles.countInput, countError ? styles.inputError : null]}
-                value={value != null ? String(value) : ''}
-                onChangeText={(v) => {
-                  const n = parseInt(v, 10);
-                  onChange(isNaN(n) ? undefined : n);
-                }}
-                onBlur={onBlur}
-                keyboardType="number-pad"
-                maxLength={4}
-                placeholderTextColor={Colors.dark.text2}
-                placeholder={Strings.commitmentsAfterCountPlaceholder}
-                multiline={false}
-                numberOfLines={1}
-              />
-            )}
-          />
-          <Text style={styles.conditionalLabel}>{Strings.commitmentsDurationPayments}</Text>
+      {durationType === DurationType.AfterCount ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+          <Text className="font-inter text-muted text-[11px]">
+            {Strings.commitmentsDurationStopAfter}
+          </Text>
+          <View style={{ width: 64 }}>
+            <Controller
+              control={form.control}
+              name="endAfterCount"
+              render={({ field: { value, onChange, onBlur } }) => (
+                <Input
+                  value={value != null ? String(value) : ''}
+                  onChangeText={(v) => {
+                    const n = parseInt(v, 10);
+                    onChange(isNaN(n) ? undefined : n);
+                  }}
+                  onBlur={onBlur}
+                  keyboardType="number-pad"
+                  maxLength={4}
+                  placeholder={Strings.commitmentsAfterCountPlaceholder}
+                  isInvalid={!!countError}
+                  style={{ textAlign: 'center' }}
+                />
+              )}
+            />
+          </View>
+          <Text className="font-inter text-muted text-[11px]">
+            {Strings.commitmentsDurationPayments}
+          </Text>
         </View>
-      )}
-      {countError ? <Text style={styles.err}>{countError}</Text> : null}
+      ) : null}
+      {countError ? <Text className="font-inter text-danger text-[11px]">{countError}</Text> : null}
 
-      {/* UntilDate conditional */}
-      {durationType === DurationType.UntilDate && (
+      {durationType === DurationType.UntilDate ? (
         <Pressable
-          style={[styles.dateRow, dateError ? styles.inputError : null]}
           onPress={openEndDatePicker}
+          style={{ flexDirection: 'row', alignItems: 'center' }}
+          className={`border-border gap-2 rounded-md border px-3 py-3 ${dateError ? 'border-danger' : ''}`}
         >
-          <Text style={endDate ? styles.dateValue : styles.datePlaceholder}>
+          <Text
+            className={
+              endDate
+                ? 'font-sora text-foreground flex-1 text-[15px]'
+                : 'font-inter text-muted flex-1 text-[15px]'
+            }
+          >
             {formattedEndDate}
           </Text>
-          <MaterialCommunityIcons name="calendar" size={ms(18)} color={Colors.dark.text2} />
+          <MaterialCommunityIcons name="calendar" size={18} color={CoreTokens.text2} />
         </Pressable>
-      )}
-      {durationType === DurationType.UntilDate && showEndDatePicker && (
-        <View style={styles.iosPickerWrap}>
-          <View style={styles.iosPickerHeader}>
-            <Pressable hitSlop={8} onPress={() => setShowEndDatePicker(false)}>
-              <Text style={styles.iosPickerDone}>{Strings.commitmentsDone}</Text>
-            </Pressable>
-          </View>
-          <DateTimePicker
-            value={endDateAsDate}
-            mode="date"
-            display="spinner"
-            themeVariant="dark"
-            onChange={(_, d) => {
-              if (d) form.setValue('endDate', toLocalDateString(d), SET_OPTS);
-            }}
-          />
-        </View>
-      )}
-      {dateError ? <Text style={styles.err}>{dateError}</Text> : null}
+      ) : null}
+      {durationType === DurationType.UntilDate && showEndDatePicker && Platform.OS === 'ios' ? (
+        <DateTimePicker
+          value={endDateAsDate}
+          mode="date"
+          display="spinner"
+          themeVariant="dark"
+          onChange={(_, d) => {
+            if (d) form.setValue('endDate', toLocalDateString(d), SET_OPTS);
+          }}
+        />
+      ) : null}
+      {dateError ? <Text className="font-inter text-danger text-[11px]">{dateError}</Text> : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-    gap: Spacing.xs,
-  },
-  label: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    gap: Spacing.xs,
-    flexWrap: 'wrap',
-  },
-  chip: {
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xxs,
-    borderRadius: Radius.pill,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  chipActive: {
-    borderColor: Colors.shared.cairoGold,
-    backgroundColor: CHIP_ACTIVE_BG,
-  },
-  chipLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  chipLabelActive: {
-    color: Colors.shared.cairoGold,
-  },
-  conditionalRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-  },
-  conditionalLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  countInput: {
-    width: ms(64),
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xxs,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  dateRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
-  },
-  dateValue: {
-    flex: 1,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  datePlaceholder: {
-    flex: 1,
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  inputError: {
-    borderColor: Colors.dark.negative,
-  },
-  err: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.negative,
-  },
-  iosPickerWrap: {
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.md,
-  },
-  iosPickerHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: Spacing.sm,
-    paddingTop: Spacing.xs,
-  },
-  iosPickerDone: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.shared.cairoGold,
-  },
-});

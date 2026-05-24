@@ -13,6 +13,7 @@ export type EmptyStateVariant =
   | 'accounts'
   | 'transactions'
   | 'commitments'
+  | 'commitmentsMonth'
   | 'filtered'
   | 'categories';
 
@@ -52,6 +53,13 @@ const VARIANT_CONFIG: Record<
     headline: Strings.emptyCommitmentsHeadline,
     description: Strings.emptyCommitmentsDescription,
     ctaLabel: Strings.emptyCommitmentsCta,
+    clearLabel: null,
+  },
+  commitmentsMonth: {
+    icon: 'calendar-blank-outline',
+    headline: Strings.emptyCommitmentsMonthHeadline,
+    description: Strings.emptyCommitmentsMonthDescription,
+    ctaLabel: null,
     clearLabel: null,
   },
   filtered: {

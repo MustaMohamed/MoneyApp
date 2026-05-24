@@ -14,7 +14,7 @@ describe('FeatureFlags', () => {
     expect(FeatureFlags).toEqual({
       newOnboarding: false, // §2
       newSettings: false, // §4
-      newCommitments: false, // §8
+      newCommitments: true, // §8
       newAccounts: false, // §9
     });
   });

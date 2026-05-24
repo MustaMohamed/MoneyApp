@@ -1,12 +1,12 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { formatMonthYear } from '@/utils/format_date';
-import { ms, msFont } from '@/utils/responsive';
 
 const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
@@ -15,7 +15,6 @@ const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Paid]: Colors.dark.positive,
   [CommitmentPaymentStatus.Skipped]: Colors.dark.text3,
 };
-
 const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Overdue]: Strings.commitmentsStatusOverdue,
   [CommitmentPaymentStatus.Due]: Strings.commitmentsStatusDue,
@@ -23,7 +22,6 @@ const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
   [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
   [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
 };
-
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
@@ -40,46 +38,20 @@ export function PaymentRow({ payment, commitment, showDivider = true }: Props) {
     displayAmount != null ? `${numberFmt.format(displayAmount)} ${payment.currency}` : '—';
 
   return (
-    <View style={[styles.row, !showDivider && styles.noDivider]}>
-      <View style={[styles.dot, { backgroundColor: statusColor }]} />
-      <View style={styles.info}>
-        <Text style={styles.monthLabel}>{formatMonthYear(payment.due_date)}</Text>
-        <Text style={[styles.statusLabel, { color: statusColor }]}>{statusLabel}</Text>
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center' }}
+      className={`gap-2 py-2 ${showDivider ? 'border-separator border-b' : ''}`}
+    >
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColor }} />
+      <View style={{ flex: 1 }}>
+        <Text className="font-inter text-foreground text-[15px] font-medium">
+          {formatMonthYear(payment.due_date)}
+        </Text>
+        <Text className="font-inter mt-0.5 text-[12px]" style={{ color: statusColor }}>
+          {statusLabel}
+        </Text>
       </View>
-      <Text style={styles.amount}>{amountText}</Text>
+      <Text className="font-sora text-foreground text-[15px] font-semibold">{amountText}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    gap: Spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.dark.border,
-  },
-  noDivider: { borderBottomWidth: 0 },
-  dot: {
-    width: ms(8),
-    height: ms(8),
-    borderRadius: ms(4),
-  },
-  info: { flex: 1 },
-  monthLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  statusLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: msFont(12),
-    marginTop: ms(2),
-  },
-  amount: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-});
