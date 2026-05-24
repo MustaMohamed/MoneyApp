@@ -27,7 +27,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
-      - run: npm run typecheck
+      - name: Restore tsc incremental cache
+        uses: actions/cache@v4
+        with:
+          path: .tsbuildinfo
+          key: tsbuildinfo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            tsbuildinfo-${{ runner.os }}-
+      - run: npm run typecheck -- --incremental --tsBuildInfoFile .tsbuildinfo
 
   lint:
     name: Lint
@@ -73,7 +80,14 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/setup
-      - run: npm test -- --ci
+      - name: Restore jest transform cache
+        uses: actions/cache@v4
+        with:
+          path: .jest-cache
+          key: jest-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            jest-${{ runner.os }}-
+      - run: npm test -- --ci --cacheDirectory .jest-cache
 
   prebuild-check:
     name: Prebuild dry-run (Android)

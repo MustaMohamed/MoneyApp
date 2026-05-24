@@ -42,6 +42,9 @@ yarn-error.*
 # test coverage output
 coverage/
 
+# jest transform cache (CI-pinned via --cacheDirectory)
+.jest-cache/
+
 app-example
 
 # Claude Code agent worktrees (local tooling state)
