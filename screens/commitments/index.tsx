@@ -1,5 +1,6 @@
 import { RefreshControl, SectionList, View } from 'react-native';
 
+import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -24,7 +25,7 @@ export default function CommitmentsScreen() {
         </Text>
       </View>
 
-      {t.state.isEmpty ? (
+      {!t.state.hasCommitments ? (
         <CommitmentsEmptyState onAdd={t.goToAdd} />
       ) : (
         <SectionList
@@ -63,6 +64,13 @@ export default function CommitmentsScreen() {
               onRefresh={() => void t.onRefresh()}
               tintColor={GoldTokens[500]}
             />
+          }
+          ListEmptyComponent={
+            t.state.statusFilter === 'all' ? (
+              <EmptyState variant="commitmentsMonth" />
+            ) : (
+              <EmptyState variant="filtered" onAction={() => t.setStatusFilter('all')} />
+            )
           }
           contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
         />

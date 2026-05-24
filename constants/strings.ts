@@ -515,6 +515,9 @@ export const Strings = {
   emptyFilteredHeadline: 'No results',
   emptyFilteredDescription: 'Try adjusting your filters.',
   emptyFilteredClearCta: 'Clear Filters',
+  emptyCommitmentsMonthHeadline: 'Nothing this month',
+  emptyCommitmentsMonthDescription:
+    'No commitments scheduled for this month. Use the arrows above to browse other months.',
 
   // §4 Settings root — row descriptions
   settingsCurrencyDescription: 'Set your default currency and exchange rate',
