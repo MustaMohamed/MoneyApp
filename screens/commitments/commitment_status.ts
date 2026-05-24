@@ -51,8 +51,12 @@ export function resolveDisplayAmount(
 ): DisplayAmount {
   const isPaid = payment?.status === CommitmentPaymentStatus.Paid;
   const isVariable = commitment?.amount_type === AmountType.Variable;
-  const amount = isPaid
-    ? (payment?.amount_paid ?? payment?.amount_due ?? commitment?.amount ?? undefined)
-    : (payment?.amount_due ?? commitment?.amount ?? undefined);
+  // Extract field accesses before the isPaid ternary: inside the ternary the
+  // truthiness of isPaid narrows `payment` to non-nullish, which would make the
+  // optional chains read as "unnecessary".
+  const paidAmount = payment?.amount_paid ?? undefined;
+  const dueAmount = payment?.amount_due ?? undefined;
+  const baseAmount = commitment?.amount ?? undefined;
+  const amount = isPaid ? (paidAmount ?? dueAmount ?? baseAmount) : (dueAmount ?? baseAmount);
   return { amount, showTilde: isVariable && !isPaid };
 }
