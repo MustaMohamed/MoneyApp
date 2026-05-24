@@ -187,4 +187,15 @@ describe('usePaySheet', () => {
     act(() => result.current.setPaidDate('2026-05-20'));
     expect(result.current.form.getValues('paid_date')).toBe('2026-05-20');
   });
+
+  // Render-safety + default cases (folded in from the former pay_sheet.hook.test.ts
+  // during §8 cleanup — that file duplicated this hook's mock setup).
+  it('renders without throwing when commitment and payment are undefined', () => {
+    expect(() => renderHook(() => usePaySheet(undefined, undefined))).not.toThrow();
+  });
+
+  it('saving defaults to false', () => {
+    const { result } = renderHook(() => usePaySheet(undefined, undefined));
+    expect(result.current.state.saving).toBe(false);
+  });
 });
