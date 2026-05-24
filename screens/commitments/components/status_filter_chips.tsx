@@ -1,17 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useDerivedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { Pressable, ScrollView, View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing } from '@/constants/theme';
-import { ms, msFont } from '@/utils/responsive';
 
-import { useChipPressScale } from '../commitments.anim';
 import type { CommitmentStatusFilter } from '../commitments.state';
 
 interface Props {
@@ -30,92 +22,42 @@ const CHIPS: { key: CommitmentStatusFilter; labelKey: keyof typeof Strings }[] =
 
 export function StatusFilterChips({ active, onChange }: Props) {
   return (
-    <View style={styles.wrap}>
+    <View className="py-2">
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.row}
+        contentContainerClassName="gap-2 px-4"
       >
-        {CHIPS.map((c) => (
-          <Chip
-            key={c.key}
-            // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- labelKey values are hardcoded string literals from Strings keys; always defined
-            label={Strings[c.labelKey] as string}
-            isActive={active === c.key}
-            onPress={() => onChange(c.key)}
-          />
-        ))}
+        {CHIPS.map((c) => {
+          const isActive = active === c.key;
+          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- labelKey values are hardcoded Strings keys; always defined
+          const label = Strings[c.labelKey] as string;
+          return (
+            <Pressable
+              key={c.key}
+              onPress={() => onChange(c.key)}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={label}
+              className={
+                isActive
+                  ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
+                  : 'bg-default/40 border-border rounded-full border px-3 py-1'
+              }
+            >
+              <Text
+                className={
+                  isActive
+                    ? 'font-inter text-accent text-[11px] font-semibold'
+                    : 'font-inter text-foreground/65 text-[11px] font-medium'
+                }
+              >
+                {label}
+              </Text>
+            </Pressable>
+          );
+        })}
       </ScrollView>
     </View>
   );
 }
-
-function Chip({
-  label,
-  isActive,
-  onPress,
-}: {
-  label: string;
-  isActive: boolean;
-  onPress: () => void;
-}) {
-  const { scale, pop } = useChipPressScale();
-  const isActiveSv = useDerivedValue(() => withTiming(isActive ? 1 : 0, { duration: 200 }));
-
-  const containerStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    backgroundColor: interpolateColor(
-      isActiveSv.value,
-      [0, 1],
-      [Colors.dark.surface, Colors.shared.cairoGold],
-    ),
-    borderColor: interpolateColor(
-      isActiveSv.value,
-      [0, 1],
-      [Colors.dark.border, Colors.shared.cairoGold],
-    ),
-  }));
-
-  const textStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(
-      isActiveSv.value,
-      [0, 1],
-      [Colors.dark.text2, Colors.shared.midnightBlue],
-    ),
-  }));
-
-  return (
-    <Pressable
-      onPress={() => {
-        pop();
-        onPress();
-      }}
-    >
-      <Animated.View style={[styles.chip, containerStyle]}>
-        <Animated.Text style={[styles.label, textStyle]}>{label}</Animated.Text>
-      </Animated.View>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
-  wrap: {
-    paddingVertical: Spacing.sm,
-  },
-  row: {
-    paddingHorizontal: Spacing.md,
-    gap: Spacing.xs,
-  },
-  chip: {
-    borderWidth: 1,
-    borderRadius: Radius.sm,
-    paddingHorizontal: ms(12),
-    paddingVertical: ms(5),
-    justifyContent: 'center',
-  },
-  label: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: msFont(11),
-    letterSpacing: 0.3,
-  },
-});

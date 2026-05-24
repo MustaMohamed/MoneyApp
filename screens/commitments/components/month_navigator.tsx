@@ -1,9 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Text } from '@/components/ui/text';
+import { CoreTokens } from '@/constants/theme_tokens';
 import { formatMonthYear } from '@/utils/format_date';
-import { ms } from '@/utils/responsive';
 
 interface MonthNavigatorProps {
   yearMonth: string; // 'YYYY-MM'
@@ -14,31 +14,31 @@ interface MonthNavigatorProps {
 export function MonthNavigator({ yearMonth, onPrev, onNext }: MonthNavigatorProps) {
   const label = formatMonthYear(yearMonth);
   return (
-    <View style={styles.container}>
-      <Pressable onPress={onPrev} style={styles.btn} hitSlop={ms(8)}>
-        <MaterialCommunityIcons name="chevron-left" size={ms(24)} color={Colors.dark.text1} />
+    <View
+      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}
+      className="py-2"
+    >
+      <Pressable
+        onPress={onPrev}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Previous month"
+        className="p-1"
+      >
+        <MaterialCommunityIcons name="chevron-left" size={24} color={CoreTokens.text1} />
       </Pressable>
-      <Text style={styles.label}>{label}</Text>
-      <Pressable onPress={onNext} style={styles.btn} hitSlop={ms(8)}>
-        <MaterialCommunityIcons name="chevron-right" size={ms(24)} color={Colors.dark.text1} />
+      <Text className="font-sora text-foreground min-w-[120px] text-center text-[17px] font-semibold">
+        {label}
+      </Text>
+      <Pressable
+        onPress={onNext}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Next month"
+        className="p-1"
+      >
+        <MaterialCommunityIcons name="chevron-right" size={24} color={CoreTokens.text1} />
       </Pressable>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: Spacing.sm,
-  },
-  btn: { padding: Spacing.xs },
-  label: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    minWidth: ms(120),
-    textAlign: 'center',
-  },
-});

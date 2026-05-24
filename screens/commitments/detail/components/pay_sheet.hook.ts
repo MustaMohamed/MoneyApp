@@ -45,6 +45,7 @@ export function usePaySheet(
     setVisible,
     setSaving,
     setAccountPickerVisible,
+    setRateOverride,
     reset,
   } = usePaySheetState(
     useShallow((s) => ({
@@ -52,6 +53,7 @@ export function usePaySheet(
       setVisible: s.setVisible,
       setSaving: s.setSaving,
       setAccountPickerVisible: s.setAccountPickerVisible,
+      setRateOverride: s.setRateOverride,
       reset: s.reset,
     })),
   );
@@ -140,6 +142,7 @@ export function usePaySheet(
           exchange_rate: undefined,
           notes: undefined,
         });
+        setRateOverride(false);
       }
     }
 
@@ -188,6 +191,7 @@ export function usePaySheet(
       accounts: accountState.accounts,
       visible: paySheetState.visible,
       accountPickerVisible: paySheetState.accountPickerVisible,
+      rateOverride: paySheetState.rateOverride,
       exchangeRateValue,
       rateUpdatedAt: currencyState.rate_updated_at,
     },
@@ -196,5 +200,7 @@ export function usePaySheet(
     closeAccountPicker: () => setAccountPickerVisible(false),
     selectAccount,
     setVisible,
+    toggleRateOverride: () => setRateOverride(!paySheetState.rateOverride),
+    setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
   };
 }
