@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Pressable, View } from 'react-native';
+import { Pressable, useWindowDimensions, View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
@@ -27,15 +27,21 @@ export function AccountPickerSheet({
   onClose,
 }: Props): React.ReactElement {
   const data = excludeId ? accounts.filter((a) => a.id !== excludeId) : accounts;
+  const { height: windowHeight } = useWindowDimensions();
+  // Definite list height + enableDynamicSizing: the sheet hugs (header + list)
+  // to a consistent mid height with no empty gap, and rows scroll on overflow.
+  // A definite height is required — the sheet's animated content height doesn't
+  // bound a flex:1 child, so a short fixed snap (the old ['40%']) just clipped
+  // the list. ~42% of the screen reads as mid (≈half) once chrome is added.
+  const listHeight = Math.round(windowHeight * 0.42);
 
-  // size="lg" (92%), NOT a short fixed snap: at a short snap (was ['40%']) the
-  // list overflows the sheet and won't scroll on Android — rows are clipped.
-  // Matches net_worth_breakdown_sheet, the proven scroll-on-overflow pattern
-  // (lg + a plain BottomSheetScrollView as the sole Sheet.Body child).
   return (
-    <Sheet visible={visible} onClose={onClose} title={title} size="lg">
+    <Sheet visible={visible} onClose={onClose} title={title} enableDynamicSizing>
       <Sheet.Body>
-        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+        <BottomSheetScrollView
+          style={{ height: listHeight }}
+          contentContainerStyle={{ paddingBottom: 24 }}
+        >
           {data.map((item) => {
             const isSelected = item.id === selectedId;
             return (
