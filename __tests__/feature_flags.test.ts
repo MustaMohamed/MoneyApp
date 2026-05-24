@@ -13,7 +13,7 @@ describe('FeatureFlags', () => {
     expect(FeatureFlags).toEqual({
       newOnboarding: false, // §2
       newSettings: false, // §4
-      newAccounts: false, // §9
+      newAccounts: true, // §9
     });
   });
 });

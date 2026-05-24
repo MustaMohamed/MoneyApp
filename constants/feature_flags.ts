@@ -16,5 +16,5 @@
 export const FeatureFlags = {
   newOnboarding: false, // §2 — flip when Onboarding section lands
   newSettings: false, // §4
-  newAccounts: false, // §9
+  newAccounts: true, // §9
 } as const;
