@@ -52,6 +52,10 @@ export function CategoryPickerSheet({
     <Sheet visible={visible} onClose={onClose} title={title} size="lg">
       <Sheet.Body>
         <BottomSheetScrollView
+          // flex: 1 bounds the scroll view to the sheet height so it scrolls;
+          // without it the view sizes to content and can't scroll (same fix as
+          // account_picker_sheet + transaction_form_body).
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: PADDING, paddingBottom: 32, gap: GAP }}
           showsVerticalScrollIndicator={false}
         >

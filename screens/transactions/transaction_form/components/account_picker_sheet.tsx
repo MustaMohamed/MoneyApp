@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
@@ -31,13 +31,19 @@ export function AccountPickerSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title={title} snapPoints={['40%']}>
       <Sheet.Body>
-        <BottomSheetFlatList
-          data={data}
-          keyExtractor={(a) => a.id}
-          renderItem={({ item }) => {
+        {/*
+          style={{ flex: 1 }} is REQUIRED so the scroll view is BOUNDED to the
+          sheet's content height — without it the scroll view sizes to its
+          content and has nothing to scroll (same fix/comment as
+          transaction_form_body's BottomSheetScrollView). Account lists are
+          short, so a ScrollView + map is fine — no virtualization needed.
+        */}
+        <BottomSheetScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
+          {data.map((item) => {
             const isSelected = item.id === selectedId;
             return (
               <Pressable
+                key={item.id}
                 testID={`account-picker-row-${item.id}`}
                 onPress={() => onSelect(item)}
                 style={{ flexDirection: 'row', alignItems: 'center' }}
@@ -72,8 +78,8 @@ export function AccountPickerSheet({
                 ) : null}
               </Pressable>
             );
-          }}
-        />
+          })}
+        </BottomSheetScrollView>
       </Sheet.Body>
     </Sheet>
   );
