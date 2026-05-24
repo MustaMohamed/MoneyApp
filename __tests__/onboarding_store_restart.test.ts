@@ -33,7 +33,6 @@ describe('loadOnboardingState — legacy O* migration', () => {
       if (key === 'onboarding_step') return Promise.resolve('O3');
       if (key === 'onboarding_complete') return Promise.resolve('false');
       if (key === 'base_currency') return Promise.resolve('EGP');
-      if (key === 'security_choice') return Promise.resolve(null);
       return Promise.resolve(null);
     });
 
@@ -51,7 +50,6 @@ describe('loadOnboardingState — legacy O* migration', () => {
       if (key === 'onboarding_step') return Promise.resolve('N3');
       if (key === 'onboarding_complete') return Promise.resolve('false');
       if (key === 'base_currency') return Promise.resolve('EGP');
-      if (key === 'security_choice') return Promise.resolve(null);
       return Promise.resolve(null);
     });
 
