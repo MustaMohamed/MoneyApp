@@ -114,6 +114,7 @@ export const Strings = {
   dashAssetsLabel: 'Assets',
   dashLiabilitiesLabel: 'Liabilities',
   dashMonthSpentTitle: 'Spent This Month',
+  dashMonthSpentTxsUnit: 'txs',
   dashSeeAll: 'See all',
 
   // §5 Dashboard v2 — segments + breakdown sheet
@@ -174,6 +175,7 @@ export const Strings = {
   currencyLastFetched: 'Last updated',
   currencyNeverFetched: 'Never fetched',
   currencyManualLabel: 'Manual Override',
+  currencyManualShort: 'Manual',
   currencyManualSub: 'Set your own rate',
   currencyFetchCta: 'Refresh Rate',
   currencySaveCta: 'Save Rate',
@@ -551,6 +553,8 @@ export const Strings = {
   filterSummaryAccountsEmpty: 'All accounts',
   filterSummaryCategoriesEmpty: 'All categories',
   filterSummaryAmountEmpty: 'Any amount',
+  filterSummaryAmountUpTo: 'Up to',
+  filterSummaryAmountFrom: 'From',
   filterAmountMinLabel: 'Min',
   filterAmountMaxLabel: 'Max',
 

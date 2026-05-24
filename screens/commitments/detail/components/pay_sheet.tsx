@@ -16,7 +16,7 @@ import type { CommitmentPayment } from '@/database/entities/commitment_payment.e
 import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
 import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
-import { formatLongDate, toLocalDateString } from '@/utils/format_date';
+import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 
 import { usePaySheet } from './pay_sheet.hook';
 
@@ -102,7 +102,7 @@ export function PaySheet({ commitment, payment }: Props) {
           >
             {payment ? (
               <Text className="font-inter text-muted mb-3 text-[12px]">
-                {payment.due_date} · {payment.currency} ·{' '}
+                {formatShortDate(payment.due_date)} · {payment.currency} ·{' '}
                 {isVariable ? Strings.commitmentsAmountVariable : Strings.commitmentsAmountFixed}
               </Text>
             ) : null}

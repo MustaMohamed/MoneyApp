@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
 
 interface Props {
   value: string;
@@ -26,10 +27,10 @@ export function SearchRow({
         <Input
           value={value}
           onChangeText={onChange}
-          placeholder="Search transactions"
+          placeholder={Strings.searchTransactionsPlaceholder}
           returnKeyType="search"
           autoCorrect={false}
-          accessibilityLabel="Search transactions"
+          accessibilityLabel={Strings.searchTransactionsPlaceholder}
         />
         {value.length > 0 ? (
           <Pressable

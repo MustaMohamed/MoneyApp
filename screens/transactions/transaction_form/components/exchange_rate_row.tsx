@@ -72,7 +72,9 @@ export function ExchangeRateRow({
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
-          <Text className="font-sora text-foreground text-[14px] font-semibold">Exchange Rate</Text>
+          <Text className="font-sora text-foreground text-[14px] font-semibold">
+            {Strings.currencyRateLabel}
+          </Text>
           <Text className="font-inter text-muted mt-0.5 text-[11px]">{subtitle}</Text>
           {stale ? (
             <Text className="font-inter text-warning mt-0.5 text-[11px]">

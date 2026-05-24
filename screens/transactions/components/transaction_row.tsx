@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
@@ -142,7 +143,7 @@ export function TransactionRow({
             <MaterialCommunityIcons
               name={pickIcon(tx, category)}
               size={18}
-              color={category?.color ?? '#D4AF37'}
+              color={category?.color ?? GoldTokens[500]}
             />
           </View>
           <View className="min-w-0 flex-1">

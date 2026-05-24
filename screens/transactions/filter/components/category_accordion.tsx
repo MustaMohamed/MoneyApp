@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { GoldTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 
 import { formatSelectionSummary } from '../filter.helpers';
@@ -90,7 +91,7 @@ export function CategoryAccordion({
                   {c.name}
                 </Text>
                 {selected ? (
-                  <MaterialCommunityIcons name="check" size={12} color="#D4AF37" />
+                  <MaterialCommunityIcons name="check" size={12} color={GoldTokens[500]} />
                 ) : null}
               </Pressable>
             );
