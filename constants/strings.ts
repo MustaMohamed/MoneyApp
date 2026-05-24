@@ -182,6 +182,12 @@ export const Strings = {
   accountDetailArchiveCCWarning: 'Outstanding credit card balance will still affect net worth.',
   accountDetailArchiveConfirm: 'Archive',
 
+  // §9 Account Detail — balance hero captions
+  accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,
+  accountHeroAdjusted: 'adjusted',
+  accountHeroAvailable: (avail: string, currency: string, limit: string) =>
+    `Available ${avail} ${currency} of ${limit}`,
+
   // Add Account screen (U4 — main app)
   u4Title: 'Add Account',
   u4Cta: 'Save Account',
