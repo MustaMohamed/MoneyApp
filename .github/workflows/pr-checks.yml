@@ -17,11 +17,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
 
   typecheck:
     name: Typecheck
@@ -30,11 +26,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npm run typecheck
 
   lint:
@@ -44,11 +36,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Log oxlint version (type-aware enabled)
         run: npx oxlint --version
       - run: npm run lint
@@ -60,11 +48,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Log oxfmt version
         run: npx oxfmt --version
       - run: npm run format:check
@@ -76,11 +60,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npx --yes expo-doctor
         env:
           CI: true
@@ -92,11 +72,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npm test -- --ci
 
   prebuild-check:
@@ -106,15 +82,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - uses: ./.github/actions/setup
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-      - run: npm ci
       - run: npx expo prebuild --no-install --platform android
         env:
           CI: true
