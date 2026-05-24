@@ -1,7 +1,10 @@
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
-node_modules/
+# No trailing slash: matches node_modules whether it is a directory, a file,
+# or a symlink. A stray `node_modules` symlink was previously committable
+# because `node_modules/` only matches directories.
+node_modules
 
 # Expo
 .expo/
