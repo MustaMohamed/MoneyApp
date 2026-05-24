@@ -17,6 +17,7 @@ import {
   DurationType,
   RecurrencePeriod,
 } from '@/constants/enums';
+import type { Account } from '@/database/entities/account.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { usePaySheet } from '@/screens/commitments/detail/components/pay_sheet.hook';
@@ -114,16 +115,24 @@ const duePayment: CommitmentPayment = {
   updated_at: '2026-01-01T00:00:00.000Z',
 };
 
+// Stable, capturable mocks: markAsPaid so we can assert the persisted snapshot,
+// and an injectable accounts list so requiresRate (currency mismatch) can be exercised.
+const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
+let mockAccounts: Account[] = [];
+
 function setupStoreMocks() {
   (useCommitmentStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({
       state: { commitments: [], payments: [], selectedMonth: '2026-05' },
-      markAsPaid: jest.fn().mockResolvedValue(undefined),
+      markAsPaid: mockMarkAsPaid,
       loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
     }),
   );
   (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts: [] }, loadAccounts: jest.fn().mockResolvedValue(undefined) }),
+    sel({
+      state: { accounts: mockAccounts },
+      loadAccounts: jest.fn().mockResolvedValue(undefined),
+    }),
   );
 }
 
@@ -153,6 +162,10 @@ describe('usePaySheet', () => {
         rateOverride: false,
       };
     });
+    // Reset the capturable store mocks
+    mockAccounts = [];
+    mockMarkAsPaid.mockClear();
+    mockMarkAsPaid.mockResolvedValue(undefined);
     // Re-setup store mocks after clearAllMocks
     setupStoreMocks();
   });
@@ -197,5 +210,46 @@ describe('usePaySheet', () => {
   it('saving defaults to false', () => {
     const { result } = renderHook(() => usePaySheet(undefined, undefined));
     expect(result.current.state.saving).toBe(false);
+  });
+
+  // Regression (stale-rate guard): if the user enters a rate for a foreign-currency
+  // account then switches to a same-currency account (requiresRate flips false),
+  // the leftover rate must NOT be persisted as the snapshot — the payment needs no
+  // conversion, so exchange_rate_snapshot must be undefined.
+  it('does not snapshot a stale exchange_rate when the account currency matches the commitment', async () => {
+    mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
+    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    act(() => {
+      result.current.form.setValue('account_id', 'acc-usd');
+      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('paid_date', '2026-05-20');
+      // stale value carried over from a previously-selected foreign account
+      result.current.form.setValue('exchange_rate', 99);
+    });
+    expect(result.current.state.requiresRate).toBe(false);
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
+    expect(arg.exchange_rate_snapshot).toBeUndefined();
+  });
+
+  it('snapshots the entered rate when the payment crosses currencies', async () => {
+    mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
+    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('paid_date', '2026-05-20');
+      result.current.form.setValue('exchange_rate', 52);
+    });
+    expect(result.current.state.requiresRate).toBe(true);
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
+    expect(arg.exchange_rate_snapshot).toBe(52);
   });
 });
