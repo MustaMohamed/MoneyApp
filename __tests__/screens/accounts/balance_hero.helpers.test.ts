@@ -2,7 +2,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import {
   availableCreditColor,
   buildHeroCaption,
-} from '@/screens/accounts_v2/detail/components/balance_hero.helpers';
+} from '@/screens/accounts/detail/components/balance_hero.helpers';
 import type { Account } from '@/store/account.store';
 
 function mkAccount(overrides: Partial<Account> = {}): Account {

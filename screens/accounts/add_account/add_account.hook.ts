@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, Currency } from '@/constants/enums';
-import { AccountColors } from '@/constants/theme';
+import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/store/account.store';
 import {
   createAddAccountSchema,
@@ -11,11 +11,32 @@ import {
 } from '@/utils/schemas/add_account.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+// 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4), mirroring
+// onboarding_v2/add_account. Exported so index.tsx renders the picker row.
+export const ACCOUNT_COLORS = [
+  AcctTokens.midnight.rich,
+  AcctTokens.gold.rich,
+  AcctTokens.nile.rich,
+  AcctTokens.paprika.rich,
+  AcctTokens.plum.rich,
+  AcctTokens.lapis.rich,
+  AcctTokens.rose.rich,
+  AcctTokens.sand.rich,
+  AcctTokens.amethyst.rich,
+  AcctTokens.emerald.rich,
+  AcctTokens.saffron.rich,
+  AcctTokens.steel.rich,
+] as const;
+
 export function useAddAccountApp() {
   const router = useRouter();
   const { state: accountState, addAccount } = useAccountStore(
     useShallow((s) => ({ state: s.state, addAccount: s.addAccount })),
   );
+
+  useEffect(() => {
+    void useAccountStore.getState().loadAccounts();
+  }, []);
 
   const schema = useMemo(
     () => createAddAccountSchema(accountState.accounts),
@@ -29,7 +50,7 @@ export function useAddAccountApp() {
       name: '',
       balance: '',
       selected_type: AccountType.Bank,
-      selected_color: AccountColors[0],
+      selected_color: AcctTokens.midnight.rich,
       currency: Currency.EGP,
       interest_tracking: false,
       credit_limit: '',
