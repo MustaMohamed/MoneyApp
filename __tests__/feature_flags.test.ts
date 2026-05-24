@@ -1,11 +1,10 @@
 import { FeatureFlags } from '@/constants/feature_flags';
 
 describe('FeatureFlags', () => {
-  it('has all 4 remaining section flags (newDashboard removed in §5, newTransactions removed in §6, newAddTransaction removed in §7)', () => {
+  it('has all 3 remaining section flags (newDashboard removed in §5, newTransactions removed in §6, newAddTransaction removed in §7, newCommitments removed in §8)', () => {
     expect(FeatureFlags).toMatchObject({
       newOnboarding: expect.any(Boolean),
       newSettings: expect.any(Boolean),
-      newCommitments: expect.any(Boolean),
       newAccounts: expect.any(Boolean),
     });
   });
@@ -14,7 +13,6 @@ describe('FeatureFlags', () => {
     expect(FeatureFlags).toEqual({
       newOnboarding: false, // §2
       newSettings: false, // §4
-      newCommitments: true, // §8
       newAccounts: false, // §9
     });
   });
