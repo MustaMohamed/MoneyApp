@@ -67,7 +67,7 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 
 ## Tech Stack
 
-Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · react-native-actions-sheet (legacy, phasing out §4–§9; do NOT add new usages) · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
+Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
 
 ## Commands
 
@@ -202,12 +202,6 @@ import { BottomSheetScrollView, BottomSheetFlatList } from '@gorhom/bottom-sheet
 ```
 
 **Scrollable content rule:** `BottomSheetScrollView` and `BottomSheetFlatList` must be imported from `@gorhom/bottom-sheet`, not from `react-native`. Standard `ScrollView` and `FlatList` will NOT scroll inside a Sheet.
-
-**`react-native-actions-sheet` — LEGACY, phasing out section by section.**
-
-The old `react-native-actions-sheet` dep and its patch (`patches/react-native-actions-sheet+10.1.2.patch`) remain in the project during §4–§9 while existing consumers are migrated. No new code may import from `react-native-actions-sheet`. Each section migrates the sheets within its domain. The dep and patch are removed when the last consumer is gone (no earlier than §9).
-
-Legacy consumers still in-flight (as of §8 cleanup): `screens/accounts/detail/components/adjust_balance_sheet.tsx` (migrates in §9). The §7 transaction-form consumers, the dashboard net-worth-breakdown sheet, both settings category sheets, and the §8 commitments pay sheet have all been migrated. The `react-native-actions-sheet` dep + patch remain until §9 (the last consumer) migrates.
 
 ## Patches
 

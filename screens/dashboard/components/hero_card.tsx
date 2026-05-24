@@ -113,7 +113,7 @@ export function HeroCard({
               }}
             />
             <Text className="text-xs uppercase" style={{ color: Colors.shared.cairoGold }}>
-              Manual
+              {Strings.currencyManualShort}
             </Text>
           </View>
         )}
@@ -152,7 +152,9 @@ export function HeroCard({
           style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
         >
           <MaterialCommunityIcons name="bank-outline" size={ms(11)} color={Colors.dark.text1} />
-          <Text className="text-foreground text-xs">{totalAccounts} accounts</Text>
+          <Text className="text-foreground text-xs">
+            {totalAccounts} {Strings.o6AccountsUnit}
+          </Text>
         </View>
       </View>
     </Pressable>

@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 
 import type { TransactionFilter } from '../transactions.store';
 
@@ -12,15 +13,15 @@ interface Props {
 }
 
 const OPTIONS: { value: TransactionFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: TransactionType.Income, label: 'Income' },
-  { value: TransactionType.Expense, label: 'Expense' },
-  { value: TransactionType.Transfer, label: 'Transfer' },
+  { value: 'all', label: Strings.filterAll },
+  { value: TransactionType.Income, label: Strings.addTxTypeIncome },
+  { value: TransactionType.Expense, label: Strings.addTxTypeExpense },
+  { value: TransactionType.Transfer, label: Strings.addTxTypeTransfer },
   // CC Payment was missing — the filter has always had a CC Payment surface
   // (TransactionFilter accepts every TransactionType), but the chip itself
   // was never wired up. Without it, users cannot isolate credit-card
   // payments from the rest of the ledger.
-  { value: TransactionType.CCPayment, label: 'CC Payment' },
+  { value: TransactionType.CCPayment, label: Strings.addTxTypeCCPayment },
 ];
 
 export function TypeChips({ value, onChange }: Props): React.ReactElement {

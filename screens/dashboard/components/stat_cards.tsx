@@ -189,7 +189,7 @@ export function StatCards({
             </Text>
           </View>
           <Text variant="hint" className="text-muted text-xs">
-            {monthSpendCount} txs
+            {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
           </Text>
         </View>
       </View>

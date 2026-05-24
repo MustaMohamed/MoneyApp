@@ -45,6 +45,6 @@ export function formatAmountSummary(f: AdvancedFilters): string {
   const cur = f.amountCurrency;
   if (f.amountMin !== undefined && f.amountMax !== undefined)
     return `${f.amountMin}–${f.amountMax} ${cur}`;
-  if (f.amountMax !== undefined) return `Up to ${f.amountMax} ${cur}`;
-  return `From ${f.amountMin} ${cur}`;
+  if (f.amountMax !== undefined) return `${Strings.filterSummaryAmountUpTo} ${f.amountMax} ${cur}`;
+  return `${Strings.filterSummaryAmountFrom} ${f.amountMin} ${cur}`;
 }

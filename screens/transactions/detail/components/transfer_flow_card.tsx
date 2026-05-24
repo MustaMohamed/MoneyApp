@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 
 import { getAccountTypeIcon } from '../detail.helpers';
@@ -43,7 +44,11 @@ function Cell({
         {label}
       </Text>
       <View className="bg-accent/15 mt-1.5 h-9 w-9 items-center justify-center rounded-lg">
-        <MaterialCommunityIcons name={getAccountTypeIcon(account.type)} size={16} color="#D4AF37" />
+        <MaterialCommunityIcons
+          name={getAccountTypeIcon(account.type)}
+          size={16}
+          color={GoldTokens[500]}
+        />
       </View>
       <Text className="font-inter text-foreground mt-1 text-[11.5px] font-semibold">
         {account.name}
@@ -90,7 +95,7 @@ export function TransferFlowCard({
         signPrefix="−"
         onPress={onPressFrom}
       />
-      <MaterialCommunityIcons name="arrow-right" size={20} color="#D4AF37" />
+      <MaterialCommunityIcons name="arrow-right" size={20} color={GoldTokens[500]} />
       <Cell
         label={Strings.detailFlowToLabel}
         account={toAccount}
