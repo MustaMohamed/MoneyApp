@@ -1,9 +1,5 @@
-import { AccountType, Currency, SecurityChoice } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
-import {
-  computeTotalBalance,
-  resolveSecurityLabel,
-} from '@/screens/onboarding/ready/ready.helpers';
+import { AccountType, Currency } from '@/constants/enums';
+import { computeTotalBalance } from '@/screens/onboarding/ready/ready.helpers';
 import type { Account } from '@/store/account.store';
 
 const account = (opening_balance: number): Account => ({
@@ -37,23 +33,5 @@ describe('computeTotalBalance', () => {
 
   it('sums opening_balance across multiple accounts', () => {
     expect(computeTotalBalance([account(1000), account(500)])).toBe(1500);
-  });
-});
-
-describe('resolveSecurityLabel', () => {
-  it('undefined → Strings.o6SecuritySkipped', () => {
-    expect(resolveSecurityLabel(undefined)).toBe(Strings.o6SecuritySkipped);
-  });
-
-  it('SecurityChoice.Skip → Strings.o6SecuritySkipped', () => {
-    expect(resolveSecurityLabel(SecurityChoice.Skip)).toBe(Strings.o6SecuritySkipped);
-  });
-
-  it('SecurityChoice.Pin → Strings.o6SecurityEnabled', () => {
-    expect(resolveSecurityLabel(SecurityChoice.Pin)).toBe(Strings.o6SecurityEnabled);
-  });
-
-  it('SecurityChoice.Biometric → Strings.o6SecurityEnabled', () => {
-    expect(resolveSecurityLabel(SecurityChoice.Biometric)).toBe(Strings.o6SecurityEnabled);
   });
 });

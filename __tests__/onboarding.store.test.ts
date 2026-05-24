@@ -1,9 +1,9 @@
-// TC-03 / TC-05 / TC-06 / TC-13 — onboarding store writes to SecureStore
+// TC-03 / TC-05 / TC-13 — onboarding store writes to SecureStore
 // (and repo for DB-backed settings). loadOnboardingState rehydrates from SecureStore.
 
 import * as SecureStore from 'expo-secure-store';
 
-import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
+import { Currency, OnboardingStep } from '@/constants/enums';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 import {
   createOnboardingStore,
@@ -30,9 +30,8 @@ beforeEach(() => {
   useOnboardingStore.setState({
     state: {
       complete: false,
-      currentStep: OnboardingStep.O1,
+      currentStep: OnboardingStep.N1,
       baseCurrency: Currency.EGP,
-      securityChoice: undefined,
     },
   });
 });
@@ -41,9 +40,9 @@ describe('onboardingStore.setStep — TC-03', () => {
   it('writes onboarding_step to SecureStore then updates state', async () => {
     const repo = makeRepo();
     const store = createOnboardingStore(repo);
-    await store.getState().setStep(OnboardingStep.O3);
-    expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'O3');
-    expect(store.getState().state.currentStep).toBe(OnboardingStep.O3);
+    await store.getState().setStep(OnboardingStep.N2);
+    expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'N2');
+    expect(store.getState().state.currentStep).toBe(OnboardingStep.N2);
   });
 });
 
@@ -66,32 +65,6 @@ describe('onboardingStore.setBaseCurrency — TC-05', () => {
   });
 });
 
-describe('onboardingStore.setSecurityChoice — TC-06', () => {
-  it('PIN choice → security_setup_skipped is "false"', async () => {
-    const repo = makeRepo();
-    const store = createOnboardingStore(repo);
-    await store.getState().setSecurityChoice(SecurityChoice.Pin);
-    expect(secure.setItemAsync).toHaveBeenCalledWith('security_choice', 'pin');
-    expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'false');
-    expect(store.getState().state.securityChoice).toBe(SecurityChoice.Pin);
-  });
-
-  it('biometric choice → security_setup_skipped is "false"', async () => {
-    const repo = makeRepo();
-    const store = createOnboardingStore(repo);
-    await store.getState().setSecurityChoice(SecurityChoice.Biometric);
-    expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'false');
-  });
-
-  it('skip choice → security_setup_skipped is "true"', async () => {
-    const repo = makeRepo();
-    const store = createOnboardingStore(repo);
-    await store.getState().setSecurityChoice(SecurityChoice.Skip);
-    expect(secure.setItemAsync).toHaveBeenCalledWith('security_setup_skipped', 'true');
-    expect(store.getState().state.securityChoice).toBe(SecurityChoice.Skip);
-  });
-});
-
 describe('onboardingStore.completeOnboarding — TC-13', () => {
   it('writes SecureStore + repo.set then sets complete=true', async () => {
     const repo = makeRepo();
@@ -109,7 +82,7 @@ describe('onboardingStore — error branches', () => {
     const store = createOnboardingStore(repo);
     secure.setItemAsync.mockRejectedValueOnce(new Error('secure fail'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(store.getState().setStep(OnboardingStep.O3)).rejects.toThrow('secure fail');
+    await expect(store.getState().setStep(OnboardingStep.N2)).rejects.toThrow('secure fail');
     consoleSpy.mockRestore();
   });
 
@@ -119,17 +92,6 @@ describe('onboardingStore — error branches', () => {
     secure.setItemAsync.mockRejectedValueOnce(new Error('base fail'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.getState().setBaseCurrency(Currency.USD)).rejects.toThrow('base fail');
-    consoleSpy.mockRestore();
-  });
-
-  it('setSecurityChoice propagates errors', async () => {
-    const repo = makeRepo();
-    const store = createOnboardingStore(repo);
-    secure.setItemAsync.mockRejectedValueOnce(new Error('security fail'));
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(store.getState().setSecurityChoice(SecurityChoice.Pin)).rejects.toThrow(
-      'security fail',
-    );
     consoleSpy.mockRestore();
   });
 
@@ -146,48 +108,43 @@ describe('onboardingStore — error branches', () => {
 describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await loadOnboardingState();
-    expect(result).toEqual({ complete: false, step: OnboardingStep.O1 });
+    expect(result).toEqual({ complete: false, step: OnboardingStep.N1 });
     expect(useOnboardingStore.getState().state).toMatchObject({
       complete: false,
-      currentStep: OnboardingStep.O1,
+      currentStep: OnboardingStep.N1,
       baseCurrency: Currency.EGP,
-      securityChoice: undefined,
     });
   });
 
   it('rehydrates state when SecureStore has values', async () => {
-    await secure.setItemAsync('onboarding_step', 'O4');
+    await secure.setItemAsync('onboarding_step', 'N2');
     await secure.setItemAsync('base_currency', 'USD');
-    await secure.setItemAsync('security_choice', 'biometric');
 
     const result = await loadOnboardingState();
-    expect(result).toEqual({ complete: false, step: OnboardingStep.O4 });
+    expect(result).toEqual({ complete: false, step: OnboardingStep.N2 });
     expect(useOnboardingStore.getState().state).toMatchObject({
       complete: false,
-      currentStep: OnboardingStep.O4,
+      currentStep: OnboardingStep.N2,
       baseCurrency: Currency.USD,
-      securityChoice: SecurityChoice.Biometric,
     });
   });
 
   it('returns complete:true when onboarding_complete=true', async () => {
     await secure.setItemAsync('onboarding_complete', 'true');
-    await secure.setItemAsync('onboarding_step', 'O6');
+    await secure.setItemAsync('onboarding_step', 'N4');
     const result = await loadOnboardingState();
     expect(result.complete).toBe(true);
   });
 
   it('rejects invalid SecureStore values and falls back to defaults', async () => {
-    await secure.setItemAsync('onboarding_step', 'O99');
+    await secure.setItemAsync('onboarding_step', 'X99');
     await secure.setItemAsync('base_currency', 'GBP');
-    await secure.setItemAsync('security_choice', 'face_id');
 
     const result = await loadOnboardingState();
-    expect(result.step).toBe(OnboardingStep.O1);
+    expect(result.step).toBe(OnboardingStep.N1);
     expect(useOnboardingStore.getState().state).toMatchObject({
-      currentStep: OnboardingStep.O1,
+      currentStep: OnboardingStep.N1,
       baseCurrency: Currency.EGP,
-      securityChoice: undefined,
     });
   });
 });

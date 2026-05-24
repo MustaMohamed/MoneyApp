@@ -1,8 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
 
-import { Currency, OnboardingStep, SecurityChoice } from '@/constants/enums';
-import { FeatureFlags } from '@/constants/feature_flags';
+import { Currency, OnboardingStep } from '@/constants/enums';
 import { SecureStoreKeys } from '@/constants/secure_store_keys';
 import {
   AppSettingsRepository,
@@ -11,16 +10,14 @@ import {
 
 const INITIAL_STATE = {
   complete: false,
-  currentStep: OnboardingStep.O1,
+  currentStep: OnboardingStep.N1,
   baseCurrency: Currency.EGP,
-  securityChoice: undefined as SecurityChoice | undefined,
 };
 
 interface OnboardingStore {
   state: typeof INITIAL_STATE;
   setStep: (step: OnboardingStep) => Promise<void>;
   setBaseCurrency: (currency: Currency) => Promise<void>;
-  setSecurityChoice: (choice: SecurityChoice) => Promise<void>;
   completeOnboarding: () => Promise<void>;
 }
 
@@ -49,20 +46,6 @@ export function createOnboardingStore(repo: IAppSettingsRepository) {
       }
     },
 
-    setSecurityChoice: async (choice) => {
-      try {
-        await SecureStore.setItemAsync(SecureStoreKeys.SecurityChoice, choice);
-        await SecureStore.setItemAsync(
-          SecureStoreKeys.SecuritySetupSkipped,
-          String(choice === SecurityChoice.Skip),
-        );
-        set((s) => ({ state: { ...s.state, securityChoice: choice } }));
-      } catch (err) {
-        console.error('[onboardingStore] setSecurityChoice failed:', err);
-        throw err;
-      }
-    },
-
     completeOnboarding: async () => {
       try {
         await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
@@ -82,31 +65,27 @@ export async function loadOnboardingState(): Promise<{
   complete: boolean;
   step: OnboardingStep;
 }> {
-  const [completeRaw, stepRaw, currencyRaw, securityRaw] = await Promise.all([
+  const [completeRaw, stepRaw, currencyRaw] = await Promise.all([
     SecureStore.getItemAsync(SecureStoreKeys.OnboardingComplete),
     SecureStore.getItemAsync(SecureStoreKeys.OnboardingStep),
     SecureStore.getItemAsync(SecureStoreKeys.BaseCurrency),
-    SecureStore.getItemAsync(SecureStoreKeys.SecurityChoice),
   ]);
 
   const complete = completeRaw === 'true';
-  let step: OnboardingStep = isOnboardingStep(stepRaw) ? stepRaw : OnboardingStep.O1;
+  let step: OnboardingStep = isOnboardingStep(stepRaw) ? stepRaw : OnboardingStep.N1;
 
-  // Force-restart: if the new-onboarding flag is enabled and the persisted step is from
-  // the old O* flow, restart from N1. This handles the flag-flip moment for testers.
-  // No production users will be affected during the §2 window (flag ships as false).
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- intentional dead code guard; flag will flip when §2 ships
-  if (FeatureFlags.newOnboarding && step.startsWith('O')) {
+  // Migrate any persisted step from the retired O* flow (V1) to the start of the
+  // current N* flow. V1 was the live onboarding before §2 promotion, so real
+  // incomplete users may still have an O* step persisted; this restarts them cleanly,
+  // scrubs the stale value, and avoids redirecting to the now-deleted routes.
+  if (stepRaw?.startsWith('O')) {
     step = OnboardingStep.N1;
     await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, OnboardingStep.N1);
   }
   const baseCurrency: Currency = isCurrency(currencyRaw) ? currencyRaw : Currency.EGP;
-  const securityChoice: SecurityChoice | undefined = isSecurityChoice(securityRaw)
-    ? securityRaw
-    : undefined;
 
   useOnboardingStore.setState({
-    state: { complete, currentStep: step, baseCurrency, securityChoice },
+    state: { complete, currentStep: step, baseCurrency },
   });
 
   return { complete, step };
@@ -120,9 +99,4 @@ function isOnboardingStep(v: string | null): v is OnboardingStep {
 function isCurrency(v: string | null): v is Currency {
   // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
   return Object.values(Currency).includes(v as Currency);
-}
-
-function isSecurityChoice(v: string | null): v is SecurityChoice {
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- required by Array.includes() overload; type-guard validates at runtime
-  return Object.values(SecurityChoice).includes(v as SecurityChoice);
 }

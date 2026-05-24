@@ -4,7 +4,7 @@ import { useLayoutInit } from '@/utils/use_layout_init.hook';
 
 const mockGetDb = jest.fn().mockResolvedValue({});
 const mockRunMigrations = jest.fn().mockResolvedValue(undefined);
-const mockLoadOnboardingState = jest.fn().mockResolvedValue({ complete: false, step: 'O1' });
+const mockLoadOnboardingState = jest.fn().mockResolvedValue({ complete: false, step: 'N1' });
 const mockSetReady = jest.fn();
 const mockGeneratePayments = jest.fn().mockResolvedValue(undefined);
 const mockCheckAndDeactivateExpired = jest.fn().mockResolvedValue(undefined);
@@ -36,12 +36,12 @@ jest.mock('@/utils/zod_config', () => {});
 describe('useLayoutInit — splash gate does not await commitment calls', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'O1' });
+    mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
   });
 
   it('calls setReady(true) without awaiting commitment calls', async () => {
     // Onboarding complete so housekeeping is scheduled
-    mockLoadOnboardingState.mockResolvedValue({ complete: true, step: 'O6' });
+    mockLoadOnboardingState.mockResolvedValue({ complete: true, step: 'N4' });
     // generatePayments never resolves — if setReady awaits it, the test will time out
     let releaseGenerate: (() => void) | undefined;
     mockGeneratePayments.mockImplementation(
@@ -68,7 +68,7 @@ describe('useLayoutInit — splash gate does not await commitment calls', () => 
   });
 
   it('does not schedule housekeeping when onboarding is not complete', async () => {
-    mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'O1' });
+    mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
     renderHook(() => useLayoutInit());
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
@@ -78,7 +78,7 @@ describe('useLayoutInit — splash gate does not await commitment calls', () => 
   });
 
   it('schedules housekeeping when onboarding is complete', async () => {
-    mockLoadOnboardingState.mockResolvedValue({ complete: true, step: 'O6' });
+    mockLoadOnboardingState.mockResolvedValue({ complete: true, step: 'N4' });
     renderHook(() => useLayoutInit());
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));

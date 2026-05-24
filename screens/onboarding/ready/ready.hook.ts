@@ -4,7 +4,7 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 
-import { computeTotalBalance, resolveSecurityLabel } from './ready.helpers';
+import { computeTotalBalance } from './ready.helpers';
 import { useReadyState } from './ready.state';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
@@ -20,10 +20,14 @@ export function useReady() {
 
   const total = computeTotalBalance(accountState.accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
-  const securityValue = resolveSecurityLabel(onboardingState.securityChoice);
 
+  // 3-row summary — Security row is dropped (spec §2.6)
   const rows: SummaryRow[] = [
-    { label: Strings.o6Currency, value: onboardingState.baseCurrency, gold: true },
+    {
+      label: Strings.o6Currency,
+      value: onboardingState.baseCurrency,
+      gold: true,
+    },
     {
       label: Strings.o6Accounts,
       value: `${accountState.accounts.length} ${Strings.o6AccountsUnit}`,
@@ -34,7 +38,6 @@ export function useReady() {
       value: `${formattedTotal} ${onboardingState.baseCurrency}`,
       gold: true,
     },
-    { label: Strings.o6Security, value: securityValue, gold: false },
   ];
 
   const handleComplete = async () => {

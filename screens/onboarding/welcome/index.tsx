@@ -1,118 +1,97 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { cn } from 'heroui-native';
+import React from 'react';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useShallow } from 'zustand/react/shallow';
 
 import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
-import { OnboardingStep } from '@/constants/enums';
+import { Box } from '@/components/ui/box';
+import { Button } from '@/components/ui/button';
+import { Pressable } from '@/components/ui/pressable';
+import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
+import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useOnboardingStore } from '@/store/onboarding.store';
 
 import { useWelcomeAnim } from './welcome.anim';
+import { useWelcome } from './welcome.hook';
 
 export default function WelcomeScreen() {
-  const router = useRouter();
-  const { setStep } = useOnboardingStore(useShallow((s) => ({ setStep: s.setStep })));
-  const { illustrationEntering, headlineEntering, ctaEntering } = useWelcomeAnim();
-
-  const onGetStarted = async () => {
-    await setStep(OnboardingStep.O2);
-    router.push('/(onboarding)/currency');
-  };
+  const { state, setSelected, onContinue } = useWelcome();
+  const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ProgressDots totalSteps={6} currentStep={1} />
+    <Screen>
+      <ProgressDots totalSteps={4} currentStep={1} />
 
-      <View style={styles.body}>
-        <Animated.View entering={illustrationEntering}>
-          <GeoIllustration />
-        </Animated.View>
+      <ScreenScroll>
+        <Box style={{ flex: 1 }} className="items-center justify-center gap-6 px-4">
+          <Animated.View entering={illustrationEntering}>
+            <GeoIllustration />
+          </Animated.View>
 
-        <Animated.View entering={headlineEntering} style={styles.headlineWrap}>
-          <Text style={styles.headline}>{Strings.o1Headline}</Text>
-          <Text style={styles.subtext}>{Strings.o1Subtext}</Text>
-        </Animated.View>
-      </View>
+          <Animated.View entering={headlineEntering} className="items-center gap-1">
+            <Text variant="hero" className="font-soraExtra text-center">
+              {Strings.o1Headline}
+            </Text>
+            <Text variant="body" className="text-muted mt-1 text-center">
+              {Strings.o1Subtext}
+            </Text>
+          </Animated.View>
 
-      <Animated.View entering={ctaEntering} style={styles.ctaBar}>
-        <Pressable
-          onPress={() => {
-            void onGetStarted();
-          }}
-          style={styles.ctaPress}
-        >
-          <LinearGradient
-            colors={['#C9973A', '#D4A44C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cta}
+          <Text variant="hint" className="mt-4 self-start">
+            {Strings.n1CurrencyLabel}
+          </Text>
+
+          <Animated.View
+            entering={pillsEntering}
+            style={{ flexDirection: 'row', width: '100%' }}
+            className="gap-3"
           >
-            <Text style={styles.ctaText}>{Strings.o1Cta}</Text>
-          </LinearGradient>
-        </Pressable>
-        <Text style={styles.signIn}>{Strings.o1SignIn}</Text>
-      </Animated.View>
-    </SafeAreaView>
+            {([Currency.EGP, Currency.USD] as const).map((code) => (
+              <Pressable
+                key={code}
+                onPress={() => setSelected(code)}
+                style={{ flex: 1 }}
+                className={cn(
+                  'flex-row items-center justify-center gap-2 rounded-[10px] border-[1.5px] py-3',
+                  state.selected === code
+                    ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
+                    : 'border-border bg-default',
+                )}
+              >
+                <Text className="text-[18px]">{code === Currency.EGP ? '🇪🇬' : '🇺🇸'}</Text>
+                <Text
+                  variant="body"
+                  className={cn(
+                    'font-soraBold',
+                    state.selected === code ? 'text-gold-600' : 'text-muted',
+                  )}
+                >
+                  {code}
+                </Text>
+              </Pressable>
+            ))}
+          </Animated.View>
+
+          <Box className="bg-surface mt-3 w-full rounded-[10px] px-4 py-3">
+            <Text variant="caption" className="text-muted">
+              {Strings.n1CurrencyNote}
+            </Text>
+          </Box>
+        </Box>
+      </ScreenScroll>
+
+      <Box className="border-separator border-t px-4 pt-2 pb-6">
+        <Animated.View entering={ctaEntering}>
+          <Button
+            variant="primary"
+            label={Strings.o1Cta}
+            onPress={() => {
+              void onContinue();
+            }}
+          />
+        </Animated.View>
+      </Box>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0F1923' },
-  body: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.lg,
-    gap: Spacing.lg,
-  },
-  headlineWrap: { alignItems: 'center', gap: Spacing.xs },
-  headline: {
-    fontFamily: FontFamily.soraExtra,
-    fontSize: Type.hero,
-    lineHeight: Math.round(Type.hero * 1.2),
-    color: '#F0EBE3',
-    textAlign: 'center',
-  },
-  subtext: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: '#6B7F99',
-    textAlign: 'center',
-    lineHeight: Math.round(Type.body * 1.4),
-  },
-  ctaBar: {
-    borderTopWidth: 1,
-    borderTopColor: '#1A2535',
-    paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
-  ctaPress: {
-    width: '100%',
-    borderRadius: Radius.cta,
-    overflow: 'hidden',
-  },
-  cta: {
-    height: Size.ctaHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.cta,
-  },
-  ctaText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: '#1B2B4B',
-  },
-  signIn: {
-    marginTop: Spacing.xs,
-    textAlign: 'center',
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.caption,
-    color: '#4A5568',
-  },
-});

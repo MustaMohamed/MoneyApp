@@ -45,7 +45,7 @@ export default function AddAccountAppScreen() {
 
   return (
     <Screen>
-      {/* Header — onboarding_v2 header minus ProgressDots */}
+      {/* Header — onboarding header minus ProgressDots */}
       <Box
         style={{ flexDirection: 'row', height: 56 }}
         className="items-center justify-between px-4"
@@ -265,7 +265,7 @@ export default function AddAccountAppScreen() {
                   <Input
                     value={value}
                     onChangeText={onChange}
-                    placeholder={Strings.o4MinPaymentPlaceholderV2}
+                    placeholder={Strings.o4MinPaymentPlaceholder}
                     keyboardType="decimal-pad"
                   />
                 )}

@@ -27,10 +27,11 @@ export function useMoreAccounts() {
     });
   };
 
-  const handleDone = async () => {
-    await setStep(OnboardingStep.O6);
+  // Renamed from handleDone → handleContinue (spec §2.5); navigates to N4 (was O6)
+  const handleContinue = async () => {
+    await setStep(OnboardingStep.N4);
     router.push('/(onboarding)/ready');
   };
 
-  return { accounts: accountState.accounts, initialCount, handleAddAnother, handleDone };
+  return { accounts: accountState.accounts, initialCount, handleAddAnother, handleContinue };
 }

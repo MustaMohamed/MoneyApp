@@ -235,15 +235,14 @@ Account creation defaults: `current_balance = opening_balance`, `is_archived = 0
 
 ## Business Rules
 
-1. `OnboardingComplete` set only on "Open My Dashboard" tap (O6).
-2. Force-close during onboarding → resume from that step on relaunch.
-3. O4 requires ≥1 saved account before proceeding.
-4. O5 is skippable once O4 wrote an account.
-5. EGP pre-selected on O2.
-6. O3 security is UI only — no real PIN/biometric yet.
-7. `current_balance = opening_balance` at account creation.
-8. Credit card accounts are liabilities (negative net-worth).
-9. Account names are unique across all accounts.
+1. `OnboardingComplete` set only on "Open My Dashboard" tap (N4 — the 4-step flow is N1 welcome → N2 add account → N3 more accounts → N4 ready).
+2. Force-close during onboarding → resume from that step on relaunch. Legacy `O*` steps persisted before the §2 V2 promotion migrate to N1 on first launch.
+3. N2 (Add Account) requires ≥1 saved account before proceeding.
+4. N3 (More Accounts) is skippable once N2 wrote an account.
+5. EGP pre-selected on N1 — base currency is chosen in the welcome step.
+6. `current_balance = opening_balance` at account creation.
+7. Credit card accounts are liabilities (negative net-worth).
+8. Account names are unique across all accounts.
 
 ## Design System — Cairo Nights
 

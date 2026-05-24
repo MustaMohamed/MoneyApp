@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
-import { AccountColors } from '@/constants/theme';
+import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
@@ -12,6 +12,23 @@ import {
   type AddAccountFormData,
 } from '@/utils/schemas/add_account.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
+
+// The 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4).
+// Used by the color picker in index.tsx. Exported so the screen can render the row.
+export const ACCOUNT_COLORS = [
+  AcctTokens.midnight.rich, // #1B2B4B — default
+  AcctTokens.gold.rich, // #C9973A
+  AcctTokens.nile.rich, // #2D7D6E
+  AcctTokens.paprika.rich, // #C45C2A
+  AcctTokens.plum.rich, // #5A2D55
+  AcctTokens.lapis.rich, // #185FA5
+  AcctTokens.rose.rich, // #B8526D
+  AcctTokens.sand.rich, // #C9A876
+  AcctTokens.amethyst.rich, // #7B3F8C
+  AcctTokens.emerald.rich, // #4CAF82
+  AcctTokens.saffron.rich, // #D4830A
+  AcctTokens.steel.rich, // #4A6FA5
+] as const;
 
 export function useAddAccount() {
   const router = useRouter();
@@ -39,7 +56,7 @@ export function useAddAccount() {
       name: '',
       balance: '',
       selected_type: AccountType.Bank,
-      selected_color: AccountColors[0],
+      selected_color: AcctTokens.midnight.rich,
       currency: onboardingState.baseCurrency,
       interest_tracking: false,
       credit_limit: '',
@@ -70,13 +87,13 @@ export function useAddAccount() {
     if (isAddingMore) {
       backOrReplace(router, '/(onboarding)/more_accounts');
     } else {
-      await setStep(OnboardingStep.O5);
+      await setStep(OnboardingStep.N3);
       router.push('/(onboarding)/more_accounts');
     }
   };
 
   const onBack = () =>
-    backOrReplace(router, isAddingMore ? '/(onboarding)/more_accounts' : '/(onboarding)/security');
+    backOrReplace(router, isAddingMore ? '/(onboarding)/more_accounts' : '/(onboarding)/welcome');
 
   return { form, handleSave: form.handleSubmit(onSubmit), onBack };
 }

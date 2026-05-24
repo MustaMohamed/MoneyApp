@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 /**
- * BackButton — canonical 36×36 boxy back-button matching the N2 (onboarding_v2) style.
+ * BackButton — canonical 36×36 boxy back-button matching the N2 (onboarding) style.
  *
  * Props:
  *   onPress — navigation callback, required.

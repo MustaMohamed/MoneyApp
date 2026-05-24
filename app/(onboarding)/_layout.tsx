@@ -6,8 +6,6 @@ import { useOnboardingStore } from '@/store/onboarding.store';
 
 export type OnboardingStackParams = {
   welcome: undefined;
-  currency: undefined;
-  security: undefined;
   add_account: { isAddingMore?: boolean };
   more_accounts: undefined;
   ready: undefined;
