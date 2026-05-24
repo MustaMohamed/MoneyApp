@@ -1,10 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { StyleSheet, Text, View } from 'react-native';
+import React from 'react';
 import Animated, { type EntryOrExitLayoutType } from 'react-native-reanimated';
 
+import { Box } from '@/components/ui/box';
+import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/store/account.store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -27,98 +29,49 @@ const TYPE_LABELS: Record<AccountType, string> = {
 
 export function AccountRow({
   account,
-  index,
+  index: _index,
   entering,
 }: {
   account: Account;
   index: number;
   entering: EntryOrExitLayoutType | undefined;
 }) {
-  const isFirst = index === 0;
   const icon = TYPE_ICONS[account.type];
   const typeLabel = `${TYPE_LABELS[account.type]} · ${account.currency}`;
   const formattedBalance = new Intl.NumberFormat('en-US').format(account.opening_balance);
+  const isCC = account.type === AccountType.CreditCard;
 
   return (
-    <Animated.View entering={entering} style={styles.row}>
-      <View
-        style={[
-          styles.iconContainer,
-          isFirst ? styles.iconContainerActive : styles.iconContainerInactive,
-        ]}
+    <Animated.View entering={entering}>
+      <Box
+        style={{ flexDirection: 'row' }}
+        className="bg-surface border-border items-center gap-3 rounded-[8px] border px-3 py-3"
       >
-        <MaterialCommunityIcons
-          name={icon}
-          size={Size.iconBack}
-          color={isFirst ? '#C9973A' : '#6B7F99'}
-        />
-      </View>
+        {/* Icon container — runtime hex from account.color; inline style is the only correct approach */}
+        <Box
+          className="border-border h-10 w-10 items-center justify-center rounded-[8px] border"
+          style={{ backgroundColor: account.color ?? undefined }}
+        >
+          <MaterialCommunityIcons name={icon} size={20} color={CoreTokens.text1} />
+        </Box>
 
-      <View style={styles.rowMiddle}>
-        <Text style={styles.rowName} numberOfLines={1}>
-          {account.name}
+        <Box style={{ flex: 1 }} className="gap-0.5">
+          <Text variant="body" className="font-soraBold text-foreground" numberOfLines={1}>
+            {account.name}
+          </Text>
+          <Text variant="caption" className="text-muted">
+            {typeLabel}
+          </Text>
+        </Box>
+
+        <Text
+          variant="body"
+          className="font-soraBold"
+          style={{ color: isCC ? SemanticTokens.negative : SemanticTokens.positive }}
+        >
+          {formattedBalance}
         </Text>
-        <Text style={styles.rowType}>{typeLabel}</Text>
-      </View>
-
-      <Text
-        style={[
-          styles.rowBalance,
-          { color: account.type === AccountType.CreditCard ? '#E05A42' : '#4CAF82' },
-        ]}
-      >
-        {formattedBalance}
-      </Text>
+      </Box>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.md,
-    backgroundColor: '#1A2535',
-    borderWidth: 1,
-    borderColor: '#2A3A4F',
-  },
-  iconContainer: {
-    width: Size.typeIconBox,
-    height: Size.typeIconBox,
-    borderRadius: Radius.sm,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconContainerActive: {
-    backgroundColor: '#1B2B4B',
-    borderColor: '#C9973A',
-  },
-  iconContainerInactive: {
-    backgroundColor: '#1A2535',
-    borderColor: '#2A3A4F',
-  },
-  rowMiddle: {
-    flex: 1,
-    gap: Spacing.xxs,
-  },
-  rowName: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: '#F0EBE3',
-  },
-  rowType: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.caption,
-    color: '#6B7F99',
-  },
-  rowBalance: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: '#4CAF82',
-    marginLeft: 'auto',
-  },
-});

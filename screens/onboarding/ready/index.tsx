@@ -1,12 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { cn } from 'heroui-native';
+import React from 'react';
 import Animated from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ProgressDots } from '@/components/progress_dots';
+import { Box } from '@/components/ui/box';
+import { Button } from '@/components/ui/button';
+import { Screen } from '@/components/ui/screen';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { SemanticTokens } from '@/constants/theme_tokens';
 
 import { useReadyAnim } from './ready.anim';
 import { useReady } from './ready.hook';
@@ -18,136 +21,66 @@ export default function ReadyScreen() {
     useReadyAnim();
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <ProgressDots totalSteps={6} currentStep={6} />
+    <Screen>
+      <ProgressDots totalSteps={4} currentStep={4} />
 
-      <View style={styles.body}>
-        <Animated.View entering={checkEntering} style={styles.checkWrap}>
-          <MaterialCommunityIcons name="check-circle" size={Size.iconHero} color="#4CAF82" />
+      <Box style={{ flex: 1 }} className="items-center justify-center gap-4 px-4">
+        <Animated.View entering={checkEntering}>
+          <MaterialCommunityIcons name="check-circle" size={64} color={SemanticTokens.positive} />
         </Animated.View>
 
-        <Animated.Text entering={headlineEntering} style={styles.headline}>
-          {Strings.o6Title}
+        <Animated.Text entering={headlineEntering}>
+          <Text variant="hero" className="font-soraExtra text-foreground text-center">
+            {Strings.o6Title}
+          </Text>
         </Animated.Text>
 
-        <Animated.Text entering={subtitleEntering} style={styles.subtitle}>
-          {Strings.o6Subtitle}
+        <Animated.Text entering={subtitleEntering}>
+          <Text variant="body" className="text-muted text-center">
+            {Strings.o6Subtitle}
+          </Text>
         </Animated.Text>
 
-        <View style={styles.summary}>
+        {/* 3-row summary card */}
+        <Box className="bg-surface border-border w-full rounded-[12px] border px-4 py-3">
           {rows.map((row, index) => (
             <Animated.View
               key={row.label}
+              testID="summary-row"
               entering={rowEntering(index)}
-              style={[styles.summaryRow, index === rows.length - 1 ? styles.summaryRowLast : null]}
+              style={{ flexDirection: 'row' }}
+              className={cn(
+                'items-center justify-between py-3',
+                index < rows.length - 1 && 'border-separator border-b',
+              )}
             >
-              <Text style={styles.summaryLabel}>{row.label}</Text>
-              <Text style={[styles.summaryValue, { color: row.gold ? '#D4A44C' : '#F0EBE3' }]}>
+              <Text variant="body" className="text-muted">
+                {row.label}
+              </Text>
+              <Text
+                variant="body"
+                className={cn('font-soraBold', row.gold ? 'text-gold-500' : 'text-foreground')}
+              >
                 {row.value}
               </Text>
             </Animated.View>
           ))}
-        </View>
-      </View>
+        </Box>
+      </Box>
 
-      <Animated.View entering={ctaEntering} style={styles.ctaBar}>
-        <Pressable
-          onPress={() => {
-            void handleComplete();
-          }}
-          disabled={completing}
-          style={styles.ctaPress}
-        >
-          <LinearGradient
-            colors={['#C9973A', '#D4A44C']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.cta}
-          >
-            <Text style={styles.ctaText}>{Strings.o6Cta}</Text>
-          </LinearGradient>
-        </Pressable>
-      </Animated.View>
-    </SafeAreaView>
+      {/* CTA bar */}
+      <Box className="border-separator border-t px-4 pt-2 pb-6">
+        <Animated.View entering={ctaEntering}>
+          <Button
+            variant="primary"
+            label={Strings.o6Cta}
+            onPress={() => {
+              void handleComplete();
+            }}
+            disabled={completing}
+          />
+        </Animated.View>
+      </Box>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#0F1923' },
-  body: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.sm,
-  },
-  checkWrap: {
-    marginBottom: Spacing.md,
-  },
-  headline: {
-    fontFamily: FontFamily.soraExtra,
-    fontSize: Type.headline,
-    color: '#F0EBE3',
-    textAlign: 'center',
-    marginBottom: Spacing.xxs,
-  },
-  subtitle: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: '#6B7F99',
-    textAlign: 'center',
-    marginBottom: Spacing.md,
-    lineHeight: Math.round(Type.body * 1.4),
-  },
-  summary: {
-    width: '100%',
-    backgroundColor: '#1A2535',
-    borderWidth: 1,
-    borderColor: '#2A3A4F',
-    borderRadius: Radius.md,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-    borderBottomWidth: 1,
-    borderBottomColor: '#243044',
-  },
-  summaryRowLast: {
-    borderBottomWidth: 0,
-  },
-  summaryLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.body,
-    color: '#6B7F99',
-  },
-  summaryValue: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-  },
-  ctaBar: {
-    borderTopWidth: 1,
-    borderTopColor: '#1A2535',
-    paddingTop: Spacing.xs,
-    paddingHorizontal: Spacing.sm,
-    paddingBottom: Spacing.md,
-  },
-  ctaPress: {
-    width: '100%',
-    borderRadius: Radius.cta,
-    overflow: 'hidden',
-  },
-  cta: {
-    height: Size.ctaHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.cta,
-  },
-  ctaText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: '#1B2B4B',
-  },
-});

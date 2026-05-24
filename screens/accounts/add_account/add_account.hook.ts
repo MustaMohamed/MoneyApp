@@ -12,7 +12,7 @@ import {
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 // 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4), mirroring
-// onboarding_v2/add_account. Exported so index.tsx renders the picker row.
+// onboarding/add_account. Exported so index.tsx renders the picker row.
 export const ACCOUNT_COLORS = [
   AcctTokens.midnight.rich,
   AcctTokens.gold.rich,

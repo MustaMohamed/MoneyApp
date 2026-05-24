@@ -5,14 +5,6 @@ import { type OnboardingStep } from '@/constants/enums';
 import { useOnboardingStore } from '@/store/onboarding.store';
 
 const STEP_HREF: Record<OnboardingStep, Href> = {
-  O1: '/(onboarding)/welcome',
-  O2: '/(onboarding)/currency',
-  O3: '/(onboarding)/security',
-  O4: '/(onboarding)/add_account',
-  O5: '/(onboarding)/more_accounts',
-  O6: '/(onboarding)/ready',
-  // N* steps map to the same routes as their v2 equivalents;
-  // conditional dispatchers in those routes render the V2 screen.
   N1: '/(onboarding)/welcome',
   N2: '/(onboarding)/add_account',
   N3: '/(onboarding)/more_accounts',

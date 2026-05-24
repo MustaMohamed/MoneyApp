@@ -1,10 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { cn } from 'heroui-native';
+import React from 'react';
 import Animated from 'react-native-reanimated';
 
+import { Pressable } from '@/components/ui/pressable';
+import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { GoldTokens, CoreTokens } from '@/constants/theme_tokens';
 
 import { useTypePillAnim } from '../add_account.anim';
 
@@ -40,44 +43,32 @@ export function TypePill({
   onSelect: () => void;
 }) {
   const { pillAnim, triggerPillTap } = useTypePillAnim();
-  const iconColor = isSelected ? '#C9973A' : '#6B7F99';
+  const iconColor = isSelected ? GoldTokens[600] : CoreTokens.text2;
 
   return (
     <Animated.View
-      style={[
-        styles.typePillWrap,
-        option.fullWidth ? styles.typePillFull : styles.typePillHalf,
-        pillAnim,
-      ]}
+      style={[pillAnim, { borderRadius: 8 }]}
+      className={option.fullWidth ? 'w-full' : 'w-[48.5%]'}
     >
       <Pressable
         onPress={() => {
           triggerPillTap();
           onSelect();
         }}
-        style={[styles.typePill, isSelected ? styles.pillActive : styles.pillInactive]}
+        style={{ flexDirection: 'row' }}
+        className={cn(
+          'items-center gap-2 rounded-[8px] border-[1.5px] px-3 py-3',
+          isSelected ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]' : 'border-border bg-default',
+        )}
       >
-        <MaterialCommunityIcons name={option.icon} size={Size.iconSm} color={iconColor} />
-        <Text style={[styles.typePillText, { color: iconColor }]}>{option.label}</Text>
+        <MaterialCommunityIcons name={option.icon} size={18} color={iconColor} />
+        <Text
+          variant="body"
+          className={cn('font-soraBold', isSelected ? 'text-gold-600' : 'text-muted')}
+        >
+          {option.label}
+        </Text>
       </Pressable>
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  typePillWrap: { borderRadius: Radius.md },
-  typePillHalf: { width: '48.5%' },
-  typePillFull: { width: '100%' },
-  typePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-    borderRadius: Radius.md,
-    borderWidth: 1.5,
-  },
-  pillActive: { borderColor: '#C9973A', backgroundColor: 'rgba(201,151,58,0.08)' },
-  pillInactive: { borderColor: '#2A3A4F', backgroundColor: '#1A2535' },
-  typePillText: { fontFamily: FontFamily.soraBold, fontSize: Type.body },
-});

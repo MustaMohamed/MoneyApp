@@ -7,22 +7,10 @@ export enum AccountType {
 }
 
 export enum OnboardingStep {
-  O1 = 'O1',
-  O2 = 'O2',
-  O3 = 'O3',
-  O4 = 'O4',
-  O5 = 'O5',
-  O6 = 'O6', // retained until cleanup PR
   N1 = 'N1',
   N2 = 'N2',
   N3 = 'N3',
   N4 = 'N4',
-}
-
-export enum SecurityChoice {
-  Pin = 'pin',
-  Biometric = 'biometric',
-  Skip = 'skip',
 }
 
 export enum Currency {

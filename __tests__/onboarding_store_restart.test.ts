@@ -4,12 +4,6 @@ import { OnboardingStep } from '@/constants/enums';
 // Import after mocks are in place
 import { loadOnboardingState } from '@/store/onboarding.store';
 
-// We need to control FeatureFlags before the module loads.
-// jest.mock hoists above imports, so this fires before loadOnboardingState imports it.
-jest.mock('@/constants/feature_flags', () => ({
-  FeatureFlags: { newOnboarding: true },
-}));
-
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
   setItemAsync: jest.fn().mockResolvedValue(undefined),
@@ -28,13 +22,13 @@ jest.mock('@/repositories/app_settings.repository', () => ({
 const mockGetItemAsync = SecureStore.getItemAsync as jest.Mock;
 const mockSetItemAsync = SecureStore.setItemAsync as jest.Mock;
 
-describe('loadOnboardingState — force-restart when flag=true', () => {
+describe('loadOnboardingState — legacy O* migration', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockSetItemAsync.mockResolvedValue(undefined);
   });
 
-  it('force-restarts to N1 when flag=true and persisted step is an O* value', async () => {
+  it('migrates any persisted O* step to N1 and rewrites secure store', async () => {
     mockGetItemAsync.mockImplementation((key: string) => {
       if (key === 'onboarding_step') return Promise.resolve('O3');
       if (key === 'onboarding_complete') return Promise.resolve('false');

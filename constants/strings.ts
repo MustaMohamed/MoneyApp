@@ -3,34 +3,8 @@ export const Strings = {
   o1Headline: 'Your money.\nFinally clear.',
   o1Subtext: 'Track everything. Plan with confidence.\nNo bank access needed.',
   o1Cta: 'Get Started',
-  o1SignIn: 'Already set up? Sign in',
 
-  // O2 Currency
-  o2Title: 'Base Currency',
-  o2Heading: 'Choose your currency',
-  o2Subtitle: 'Used for all net worth and budget calculations.',
-  o2Cta: 'Continue',
-  o2NoteLabel: 'Note:',
-  o2NoteBody: ' This is your reporting currency. Individual accounts can still be in any currency.',
-  currencyEGP: 'Egyptian Pound',
-  currencyUSD: 'US Dollar',
-  currencyEGPCode: 'EGP',
-  currencyUSDCode: 'USD',
-
-  // O3 Security
-  o3Title: 'Security',
-  o3HeaderTitle: 'Protect your data',
-  o3HeaderSub: 'Stays on your device only.',
-  o3PinLabel: 'Set PIN',
-  o3PinSub: '4 or 6 digit code',
-  o3BiometricLabel: 'Biometric',
-  o3BiometricSub: 'Face ID or fingerprint',
-  o3SkipLabel: 'Skip for now',
-  o3SkipSub: 'Enable later in Settings',
-  o3BestBadge: 'Best',
-  o3Cta: 'Continue',
-
-  // O4 Add Account
+  // Add Account
   o4Title: 'Add Account',
   o4Subtitle: 'Start by adding one account — you can add more next.',
   o4SectionType: 'ACCOUNT TYPE',
@@ -53,29 +27,26 @@ export const Strings = {
   o4RevolvingLabel: 'Revolving Balance',
   o4RevolvingPlaceholder: '0',
   o4MinPaymentLabel: 'Minimum Payment',
-  o4MinPaymentPlaceholder: '0',
   o4DueDayLabel: 'Statement Due Day',
   o4DueDayPlaceholder: 'e.g. 15',
   o4InterestLabel: 'Track Interest',
-  o4InterestOn: 'ON',
-  o4InterestOff: 'OFF',
   o4AprLabel: 'Annual Percentage Rate (APR %)',
   o4AprPlaceholder: 'e.g. 2.99',
   o4Cta: 'Save Account',
 
-  // N1 — Welcome + Currency (v2 keys)
+  // Welcome — base currency
   n1CurrencyLabel: 'BASE CURRENCY',
   n1CurrencyNote: 'Change anytime in Settings.',
 
-  // N3 — Add Another? (v2 keys)
+  // Add Another?
   n3AccountSaved: 'Account saved',
   n3AddMoreSubtitle: 'Want to add another? You can add credit cards, cash wallets, and more.',
 
-  // N2 — CC field improvements (v2 keys — old keys kept for O4 screen during flag=false window)
+  // Credit-card field hints
   o4MinPaymentHint: 'Copy from your latest statement. Leave blank if your card is new.',
   o4AprHint:
     'Annual rate — usually 25–40% on Egyptian credit cards. Find it on your cardholder agreement or in your bank app under "Rates".',
-  o4MinPaymentPlaceholderV2: 'From your statement',
+  o4MinPaymentPlaceholder: 'From your statement',
 
   // O4 validation errors
   errNameRequired: 'Account name is required',
@@ -98,26 +69,19 @@ export const Strings = {
   typePhysicalSavings: 'Savings',
   typeCreditCard: 'Credit Card',
 
-  // O5 More Accounts
-  o5Title: 'Your Accounts',
+  // More Accounts
   o5Subtitle: 'Got other accounts? Add them now — or skip and do it later.',
-  o5SubtitleSuffix: ' added. Add more or continue.',
   o5AddAnother: 'Add another account',
   o5SettingsHint: 'You can always add more from Settings',
   o5Cta: "I'm done",
 
-  // O6 Ready
+  // Ready
   o6Title: "You're all set!",
   o6Subtitle: "Your MoneyApp is configured. Here's your summary.",
   o6Cta: 'Open My Dashboard',
   o6Currency: 'Base Currency',
-  o6Security: 'Security',
   o6Accounts: 'Accounts',
   o6TotalBalance: 'Total Balance',
-  o6SecurityPin: 'PIN Code',
-  o6SecurityBiometric: 'Biometrics',
-  o6SecurityEnabled: 'Enabled',
-  o6SecuritySkipped: 'Not set',
   o6AccountsUnit: 'accounts',
 
   // Placeholder dashboard
