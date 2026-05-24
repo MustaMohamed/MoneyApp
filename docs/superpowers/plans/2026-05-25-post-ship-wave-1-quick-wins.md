@@ -64,23 +64,23 @@ All items re-validated against current `main`:
 
 **Principle:** preserve exact current rendered text. Where the canonical key's value differs, add a new key matching the current literal rather than changing copy.
 
-**4a — New keys in `constants/strings.ts`** (group near related keys):
+**4a — New keys in `constants/strings.ts`** (named per the existing group-prefix convention, placed in their group):
 ```ts
-addTxTypeCcPayment: 'CC Payment',
-statTxsUnit: 'txs',
-filterAmountUpTo: 'Up to',
-filterAmountFrom: 'From',
-currencyManualShort: 'Manual',
+currencyManualShort: 'Manual',          // currency group, by currencyManualLabel
+dashMonthSpentTxsUnit: 'txs',           // dashboard group, by dashMonthSpentTitle
+filterSummaryAmountUpTo: 'Up to',       // filter-summary group, by filterSummaryAmountEmpty
+filterSummaryAmountFrom: 'From',        // filter-summary group
 ```
+(No new key for 'CC Payment' — the pre-existing `addTxTypeCCPayment: 'CC Payment'` is reused.)
 
 **4b — Clean swaps (existing keys, identical values):**
 - `screens/dashboard/components/hero_card.tsx:155` — `{totalAccounts} accounts` → `{totalAccounts} {Strings.o6AccountsUnit}`
 - `screens/dashboard/components/hero_card.tsx:116` — `Manual` → `{Strings.currencyManualShort}`
 - `screens/transactions/transaction_form/components/exchange_rate_row.tsx:75` — `Exchange Rate` → `{Strings.currencyRateLabel}`
 - `screens/transactions/components/type_chips.tsx:15-18` — `'All'`/`'Income'`/`'Expense'`/`'Transfer'` → `Strings.filterAll`/`Strings.addTxTypeIncome`/`Strings.addTxTypeExpense`/`Strings.addTxTypeTransfer`
-- `screens/transactions/components/type_chips.tsx:23` — `'CC Payment'` → `Strings.addTxTypeCcPayment`
-- `screens/dashboard/components/stat_cards.tsx:192` — `{monthSpendCount} txs` → `{monthSpendCount} {Strings.statTxsUnit}`
-- `screens/transactions/filter/filter.helpers.ts:48-49` — `Up to ${max}` / `From ${min}` → `${Strings.filterAmountUpTo} ${max}` / `${Strings.filterAmountFrom} ${min}`
+- `screens/transactions/components/type_chips.tsx:23` — `'CC Payment'` → `Strings.addTxTypeCCPayment`
+- `screens/dashboard/components/stat_cards.tsx:192` — `{monthSpendCount} txs` → `{monthSpendCount} {Strings.dashMonthSpentTxsUnit}`
+- `screens/transactions/filter/filter.helpers.ts:48-49` — `Up to ${max}` / `From ${min}` → `${Strings.filterSummaryAmountUpTo} ${max}` / `${Strings.filterSummaryAmountFrom} ${min}`
 
 **4c — search_row:** `screens/transactions/components/search_row.tsx:29,32` — placeholder + a11y `"Search transactions"` → `Strings.searchTransactionsPlaceholder` (`'Search transactions…'` — adds standard ellipsis affordance; field-level, accepted).
 
