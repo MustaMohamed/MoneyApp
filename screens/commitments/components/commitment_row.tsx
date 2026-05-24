@@ -3,41 +3,18 @@ import { Pressable, View } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { Text } from '@/components/ui/text';
-import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import {
+  STATUS_COLORS,
+  STATUS_ICONS,
+  STATUS_LABELS,
+  resolveDisplayAmount,
+} from '@/screens/commitments/commitment_status';
 import { formatShortDate } from '@/utils/format_date';
 import { toIconName } from '@/utils/icon_name_guard';
-
-type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
-
-const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
-  [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
-  [CommitmentPaymentStatus.Due]: Colors.dark.gold,
-  [CommitmentPaymentStatus.Upcoming]: Colors.dark.text2,
-  [CommitmentPaymentStatus.Paid]: Colors.dark.positive,
-  [CommitmentPaymentStatus.Skipped]: Colors.dark.text3,
-};
-
-const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
-  [CommitmentPaymentStatus.Overdue]: Strings.commitmentsStatusOverdue,
-  [CommitmentPaymentStatus.Due]: Strings.commitmentsStatusDue,
-  [CommitmentPaymentStatus.Upcoming]: Strings.commitmentsStatusUpcoming,
-  [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
-  [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
-};
-
-const STATUS_ICONS: Record<CommitmentPaymentStatus, IconName> = {
-  [CommitmentPaymentStatus.Overdue]: 'alert-circle',
-  [CommitmentPaymentStatus.Due]: 'clock-outline',
-  [CommitmentPaymentStatus.Upcoming]: 'calendar-clock',
-  [CommitmentPaymentStatus.Paid]: 'check-circle',
-  [CommitmentPaymentStatus.Skipped]: 'minus-circle',
-};
 
 interface CommitmentRowProps {
   payment: CommitmentPayment;
@@ -51,13 +28,8 @@ const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 export function CommitmentRow({ payment, commitment, category, onPress }: CommitmentRowProps) {
   const statusColor = STATUS_COLORS[payment.status];
   const statusLabel = STATUS_LABELS[payment.status];
-  const isVariable = commitment?.amount_type === AmountType.Variable;
-  const isPaid = payment.status === CommitmentPaymentStatus.Paid;
-  const amount = isPaid
-    ? (payment.amount_paid ?? payment.amount_due ?? commitment?.amount)
-    : (payment.amount_due ?? commitment?.amount);
+  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
   const formattedAmount = amount != null ? numberFmt.format(amount) : '—';
-  const showTilde = isVariable && !isPaid;
   const iconBg = category?.color ? `${category.color}2E` : CoreTokens.surfaceEl;
 
   return (

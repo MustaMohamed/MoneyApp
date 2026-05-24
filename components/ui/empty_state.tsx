@@ -15,7 +15,9 @@ export type EmptyStateVariant =
   | 'commitments'
   | 'commitmentsMonth'
   | 'filtered'
-  | 'categories';
+  | 'categories'
+  | 'goals'
+  | 'budget';
 
 export interface EmptyStateProps {
   variant: EmptyStateVariant;
@@ -73,6 +75,20 @@ const VARIANT_CONFIG: Record<
     icon: 'tag-outline',
     headline: Strings.emptyStateCategoriesHeadline,
     description: Strings.emptyStateCategoriesDescription,
+    ctaLabel: null,
+    clearLabel: null,
+  },
+  goals: {
+    icon: 'target',
+    headline: Strings.emptyGoalsTitle,
+    description: Strings.emptyGoalsSub,
+    ctaLabel: null,
+    clearLabel: null,
+  },
+  budget: {
+    icon: 'chart-pie',
+    headline: Strings.emptyBudgetTitle,
+    description: Strings.emptyBudgetSub,
     ctaLabel: null,
     clearLabel: null,
   },

@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { EmptyState } from '@/components/empty_states';
+import { EmptyState } from '@/components/ui/empty_state';
 import { Colors } from '@/constants/theme';
 
 export default function BudgetScreen() {

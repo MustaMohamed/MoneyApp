@@ -4,6 +4,7 @@ import { Controller, useWatch } from 'react-hook-form';
 import { Switch } from 'react-native';
 import Animated from 'react-native-reanimated';
 
+import { TYPE_OPTIONS, TypePill } from '@/components/account_type_pill';
 import { ProgressDots } from '@/components/progress_dots';
 import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
@@ -18,7 +19,6 @@ import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 
 import { useAddAccountAnim } from './add_account.anim';
 import { useAddAccount, ACCOUNT_COLORS } from './add_account.hook';
-import { TypePill, TYPE_OPTIONS } from './components/type_pill';
 
 const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
 

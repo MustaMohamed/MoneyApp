@@ -1,27 +1,11 @@
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { CommitmentPaymentStatus } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import { STATUS_COLORS, STATUS_LABELS } from '@/screens/commitments/commitment_status';
 import { formatMonthYear } from '@/utils/format_date';
 
-const STATUS_COLORS: Record<CommitmentPaymentStatus, string> = {
-  [CommitmentPaymentStatus.Overdue]: Colors.dark.negative,
-  [CommitmentPaymentStatus.Due]: Colors.dark.gold,
-  [CommitmentPaymentStatus.Upcoming]: Colors.dark.text2,
-  [CommitmentPaymentStatus.Paid]: Colors.dark.positive,
-  [CommitmentPaymentStatus.Skipped]: Colors.dark.text3,
-};
-const STATUS_LABELS: Record<CommitmentPaymentStatus, string> = {
-  [CommitmentPaymentStatus.Overdue]: Strings.commitmentsStatusOverdue,
-  [CommitmentPaymentStatus.Due]: Strings.commitmentsStatusDue,
-  [CommitmentPaymentStatus.Upcoming]: Strings.commitmentsStatusUpcoming,
-  [CommitmentPaymentStatus.Paid]: Strings.commitmentsStatusPaid,
-  [CommitmentPaymentStatus.Skipped]: Strings.commitmentsStatusSkipped,
-};
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
