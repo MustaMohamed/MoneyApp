@@ -77,6 +77,15 @@ export interface SheetProps {
    */
   size?: 'sm' | 'md' | 'lg';
   snapPoints?: string[];
+  /**
+   * Opt-in: let the sheet hug its content's height instead of snapping to a
+   * fixed percentage. Use for sheets whose body has a DEFINITE height (e.g. a
+   * list picker with a fixed-height scroll area) — the sheet sizes to it with
+   * no empty gap, and the content scrolls when it overflows. `snapPoints`/`size`
+   * then act only as an upper bound. Defaults to false: most sheets want the
+   * fixed sm/md/lg contract.
+   */
+  enableDynamicSizing?: boolean;
   footer?: React.ReactNode;
   children: React.ReactNode;
 }
@@ -102,7 +111,16 @@ function SheetBody({ children }: { children: React.ReactNode }) {
   return <View style={styles.body}>{children}</View>;
 }
 
-export function Sheet({ visible, onClose, title, size, snapPoints, footer, children }: SheetProps) {
+export function Sheet({
+  visible,
+  onClose,
+  title,
+  size,
+  snapPoints,
+  enableDynamicSizing = false,
+  footer,
+  children,
+}: SheetProps) {
   const resolvedSnapPoints = snapPoints ?? SNAP_POINTS[size ?? 'lg'];
   const sheetRef = useRef<BottomSheetMethods>(null);
   const increment = useSheetVisibilityStore((s) => s.increment);
@@ -160,11 +178,12 @@ export function Sheet({ visible, onClose, title, size, snapPoints, footer, child
       ref={sheetRef}
       index={-1}
       snapPoints={resolvedSnapPoints}
-      // v5 defaults this to true, which makes the sheet size to its content
-      // and SILENTLY IGNORE snapPoints when content is shorter. That breaks
-      // the sm/md/lg contract — collapsed accordions or short forms snap to
-      // 25-30% instead of 92%. Disable so snap points are absolute.
-      enableDynamicSizing={false}
+      // Off by default: v5 defaults this to true, which makes the sheet size to
+      // its content and SILENTLY IGNORE snapPoints when content is shorter —
+      // that breaks the sm/md/lg contract (collapsed accordions or short forms
+      // snap to 25-30% instead of 92%). Consumers opt in via `enableDynamicSizing`
+      // when their body has a definite height and should drive the sheet size.
+      enableDynamicSizing={enableDynamicSizing}
       enablePanDownToClose
       // Keyboard interaction:
       //   - `interactive` lets the snap float up with the keyboard so the
