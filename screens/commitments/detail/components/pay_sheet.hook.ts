@@ -162,7 +162,11 @@ export function usePaySheet(
         amount_paid: data.amount,
         account_id: data.account_id,
         paid_date: data.paid_date,
-        exchange_rate_snapshot: data.exchange_rate,
+        // Only snapshot a rate when the payment actually crosses currencies.
+        // requiresRate recomputes per-render from the selected account, so if
+        // the user entered a rate for a foreign account then switched to a
+        // same-currency one, we must NOT persist that now-stale rate.
+        exchange_rate_snapshot: requiresRate ? data.exchange_rate : undefined,
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
