@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Tabs, usePathname } from 'expo-router';
+import { Tabs, usePathname, useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,16 +18,13 @@ function tabIcon(name: MCIName, color: string) {
 /**
  * useFABActions — layout-local hook providing the three FAB navigation callbacks.
  *
- * Target routes are NO-OPS in §3 — the destination screens belong to later sections:
- *   - Add Transaction → §7
- *   - Add Account     → §9
- *   - Add Commitment  → §8
- *
- * Replace the console.warn stubs with router.push calls when each section ships.
+ * Wiring status:
+ *   - Add Transaction → §7 (pending)
+ *   - Add Account     → §9 (pending)
+ *   - Add Commitment  → §8 (done)
  */
 function useFABActions() {
-  // useRouter() will be added back when each handler is wired to a real route
-  // in §7 (Add Transaction), §8 (Add Commitment), and §9 (Add Account).
+  const router = useRouter();
   return {
     handleAddTransaction: () => {
       // TODO(§7): router.push('/(app)/transactions/add') when Add Transaction sheet ships
@@ -38,8 +35,7 @@ function useFABActions() {
       console.warn('[FAB] Add Account not yet wired — pending §9');
     },
     handleAddCommitment: () => {
-      // TODO(§8): router.push('/(app)/commitments/add') when Add Commitment ships
-      console.warn('[FAB] Add Commitment not yet wired — pending §8');
+      router.push('/commitments/add' as Parameters<typeof router.push>[0]);
     },
   };
 }

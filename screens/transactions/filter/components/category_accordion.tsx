@@ -72,7 +72,7 @@ export function CategoryAccordion({
                 className={
                   selected
                     ? 'bg-accent/15 border-accent/50 flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
-                    : 'bg-default/40 flex-row items-center gap-1.5 rounded-full border border-transparent px-2.5 py-1.5'
+                    : 'bg-default/40 border-border flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
                 }
               >
                 <View
