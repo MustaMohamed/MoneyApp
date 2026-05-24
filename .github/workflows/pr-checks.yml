@@ -10,15 +10,24 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# No `install` primer job: every job restores the node_modules cache directly
-# via ./.github/actions/setup, so they all start in parallel. On a warm cache
-# (the common case) this skips a ~20s serial gate. On a cold cache (lockfile
-# change) the jobs each run `npm ci` and race to save the same key — harmless,
-# actions/cache keeps the first save and the rest no-op with a warning.
+# The `install` job primes the node_modules cache once; every other job
+# `needs: install` and restores it via ./.github/actions/setup. On a cold cache
+# (lockfile change) this keeps `npm ci` to a single run instead of letting all
+# jobs reinstall in parallel — at the cost of a short serial gate before the
+# checks start.
 jobs:
+  install:
+    name: Install
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest
+    needs: install
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -35,6 +44,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
+    needs: install
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -46,6 +56,7 @@ jobs:
   format:
     name: Format check
     runs-on: ubuntu-latest
+    needs: install
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -57,6 +68,7 @@ jobs:
   doctor:
     name: Expo doctor
     runs-on: ubuntu-latest
+    needs: install
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -68,6 +80,7 @@ jobs:
   test:
     name: Unit tests (Jest)
     runs-on: ubuntu-latest
+    needs: install
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
@@ -84,6 +97,7 @@ jobs:
   prebuild-check:
     name: Prebuild dry-run (Android)
     runs-on: ubuntu-latest
+    needs: install
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
