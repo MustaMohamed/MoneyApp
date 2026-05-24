@@ -1,4 +1,4 @@
-import { parseAdjustInput } from '@/screens/accounts_v2/detail/components/adjust_balance_sheet.helpers';
+import { parseAdjustInput } from '@/screens/accounts/detail/components/adjust_balance_sheet.helpers';
 
 describe('parseAdjustInput', () => {
   it('A-01: parses a valid positive decimal string', () => {

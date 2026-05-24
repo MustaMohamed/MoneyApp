@@ -27,10 +27,6 @@ jest.mock('@/screens/accounts/detail/account_detail.state', () => {
     setAdjusting: jest.fn(),
     setArchiving: jest.fn(),
     reset: jest.fn(),
-    getState: jest.fn(() => ({
-      state: { isEditing: false },
-      setEditing: jest.fn(),
-    })),
   };
   const useAccountDetailState = Object.assign(
     jest.fn((sel: any) => sel(mockState)),
@@ -65,5 +61,13 @@ describe('useAccountDetail', () => {
   it('account is undefined when accounts list is empty', () => {
     const { result } = renderHook(() => useAccountDetail());
     expect(result.current.state.account).toBeUndefined();
+  });
+
+  it('exposes the handler surface the screen consumes', () => {
+    const { result } = renderHook(() => useAccountDetail());
+    expect(typeof result.current.handleSave).toBe('function');
+    expect(typeof result.current.handleAdjustBalance).toBe('function');
+    expect(typeof result.current.handleArchive).toBe('function');
+    expect(typeof result.current.onBack).toBe('function');
   });
 });

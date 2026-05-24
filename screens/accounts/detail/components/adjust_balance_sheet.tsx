@@ -1,13 +1,17 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import ActionSheet, { type ActionSheetRef } from 'react-native-actions-sheet';
+import React, { useEffect } from 'react';
+import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Box } from '@/components/ui/box';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Sheet } from '@/components/ui/sheet';
+import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { useAdjustBalanceSheetState } from '@/screens/accounts/detail/components/adjust_balance_sheet.state';
+
+import { parseAdjustInput } from './adjust_balance_sheet.helpers';
+import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 
 interface AdjustBalanceSheetProps {
   visible: boolean;
@@ -40,154 +44,77 @@ export function AdjustBalanceSheet({
     })),
   );
 
-  const sheetRef = useRef<ActionSheetRef>(null);
-
+  // Seed the input from the current balance whenever the sheet opens.
+  // (The legacy .show()/.hide() ref calls are gone — `visible` drives the Sheet.)
   useEffect(() => {
     if (visible) {
       initialize(currentBalance);
-      sheetRef.current?.show();
-    } else {
-      sheetRef.current?.hide();
     }
   }, [visible, currentBalance, initialize]);
 
   const handleSave = () => {
-    const n = parseFloat(adjustState.input);
-    if (!Number.isFinite(n) || n < 0) {
+    const result = parseAdjustInput(adjustState.input);
+    if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
     }
     setError('');
-    onSave(n);
+    onSave(result.value);
   };
 
+  const footer = (
+    <Box style={{ flexDirection: 'row' }} className="gap-2">
+      <Box style={{ flex: 1 }}>
+        <Button variant="secondary" label={Strings.adjustBalanceCancel} onPress={onClose} />
+      </Box>
+      <Box style={{ flex: 2 }}>
+        <Button
+          variant="primary"
+          label={Strings.adjustBalanceSave}
+          onPress={handleSave}
+          isDisabled={isLoading}
+          isLoading={isLoading}
+        />
+      </Box>
+    </Box>
+  );
+
   return (
-    <ActionSheet
-      ref={sheetRef}
+    <Sheet
+      visible={visible}
       onClose={onClose}
-      gestureEnabled
-      containerStyle={styles.sheet}
-      indicatorStyle={styles.handle}
+      title={Strings.adjustBalanceTitle}
+      size="sm"
+      footer={footer}
     >
-      <View style={styles.content}>
-        <Text style={styles.title}>{Strings.adjustBalanceTitle}</Text>
-
-        <Text style={styles.fieldLabel}>{Strings.adjustBalanceLabel}</Text>
-        <View style={styles.inputRow}>
-          <TextInput
-            value={adjustState.input}
-            onChangeText={(v) => {
-              setInput(v);
-              setError('');
-            }}
-            keyboardType="decimal-pad"
-            style={styles.input}
-            placeholderTextColor={Colors.dark.text3}
-          />
-          <Text style={styles.currency}>{currency}</Text>
-        </View>
-        {!!adjustState.error && <Text style={styles.error}>{adjustState.error}</Text>}
-
-        <View style={styles.ctaBar}>
-          <Pressable onPress={onClose} style={styles.cancelBtn}>
-            <Text style={styles.cancelText}>{Strings.adjustBalanceCancel}</Text>
-          </Pressable>
-          <Pressable
-            onPress={handleSave}
-            disabled={isLoading}
-            style={[styles.savePress, isLoading && styles.disabled]}
-          >
-            <LinearGradient
-              colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.saveGradient}
-            >
-              <Text style={styles.saveText}>{Strings.adjustBalanceSave}</Text>
-            </LinearGradient>
-          </Pressable>
-        </View>
-      </View>
-    </ActionSheet>
+      <Sheet.Body>
+        <Box className="px-4 pt-2">
+          <Text variant="hint" className="font-soraBold text-gold-500 pb-2 tracking-widest">
+            {Strings.adjustBalanceLabel}
+          </Text>
+          <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
+            <View style={{ flex: 1 }}>
+              <Input
+                value={adjustState.input}
+                onChangeText={(v) => {
+                  setInput(v);
+                  setError('');
+                }}
+                keyboardType="decimal-pad"
+                isInvalid={!!adjustState.error}
+              />
+            </View>
+            <Text variant="body" className="text-muted font-soraBold">
+              {currency}
+            </Text>
+          </Box>
+          {adjustState.error ? (
+            <Text variant="caption" className="text-danger mt-1">
+              {adjustState.error}
+            </Text>
+          ) : null}
+        </Box>
+      </Sheet.Body>
+    </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  sheet: {
-    backgroundColor: Colors.dark.surface,
-    borderTopLeftRadius: Radius.xl,
-    borderTopRightRadius: Radius.xl,
-  },
-  handle: {
-    backgroundColor: Colors.dark.border,
-    width: Size.sheetHandle.width,
-    height: Size.sheetHandle.height,
-  },
-  content: { padding: Spacing.lg },
-  title: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-    marginBottom: Spacing.md,
-  },
-  fieldLabel: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.micro,
-    color: Colors.shared.cairoGold,
-    letterSpacing: 1,
-    marginBottom: Spacing.xs,
-  },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  input: {
-    flex: 1,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-    borderRadius: Radius.sm,
-    paddingVertical: Spacing.sm,
-    paddingHorizontal: Spacing.sm,
-  },
-  currency: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  error: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.caption,
-    color: Colors.dark.negative,
-    marginTop: Spacing.xxs,
-  },
-  ctaBar: { flexDirection: 'row', gap: Spacing.xs, marginTop: Spacing.lg },
-  cancelBtn: {
-    flex: 1,
-    height: Size.ctaHeight,
-    backgroundColor: Colors.dark.surfaceEl,
-    borderRadius: Radius.cta,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  cancelText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.dark.text2,
-  },
-  savePress: { flex: 2, borderRadius: Radius.cta, overflow: 'hidden' },
-  disabled: { opacity: 0.5 },
-  saveGradient: {
-    height: Size.ctaHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.cta,
-  },
-  saveText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.shared.midnightBlue,
-  },
-});
