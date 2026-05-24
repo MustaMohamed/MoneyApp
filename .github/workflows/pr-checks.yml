@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The `install` job primes the node_modules cache once; every other job
+# `needs: install` and restores it via ./.github/actions/setup. On a cold cache
+# (lockfile change) this keeps `npm ci` to a single run instead of letting all
+# jobs reinstall in parallel — at the cost of a short serial gate before the
+# checks start.
 jobs:
   install:
     name: Install
@@ -17,11 +22,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
 
   typecheck:
     name: Typecheck
@@ -30,12 +31,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: ./.github/actions/setup
+      - name: Restore tsc incremental cache
+        uses: actions/cache@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run typecheck
+          path: .tsbuildinfo
+          key: tsbuildinfo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            tsbuildinfo-${{ runner.os }}-
+      - run: npm run typecheck -- --incremental --tsBuildInfoFile .tsbuildinfo
 
   lint:
     name: Lint
@@ -44,11 +48,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Log oxlint version (type-aware enabled)
         run: npx oxlint --version
       - run: npm run lint
@@ -60,11 +60,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - name: Log oxfmt version
         run: npx oxfmt --version
       - run: npm run format:check
@@ -76,11 +72,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
+      - uses: ./.github/actions/setup
       - run: npx --yes expo-doctor
         env:
           CI: true
@@ -92,12 +84,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: ./.github/actions/setup
+      - name: Restore jest transform cache
+        uses: actions/cache@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm test -- --ci
+          path: .jest-cache
+          key: jest-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            jest-${{ runner.os }}-
+      - run: npm test -- --ci --cacheDirectory .jest-cache
 
   prebuild-check:
     name: Prebuild dry-run (Android)
@@ -106,15 +101,11 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '20'
-          cache: 'npm'
+      - uses: ./.github/actions/setup
       - uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-      - run: npm ci
       - run: npx expo prebuild --no-install --platform android
         env:
           CI: true
