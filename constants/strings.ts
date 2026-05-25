@@ -215,7 +215,6 @@ export const Strings = {
   budgetDetailUnder: 'under limit',
   budgetDetailMonthlyResult: 'Monthly result',
   budgetDetailCategories: 'Categories',
-  budgetDetailNoCompleted: 'No completed months yet',
   budgetDetailInProgress: '* in progress',
 
   // U25 Settings Categories

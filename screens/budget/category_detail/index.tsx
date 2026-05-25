@@ -38,8 +38,15 @@ export default function CategoryBudgetDetailScreen() {
           <>
             <StatTiles history={state.history} />
             <Text style={styles.section}>{Strings.budgetDetailMonthlyResult}</Text>
-            <MonthlyResultChart results={state.history.results} />
-            <View style={{ height: Spacing.sm }} />
+            {/* The bar chart is a trend — only meaningful with ≥2 months. With a
+                single (in-progress) month it renders as one full-width bar that
+                reads as a confusing empty box, so show just the ledger row. */}
+            {state.history.monthsTotal >= 2 && (
+              <>
+                <MonthlyResultChart results={state.history.results} />
+                <View style={{ height: Spacing.sm }} />
+              </>
+            )}
             <MonthLedger results={state.history.results} />
           </>
         )}

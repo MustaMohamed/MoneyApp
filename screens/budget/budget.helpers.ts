@@ -35,9 +35,6 @@ export interface CategoryHistoryVM {
   avgPerMonth: number;
   hitRate: number;
   monthsUnder: number;
-  // completed (non-provisional) months — what the realized aggregates above count
-  monthsCompleted: number;
-  // all months incl. the in-progress one — render gate + chart/ledger length
   monthsTotal: number;
 }
 
@@ -89,30 +86,21 @@ export function computeOverall(rows: CategoryBudgetVM[]): OverallVM {
 }
 
 export function computeCategoryHistory(results: MonthResultVM[]): CategoryHistoryVM {
-  // Realized aggregates (net banked, average, hit-rate) count COMPLETED months
-  // only. The in-progress month is a projection, not a banked result — folding
-  // its running surplus in would overstate history (a fresh budget would read
-  // "+limit banked" before a single transaction). The provisional month still
-  // rides in `results` for the chart/ledger, and `monthsTotal` still counts it
-  // so the detail screen knows there is something to render.
   let netBanked = 0;
   let totalSpent = 0;
   let monthsUnder = 0;
-  let monthsCompleted = 0;
   for (const r of results) {
-    if (r.isProvisional) continue;
-    monthsCompleted += 1;
     netBanked += r.delta;
     totalSpent += r.spent;
     if (r.spent <= r.limit) monthsUnder += 1;
   }
+  const monthsTotal = results.length;
   return {
     results,
     netBanked,
-    avgPerMonth: monthsCompleted > 0 ? totalSpent / monthsCompleted : 0,
-    hitRate: monthsCompleted > 0 ? monthsUnder / monthsCompleted : 0,
+    avgPerMonth: monthsTotal > 0 ? totalSpent / monthsTotal : 0,
+    hitRate: monthsTotal > 0 ? monthsUnder / monthsTotal : 0,
     monthsUnder,
-    monthsCompleted,
-    monthsTotal: results.length,
+    monthsTotal,
   };
 }
