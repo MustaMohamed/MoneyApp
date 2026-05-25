@@ -107,8 +107,12 @@ export default function TabsLayout() {
           options={{ title: 'Goals', tabBarIcon: ({ color }) => tabIcon('target', color) }}
         />
         <Tabs.Screen
-          name="budget/index"
-          options={{ title: 'Budget', tabBarIcon: ({ color }) => tabIcon('chart-pie', color) }}
+          name="budget"
+          options={{
+            title: 'Budget',
+            tabBarIcon: ({ color }) => tabIcon('chart-pie', color),
+            popToTopOnBlur: true,
+          }}
         />
       </Tabs>
       <FABOverlay />

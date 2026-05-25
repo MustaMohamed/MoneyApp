@@ -34,6 +34,7 @@ describe('database schema — TC-15', () => {
     expect(rows.map((r) => r.name)).toEqual([
       'accounts',
       'app_settings',
+      'budgets',
       'categories',
       'commitment_payments',
       'commitments',
