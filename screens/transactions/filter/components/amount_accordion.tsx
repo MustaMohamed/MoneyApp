@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Input } from '@/components/ui/input';
+import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -71,24 +72,17 @@ export function AmountAccordion({
       </Pressable>
       {expanded ? (
         <View className="mt-3">
-          <View className="bg-background mb-3 flex-row gap-1.5 rounded-lg p-1">
-            {([Currency.EGP, Currency.USD] as const).map((c) => {
-              const sel = draft.amountCurrency === c;
-              return (
-                <Pressable
-                  key={c}
-                  onPress={() => onChangeCurrency(c)}
-                  className={`flex-1 items-center rounded-md py-1.5 ${sel ? 'bg-default/40' : ''}`}
-                >
-                  <Text
-                    className={`font-inter text-[11px] font-semibold ${sel ? 'text-accent' : 'text-foreground/60'}`}
-                  >
-                    {c}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
+          <SegmentedTabs<Currency>
+            segments={[
+              { value: Currency.EGP, label: Currency.EGP },
+              { value: Currency.USD, label: Currency.USD },
+            ]}
+            value={draft.amountCurrency}
+            onValueChange={onChangeCurrency}
+            variant="solid-gold"
+            listClassName="w-full mb-3"
+            accessibilityLabel="Amount currency"
+          />
           <View className="flex-row gap-2">
             <View className="flex-1">
               <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
