@@ -2,9 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
+import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 
 import { formatSelectionSummary } from '../filter.helpers';
@@ -61,40 +61,17 @@ export function AccountAccordion({
       </Pressable>
       {expanded ? (
         <View className="mt-3 flex-row flex-wrap gap-1.5">
-          {accounts.map((a) => {
-            const selected = selectedIds.includes(a.id);
-            return (
-              <Pressable
-                key={a.id}
-                onPress={() => onToggleId(a.id)}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${a.name}, account filter`}
-                className={
-                  selected
-                    ? 'bg-accent/15 border-accent/50 flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
-                    : 'bg-default/40 border-border flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
-                }
-              >
-                <View
-                  style={{ backgroundColor: a.color ?? '#888' }}
-                  className="h-2 w-2 rounded-full"
-                />
-                <Text
-                  className={
-                    selected
-                      ? 'font-inter text-accent text-[11.5px] font-semibold'
-                      : 'font-inter text-foreground/70 text-[11.5px] font-medium'
-                  }
-                >
-                  {a.name}
-                </Text>
-                {selected ? (
-                  <MaterialCommunityIcons name="check" size={12} color={GoldTokens[500]} />
-                ) : null}
-              </Pressable>
-            );
-          })}
+          {accounts.map((a) => (
+            <SelectablePill
+              key={a.id}
+              label={a.name}
+              selected={selectedIds.includes(a.id)}
+              onPress={() => onToggleId(a.id)}
+              dotColor={a.color ?? '#888'}
+              checkable
+              accessibilityLabel={`${a.name}, account filter`}
+            />
+          ))}
         </View>
       ) : null}
     </View>
