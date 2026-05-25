@@ -1,5 +1,5 @@
+import { Card } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
 
 interface Props {
   children: React.ReactNode;
@@ -7,8 +7,11 @@ interface Props {
 
 export function DetailRowsCard({ children }: Props): React.ReactElement {
   return (
-    <View className="bg-surface border-separator mx-4 mt-4 overflow-hidden rounded-2xl border">
+    <Card
+      className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0"
+      style={{ elevation: 0, shadowOpacity: 0 }}
+    >
       {children}
-    </View>
+    </Card>
   );
 }

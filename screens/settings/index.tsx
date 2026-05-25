@@ -5,7 +5,8 @@ import { View } from 'react-native';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
 import { useSettings } from './settings.hook';
@@ -21,7 +22,7 @@ export default function SettingsScreen() {
         <ListGroup>
           <ListGroup.Item onPress={goToCurrency} accessibilityRole="button">
             <ListGroup.ItemPrefix>
-              <MaterialCommunityIcons name="currency-usd" size={ms(20)} color={Colors.dark.text2} />
+              <MaterialCommunityIcons name="currency-usd" size={ms(20)} color={CoreTokens.text2} />
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{Strings.settingsCurrencyRow}</ListGroup.ItemTitle>
@@ -31,13 +32,13 @@ export default function SettingsScreen() {
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
-                <Text style={{ color: Colors.dark.text2 }}>
+                <Text style={{ color: CoreTokens.text2 }}>
                   {Strings.settingsCurrencyValue('EGP')}
                 </Text>
                 <MaterialCommunityIcons
                   name="chevron-right"
                   size={ms(20)}
-                  color={Colors.dark.text2}
+                  color={CoreTokens.text2}
                 />
               </View>
             </ListGroup.ItemSuffix>
@@ -45,7 +46,7 @@ export default function SettingsScreen() {
 
           <ListGroup.Item onPress={goToCategories} accessibilityRole="button">
             <ListGroup.ItemPrefix>
-              <MaterialCommunityIcons name="tag-multiple" size={ms(20)} color={Colors.dark.text2} />
+              <MaterialCommunityIcons name="tag-multiple" size={ms(20)} color={CoreTokens.text2} />
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
               <ListGroup.ItemTitle>{Strings.settingsCategoriesRow}</ListGroup.ItemTitle>
@@ -54,11 +55,7 @@ export default function SettingsScreen() {
               </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={ms(20)}
-                color={Colors.dark.text2}
-              />
+              <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={CoreTokens.text2} />
             </ListGroup.ItemSuffix>
           </ListGroup.Item>
 
@@ -67,7 +64,7 @@ export default function SettingsScreen() {
               <MaterialCommunityIcons
                 name="information-outline"
                 size={ms(20)}
-                color={Colors.dark.text2}
+                color={CoreTokens.text2}
               />
             </ListGroup.ItemPrefix>
             <ListGroup.ItemContent>
@@ -77,11 +74,7 @@ export default function SettingsScreen() {
               </ListGroup.ItemDescription>
             </ListGroup.ItemContent>
             <ListGroup.ItemSuffix>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={ms(20)}
-                color={Colors.dark.text2}
-              />
+              <MaterialCommunityIcons name="chevron-right" size={ms(20)} color={CoreTokens.text2} />
             </ListGroup.ItemSuffix>
           </ListGroup.Item>
         </ListGroup>

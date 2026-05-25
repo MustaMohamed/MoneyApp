@@ -14,6 +14,7 @@
  * to add one; a placeholder card here would just be visual noise.
  */
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Card } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -29,9 +30,10 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
   if (!trimmed) return null;
 
   return (
-    <View
+    <Card
       testID="detail-note-card"
-      className="bg-surface border-separator mx-4 mt-4 rounded-2xl border p-4"
+      className="border-separator mx-4 mt-4 rounded-2xl border p-4"
+      style={{ elevation: 0, shadowOpacity: 0 }}
     >
       <View className="mb-2 flex-row items-center gap-2">
         <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
@@ -42,6 +44,6 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
         </Text>
       </View>
       <Text className="font-inter text-foreground text-[13px] font-medium">{trimmed}</Text>
-    </View>
+    </Card>
   );
 }

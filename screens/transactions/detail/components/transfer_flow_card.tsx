@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Card } from 'heroui-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -86,7 +87,10 @@ export function TransferFlowCard({
   onPressTo,
 }: Props): React.ReactElement {
   return (
-    <View className="bg-surface border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5">
+    <Card
+      className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5"
+      style={{ elevation: 0, shadowOpacity: 0 }}
+    >
       <Cell
         label={Strings.detailFlowFromLabel}
         account={fromAccount}
@@ -104,6 +108,6 @@ export function TransferFlowCard({
         signPrefix="+"
         onPress={onPressTo}
       />
-    </View>
+    </Card>
   );
 }
