@@ -159,9 +159,7 @@ import { Card } from 'heroui-native';
 </Card>
 ```
 
-HeroUI `Card` applies `bg-surface`, `border`, `border-separator`, and `rounded-2xl` as defaults via its internal variant. The `overflow-hidden` and margin/padding overrides are passed via `className`. Where the existing card uses a non-default border color (`border-accent/18` in `transfer_flow_card.tsx`), that is passed explicitly via `className`.
-
-If HeroUI `Card`'s internal default radius or border token differs from `rounded-2xl` / `border-separator` visually on device, the className overrides take precedence (Tailwind v4 specificity). This is the implementation resolution path — not a design change.
+**CORRECTION (post-review):** The Surface base (`node_modules/heroui-native/src/components/surface/surface.styles.ts`) is `p-4 rounded-3xl shadow-surface overflow-hidden` with variant `default` adding only `bg-surface`. HeroUI `Card` does **NOT** supply a border, `border-separator`, or `rounded-2xl` — these must be passed explicitly. It also forces `p-4` and `rounded-3xl` (24 px), and adds `shadow-surface`. All three cards must pass `border border-separator rounded-2xl shadow-none` explicitly; `detail_rows_card` additionally passes `p-0` to suppress the Surface padding so inner `DetailRow` dividers stay edge-to-edge. `className` overrides win via `tv()`/twMerge — no `style={}` fallback needed.
 
 ### Adoption set — Cards thread
 

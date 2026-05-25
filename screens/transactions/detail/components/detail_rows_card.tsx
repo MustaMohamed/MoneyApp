@@ -6,5 +6,9 @@ interface Props {
 }
 
 export function DetailRowsCard({ children }: Props): React.ReactElement {
-  return <Card className="mx-4 mt-4 overflow-hidden">{children}</Card>;
+  return (
+    <Card className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0 shadow-none">
+      {children}
+    </Card>
+  );
 }

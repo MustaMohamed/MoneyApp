@@ -30,7 +30,10 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
   if (!trimmed) return null;
 
   return (
-    <Card testID="detail-note-card" className="mx-4 mt-4 p-4">
+    <Card
+      testID="detail-note-card"
+      className="border-separator mx-4 mt-4 rounded-2xl border p-4 shadow-none"
+    >
       <View className="mb-2 flex-row items-center gap-2">
         <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
           <MaterialCommunityIcons name="text" size={14} color="#F0EEE6" />

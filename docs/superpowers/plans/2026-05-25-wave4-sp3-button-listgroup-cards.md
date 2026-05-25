@@ -295,7 +295,7 @@ git commit -m "refactor(settings): route Colors.dark.text2 to CoreTokens.text2"
 **Files:**
 - Modify: `screens/transactions/detail/components/detail_rows_card.tsx`
 
-This is the simplest card: a pure slot wrapper with no internal content of its own. The `View` carries `bg-surface border-separator mx-4 mt-4 overflow-hidden rounded-2xl border`. HeroUI `Card` applies `bg-surface`, `rounded-2xl`, and `border border-separator` as defaults. The classNames we pass override or extend as needed — `overflow-hidden` and the margin classes are passed explicitly via `className`.
+This is the simplest card: a pure slot wrapper with no internal content of its own. The `View` carries `bg-surface border-separator mx-4 mt-4 overflow-hidden rounded-2xl border`. **CORRECTION (post-review):** HeroUI `Card` (via Surface) base is `p-4 rounded-3xl shadow-surface overflow-hidden bg-surface` — it does NOT supply a border, `border-separator`, or `rounded-2xl`. All three must be passed explicitly. `p-0` is also required here so inner `DetailRow` dividers remain edge-to-edge. `className` overrides win via `tv()`/twMerge.
 
 - [ ] **Step 1: Replace the entire file**
 
