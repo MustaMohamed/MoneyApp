@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Button } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -21,9 +21,12 @@ export function NoAccountsEmpty({ onAddAccount }: Props): React.ReactElement {
       <Text className="font-inter text-muted text-center text-[13px]">
         {Strings.addTxNoAccountsBody}
       </Text>
-      <Button testID="no-accounts-cta" onPress={onAddAccount} variant="primary">
-        <Text className="font-sora text-[15px] font-semibold">{Strings.addTxNoAccountsCta}</Text>
-      </Button>
+      <Button
+        testID="no-accounts-cta"
+        onPress={onAddAccount}
+        variant="primary"
+        label={Strings.addTxNoAccountsCta}
+      />
     </View>
   );
 }
