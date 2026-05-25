@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Card } from 'heroui-native';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -40,79 +41,84 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
   return (
     <Pressable
       onPress={onPress}
-      className="bg-surface border-border mx-4 mt-4 rounded-2xl border px-4 py-3"
-      style={{ gap: ms(8) }}
+      accessibilityRole="button"
+      accessibilityLabel={Strings.dashboardCommitmentsTitle}
     >
-      <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+      <Card
+        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-4 py-3"
+        style={{ gap: ms(8), elevation: 0, shadowOpacity: 0 }}
+      >
+        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+            <View
+              className="items-center justify-center rounded-full"
+              style={{
+                width: ms(22),
+                height: ms(22),
+                backgroundColor: Colors.shared.cairoGold + '22',
+              }}
+            >
+              <MaterialCommunityIcons
+                name="calendar-check"
+                size={ms(13)}
+                color={Colors.shared.cairoGold}
+              />
+            </View>
+            <Text variant="caption" className="text-foreground font-semibold">
+              {Strings.dashboardCommitmentsTitle}
+            </Text>
+          </View>
+          <Text variant="caption" className="text-muted">
+            {monthLabel}
+          </Text>
+        </View>
+
+        <View
+          className="flex-row items-center justify-between"
+          style={{ flexDirection: 'row', gap: ms(8) }}
+        >
+          <View className="flex-1" style={{ flex: 1 }}>
+            <Text variant="hint" className="text-muted text-xs uppercase">
+              {Strings.commitmentsTotalCommitted}
+            </Text>
+            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+              {totalsLine}
+            </Text>
+          </View>
           <View
-            className="items-center justify-center rounded-full"
+            className="rounded-full"
             style={{
-              width: ms(22),
-              height: ms(22),
+              paddingHorizontal: ms(12),
+              paddingVertical: ms(3),
               backgroundColor: Colors.shared.cairoGold + '22',
             }}
           >
-            <MaterialCommunityIcons
-              name="calendar-check"
-              size={ms(13)}
-              color={Colors.shared.cairoGold}
-            />
+            <Text className="text-base font-bold" style={{ color: Colors.shared.cairoGold }}>
+              {progressPct}%
+            </Text>
           </View>
-          <Text variant="caption" className="text-foreground font-semibold">
-            {Strings.dashboardCommitmentsTitle}
-          </Text>
         </View>
-        <Text variant="caption" className="text-muted">
-          {monthLabel}
-        </Text>
-      </View>
 
-      <View
-        className="flex-row items-center justify-between"
-        style={{ flexDirection: 'row', gap: ms(8) }}
-      >
-        <View className="flex-1" style={{ flex: 1 }}>
-          <Text variant="hint" className="text-muted text-xs uppercase">
-            {Strings.commitmentsTotalCommitted}
-          </Text>
-          <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-            {totalsLine}
-          </Text>
-        </View>
         <View
-          className="rounded-full"
-          style={{
-            paddingHorizontal: ms(12),
-            paddingVertical: ms(3),
-            backgroundColor: Colors.shared.cairoGold + '22',
-          }}
+          className="overflow-hidden rounded"
+          style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
         >
-          <Text className="text-base font-bold" style={{ color: Colors.shared.cairoGold }}>
-            {progressPct}%
-          </Text>
+          <LinearGradient
+            colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
+          />
         </View>
-      </View>
 
-      <View
-        className="overflow-hidden rounded"
-        style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
-      >
-        <LinearGradient
-          colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
-        />
-      </View>
-
-      <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-        <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-        <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
-        <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-        <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
-        <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
-      </View>
+        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+          <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
+          <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
+          <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
+          <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
+          <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
+        </View>
+      </Card>
     </Pressable>
   );
 }
