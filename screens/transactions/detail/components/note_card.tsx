@@ -32,7 +32,8 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
   return (
     <Card
       testID="detail-note-card"
-      className="border-separator mx-4 mt-4 rounded-2xl border p-4 shadow-none"
+      className="border-separator mx-4 mt-4 rounded-2xl border p-4"
+      style={{ elevation: 0, shadowOpacity: 0 }}
     >
       <View className="mb-2 flex-row items-center gap-2">
         <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">

@@ -87,7 +87,10 @@ export function TransferFlowCard({
   onPressTo,
 }: Props): React.ReactElement {
   return (
-    <Card className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5 shadow-none">
+    <Card
+      className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5"
+      style={{ elevation: 0, shadowOpacity: 0 }}
+    >
       <Cell
         label={Strings.detailFlowFromLabel}
         account={fromAccount}
