@@ -29,9 +29,6 @@ export default function TransactionDetailScreen(): React.ReactElement {
     useTransactionDetail(id);
 
   const { state: editTxState } = useEditTransactionState(useShallow((s) => ({ state: s.state })));
-  const { state: editTxStoreState } = useEditTransactionStore(
-    useShallow((s) => ({ state: s.state })),
-  );
 
   useEffect(() => {
     return () => {
@@ -185,7 +182,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
               useEditTransactionState.getState().close();
               reload();
             }}
-            tx={editTxStoreState.editingTx}
+            tx={state.tx}
           />
         </>
       ) : null}

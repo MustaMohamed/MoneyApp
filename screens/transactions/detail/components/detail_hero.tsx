@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
+import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { TransactionType } from '@/constants/enums';
@@ -72,59 +73,61 @@ export function DetailHero({
   dateTimeText,
 }: Props): React.ReactElement {
   return (
-    <View className="items-center px-4 pt-6 pb-4">
-      <View className="mb-3 flex-row gap-2">
-        <View
-          className="rounded-full border px-2.5 py-0.5"
-          style={{
-            borderColor: `${typeColor(tx.type)}55`,
-            backgroundColor: `${typeColor(tx.type)}1A`,
-          }}
-        >
-          <Text
-            className="font-inter text-[10.5px] font-semibold"
-            style={{ color: typeColor(tx.type) }}
+    <HeroShell glowColor={typeColor(tx.type)}>
+      <View className="items-center px-4 pt-6 pb-5">
+        <View className="mb-3 flex-row gap-2">
+          <View
+            className="rounded-full border px-2.5 py-0.5"
+            style={{
+              borderColor: `${typeColor(tx.type)}55`,
+              backgroundColor: `${typeColor(tx.type)}1A`,
+            }}
           >
-            {typeLabel(tx.type)}
-          </Text>
+            <Text
+              className="font-inter text-[10.5px] font-semibold"
+              style={{ color: typeColor(tx.type) }}
+            >
+              {typeLabel(tx.type)}
+            </Text>
+          </View>
+          {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
         </View>
-        {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
+        <Text
+          className="font-sora text-[36px] leading-none font-extrabold"
+          style={{ color: typeColor(tx.type), letterSpacing: -0.5 }}
+        >
+          {amountText}
+        </Text>
+        {category ? (
+          <View
+            className="mt-4 flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
+            style={{
+              // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
+              backgroundColor: `${category.color ?? '#888'}1F`,
+              borderWidth: 1,
+              // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
+              borderColor: `${category.color ?? '#888'}40`,
+            }}
+          >
+            <MaterialCommunityIcons
+              // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB can return null icon despite entity type
+              name={toIconName(category.icon, 'shape-outline')}
+              size={14}
+              // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
+              color={category.color ?? '#888'}
+            />
+            <Text
+              className="font-inter text-[11px] font-semibold"
+              // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
+              style={{ color: category.color ?? '#888' }}
+            >
+              {category.name}
+            </Text>
+          </View>
+        ) : null}
+        <Text className="font-inter text-foreground/55 mt-2 text-center text-[18px]">{title}</Text>
+        <Text className="font-inter text-foreground/55 mt-2 text-[11px]">{dateTimeText}</Text>
       </View>
-      <Text
-        className="font-sora text-[36px] leading-none font-extrabold"
-        style={{ color: typeColor(tx.type), letterSpacing: -0.5 }}
-      >
-        {amountText}
-      </Text>
-      {category ? (
-        <View
-          className="mt-4 flex-row items-center gap-1.5 rounded-full px-3 py-1.5"
-          style={{
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-            backgroundColor: `${category.color ?? '#888'}1F`,
-            borderWidth: 1,
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-            borderColor: `${category.color ?? '#888'}40`,
-          }}
-        >
-          <MaterialCommunityIcons
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB can return null icon despite entity type
-            name={toIconName(category.icon, 'shape-outline')}
-            size={14}
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-            color={category.color ?? '#888'}
-          />
-          <Text
-            className="font-inter text-[11px] font-semibold"
-            // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-            style={{ color: category.color ?? '#888' }}
-          >
-            {category.name}
-          </Text>
-        </View>
-      ) : null}
-      <Text className="font-inter text-foreground/55 mt-2 text-center text-[18px]">{title}</Text>
-      <Text className="font-inter text-foreground/55 mt-2 text-[11px]">{dateTimeText}</Text>
-    </View>
+    </HeroShell>
   );
 }

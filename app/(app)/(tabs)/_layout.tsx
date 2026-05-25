@@ -92,6 +92,7 @@ export default function TabsLayout() {
           options={{
             title: 'Transactions',
             tabBarIcon: ({ color }) => tabIcon('swap-horizontal', color),
+            popToTopOnBlur: true,
           }}
         />
         <Tabs.Screen

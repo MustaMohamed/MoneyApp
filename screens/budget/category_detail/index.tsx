@@ -33,7 +33,9 @@ export default function CategoryBudgetDetailScreen() {
       </View>
 
       <ScreenScroll contentContainerStyle={styles.content}>
-        {state.liveMonth && <LiveMonthCard result={state.liveMonth} daysLeft={state.daysLeft} />}
+        {state.liveMonth && (
+          <LiveMonthCard result={state.liveMonth} daysLeft={state.daysLeft} color={state.color} />
+        )}
         {state.history.monthsTotal > 0 && (
           <>
             <StatTiles history={state.history} />
