@@ -4,6 +4,7 @@ import { Input } from 'heroui-native';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, Pressable, View } from 'react-native';
 
+import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { DurationType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -59,33 +60,14 @@ export function DurationPicker({
       <Text className="font-inter text-muted text-[11px]">{Strings.commitmentsFieldDuration}</Text>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-        {DURATION_TYPES.map(({ key, label }) => {
-          const isActive = durationType === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => onDurationTypeChange(key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={label}
-              className={
-                isActive
-                  ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                  : 'bg-default/40 border-border rounded-full border px-3 py-1'
-              }
-            >
-              <Text
-                className={
-                  isActive
-                    ? 'font-inter text-accent text-[11px] font-semibold'
-                    : 'font-inter text-foreground/65 text-[11px] font-medium'
-                }
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {DURATION_TYPES.map(({ key, label }) => (
+          <SelectablePill
+            key={key}
+            label={label}
+            selected={durationType === key}
+            onPress={() => onDurationTypeChange(key)}
+          />
+        ))}
       </View>
 
       {durationType === DurationType.AfterCount ? (

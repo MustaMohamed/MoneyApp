@@ -112,6 +112,7 @@ All are the gold-tint `bg-accent/15` pill ternary. Exact line numbers are enumer
 | `screens/transactions/components/type_chips.tsx` | 5 (All/Income/Expense/Transfer/CC Payment) | plain |
 | `screens/commitments/components/status_filter_chips.tsx` | 6 status filters (in horizontal `ScrollView`) | plain |
 | `screens/commitments/components/recurrence_picker.tsx` | 4 recurrence presets + 4 duration periods | plain |
+| `screens/commitments/components/duration_picker.tsx` | 3 duration types (Forever / After count / Until date) | plain |
 | `screens/commitments/components/commitment_form_body.tsx` | 2 amount-type + 2 currency | plain |
 | `screens/transactions/filter/components/account_accordion.tsx` | dynamic account pills | `dotColor` + `checkable` |
 | `screens/transactions/filter/components/category_accordion.tsx` | dynamic category pills | `dotColor` + `checkable` |
@@ -146,6 +147,12 @@ Per the project's **logic-only test policy** (no `.tsx` render tests), a purely 
 ## Scope & sequencing
 
 One PR: 1 new component + 6 edited files. Touches transactions, commitments, settings(filter) slices. Branch `feat/wave4-sp1-selectable-pill` (already created from `origin/main`). Subsequent SPs (2–5) are separate cycles.
+
+## Decisions recorded during code review (Team Law 5)
+
+- **`duration_picker.tsx` added to the adoption set.** Code review found a 7th byte-identical gold-tint pill ternary (the DurationType pills) in the *same* commitment form. Migrated in this PR to avoid a visible `/65`-vs-`/70` mismatch beside the already-migrated pills.
+- **`#888` dot/chevron fallback preserved (NOT routed to a token).** The spec's "opportunistic token cleanup" note is intentionally **not** acted on: `#888` has no exact palette equivalent, so any swap would shift the icon shade and break the zero-visual-change invariant. The accordion chevron `#888` is likewise left untouched. To be addressed (if at all) in a dedicated token pass.
+- **`accessibilityState` now carries `disabled`.** `SelectablePill` reports `{ selected, disabled }`. For all non-form sites `disabled` is `false` (behaviorally identical to the prior `{ selected }`); only the locked commitment form gains a correct `disabled: true` a11y report — an improvement, kept deliberately.
 
 ## Out of scope
 
