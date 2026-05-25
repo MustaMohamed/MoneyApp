@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -19,8 +20,6 @@ import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 
 import { useAddAccountAnim } from './add_account.anim';
 import { useAddAccount, ACCOUNT_COLORS } from './add_account.hook';
-
-const CURRENCY_OPTIONS: Currency[] = [Currency.EGP, Currency.USD];
 
 export default function AddAccountScreen() {
   const { form, handleSave, onBack } = useAddAccount();
@@ -114,31 +113,17 @@ export default function AddAccountScreen() {
           <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionCurrency}
           </Text>
-          <Box style={{ flexDirection: 'row' }} className="gap-2">
-            {CURRENCY_OPTIONS.map((code) => (
-              <Pressable
-                key={code}
-                onPress={() => form.setValue('currency', code)}
-                style={{ flex: 1 }}
-                className={cn(
-                  'items-center justify-center rounded-[10px] border-[1.5px] px-3 py-3',
-                  selectedCurrency === code
-                    ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
-                    : 'border-border bg-default',
-                )}
-              >
-                <Text
-                  variant="body"
-                  className={cn(
-                    'font-soraBold',
-                    selectedCurrency === code ? 'text-gold-600' : 'text-muted',
-                  )}
-                >
-                  {code}
-                </Text>
-              </Pressable>
-            ))}
-          </Box>
+          <SegmentedTabs<Currency>
+            segments={[
+              { value: Currency.EGP, label: Currency.EGP },
+              { value: Currency.USD, label: Currency.USD },
+            ]}
+            value={selectedCurrency}
+            onValueChange={(c) => form.setValue('currency', c)}
+            variant="solid-gold"
+            listClassName="w-full"
+            accessibilityLabel="Account currency"
+          />
         </Box>
 
         {/* Balance */}
