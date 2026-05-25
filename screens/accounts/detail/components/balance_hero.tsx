@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Box } from '@/components/ui/box';
+import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -40,26 +40,23 @@ export function BalanceHero({ account }: BalanceHeroProps) {
   const caption = buildHeroCaption(account);
 
   return (
-    <Box className="bg-surface border-border mx-4 mt-2 overflow-hidden rounded-2xl border">
-      {/* Account-color accent bar — runtime hex (only allowed inline color) */}
-      <View style={{ height: 4, width: '100%', backgroundColor: color }} />
-
-      <Box className="px-4 py-4">
+    <HeroShell glowColor={color} style={{ marginTop: 8 }}>
+      <View className="px-4 py-4">
         {/* Label + type chip row */}
-        <Box style={{ flexDirection: 'row' }} className="items-center justify-between">
-          <Text variant="caption" className="text-muted tracking-wider uppercase">
+        <View style={{ flexDirection: 'row' }} className="items-center justify-between">
+          <Text variant="caption" className="text-foreground/70 tracking-wider uppercase">
             {Strings.accountDetailBalance}
           </Text>
-          <Box
+          <View
             style={{ flexDirection: 'row', backgroundColor: color + '22' }}
             className="border-border items-center gap-1 rounded-full border px-2 py-0.5"
           >
             <MaterialCommunityIcons name={TYPE_ICON[account.type]} size={12} color={color} />
-            <Text variant="caption" className="text-muted font-semibold">
+            <Text variant="caption" className="text-foreground/70 font-semibold">
               {TYPE_LABEL[account.type]}
             </Text>
-          </Box>
-        </Box>
+          </View>
+        </View>
 
         {/* Balance */}
         <Text
@@ -73,13 +70,13 @@ export function BalanceHero({ account }: BalanceHeroProps) {
         {/* Context caption */}
         <Text
           variant="caption"
-          className="mt-1"
+          className="text-foreground/55 mt-1"
           style={caption.color ? { color: caption.color } : undefined}
         >
           {caption.text}
           {caption.adjusted ? ` · ${Strings.accountHeroAdjusted}` : ''}
         </Text>
-      </Box>
-    </Box>
+      </View>
+    </HeroShell>
   );
 }
