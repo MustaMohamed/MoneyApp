@@ -34,10 +34,11 @@ export function ConfirmSheet({
   // Q2 guard: when busy, suppress all close paths so the sheet stays open
   // while an async operation is in flight. Same semantics as the legacy
   // onClose={() => {}} guard — now applied to all-path onOpenChange.
+  // Callers are responsible for wiring cancel logic into onOpenChange
+  // (e.g. onOpenChange={(open) => { if (!open) onCancel(); }}).
   const handleOpenChange = (open: boolean) => {
     if (busy) return;
     onOpenChange(open);
-    if (!open) onCancel();
   };
 
   return (
