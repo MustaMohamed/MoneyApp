@@ -79,13 +79,8 @@ export function useBudget() {
     return isCurrent ? Math.max(0, lastDay - today.getDate()) : 0;
   }, [month]);
 
-  // budget/[id] route is created in a later task; cast is necessary until typed routes regenerate
   const goToCategory = (categoryId: string) => {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion
-    const href = `/(app)/(tabs)/budget/${categoryId}` as unknown as Parameters<
-      typeof router.push
-    >[0];
-    router.push(href);
+    router.push(`/(app)/(tabs)/budget/${categoryId}`);
   };
 
   return {
