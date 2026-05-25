@@ -89,7 +89,7 @@ const VARIANT_CONFIG: Record<
     icon: 'chart-pie',
     headline: Strings.emptyBudgetTitle,
     description: Strings.emptyBudgetSub,
-    ctaLabel: null,
+    ctaLabel: Strings.emptyBudgetCta,
     clearLabel: null,
   },
 };
