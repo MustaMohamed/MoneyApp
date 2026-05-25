@@ -134,7 +134,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
       visible={sheetState.sheetVisible}
       onClose={close}
       title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
-      size="sm"
+      // Two snap points (not size="sm"'s single 50%) so the sheet can be dragged
+      // taller: when the add-mode category picker expands, the user pulls the
+      // sheet up to 92% to see the full list and the amount field at once.
+      snapPoints={['60%', '92%']}
       footer={
         <Button
           onPress={() => {
