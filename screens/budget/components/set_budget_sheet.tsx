@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Button } from 'heroui-native';
 import React, { useEffect, useMemo } from 'react';
 import { Controller } from 'react-hook-form';
@@ -10,31 +9,25 @@ import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import type { Category } from '@/database/entities/category.entity';
 import type { CategoryBudgetRowVM } from '@/screens/budget/budget.hook';
 import { useBudgetState } from '@/screens/budget/budget.state';
 import { useSetBudgetSheetState } from '@/screens/budget/components/set_budget_sheet.state';
+import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
 import { useBudgetStore } from '@/store/budget.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { budgetFormSchema, parseLimit, type BudgetFormValues } from '@/utils/schemas/budget.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
-export interface BudgetableCategory {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-}
-
 export interface SetBudgetSheetProps {
-  // expense categories without an active budget (add mode picker source)
-  budgetableCategories: BudgetableCategory[];
+  // expense categories without an active budget (add-mode picker source)
+  budgetableCategories: Category[];
   // the row currently being edited (edit mode), or undefined in add mode
   editingRow?: CategoryBudgetRowVM;
 }
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
-  // FIX #3: wrap object selectors with useShallow
   const { sheetState, close } = useBudgetState(
     useShallow((s) => ({ sheetState: s.state, close: s.close })),
   );
@@ -42,16 +35,23 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     useShallow((s) => ({ setLimit: s.setLimit, removeBudget: s.removeBudget })),
   );
 
-  const { pickerSheetState, initAddMode, setSelectedCategoryId, togglePicker, reset } =
-    useSetBudgetSheetState(
-      useShallow((s) => ({
-        pickerSheetState: s.state,
-        initAddMode: s.initAddMode,
-        setSelectedCategoryId: s.setSelectedCategoryId,
-        togglePicker: s.togglePicker,
-        reset: s.reset,
-      })),
-    );
+  const {
+    pickerSheetState,
+    initAddMode,
+    setSelectedCategoryId,
+    togglePicker,
+    collapsePicker,
+    reset,
+  } = useSetBudgetSheetState(
+    useShallow((s) => ({
+      pickerSheetState: s.state,
+      initAddMode: s.initAddMode,
+      setSelectedCategoryId: s.setSelectedCategoryId,
+      togglePicker: s.togglePicker,
+      collapsePicker: s.collapsePicker,
+      reset: s.reset,
+    })),
+  );
 
   const isEdit = sheetState.mode === 'edit';
 
@@ -105,152 +105,125 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     close();
   };
 
-  const renderCategoryItem = ({ item }: { item: BudgetableCategory }) => (
-    <Pressable
-      style={[
-        styles.categoryItem,
-        item.id === pickerSheetState.selectedCategoryId && styles.categoryItemSelected,
-      ]}
-      onPress={() => setSelectedCategoryId(item.id)}
-      accessibilityRole="radio"
-      accessibilityState={{ selected: item.id === pickerSheetState.selectedCategoryId }}
-    >
-      <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
-        <MaterialCommunityIcons
-          name={toIconName(item.icon, 'tag-outline')}
-          size={ms(16)}
-          color={Colors.dark.text1}
-        />
-      </View>
-      <Text style={styles.categoryItemName}>{item.name}</Text>
-      {item.id === pickerSheetState.selectedCategoryId && (
-        <MaterialCommunityIcons name="check" size={ms(18)} color={Colors.dark.gold} />
-      )}
-    </Pressable>
-  );
-
   return (
-    <Sheet
-      visible={sheetState.sheetVisible}
-      onClose={close}
-      title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
-      // Two snap points (not size="sm"'s single 50%) so the sheet can be dragged
-      // taller: when the add-mode category picker expands, the user pulls the
-      // sheet up to 92% to see the full list and the amount field at once.
-      snapPoints={['60%', '92%']}
-      footer={
-        <Button
-          onPress={() => {
-            void onSubmit();
-          }}
-        >
-          <Button.Label>{Strings.budgetSaveCta}</Button.Label>
-        </Button>
-      }
-    >
-      <Sheet.Body>
-        <View style={styles.body}>
-          {/* category picker — tappable in add mode, locked in edit mode */}
-          {isEdit ? (
-            <View style={[styles.picker, styles.pickerLocked]}>
-              <Text style={styles.pickerName}>
-                {editingCategoryName ?? Strings.budgetPickCategory}
-              </Text>
-              {/* No chevron in edit mode — picker is locked */}
-            </View>
-          ) : (
-            <Pressable
-              style={styles.picker}
-              onPress={togglePicker}
-              accessibilityRole="button"
-              accessibilityLabel={Strings.budgetPickCategory}
-            >
-              {addModeSelectedCategory ? (
-                <View style={styles.pickerContent}>
-                  <View
-                    style={[
-                      styles.categoryIcon,
-                      { backgroundColor: addModeSelectedCategory.color },
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={toIconName(addModeSelectedCategory.icon, 'tag-outline')}
-                      size={ms(16)}
-                      color={Colors.dark.text1}
-                    />
-                  </View>
-                  <Text style={styles.pickerName}>{addModeSelectedCategory.name}</Text>
-                </View>
-              ) : (
-                <Text style={[styles.pickerName, styles.pickerPlaceholder]}>
-                  {Strings.budgetPickCategory}
+    <>
+      <Sheet
+        visible={sheetState.sheetVisible}
+        onClose={close}
+        title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
+        size="sm"
+        footer={
+          <Button
+            onPress={() => {
+              void onSubmit();
+            }}
+          >
+            <Button.Label>{Strings.budgetSaveCta}</Button.Label>
+          </Button>
+        }
+      >
+        <Sheet.Body>
+          <View style={styles.body}>
+            {/* category picker — tappable in add mode (opens the standard
+                CategoryPickerSheet), locked in edit mode */}
+            {isEdit ? (
+              <View style={[styles.picker, styles.pickerLocked]}>
+                <Text style={styles.pickerName}>
+                  {editingCategoryName ?? Strings.budgetPickCategory}
                 </Text>
-              )}
-              <Text style={styles.chev}>{pickerSheetState.pickerExpanded ? '˄' : '›'}</Text>
-            </Pressable>
-          )}
-
-          {/* In-sheet expandable category list — add mode only */}
-          {!isEdit && pickerSheetState.pickerExpanded && (
-            <View style={styles.categoryListContainer}>
-              <BottomSheetFlatList
-                data={budgetableCategories}
-                keyExtractor={(item) => item.id}
-                renderItem={renderCategoryItem}
-                style={styles.categoryList}
-                contentContainerStyle={styles.categoryListContent}
-              />
-            </View>
-          )}
-
-          <Text style={styles.label}>{Strings.budgetMonthlyLimitLabel}</Text>
-          <Controller
-            control={control}
-            name="limitText"
-            render={({ field: { value, onChange }, fieldState }) => (
-              <>
-                <View style={[styles.field, fieldState.error && styles.fieldError]}>
-                  <TextInput
-                    value={value}
-                    onChangeText={onChange}
-                    keyboardType="number-pad"
-                    placeholder="0"
-                    placeholderTextColor={Colors.dark.text3}
-                    style={styles.input}
-                    accessibilityLabel={Strings.budgetMonthlyLimitLabel}
-                  />
-                  <Text style={styles.suffix}>EGP</Text>
-                </View>
-                {fieldState.error && (
-                  <Text style={styles.errorText}>{fieldState.error.message}</Text>
+                {/* No chevron in edit mode — picker is locked */}
+              </View>
+            ) : (
+              <Pressable
+                style={styles.picker}
+                onPress={togglePicker}
+                accessibilityRole="button"
+                accessibilityLabel={Strings.budgetPickCategory}
+              >
+                {addModeSelectedCategory ? (
+                  <View style={styles.pickerContent}>
+                    <View
+                      style={[
+                        styles.categoryIcon,
+                        { backgroundColor: addModeSelectedCategory.color },
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={toIconName(addModeSelectedCategory.icon, 'tag-outline')}
+                        size={ms(16)}
+                        color={Colors.dark.text1}
+                      />
+                    </View>
+                    <Text style={styles.pickerName}>{addModeSelectedCategory.name}</Text>
+                  </View>
+                ) : (
+                  <Text style={[styles.pickerName, styles.pickerPlaceholder]}>
+                    {Strings.budgetPickCategory}
+                  </Text>
                 )}
-              </>
+                <Text style={styles.chev}>{'›'}</Text>
+              </Pressable>
             )}
-          />
 
-          {isEdit && (
-            <Pressable
-              onPress={() => {
-                void onRemove();
-              }}
-              style={styles.remove}
-              accessibilityRole="button"
-            >
-              <Text style={styles.removeText}>{Strings.budgetRemoveCta}</Text>
-            </Pressable>
-          )}
-        </View>
-      </Sheet.Body>
-    </Sheet>
+            <Text style={styles.label}>{Strings.budgetMonthlyLimitLabel}</Text>
+            <Controller
+              control={control}
+              name="limitText"
+              render={({ field: { value, onChange }, fieldState }) => (
+                <>
+                  <View style={[styles.field, fieldState.error && styles.fieldError]}>
+                    <TextInput
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="number-pad"
+                      placeholder="0"
+                      placeholderTextColor={Colors.dark.text3}
+                      style={styles.input}
+                      accessibilityLabel={Strings.budgetMonthlyLimitLabel}
+                    />
+                    <Text style={styles.suffix}>EGP</Text>
+                  </View>
+                  {fieldState.error && (
+                    <Text style={styles.errorText}>{fieldState.error.message}</Text>
+                  )}
+                </>
+              )}
+            />
+
+            {isEdit && (
+              <Pressable
+                onPress={() => {
+                  void onRemove();
+                }}
+                style={styles.remove}
+                accessibilityRole="button"
+              >
+                <Text style={styles.removeText}>{Strings.budgetRemoveCta}</Text>
+              </Pressable>
+            )}
+          </View>
+        </Sheet.Body>
+      </Sheet>
+
+      {/* Standard category picker — same grid sheet used in the transaction
+          form, so budget category selection matches the rest of the app.
+          Stacks on top of the Set-budget sheet (depth 2). */}
+      {!isEdit && (
+        <CategoryPickerSheet
+          visible={sheetState.sheetVisible && pickerSheetState.pickerExpanded}
+          title={Strings.budgetPickCategory}
+          categories={budgetableCategories}
+          selectedId={pickerSheetState.selectedCategoryId}
+          onSelect={(cat) => setSelectedCategoryId(cat.id)}
+          onClose={collapsePicker}
+        />
+      )}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  // flex:1 fills the sheet body so the expandable category list below can
-  // resolve a real height. Without it the body sizes to content and the
-  // flex:1 BottomSheetFlatList inside the picker collapses to 0px (it never
-  // opens). When the picker is collapsed the form simply top-aligns.
-  body: { flex: 1, paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
+  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
   picker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -268,36 +241,6 @@ const styles = StyleSheet.create({
   pickerName: { fontFamily: FontFamily.interSemi, fontSize: Type.body, color: Colors.dark.text1 },
   pickerPlaceholder: { color: Colors.dark.text2 },
   chev: { fontFamily: FontFamily.interRegular, fontSize: Type.title, color: Colors.dark.text2 },
-  categoryListContainer: {
-    // flex:1 (capped) gives the container a resolved height inside the flex:1
-    // body so the FlatList scrolls; maxHeight keeps it from eating the whole
-    // sheet on tall screens. Selecting a category collapses the picker, which
-    // unmounts this container and reveals the amount field again.
-    flex: 1,
-    maxHeight: ms(240),
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-    marginTop: -Spacing.sm,
-    marginBottom: Spacing.md,
-    overflow: 'hidden',
-  },
-  categoryList: { flex: 1 },
-  categoryListContent: { paddingVertical: Spacing.xs },
-  categoryItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  categoryItemSelected: { backgroundColor: Colors.dark.overlayWhite7 },
-  categoryItemName: {
-    flex: 1,
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
   categoryIcon: {
     width: ms(28),
     height: ms(28),
