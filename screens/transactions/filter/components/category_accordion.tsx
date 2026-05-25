@@ -33,12 +33,12 @@ export function CategoryAccordion({
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
         selectionMode="single"
-        value={expanded ? 'section' : undefined}
+        value={expanded ? 'section' : ''}
         onValueChange={(_v: string | undefined) => onToggleSection()}
       >
         <Accordion.Item value="section">
           <Accordion.Trigger className="gap-0 px-0 py-0" style={{ padding: 0, gap: 0 }}>
-            <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center justify-between" style={{ flex: 1 }}>
               <View className="flex-row items-center gap-2">
                 <Text className="font-inter text-[13px] font-semibold">
                   {Strings.filterSectionCategories}
