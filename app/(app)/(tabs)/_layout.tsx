@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FAB } from '@/components/ui/fab';
 import { Colors, Size } from '@/constants/theme';
+import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
 import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
@@ -18,21 +19,19 @@ function tabIcon(name: MCIName, color: string) {
 /**
  * useFABActions — layout-local hook providing the three FAB navigation callbacks.
  *
- * Wiring status:
- *   - Add Transaction → §7 (pending)
- *   - Add Account     → §9 (pending)
- *   - Add Commitment  → §8 (done)
+ * Add Transaction opens a sheet that is mounted inside the transactions tab, so
+ * it flips the shared add-transaction state and switches to that tab; the screen
+ * renders the sheet on the next focus. Add Account / Add Commitment push routes.
  */
 function useFABActions() {
   const router = useRouter();
   return {
     handleAddTransaction: () => {
-      // TODO(§7): router.push('/(app)/transactions/add') when Add Transaction sheet ships
-      console.warn('[FAB] Add Transaction not yet wired — pending §7');
+      useAddTransactionState.getState().requestOpen();
+      router.navigate('/transactions');
     },
     handleAddAccount: () => {
-      // TODO(§9): router.push('/(app)/accounts/add_account') when Add Account sheet ships
-      console.warn('[FAB] Add Account not yet wired — pending §9');
+      router.push('/accounts/add_account');
     },
     handleAddCommitment: () => {
       router.push('/commitments/add' as Parameters<typeof router.push>[0]);

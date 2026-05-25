@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -28,6 +28,13 @@ export default function TransactionsScreen(): React.ReactElement {
   const { state: addTxState, open: openAddTx } = useAddTransactionState(
     useShallow((s) => ({ state: s.state, open: s.open })),
   );
+
+  // Consume a cross-tab open request from the global FAB. Flipping visible
+  // false→true here (after this screen has mounted) is what actually presents
+  // the sheet; the FAB only sets pendingOpen + navigates.
+  useEffect(() => {
+    if (addTxState.pendingOpen) openAddTx();
+  }, [addTxState.pendingOpen, openAddTx]);
   const { state: filterUiState, setDateRangeSheetVisible } = useFilterState(
     useShallow((s) => ({
       state: s.state,

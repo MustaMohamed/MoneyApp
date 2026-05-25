@@ -9,6 +9,7 @@ describe('useAddTransactionState', () => {
     const s = useAddTransactionState.getState().state;
     expect(s).toEqual({
       visible: false,
+      pendingOpen: false,
       saving: false,
       showAccountPicker: false,
       showToPicker: false,
@@ -22,12 +23,28 @@ describe('useAddTransactionState', () => {
     expect(useAddTransactionState.getState().state.visible).toBe(true);
   });
 
+  it('requestOpen() sets pendingOpen=true without showing the sheet', () => {
+    useAddTransactionState.getState().requestOpen();
+    const s = useAddTransactionState.getState().state;
+    expect(s.pendingOpen).toBe(true);
+    expect(s.visible).toBe(false);
+  });
+
+  it('open() consumes a pending request (visible=true, pendingOpen=false)', () => {
+    useAddTransactionState.getState().requestOpen();
+    useAddTransactionState.getState().open();
+    const s = useAddTransactionState.getState().state;
+    expect(s.visible).toBe(true);
+    expect(s.pendingOpen).toBe(false);
+  });
+
   it('close() resets to initial', () => {
     useAddTransactionState.getState().open();
     useAddTransactionState.getState().setSaving(true);
     useAddTransactionState.getState().close();
     expect(useAddTransactionState.getState().state).toEqual({
       visible: false,
+      pendingOpen: false,
       saving: false,
       showAccountPicker: false,
       showToPicker: false,
