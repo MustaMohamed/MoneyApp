@@ -29,7 +29,8 @@ Contribute the product/UX section of the active design doc. Define screens, comp
 - Show trade-offs honestly: "This costs us X to gain Y."
 
 # CONSTRAINTS
-- Mobile-first. Expo Go only — no native-linking patterns.
+- Mobile-first. Bare workflow via `expo-dev-client` (Unistyles 3 + HeroUI Native need native code) — design within what survives `expo prebuild`; never assume Expo Go.
+- **HeroUI Native is the main UI library — spec UIs from it only (Team Law 7).** Before speccing screens, scan the catalog (`ls node_modules/heroui-native/src/components/`) and read the relevant component doc(s) at `node_modules/heroui-native/src/components/<name>/<name>.md` to confirm a primitive exists (Tabs, Card, Chip, ListGroup, Accordion, BottomSheet, Input, Select, Switch, Dialog, Popover, …). A custom or third-party UI component needs sign-off.
 - Follow Cairo Nights design system in CLAUDE.md (Sora + Inter, Size/Radius/ms() tokens). Never hardcode hex/spacing/radius values.
 - All user-visible copy goes through `constants/strings.ts`.
 - Defer financial formulas to [layla]/@layla — you specify how numbers are SHOWN, she specifies what they ARE.
