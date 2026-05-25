@@ -145,13 +145,13 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                     <View
                       style={[
                         styles.categoryIcon,
-                        { backgroundColor: addModeSelectedCategory.color },
+                        { backgroundColor: `${addModeSelectedCategory.color}22` },
                       ]}
                     >
                       <MaterialCommunityIcons
                         name={toIconName(addModeSelectedCategory.icon, 'tag-outline')}
-                        size={ms(16)}
-                        color={Colors.dark.text1}
+                        size={ms(15)}
+                        color={addModeSelectedCategory.color}
                       />
                     </View>
                     <Text style={styles.pickerName}>{addModeSelectedCategory.name}</Text>
@@ -241,10 +241,12 @@ const styles = StyleSheet.create({
   pickerName: { fontFamily: FontFamily.interSemi, fontSize: Type.body, color: Colors.dark.text1 },
   pickerPlaceholder: { color: Colors.dark.text2 },
   chev: { fontFamily: FontFamily.interRegular, fontSize: Type.title, color: Colors.dark.text2 },
+  // matches the standard category icon (CategoryBudgetRow / detail header):
+  // rounded square, tinted category-color background, icon in the category color
   categoryIcon: {
-    width: ms(28),
-    height: ms(28),
-    borderRadius: ms(14),
+    width: ms(32),
+    height: ms(32),
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
   },
