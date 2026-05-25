@@ -2,18 +2,25 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily } from '@/constants/theme';
+import { Strings } from '@/constants/strings';
+import { Colors, FontFamily, Type } from '@/constants/theme';
 import type { MonthResultVM } from '@/screens/budget/budget.helpers';
 import { ms } from '@/utils/responsive';
 
 export function MonthlyResultChart({ results }: { results: MonthResultVM[] }) {
   const maxAbs = Math.max(1, ...results.map((r) => Math.abs(r.delta)));
+  const hasProvisional = results.some((r) => r.isProvisional);
   return (
     <View>
       <View style={styles.chart}>
         {results.map((r) => {
           const h = (Math.abs(r.delta) / maxAbs) * ms(48);
           const positive = r.delta >= 0;
+          const directional = positive ? Colors.dark.positive : Colors.dark.negative;
+          // In-progress month: draw a HOLLOW bar so it never reads as a banked
+          // result. Neutral outline while nothing has been spent yet; it only
+          // takes the directional (green/red) outline once real spend lands.
+          const outline = r.spent > 0 ? directional : Colors.dark.border;
           return (
             <View key={r.yearMonth} style={styles.col}>
               <View
@@ -21,9 +28,11 @@ export function MonthlyResultChart({ results }: { results: MonthResultVM[] }) {
                   styles.bar,
                   {
                     height: Math.max(ms(3), h),
-                    backgroundColor: positive ? Colors.dark.positive : Colors.dark.negative,
                     alignSelf: positive ? 'flex-end' : 'flex-start',
                   },
+                  r.isProvisional
+                    ? { backgroundColor: 'transparent', borderWidth: ms(1.5), borderColor: outline }
+                    : { backgroundColor: directional },
                 ]}
               />
             </View>
@@ -38,6 +47,7 @@ export function MonthlyResultChart({ results }: { results: MonthResultVM[] }) {
           </Text>
         ))}
       </View>
+      {hasProvisional && <Text style={styles.legend}>{Strings.budgetDetailInProgress}</Text>}
     </View>
   );
 }
@@ -68,5 +78,11 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.interRegular,
     fontSize: ms(9),
     color: Colors.dark.text2,
+  },
+  legend: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    color: Colors.dark.text2,
+    marginTop: ms(6),
   },
 });

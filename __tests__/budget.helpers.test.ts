@@ -119,13 +119,36 @@ describe('computeCategoryHistory', () => {
       isProvisional: true,
     },
   ];
-  it('nets the deltas, averages spend, and computes hit-rate', () => {
+  it('nets the deltas, averages spend, and computes hit-rate over COMPLETED months only', () => {
     const h = computeCategoryHistory(results);
-    expect(h.netBanked).toBe(1250);
-    expect(h.avgPerMonth).toBe((2400 + 3200 + 2750 + 2400) / 4);
-    expect(h.monthsUnder).toBe(3); // Feb, Apr, May under-or-equal; Mar over
-    expect(h.monthsTotal).toBe(4);
-    expect(h.hitRate).toBeCloseTo(3 / 4);
+    // 2026-05 is provisional and excluded from every realized aggregate.
+    expect(h.netBanked).toBe(650); // 600 - 200 + 250
+    expect(h.avgPerMonth).toBe((2400 + 3200 + 2750) / 3);
+    expect(h.monthsUnder).toBe(2); // Feb, Apr under; Mar over
+    expect(h.monthsCompleted).toBe(3);
+    expect(h.monthsTotal).toBe(4); // provisional month still counted for the render gate
+    expect(h.hitRate).toBeCloseTo(2 / 3);
+  });
+  it('excludes a provisional-only month from aggregates but keeps it in results', () => {
+    // Mirrors device QA: a brand-new budget, current month, nothing spent yet.
+    const provisionalOnly: MonthResultVM[] = [
+      {
+        yearMonth: '2026-05',
+        limit: 5000,
+        spent: 0,
+        delta: 5000,
+        status: 'under',
+        isProvisional: true,
+      },
+    ];
+    const h = computeCategoryHistory(provisionalOnly);
+    expect(h.netBanked).toBe(0); // not banked — month is still in progress
+    expect(h.avgPerMonth).toBe(0);
+    expect(h.hitRate).toBe(0);
+    expect(h.monthsUnder).toBe(0);
+    expect(h.monthsCompleted).toBe(0);
+    expect(h.monthsTotal).toBe(1); // still renders the chart/ledger
+    expect(h.results).toHaveLength(1);
   });
   it('zero-safe with no months', () => {
     const h = computeCategoryHistory([]);
@@ -135,6 +158,7 @@ describe('computeCategoryHistory', () => {
       avgPerMonth: 0,
       hitRate: 0,
       monthsUnder: 0,
+      monthsCompleted: 0,
       monthsTotal: 0,
     });
   });
