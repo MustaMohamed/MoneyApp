@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
+import { SelectablePill } from '@/components/ui/chip';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
@@ -27,33 +27,15 @@ const OPTIONS: { value: TransactionFilter; label: string }[] = [
 export function TypeChips({ value, onChange }: Props): React.ReactElement {
   return (
     <View className="mt-3 flex-row flex-wrap gap-1.5 px-4">
-      {OPTIONS.map((opt) => {
-        const selected = opt.value === value;
-        return (
-          <Pressable
-            key={String(opt.value)}
-            onPress={() => onChange(opt.value)}
-            accessibilityRole="button"
-            accessibilityState={{ selected }}
-            accessibilityLabel={`${opt.label}, type filter`}
-            className={
-              selected
-                ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                : 'bg-default/40 border-border rounded-full border px-3 py-1'
-            }
-          >
-            <Text
-              className={
-                selected
-                  ? 'font-inter text-accent text-[11px] font-semibold'
-                  : 'font-inter text-foreground/65 text-[11px] font-medium'
-              }
-            >
-              {opt.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {OPTIONS.map((opt) => (
+        <SelectablePill
+          key={String(opt.value)}
+          label={opt.label}
+          selected={opt.value === value}
+          onPress={() => onChange(opt.value)}
+          accessibilityLabel={`${opt.label}, type filter`}
+        />
+      ))}
     </View>
   );
 }

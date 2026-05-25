@@ -6,6 +6,7 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { SelectablePill } from '@/components/ui/chip';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import {
@@ -237,34 +238,15 @@ export function CommitmentFormBody({
             {Strings.commitmentsFieldAmountType}
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-            {AMOUNT_TYPES.map(({ key, label }) => {
-              const isActive = amountType === key;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => handleAmountTypeChange(key)}
-                  disabled={locked}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isActive }}
-                  accessibilityLabel={label}
-                  className={
-                    isActive
-                      ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                      : 'bg-default/40 border-border rounded-full border px-3 py-1'
-                  }
-                >
-                  <Text
-                    className={
-                      isActive
-                        ? 'font-inter text-accent text-[11px] font-semibold'
-                        : 'font-inter text-foreground/65 text-[11px] font-medium'
-                    }
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {AMOUNT_TYPES.map(({ key, label }) => (
+              <SelectablePill
+                key={key}
+                label={label}
+                selected={amountType === key}
+                onPress={() => handleAmountTypeChange(key)}
+                disabled={locked}
+              />
+            ))}
           </View>
         </View>
 
@@ -315,35 +297,16 @@ export function CommitmentFormBody({
               {Strings.commitmentsFieldCurrency}
             </Text>
             <View style={{ flexDirection: 'row' }} className="gap-2">
-              {CURRENCIES.map((c) => {
-                const isActive = currency === c;
-                return (
-                  <Pressable
-                    key={c}
-                    onPress={() => form.setValue('currency', c, SET_OPTS)}
-                    disabled={locked}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: isActive }}
-                    accessibilityLabel={c}
-                    style={{ flex: 1, alignItems: 'center' }}
-                    className={
-                      isActive
-                        ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                        : 'bg-default/40 border-border rounded-full border px-3 py-1'
-                    }
-                  >
-                    <Text
-                      className={
-                        isActive
-                          ? 'font-inter text-accent text-[11px] font-semibold'
-                          : 'font-inter text-foreground/65 text-[11px] font-medium'
-                      }
-                    >
-                      {c}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {CURRENCIES.map((c) => (
+                <SelectablePill
+                  key={c}
+                  label={c}
+                  selected={currency === c}
+                  onPress={() => form.setValue('currency', c, SET_OPTS)}
+                  disabled={locked}
+                  style={{ flex: 1 }}
+                />
+              ))}
             </View>
           </View>
         </View>

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { CoreTokens } from '@/constants/theme_tokens';
 
 import { formatAmountSummary, parseAmountInput } from '../filter.helpers';
 import type { AdvancedFilters } from '../filter.store';
@@ -63,7 +64,7 @@ export function AmountAccordion({
             <MaterialCommunityIcons
               name={expanded ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color="#888"
+              color={CoreTokens.text2}
             />
           </View>
         </View>

@@ -1,7 +1,8 @@
 import { Input } from 'heroui-native';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
+import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { RecurrencePeriod, RecurrencePreset } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -38,33 +39,14 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
       </Text>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-        {PRESETS.map(({ key, label }) => {
-          const isActive = recurrencePreset === key;
-          return (
-            <Pressable
-              key={key}
-              onPress={() => onPresetChange(key)}
-              accessibilityRole="button"
-              accessibilityState={{ selected: isActive }}
-              accessibilityLabel={label}
-              className={
-                isActive
-                  ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                  : 'bg-default/40 border-border rounded-full border px-3 py-1'
-              }
-            >
-              <Text
-                className={
-                  isActive
-                    ? 'font-inter text-accent text-[11px] font-semibold'
-                    : 'font-inter text-foreground/65 text-[11px] font-medium'
-                }
-              >
-                {label}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {PRESETS.map(({ key, label }) => (
+          <SelectablePill
+            key={key}
+            label={label}
+            selected={recurrencePreset === key}
+            onPress={() => onPresetChange(key)}
+          />
+        ))}
       </View>
 
       {recurrencePreset === RecurrencePreset.Custom ? (
@@ -101,33 +83,14 @@ export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Pro
             />
           </View>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-            {PERIODS.map(({ key, label }) => {
-              const isActive = recurrencePeriod === key;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => form.setValue('recurrencePeriod', key, SET_OPTS)}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: isActive }}
-                  accessibilityLabel={label}
-                  className={
-                    isActive
-                      ? 'border-accent/50 bg-accent/15 rounded-full border px-3 py-1'
-                      : 'bg-default/40 border-border rounded-full border px-3 py-1'
-                  }
-                >
-                  <Text
-                    className={
-                      isActive
-                        ? 'font-inter text-accent text-[11px] font-semibold'
-                        : 'font-inter text-foreground/65 text-[11px] font-medium'
-                    }
-                  >
-                    {label}
-                  </Text>
-                </Pressable>
-              );
-            })}
+            {PERIODS.map(({ key, label }) => (
+              <SelectablePill
+                key={key}
+                label={label}
+                selected={recurrencePeriod === key}
+                onPress={() => form.setValue('recurrencePeriod', key, SET_OPTS)}
+              />
+            ))}
           </View>
         </View>
       ) : null}
