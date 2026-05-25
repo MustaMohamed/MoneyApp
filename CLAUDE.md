@@ -32,14 +32,14 @@ The five personas:
 
 ## How the Team Plugs Into Superpowers
 
-Phase mapping (skills are authoritative — personas contribute to their outputs):
+Phase mapping (skills are authoritative — personas contribute to their outputs). Interactive phases (Brainstorm, Gate 1, Gate 2) run in the **main thread** via inline `[name]` personas; non-interactive phases dispatch `@name` subagents:
 
-1. **Brainstorm** — `anthropic-skills:brainstorming` · @marcus + @layla shape product + financial intent. Sarah orchestrates internally — no per-question user check-ins.
+1. **Brainstorm** — `brainstorming` · @marcus + @layla shape product + financial intent. Sarah orchestrates internally — no per-question user check-ins.
 2. **Design doc** — `docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md` · @tariq synthesizes; embeds @marcus's UX and @layla's formulas.
 3. 🛑 **Spec sign-off (user-facing gate)** — Sarah presents the finished spec to the user before plan-writing begins. The only brainstorm/spec touchpoint with the human.
-4. **Plan** — `anthropic-skills:writing-plans` · @tariq writes; lands in `docs/superpowers/plans/YYYY-MM-DD-{feature}.md`. **Sarah approves on the user's behalf.** No user check-in unless a critical trigger fires.
-5. **Execute** — `anthropic-skills:executing-plans` or `subagent-driven-development` · @dev implements.
-6. **Code review** — `anthropic-skills:requesting-code-review` with @tariq's lens. **Tariq approves and merges on the user's behalf.** No user check-in unless a critical trigger fires.
+4. **Plan** — `writing-plans` · @tariq writes; lands in `docs/superpowers/plans/YYYY-MM-DD-{feature}.md`. **Sarah approves on the user's behalf.** No user check-in unless a critical trigger fires.
+5. **Execute** — `executing-plans` or `subagent-driven-development`, in an isolated git worktree (`using-git-worktrees`) · @dev implements.
+6. **Code review** — `requesting-code-review` with @tariq's lens. **Tariq approves and merges on the user's behalf.** No user check-in unless a critical trigger fires.
 7. 🛑 **Device QA gate (user-facing)** — only the user can walk the manual QA matrix on a real device. Always escalated.
 
 ### Critical triggers (when to wake the user)
@@ -60,15 +60,16 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 ## Team Laws
 
 1. **Domain Sovereignty.** Product/UX → @marcus · Financial logic → @layla · Architecture → @tariq · Implementation → @dev · Sequencing → @sarah. No persona overrides another's domain.
-2. **Refuse Ambiguity.** Vague request → push back, do not guess. (Use `anthropic-skills:brainstorming` to disambiguate.)
+2. **Refuse Ambiguity.** Vague request → push back, do not guess. (Use `brainstorming` to disambiguate.)
 3. **Leads approve, not the user.** Sarah approves plans. Tariq approves and merges code reviews. The user is consulted only at the spec sign-off gate, the device QA gate, and on critical triggers — never at routine plan/review checkpoints.
 4. **No code without an approved plan.** @dev does not start until the spec is signed off and Sarah has approved the plan.
 5. **Escalate critical triggers, write down the rest.** When a critical trigger fires, Sarah surfaces it to the user with a recommendation. When personas disagree at the routine level, the responsible lead (Sarah for scope, Tariq for tech) decides and records the rationale in the design doc or PR description.
 6. **Default to subagents.** When a task matches a specialist's domain, dispatch the best-fit subagent automatically rather than doing the work in the main thread — pick by domain (Law 1): product/UX → `@marcus` · financial logic → `@layla` · architecture/synthesis/review → `@tariq` · implementation → `@dev` · orchestration/sequencing → `@sarah`. Use `[name]` inline only for quick consults. When the fit is genuinely unclear — no agent matches, or the task spans several domains with no obvious owner — **ask the user which agent to use, or fall back to the main thread**. The main thread also handles lightweight glue with no domain owner (reads, status checks, routing, trivial one-offs); those need no subagent.
+7. **HeroUI Native components only.** Use a HeroUI Native component wherever one exists (see Components + Bottom Sheets — e.g. `BottomSheet`, not a custom `@gorhom` wrapper). Building a custom or third-party UI component that a HeroUI primitive could cover is a critical trigger: it needs sign-off plus a written "no HeroUI primitive fits" justification. Always prefer composing/wrapping a HeroUI primitive over a parallel implementation.
 
 ## Tech Stack
 
-Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 · **HeroUI Native v1.0 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
+Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 (HeroUI `BottomSheet` engine) · **HeroUI Native v1.0.3 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
 
 ## Commands
 
@@ -174,35 +175,43 @@ Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirec
 
 ## Components
 
-**HeroUI Native primitives first. Build custom only when no HeroUI primitive fits.**
+**HeroUI Native components are mandatory. Use a HeroUI Native component wherever one exists — never hand-roll or pull a third-party equivalent.** (Binding: Team Law 7.)
 
-Before writing a new component, check the HeroUI Native catalog (Tabs, Card, Chip, ListGroup, Accordion, Input, Button, Badge, Avatar, Skeleton, etc.) and the project wrappers in `components/ui/` (`Screen`, `ScreenScroll`, `Sheet`, `Text`, `EmptyState`, `SettingsSection`, `FAB`). Compose those.
+Installed catalog (`heroui-native` v1.0.3 — check it before writing anything): Accordion, Alert, Avatar, **BottomSheet**, Button, Card, Checkbox, Chip, CloseButton, Dialog, Input (+ InputGroup, InputOTP, TextField, TextArea, SearchField), Label, LinkButton, ListGroup, Menu (+ SubMenu), Popover, PressableFeedback, Radio (+ RadioGroup), ScrollShadow, Select, Separator, Skeleton (+ SkeletonGroup), Slider, Spinner, Surface, Switch, Tabs, TagGroup, Text, Toast, and form helpers (ControlField, Description, FieldError).
 
-The HeroUI Native migration exists to retire custom components — reintroducing custom ones brings back the maintenance burden we paid to remove. If a HeroUI primitive almost fits but needs tweaks, prefer composing/wrapping it over building a parallel implementation.
+Project wrappers in `components/ui/` compose HeroUI: `Screen`, `ScreenScroll`, `Text`, `EmptyState`, `SettingsSection`, `FAB` (and the legacy `Sheet`, being migrated — see Bottom Sheets). Compose these.
+
+**Introducing a custom or third-party UI component that a HeroUI primitive could cover is a critical trigger — it needs sign-off + a written "no HeroUI primitive fits" justification.** If a HeroUI primitive almost fits but needs tweaks, compose/wrap it — never build a parallel implementation. The only standing non-HeroUI primitives are layout/effect pieces HeroUI does not provide (`Screen`/`ScreenScroll` full-screen layout, the gold-gradient `HeroShell`, `FAB`, SVG textures); extend that list only with sign-off.
 
 (§5 example: a custom `SegmentSwitcher` was replaced with `Tabs` from `heroui-native` before merge.)
 
 ## Bottom Sheets
 
-**New pattern (§3+): use `Sheet` from `components/ui/sheet.tsx`.**
+**Use HeroUI Native's `BottomSheet` (compound component). Do NOT hand-roll a `@gorhom/bottom-sheet` wrapper.**
 
-`Sheet` wraps `@gorhom/bottom-sheet@^5.2.14`. It is declarative — open/close via `visible` prop + `onClose` callback. No refs, no `.show()` / `.hide()`.
+`BottomSheet` is declarative and controlled via `isOpen` + `onOpenChange`. Always handle close through `onOpenChange` (the inner `Content.onClose` only fires on swipe-down, not on overlay-press / close-button / programmatic close). `@gorhom/bottom-sheet` stays in the tree **only as HeroUI's rendering engine** — `BottomSheet.Content` IS a gorhom sheet, and scrollables are still imported from `@gorhom/bottom-sheet`.
 
 ```tsx
-import { Sheet } from '@/components/ui/sheet';
-import { BottomSheetScrollView, BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { BottomSheet, Button } from 'heroui-native';
 
-<Sheet visible={isOpen} onClose={close} title="My Sheet" size="sm">
-  <Sheet.Body>
-    {/* Use BottomSheetScrollView / BottomSheetFlatList for scrollable content */}
-    <BottomSheetScrollView>
-      {/* content */}
-    </BottomSheetScrollView>
-  </Sheet.Body>
-</Sheet>
+<BottomSheet isOpen={isOpen} onOpenChange={setIsOpen}>
+  <BottomSheet.Trigger asChild><Button>{Strings.open}</Button></BottomSheet.Trigger>
+  <BottomSheet.Portal>
+    <BottomSheet.Overlay />
+    <BottomSheet.Content>
+      <BottomSheet.Close />
+      <BottomSheet.Title>{Strings.title}</BottomSheet.Title>
+      <BottomSheet.Description>{Strings.desc}</BottomSheet.Description>
+      {/* body */}
+    </BottomSheet.Content>
+  </BottomSheet.Portal>
+</BottomSheet>
 ```
 
-**Scrollable content rule:** `BottomSheetScrollView` and `BottomSheetFlatList` must be imported from `@gorhom/bottom-sheet`, not from `react-native`. Standard `ScrollView` and `FlatList` will NOT scroll inside a Sheet.
+**Scrollable content:** import `BottomSheetScrollView` / `BottomSheetFlatList` from `@gorhom/bottom-sheet` (NOT `react-native`) and nest inside `BottomSheet.Content`; set `enableOverDrag={false}`, `enableDynamicSizing={false}`, and a fixed height via `contentContainerClassName="h-full"`.
+**Keyboard-aware inputs:** wire `useBottomSheetAwareHandlers()` onto the input's `onFocus`/`onBlur` and set `keyboardBehavior="extend"` on `Content`.
+
+**Migration note:** `components/ui/sheet.tsx` (the legacy hand-rolled `@gorhom` wrapper with declarative `visible`/`onClose`) is **non-conforming** and slated to migrate to HeroUI `BottomSheet` in a dedicated cycle (high blast radius — touches every sheet, device-QA gated). Until then: do not add new `@gorhom` wrappers — build new sheets on HeroUI `BottomSheet` directly.
 
 ## Patches
 
