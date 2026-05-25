@@ -182,7 +182,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
               useEditTransactionState.getState().close();
               reload();
             }}
-            tx={state.tx ?? null}
+            tx={state.tx}
           />
         </>
       ) : null}
