@@ -5,12 +5,13 @@ import Animated from 'react-native-reanimated';
 import Svg, { Defs, Pattern, Path, Rect } from 'react-native-svg';
 
 import { Text } from '@/components/ui/text';
-import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
+import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import { resolveDisplayAmount } from '@/screens/commitments/commitment_status';
 import { toIconName } from '@/utils/icon_name_guard';
 
 import { heroEntering } from '../detail.anim';
@@ -41,18 +42,12 @@ function GridTexture() {
 export function DetailHero({ commitment, category, payment, recurrenceLabel }: Props) {
   const iconColor = category?.color ?? Colors.dark.gold;
   const tintBg = iconColor.length === 7 ? `${iconColor}2E` : iconColor;
-  const isVariable = commitment.amount_type === AmountType.Variable;
-  const isPaid = payment?.status === CommitmentPaymentStatus.Paid;
-  const amount = isPaid
-    ? // oxlint-disable-next-line typescript/no-unnecessary-condition -- payment may be undefined at render
-      (payment?.amount_paid ?? payment?.amount_due ?? commitment.amount)
-    : (payment?.amount_due ?? commitment.amount);
-  const showTilde = isVariable && !isPaid;
+  const { amount, showTilde } = resolveDisplayAmount(payment, commitment);
   const currency = payment?.currency ?? commitment.currency;
   const amountText =
     amount != null
       ? `${showTilde ? '~' : ''}${currency} ${numberFmt.format(amount)}`
-      : isVariable
+      : commitment.amount_type === AmountType.Variable
         ? Strings.commitmentsAmountVariable
         : currency;
 

@@ -1,11 +1,11 @@
 import { ActivityIndicator, Pressable, View } from 'react-native';
 
-import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
 
+import { CommitmentHeader } from '../components/commitment_header';
 import { CurrentCycleCard } from './components/current_cycle_card';
 import { DetailHero } from './components/detail_hero';
 import { DetailsCard } from './components/details_card';
@@ -20,34 +20,26 @@ export default function CommitmentDetailScreen() {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View
-        style={{ flexDirection: 'row', alignItems: 'center' }}
-        className="border-separator h-14 justify-between border-b px-2"
-      >
-        <BackButton onPress={goBack} />
-        <Text
-          className="font-sora text-foreground flex-1 text-center text-[20px] font-semibold"
-          numberOfLines={1}
-        >
-          {state.commitment?.name ?? ''}
-        </Text>
-        {state.viewState === 'ready' && state.commitment ? (
-          <Pressable
-            onPress={goToEdit}
-            hitSlop={8}
-            className="min-w-[44px] items-center justify-center px-1"
-          >
-            <Text
-              className="font-inter text-[15px] font-semibold"
-              style={{ color: GoldTokens[500] }}
+      <CommitmentHeader
+        title={state.commitment?.name ?? ''}
+        onBack={goBack}
+        right={
+          state.viewState === 'ready' && state.commitment ? (
+            <Pressable
+              onPress={goToEdit}
+              hitSlop={8}
+              className="min-w-[44px] items-center justify-center px-1"
             >
-              {Strings.commitmentsDetailEdit}
-            </Text>
-          </Pressable>
-        ) : (
-          <View className="min-w-[44px]" />
-        )}
-      </View>
+              <Text
+                className="font-inter text-[15px] font-semibold"
+                style={{ color: GoldTokens[500] }}
+              >
+                {Strings.commitmentsDetailEdit}
+              </Text>
+            </Pressable>
+          ) : undefined
+        }
+      />
 
       {state.viewState === 'loading' ? (
         <View style={{ flex: 1 }} className="items-center justify-center">

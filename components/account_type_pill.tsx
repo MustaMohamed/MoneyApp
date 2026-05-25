@@ -1,15 +1,18 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { cn } from 'heroui-native';
 import React from 'react';
-import Animated from 'react-native-reanimated';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+} from 'react-native-reanimated';
 
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { GoldTokens, CoreTokens } from '@/constants/theme_tokens';
-
-import { useTypePillAnim } from '../add_account.anim';
+import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -32,6 +35,23 @@ export const TYPE_OPTIONS: TypeOption[] = [
     fullWidth: true,
   },
 ];
+
+function useTypePillAnim() {
+  const scale = useSharedValue(1);
+
+  const pillAnim = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const triggerPillTap = () => {
+    scale.value = withSequence(
+      withSpring(1.03, { damping: 8, stiffness: 200 }),
+      withSpring(1.0, { damping: 12 }),
+    );
+  };
+
+  return { pillAnim, triggerPillTap };
+}
 
 export function TypePill({
   option,

@@ -6,7 +6,6 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import {
@@ -33,6 +32,7 @@ import {
   detectPreset,
 } from '../commitment_form.shared';
 import { useCommitmentFormBodyState } from './commitment_form_body.state';
+import { CommitmentHeader } from './commitment_header';
 import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
@@ -192,16 +192,7 @@ export function CommitmentFormBody({
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
-        className="border-separator h-14 border-b px-2"
-      >
-        <BackButton onPress={() => router.back()} />
-        <Text className="font-sora text-foreground flex-1 text-center text-[17px] font-semibold">
-          {title}
-        </Text>
-        <View className="w-11" />
-      </View>
+      <CommitmentHeader title={title} onBack={() => router.back()} large={false} />
 
       <ScreenScroll
         contentContainerStyle={{ gap: 8, paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 }}

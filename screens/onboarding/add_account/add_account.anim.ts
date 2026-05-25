@@ -33,20 +33,3 @@ export function useAddAccountAnim() {
     errorExiting: FadeOutUp.duration(100),
   };
 }
-
-export function useTypePillAnim() {
-  const scale = useSharedValue(1);
-
-  const pillAnim = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
-
-  const triggerPillTap = () => {
-    scale.value = withSequence(
-      withSpring(1.03, { damping: 8, stiffness: 200 }),
-      withSpring(1.0, { damping: 12 }),
-    );
-  };
-
-  return { pillAnim, triggerPillTap };
-}

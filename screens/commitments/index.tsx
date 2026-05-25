@@ -1,13 +1,13 @@
-import { RefreshControl, SectionList, View } from 'react-native';
+import { RefreshControl, SectionList } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
 import { DateHeader } from '@/screens/transactions/components/date_header';
 
 import { useCommitments } from './commitments.hook';
+import { CommitmentHeader } from './components/commitment_header';
 import { CommitmentRow } from './components/commitment_row';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { MonthNavigator } from './components/month_navigator';
@@ -19,11 +19,7 @@ export default function CommitmentsScreen() {
 
   return (
     <Screen edges={['top']}>
-      <View className="border-separator h-14 justify-center border-b px-4">
-        <Text className="font-sora text-foreground text-[20px] font-semibold">
-          {Strings.commitmentsTitle}
-        </Text>
-      </View>
+      <CommitmentHeader title={Strings.commitmentsTitle} />
 
       {!t.state.hasCommitments ? (
         <CommitmentsEmptyState onAdd={t.goToAdd} />
