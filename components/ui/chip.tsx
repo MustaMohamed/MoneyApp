@@ -5,6 +5,13 @@ import { View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { GoldTokens } from '@/constants/theme_tokens';
 
+/**
+ * `chip.tsx` is the home for HeroUI `Chip`-derived wrappers. It is named after
+ * the underlying primitive rather than its current export so a future
+ * non-selectable `Chip` re-export can live here too. Today it exports only
+ * `SelectablePill` (the selectable gold-tint pill).
+ */
+
 export interface SelectablePillProps {
   /** Visible label text. */
   label: string;
@@ -15,7 +22,12 @@ export interface SelectablePillProps {
   dotColor?: string;
   /** Show a trailing gold check when `selected` (multi-select filter pills). */
   checkable?: boolean;
-  /** Block presses without changing appearance (e.g. locked commitment form). */
+  /**
+   * Block presses without changing appearance (e.g. locked commitment form).
+   * Forwarded directly to HeroUI `Chip`'s underlying RN `Pressable` as
+   * `disabled` — unlike `components/ui/button.tsx`, which maps RN `disabled`
+   * onto HeroUI's `isDisabled`.
+   */
   disabled?: boolean;
   /** Accessibility label; defaults to `label`. */
   accessibilityLabel?: string;
