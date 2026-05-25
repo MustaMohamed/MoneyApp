@@ -70,6 +70,14 @@ describe('resolveDisplayAmount', () => {
     expect(r.amount).toBe(100);
   });
 
+  it('paid with null amount_paid and null amount_due: falls back to commitment.amount', () => {
+    const r = resolveDisplayAmount(
+      mkPayment({ status: CommitmentPaymentStatus.Paid, amount_paid: null, amount_due: null }),
+      mkCommitment({ amount: 250 }),
+    );
+    expect(r.amount).toBe(250);
+  });
+
   it('unpaid: uses amount_due', () => {
     const r = resolveDisplayAmount(
       mkPayment({ status: CommitmentPaymentStatus.Due, amount_due: 100 }),

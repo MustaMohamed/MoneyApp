@@ -35,11 +35,11 @@ export function CommitmentHeader({ title, onBack, right, large = true }: Commitm
           'font-sora text-foreground flex-1 text-center font-semibold',
           large ? 'text-[20px]' : 'text-[17px]',
         )}
-        numberOfLines={1}
+        numberOfLines={large ? 1 : undefined}
       >
         {title}
       </Text>
-      {right ?? <View className="w-11" />}
+      {right ?? <View className="min-w-[44px]" />}
     </View>
   );
 }
