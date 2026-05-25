@@ -1,9 +1,8 @@
+import { Dialog } from 'heroui-native';
 import React from 'react';
-import { Modal, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
 
 interface ConfirmDialogProps {
   visible: boolean;
@@ -31,37 +30,60 @@ export function ConfirmDialog({
   busy = false,
   children,
 }: ConfirmDialogProps) {
+  const handleOpenChange = (open: boolean) => {
+    if (!open && !busy) onCancel();
+  };
+
   return (
-    <Modal
-      transparent
-      visible={visible}
-      onRequestClose={busy ? () => {} : onCancel}
-      animationType="fade"
-      statusBarTranslucent
-    >
-      {/* Scrim — literal rgba allowed for modal scrims (spec §2.7) */}
-      <View
-        className="flex-1 items-center justify-center px-6"
-        style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
-      >
-        <Box className="bg-surface border-border w-full rounded-2xl border p-5">
-          <Text variant="h3" className="text-foreground font-soraBold mb-2">
+    <Dialog isOpen={visible} onOpenChange={handleOpenChange}>
+      <Dialog.Portal>
+        {/*
+         * bg-overlay overrides HeroUI's default bg-backdrop (oklch(0%0 0/20%) ≈ 20% black).
+         * Our --overlay token in global.css is rgba(0,0,0,0.6) — matches the legacy Modal scrim.
+         * Without this override the backdrop is visibly too light.
+         */}
+        <Dialog.Overlay className="bg-overlay" isCloseOnPress={!busy} />
+        {/*
+         * HeroUI Dialog.Content defaults: bg-overlay p-5 rounded-3xl shadow-overlay.
+         * We override:
+         *   bg-surface   — dark-surface card (#1A2535); not the scrim colour
+         *   rounded-2xl  — 16px matches the legacy rounded-2xl card
+         *   border border-border — preserves the legacy card border
+         *   p-5          — identical padding; keep as-is (no change needed)
+         *
+         * tv() className-override fallback: if bg-surface or rounded-2xl are silently
+         * ignored by HeroUI's tailwind-variants base (same risk noted for Chip in SP-1),
+         * replace the className bg-surface and rounded-2xl with a style prop instead:
+         *   style={{ backgroundColor: Colors.dark.surface, borderRadius: Radius.lg }}
+         * and import { Colors, Radius } from '@/constants/theme'.
+         * Verify visually at device QA before considering the fallback necessary.
+         *
+         * isSwipeable={false}: Dialog.Content defaults to isSwipeable={true}.
+         * A confirm dialog is a blocking modal — swipe-to-dismiss would silently
+         * bypass the busy guard and fire no callback. Must be explicit.
+         */}
+        <Dialog.Content
+          isSwipeable={false}
+          className="bg-surface border-border w-full rounded-2xl border p-5"
+          style={{ shadowOpacity: 0, elevation: 0 }}
+        >
+          <Dialog.Title className="text-foreground font-soraBold mb-2 text-xl">
             {title}
-          </Text>
-          <Text variant="body" className="text-muted mb-2">
+          </Dialog.Title>
+          <Dialog.Description className="text-muted mb-2 text-[15px] leading-6">
             {body}
-          </Text>
+          </Dialog.Description>
           {children}
-          <Box style={{ flexDirection: 'row' }} className="mt-1 gap-2">
-            <Box style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row' }} className="mt-1 gap-2">
+            <View style={{ flex: 1 }}>
               <Button
                 variant="secondary"
                 label={cancelLabel}
                 onPress={onCancel}
                 isDisabled={busy}
               />
-            </Box>
-            <Box style={{ flex: 1 }}>
+            </View>
+            <View style={{ flex: 1 }}>
               <Button
                 variant={destructive ? 'danger' : 'primary'}
                 label={confirmLabel}
@@ -69,10 +91,10 @@ export function ConfirmDialog({
                 isLoading={busy}
                 isDisabled={busy}
               />
-            </Box>
-          </Box>
-        </Box>
-      </View>
-    </Modal>
+            </View>
+          </View>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog>
   );
 }
