@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 
 import { formatSelectionSummary } from '../filter.helpers';
@@ -54,7 +55,7 @@ export function AccountAccordion({
             <MaterialCommunityIcons
               name={expanded ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color="#888"
+              color={CoreTokens.text2}
             />
           </View>
         </View>
@@ -67,7 +68,7 @@ export function AccountAccordion({
               label={a.name}
               selected={selectedIds.includes(a.id)}
               onPress={() => onToggleId(a.id)}
-              dotColor={a.color ?? '#888'}
+              dotColor={a.color ?? CoreTokens.text2}
               checkable
               accessibilityLabel={`${a.name}, account filter`}
             />

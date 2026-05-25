@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 
 import { formatSelectionSummary } from '../filter.helpers';
@@ -54,7 +55,7 @@ export function CategoryAccordion({
             <MaterialCommunityIcons
               name={expanded ? 'chevron-up' : 'chevron-down'}
               size={16}
-              color="#888"
+              color={CoreTokens.text2}
             />
           </View>
         </View>
@@ -68,7 +69,7 @@ export function CategoryAccordion({
               selected={selectedIds.includes(c.id)}
               onPress={() => onToggleId(c.id)}
               // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-              dotColor={c.color ?? '#888'}
+              dotColor={c.color ?? CoreTokens.text2}
               checkable
               accessibilityLabel={`${c.name}, category filter`}
             />
