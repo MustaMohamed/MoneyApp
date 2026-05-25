@@ -323,11 +323,18 @@ For `ConfirmSheet`:
 // Before
 <ConfirmSheet visible={visible} onCancel={onCancel} ... />
 
-// After
-<ConfirmSheet isOpen={isOpen} onOpenChange={(open) => { if (!open) onCancel(); }} ... />
+// After — caller wires cancel logic into onOpenChange; ConfirmSheet passes it through
+<ConfirmSheet
+  isOpen={isOpen}
+  onOpenChange={(open) => { if (!open) onCancel(); }}
+  onCancel={onCancel}
+  ...
+/>
 ```
 
-The new `ConfirmSheet` internally maps `onOpenChange(false)` to `onCancel()` so callers that cannot pass a full `onOpenChange` handler can still pass `onCancel`.
+`ConfirmSheet` keeps both `onOpenChange` and `onCancel` in its props. `onOpenChange` is the all-path close hook (swipe, overlay — caller wires cancel logic here). `onCancel` is called directly by the Cancel button (`onPress={onCancel}`). `ConfirmSheet` itself applies only the `busy` guard — it does not internally map `onOpenChange(false)` to `onCancel()`. This is safe because HeroUI's `useControllableState`, in controlled mode, fires `onOpenChange` only on user-driven actions inside the primitive (overlay press, swipe, close button), not when the parent programmatically sets `isOpen=false`. There is therefore no double-call of `onCancel` on the Cancel button path.
+
+**Decision (Tariq, Wave 1 code review):** @dev's caller-wires-onCancel approach is approved over the spec's prose ("internally maps") because: (1) it is functionally identical given HeroUI's controlled-state semantics, (2) the responsibility is explicit at the call site rather than hidden inside `ConfirmSheet`, (3) the spec's own code example already showed the caller wiring pattern, and (4) the "internally maps" prose was a spec contradiction that led to confusion. Updated here to match the shipped implementation.
 
 ### 4.7 Section 6 — Test strategy
 
