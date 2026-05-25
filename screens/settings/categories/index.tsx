@@ -1,13 +1,14 @@
 import { FlashList } from '@shopify/flash-list';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
+import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 import type { Category } from '@/store/category.store';
 
 import { useCategories } from './categories.hook';
@@ -53,45 +54,18 @@ export default function CategoriesScreen() {
   return (
     <Screen edges={['bottom']}>
       {/* Tab switcher */}
-      <View
-        style={{
-          flexDirection: 'row',
-          marginHorizontal: Spacing.sm,
-          marginTop: Spacing.sm,
-          marginBottom: Spacing.sm,
-          backgroundColor: Colors.dark.surfaceEl,
-          borderRadius: Radius.md,
-          padding: 3,
-          gap: 3,
-        }}
-      >
-        {([CategoryType.Expense, CategoryType.Income] as const).map((tab) => (
-          <Pressable
-            key={tab}
-            onPress={() => setActiveTab(tab)}
-            style={[
-              {
-                flex: 1,
-                paddingVertical: Spacing.xs,
-                borderRadius: Radius.sm,
-                alignItems: 'center',
-              },
-              state.activeTab === tab && { backgroundColor: Colors.shared.cairoGold },
-            ]}
-          >
-            <Text
-              className={
-                state.activeTab === tab
-                  ? 'text-accent-foreground font-sora-semi text-base'
-                  : 'text-muted font-inter-medium text-base'
-              }
-            >
-              {tab === CategoryType.Expense
-                ? Strings.categoriesTabExpense
-                : Strings.categoriesTabIncome}
-            </Text>
-          </Pressable>
-        ))}
+      <View style={{ marginHorizontal: Spacing.sm, marginVertical: Spacing.sm }}>
+        <SegmentedTabs<CategoryType>
+          segments={[
+            { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
+            { value: CategoryType.Income, label: Strings.categoriesTabIncome },
+          ]}
+          value={state.activeTab}
+          onValueChange={setActiveTab}
+          variant="solid-gold"
+          listClassName="w-full"
+          accessibilityLabel="Category type"
+        />
       </View>
 
       {/* List or EmptyState — flex:1 via style (not className) per CLAUDE.md Android Fabric rule */}
