@@ -55,6 +55,12 @@ accessibilityLabel?: string           // aria-label on the Tabs.List (tablist)
 
 All three targets are 2-option → `layout="fixed"` (default, no need to pass).
 
+**`Tabs.List` self-start layout (verified from HeroUI source — `tabs.styles.ts`):**
+`Tabs.List` base classes include `self-start`, which overrides `align-self: stretch`. In a column parent this means the list sizes to its content width and left-aligns — it does NOT fill the parent. The bespoke `Pressable` rows were full-width (flex-row containers with `flex-1` children). Adopting `SegmentedTabs` without a `w-full` override collapses the control into a left-aligned, content-width pill — a layout regression on all three targets. Every target call must pass `w-full` in `listClassName` to restore full-width layout.
+
+**`Tabs.Indicator` shadow (verified from HeroUI source — `tabs.styles.ts`):**
+`Tabs.Indicator` primary variant base includes `shadow-sm shadow-surface/25`. The solid-gold indicator therefore inherits a faint shadow the bespoke flat `Pressable` pills lacked. This is noted per-target below as an accepted visual delta. If device QA finds the shadow wrong for a given context, suppress it via `style={{ shadowOpacity: 0, elevation: 0 }}` on `Tabs.Indicator` inside the wrapper — the same `style`-wins-over-className precedent used in SP-2/SP-3 shadow kills. Do not pre-emptively suppress it; it is likely desirable.
+
 **Solid-gold mechanism (verified from source):**
 - `Tabs.Indicator` receives `style={{ backgroundColor: Colors.shared.cairoGold }}`. Background-color is NOT in the Reanimated-animated property set (only `width`, `height`, `translateX`, `opacity` are animated) — the override is safe.
 - The selected `Tabs.Trigger`'s `Tabs.Label` receives `style={{ color: Colors.shared.midnightBlue }}` when `value === seg.value`.
@@ -74,19 +80,22 @@ Note: `useTabsIndicatorAnimation` is NOT exported from `heroui-native` — the f
 
 **Target call:**
 ```tsx
-<SegmentedTabs<CategoryType>
-  segments={[
-    { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
-    { value: CategoryType.Income, label: Strings.categoriesTabIncome },
-  ]}
-  value={state.activeTab}
-  onValueChange={setActiveTab}
-  variant="solid-gold"
-  accessibilityLabel="Category type"
-/>
+<View style={{ marginHorizontal: Spacing.sm, marginVertical: Spacing.sm }}>
+  <SegmentedTabs<CategoryType>
+    segments={[
+      { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
+      { value: CategoryType.Income, label: Strings.categoriesTabIncome },
+    ]}
+    value={state.activeTab}
+    onValueChange={setActiveTab}
+    variant="solid-gold"
+    listClassName="w-full"
+    accessibilityLabel="Category type"
+  />
+</View>
 ```
 
-**Outer spacing preservation:** The retiring `View` carried `marginHorizontal: Spacing.sm`, `marginTop: Spacing.sm`, `marginBottom: Spacing.sm`. `SegmentedTabs` emits a `Tabs.List` which has no outer margin by default. Pass these margins via `listClassName` or wrap in a `<View style={{ marginHorizontal: Spacing.sm, marginVertical: Spacing.sm }}>`. Prefer `listClassName` if the token values map cleanly to Tailwind classes; use a wrapping `View` with `style` props if not (per CLAUDE.md layout-critical container rule).
+**Outer spacing + full-width:** The retiring `View` carried `marginHorizontal: Spacing.sm`, `marginTop: Spacing.sm`, `marginBottom: Spacing.sm` and spanned the full parent width. `Spacing.sm` is `ms(12)` — a responsive scaled value that has no direct Tailwind equivalent, so margin must go on a wrapping `View` with `style` props (per CLAUDE.md layout-critical container rule). `listClassName="w-full"` then makes `Tabs.List` fill that wrapper, overriding `self-start`. Do not attempt to fold the margins into `listClassName` — Tailwind cannot express `ms(12)` safely.
 
 **Import additions needed:** `SegmentedTabs` from `@/components/ui/tabs`. Existing imports of `Colors`, `Radius`, `Spacing` may become unused — remove if so. `Pressable` and `View` (the tab-row View) may become unused — remove if so. Keep `View` for the `style={{ flex: 1 }}` list container below (line 98).
 
@@ -94,6 +103,7 @@ Note: `useTabsIndicatorAnimation` is NOT exported from `heroui-native` — the f
 - Container shape: `Radius.md` (12px) → `rounded-3xl` (~24px). Rounder pill look.
 - Container background: `Colors.dark.surfaceEl` → `bg-default` (maps to `surfaceEl` in theme — effectively same, confirm at QA).
 - Label typography: `font-sora-semi text-base` / `font-inter-medium text-base` → HeroUI `Tabs.Label` default. Near-parity in size; weight/family normalization is accepted.
+- Indicator shadow: the retiring `Pressable` had no shadow on the selected pill; `Tabs.Indicator` inherits `shadow-sm shadow-surface/25` from the HeroUI primary base. Faint shadow is likely desirable. If QA finds it wrong, suppress via `style={{ shadowOpacity: 0, elevation: 0 }}` on `Tabs.Indicator` in the wrapper (same `style`-wins-over-className precedent as SP-2/SP-3 shadow kills).
 
 This is the closest-to-parity target because the current design already uses `cairoGold` fill.
 
@@ -121,19 +131,20 @@ These outer elements belong to **Batch 3** (SP-5). Any reviewer must reject chan
   value={draft.amountCurrency}
   onValueChange={onChangeCurrency}
   variant="solid-gold"
-  listClassName="mb-3"
+  listClassName="w-full mb-3"
   accessibilityLabel="Amount currency"
 />
 ```
 
-**Variant note:** The previous SP-4-WRAPPER design proposed `variant="default"` for this toggle. That was written before the user decision (2026-05-25) that all currency pickers use `solid-gold`. This spec overrides that: use `variant="solid-gold"`. The `bg-background mb-3` outer wrapper is replaced by the `Tabs.List` container (with `mb-3` forwarded via `listClassName`). The retiring `View` can be removed entirely.
+**Variant note:** The previous SP-4-WRAPPER design proposed `variant="default"` for this toggle. That was written before the user decision (2026-05-25) that all currency pickers use `solid-gold`. This spec overrides that: use `variant="solid-gold"`. The `bg-background mb-3` outer wrapper is replaced by the `Tabs.List` container (`w-full` restores full width overriding `self-start`; `mb-3` replicates the retiring View's bottom margin). The retiring `View` and its two `Pressable` children are removed entirely.
 
 **Import additions needed:** `SegmentedTabs` from `@/components/ui/tabs`. `Pressable` and the inner `View` (lines 74–91) become unused — remove them. Keep all other imports; the outer shell still uses `MaterialCommunityIcons`, `Input`, `Text`, etc.
 
 **Accepted visual delta (device QA item):**
 - Selected indicator: grey-pill `bg-default/40` with `text-accent` label → gold fill `cairoGold` + midnight-blue label. This is a visible appearance change. It is intentional and user-approved (currency pickers use solid-gold per the 2026-05-25 decision). Flag prominently in the PR description.
 - Container shape: `rounded-lg` → `rounded-3xl`. Rounder pill look.
-- Label typography: `font-inter text-[11px] font-semibold` → HeroUI `Tabs.Label` default. The `text-[11px]` micro-size will normalize to `text-base`. If QA reveals this is too large for the filter-sheet context, apply `listClassName` or extend with a per-segment `labelClassName` approach — but do not make that call pre-QA.
+- Label typography: `font-inter text-[11px] font-semibold` → HeroUI `Tabs.Label` default (`text-base font-medium`). The `text-[11px]` micro-size normalizes to `text-base` — a significant size jump in the compact filter-sheet context. QA this carefully; if truncation or layout-pressure occurs, extend `SegmentedTabs` with an optional `labelClassName` per segment in a follow-up.
+- Indicator shadow: `Tabs.Indicator` inherits `shadow-sm shadow-surface/25`; the retiring `Pressable` had no shadow. Accepted. If QA finds it wrong in the filter-sheet context, suppress via `style={{ shadowOpacity: 0, elevation: 0 }}` on `Tabs.Indicator` in the wrapper.
 
 ---
 
@@ -157,6 +168,7 @@ The pattern is identical in both files. Both must receive the same change. Apply
   value={selectedCurrency}
   onValueChange={(c) => form.setValue('currency', c)}
   variant="solid-gold"
+  listClassName="w-full"
   accessibilityLabel="Account currency"
 />
 ```
@@ -171,6 +183,7 @@ The pattern is identical in both files. Both must receive the same change. Apply
 - Shape: tall `rounded-[10px] border-[1.5px] px-3 py-3` bordered card pair → compact `rounded-3xl` pill strip. Major height reduction.
 - Selected state: `border-gold-600 bg-[rgba(201,151,58,0.08)]` border highlight → `cairoGold` filled pill indicator. Visible redesign (approved).
 - Label typography: `font-soraBold text-gold-600` / `text-muted` → HeroUI `Tabs.Label` default with solid-gold midnight-blue / muted override.
+- Indicator shadow: `Tabs.Indicator` inherits `shadow-sm shadow-surface/25`; the retiring bordered `Pressable` had no shadow on the label text area. Accepted — faint shadow on a gold pill is consistent with the Cairo Nights palette. If QA finds it wrong, suppress via `style={{ shadowOpacity: 0, elevation: 0 }}` on `Tabs.Indicator` in the wrapper.
 
 ---
 
@@ -200,27 +213,30 @@ These are concise and unambiguous given surrounding labels. No string-key requir
 
 Before opening the PR, the implementer must device-verify:
 
-1. **T1 — solid-gold gold fill renders on the categories Expense/Income switcher.** The `Tabs.Indicator` must show `Colors.shared.cairoGold` fill. The selected label must show `Colors.shared.midnightBlue` text. If either fails: apply the static-style fallback (`isAnimatedStyleActive={false}` on `Tabs.Indicator`, static `style` for position + background). Document in PR description.
+1. **All three targets span the full container width.** `Tabs.List` base carries `self-start` which collapses the list to content-width. The `w-full` in `listClassName` must override it. Confirm each control fills its parent horizontally — no left-aligned, undersized pill strip.
 
-2. **T2 — solid-gold gold fill renders on the filter currency toggle.** Same verification as T1. Additionally confirm the `mb-3` bottom margin via `listClassName` correctly replicates the retiring `mb-3` class on the removed `View`. Verify the toggle is visually contained within the expanded accordion body and does not bleed outside the outer shell.
+2. **T1 — solid-gold gold fill renders on the categories Expense/Income switcher.** The `Tabs.Indicator` must show `Colors.shared.cairoGold` fill. The selected label must show `Colors.shared.midnightBlue` text. If either fails: apply the static-style fallback (`isAnimatedStyleActive={false}` on `Tabs.Indicator`, static `style` for position + background). Document in PR description.
 
-3. **T3 — solid-gold gold fill renders on the add-account currency picker (both screens).** Verify in both `screens/accounts/add_account` AND `screens/onboarding/add_account`. The user-approved visual redesign from bordered-card pair to pill strip must be confirmed to look intentional and not broken. Verify the `selectedCurrency` from `useWatch` correctly drives the `value` prop on mount (pre-selected currency is reflected without user interaction).
+3. **T2 — solid-gold gold fill renders on the filter currency toggle.** Same solid-gold verification as above. Confirm `w-full mb-3` via `listClassName` correctly replicates the retiring View's full width and `mb-3` bottom margin. Verify the toggle is visually contained within the expanded accordion body and does not bleed outside the outer shell.
 
-4. **Outer spacing preservation (T1).** Confirm `Spacing.sm` horizontal + vertical margins around the T1 control match the spacing the retiring `View` provided.
+4. **T3 — solid-gold gold fill renders on the add-account currency picker (both screens).** Verify in both `screens/accounts/add_account` AND `screens/onboarding/add_account`. The user-approved visual redesign from bordered-card pair to pill strip must confirm: (a) the control is full-width, (b) the gold fill and midnight-blue label render, and (c) `selectedCurrency` from `useWatch` correctly drives the `value` prop on mount (pre-selected currency reflected without user interaction).
 
-5. **T2 boundary enforcement.** Confirm the outer accordion shell (header `Pressable`, `View` container, `Input` rows) is 100% untouched. Diff must show changes only in lines 74–91 of `amount_accordion.tsx`.
+5. **Outer spacing preservation (T1).** Confirm the wrapping `<View style={{ marginHorizontal: Spacing.sm, marginVertical: Spacing.sm }}>` produces margins equivalent to the retiring `View`'s `marginHorizontal/Top/Bottom: Spacing.sm`.
 
-6. **`CURRENCY_OPTIONS` cleanup (T3).** Confirm the `const CURRENCY_OPTIONS` declaration is removed from both files if unused.
+6. **T2 boundary enforcement.** Confirm the outer accordion shell (header `Pressable`, `View` container, `Input` rows) is 100% untouched. Diff must show changes only in lines 74–91 of `amount_accordion.tsx`.
+
+7. **`CURRENCY_OPTIONS` cleanup (T3).** Confirm the `const CURRENCY_OPTIONS` declaration is removed from both files if unused.
 
 ### Known risks
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| `bg-segment` className wins over `style` on `Tabs.Indicator` (Unistyles ordering) | Gold fill does not appear | Apply static-style fallback; document in PR |
-| `Tabs.Label` default typography renders too large for the `text-[11px]` T2 filter context | Visual regression in filter sheet | If confirmed at QA, extend `SegmentedTabs` with optional `labelClassName` per segment and forward to `Tabs.Label`; revisit in a follow-up SP |
-| `listClassName` Tailwind class not compiling at runtime in Unistyles | Spacing mismatch | Use a wrapping `View` with `style` prop for any critical spacing (per CLAUDE.md layout-critical container rule) |
-| T3 changes applied to only one of the two screens | Inconsistent UX between onboarding + app | Reviewer must verify both files are changed in the same PR |
-| SP-5 / Batch 3 begins before T2 lands, creating a file conflict on `amount_accordion.tsx` | Merge conflict | SP-4-adoption must merge to `main` before any SP-5 branch edits `amount_accordion.tsx`. This ordering constraint is noted in the parallelization plan. |
+| `w-full` in `listClassName` does not override `self-start` at runtime (Unistyles specificity) | Control collapses to content-width; layout regression on all three targets | Use a wrapping `View` with `style={{ alignSelf: 'stretch' }}` or `style={{ width: '100%' }}` as fallback if `w-full` className loses; document in PR |
+| `bg-segment` className wins over `style` on `Tabs.Indicator` (Unistyles ordering) | Gold fill does not appear | Apply static-style fallback (`isAnimatedStyleActive={false}` + static `style`); document in PR |
+| `Tabs.Label` default `text-base` renders too large for the `text-[11px]` T2 filter context | Label overflow or layout pressure in filter sheet | If confirmed at QA, extend `SegmentedTabs` with optional `labelClassName` per segment; revisit in a follow-up SP |
+| `listClassName` Tailwind class not compiling at runtime in Unistyles | `w-full` / `mb-3` not applied | Fall back to wrapping `View` with `style` props for critical layout (per CLAUDE.md layout-critical container rule) |
+| T3 changes applied to only one of the two screens | Inconsistent UX between onboarding + app flows | Reviewer must verify both `screens/accounts/add_account/index.tsx` and `screens/onboarding/add_account/index.tsx` are changed in the same PR |
+| SP-5 / Batch 3 begins before T2 lands, creating a file conflict on `amount_accordion.tsx` | Merge conflict | SP-4-adoption must merge to `main` before any SP-5 branch edits `amount_accordion.tsx`. Ordering constraint noted in the parallelization plan. |
 
 ---
 
