@@ -2,9 +2,9 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
+import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { GoldTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 
 import { formatSelectionSummary } from '../filter.helpers';
@@ -61,41 +61,18 @@ export function CategoryAccordion({
       </Pressable>
       {expanded ? (
         <View className="mt-3 flex-row flex-wrap gap-1.5">
-          {categories.map((c) => {
-            const selected = selectedIds.includes(c.id);
-            return (
-              <Pressable
-                key={c.id}
-                onPress={() => onToggleId(c.id)}
-                accessibilityRole="button"
-                accessibilityState={{ selected }}
-                accessibilityLabel={`${c.name}, category filter`}
-                className={
-                  selected
-                    ? 'bg-accent/15 border-accent/50 flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
-                    : 'bg-default/40 border-border flex-row items-center gap-1.5 rounded-full border px-2.5 py-1.5'
-                }
-              >
-                <View
-                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-                  style={{ backgroundColor: c.color ?? '#888' }}
-                  className="h-2 w-2 rounded-full"
-                />
-                <Text
-                  className={
-                    selected
-                      ? 'font-inter text-accent text-[11.5px] font-semibold'
-                      : 'font-inter text-foreground/70 text-[11.5px] font-medium'
-                  }
-                >
-                  {c.name}
-                </Text>
-                {selected ? (
-                  <MaterialCommunityIcons name="check" size={12} color={GoldTokens[500]} />
-                ) : null}
-              </Pressable>
-            );
-          })}
+          {categories.map((c) => (
+            <SelectablePill
+              key={c.id}
+              label={c.name}
+              selected={selectedIds.includes(c.id)}
+              onPress={() => onToggleId(c.id)}
+              // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
+              dotColor={c.color ?? '#888'}
+              checkable
+              accessibilityLabel={`${c.name}, category filter`}
+            />
+          ))}
         </View>
       ) : null}
     </View>
