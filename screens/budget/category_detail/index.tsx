@@ -1,7 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -20,14 +21,7 @@ export default function CategoryBudgetDetailScreen() {
   return (
     <Screen>
       <View style={styles.header}>
-        <Pressable
-          onPress={goBack}
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          hitSlop={8}
-        >
-          <MaterialCommunityIcons name="chevron-left" size={ms(28)} color={Colors.dark.text2} />
-        </Pressable>
+        <BackButton onPress={goBack} />
         <View style={[styles.icon, { backgroundColor: `${state.color}22` }]}>
           <MaterialCommunityIcons
             name={toIconName(state.icon, 'tag-outline')}

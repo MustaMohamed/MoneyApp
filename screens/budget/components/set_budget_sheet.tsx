@@ -243,7 +243,11 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
+  // flex:1 fills the sheet body so the expandable category list below can
+  // resolve a real height. Without it the body sizes to content and the
+  // flex:1 BottomSheetFlatList inside the picker collapses to 0px (it never
+  // opens). When the picker is collapsed the form simply top-aligns.
+  body: { flex: 1, paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
   picker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -262,7 +266,12 @@ const styles = StyleSheet.create({
   pickerPlaceholder: { color: Colors.dark.text2 },
   chev: { fontFamily: FontFamily.interRegular, fontSize: Type.title, color: Colors.dark.text2 },
   categoryListContainer: {
-    maxHeight: ms(200),
+    // flex:1 (capped) gives the container a resolved height inside the flex:1
+    // body so the FlatList scrolls; maxHeight keeps it from eating the whole
+    // sheet on tall screens. Selecting a category collapses the picker, which
+    // unmounts this container and reveals the amount field again.
+    flex: 1,
+    maxHeight: ms(240),
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.border,
