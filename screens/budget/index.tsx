@@ -45,7 +45,15 @@ export default function BudgetScreen() {
         <EmptyState variant="budget" onAction={openAdd} />
       )}
 
-      <SetBudgetSheet budgetableCategories={state.budgetableCategories} editingRow={editingRow} />
+      <SetBudgetSheet
+        budgetableCategories={state.budgetableCategories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          icon: c.icon,
+          color: c.color,
+        }))}
+        editingRow={editingRow}
+      />
     </Screen>
   );
 }
