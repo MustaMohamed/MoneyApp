@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { currentYearMonth, lastMonths } from '@/repositories/budget.repository';
@@ -17,7 +17,7 @@ const HISTORY_MONTHS = 12;
 export function useCategoryDetail() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const month = useMemo(() => currentYearMonth(), []);
+  const [month, setMonth] = useState(currentYearMonth);
 
   const { categories, loadCategories } = useCategoryStore(
     useShallow((s) => ({ categories: s.state.categories, loadCategories: s.loadCategories })),
@@ -28,6 +28,7 @@ export function useCategoryDetail() {
 
   useFocusEffect(
     useCallback(() => {
+      setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
       void loadCategories();
       void load();
     }, [loadCategories, load]),

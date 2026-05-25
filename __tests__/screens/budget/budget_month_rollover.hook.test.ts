@@ -1,0 +1,80 @@
+import { act, renderHook } from '@testing-library/react-native';
+
+// Real `currentYearMonth` is used (reads the system clock); only the stores,
+// router, and focus effect are mocked so we can drive focus + time directly.
+
+jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+
+let capturedFocusCallback: (() => void) | null = null;
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useLocalSearchParams: () => ({ id: 'cat-1' }),
+  useFocusEffect: (cb: () => void) => {
+    capturedFocusCallback = cb;
+  },
+}));
+
+jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
+jest.mock('@/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
+
+const { useCategoryStore } = jest.requireMock('@/store/category.store');
+const { useBudgetStore } = jest.requireMock('@/store/budget.store');
+const { useBudgetState } = jest.requireMock('@/screens/budget/budget.state');
+
+import { useBudget } from '@/screens/budget/budget.hook';
+import { useCategoryDetail } from '@/screens/budget/category_detail/category_detail.hook';
+
+function setupStores() {
+  (useCategoryStore as jest.Mock).mockImplementation((sel: any) =>
+    sel({ state: { categories: [] }, loadCategories: jest.fn() }),
+  );
+  (useBudgetStore as jest.Mock).mockImplementation((sel: any) =>
+    sel({ state: { rows: [], spendByMonth: {} }, load: jest.fn() }),
+  );
+  (useBudgetState as jest.Mock).mockImplementation((sel: any) =>
+    sel({ openAdd: jest.fn(), openEdit: jest.fn() }),
+  );
+}
+
+beforeEach(() => {
+  capturedFocusCallback = null;
+  jest.useFakeTimers();
+  setupStores();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+describe('useBudget — month rollover', () => {
+  it('refreshes month when the screen regains focus after a month boundary', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    const { result } = renderHook(() => useBudget());
+    expect(result.current.state.month).toBe('2026-05');
+
+    // A month boundary passes while the screen stays mounted.
+    jest.setSystemTime(new Date('2026-06-15T12:00:00'));
+    act(() => {
+      capturedFocusCallback?.();
+    });
+
+    expect(result.current.state.month).toBe('2026-06');
+  });
+});
+
+describe('useCategoryDetail — month rollover', () => {
+  it('refreshes month when the screen regains focus after a month boundary', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    const { result } = renderHook(() => useCategoryDetail());
+    expect(result.current.state.month).toBe('2026-05');
+
+    jest.setSystemTime(new Date('2026-06-15T12:00:00'));
+    act(() => {
+      capturedFocusCallback?.();
+    });
+
+    expect(result.current.state.month).toBe('2026-06');
+  });
+});

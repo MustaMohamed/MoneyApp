@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
@@ -22,7 +22,7 @@ export interface CategoryBudgetRowVM extends CategoryBudgetVM {
 
 export function useBudget() {
   const router = useRouter();
-  const month = useMemo(() => currentYearMonth(), []);
+  const [month, setMonth] = useState(currentYearMonth);
 
   const { categories, loadCategories } = useCategoryStore(
     useShallow((s) => ({ categories: s.state.categories, loadCategories: s.loadCategories })),
@@ -36,6 +36,7 @@ export function useBudget() {
 
   useFocusEffect(
     useCallback(() => {
+      setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
       void loadCategories();
       void load();
     }, [loadCategories, load]),
