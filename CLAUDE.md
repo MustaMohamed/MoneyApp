@@ -64,6 +64,7 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 3. **Leads approve, not the user.** Sarah approves plans. Tariq approves and merges code reviews. The user is consulted only at the spec sign-off gate, the device QA gate, and on critical triggers — never at routine plan/review checkpoints.
 4. **No code without an approved plan.** @dev does not start until the spec is signed off and Sarah has approved the plan.
 5. **Escalate critical triggers, write down the rest.** When a critical trigger fires, Sarah surfaces it to the user with a recommendation. When personas disagree at the routine level, the responsible lead (Sarah for scope, Tariq for tech) decides and records the rationale in the design doc or PR description.
+6. **Default to subagents.** When a task matches a specialist's domain, dispatch the best-fit subagent automatically rather than doing the work in the main thread — pick by domain (Law 1): product/UX → `@marcus` · financial logic → `@layla` · architecture/synthesis/review → `@tariq` · implementation → `@dev` · orchestration/sequencing → `@sarah`. Use `[name]` inline only for quick consults. When the fit is genuinely unclear — no agent matches, or the task spans several domains with no obvious owner — **ask the user which agent to use, or fall back to the main thread**. The main thread also handles lightweight glue with no domain owner (reads, status checks, routing, trivial one-offs); those need no subagent.
 
 ## Tech Stack
 
