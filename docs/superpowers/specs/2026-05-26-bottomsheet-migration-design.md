@@ -7,10 +7,11 @@
 **Branch (impl, later):** `refactor/bottomsheet-migration`
 
 **Cross-references:**
-- `components/ui/sheet.tsx` — the legacy hand-rolled `@gorhom/bottom-sheet` wrapper being replaced.
-- `components/ui/confirm_sheet.tsx` — shared confirm sheet built on legacy `Sheet`; rebuilt in Wave 1.
+- `components/ui/sheet.tsx` — the legacy hand-rolled `@gorhom/bottom-sheet` wrapper; untouched through Waves 1–4, deleted in Wave 5.
+- `components/ui/bottom_sheet.tsx` — the new HeroUI-backed primitive (created Wave 1, promoted to `sheet.tsx` in Wave 5).
+- `components/ui/confirm_sheet.tsx` — shared confirm sheet; rebuilt on `bottom_sheet.tsx` in Wave 1.
 - `store/sheet_visibility.store.ts` — FAB-hiding counter; contract is preserved unchanged.
-- `__tests__/components/ui/sheet_snap_points.test.ts` — adapted in Wave 1 (snap resolver becomes a pure function).
+- `__tests__/components/ui/sheet_snap_points.test.ts` — rewritten in Wave 1 (imports `resolveSnapPoints` from `bottom_sheet.tsx`; updated to `sheet.tsx` in Wave 5).
 - `__tests__/store/sheet_visibility.store.test.ts` — unchanged; the store contract does not change.
 - `__mocks__/@gorhom/bottom-sheet.tsx` — extended in Wave 1 to support HeroUI BottomSheet usage.
 - `CLAUDE.md` "Bottom Sheets" section — updated in Wave 5 (the last wave).
@@ -28,7 +29,7 @@ The app's bottom-sheet surface has a confirmed, multi-class bug set rooted in it
 
 HeroUI Native (`heroui-native` v1.0.3) already ships a `BottomSheet` compound component (`BottomSheet` / `.Trigger` / `.Portal` / `.Overlay` / `.Content` / `.Close` / `.Title` / `.Description`) that resolves all four classes via `onOpenChange` (all-path close), `useBottomSheetAwareHandlers` (keyboard), gorhom scrollables + enforced `enableOverDrag={false}` / `enableDynamicSizing={false}` / `contentContainerClassName="h-full"` (scroll), and explicit `snapPoints` + `enableDynamicSizing={false}` (snap). `@gorhom/bottom-sheet` stays in the tree as HeroUI's rendering engine — no new dependency, no native code change.
 
-This spec covers the full migration: a new thin `Sheet` primitive composing HeroUI `BottomSheet`, a shared sheet kit for cross-cutting pickers, wave-sequenced migration of all 12+1 consumers, and a final cleanup. The legacy wrapper coexists until Wave 5 so the app stays green throughout.
+This spec covers the full migration: a new thin `Sheet` primitive composing HeroUI `BottomSheet`, a shared sheet kit for cross-cutting pickers, wave-sequenced migration of all 12+1 consumers, and a final cleanup. The coexistence model is: the legacy `components/ui/sheet.tsx` is left **byte-for-byte untouched** throughout Waves 1–4; the new HeroUI-backed primitive is created at a separate transitional path (`components/ui/bottom_sheet.tsx`) in Wave 1. Consumers migrate from the legacy import to the new one wave by wave. Wave 5 deletes the legacy file and promotes `bottom_sheet.tsx` → `sheet.tsx`. There is no shim and no dual-API on a single file; there are simply two distinct files during the transition, and the app is always green.
 
 **Out of scope:** No visual redesign of sheets. Every sheet that is behavior-preserving today stays visually identical. Where a bug fix changes observable behavior (e.g., overlay press now reliably closes), that is intentional and expected.
 
@@ -59,9 +60,11 @@ Not applicable. This is a UI infrastructure migration with no financial logic ch
 
 Team Law 7 forbids hand-rolling a custom or third-party UI component that a HeroUI primitive could cover. It explicitly permits **composing/wrapping** a HeroUI primitive. The new `Sheet` primitive is exactly that: a thin wrapper over `BottomSheet` (Root → Portal → Overlay → Content → Close → Title) that bakes project-specific defaults (snap presets, FAB-hide side-effect, `SHEET_FOOTER_CLEARANCE` export). This is the same precedent as `Screen`/`ScreenScroll`/`Text`/`FAB` — layout or behavioral shells that compose HeroUI, not parallel implementations. The direct `@gorhom/bottom-sheet` wiring in the old `Sheet` is the non-conforming part being eliminated.
 
-### 4.2 Section 1 — New `Sheet` primitive (`components/ui/sheet.tsx`, full rewrite)
+### 4.2 Section 1 — New `Sheet` primitive (`components/ui/bottom_sheet.tsx`, new file)
 
-The legacy file is fully replaced. The new file composes `BottomSheet` from `heroui-native`.
+The legacy `components/ui/sheet.tsx` is left untouched in Wave 1. The new HeroUI-backed primitive is created as a separate file at `components/ui/bottom_sheet.tsx`. Consumers that migrate in Waves 1–4 update their import from `@/components/ui/sheet` to `@/components/ui/bottom_sheet`. In Wave 5, the legacy file is deleted and `bottom_sheet.tsx` is promoted to `sheet.tsx` with a final import-path cleanup pass. This is the mechanism that makes phased coexistence work without a shim.
+
+The new file composes `BottomSheet` from `heroui-native`.
 
 #### 4.2.1 API surface
 
@@ -187,7 +190,7 @@ Background and handle are expressed via `className` on `BottomSheet.Content` (`b
 
 #### 4.2.8 Retained exports
 
-`SHEET_FOOTER_CLEARANCE` is retained with the same value and the same calculation rationale (see existing comment in `sheet.tsx`). `resolveSnapPoints` is newly exported (testable pure function). `useBottomSheetAwareHandlers` is re-exported from `heroui-native` so callers import it from `@/components/ui/sheet` without a new dep.
+`SHEET_FOOTER_CLEARANCE` is carried forward with the same value and the same calculation rationale (see existing comment in the legacy `sheet.tsx`). `resolveSnapPoints` is a new export (testable pure function). `useBottomSheetAwareHandlers` is re-exported from `heroui-native` so callers import it from `@/components/ui/bottom_sheet` (and later `@/components/ui/sheet` after Wave 5) without a direct `heroui-native` dep.
 
 ```ts
 export { useBottomSheetAwareHandlers } from 'heroui-native';
@@ -209,7 +212,7 @@ Moved from `screens/transactions/transaction_form/components/account_picker_shee
 - `screens/commitments/components/commitment_form_body.tsx`
 - `screens/commitments/detail/components/pay_sheet.tsx`
 
-The component's API is unchanged; its internal `Sheet` import is updated to the new primitive and `visible`/`onClose` renamed to `isOpen`/`onOpenChange`.
+The component's API is unchanged; its internal `Sheet` import is updated from `@/components/ui/sheet` to `@/components/ui/bottom_sheet` and `visible`/`onClose` renamed to `isOpen`/`onOpenChange`.
 
 #### 4.3.3 `components/sheets/category_picker_sheet.tsx`
 
@@ -219,40 +222,40 @@ Moved from `screens/transactions/transaction_form/components/category_picker_she
 - `screens/commitments/components/commitment_form_body.tsx`
 - `screens/budget/components/set_budget_sheet.tsx`
 
-Same treatment as account picker.
+Same treatment as account picker — import updated from `@/components/ui/sheet` to `@/components/ui/bottom_sheet`.
 
 #### 4.3.4 `components/ui/confirm_sheet.tsx`
 
-Stays at its current path (it is shared and already in `components/ui/`). Rebuilt on the new primitive in Wave 1. API change: `visible`/`onClose`/`onCancel` → `isOpen`/`onOpenChange`. Its two callers (`skip_confirm_sheet.tsx`, `deactivate_sheet.tsx`) are updated in the same wave.
+Stays at its current path (it is shared and already in `components/ui/`). Rebuilt on the new primitive in Wave 1 — its internal `Sheet` import switches from `@/components/ui/sheet` to `@/components/ui/bottom_sheet`. API change: `visible`/`onClose`/`onCancel` → `isOpen`/`onOpenChange`. Its two callers (`skip_confirm_sheet.tsx`, `deactivate_sheet.tsx`) are updated in the same wave.
 
 ### 4.4 Section 3 — Migration waves
 
-Each wave is one PR with its own device-QA gate. The legacy `Sheet` wrapper continues to function until it is deleted in Wave 5. The HeroUI primitive and the legacy wrapper coexist in the tree across Waves 1–4 — there is no "flag flip" moment that breaks the app mid-migration.
+Each wave is one PR with its own device-QA gate. The coexistence mechanism: `components/ui/sheet.tsx` (the legacy wrapper with the `visible`/`onClose` API) is left byte-for-byte untouched throughout Waves 1–4. The new HeroUI-backed primitive lives at `components/ui/bottom_sheet.tsx` from Wave 1 onward. Migrated consumers switch their import path; un-migrated consumers continue to import from the unchanged legacy file. There is no dual-API on a single component and no flag-flip moment — two distinct files coexist until Wave 5 collapses them.
 
-#### Wave 1 — Foundation (primitive + ConfirmSheet + mocks)
+#### Wave 1 — Foundation (new primitive file + ConfirmSheet + mocks)
 
 Files changed:
-- `components/ui/sheet.tsx` — full rewrite (new HeroUI-backed primitive; legacy internals gone).
-- `components/ui/confirm_sheet.tsx` — rebuilt on new primitive; `visible`/`onClose` → `isOpen`/`onOpenChange`.
+- `components/ui/bottom_sheet.tsx` — **new file**. The HeroUI-backed primitive with the `isOpen`/`onOpenChange` API (see §4.2). `components/ui/sheet.tsx` is NOT touched.
+- `components/ui/confirm_sheet.tsx` — rebuilt to import from `@/components/ui/bottom_sheet`; `visible`/`onClose` → `isOpen`/`onOpenChange`.
 - `screens/commitments/detail/components/skip_confirm_sheet.tsx` — updated to new `ConfirmSheet` API.
 - `screens/commitments/edit_commitment/components/deactivate_sheet.tsx` — updated to new `ConfirmSheet` API.
 - `__mocks__/@gorhom/bottom-sheet.tsx` — extend to add `BottomSheetTextInput` stub if used directly by any remaining consumer; confirm existing exports are still present.
-- `__tests__/components/ui/sheet_snap_points.test.ts` — rewritten to import `resolveSnapPoints` directly and call it as a pure function (no file-read string-matching).
+- `__tests__/components/ui/sheet_snap_points.test.ts` — rewritten to import `resolveSnapPoints` from `@/components/ui/bottom_sheet` and call it as a pure function (no file-read string-matching).
 - Add `__mocks__/heroui-native.tsx` (or extend existing) with a `BottomSheet` jest mock that satisfies the compound component shape, so tests that exercise components importing from `heroui-native` do not break.
 
-At Wave 1 merge: `ConfirmSheet` and its two callers are on the new primitive. All other 11 sheets still use the legacy `Sheet`. App is green.
+At Wave 1 merge: `bottom_sheet.tsx` exists. `ConfirmSheet` and its two callers are on the new primitive. All other 11 sheets still import from the unchanged legacy `sheet.tsx`. App is green.
 
 #### Wave 2 — Shared pickers
 
 Files changed:
-- `components/sheets/account_picker_sheet.tsx` — new file (moved + generalized from `screens/transactions/transaction_form/components/`).
-- `components/sheets/category_picker_sheet.tsx` — new file (moved + generalized).
+- `components/sheets/account_picker_sheet.tsx` — new file (moved + generalized from `screens/transactions/transaction_form/components/`). Imports `Sheet` from `@/components/ui/bottom_sheet` (exists since Wave 1).
+- `components/sheets/category_picker_sheet.tsx` — new file (moved + generalized). Same import.
 - Delete `screens/transactions/transaction_form/components/account_picker_sheet.tsx`.
 - Delete `screens/transactions/transaction_form/components/category_picker_sheet.tsx`.
 - Update 3 callers of each picker to import from `@/components/sheets/` (6 import-path changes).
-- Both pickers now use the new `Sheet` primitive internally (`isOpen`/`onOpenChange`).
+- Both pickers use the new `Sheet` primitive internally (`isOpen`/`onOpenChange`).
 
-At Wave 2 merge: the 2 pickers + ConfirmSheet are on the new primitive. 9 sheets still use legacy.
+At Wave 2 merge: the 2 pickers + ConfirmSheet are on the new primitive. 9 sheets still import from the unchanged legacy `sheet.tsx`.
 
 #### Wave 3 — Transactions sheets
 
@@ -263,7 +266,7 @@ Files changed:
 - `screens/transactions/transaction_form/components/amount_hero.tsx` (uses `BottomSheetTextInput` directly; wire `useBottomSheetAwareHandlers`)
 - `screens/transactions/transaction_form/components/transaction_form_body.tsx` (uses `BottomSheetScrollView` directly)
 
-All migrated to the new primitive. `visible`/`onClose` → `isOpen`/`onOpenChange` at each call site. Test files in `__tests__/screens/transactions/` updated if import paths changed.
+All migrated to import from `@/components/ui/bottom_sheet`. `visible`/`onClose` → `isOpen`/`onOpenChange` at each call site. Test files in `__tests__/screens/transactions/` updated if import paths changed.
 
 #### Wave 4 — Accounts / budget / commitments sheets
 
@@ -275,15 +278,18 @@ Files changed:
 - `screens/settings/categories/components/add_edit_category_sheet.tsx`
 - `screens/settings/categories/components/reassign_category_sheet.tsx`
 
-All migrated. Test files in `__tests__/screens/accounts/`, `__tests__/screens/` for adjust_balance, reassign, add_edit_category updated if import paths changed.
+All migrated to import from `@/components/ui/bottom_sheet`. Test files in `__tests__/screens/accounts/`, `__tests__/screens/` for adjust_balance, reassign, add_edit_category updated if import paths changed.
 
-At Wave 4 merge: all 12 legacy `Sheet` consumers are migrated. The legacy wrapper file still exists but has zero consumers.
+At Wave 4 merge: all 12 legacy `Sheet` consumers have migrated to `bottom_sheet.tsx`. The legacy `components/ui/sheet.tsx` still exists but has zero consumers.
 
 #### Wave 5 — Cleanup and CLAUDE.md update
 
 Files changed:
-- Remove legacy internals from `components/ui/sheet.tsx` — the file now contains only the HeroUI-backed primitive (which was already written in Wave 1; this wave removes any residual legacy export aliases or dead code if they were kept for reference).
-- Update `CLAUDE.md` "Bottom Sheets" section to remove the migration note ("Migration note: `components/ui/sheet.tsx`… slated to migrate…") and replace with the authoritative new guidance.
+- Delete `components/ui/sheet.tsx` (the legacy hand-rolled wrapper — zero consumers after Wave 4).
+- Rename `components/ui/bottom_sheet.tsx` → `components/ui/sheet.tsx` (`git mv`).
+- Update every `@/components/ui/bottom_sheet` import across `components/sheets/`, `components/ui/confirm_sheet.tsx`, and all migrated screen sheets to `@/components/ui/sheet`. This is a mechanical search-and-replace; the component API is unchanged.
+- Update `__tests__/components/ui/sheet_snap_points.test.ts` import from `bottom_sheet` → `sheet`.
+- Update `CLAUDE.md` "Bottom Sheets" section: remove the migration note ("Migration note: `components/ui/sheet.tsx`… slated to migrate…") and replace with the authoritative new guidance reflecting the completed migration.
 - Full-app device-QA gate (walked by the user — always escalated per critical trigger #8).
 
 ### 4.5 Section 4 — Bug-fix mapping
@@ -329,7 +335,7 @@ Policy: logic-only `.ts` tests; no `.tsx` render tests (see CLAUDE.md). Device-Q
 
 | Test file | Change |
 |---|---|
-| `__tests__/components/ui/sheet_snap_points.test.ts` | Rewritten: imports `resolveSnapPoints` from `@/components/ui/sheet` and asserts return values. Removes the file-read string-matching approach (that approach only worked because the snap values were inline literals; with a pure function they are directly testable and much cleaner). |
+| `__tests__/components/ui/sheet_snap_points.test.ts` | Rewritten in Wave 1: imports `resolveSnapPoints` from `@/components/ui/bottom_sheet` and asserts return values directly. Removes the file-read string-matching approach (that approach only worked because the snap values were inline literals; with a pure function they are directly testable and much cleaner). Import path updated to `@/components/ui/sheet` in Wave 5 after the promotion rename. |
 | `__tests__/store/sheet_visibility.store.test.ts` | Unchanged. The store contract (`increment` / `decrement` / `reset` / `useAnySheetOpen`) is identical. |
 | `__tests__/add_edit_category_sheet.state.test.ts` | Update import paths if any changed by Wave 4. Logic unchanged. |
 | `__tests__/adjust_balance_sheet.state.test.ts` | Update import paths if any changed by Wave 4. Logic unchanged. |
@@ -343,13 +349,13 @@ No new `.tsx` test files. Real interaction verification happens at device-QA gat
 
 ### 4.8 Risks and blast radius
 
-**Critical-trigger class:** This is a high blast-radius PR series (critical trigger #3 — V1 deletion in Wave 5, schema-adjacent surface in that the legacy `Sheet` is referenced across the whole app). Escalated to the user before plan-writing begins (spec sign-off gate).
+**Critical-trigger class:** This is a high blast-radius PR series (critical trigger #3 — the legacy `Sheet` is referenced by every sheet in the app, and Wave 5 deletes the original `sheet.tsx` and renames the replacement into its path). Escalated to the user before plan-writing begins (spec sign-off gate).
 
 **No new dependency:** `heroui-native` is already installed and `@gorhom/bottom-sheet` stays. Zero new packages.
 
 **No native code change:** `expo prebuild` output is unaffected. The migration is pure TypeScript/TSX.
 
-**Coexistence strategy:** The legacy `Sheet` wrapper continues to export the same API and work correctly through Waves 1–4. Only Wave 5 removes it. At no point do the legacy and new primitives both exist as the authoritative implementation; Wave 1 replaces the legacy file atomically, so from Wave 1 onward all call sites that have been migrated use the new primitive, and call sites not yet migrated continue to use the rewritten (and now correct) `Sheet`.
+**Coexistence strategy:** `components/ui/sheet.tsx` (the legacy `visible`/`onClose` wrapper) is left byte-for-byte untouched from Wave 1 through Wave 4. The new HeroUI-backed primitive is created at `components/ui/bottom_sheet.tsx` in Wave 1 and exists alongside the legacy file. Migrated consumers switch their import path; un-migrated consumers continue to import from `sheet.tsx` unchanged. There is no dual-API on a single file and no compatibility shim. Wave 5 deletes `sheet.tsx` (zero consumers by then), renames `bottom_sheet.tsx` → `sheet.tsx`, and runs a mechanical import-path cleanup. At no wave boundary does the app have a broken import.
 
 **Device-QA gates:** One per wave, always escalated. Sheets are rich gesture/animation surfaces; logic tests cannot substitute for walking real gestures on device.
 
@@ -357,16 +363,31 @@ No new `.tsx` test files. Real interaction verification happens at device-QA gat
 
 ### 4.9 Folder layout
 
-No new top-level directories. One new directory:
+No new top-level directories. One new directory (`components/sheets/`). File state varies by wave:
+
+**Waves 1–4 (transitional — two sheet files coexist):**
 
 ```
 components/
-  sheets/                     (new — cross-cutting sheets, 2+ consumers)
-    account_picker_sheet.tsx  (moved from screens/transactions/transaction_form/components/)
-    category_picker_sheet.tsx (moved from screens/transactions/transaction_form/components/)
+  sheets/                       (new in Wave 2 — cross-cutting sheets, 2+ consumers)
+    account_picker_sheet.tsx    (moved from screens/.../transaction_form/components/ in Wave 2)
+    category_picker_sheet.tsx   (moved from screens/.../transaction_form/components/ in Wave 2)
   ui/
-    sheet.tsx                 (full rewrite in Wave 1 — new HeroUI-backed primitive)
-    confirm_sheet.tsx         (rebuilt in Wave 1 — stays at this path)
+    sheet.tsx                   (UNCHANGED legacy wrapper — visible/onClose API; untouched Waves 1–4)
+    bottom_sheet.tsx            (NEW in Wave 1 — HeroUI-backed primitive; isOpen/onOpenChange API)
+    confirm_sheet.tsx           (rebuilt in Wave 1 to import from bottom_sheet.tsx)
+```
+
+**Wave 5 (canonical end state — single sheet file):**
+
+```
+components/
+  sheets/
+    account_picker_sheet.tsx    (import updated: bottom_sheet → sheet)
+    category_picker_sheet.tsx   (import updated: bottom_sheet → sheet)
+  ui/
+    sheet.tsx                   (Wave 5: legacy deleted; bottom_sheet.tsx renamed here via git mv)
+    confirm_sheet.tsx           (import updated: bottom_sheet → sheet)
 ```
 
 All single-consumer sheets remain in their screen folders:
@@ -390,7 +411,7 @@ screens/
 
 ## 5. Open Questions
 
-- **Q1 (low, implementation detail):** `sheet_snap_points.test.ts` currently reads `sheet.tsx` from disk as a string and asserts on inline literals. The Wave 1 rewrite makes `resolveSnapPoints` a proper exportable function. Implementors should confirm the test is rewritten in Wave 1 (not deferred to Wave 5) so there is no window where the test is broken.
+- **Q1 (low, implementation detail):** `sheet_snap_points.test.ts` currently reads the legacy `sheet.tsx` from disk as a string and asserts on inline literals. Wave 1 creates `bottom_sheet.tsx` which exports `resolveSnapPoints` as a proper pure function. Implementors should confirm the test is rewritten in Wave 1 to import from `bottom_sheet.tsx` (not deferred to Wave 5) so there is no window where the test is broken against the wrong file.
 
 - **Q2 (low):** `ConfirmSheet` currently ignores `onClose` during `busy=true` by passing `() => {}` to `onClose`. The new primitive uses `onOpenChange`; the same guard must be applied: when `busy`, `onOpenChange` must be a no-op. Implementors should carry this forward explicitly.
 
