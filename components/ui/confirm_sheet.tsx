@@ -1,11 +1,16 @@
 import { View } from 'react-native';
 
+import { Sheet } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 
 interface ConfirmSheetProps {
-  visible: boolean;
+  isOpen: boolean;
+  /**
+   * Called on ALL close paths (swipe, overlay, close button, programmatic).
+   * When busy=true this is a no-op — the sheet cannot be closed.
+   */
+  onOpenChange: (open: boolean) => void;
   title: string;
   body: string;
   confirmLabel: string;
@@ -16,7 +21,8 @@ interface ConfirmSheetProps {
 }
 
 export function ConfirmSheet({
-  visible,
+  isOpen,
+  onOpenChange,
   title,
   body,
   confirmLabel,
@@ -25,27 +31,34 @@ export function ConfirmSheet({
   onCancel,
   busy = false,
 }: ConfirmSheetProps) {
+  // Q2 guard: when busy, suppress all close paths so the sheet stays open
+  // while an async operation is in flight. Same semantics as the legacy
+  // onClose={() => {}} guard — now applied to all-path onOpenChange.
+  const handleOpenChange = (open: boolean) => {
+    if (busy) return;
+    onOpenChange(open);
+    if (!open) onCancel();
+  };
+
   return (
-    <Sheet visible={visible} onClose={busy ? () => {} : onCancel} title={title} size="sm">
-      <Sheet.Body>
-        <View className="gap-4 px-4 pb-6">
-          <Text className="font-inter text-muted text-[15px] leading-6">{body}</Text>
-          <View style={{ flexDirection: 'row' }} className="gap-3">
-            <View style={{ flex: 1 }}>
-              <Button variant="ghost" label={cancelLabel} onPress={onCancel} isDisabled={busy} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button
-                variant="primary"
-                label={confirmLabel}
-                isLoading={busy}
-                isDisabled={busy}
-                onPress={onConfirm}
-              />
-            </View>
+    <Sheet isOpen={isOpen} onOpenChange={handleOpenChange} title={title} size="sm">
+      <View className="gap-4 px-4 pb-6">
+        <Text className="font-inter text-muted text-[15px] leading-6">{body}</Text>
+        <View style={{ flexDirection: 'row' }} className="gap-3">
+          <View style={{ flex: 1 }}>
+            <Button variant="ghost" label={cancelLabel} onPress={onCancel} isDisabled={busy} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Button
+              variant="primary"
+              label={confirmLabel}
+              isLoading={busy}
+              isDisabled={busy}
+              onPress={onConfirm}
+            />
           </View>
         </View>
-      </Sheet.Body>
+      </View>
     </Sheet>
   );
 }
