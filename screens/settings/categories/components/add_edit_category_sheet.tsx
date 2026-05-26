@@ -20,9 +20,10 @@ import {
   SHEET_FOOTER_CLEARANCE,
   useBottomSheetAwareHandlers,
 } from '@/components/ui/bottom_sheet';
+import { Button } from '@/components/ui/button';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { AccountColors, Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { useCategoryStore } from '@/store/category.store';
 import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -181,18 +182,14 @@ export function AddEditCategorySheet({
   });
 
   const footer = (
-    <Pressable
+    <Button
       testID="add-edit-category-save-btn"
-      onPress={() => {
-        void handleSave();
-      }}
-      style={[styles.cta, sheetState.isLoading && styles.ctaDisabled]}
-      disabled={sheetState.isLoading}
-      accessibilityRole="button"
-      accessibilityLabel={Strings.categoriesSaveCta}
-    >
-      <Text style={styles.ctaText}>{Strings.categoriesSaveCta}</Text>
-    </Pressable>
+      variant="primary"
+      label={Strings.categoriesSaveCta}
+      isLoading={sheetState.isLoading}
+      isDisabled={sheetState.isLoading}
+      onPress={() => void handleSave()}
+    />
   );
 
   const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
@@ -397,17 +394,4 @@ const styles = StyleSheet.create({
   colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.sm },
   colorSwatch: { width: ms(28), height: ms(28), borderRadius: ms(14) },
   colorSwatchActive: { borderWidth: 2, borderColor: Colors.dark.text1 },
-  cta: {
-    height: Size.ctaHeight,
-    borderRadius: Radius.cta,
-    backgroundColor: Colors.shared.cairoGold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaDisabled: { opacity: 0.5 },
-  ctaText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.shared.midnightBlue,
-  },
 });

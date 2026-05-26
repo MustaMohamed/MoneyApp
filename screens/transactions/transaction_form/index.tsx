@@ -16,13 +16,13 @@ import { useCallback } from 'react';
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Sheet } from '@/components/ui/bottom_sheet';
+import { Button } from '@/components/ui/button';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
 import { useAddTransaction } from './add_transaction.hook';
 import { NoAccountsEmpty } from './components/no_accounts_empty';
-import { SaveCta } from './components/save_cta';
 import { useEditTransaction } from './edit_transaction.hook';
 import { TransactionFormBody } from './transaction_form_body';
 
@@ -52,12 +52,11 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
         scrollable
         footer={
           hook.state.hasAccounts ? (
-            <SaveCta
-              saving={hook.state.saving}
-              onPress={() => {
-                void hook.handleSave();
-              }}
+            <Button
+              variant="primary"
               label={Strings.addTxSaveCta}
+              isLoading={hook.state.saving}
+              onPress={() => void hook.handleSave()}
             />
           ) : undefined
         }
@@ -170,12 +169,11 @@ function EditSheetInner({
         size="lg"
         scrollable
         footer={
-          <SaveCta
-            saving={hook.state.saving}
-            onPress={() => {
-              void hook.handleSave();
-            }}
+          <Button
+            variant="primary"
             label={Strings.editTxSaveCta}
+            isLoading={hook.state.saving}
+            onPress={() => void hook.handleSave()}
           />
         }
       >

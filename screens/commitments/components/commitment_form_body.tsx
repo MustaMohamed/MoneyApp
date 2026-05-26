@@ -8,6 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
+import { Button } from '@/components/ui/button';
 import { SelectablePill } from '@/components/ui/chip';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -23,7 +24,6 @@ import { Colors, FontFamily, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 import {
@@ -482,7 +482,12 @@ export function CommitmentFormBody({
 
       {/* CTA footer */}
       <View className="border-separator border-t px-4 pt-2 pb-6">
-        <SaveCta saving={saving} onPress={onSubmit} label={Strings.commitmentsSave} />
+        <Button
+          variant="primary"
+          label={Strings.commitmentsSave}
+          isLoading={saving}
+          onPress={onSubmit}
+        />
       </View>
 
       <CategoryPickerSheet

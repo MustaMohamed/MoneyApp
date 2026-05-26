@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/bottom_sheet';
+import { Button } from '@/components/ui/button';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
@@ -57,21 +58,14 @@ export function ReassignCategorySheet({
   };
 
   const footer = (
-    <Pressable
+    <Button
       testID="reassign-cta"
-      onPress={() => {
-        void handleConfirm();
-      }}
-      style={[
-        styles.cta,
-        (!reassignState.selectedId || reassignState.isLoading) && styles.ctaDisabled,
-      ]}
-      disabled={!reassignState.selectedId || reassignState.isLoading}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !reassignState.selectedId || reassignState.isLoading }}
-    >
-      <Text style={styles.ctaText}>{Strings.categoriesReassignConfirm}</Text>
-    </Pressable>
+      variant="primary"
+      label={Strings.categoriesReassignConfirm}
+      isLoading={reassignState.isLoading}
+      isDisabled={!reassignState.selectedId || reassignState.isLoading}
+      onPress={() => void handleConfirm()}
+    />
   );
 
   return (
@@ -164,18 +158,5 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.interMedium,
     fontSize: Type.body,
     color: Colors.dark.text1,
-  },
-  cta: {
-    height: Size.ctaHeight,
-    borderRadius: Radius.cta,
-    backgroundColor: Colors.shared.cairoGold,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  ctaDisabled: { opacity: 0.4 },
-  ctaText: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
-    color: Colors.shared.midnightBlue,
   },
 });

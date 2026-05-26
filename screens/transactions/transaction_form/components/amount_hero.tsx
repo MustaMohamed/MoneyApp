@@ -14,7 +14,7 @@
  */
 import { BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import React, { useEffect, useRef } from 'react';
-import { View } from 'react-native';
+import { Keyboard, View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
 import { useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
@@ -91,12 +91,12 @@ export function AmountHero({
 
   useEffect(() => {
     if (visible) {
-      // 250ms ≈ the BottomSheet snap animation duration. Focusing earlier
-      // causes the keyboard to begin animating up while the sheet is still
-      // mid-snap, producing a visible content jump as the snap target shifts.
-      const timer = setTimeout(() => inputRef.current?.focus(), 250);
+      // 300ms ≈ the BottomSheet snap animation duration + a small margin so the
+      // keyboard and sheet animations don't visually fight after interactions settle.
+      const timer = setTimeout(() => inputRef.current?.focus(), 300);
       return () => clearTimeout(timer);
     }
+    Keyboard.dismiss();
     return undefined;
   }, [visible]);
 

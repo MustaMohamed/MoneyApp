@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -29,12 +29,23 @@ export default function TransactionsScreen(): React.ReactElement {
     useShallow((s) => ({ state: s.state, open: s.open })),
   );
 
-  // Consume a cross-tab open request from the global FAB. Flipping visible
-  // false→true here (after this screen has mounted) is what actually presents
-  // the sheet; the FAB only sets pendingOpen + navigates.
-  useEffect(() => {
-    if (addTxState.pendingOpen) openAddTx();
-  }, [addTxState.pendingOpen, openAddTx]);
+  // Consume a cross-tab open request from the global FAB. Gate on the screen
+  // being focused, then wait out the tab-slide transition before flipping the
+  // sheet open: if isOpen turns true mid-transition the HeroUI/gorhom sheet
+  // mounts its children (so the amount input autofocuses the keyboard) but
+  // skips the present animation — the "keyboard opens, sheet doesn't" symptom.
+  // 250ms ≈ the tab navigation duration. (runAfterInteractions would be ideal
+  // but is @deprecated under the New Architecture.) Tune up if B1 recurs.
+  useFocusEffect(
+    useCallback(() => {
+      if (!useAddTransactionState.getState().state.pendingOpen) return undefined;
+      const timer = setTimeout(() => {
+        useAddTransactionState.getState().open();
+      }, 250);
+      return () => clearTimeout(timer);
+    }, []),
+  );
+
   const { state: filterUiState, setDateRangeSheetVisible } = useFilterState(
     useShallow((s) => ({
       state: s.state,
