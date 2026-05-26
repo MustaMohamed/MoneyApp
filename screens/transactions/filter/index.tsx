@@ -25,18 +25,18 @@ export function FilterSheet(): React.ReactElement {
       scrollable
       title={Strings.filterTitle}
       footer={
-        <View className="px-4 pt-3 pb-6">
-          <Button
-            variant="primary"
-            label={
-              f.state.draftCount > 0
-                ? Strings.filterApplyWithCount(f.state.draftCount)
-                : Strings.filterApply
-            }
-            onPress={f.applyDraft}
-            disabled={f.state.draftCount === 0}
-          />
-        </View>
+        // No padding wrapper — the Sheet footer shell provides horizontal
+        // padding + top hairline + safe-area bottom inset.
+        <Button
+          variant="primary"
+          label={
+            f.state.draftCount > 0
+              ? Strings.filterApplyWithCount(f.state.draftCount)
+              : Strings.filterApply
+          }
+          onPress={f.applyDraft}
+          disabled={f.state.draftCount === 0}
+        />
       }
     >
       {/* Reset link row — Sheet has no headerRight slot so it lives here */}

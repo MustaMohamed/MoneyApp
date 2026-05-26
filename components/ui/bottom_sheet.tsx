@@ -21,6 +21,10 @@
  * FOOTER:
  * Pass footer={<ReactNode>} for a sticky BottomSheetFooter. Consumers must add
  * SHEET_FOOTER_CLEARANCE as paddingBottom to their scrollable contentContainerStyle.
+ * The footer SHELL (see renderFooter) supplies the surface bg, top hairline,
+ * horizontal padding, and safe-area bottom inset — so pass a BARE CTA (or a
+ * layout-only flex-row of CTAs). Do NOT add your own px/pt/pb to the footer
+ * node or it double-pads against the shell.
  *
  * FAB HIDING:
  * This primitive is the SOLE publisher to sheet_visibility.store. The counter
@@ -56,7 +60,8 @@
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
 import React, { useCallback, useEffect } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
@@ -68,10 +73,11 @@ export { useBottomSheetAwareHandlers } from 'heroui-native';
  * SHEET_FOOTER_CLEARANCE — paddingBottom consumers must add to scrollable
  * contentContainerStyle when passing a footer prop.
  *
- * Value: Size.ctaHeight (ms(52)) + ms(48) — same as the legacy sheet.tsx.
+ * Value: Size.ctaHeight (ms(52)) + ms(72) — accounts for the safe-area-aware
+ * footer chrome (separator, paddingTop, paddingBottom with inset).
  * See the legacy file's comment for the full breakdown.
  */
-export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
+export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(72);
 
 /**
  * Size presets (7-step scale, user-defined heights).
@@ -84,22 +90,42 @@ export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
  * xl   85%  — near-full
  * xxl  95%  — full-bleed (leaves a sliver at top)
  */
-const SNAP_POINTS: Record<'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl', string[]> = {
-  xxs: ['25%'],
-  xs: ['35%'],
-  sm: ['45%'],
-  md: ['60%'],
-  lg: ['75%'],
-  xl: ['85%'],
-  xxl: ['95%'],
+const SHEET_SIZES = ['xxs', 'xs', 'sm', 'md', 'lg', 'xl', 'xxl'] as const;
+type SheetSize = (typeof SHEET_SIZES)[number];
+
+/** Size preset → snap percentage (7-step scale, user-defined). */
+const SIZE_PCT: Record<SheetSize, string> = {
+  xxs: '25%',
+  xs: '35%',
+  sm: '45%',
+  md: '60%',
+  lg: '75%',
+  xl: '85%',
+  xxl: '95%',
 };
+
+/**
+ * A single snap stop. Either a size preset token ('sm' → '45%'), a raw
+ * percentage string ('45%'), or a pixel number.
+ */
+export type SnapPoint = SheetSize | `${number}%` | number;
+
+function isSheetSize(p: SnapPoint): p is SheetSize {
+  return typeof p === 'string' && (SHEET_SIZES as readonly string[]).includes(p);
+}
+
+/** Map one snap stop: size token → percentage; raw %/pixel pass through. */
+function resolveSnapPoint(p: SnapPoint): string | number {
+  return isSheetSize(p) ? SIZE_PCT[p] : p;
+}
 
 /** Pure resolver — exported for unit testing in sheet_snap_points.test.ts */
 export function resolveSnapPoints(
   size: SheetProps['size'],
   snapPoints: SheetProps['snapPoints'],
-): string[] {
-  return snapPoints ?? SNAP_POINTS[size ?? 'lg'];
+): (string | number)[] {
+  if (snapPoints !== undefined) return snapPoints.map(resolveSnapPoint);
+  return [SIZE_PCT[size ?? 'lg']];
 }
 
 export interface SheetProps {
@@ -107,20 +133,20 @@ export interface SheetProps {
   onOpenChange: (open: boolean) => void;
   title?: string;
   /**
-   * Preset size. Resolves to snapPoints via SNAP_POINTS map.
+   * Preset size. Resolves to snapPoints via SIZE_PCT map.
    * Overridden by explicit snapPoints prop.
    * Ignored when fitContent=true.
    *
    * 7-step scale: xxs=25%, xs=35%, sm=45%, md=60%, lg=75%, xl=85%, xxl=95%
    * Default: lg (75%).
    */
-  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
+  size?: SheetSize;
   /**
    * Explicit snap points. Overrides size when provided.
-   * Pass gorhom-style string values: ['50%'], ['45%', '92%'], etc.
+   * Pass size tokens (['sm','xl']), raw percentages (['45%','92%']), or pixel numbers.
    * Ignored when fitContent=true.
    */
-  snapPoints?: string[];
+  snapPoints?: SnapPoint[];
   /**
    * Opt-in scrollable mode. When true, bakes:
    *   enableOverDrag={false}
@@ -147,9 +173,11 @@ export interface SheetProps {
    */
   fitContent?: boolean;
   /**
-   * Sticky footer rendered via gorhom footerComponent.
-   * Consumers must add SHEET_FOOTER_CLEARANCE as paddingBottom to
-   * their scrollable contentContainerStyle.
+   * Sticky footer rendered via gorhom footerComponent. Pass a BARE CTA — the
+   * footer shell adds surface bg, top hairline, horizontal padding, and a
+   * safe-area bottom inset. Do NOT wrap it in your own px/pt/pb (double-pads).
+   * Consumers must add SHEET_FOOTER_CLEARANCE as paddingBottom to their
+   * scrollable contentContainerStyle.
    */
   footer?: React.ReactNode;
   children: React.ReactNode;
@@ -168,6 +196,7 @@ export function Sheet({
 }: SheetProps) {
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
+  const insets = useSafeAreaInsets();
 
   // FAB-hide: increment on open, decrement on close or unmount-while-open.
   useEffect(() => {
@@ -184,10 +213,26 @@ export function Sheet({
     (props: BottomSheetFooterProps) =>
       footer !== undefined ? (
         <BottomSheetFooter {...props}>
-          <React.Fragment>{footer}</React.Fragment>
+          <View
+            testID="sheet-footer"
+            style={{
+              backgroundColor: Colors.dark.surface,
+              borderTopWidth: StyleSheet.hairlineWidth,
+              borderTopColor: Colors.dark.border,
+              paddingTop: Spacing.xs,
+              paddingHorizontal: Spacing.md,
+              // Safe-area-aware: lift the CTA off the screen's bottom gesture
+              // bar (min Spacing.lg breathing room when no inset). Restores the
+              // footer chrome the legacy sheet.tsx had — the new primitive had
+              // dropped it, leaving the CTA flush against the screen edge.
+              paddingBottom: Math.max(insets.bottom, Spacing.lg),
+            }}
+          >
+            {footer}
+          </View>
         </BottomSheetFooter>
       ) : null,
-    [footer],
+    [footer, insets.bottom],
   );
 
   // fitContent mode: enableDynamicSizing=true, snapPoints omitted — gorhom
