@@ -2,8 +2,8 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import React, { useState, useEffect } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
-import { Sheet } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';

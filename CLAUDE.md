@@ -179,7 +179,7 @@ Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirec
 
 Installed catalog (`heroui-native` v1.0.3 — check it before writing anything): Accordion, Alert, Avatar, **BottomSheet**, Button, Card, Checkbox, Chip, CloseButton, Dialog, Input (+ InputGroup, InputOTP, TextField, TextArea, SearchField), Label, LinkButton, ListGroup, Menu (+ SubMenu), Popover, PressableFeedback, Radio (+ RadioGroup), ScrollShadow, Select, Separator, Skeleton (+ SkeletonGroup), Slider, Spinner, Surface, Switch, Tabs, TagGroup, Text, Toast, and form helpers (ControlField, Description, FieldError).
 
-Project wrappers in `components/ui/` compose HeroUI: `Screen`, `ScreenScroll`, `Text`, `EmptyState`, `SettingsSection`, `FAB` (and the legacy `Sheet`, being migrated — see Bottom Sheets). Compose these.
+Project wrappers in `components/ui/` compose HeroUI: `Screen`, `ScreenScroll`, `Text`, `EmptyState`, `SettingsSection`, `FAB`, `Sheet` (HeroUI-backed — see Bottom Sheets). Compose these.
 
 **Introducing a custom or third-party UI component that a HeroUI primitive could cover is a critical trigger — it needs sign-off + a written "no HeroUI primitive fits" justification.** If a HeroUI primitive almost fits but needs tweaks, compose/wrap it — never build a parallel implementation. The only standing non-HeroUI primitives are layout/effect pieces HeroUI does not provide (`Screen`/`ScreenScroll` full-screen layout, the gold-gradient `HeroShell`, `FAB`, SVG textures); extend that list only with sign-off.
 
@@ -211,7 +211,7 @@ import { BottomSheet, Button } from 'heroui-native';
 **Scrollable content:** import `BottomSheetScrollView` / `BottomSheetFlatList` from `@gorhom/bottom-sheet` (NOT `react-native`) and nest inside `BottomSheet.Content`; set `enableOverDrag={false}`, `enableDynamicSizing={false}`, and a fixed height via `contentContainerClassName="h-full"`.
 **Keyboard-aware inputs:** wire `useBottomSheetAwareHandlers()` onto the input's `onFocus`/`onBlur` and set `keyboardBehavior="extend"` on `Content`.
 
-**Migration note:** `components/ui/sheet.tsx` (the legacy hand-rolled `@gorhom` wrapper with declarative `visible`/`onClose`) is **non-conforming** and slated to migrate to HeroUI `BottomSheet` in a dedicated cycle (high blast radius — touches every sheet, device-QA gated). Until then: do not add new `@gorhom` wrappers — build new sheets on HeroUI `BottomSheet` directly.
+**`Sheet` wrapper:** every sheet in the app goes through the HeroUI-backed `Sheet` primitive at `components/ui/sheet.tsx` — a thin declarative wrapper (`isOpen`/`onOpenChange`, `size`, `scrollable`, `footer`) composing HeroUI `BottomSheet`. The migration off the old hand-rolled `@gorhom` wrapper is complete; no imperative gorhom-ref wrapper exists anywhere. Build new sheets on `Sheet` (or HeroUI `BottomSheet` directly); never hand-roll a new `@gorhom` wrapper.
 
 ## Patches
 

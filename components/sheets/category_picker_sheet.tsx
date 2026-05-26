@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, useWindowDimensions, View } from 'react-native';
 
-import { Sheet } from '@/components/ui/bottom_sheet';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';

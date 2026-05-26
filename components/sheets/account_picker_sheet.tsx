@@ -3,7 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
-import { Sheet } from '@/components/ui/bottom_sheet';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';

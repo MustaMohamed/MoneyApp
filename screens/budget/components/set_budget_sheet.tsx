@@ -5,8 +5,8 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
-import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
