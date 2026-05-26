@@ -1,3 +1,4 @@
+import { Text } from 'heroui-native';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -7,8 +8,6 @@ import { Button } from '@/components/ui/button';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
-import { Text } from 'heroui-native';
-
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -111,9 +110,7 @@ export function AdjustBalanceSheet({
               isInvalid={!!adjustState.error}
             />
           </View>
-          <Text className="text-muted font-sora-bold text-[15px]">
-            {currency}
-          </Text>
+          <Text className="text-muted font-sora-bold text-[15px]">{currency}</Text>
         </Box>
         <FormErrorText message={adjustState.error || undefined} />
       </Box>

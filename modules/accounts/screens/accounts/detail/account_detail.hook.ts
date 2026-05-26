@@ -5,9 +5,9 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
-import { useAccountStore } from '../../../store/account.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { useAccountStore } from '../../../store/account.store';
 import { useAccountDetailState } from './account_detail.state';
 
 export function useAccountDetail() {

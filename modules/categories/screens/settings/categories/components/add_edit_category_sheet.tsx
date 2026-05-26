@@ -3,13 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { PressableFeedback, Text } from 'heroui-native';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
-import {
-  type BlurEvent,
-  FlatList,
-  type FocusEvent,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { type BlurEvent, FlatList, type FocusEvent, StyleSheet, View } from 'react-native';
 import { z } from 'zod/v4';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -21,7 +15,11 @@ import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Radius, Spacing } from '@/constants/theme';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/modules/categories/store/category.store';
+import type {
+  Category,
+  NewCategoryInput,
+  UpdateCategoryInput,
+} from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -203,7 +201,7 @@ export function AddEditCategorySheet({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text className="font-inter-medium text-muted mb-1 mt-3 text-xs tracking-wider">
+        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesNameLabel.toUpperCase()}
         </Text>
         <NameField
@@ -216,7 +214,7 @@ export function AddEditCategorySheet({
 
         {!isEditing && (
           <>
-            <Text className="font-inter-medium text-muted mb-1 mt-3 text-xs tracking-wider">
+            <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
               {Strings.categoriesTypeLabel}
             </Text>
             <SegmentedTabs<CategoryType>
@@ -233,7 +231,7 @@ export function AddEditCategorySheet({
           </>
         )}
 
-        <Text className="font-inter-medium text-muted mb-1 mt-3 text-xs tracking-wider">
+        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesIconLabel}
         </Text>
         {sheetState.iconError ? (
@@ -269,7 +267,7 @@ export function AddEditCategorySheet({
           style={styles.iconGrid}
         />
 
-        <Text className="font-inter-medium text-muted mb-1 mt-3 text-xs tracking-wider">
+        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesColorLabel}
         </Text>
         <View style={styles.colorRow}>

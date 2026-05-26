@@ -1,8 +1,8 @@
 import { cn } from 'heroui-native';
+import { Text } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Text } from 'heroui-native';
 import { formatAmount } from '@/utils/format_amount';
 
 const SIZE_AMOUNT: Record<string, string> = {
@@ -33,7 +33,10 @@ export function AmountDisplay({
   className,
 }: AmountDisplayProps) {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'baseline' }} className={cn('gap-1', className)}>
+    <View
+      style={{ flexDirection: 'row', alignItems: 'baseline' }}
+      className={cn('gap-1', className)}
+    >
       <Text className={SIZE_AMOUNT[size]}>{formatAmount(amount, decimals)}</Text>
       <Text className={SIZE_CURRENCY[size]}>{currency}</Text>
     </View>

@@ -1,9 +1,13 @@
 import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
-import { getCategoryTransactionCount } from '@/modules/categories/database/categories';
 import { getDb } from '@/database/client';
-import type { Category, NewCategoryInput, UpdateCategoryInput } from '@/modules/categories/store/category.store';
+import { getCategoryTransactionCount } from '@/modules/categories/database/categories';
+import type {
+  Category,
+  NewCategoryInput,
+  UpdateCategoryInput,
+} from '@/modules/categories/store/category.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 import { useCategoriesScreenState } from './categories.state';

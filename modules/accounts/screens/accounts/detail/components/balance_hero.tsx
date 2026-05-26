@@ -1,17 +1,16 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Text } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
-
-import { Text } from 'heroui-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
 import { StatusBadge } from '@/components/ui/status_badge';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
-import type { Account } from '../../../../store/account.store';
 import { formatAmount } from '@/utils/format_amount';
 
+import type { Account } from '../../../../store/account.store';
 import { buildHeroCaption } from './balance_hero.helpers';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -46,7 +45,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
       <View className="px-4 py-4">
         {/* Label + type chip row */}
         <View style={{ flexDirection: 'row' }} className="items-center justify-between">
-          <Text className="text-foreground/70 tracking-wider uppercase font-inter text-[11px]">
+          <Text className="text-foreground/70 font-inter text-[11px] tracking-wider uppercase">
             {Strings.accountDetailBalance}
           </Text>
           <StatusBadge
@@ -60,14 +59,18 @@ export function BalanceHero({ account }: BalanceHeroProps) {
         {/* Balance */}
         <Text
           numberOfLines={1}
-          className={isCC ? 'text-danger mt-1 font-sora-bold text-[20px] tabular-nums' : 'text-accent mt-1 font-sora-bold text-[20px] tabular-nums'}
+          className={
+            isCC
+              ? 'text-danger font-sora-bold mt-1 text-[20px] tabular-nums'
+              : 'text-accent font-sora-bold mt-1 text-[20px] tabular-nums'
+          }
         >
           {formatAmount(account.current_balance)} {account.currency}
         </Text>
 
         {/* Context caption */}
         <Text
-          className="text-foreground/55 mt-1 font-inter text-[11px]"
+          className="text-foreground/55 font-inter mt-1 text-[11px]"
           style={caption.color ? { color: caption.color } : undefined}
         >
           {caption.text}

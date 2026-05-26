@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+
 import type { Account } from '../store/account.store';
 
 export function createAddAccountSchema(accounts: Account[]) {

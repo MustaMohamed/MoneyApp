@@ -3,7 +3,6 @@ import React from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
 
-import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { ColorSwatchPicker } from '@/components/ui/color_swatch_picker';
@@ -16,19 +15,14 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CurrencySelector } from '@/modules/currency';
 
+import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
 import { useAddAccountAnim } from './add_account.anim';
 import { ACCOUNT_COLORS, useAddAccountApp } from './add_account.hook';
 
 export default function AddAccountAppScreen() {
   const { form, handleSave, onBack } = useAddAccountApp();
-  const {
-    btnAnim,
-    triggerBtnPress,
-    ccEntering,
-    ccExiting,
-    aprEntering,
-    aprExiting,
-  } = useAddAccountAnim();
+  const { btnAnim, triggerBtnPress, ccEntering, ccExiting, aprEntering, aprExiting } =
+    useAddAccountAnim();
   const {
     control,
     formState: { errors, isSubmitting },
@@ -200,7 +194,7 @@ export default function AddAccountAppScreen() {
 
             {/* Interest Tracking */}
             <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
-              <Text className="font-inter font-semibold text-foreground text-[15px]">
+              <Text className="font-inter text-foreground text-[15px] font-semibold">
                 {Strings.o4InterestLabel}
               </Text>
               <Switch
@@ -228,9 +222,7 @@ export default function AddAccountAppScreen() {
                     />
                   )}
                 />
-                <Text className="text-muted font-inter mt-1 text-[11px]">
-                  {Strings.o4AprHint}
-                </Text>
+                <Text className="text-muted font-inter mt-1 text-[11px]">{Strings.o4AprHint}</Text>
                 <FormErrorText message={errors.apr?.message} />
               </Animated.View>
             )}

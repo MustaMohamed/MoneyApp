@@ -15,7 +15,10 @@ import * as SQLite from 'expo-sqlite';
 
 import { CategoryType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
-import { CategoryRepository, type NewCategoryInput } from '@/modules/categories/repositories/category.repository';
+import {
+  CategoryRepository,
+  type NewCategoryInput,
+} from '@/modules/categories/repositories/category.repository';
 
 // ----- UUID mock override so each category gets a deterministic unique id -----
 // Variable must start with 'mock' (case-insensitive) to be accessible inside jest.mock factory

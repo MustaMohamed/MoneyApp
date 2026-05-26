@@ -1,15 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { PressableFeedback, Text } from 'heroui-native';
 import { View } from 'react-native';
 
-import { PressableFeedback, Text } from 'heroui-native';
-
-import { TYPE_OPTIONS } from './account_type_pill';
 import { Sheet } from '@/components/ui/sheet';
 import { CoreTokens } from '@/constants/theme_tokens';
-import type { Account } from '../entities/account.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
+
+import type { Account } from '../entities/account.entity';
+import { TYPE_OPTIONS } from './account_type_pill';
 
 interface Props {
   isOpen: boolean;

@@ -1,6 +1,5 @@
-import { type Currency } from '@/constants/enums';
-
 import { CURRENCY_CONFIG } from '@/constants/currency';
+import { type Currency } from '@/constants/enums';
 
 export function formatAmount(value: number, decimals = 0): string {
   return new Intl.NumberFormat('en-US', {

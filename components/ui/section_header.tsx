@@ -1,7 +1,7 @@
+import { Text } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Text } from 'heroui-native';
 import { Colors } from '@/constants/theme';
 
 export interface SectionHeaderProps {
@@ -12,10 +12,10 @@ export interface SectionHeaderProps {
 export function SectionHeader({ title, count }: SectionHeaderProps) {
   return (
     <View
-      className="mx-4 mb-2 mt-4 flex-row items-center justify-between"
+      className="mx-4 mt-4 mb-2 flex-row items-center justify-between"
       style={{ flexDirection: 'row' }}
     >
-      <Text className="font-inter text-[12px] text-muted font-semibold uppercase tracking-wide">
+      <Text className="font-inter text-muted text-[12px] font-semibold tracking-wide uppercase">
         {title}
       </Text>
       {count !== undefined && count > 0 ? (
@@ -25,7 +25,10 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
             backgroundColor: `${Colors.shared.cairoGold}22`,
           }}
         >
-          <Text className="font-sora text-[12px] font-bold" style={{ color: Colors.shared.cairoGold }}>
+          <Text
+            className="font-sora text-[12px] font-bold"
+            style={{ color: Colors.shared.cairoGold }}
+          >
             {count}
           </Text>
         </View>

@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ListGroup, PressableFeedback, Separator, Text } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
@@ -8,7 +9,6 @@ import { ColorSwatchPicker } from '@/components/ui/color_swatch_picker';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
-import { ListGroup, PressableFeedback, Separator, Text } from 'heroui-native';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
@@ -43,12 +43,7 @@ export default function AccountDetailScreen() {
     handleArchive,
     onBack,
   } = useAccountDetail();
-  const {
-    headerStyle,
-    triggerEditToggle,
-    fieldEntering,
-    fieldExiting,
-  } = useAccountDetailAnim();
+  const { headerStyle, triggerEditToggle, fieldEntering, fieldExiting } = useAccountDetailAnim();
   const {
     control,
     formState: { errors },
@@ -145,7 +140,11 @@ export default function AccountDetailScreen() {
               <Separator className="mx-4" />
               <ListGroup.Item onPress={() => setArchiveVisible(true)}>
                 <ListGroup.ItemPrefix>
-                  <MaterialCommunityIcons name="archive" size={20} color={SemanticTokens.negative} />
+                  <MaterialCommunityIcons
+                    name="archive"
+                    size={20}
+                    color={SemanticTokens.negative}
+                  />
                 </ListGroup.ItemPrefix>
                 <ListGroup.ItemContent>
                   <ListGroup.ItemTitle className="text-danger">

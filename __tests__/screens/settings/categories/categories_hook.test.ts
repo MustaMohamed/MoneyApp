@@ -39,8 +39,8 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
-import { getCategoryTransactionCount } from '@/modules/categories/database/categories';
 import { getDb } from '@/database/client';
+import { getCategoryTransactionCount } from '@/modules/categories/database/categories';
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Category } from '@/modules/categories/store/category.store';

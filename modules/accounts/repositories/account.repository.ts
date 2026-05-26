@@ -1,5 +1,7 @@
 import uuid from 'react-native-uuid';
 
+import { getDb } from '@/database/client';
+
 import {
   addAccount,
   archiveAccount,
@@ -7,7 +9,6 @@ import {
   setAccountBalance,
   updateAccount,
 } from '../database/accounts';
-import { getDb } from '@/database/client';
 import type { Account } from '../entities/account.entity';
 
 export type NewAccountInput = Omit<

@@ -8,10 +8,10 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { Colors, Radius, Size, Spacing } from '@/constants/theme';
+import type { Category } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-import type { Category } from '@/modules/categories/store/category.store';
 import { useReassignCategorySheetState } from './reassign_category_sheet.state';
 
 interface ReassignCategorySheetProps {
@@ -81,14 +81,10 @@ export function ReassignCategorySheet({
       scrollable
       footer={footer}
     >
-      <Text
-        className="font-inter-regular text-muted px-4 mb-1 text-base"
-      >
+      <Text className="font-inter-regular text-muted mb-1 px-4 text-base">
         {Strings.categoriesReassignSubtitle(linkedCount)}
       </Text>
-      <Text
-        className="font-inter-regular text-muted px-4 mb-4 text-base"
-      >
+      <Text className="font-inter-regular text-muted mb-4 px-4 text-base">
         {Strings.categoriesReassignBody}
       </Text>
 

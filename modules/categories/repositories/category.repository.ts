@@ -1,5 +1,6 @@
 import uuid from 'react-native-uuid';
 
+import { getDb } from '@/database/client';
 import {
   addCategory,
   deleteCategory,
@@ -8,7 +9,6 @@ import {
   getCategoryTransactionCount,
   updateCategory,
 } from '@/modules/categories/database/categories';
-import { getDb } from '@/database/client';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 export type NewCategoryInput = Pick<Category, 'name' | 'type' | 'icon' | 'color'>;

@@ -7,6 +7,7 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
+
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -80,9 +81,7 @@ export function TypePill({
         )}
       >
         <MaterialCommunityIcons name={option.icon} size={18} color={iconColor} />
-        <Text
-          className={cn('font-sora-bold', isSelected ? 'text-gold-600' : 'text-muted')}
-        >
+        <Text className={cn('font-sora-bold', isSelected ? 'text-gold-600' : 'text-muted')}>
           {option.label}
         </Text>
       </PressableFeedback>

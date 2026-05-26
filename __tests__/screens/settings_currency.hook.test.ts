@@ -74,7 +74,9 @@ describe('useCurrencyScreen', () => {
 
   it('handleFetchRate sets fetchError on rejection', async () => {
     const setFetchErrorMock = jest.fn();
-    const { useCurrencyScreenState } = require('@/modules/currency/screens/currency/currency.state');
+    const {
+      useCurrencyScreenState,
+    } = require('@/modules/currency/screens/currency/currency.state');
     (useCurrencyScreenState as jest.Mock).mockImplementation((sel: any) =>
       sel({
         state: { isFetching: false, isSaving: false, fetchError: '' },
@@ -98,7 +100,9 @@ describe('useCurrencyScreen', () => {
 
   it('handleFetchRate clears fetchError before fetching', async () => {
     const setFetchErrorMock = jest.fn();
-    const { useCurrencyScreenState } = require('@/modules/currency/screens/currency/currency.state');
+    const {
+      useCurrencyScreenState,
+    } = require('@/modules/currency/screens/currency/currency.state');
     (useCurrencyScreenState as jest.Mock).mockImplementation((sel: any) =>
       sel({
         state: { isFetching: false, isSaving: false, fetchError: 'old error' },

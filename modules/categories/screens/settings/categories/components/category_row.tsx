@@ -7,10 +7,9 @@ import { Text } from '@/components/ui/text';
 // now uses category.is_default === 1 (see: fix/section-4-lock-all-defaults).
 // The constant remains in constants/enums.ts as a documented historical artifact.
 import { Colors, Radius, Size, Spacing } from '@/constants/theme';
+import type { Category } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
-
-import type { Category } from '@/modules/categories/store/category.store';
 
 interface CategoryRowProps {
   category: Category;
