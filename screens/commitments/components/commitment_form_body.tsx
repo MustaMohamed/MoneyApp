@@ -52,7 +52,7 @@ interface CommitmentFormBodyProps {
   onSubmit: () => void;
   title: string;
   locked?: boolean;
-  /** Optional slot rendered between the scroll content and the SaveCta footer — used by EditCommitmentScreen to render the Deactivate link inside the Screen layout. */
+  /** Optional slot rendered between the scroll content and the CTA footer — used by EditCommitmentScreen to render the Deactivate link inside the Screen layout. */
   footerExtra?: React.ReactNode;
 }
 
