@@ -7,9 +7,8 @@ import Animated from 'react-native-reanimated';
 import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Input } from '@/components/ui/input';
-import { Pressable } from '@/components/ui/pressable';
+import { PressableFeedback, Text } from 'heroui-native';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { Text } from 'heroui-native';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 
@@ -71,21 +70,21 @@ export default function AccountDetailScreen() {
           </Text>
 
           {isEditing ? (
-            <Pressable
+            <PressableFeedback
               onPress={() => {
                 triggerEditToggle();
                 void handleSave();
               }}
-              disabled={isSaving}
+              isDisabled={isSaving}
               hitSlop={hitSlop}
               className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
             >
               <Text className="font-sora-bold text-accent-foreground text-[11px]">
                 {Strings.accountDetailSave}
               </Text>
-            </Pressable>
+            </PressableFeedback>
           ) : (
-            <Pressable
+            <PressableFeedback
               onPress={() => {
                 triggerEditToggle();
                 setEditing(true);
@@ -96,7 +95,7 @@ export default function AccountDetailScreen() {
               <Text className="font-sora-bold text-accent text-[11px]">
                 {Strings.accountDetailEdit}
               </Text>
-            </Pressable>
+            </PressableFeedback>
           )}
         </Box>
       </Animated.View>
@@ -144,7 +143,7 @@ export default function AccountDetailScreen() {
               render={({ field: { value, onChange } }) => (
                 <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
                   {ACCOUNT_COLORS.map((c) => (
-                    <Pressable key={c} onPress={() => onChange(c)} className="p-0.5">
+                    <PressableFeedback key={c} onPress={() => onChange(c)} className="p-0.5">
                       <Box
                         className={
                           value === c
@@ -153,7 +152,7 @@ export default function AccountDetailScreen() {
                         }
                         style={{ backgroundColor: c }}
                       />
-                    </Pressable>
+                    </PressableFeedback>
                   ))}
                 </Box>
               )}
@@ -163,7 +162,7 @@ export default function AccountDetailScreen() {
 
         {!isEditing && (
           <Box className="bg-surface border-border mx-4 mt-5 overflow-hidden rounded-2xl border">
-            <Pressable
+            <PressableFeedback
               onPress={() => setAdjustVisible(true)}
               style={{ flexDirection: 'row', minHeight: 48 }}
               className="items-center gap-3 px-4 py-3"
@@ -173,11 +172,11 @@ export default function AccountDetailScreen() {
                 {Strings.accountDetailAdjustBalance}
               </Text>
               <MaterialCommunityIcons name="chevron-right" size={20} color={CoreTokens.text2} />
-            </Pressable>
+            </PressableFeedback>
 
             <View className="border-separator border-t" style={{ marginHorizontal: 16 }} />
 
-            <Pressable
+            <PressableFeedback
               onPress={() => setArchiveVisible(true)}
               style={{ flexDirection: 'row', minHeight: 48 }}
               className="items-center gap-3 px-4 py-3"
@@ -191,7 +190,7 @@ export default function AccountDetailScreen() {
                 size={20}
                 color={SemanticTokens.negative}
               />
-            </Pressable>
+            </PressableFeedback>
           </Box>
         )}
       </ScreenScroll>

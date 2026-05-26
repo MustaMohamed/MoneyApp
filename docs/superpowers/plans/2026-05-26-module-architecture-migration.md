@@ -83,6 +83,7 @@ Apply to **every file touched** during its module migration. Do not fix files th
 | Inline label `Text` / StyleSheet label | → `<FormLabelText label={...} />` |
 | Inline `SegmentedTabs<Currency>` segment definitions | → `<CurrencySelector>` from `@/modules/currency` |
 | Inline `new Intl.NumberFormat(...)` | → `formatAmount()` / `formatCurrencyAmount()` from `@/utils/format_amount` |
+| `<Pressable>` from `@/components/ui/pressable` | → `<PressableFeedback>` from `heroui-native` — swap `disabled` → `isDisabled`; use `animation={false}` when a parent `Animated.View` already handles the spring |
 
 ---
 

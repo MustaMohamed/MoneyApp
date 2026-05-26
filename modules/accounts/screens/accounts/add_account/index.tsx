@@ -1,4 +1,4 @@
-import { Switch, Text, cn } from 'heroui-native';
+import { PressableFeedback, Switch, Text, cn } from 'heroui-native';
 import React from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
@@ -8,7 +8,6 @@ import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Pressable } from '@/components/ui/pressable';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -150,7 +149,7 @@ export default function AddAccountAppScreen() {
           </Text>
           <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
             {ACCOUNT_COLORS.map((color) => (
-              <Pressable
+              <PressableFeedback
                 key={color}
                 onPress={() => form.setValue('selected_color', color)}
                 className="p-0.5"
@@ -162,7 +161,7 @@ export default function AddAccountAppScreen() {
                   )}
                   style={{ backgroundColor: color }}
                 />
-              </Pressable>
+              </PressableFeedback>
             ))}
           </Box>
         </Box>

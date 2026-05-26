@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { cn } from 'heroui-native';
+import { PressableFeedback, Text, cn } from 'heroui-native';
 import React from 'react';
 import Animated, {
   useAnimatedStyle,
@@ -7,10 +7,6 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
-
-import { Text } from 'heroui-native';
-
-import { Pressable } from '@/components/ui/pressable';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
@@ -71,7 +67,8 @@ export function TypePill({
       style={[pillAnim, { borderRadius: 8 }]}
       className={option.fullWidth ? 'w-full' : 'w-[48.5%]'}
     >
-      <Pressable
+      <PressableFeedback
+        animation={false}
         onPress={() => {
           triggerPillTap();
           onSelect();
@@ -88,7 +85,7 @@ export function TypePill({
         >
           {option.label}
         </Text>
-      </Pressable>
+      </PressableFeedback>
     </Animated.View>
   );
 }
