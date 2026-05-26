@@ -3,8 +3,8 @@ import Animated from 'react-native-reanimated';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import type { Commitment } from '@/database/entities/commitment.entity';
-import { DetailRow } from '@/screens/transactions/detail/components/detail_row';
-import { DetailRowsCard } from '@/screens/transactions/detail/components/detail_rows_card';
+import { DetailRow } from '@/modules/transactions/screens/transactions/detail/components/detail_row';
+import { DetailRowsCard } from '@/modules/transactions/screens/transactions/detail/components/detail_rows_card';
 import { formatLongDate } from '@/utils/format_date';
 
 import { cardEntering } from '../detail.anim';

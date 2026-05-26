@@ -5,7 +5,7 @@ import type {
   NewTransactionInput,
   TransactionListQuery,
   UpdateTransactionInput,
-} from '@/repositories/transaction.repository';
+} from '@/modules/transactions/repositories/transaction.repository';
 import { useTransactionStore } from '@/store/transaction.store';
 import { createTransactionStore, PAGE_SIZE } from '@/store/transaction.store';
 

@@ -16,8 +16,8 @@ import type { Category } from '@/database/entities/category.entity';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { toIconName } from '@/utils/icon_name_guard';
 
-import { useRowPressScale } from './transaction_row.anim';
 import type { Transaction } from '../../../entities/transaction.entity';
+import { useRowPressScale } from './transaction_row.anim';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 

@@ -1,4 +1,4 @@
-import { useFilterState } from '@/screens/transactions/filter/filter.state';
+import { useFilterState } from '@/modules/transactions/screens/transactions/filter/filter.state';
 
 beforeEach(() => {
   useFilterState.getState().reset();

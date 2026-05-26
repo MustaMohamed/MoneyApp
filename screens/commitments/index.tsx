@@ -5,7 +5,7 @@ import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
-import { DateHeader } from '@/screens/transactions/components/date_header';
+import { DateHeader } from '@/modules/transactions/screens/transactions/components/date_header';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { useCommitments } from './commitments.hook';

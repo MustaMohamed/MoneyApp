@@ -7,9 +7,9 @@ import { getDb } from '@/database/client';
 import { getPeriodTotals, type PeriodTotals } from '@/database/transactions';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
-import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 

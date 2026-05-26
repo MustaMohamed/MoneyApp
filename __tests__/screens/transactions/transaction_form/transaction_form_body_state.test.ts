@@ -1,4 +1,4 @@
-import { useTransactionFormBodyState } from '@/screens/transactions/transaction_form/transaction_form_body.state';
+import { useTransactionFormBodyState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body.state';
 
 describe('useTransactionFormBodyState', () => {
   beforeEach(() => {

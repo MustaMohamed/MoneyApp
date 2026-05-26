@@ -6,9 +6,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
-import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 

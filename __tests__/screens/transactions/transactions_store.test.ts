@@ -1,6 +1,9 @@
 import { TransactionType } from '@/constants/enums';
-import { EMPTY_FILTERS_V2, type AdvancedFilters } from '@/screens/transactions/filter/filter.store';
-import { useTransactionsScreenStore } from '@/screens/transactions/transactions.store';
+import {
+  EMPTY_FILTERS_V2,
+  type AdvancedFilters,
+} from '@/modules/transactions/screens/transactions/filter/filter.store';
+import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 
 beforeEach(() => {
   useTransactionsScreenStore.getState().reset();

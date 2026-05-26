@@ -8,10 +8,10 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
+
 import { EditTransactionSheet } from '../transaction_form';
 import { useEditTransactionState } from '../transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '../transaction_form/edit_transaction.store';
-
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
 import { DetailHero } from './components/detail_hero';

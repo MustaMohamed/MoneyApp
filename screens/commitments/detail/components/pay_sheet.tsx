@@ -16,7 +16,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
+import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 

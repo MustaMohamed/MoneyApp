@@ -5,7 +5,7 @@ import {
   previousPeriod,
   computeDeltaPct,
   polarityColor,
-} from '@/screens/transactions/transactions.helpers';
+} from '@/modules/transactions/screens/transactions/transactions.helpers';
 
 describe('currentYearMonth', () => {
   it('returns YYYY-MM for a Date', () => {
