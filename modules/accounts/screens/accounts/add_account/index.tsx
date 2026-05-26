@@ -240,7 +240,7 @@ export default function AddAccountAppScreen() {
               triggerBtnPress();
               void handleSave();
             }}
-            disabled={isSubmitting}
+            isDisabled={isSubmitting}
           />
         </Animated.View>
       </Box>

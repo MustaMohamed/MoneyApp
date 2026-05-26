@@ -4,7 +4,7 @@ import { AccountType } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
 import { useAccountStore } from '@/store/account.store';
-import { useOnboardingStore } from '@/store/onboarding.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -17,8 +17,7 @@ jest.mock('@/store/account.store', () => ({
     getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
   }),
 }));
-jest.mock('@/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => require('@/store/onboarding.store'));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockAddAccount = jest.fn().mockResolvedValue(undefined);

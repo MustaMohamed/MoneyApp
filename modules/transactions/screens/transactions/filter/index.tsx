@@ -35,7 +35,7 @@ export function FilterSheet(): React.ReactElement {
               : Strings.filterApply
           }
           onPress={f.applyDraft}
-          disabled={f.state.draftCount === 0}
+          isDisabled={f.state.draftCount === 0}
         />
       }
     >
