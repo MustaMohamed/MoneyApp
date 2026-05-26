@@ -39,10 +39,9 @@
  * BottomSheet.Title is kept so the `nativeID={id}_label` accessibility linkage
  * remains intact; its default className is overridden to match legacy styling.
  *
- * SIZE PRESETS (7-step scale):
- * xxs=25%, xs=40%, sm=50%, md=75%, lg=92%, xl=96%, xxl=100%
- * Existing sm/md/lg values are unchanged — in-flight consumers are device-QA gated.
- * xxl=100% is full-bleed; device QA should verify it does not obscure the status bar.
+ * SIZE PRESETS (7-step scale, user-defined):
+ * xxs=25%, xs=35%, sm=45%, md=60%, lg=75%, xl=85%, xxl=95%
+ * Default size is lg (75%). Consumers select a preset via the `size` prop.
  *
  * CONTENT PADDING (QA fix):
  * HeroUI's contentContainer tv() base includes `p-5` (20 px on all sides).
@@ -75,25 +74,24 @@ export { useBottomSheetAwareHandlers } from 'heroui-native';
 export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
 
 /**
- * Size presets (7-step scale). Existing sm/md/lg values are frozen — in-flight
- * consumers are device-QA gated on these exact heights.
+ * Size presets (7-step scale, user-defined heights).
  *
  * xxs  25%  — compact confirm/alert sheets
- * xs   40%  — small pickers / short lists
- * sm   50%  — half-screen (legacy, unchanged)
- * md   75%  — three-quarter (legacy, unchanged)
- * lg   92%  — tall (legacy, unchanged; 92% > 85% — fits tall-status-bar devices)
- * xl   96%  — near-full without status bar overlap
- * xxl  100% — full-bleed; device QA should verify status bar clearance
+ * xs   35%  — small pickers / short lists
+ * sm   45%  — under half-screen
+ * md   60%  — over half-screen
+ * lg   75%  — tall (default)
+ * xl   85%  — near-full
+ * xxl  95%  — full-bleed (leaves a sliver at top)
  */
 const SNAP_POINTS: Record<'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl', string[]> = {
   xxs: ['25%'],
-  xs: ['40%'],
-  sm: ['50%'],
-  md: ['75%'],
-  lg: ['92%'],
-  xl: ['96%'],
-  xxl: ['100%'],
+  xs: ['35%'],
+  sm: ['45%'],
+  md: ['60%'],
+  lg: ['75%'],
+  xl: ['85%'],
+  xxl: ['95%'],
 };
 
 /** Pure resolver — exported for unit testing in sheet_snap_points.test.ts */
@@ -113,8 +111,8 @@ export interface SheetProps {
    * Overridden by explicit snapPoints prop.
    * Ignored when fitContent=true.
    *
-   * 7-step scale: xxs=25%, xs=40%, sm=50%, md=75%, lg=92%, xl=96%, xxl=100%
-   * Default: lg (92%).
+   * 7-step scale: xxs=25%, xs=35%, sm=45%, md=60%, lg=75%, xl=85%, xxl=95%
+   * Default: lg (75%).
    */
   size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
   /**

@@ -8,46 +8,40 @@
 import { resolveSnapPoints } from '@/components/ui/bottom_sheet';
 
 describe('resolveSnapPoints', () => {
-  // --- legacy presets (values frozen — in-flight consumers are device-QA gated) ---
-
-  it('sm preset resolves to 50%', () => {
-    expect(resolveSnapPoints('sm', undefined)).toEqual(['50%']);
-  });
-
-  it('md preset resolves to 75%', () => {
-    expect(resolveSnapPoints('md', undefined)).toEqual(['75%']);
-  });
-
-  it('lg preset resolves to 92%', () => {
-    expect(resolveSnapPoints('lg', undefined)).toEqual(['92%']);
-  });
-
-  it('lg snap point is NOT 85% (old value removed)', () => {
-    expect(resolveSnapPoints('lg', undefined)).not.toContain('85%');
-  });
-
-  // --- new presets (7-step scale) ---
+  // --- 7-step scale (user-defined heights) ---
 
   it('xxs preset resolves to 25%', () => {
     expect(resolveSnapPoints('xxs', undefined)).toEqual(['25%']);
   });
 
-  it('xs preset resolves to 40%', () => {
-    expect(resolveSnapPoints('xs', undefined)).toEqual(['40%']);
+  it('xs preset resolves to 35%', () => {
+    expect(resolveSnapPoints('xs', undefined)).toEqual(['35%']);
   });
 
-  it('xl preset resolves to 96%', () => {
-    expect(resolveSnapPoints('xl', undefined)).toEqual(['96%']);
+  it('sm preset resolves to 45%', () => {
+    expect(resolveSnapPoints('sm', undefined)).toEqual(['45%']);
   });
 
-  it('xxl preset resolves to 100%', () => {
-    expect(resolveSnapPoints('xxl', undefined)).toEqual(['100%']);
+  it('md preset resolves to 60%', () => {
+    expect(resolveSnapPoints('md', undefined)).toEqual(['60%']);
+  });
+
+  it('lg preset resolves to 75%', () => {
+    expect(resolveSnapPoints('lg', undefined)).toEqual(['75%']);
+  });
+
+  it('xl preset resolves to 85%', () => {
+    expect(resolveSnapPoints('xl', undefined)).toEqual(['85%']);
+  });
+
+  it('xxl preset resolves to 95%', () => {
+    expect(resolveSnapPoints('xxl', undefined)).toEqual(['95%']);
   });
 
   // --- default fallback ---
 
-  it('defaults to lg (92%) when size is undefined', () => {
-    expect(resolveSnapPoints(undefined, undefined)).toEqual(['92%']);
+  it('defaults to lg (75%) when size is undefined', () => {
+    expect(resolveSnapPoints(undefined, undefined)).toEqual(['75%']);
   });
 
   // --- explicit snapPoints override ---
