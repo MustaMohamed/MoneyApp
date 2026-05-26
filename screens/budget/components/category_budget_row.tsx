@@ -70,7 +70,14 @@ export function CategoryBudgetRow({ row, onPress }: CategoryBudgetRowProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: ms(10), paddingVertical: Spacing.xs },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: ms(10),
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.dark.border,
+  },
   icon: {
     width: ms(32),
     height: ms(32),
