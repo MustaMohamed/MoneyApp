@@ -1,3 +1,4 @@
+import { Colors } from '@/constants/theme';
 import type { Budget } from '@/database/entities/budget.entity';
 
 export const BUDGET_WARNING_THRESHOLD = 0.8;
@@ -51,6 +52,31 @@ export function resolveLimitForMonth(
     if (best === null || r.effective_from > best.effective_from) best = r;
   }
   return best ? best.limit_amount : null;
+}
+
+/**
+ * Maps a spend percentage to a budget band colour token.
+ * Uses Colors.dark — the codebase is dark-mode first for runtime colour refs.
+ *
+ * Boundary: pct === 1.0 (exactly 100%) → budgetNear (red), NOT budgetOver.
+ * Only strictly pct > 1 → budgetOver (dark red).
+ */
+export function budgetBandColor(pct: number): string {
+  if (pct > 1) return Colors.dark.budgetOver; // > 100%
+  if (pct >= 0.9) return Colors.dark.budgetNear; // 90–100%
+  if (pct >= 0.8) return Colors.dark.budgetWatch; // 80–90%
+  if (pct >= 0.5) return Colors.dark.budgetSteady; // 50–80%
+  return Colors.dark.budgetUnder; // < 50%
+}
+
+/**
+ * Computes the remaining display from `limit - spent`.
+ * Returns { magnitude: absolute value, label: 'left' | 'over' }.
+ * The row renders: `{formatAmount(magnitude)} {label}`.
+ */
+export function remainingLabel(remaining: number): { magnitude: number; label: 'left' | 'over' } {
+  if (remaining >= 0) return { magnitude: remaining, label: 'left' };
+  return { magnitude: Math.abs(remaining), label: 'over' };
 }
 
 export function computeStatus(spent: number, limit: number): BudgetStatus {
