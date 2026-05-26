@@ -9,6 +9,7 @@ import {
   computeStatus,
   resolveLimitForMonth,
 } from '@/screens/budget/budget.helpers';
+import { useBudgetState } from '@/screens/budget/budget.state';
 import { useBudgetStore } from '@/store/budget.store';
 import { useCategoryStore } from '@/store/category.store';
 
@@ -25,6 +26,7 @@ export function useCategoryDetail() {
   const { budgetState, load } = useBudgetStore(
     useShallow((s) => ({ budgetState: s.state, load: s.load })),
   );
+  const { openEdit } = useBudgetState(useShallow((s) => ({ openEdit: s.openEdit })));
 
   useFocusEffect(
     useCallback(() => {
@@ -77,5 +79,13 @@ export function useCategoryDetail() {
       month,
     },
     goBack: () => router.back(),
+    // Edit the active budget: open the set/edit sheet (the budget overview is the
+    // single owner of SetBudgetSheet) in edit mode, then pop back so it surfaces
+    // there. Avoids a double-rendered sheet from two screens.
+    editBudget: () => {
+      if (!id) return;
+      router.back();
+      openEdit(id);
+    },
   };
 }
