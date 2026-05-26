@@ -10,6 +10,7 @@ const fakeCategory: Category = {
   color: '#C9973A',
   is_default: 0,
   sort_order: 0,
+  budget_group: null,
   created_at: '2026-05-01T00:00:00.000Z',
   updated_at: '2026-05-01T00:00:00.000Z',
 };

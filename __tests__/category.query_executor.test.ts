@@ -67,6 +67,7 @@ const customRow: Omit<Category, 'created_at' | 'updated_at'> = {
   color: '#C9973A',
   is_default: 0,
   sort_order: 99,
+  budget_group: null,
 };
 
 describe('getCategories', () => {
