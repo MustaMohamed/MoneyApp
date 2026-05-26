@@ -68,11 +68,13 @@ export interface SheetProps {
   /**
    * Preset size. Resolves to snapPoints via SNAP_POINTS map.
    * Overridden by explicit snapPoints prop.
+   * Ignored when fitContent=true.
    */
   size?: 'sm' | 'md' | 'lg';
   /**
    * Explicit snap points. Overrides size when provided.
    * Pass gorhom-style string values: ['50%'], ['45%', '92%'], etc.
+   * Ignored when fitContent=true.
    */
   snapPoints?: string[];
   /**
@@ -82,8 +84,24 @@ export interface SheetProps {
    *   contentContainerClassName="h-full"
    * Children must use BottomSheetScrollView / BottomSheetFlatList
    * from @gorhom/bottom-sheet — not react-native ScrollView.
+   *
+   * Mutually exclusive with fitContent. If both are passed, fitContent
+   * wins — a content-hugging sheet has no bounded height to scroll inside.
    */
   scrollable?: boolean;
+  /**
+   * Content-hug mode. When true, the sheet sizes to exactly its content
+   * height with no fixed snap point (gorhom enableDynamicSizing=true,
+   * snapPoints omitted). Ideal for confirm/alert sheets whose content
+   * height is well-defined and small.
+   *
+   * DEFAULT: false — all other sheets use the fixed sm/md/lg snap
+   * contract to prevent content-height drift.
+   *
+   * Mutually exclusive with scrollable (scrollable needs a bounded
+   * parent height; fitContent removes that bound). fitContent wins.
+   */
+  fitContent?: boolean;
   /**
    * Sticky footer rendered via gorhom footerComponent.
    * Consumers must add SHEET_FOOTER_CLEARANCE as paddingBottom to
@@ -100,10 +118,10 @@ export function Sheet({
   size,
   snapPoints,
   scrollable = false,
+  fitContent = false,
   footer,
   children,
 }: SheetProps) {
-  const resolvedSnapPoints = resolveSnapPoints(size, snapPoints);
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
 
@@ -128,25 +146,34 @@ export function Sheet({
     [footer],
   );
 
+  // fitContent mode: enableDynamicSizing=true, snapPoints omitted — gorhom
+  // sizes the sheet to its content height. scrollable is incompatible (needs
+  // a bounded parent) so it is ignored when fitContent is true.
+  const contentSizingProps = fitContent
+    ? { enableDynamicSizing: true as const }
+    : {
+        snapPoints: resolveSnapPoints(size, snapPoints),
+        enableDynamicSizing: false as const,
+        ...(scrollable
+          ? {
+              enableOverDrag: false,
+              contentContainerClassName: 'h-full',
+            }
+          : {}),
+      };
+
   return (
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
         <BottomSheet.Overlay />
         <BottomSheet.Content
-          snapPoints={resolvedSnapPoints}
-          enableDynamicSizing={false}
+          {...contentSizingProps}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
           android_keyboardInputMode="adjustResize"
           enablePanDownToClose
           backgroundClassName="bg-surface"
           handleIndicatorClassName="bg-border"
-          {...(scrollable
-            ? {
-                enableOverDrag: false,
-                contentContainerClassName: 'h-full',
-              }
-            : {})}
           {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
         >
           {title !== undefined && (
