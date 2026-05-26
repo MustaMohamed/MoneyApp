@@ -1,4 +1,4 @@
-import { PressableFeedback, Switch, Text, cn } from 'heroui-native';
+import { Switch, Text } from 'heroui-native';
 import React from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
@@ -6,8 +6,10 @@ import Animated from 'react-native-reanimated';
 import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { ColorSwatchPicker } from '@/components/ui/color_swatch_picker';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import { FormSectionLabel } from '@/components/ui/form_section_label';
+import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { AccountType } from '@/constants/enums';
@@ -32,7 +34,6 @@ export default function AddAccountAppScreen() {
     formState: { errors, isSubmitting },
   } = form;
   const selectedType = useWatch({ control, name: 'selected_type' });
-  const selectedColor = useWatch({ control, name: 'selected_color' });
   const selectedCurrency = useWatch({ control, name: 'currency' });
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
   const isCreditCard = selectedType === AccountType.CreditCard;
@@ -46,9 +47,7 @@ export default function AddAccountAppScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Account Type */}
-        <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-          {Strings.o4SectionType}
-        </Text>
+        <FormSectionLabel>{Strings.o4SectionType}</FormSectionLabel>
         <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
           {TYPE_OPTIONS.map((opt) => (
             <TypePill
@@ -62,9 +61,7 @@ export default function AddAccountAppScreen() {
 
         {/* Account Name */}
         <Box className="pt-1">
-          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-            {Strings.o4SectionName}
-          </Text>
+          <FormSectionLabel>{Strings.o4SectionName}</FormSectionLabel>
           <Controller
             control={control}
             name="name"
@@ -84,9 +81,7 @@ export default function AddAccountAppScreen() {
 
         {/* Currency */}
         <Box className="pt-1">
-          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-            {Strings.o4SectionCurrency}
-          </Text>
+          <FormSectionLabel>{Strings.o4SectionCurrency}</FormSectionLabel>
           <CurrencySelector
             value={selectedCurrency}
             onChange={(c) => form.setValue('currency', c)}
@@ -95,9 +90,7 @@ export default function AddAccountAppScreen() {
 
         {/* Balance */}
         <Box className="pt-1">
-          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-            {Strings.o4SectionBalance}
-          </Text>
+          <FormSectionLabel>{Strings.o4SectionBalance}</FormSectionLabel>
           <Controller
             control={control}
             name="balance"
@@ -117,26 +110,14 @@ export default function AddAccountAppScreen() {
 
         {/* Color picker */}
         <Box className="pt-1">
-          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-            {Strings.o4SectionColor}
-          </Text>
-          <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-            {ACCOUNT_COLORS.map((color) => (
-              <PressableFeedback
-                key={color}
-                onPress={() => form.setValue('selected_color', color)}
-                className="p-0.5"
-              >
-                <Box
-                  className={cn(
-                    'h-8 w-8 rounded-full',
-                    selectedColor === color && 'border-gold-500 scale-110 border-2',
-                  )}
-                  style={{ backgroundColor: color }}
-                />
-              </PressableFeedback>
-            ))}
-          </Box>
+          <FormSectionLabel>{Strings.o4SectionColor}</FormSectionLabel>
+          <Controller
+            control={control}
+            name="selected_color"
+            render={({ field: { value, onChange } }) => (
+              <ColorSwatchPicker colors={ACCOUNT_COLORS} value={value} onChange={onChange} />
+            )}
+          />
         </Box>
 
         {/* CC conditional fields */}
@@ -144,9 +125,7 @@ export default function AddAccountAppScreen() {
           <Animated.View entering={ccEntering} exiting={ccExiting} className="pt-1">
             {/* Revolving Balance */}
             <Box className="pt-1">
-              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-                {Strings.o4SectionRevolving}
-              </Text>
+              <FormSectionLabel>{Strings.o4SectionRevolving}</FormSectionLabel>
               <Controller
                 control={control}
                 name="revolving_balance"
@@ -163,9 +142,7 @@ export default function AddAccountAppScreen() {
 
             {/* Credit Limit */}
             <Box className="pt-1">
-              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-                {Strings.o4SectionLimit}
-              </Text>
+              <FormSectionLabel>{Strings.o4SectionLimit}</FormSectionLabel>
               <Controller
                 control={control}
                 name="credit_limit"
@@ -185,9 +162,7 @@ export default function AddAccountAppScreen() {
 
             {/* Min Payment */}
             <Box className="pt-1">
-              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-                {Strings.o4SectionMinPayment}
-              </Text>
+              <FormSectionLabel>{Strings.o4SectionMinPayment}</FormSectionLabel>
               <Controller
                 control={control}
                 name="min_payment"
@@ -207,9 +182,7 @@ export default function AddAccountAppScreen() {
 
             {/* Due Day */}
             <Box className="pt-1">
-              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-                {Strings.o4SectionDueDay}
-              </Text>
+              <FormSectionLabel>{Strings.o4SectionDueDay}</FormSectionLabel>
               <Controller
                 control={control}
                 name="due_day"
@@ -240,9 +213,7 @@ export default function AddAccountAppScreen() {
             {/* APR (when interest tracking ON) */}
             {interestTracking && (
               <Animated.View entering={aprEntering} exiting={aprExiting} className="pt-1">
-                <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
-                  {Strings.o4SectionApr}
-                </Text>
+                <FormSectionLabel>{Strings.o4SectionApr}</FormSectionLabel>
                 <Controller
                   control={control}
                   name="apr"

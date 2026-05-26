@@ -1,13 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Controller } from 'react-hook-form';
-import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
+import { ColorSwatchPicker } from '@/components/ui/color_swatch_picker';
 import { FormErrorText } from '@/components/ui/form_error_text';
+import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
-import { PressableFeedback, Text } from 'heroui-native';
+import { ListGroup, PressableFeedback, Separator, Text } from 'heroui-native';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
@@ -102,9 +103,7 @@ export default function AccountDetailScreen() {
 
         {isEditing && (
           <Animated.View entering={fieldEntering} exiting={fieldExiting} className="mx-4 mt-4">
-            <Text className="font-sora-bold text-gold-500 pb-2 text-xs tracking-widest uppercase">
-              {Strings.o4SectionName}
-            </Text>
+            <FormSectionLabel>{Strings.o4SectionName}</FormSectionLabel>
             <Controller
               control={control}
               name="name"
@@ -120,63 +119,42 @@ export default function AccountDetailScreen() {
             />
             <FormErrorText message={errors.name?.message} />
 
-            <Text className="font-sora-bold text-gold-500 pt-3 pb-2 text-xs tracking-widest uppercase">
-              {Strings.o4SectionColor}
-            </Text>
+            <FormSectionLabel>{Strings.o4SectionColor}</FormSectionLabel>
             <Controller
               control={control}
               name="color"
               render={({ field: { value, onChange } }) => (
-                <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-                  {ACCOUNT_COLORS.map((c) => (
-                    <PressableFeedback key={c} onPress={() => onChange(c)} className="p-0.5">
-                      <Box
-                        className={
-                          value === c
-                            ? 'border-gold-500 h-8 w-8 scale-110 rounded-full border-2'
-                            : 'h-8 w-8 rounded-full'
-                        }
-                        style={{ backgroundColor: c }}
-                      />
-                    </PressableFeedback>
-                  ))}
-                </Box>
+                <ColorSwatchPicker colors={ACCOUNT_COLORS} value={value} onChange={onChange} />
               )}
             />
           </Animated.View>
         )}
 
         {!isEditing && (
-          <Box className="bg-surface border-border mx-4 mt-5 overflow-hidden rounded-2xl border">
-            <PressableFeedback
-              onPress={() => setAdjustVisible(true)}
-              style={{ flexDirection: 'row', minHeight: 48 }}
-              className="items-center gap-3 px-4 py-3"
-            >
-              <MaterialCommunityIcons name="pencil" size={20} color={CoreTokens.text2} />
-              <Text className="text-foreground flex-1 font-inter text-[15px]">
-                {Strings.accountDetailAdjustBalance}
-              </Text>
-              <MaterialCommunityIcons name="chevron-right" size={20} color={CoreTokens.text2} />
-            </PressableFeedback>
-
-            <View className="border-separator border-t" style={{ marginHorizontal: 16 }} />
-
-            <PressableFeedback
-              onPress={() => setArchiveVisible(true)}
-              style={{ flexDirection: 'row', minHeight: 48 }}
-              className="items-center gap-3 px-4 py-3"
-            >
-              <MaterialCommunityIcons name="archive" size={20} color={SemanticTokens.negative} />
-              <Text className="text-danger flex-1 font-inter text-[15px]">
-                {Strings.accountDetailArchive}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={20}
-                color={SemanticTokens.negative}
-              />
-            </PressableFeedback>
+          <Box className="mx-4 mt-5">
+            <ListGroup>
+              <ListGroup.Item onPress={() => setAdjustVisible(true)}>
+                <ListGroup.ItemPrefix>
+                  <MaterialCommunityIcons name="pencil" size={20} color={CoreTokens.text2} />
+                </ListGroup.ItemPrefix>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle>{Strings.accountDetailAdjustBalance}</ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+                <ListGroup.ItemSuffix />
+              </ListGroup.Item>
+              <Separator className="mx-4" />
+              <ListGroup.Item onPress={() => setArchiveVisible(true)}>
+                <ListGroup.ItemPrefix>
+                  <MaterialCommunityIcons name="archive" size={20} color={SemanticTokens.negative} />
+                </ListGroup.ItemPrefix>
+                <ListGroup.ItemContent>
+                  <ListGroup.ItemTitle className="text-danger">
+                    {Strings.accountDetailArchive}
+                  </ListGroup.ItemTitle>
+                </ListGroup.ItemContent>
+                <ListGroup.ItemSuffix iconProps={{ color: SemanticTokens.negative }} />
+              </ListGroup.Item>
+            </ListGroup>
           </Box>
         )}
       </ScreenScroll>

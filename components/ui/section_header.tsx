@@ -3,7 +3,6 @@ import { View } from 'react-native';
 
 import { Text } from 'heroui-native';
 import { Colors } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
 
 export interface SectionHeaderProps {
   title: string;
@@ -21,10 +20,8 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
       </Text>
       {count !== undefined && count > 0 ? (
         <View
-          className="rounded-full"
+          className="rounded-full px-2 py-0.5"
           style={{
-            paddingHorizontal: ms(8),
-            paddingVertical: ms(2),
             backgroundColor: `${Colors.shared.cairoGold}22`,
           }}
         >

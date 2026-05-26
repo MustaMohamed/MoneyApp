@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import { Text } from 'heroui-native';
 
 import { HeroShell } from '@/components/ui/hero_shell';
+import { StatusBadge } from '@/components/ui/status_badge';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
@@ -48,21 +49,18 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           <Text className="text-foreground/70 tracking-wider uppercase font-inter text-[11px]">
             {Strings.accountDetailBalance}
           </Text>
-          <View
-            style={{ flexDirection: 'row', backgroundColor: color + '22' }}
-            className="border-border items-center gap-1 rounded-full border px-2 py-0.5"
-          >
-            <MaterialCommunityIcons name={TYPE_ICON[account.type]} size={12} color={color} />
-            <Text className="text-foreground/70 font-semibold font-inter text-[11px]">
-              {TYPE_LABEL[account.type]}
-            </Text>
-          </View>
+          <StatusBadge
+            label={TYPE_LABEL[account.type]}
+            color={color}
+            icon={TYPE_ICON[account.type]}
+            size="sm"
+          />
         </View>
 
         {/* Balance */}
         <Text
           numberOfLines={1}
-          className={isCC ? 'text-danger mt-1 font-sora text-[20px] font-semibold tabular-nums' : 'text-accent mt-1 font-sora text-[20px] font-semibold tabular-nums'}
+          className={isCC ? 'text-danger mt-1 font-sora-bold text-[20px] tabular-nums' : 'text-accent mt-1 font-sora-bold text-[20px] tabular-nums'}
         >
           {formatAmount(account.current_balance)} {account.currency}
         </Text>

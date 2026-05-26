@@ -4,6 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { FormErrorText } from '@/components/ui/form_error_text';
+import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
 import { Text } from 'heroui-native';
 
@@ -94,9 +96,7 @@ export function AdjustBalanceSheet({
       footer={footer}
     >
       <Box className="px-4 pt-2">
-        <Text className="font-sora-bold text-gold-500 pb-2 text-xs tracking-widest uppercase">
-          {Strings.adjustBalanceLabel}
-        </Text>
+        <FormSectionLabel>{Strings.adjustBalanceLabel}</FormSectionLabel>
         <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
           <View style={{ flex: 1 }}>
             <Input
@@ -115,11 +115,7 @@ export function AdjustBalanceSheet({
             {currency}
           </Text>
         </Box>
-        {adjustState.error ? (
-          <Text className="text-danger mt-1 font-inter text-[11px]">
-            {adjustState.error}
-          </Text>
-        ) : null}
+        <FormErrorText message={adjustState.error || undefined} />
       </Box>
     </Sheet>
   );
