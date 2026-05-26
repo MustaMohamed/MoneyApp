@@ -1,8 +1,8 @@
 import uuid from 'react-native-uuid';
 
+import { getDb } from '@/database/client';
 import { getCategorySpendByMonth } from '@/modules/budget/database/budget_stats';
 import { getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
-import { getDb } from '@/database/client';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 
 export function currentYearMonth(now: Date = new Date()): string {

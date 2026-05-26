@@ -2,10 +2,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  currentYearMonth,
-  lastMonths,
-} from '@/modules/budget/repositories/budget.repository';
+import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
   type MonthResultVM,
   computeCategoryHistory,

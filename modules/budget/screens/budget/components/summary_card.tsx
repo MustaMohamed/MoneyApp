@@ -4,10 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import {
-  budgetBandColor,
-  type OverallVM,
-} from '@/modules/budget/screens/budget/budget.helpers';
+import { budgetBandColor, type OverallVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';

@@ -2,14 +2,14 @@ import { create } from 'zustand';
 
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
-  AppSettingsRepository,
-  type IAppSettingsRepository,
-} from '@/repositories/app_settings.repository';
-import {
   budgetRepository,
   currentYearMonth,
   lastMonths,
 } from '@/modules/budget/repositories/budget.repository';
+import {
+  AppSettingsRepository,
+  type IAppSettingsRepository,
+} from '@/repositories/app_settings.repository';
 
 const HISTORY_MONTHS = 12;
 const EXPECTED_INCOME_KEY = 'expected_monthly_income';

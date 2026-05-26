@@ -1,6 +1,6 @@
 import { BudgetGroup } from '@/constants/enums';
-import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/database/entities/category.entity';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { resolveLimitForMonth } from '@/modules/budget/screens/budget/budget.helpers';
 
 export type BucketStatus = 'on-track' | 'over' | 'ahead' | 'behind';

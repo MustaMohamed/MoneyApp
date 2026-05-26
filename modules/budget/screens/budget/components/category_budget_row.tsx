@@ -7,10 +7,7 @@ import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
-import {
-  budgetBandColor,
-  remainingLabel,
-} from '@/modules/budget/screens/budget/budget.helpers';
+import { budgetBandColor, remainingLabel } from '@/modules/budget/screens/budget/budget.helpers';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget.hook';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { formatAmount } from '@/utils/format_amount';

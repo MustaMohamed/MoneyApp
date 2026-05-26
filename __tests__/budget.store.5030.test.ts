@@ -1,5 +1,5 @@
-import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 import { createBudgetStore } from '@/modules/budget/store/budget.store';
+import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 
 // Mock the budget repository so async load/setLimit/removeBudget don't hit the DB
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
@@ -80,7 +80,9 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
   });
 
   it('setLimit delegates to budgetRepository then reloads', async () => {
-    const { budgetRepository } = jest.requireMock('@/modules/budget/repositories/budget.repository') as {
+    const { budgetRepository } = jest.requireMock(
+      '@/modules/budget/repositories/budget.repository',
+    ) as {
       budgetRepository: { setLimit: jest.Mock };
     };
     const store = createBudgetStore(makeRepo());
@@ -89,7 +91,9 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
   });
 
   it('removeBudget delegates to budgetRepository then reloads', async () => {
-    const { budgetRepository } = jest.requireMock('@/modules/budget/repositories/budget.repository') as {
+    const { budgetRepository } = jest.requireMock(
+      '@/modules/budget/repositories/budget.repository',
+    ) as {
       budgetRepository: { removeBudget: jest.Mock };
     };
     const store = createBudgetStore(makeRepo());

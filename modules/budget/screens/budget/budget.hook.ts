@@ -3,8 +3,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
-import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
 import { getDb } from '@/database/client';
+import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
 import {
   type CategoryBudgetVM,
@@ -12,10 +12,7 @@ import {
   computeOverall,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import {
-  useBudgetState,
-  type LensTab,
-} from '@/modules/budget/screens/budget/budget.state';
+import { useBudgetState, type LensTab } from '@/modules/budget/screens/budget/budget.state';
 import {
   computeBuckets,
   type BucketsVM,
