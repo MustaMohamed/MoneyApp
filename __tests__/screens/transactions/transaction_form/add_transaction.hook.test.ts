@@ -53,6 +53,7 @@ const mockCategoryExpense = {
   color: '#fff',
   is_default: 0 as const,
   sort_order: 0,
+  budget_group: null,
   created_at: 'now',
   updated_at: 'now',
 };
@@ -64,6 +65,7 @@ const mockCategoryIncome = {
   color: '#fff',
   is_default: 0 as const,
   sort_order: 1,
+  budget_group: null,
   created_at: 'now',
   updated_at: 'now',
 };

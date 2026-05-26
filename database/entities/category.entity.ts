@@ -1,4 +1,4 @@
-import type { CategoryType } from '@/constants/enums';
+import type { BudgetGroup, CategoryType } from '@/constants/enums';
 
 export interface Category {
   id: string;
@@ -8,6 +8,7 @@ export interface Category {
   color: string;
   is_default: 0 | 1;
   sort_order: number;
+  budget_group: BudgetGroup | null;
   created_at: string;
   updated_at: string;
 }
