@@ -17,7 +17,7 @@ import { useCallback } from 'react';
 
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/bottom_sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
@@ -45,10 +45,13 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
   return (
     <>
       <Sheet
-        visible={visible}
-        onClose={onClose}
+        isOpen={visible}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
         title={Strings.addTxTitle}
         size="lg"
+        scrollable
         footer={
           hook.state.hasAccounts ? (
             <SaveCta
@@ -61,42 +64,40 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
           ) : undefined
         }
       >
-        <Sheet.Body>
-          {hook.state.hasAccounts ? (
-            <TransactionFormBody
-              visible={visible}
-              locked={false}
-              type={hook.state.type}
-              onSelectType={hook.setType}
-              amountStr={hook.state.amountStr}
-              setAmountStr={hook.setAmountStr}
-              amountError={hook.state.errors.amount}
-              selectedAccount={hook.state.selectedAccount}
-              onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
-              accountError={hook.state.errors.account}
-              selectedToAccount={hook.state.selectedToAccount}
-              onOpenToPicker={() => hook.setShowToPicker(true)}
-              toAccountError={hook.state.errors.toAccount}
-              selectedCategory={hook.state.selectedCategory}
-              onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-              categoryError={hook.state.errors.category}
-              isUSD={hook.state.isUSD}
-              exchangeRate={hook.state.exchangeRate}
-              setExchangeRate={hook.setExchangeRate}
-              rateOverride={hook.state.rateOverride}
-              toggleRateOverride={hook.toggleRateOverride}
-              rateUpdatedAt={hook.state.rateUpdatedAt}
-              rateError={hook.state.errors.rate}
-              date={hook.state.date}
-              setDate={hook.setDate}
-              note={hook.state.note}
-              setNote={hook.setNote}
-              currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
-            />
-          ) : (
-            <NoAccountsEmpty onAddAccount={handleAddAccount} />
-          )}
-        </Sheet.Body>
+        {hook.state.hasAccounts ? (
+          <TransactionFormBody
+            visible={visible}
+            locked={false}
+            type={hook.state.type}
+            onSelectType={hook.setType}
+            amountStr={hook.state.amountStr}
+            setAmountStr={hook.setAmountStr}
+            amountError={hook.state.errors.amount}
+            selectedAccount={hook.state.selectedAccount}
+            onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
+            accountError={hook.state.errors.account}
+            selectedToAccount={hook.state.selectedToAccount}
+            onOpenToPicker={() => hook.setShowToPicker(true)}
+            toAccountError={hook.state.errors.toAccount}
+            selectedCategory={hook.state.selectedCategory}
+            onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
+            categoryError={hook.state.errors.category}
+            isUSD={hook.state.isUSD}
+            exchangeRate={hook.state.exchangeRate}
+            setExchangeRate={hook.setExchangeRate}
+            rateOverride={hook.state.rateOverride}
+            toggleRateOverride={hook.toggleRateOverride}
+            rateUpdatedAt={hook.state.rateUpdatedAt}
+            rateError={hook.state.errors.rate}
+            date={hook.state.date}
+            setDate={hook.setDate}
+            note={hook.state.note}
+            setNote={hook.setNote}
+            currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
+          />
+        ) : (
+          <NoAccountsEmpty onAddAccount={handleAddAccount} />
+        )}
       </Sheet>
 
       <AccountPickerSheet
@@ -163,10 +164,13 @@ function EditSheetInner({
   return (
     <>
       <Sheet
-        visible={visible}
-        onClose={onClose}
+        isOpen={visible}
+        onOpenChange={(open) => {
+          if (!open) onClose();
+        }}
         title={Strings.editTxTitle}
         size="lg"
+        scrollable
         footer={
           <SaveCta
             saving={hook.state.saving}
@@ -177,38 +181,36 @@ function EditSheetInner({
           />
         }
       >
-        <Sheet.Body>
-          <TransactionFormBody
-            visible={visible}
-            locked={true}
-            type={hook.state.type}
-            onSelectType={() => {}}
-            amountStr={hook.state.amountStr}
-            setAmountStr={hook.setAmountStr}
-            amountError={hook.state.errors.amount}
-            selectedAccount={hook.state.selectedAccount}
-            onOpenAccountPicker={() => {}}
-            accountError={undefined}
-            selectedToAccount={hook.state.selectedToAccount}
-            onOpenToPicker={() => {}}
-            toAccountError={undefined}
-            selectedCategory={hook.state.selectedCategory}
-            onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-            categoryError={hook.state.errors.category}
-            isUSD={hook.state.isUSD}
-            exchangeRate={hook.state.exchangeRate}
-            setExchangeRate={hook.setExchangeRate}
-            rateOverride={hook.state.rateOverride}
-            toggleRateOverride={hook.toggleRateOverride}
-            rateUpdatedAt={hook.state.rateUpdatedAt}
-            rateError={hook.state.errors.rate}
-            date={hook.state.date}
-            setDate={hook.setDate}
-            note={hook.state.note}
-            setNote={hook.setNote}
-            currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
-          />
-        </Sheet.Body>
+        <TransactionFormBody
+          visible={visible}
+          locked={true}
+          type={hook.state.type}
+          onSelectType={() => {}}
+          amountStr={hook.state.amountStr}
+          setAmountStr={hook.setAmountStr}
+          amountError={hook.state.errors.amount}
+          selectedAccount={hook.state.selectedAccount}
+          onOpenAccountPicker={() => {}}
+          accountError={undefined}
+          selectedToAccount={hook.state.selectedToAccount}
+          onOpenToPicker={() => {}}
+          toAccountError={undefined}
+          selectedCategory={hook.state.selectedCategory}
+          onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
+          categoryError={hook.state.errors.category}
+          isUSD={hook.state.isUSD}
+          exchangeRate={hook.state.exchangeRate}
+          setExchangeRate={hook.setExchangeRate}
+          rateOverride={hook.state.rateOverride}
+          toggleRateOverride={hook.toggleRateOverride}
+          rateUpdatedAt={hook.state.rateUpdatedAt}
+          rateError={hook.state.errors.rate}
+          date={hook.state.date}
+          setDate={hook.setDate}
+          note={hook.state.note}
+          setNote={hook.setNote}
+          currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
+        />
       </Sheet>
 
       <CategoryPickerSheet
