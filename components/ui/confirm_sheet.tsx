@@ -1,8 +1,18 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
+
+// Warning icon tint: amber at 12% opacity, derived from Colors.dark.warning
+// (same pattern as Colors.dark.dangerBg). No warningBg token exists yet so
+// we compose it here. '#D4830A' + '1F' = ~12% opacity in RGBA hex8.
+const WARNING_ICON_BG = Colors.dark.warning + '1F';
+const ICON_CONTAINER_SIZE = ms(56);
+const ICON_SIZE = ms(28);
 
 interface ConfirmSheetProps {
   isOpen: boolean;
@@ -42,10 +52,61 @@ export function ConfirmSheet({
   };
 
   return (
-    <Sheet isOpen={isOpen} onOpenChange={handleOpenChange} title={title} size="sm">
-      <View className="gap-4 px-4 pb-6">
-        <Text className="font-inter text-muted text-[15px] leading-6">{body}</Text>
-        <View style={{ flexDirection: 'row' }} className="gap-3">
+    // fitContent: sheet hugs content height — no wasted space for a ~120px
+    // decision sheet. No title prop: we render our own centered header below.
+    // No X close button: Cancel + swipe + overlay-tap handle all dismiss paths.
+    <Sheet isOpen={isOpen} onOpenChange={handleOpenChange} fitContent>
+      <View
+        className="items-center"
+        style={{ paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, paddingBottom: Spacing.lg }}
+      >
+        {/* Warning icon in tinted circular container */}
+        <View
+          style={{
+            width: ICON_CONTAINER_SIZE,
+            height: ICON_CONTAINER_SIZE,
+            borderRadius: ICON_CONTAINER_SIZE / 2,
+            backgroundColor: WARNING_ICON_BG,
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: Spacing.md,
+          }}
+        >
+          <MaterialCommunityIcons
+            name="alert-circle-outline"
+            size={ICON_SIZE}
+            color={Colors.dark.warning}
+          />
+        </View>
+
+        {/* Title — Sora semibold, centered */}
+        <Text
+          style={{
+            fontFamily: FontFamily.soraSemi,
+            fontSize: Type.subhead,
+            textAlign: 'center',
+            marginBottom: Spacing.xs,
+          }}
+          className="text-foreground"
+        >
+          {title}
+        </Text>
+
+        {/* Body — Inter, muted, centered */}
+        <Text
+          style={{
+            fontFamily: FontFamily.interRegular,
+            fontSize: Type.body,
+            textAlign: 'center',
+            lineHeight: Type.body * 1.5,
+          }}
+          className="text-muted"
+        >
+          {body}
+        </Text>
+
+        {/* Cancel / Confirm button row */}
+        <View style={{ flexDirection: 'row', marginTop: Spacing.lg }} className="gap-3">
           <View style={{ flex: 1 }}>
             <Button variant="ghost" label={cancelLabel} onPress={onCancel} isDisabled={busy} />
           </View>
