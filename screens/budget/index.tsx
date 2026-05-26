@@ -55,7 +55,9 @@ export default function BudgetScreen() {
 
       {state.hasBudgets ? (
         <ScreenScroll contentContainerStyle={styles.content}>
-          <SummaryCard overall={state.overall} daysLeft={state.daysLeft} />
+          <View style={styles.inset}>
+            <SummaryCard overall={state.overall} daysLeft={state.daysLeft} />
+          </View>
           <Text style={styles.section}>{Strings.budgetDetailCategories}</Text>
           {state.rows.map((row) => (
             <CategoryBudgetRow
@@ -98,6 +100,9 @@ const styles = StyleSheet.create({
   title: { fontFamily: FontFamily.soraBold, fontSize: Type.title, color: Colors.dark.text1 },
   addBtn: { fontFamily: FontFamily.interMedium, fontSize: Type.body, color: Colors.dark.gold },
   content: { paddingBottom: ms(96) },
+  // Non-row children (summary card, section label) re-inset; rows stay full-bleed
+  // so their hairline dividers span the full width (spec D7).
+  inset: { paddingHorizontal: Spacing.md },
   section: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.micro,
@@ -106,5 +111,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.7,
     marginTop: Spacing.md,
     marginBottom: Spacing.xs,
+    paddingHorizontal: Spacing.md,
   },
 });
