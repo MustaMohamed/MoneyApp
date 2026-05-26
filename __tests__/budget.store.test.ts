@@ -1,5 +1,5 @@
-import type { Budget } from '@/database/entities/budget.entity';
-import { createBudgetStore, useBudgetStore } from '@/store/budget.store';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { createBudgetStore, useBudgetStore } from '@/modules/budget/store/budget.store';
 
 beforeEach(() => useBudgetStore.getState().reset());
 

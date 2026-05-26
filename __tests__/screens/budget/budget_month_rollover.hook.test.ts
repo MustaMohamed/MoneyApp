@@ -16,19 +16,19 @@ jest.mock('expo-router', () => ({
 }));
 
 jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
-jest.mock('@/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
-jest.mock('@/database/budget_stats', () => ({
+jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
+jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
+jest.mock('@/modules/budget/database/budget_stats', () => ({
   getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
 
 const { useCategoryStore } = jest.requireMock('@/store/category.store');
-const { useBudgetStore } = jest.requireMock('@/store/budget.store');
-const { useBudgetState } = jest.requireMock('@/screens/budget/budget.state');
+const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
+const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
 
-import { useBudget } from '@/screens/budget/budget.hook';
-import { useCategoryDetail } from '@/screens/budget/category_detail/category_detail.hook';
+import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
+import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
 function setupStores() {
   (useCategoryStore as jest.Mock).mockImplementation((sel: any) =>

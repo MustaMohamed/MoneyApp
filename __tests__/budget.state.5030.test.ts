@@ -1,4 +1,4 @@
-import { useBudgetState } from '@/screens/budget/budget.state';
+import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 
 beforeEach(() => useBudgetState.getState().reset());
 

@@ -1,5 +1,5 @@
 import { Colors } from '@/constants/theme';
-import type { Budget } from '@/database/entities/budget.entity';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
   BUDGET_WARNING_THRESHOLD,
   budgetBandColor,
@@ -10,7 +10,7 @@ import {
   remainingLabel,
   resolveLimitForMonth,
   type MonthResultVM,
-} from '@/screens/budget/budget.helpers';
+} from '@/modules/budget/screens/budget/budget.helpers';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 function row(category_id: string, limit_amount: number | null, effective_from: string): Budget {
