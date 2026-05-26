@@ -1,5 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 /**
  * bottom_sheet.tsx — HeroUI-backed Sheet primitive.
  *
@@ -28,14 +26,22 @@ import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-s
  * This primitive is the SOLE publisher to sheet_visibility.store. The counter
  * increments on open and decrements on close/unmount.
  *
- * HEADER LAYOUT (QA fix):
+ * HEADER LAYOUT:
  * When `title` is provided, renders a compact ROW: title (flex:1, Sora semibold,
- * subhead) on the LEFT and a 44×44 close hit-target on the RIGHT.
- * BottomSheet.Close is used via `asChild` wrapping a Pressable so the close
- * still goes through HeroUI's onOpenChange(false) path — no re-introduction of
- * the close-reliability bug this migration was meant to fix.
+ * subhead) on the LEFT and BottomSheet.Close on the RIGHT.
+ * BottomSheet.Close is used WITHOUT asChild — its default render is a working
+ * CloseButton (Button variant="tertiary" size="sm" isIconOnly) that calls
+ * onOpenChange(false) internally via the BottomSheetClose forwardRef in
+ * node_modules/heroui-native/src/components/bottom-sheet/bottom-sheet.tsx.
+ * Using asChild caused "Invalid asChild element" + Reanimated host-instance
+ * crashes because CloseButton renders multiple animated layers that Slot.Pressable
+ * cannot clone as a single host child.
  * BottomSheet.Title is kept so the `nativeID={id}_label` accessibility linkage
  * remains intact; its default className is overridden to match legacy styling.
+ *
+ * SIZE PRESETS (7-step scale, user-defined):
+ * xxs=25%, xs=35%, sm=45%, md=60%, lg=75%, xl=85%, xxl=95%
+ * Default size is lg (75%). Consumers select a preset via the `size` prop.
  *
  * CONTENT PADDING (QA fix):
  * HeroUI's contentContainer tv() base includes `p-5` (20 px on all sides).
@@ -47,9 +53,10 @@ import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-s
  * were under the legacy sheet. No safe-area bottom inset is added — all
  * consumers already add their own paddingBottom.
  */
+import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
 import React, { useCallback, useEffect } from 'react';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
@@ -66,12 +73,25 @@ export { useBottomSheetAwareHandlers } from 'heroui-native';
  */
 export const SHEET_FOOTER_CLEARANCE = Size.ctaHeight + ms(48);
 
-const SNAP_POINTS: Record<'sm' | 'md' | 'lg', string[]> = {
-  sm: ['50%'],
-  md: ['75%'],
-  // 92% rather than 85%: sheets sit inside <Screen> which loses ~80px to
-  // safe area + Stack header; 85% felt cramped on tall-status-bar devices.
-  lg: ['92%'],
+/**
+ * Size presets (7-step scale, user-defined heights).
+ *
+ * xxs  25%  — compact confirm/alert sheets
+ * xs   35%  — small pickers / short lists
+ * sm   45%  — under half-screen
+ * md   60%  — over half-screen
+ * lg   75%  — tall (default)
+ * xl   85%  — near-full
+ * xxl  95%  — full-bleed (leaves a sliver at top)
+ */
+const SNAP_POINTS: Record<'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl', string[]> = {
+  xxs: ['25%'],
+  xs: ['35%'],
+  sm: ['45%'],
+  md: ['60%'],
+  lg: ['75%'],
+  xl: ['85%'],
+  xxl: ['95%'],
 };
 
 /** Pure resolver — exported for unit testing in sheet_snap_points.test.ts */
@@ -90,8 +110,11 @@ export interface SheetProps {
    * Preset size. Resolves to snapPoints via SNAP_POINTS map.
    * Overridden by explicit snapPoints prop.
    * Ignored when fitContent=true.
+   *
+   * 7-step scale: xxs=25%, xs=35%, sm=45%, md=60%, lg=75%, xl=85%, xxl=95%
+   * Default: lg (75%).
    */
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xxs' | 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
   /**
    * Explicit snap points. Overrides size when provided.
    * Pass gorhom-style string values: ['50%'], ['45%', '92%'], etc.
@@ -208,11 +231,16 @@ export function Sheet({
           {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
         >
           {title !== undefined && (
-            // Compact header ROW matching legacy sheet.tsx `styles.header`:
-            // title flex:1 LEFT · 44×44 close hit-target RIGHT.
-            // BottomSheet.Close with asChild keeps HeroUI's onOpenChange(false)
-            // close path intact. BottomSheet.Title preserves the
-            // nativeID={id}_label accessibility linkage for screen readers.
+            // Compact header ROW: title (flex:1) LEFT · BottomSheet.Close RIGHT.
+            // BottomSheet.Close is used WITHOUT asChild — its default render is
+            // a CloseButton (Button variant="tertiary" size="sm" isIconOnly) that
+            // calls onOpenChange(false) via its onPress handler in BottomSheetClose
+            // (heroui-native/src/components/bottom-sheet/bottom-sheet.tsx).
+            // Using asChild caused "Invalid asChild element" crashes because
+            // CloseButton renders multiple animated layers that Slot.Pressable
+            // cannot clone as a single host child, and the resulting empty animated
+            // node triggered a Reanimated host-instance error on unmount.
+            // BottomSheet.Title preserves the nativeID={id}_label a11y linkage.
             <View
               testID="sheet-header"
               style={{
@@ -232,22 +260,10 @@ export function Sheet({
               >
                 {title}
               </BottomSheet.Title>
-              <BottomSheet.Close asChild>
-                <Pressable
-                  testID="sheet-close-btn"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityLabel="Close"
-                  accessibilityRole="button"
-                  style={{
-                    width: ms(44),
-                    height: ms(44),
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
-                </Pressable>
-              </BottomSheet.Close>
+              <BottomSheet.Close
+                testID="sheet-close-btn"
+                iconProps={{ size: ms(24), color: Colors.dark.text2 }}
+              />
             </View>
           )}
           {children}
