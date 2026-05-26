@@ -28,3 +28,31 @@ export async function getCategorySpendByMonth(
   }
   return out;
 }
+
+/**
+ * Returns the rounded average monthly income over the last N complete months
+ * (relative to `currentYearMonth`, which is the current "YYYY-MM" string).
+ * Income = transactions with type = 'income'.
+ * A "complete month" is any month strictly before currentYearMonth.
+ * Returns null when there is no qualifying income history.
+ */
+export async function getTrailingIncomeSuggestion(
+  db: SQLiteDatabase,
+  currentYearMonth: string,
+  windowMonths = 3,
+): Promise<number | null> {
+  const row = await db.getFirstAsync<{ suggestion: number | null }>(
+    `SELECT ROUND(AVG(monthly_total)) AS suggestion
+       FROM (
+         SELECT SUM(egp_amount) AS monthly_total
+           FROM transactions
+          WHERE type = 'income'
+            AND substr(transaction_date, 1, 7) < ?
+          GROUP BY substr(transaction_date, 1, 7)
+          ORDER BY substr(transaction_date, 1, 7) DESC
+          LIMIT ?
+       )`,
+    [currentYearMonth, windowMonths],
+  );
+  return row?.suggestion ?? null;
+}

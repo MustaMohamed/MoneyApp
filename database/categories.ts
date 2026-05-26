@@ -1,5 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import type { BudgetGroup } from '@/constants/enums';
+
 import type { Category } from './entities/category.entity';
 
 export async function getCategories(db: SQLiteDatabase): Promise<Category[]> {
@@ -43,6 +45,18 @@ export async function updateCategory(
     'UPDATE categories SET name = ?, icon = ?, color = ?, updated_at = ? WHERE id = ?',
     [data.name, data.icon, data.color, data.updated_at, id],
   );
+}
+
+export async function setCategoryGroup(
+  db: SQLiteDatabase,
+  categoryId: string,
+  group: BudgetGroup | null,
+): Promise<void> {
+  await db.runAsync('UPDATE categories SET budget_group = ?, updated_at = ? WHERE id = ?', [
+    group,
+    new Date().toISOString(),
+    categoryId,
+  ]);
 }
 
 export async function deleteCategory(db: SQLiteDatabase, id: string): Promise<void> {
