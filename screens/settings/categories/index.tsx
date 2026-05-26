@@ -135,12 +135,14 @@ export default function CategoriesScreen() {
       />
 
       <ReassignCategorySheet
-        visible={state.showReassignSheet}
+        isOpen={state.showReassignSheet}
         categoryName={state.categoryToDelete?.name ?? ''}
         linkedCount={state.linkedCount}
         options={state.reassignOptions}
         onConfirm={handleReassignConfirm}
-        onCancel={closeDeleteFlow}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteFlow();
+        }}
       />
     </Screen>
   );
