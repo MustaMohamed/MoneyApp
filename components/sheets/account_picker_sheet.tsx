@@ -2,10 +2,12 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, View } from 'react-native';
 
+import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Sheet } from '@/components/ui/bottom_sheet';
 import { Text } from '@/components/ui/text';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
+import { ms } from '@/utils/responsive';
 
 interface Props {
   isOpen: boolean;
@@ -46,14 +48,13 @@ export function AccountPickerSheet({
               style={{ flexDirection: 'row', alignItems: 'center' }}
               className="border-separator gap-3 border-b px-4 py-3"
             >
-              <View
-                style={{
-                  width: 10,
-                  height: 10,
-                  borderRadius: 5,
-                  backgroundColor: item.color ?? CoreTokens.border,
-                }}
-              />
+              <View style={{ width: ms(20), alignItems: 'center', justifyContent: 'center' }}>
+                <MaterialCommunityIcons
+                  name={TYPE_OPTIONS.find((o) => o.type === item.type)?.icon ?? 'bank'}
+                  size={ms(18)}
+                  color={item.color ?? CoreTokens.text2}
+                />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text className="font-sora text-foreground text-[15px] font-semibold">
                   {item.name}

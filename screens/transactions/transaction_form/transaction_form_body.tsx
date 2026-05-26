@@ -8,6 +8,8 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import { toIconName } from '@/utils/icon_name_guard';
+import { ms } from '@/utils/responsive';
 
 import { AmountHero } from './components/amount_hero';
 import { DateRow } from './components/date_row';
@@ -209,9 +211,19 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 <Text className="font-inter text-muted text-[11px]">
                   {Strings.addTxCategoryLabel}
                 </Text>
-                <Text className="font-sora text-foreground text-[15px] font-semibold">
-                  {selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
+                  {selectedCategory ? (
+                    <MaterialCommunityIcons
+                      name={toIconName(selectedCategory.icon, 'tag')}
+                      size={ms(15)}
+                      // oxlint-disable-next-line typescript/no-unnecessary-condition -- category color can be null despite the string type
+                      color={selectedCategory.color ?? CoreTokens.text1}
+                    />
+                  ) : null}
+                  <Text className="font-sora text-foreground text-[15px] font-semibold">
+                    {selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
+                  </Text>
+                </View>
               </View>
               <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
             </Pressable>
