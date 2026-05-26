@@ -23,6 +23,8 @@ export function useCommitments() {
     loadPaymentsForMonth,
     loadCommitments,
     generatePayments,
+    skipPayment,
+    deactivateCommitment,
   } = useCommitmentStore(
     useShallow((s) => ({
       state: s.state,
@@ -30,6 +32,8 @@ export function useCommitments() {
       loadPaymentsForMonth: s.loadPaymentsForMonth,
       loadCommitments: s.loadCommitments,
       generatePayments: s.generatePayments,
+      skipPayment: s.skipPayment,
+      deactivateCommitment: s.deactivateCommitment,
     })),
   );
 
@@ -180,6 +184,14 @@ export function useCommitments() {
     router.push('/commitments/add' as Parameters<typeof router.push>[0]);
   }, []);
 
+  const goToEdit = useCallback((commitmentId: string | undefined) => {
+    if (!commitmentId) {
+      console.warn('[goToEdit] commitment id is undefined — skipping navigation');
+      return;
+    }
+    router.push(`/commitments/${commitmentId}/edit` as Parameters<typeof router.push>[0]);
+  }, []);
+
   return {
     state: {
       sections,
@@ -200,6 +212,9 @@ export function useCommitments() {
     onRefresh,
     goToDetail,
     goToAdd,
+    goToEdit,
+    skipPayment,
+    deactivateCommitment,
     setStatusFilter,
   };
 }
