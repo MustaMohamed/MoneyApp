@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { BucketsVM } from '@/screens/budget/budget_buckets.helpers';
 import { BucketCard } from '@/screens/budget/components/bucket_card';
 import { IncomeSheet } from '@/screens/budget/components/income_sheet';
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   ctaCard: {
     flex: 1,
     backgroundColor: Colors.dark.surface,
-    borderRadius: 12,
+    borderRadius: Radius.md,
     padding: Spacing.md,
     gap: Spacing.xs,
   },

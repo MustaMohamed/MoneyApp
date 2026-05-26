@@ -9,6 +9,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { useIncomeSheetState } from '@/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/store/budget.store';
+import { ms } from '@/utils/responsive';
 
 export function IncomeSheet() {
   const { sheetState, close, setAmountText } = useIncomeSheetState(
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.dark.bg,
-    borderWidth: 1.5,
+    borderWidth: ms(1.5),
     borderColor: Colors.dark.gold,
     borderRadius: Radius.md,
     paddingHorizontal: Spacing.sm,
