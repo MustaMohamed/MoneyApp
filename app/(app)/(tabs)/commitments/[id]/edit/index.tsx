@@ -1,1 +1,1 @@
-export { default } from '@/screens/commitments/edit_commitment';
+export { default } from '@/modules/commitments/screens/commitments/edit_commitment';
