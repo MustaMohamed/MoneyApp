@@ -14,7 +14,7 @@ interface Props {
   selectedId: string | undefined;
   excludeId?: string;
   onSelect: (account: Account) => void;
-  onOpenChange: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function AccountPickerSheet({

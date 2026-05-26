@@ -14,7 +14,7 @@ interface Props {
   categories: Category[];
   selectedId: string | undefined;
   onSelect: (category: Category) => void;
-  onOpenChange: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 // 4-column grid keeps cells tight enough that most phones fit 4-5 rows
