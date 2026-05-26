@@ -4,11 +4,11 @@ import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Input } from '@/components/ui/input';
 import { PressableFeedback, Text } from 'heroui-native';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 
@@ -59,45 +59,40 @@ export default function AccountDetailScreen() {
   return (
     <Screen>
       <Animated.View style={headerStyle}>
-        <Box
-          style={{ flexDirection: 'row', height: 56 }}
-          className="items-center justify-between px-2"
-        >
-          <BackButton onPress={onBack} />
-
-          <Text numberOfLines={1} className="font-sora-bold text-foreground text-[20px] font-semibold flex-1 text-center">
-            {account.name}
-          </Text>
-
-          {isEditing ? (
-            <PressableFeedback
-              onPress={() => {
-                triggerEditToggle();
-                void handleSave();
-              }}
-              isDisabled={isSaving}
-              hitSlop={hitSlop}
-              className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
-            >
-              <Text className="font-sora-bold text-accent-foreground text-[11px]">
-                {Strings.accountDetailSave}
-              </Text>
-            </PressableFeedback>
-          ) : (
-            <PressableFeedback
-              onPress={() => {
-                triggerEditToggle();
-                setEditing(true);
-              }}
-              hitSlop={hitSlop}
-              className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
-            >
-              <Text className="font-sora-bold text-accent text-[11px]">
-                {Strings.accountDetailEdit}
-              </Text>
-            </PressableFeedback>
-          )}
-        </Box>
+        <StackHeader
+          title={account.name}
+          onBack={onBack}
+          right={
+            isEditing ? (
+              <PressableFeedback
+                onPress={() => {
+                  triggerEditToggle();
+                  void handleSave();
+                }}
+                isDisabled={isSaving}
+                hitSlop={hitSlop}
+                className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
+              >
+                <Text className="font-sora-bold text-accent-foreground text-[11px]">
+                  {Strings.accountDetailSave}
+                </Text>
+              </PressableFeedback>
+            ) : (
+              <PressableFeedback
+                onPress={() => {
+                  triggerEditToggle();
+                  setEditing(true);
+                }}
+                hitSlop={hitSlop}
+                className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
+              >
+                <Text className="font-sora-bold text-accent text-[11px]">
+                  {Strings.accountDetailEdit}
+                </Text>
+              </PressableFeedback>
+            )
+          }
+        />
       </Animated.View>
 
       <ScreenScroll

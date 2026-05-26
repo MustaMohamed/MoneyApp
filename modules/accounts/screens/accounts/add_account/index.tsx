@@ -4,11 +4,11 @@ import { Controller, useWatch } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
 
 import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
-import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { StackHeader } from '@/components/ui/stack_header';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CurrencySelector } from '@/modules/currency';
@@ -40,17 +40,7 @@ export default function AddAccountAppScreen() {
 
   return (
     <Screen>
-      {/* Header — onboarding header minus ProgressDots */}
-      <Box
-        style={{ flexDirection: 'row', height: 56 }}
-        className="items-center justify-between px-4"
-      >
-        <BackButton onPress={onBack} />
-        <Text className="font-sora-bold text-foreground text-[20px] font-semibold">
-          {Strings.u4Title}
-        </Text>
-        <Box className="h-9 w-9" />
-      </Box>
+      <StackHeader title={Strings.u4Title} onBack={onBack} />
 
       <ScreenScroll
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}

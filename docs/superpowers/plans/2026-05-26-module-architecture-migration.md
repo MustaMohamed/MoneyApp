@@ -84,6 +84,7 @@ Apply to **every file touched** during its module migration. Do not fix files th
 | Inline `SegmentedTabs<Currency>` segment definitions | → `<CurrencySelector>` from `@/modules/currency` |
 | Inline `new Intl.NumberFormat(...)` | → `formatAmount()` / `formatCurrencyAmount()` from `@/utils/format_amount` |
 | `<Pressable>` from `@/components/ui/pressable` | → `<PressableFeedback>` from `heroui-native` — swap `disabled` → `isDisabled`; use `animation={false}` when a parent `Animated.View` already handles the spring |
+| Custom header `Box` (back button + centered title + right slot) | → `<StackHeader title=... onBack=... right=...>` from `@/components/ui/stack_header`; wrap in `Animated.View` when the header has an entrance/exit animation |
 
 ---
 
