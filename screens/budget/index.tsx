@@ -35,7 +35,9 @@ export default function BudgetScreen() {
 
       <Tabs
         value={state.lensTab}
-        onValueChange={(key) => setLensTab(key as 'categories' | 'fiftythirty')}
+        onValueChange={(key) => {
+          if (key === 'categories' || key === 'fiftythirty') setLensTab(key);
+        }}
         style={styles.tabs}
       >
         <Tabs.List>

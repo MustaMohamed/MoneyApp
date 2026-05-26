@@ -36,6 +36,11 @@ const GROUP_OPTIONS: { value: BudgetGroup; label: string }[] = [
   { value: BudgetGroup.Savings, label: Strings.budget5030GroupSavings },
 ];
 
+const BUDGET_GROUP_VALUES: readonly string[] = Object.values(BudgetGroup);
+function isBudgetGroup(value: string): value is BudgetGroup {
+  return BUDGET_GROUP_VALUES.includes(value);
+}
+
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
   const { sheetState, close } = useBudgetState(
     useShallow((s) => ({ sheetState: s.state, close: s.close })),
@@ -229,7 +234,9 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           </Text>
           <RadioGroup
             value={groupValue ?? undefined}
-            onValueChange={(val) => setGroupValue(val as BudgetGroup)}
+            onValueChange={(val) => {
+              if (isBudgetGroup(val)) setGroupValue(val);
+            }}
             accessibilityLabel={Strings.budget5030GroupPickerLabel}
           >
             {GROUP_OPTIONS.map((opt) => (
