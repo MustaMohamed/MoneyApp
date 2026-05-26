@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 
 export type BudgetSheetMode = 'add' | 'edit';
+export type LensTab = 'categories' | 'fiftythirty';
 
 interface BudgetStateShape {
   sheetVisible: boolean;
   mode: BudgetSheetMode;
   targetCategoryId: string | undefined;
+  lensTab: LensTab;
 }
 
 interface BudgetState {
@@ -13,6 +15,7 @@ interface BudgetState {
   openAdd: () => void;
   openEdit: (categoryId: string) => void;
   close: () => void;
+  setLensTab: (tab: LensTab) => void;
   reset: () => void;
 }
 
@@ -20,6 +23,7 @@ const INITIAL_STATE: BudgetStateShape = {
   sheetVisible: false,
   mode: 'add',
   targetCategoryId: undefined,
+  lensTab: 'categories',
 };
 
 export const useBudgetState = create<BudgetState>((set) => ({
@@ -33,5 +37,6 @@ export const useBudgetState = create<BudgetState>((set) => ({
       state: { ...s.state, sheetVisible: true, mode: 'edit', targetCategoryId: categoryId },
     })),
   close: () => set((s) => ({ state: { ...s.state, sheetVisible: false } })),
+  setLensTab: (tab) => set((s) => ({ state: { ...s.state, lensTab: tab } })),
   reset: () => set({ state: INITIAL_STATE }),
 }));
