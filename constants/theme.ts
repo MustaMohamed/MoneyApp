@@ -27,6 +27,12 @@ export const Colors = {
     dangerBg: 'rgba(224, 90, 66, 0.12)',
     warningBg: 'rgba(212, 131, 10, 0.12)',
     overlayWhite7: 'rgba(255, 255, 255, 0.07)',
+    // Budget 5-band colour scale
+    budgetUnder: '#6FA8DC',
+    budgetSteady: '#4CAF82',
+    budgetWatch: '#E0B341',
+    budgetNear: '#E05A42',
+    budgetOver: '#B23A28',
   },
   light: {
     bg: '#F7F4EF',
@@ -40,6 +46,12 @@ export const Colors = {
     positive: '#3D7A5F',
     negative: '#C0442A',
     warning: '#B86E08',
+    // Budget 5-band colour scale (light analogues — tunable at device QA)
+    budgetUnder: '#4A86C0',
+    budgetSteady: '#3A8F65',
+    budgetWatch: '#B8922A',
+    budgetNear: '#C04030',
+    budgetOver: '#8F2818',
   },
   shared: {
     cairoGold: '#C9973A',
