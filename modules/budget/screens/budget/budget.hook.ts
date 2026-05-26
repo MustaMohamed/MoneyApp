@@ -12,7 +12,7 @@ import {
   computeOverall,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import { useBudgetState, type LensTab } from '@/modules/budget/screens/budget/budget.state';
+import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
   computeBuckets,
   type BucketsVM,
