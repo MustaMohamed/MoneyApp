@@ -2,11 +2,24 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  type BlurEvent,
+  FlatList,
+  type FocusEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { z } from 'zod/v4';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import {
+  Sheet,
+  SHEET_FOOTER_CLEARANCE,
+  useBottomSheetAwareHandlers,
+} from '@/components/ui/bottom_sheet';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
@@ -81,18 +94,18 @@ export function createCategorySchema(
 }
 
 interface AddEditCategorySheetProps {
-  visible: boolean;
+  isOpen: boolean;
   editingCategory: Category | null;
   activeTab: CategoryType;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   onSave: (data: NewCategoryInput | UpdateCategoryInput) => Promise<void>;
 }
 
 export function AddEditCategorySheet({
-  visible,
+  isOpen,
   editingCategory,
   activeTab,
-  onClose,
+  onOpenChange,
   onSave,
 }: AddEditCategorySheetProps) {
   const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
@@ -129,7 +142,7 @@ export function AddEditCategorySheet({
   });
 
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       if (editingCategory) {
         reset({ name: editingCategory.name });
         initialize({
@@ -147,7 +160,7 @@ export function AddEditCategorySheet({
       }
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
+  }, [isOpen, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
 
   const handleSave = handleSubmit(async ({ name }) => {
     if (!sheetState.selectedIcon) {
@@ -182,107 +195,110 @@ export function AddEditCategorySheet({
     </Pressable>
   );
 
+  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+
   return (
     <Sheet
-      visible={visible}
-      onClose={onClose}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
       title={isEditing ? Strings.categoriesEditSheetTitle : Strings.categoriesAddSheetTitle}
       size="lg"
+      scrollable
       footer={footer}
     >
-      <Sheet.Body>
-        <BottomSheetScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-        >
-          <Text style={styles.fieldLabel}>{Strings.categoriesNameLabel.toUpperCase()}</Text>
-          <NameField
-            control={control}
-            placeholder={Strings.categoriesNamePlaceholder}
-            error={errors.name?.message}
-          />
+      <BottomSheetScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Text style={styles.fieldLabel}>{Strings.categoriesNameLabel.toUpperCase()}</Text>
+        <NameField
+          control={control}
+          placeholder={Strings.categoriesNamePlaceholder}
+          error={errors.name?.message}
+          onFocus={onInputFocus}
+          onBlur={onInputBlur}
+        />
 
-          {!isEditing && (
-            <>
-              <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
-              <View style={styles.typeRow}>
-                {([CategoryType.Expense, CategoryType.Income] as const).map((t) => (
-                  <Pressable
-                    key={t}
-                    onPress={() => setType(t)}
-                    style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
-                    accessibilityRole="button"
-                    accessibilityState={{ selected: sheetState.type === t }}
+        {!isEditing && (
+          <>
+            <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
+            <View style={styles.typeRow}>
+              {([CategoryType.Expense, CategoryType.Income] as const).map((t) => (
+                <Pressable
+                  key={t}
+                  onPress={() => setType(t)}
+                  style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: sheetState.type === t }}
+                >
+                  <Text
+                    style={[
+                      styles.typePillText,
+                      sheetState.type === t && styles.typePillTextActive,
+                    ]}
                   >
-                    <Text
-                      style={[
-                        styles.typePillText,
-                        sheetState.type === t && styles.typePillTextActive,
-                      ]}
-                    >
-                      {t === CategoryType.Expense
-                        ? Strings.categoriesTabExpense
-                        : Strings.categoriesTabIncome}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
-            </>
-          )}
+                    {t === CategoryType.Expense
+                      ? Strings.categoriesTabExpense
+                      : Strings.categoriesTabIncome}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        )}
 
-          <Text style={styles.fieldLabel}>{Strings.categoriesIconLabel}</Text>
-          {sheetState.iconError ? (
-            <Text testID="icon-error" style={styles.error}>
-              {sheetState.iconError}
-            </Text>
-          ) : null}
-          <FlatList
-            data={CATEGORY_ICONS}
-            numColumns={8}
-            scrollEnabled={false}
-            keyExtractor={(item) => item}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() => {
-                  setSelectedIcon(item);
-                  setIconError('');
-                }}
-                style={[styles.iconCell, sheetState.selectedIcon === item && styles.iconCellActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sheetState.selectedIcon === item }}
-                accessibilityLabel={item}
-              >
-                <MaterialCommunityIcons
-                  name={item}
-                  size={20}
-                  color={
-                    sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
-                  }
-                />
-              </Pressable>
-            )}
-            style={styles.iconGrid}
-          />
-
-          <Text style={styles.fieldLabel}>{Strings.categoriesColorLabel}</Text>
-          <View style={styles.colorRow}>
-            {AccountColors.map((c) => (
-              <Pressable
-                key={c}
-                onPress={() => setSelectedColor(c)}
-                style={[
-                  styles.colorSwatch,
-                  { backgroundColor: c },
-                  sheetState.selectedColor === c && styles.colorSwatchActive,
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: sheetState.selectedColor === c }}
-                accessibilityLabel={c}
+        <Text style={styles.fieldLabel}>{Strings.categoriesIconLabel}</Text>
+        {sheetState.iconError ? (
+          <Text testID="icon-error" style={styles.error}>
+            {sheetState.iconError}
+          </Text>
+        ) : null}
+        <FlatList
+          data={CATEGORY_ICONS}
+          numColumns={8}
+          scrollEnabled={false}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => (
+            <Pressable
+              onPress={() => {
+                setSelectedIcon(item);
+                setIconError('');
+              }}
+              style={[styles.iconCell, sheetState.selectedIcon === item && styles.iconCellActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sheetState.selectedIcon === item }}
+              accessibilityLabel={item}
+            >
+              <MaterialCommunityIcons
+                name={item}
+                size={20}
+                color={
+                  sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
+                }
               />
-            ))}
-          </View>
-        </BottomSheetScrollView>
-      </Sheet.Body>
+            </Pressable>
+          )}
+          style={styles.iconGrid}
+        />
+
+        <Text style={styles.fieldLabel}>{Strings.categoriesColorLabel}</Text>
+        <View style={styles.colorRow}>
+          {AccountColors.map((c) => (
+            <Pressable
+              key={c}
+              onPress={() => setSelectedColor(c)}
+              style={[
+                styles.colorSwatch,
+                { backgroundColor: c },
+                sheetState.selectedColor === c && styles.colorSwatchActive,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sheetState.selectedColor === c }}
+              accessibilityLabel={c}
+            />
+          ))}
+        </View>
+      </BottomSheetScrollView>
     </Sheet>
   );
 }
@@ -291,10 +307,14 @@ function NameField({
   control,
   placeholder,
   error,
+  onFocus,
+  onBlur,
 }: {
   control: Control<{ name: string }>;
   placeholder: string;
   error?: string;
+  onFocus?: (e: FocusEvent) => void;
+  onBlur?: (e: BlurEvent) => void;
 }) {
   const { field } = useController({ control, name: 'name' });
   return (
@@ -305,6 +325,8 @@ function NameField({
         placeholderTextColor={Colors.dark.text2}
         value={field.value}
         onChangeText={field.onChange}
+        onFocus={onFocus}
+        onBlur={onBlur}
         maxLength={50}
         accessibilityLabel={placeholder}
       />

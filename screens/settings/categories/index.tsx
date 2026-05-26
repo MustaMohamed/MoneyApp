@@ -116,10 +116,12 @@ export default function CategoriesScreen() {
 
       {/* Sheets and dialogs */}
       <AddEditCategorySheet
-        visible={state.showAddSheet}
+        isOpen={state.showAddSheet}
         editingCategory={state.editingCategory}
         activeTab={state.activeTab}
-        onClose={closeSheet}
+        onOpenChange={(open) => {
+          if (!open) closeSheet();
+        }}
         onSave={handleSave}
       />
 
@@ -133,12 +135,14 @@ export default function CategoriesScreen() {
       />
 
       <ReassignCategorySheet
-        visible={state.showReassignSheet}
+        isOpen={state.showReassignSheet}
         categoryName={state.categoryToDelete?.name ?? ''}
         linkedCount={state.linkedCount}
         options={state.reassignOptions}
         onConfirm={handleReassignConfirm}
-        onCancel={closeDeleteFlow}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteFlow();
+        }}
       />
     </Screen>
   );

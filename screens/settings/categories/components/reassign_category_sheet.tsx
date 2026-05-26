@@ -3,7 +3,7 @@ import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/bottom_sheet';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
@@ -12,21 +12,21 @@ import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 interface ReassignCategorySheetProps {
-  visible: boolean;
+  isOpen: boolean;
   categoryName: string;
   linkedCount: number;
   options: Category[];
   onConfirm: (toId: string) => Promise<void>;
-  onCancel: () => void;
+  onOpenChange: (open: boolean) => void;
 }
 
 export function ReassignCategorySheet({
-  visible,
+  isOpen,
   categoryName,
   linkedCount,
   options,
   onConfirm,
-  onCancel,
+  onOpenChange,
 }: ReassignCategorySheetProps) {
   const {
     state: reassignState,
@@ -42,7 +42,7 @@ export function ReassignCategorySheet({
 
   const handleClose = () => {
     useReassignCategorySheetState.getState().reset();
-    onCancel();
+    onOpenChange(false);
   };
 
   const handleConfirm = async () => {
@@ -76,50 +76,51 @@ export function ReassignCategorySheet({
 
   return (
     <Sheet
-      visible={visible}
-      onClose={handleClose}
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
       title={Strings.categoriesReassignTitle(categoryName)}
       size="lg"
+      scrollable
       footer={footer}
     >
-      <Sheet.Body>
-        <Text style={styles.subtitle}>{Strings.categoriesReassignSubtitle(linkedCount)}</Text>
-        <Text style={styles.body}>{Strings.categoriesReassignBody}</Text>
+      <Text style={styles.subtitle}>{Strings.categoriesReassignSubtitle(linkedCount)}</Text>
+      <Text style={styles.body}>{Strings.categoriesReassignBody}</Text>
 
-        <BottomSheetFlatList
-          data={options}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          contentContainerStyle={styles.listContent}
-          renderItem={({ item }) => (
-            <Pressable
-              onPress={() => setSelectedId(item.id)}
-              style={[
-                styles.optionRow,
-                reassignState.selectedId === item.id && styles.optionRowActive,
-              ]}
-              accessibilityRole="radio"
-              accessibilityState={{ selected: reassignState.selectedId === item.id }}
-            >
-              <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
-                <MaterialCommunityIcons
-                  name={toIconName(item.icon, 'tag-outline')}
-                  size={Size.iconXs}
-                  color={item.color}
-                />
-              </View>
-              <Text style={styles.optionName}>{item.name}</Text>
-              {reassignState.selectedId === item.id && (
-                <MaterialCommunityIcons
-                  name="check-circle"
-                  size={Size.iconXs}
-                  color={Colors.shared.cairoGold}
-                />
-              )}
-            </Pressable>
-          )}
-        />
-      </Sheet.Body>
+      <BottomSheetFlatList
+        data={options}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+        contentContainerStyle={styles.listContent}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => setSelectedId(item.id)}
+            style={[
+              styles.optionRow,
+              reassignState.selectedId === item.id && styles.optionRowActive,
+            ]}
+            accessibilityRole="radio"
+            accessibilityState={{ selected: reassignState.selectedId === item.id }}
+          >
+            <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
+              <MaterialCommunityIcons
+                name={toIconName(item.icon, 'tag-outline')}
+                size={Size.iconXs}
+                color={item.color}
+              />
+            </View>
+            <Text style={styles.optionName}>{item.name}</Text>
+            {reassignState.selectedId === item.id && (
+              <MaterialCommunityIcons
+                name="check-circle"
+                size={Size.iconXs}
+                color={Colors.shared.cairoGold}
+              />
+            )}
+          </Pressable>
+        )}
+      />
     </Sheet>
   );
 }

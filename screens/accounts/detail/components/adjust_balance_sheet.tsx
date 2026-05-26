@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -14,19 +14,19 @@ import { parseAdjustInput } from './adjust_balance_sheet.helpers';
 import { useAdjustBalanceSheetState } from './adjust_balance_sheet.state';
 
 interface AdjustBalanceSheetProps {
-  visible: boolean;
+  isOpen: boolean;
   currentBalance: number;
   currency: Currency;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   onSave: (newBalance: number) => void;
   isLoading: boolean;
 }
 
 export function AdjustBalanceSheet({
-  visible,
+  isOpen,
   currentBalance,
   currency,
-  onClose,
+  onOpenChange,
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
@@ -44,13 +44,14 @@ export function AdjustBalanceSheet({
     })),
   );
 
+  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+
   // Seed the input from the current balance whenever the sheet opens.
-  // (The legacy .show()/.hide() ref calls are gone — `visible` drives the Sheet.)
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       initialize(currentBalance);
     }
-  }, [visible, currentBalance, initialize]);
+  }, [isOpen, currentBalance, initialize]);
 
   const handleSave = () => {
     const result = parseAdjustInput(adjustState.input);
@@ -65,7 +66,11 @@ export function AdjustBalanceSheet({
   const footer = (
     <Box style={{ flexDirection: 'row' }} className="gap-2">
       <Box style={{ flex: 1 }}>
-        <Button variant="secondary" label={Strings.adjustBalanceCancel} onPress={onClose} />
+        <Button
+          variant="secondary"
+          label={Strings.adjustBalanceCancel}
+          onPress={() => onOpenChange(false)}
+        />
       </Box>
       <Box style={{ flex: 2 }}>
         <Button
@@ -81,40 +86,40 @@ export function AdjustBalanceSheet({
 
   return (
     <Sheet
-      visible={visible}
-      onClose={onClose}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
       title={Strings.adjustBalanceTitle}
       size="sm"
       footer={footer}
     >
-      <Sheet.Body>
-        <Box className="px-4 pt-2">
-          <Text variant="hint" className="font-soraBold text-gold-500 pb-2 tracking-widest">
-            {Strings.adjustBalanceLabel}
+      <Box className="px-4 pt-2">
+        <Text variant="hint" className="font-soraBold text-gold-500 pb-2 tracking-widest">
+          {Strings.adjustBalanceLabel}
+        </Text>
+        <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
+          <View style={{ flex: 1 }}>
+            <Input
+              value={adjustState.input}
+              onChangeText={(v) => {
+                setInput(v);
+                setError('');
+              }}
+              onFocus={onFocus}
+              onBlur={onBlur}
+              keyboardType="decimal-pad"
+              isInvalid={!!adjustState.error}
+            />
+          </View>
+          <Text variant="body" className="text-muted font-soraBold">
+            {currency}
           </Text>
-          <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
-            <View style={{ flex: 1 }}>
-              <Input
-                value={adjustState.input}
-                onChangeText={(v) => {
-                  setInput(v);
-                  setError('');
-                }}
-                keyboardType="decimal-pad"
-                isInvalid={!!adjustState.error}
-              />
-            </View>
-            <Text variant="body" className="text-muted font-soraBold">
-              {currency}
-            </Text>
-          </Box>
-          {adjustState.error ? (
-            <Text variant="caption" className="text-danger mt-1">
-              {adjustState.error}
-            </Text>
-          ) : null}
         </Box>
-      </Sheet.Body>
+        {adjustState.error ? (
+          <Text variant="caption" className="text-danger mt-1">
+            {adjustState.error}
+          </Text>
+        ) : null}
+      </Box>
     </Sheet>
   );
 }
