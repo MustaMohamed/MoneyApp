@@ -74,17 +74,24 @@ Catalog (v1.0.3): Accordion · Alert · Avatar · BottomSheet · Button · Card 
 
 Apply to **every file touched** during its module migration. Do not fix files that aren't being moved in the current step.
 
-| Issue | Fix |
+### The actual rule
+
+**Team Law 7 — not a checklist.** When migrating a file, audit every UI element in it. If a HeroUI Native primitive covers a use case, use it. The table below captures known patterns as a shortcut — it is not a ceiling. If you encounter something not in the table that has an HeroUI equivalent, fix it and add a row.
+
+### Known patterns
+
+| Pattern found | Replace with |
 |-------|-----|
-| `ActivityIndicator` from `react-native` | → `<Spinner>` from `heroui-native` — **fetch Spinner docs first** |
-| `Switch` from `react-native` | → `<Switch>` from `heroui-native` — **fetch Switch docs first** (drop `trackColor`/`thumbColor`) |
-| Raw `TextInput` from `react-native` | → `<Input>` from `@/components/ui/input` — **fetch Input/TextField docs first** |
-| Inline error `Text` / `Animated.Text` / StyleSheet error | → `<FormErrorText message={...} />` |
-| Inline label `Text` / StyleSheet label | → `<FormLabelText label={...} />` |
-| Inline `SegmentedTabs<Currency>` segment definitions | → `<CurrencySelector>` from `@/modules/currency` |
-| Inline `new Intl.NumberFormat(...)` | → `formatAmount()` / `formatCurrencyAmount()` from `@/utils/format_amount` |
-| `<Pressable>` from `@/components/ui/pressable` | → `<PressableFeedback>` from `heroui-native` — swap `disabled` → `isDisabled`; use `animation={false}` when a parent `Animated.View` already handles the spring |
-| Custom header `Box` (back button + centered title + right slot) | → `<StackHeader title=... onBack=... right=...>` from `@/components/ui/stack_header`; wrap in `Animated.View` when the header has an entrance/exit animation |
+| `ActivityIndicator` from `react-native` | `<Spinner>` from `heroui-native` — **fetch Spinner docs first** |
+| `Switch` from `react-native` | `<Switch>` from `heroui-native` — **fetch Switch docs first** (drop `trackColor`/`thumbColor`/`ios_backgroundColor`) |
+| Raw `TextInput` from `react-native` | `<Input>` from `@/components/ui/input` — **fetch Input/TextField docs first** |
+| `<Text>` from `@/components/ui/text` | `<Text>` from `heroui-native` — drop `variant` prop, convert to `className` font tokens (kebab-case: `font-sora-bold`, `font-inter-medium`) |
+| `<Pressable>` from `@/components/ui/pressable` | `<PressableFeedback>` from `heroui-native` — swap `disabled` → `isDisabled`; use `animation={false}` when a parent `Animated.View` already drives the spring |
+| Custom header (back button + centered title + right slot) | `<StackHeader title=... onBack=... right=...>` from `@/components/ui/stack_header`; wrap in `Animated.View` when the header animates |
+| Inline `new Intl.NumberFormat(...)` | `formatAmount()` / `formatCurrencyAmount()` from `@/utils/format_amount` |
+| Inline `SegmentedTabs<Currency>` | `<CurrencySelector>` from `@/modules/currency` |
+| Inline error `Text` / `Animated.Text` | `<FormErrorText message={...} />` from `@/components/ui/form_error_text` |
+| Inline section label `Text` | `<FormLabelText label={...} />` from `@/components/ui/form_label_text` |
 
 ---
 
