@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 /**
  * bottom_sheet.tsx — HeroUI-backed Sheet primitive.
@@ -26,11 +27,31 @@ import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-s
  * FAB HIDING:
  * This primitive is the SOLE publisher to sheet_visibility.store. The counter
  * increments on open and decrements on close/unmount.
+ *
+ * HEADER LAYOUT (QA fix):
+ * When `title` is provided, renders a compact ROW: title (flex:1, Sora semibold,
+ * subhead) on the LEFT and a 44×44 close hit-target on the RIGHT.
+ * BottomSheet.Close is used via `asChild` wrapping a Pressable so the close
+ * still goes through HeroUI's onOpenChange(false) path — no re-introduction of
+ * the close-reliability bug this migration was meant to fix.
+ * BottomSheet.Title is kept so the `nativeID={id}_label` accessibility linkage
+ * remains intact; its default className is overridden to match legacy styling.
+ *
+ * CONTENT PADDING (QA fix):
+ * HeroUI's contentContainer tv() base includes `p-5` (20 px on all sides).
+ * Under Uniwind, class-merge precedence is not guaranteed — a className override
+ * like `p-0` may or may not win. Instead we use the deterministic
+ * `contentContainerProps={{ style: { padding: 0 } }}` on EVERY sheet variant
+ * (scrollable and non-scrollable). Consumers are responsible for their own
+ * padding (paddingHorizontal: Spacing.md, paddingBottom, etc.) exactly as they
+ * were under the legacy sheet. No safe-area bottom inset is added — all
+ * consumers already add their own paddingBottom.
  */
 import { BottomSheet } from 'heroui-native';
 import React, { useCallback, useEffect } from 'react';
+import { Pressable, View } from 'react-native';
 
-import { Size } from '@/constants/theme';
+import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
@@ -149,11 +170,21 @@ export function Sheet({
   // fitContent mode: enableDynamicSizing=true, snapPoints omitted — gorhom
   // sizes the sheet to its content height. scrollable is incompatible (needs
   // a bounded parent) so it is ignored when fitContent is true.
+  //
+  // contentContainerProps.style.padding = 0 on ALL variants:
+  // HeroUI's contentContainer tv() base bakes in `p-5` (20 px). Overriding
+  // via className is unreliable under Uniwind's compile-time class-merge.
+  // A style prop is deterministic and wins unconditionally. Consumers own
+  // their own horizontal / bottom padding — same contract as legacy sheet.
   const contentSizingProps = fitContent
-    ? { enableDynamicSizing: true as const }
+    ? {
+        enableDynamicSizing: true as const,
+        contentContainerProps: { style: { padding: 0 } } as const,
+      }
     : {
         snapPoints: resolveSnapPoints(size, snapPoints),
         enableDynamicSizing: false as const,
+        contentContainerProps: { style: { padding: 0 } } as const,
         ...(scrollable
           ? {
               enableOverDrag: false,
@@ -177,10 +208,47 @@ export function Sheet({
           {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
         >
           {title !== undefined && (
-            <>
-              <BottomSheet.Close />
-              <BottomSheet.Title>{title}</BottomSheet.Title>
-            </>
+            // Compact header ROW matching legacy sheet.tsx `styles.header`:
+            // title flex:1 LEFT · 44×44 close hit-target RIGHT.
+            // BottomSheet.Close with asChild keeps HeroUI's onOpenChange(false)
+            // close path intact. BottomSheet.Title preserves the
+            // nativeID={id}_label accessibility linkage for screen readers.
+            <View
+              testID="sheet-header"
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                paddingHorizontal: Spacing.md,
+                paddingBottom: Spacing.xs,
+              }}
+            >
+              <BottomSheet.Title
+                className="flex-1"
+                style={{
+                  fontFamily: FontFamily.soraSemi,
+                  fontSize: Type.subhead,
+                  color: Colors.dark.text1,
+                }}
+              >
+                {title}
+              </BottomSheet.Title>
+              <BottomSheet.Close asChild>
+                <Pressable
+                  testID="sheet-close-btn"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityLabel="Close"
+                  accessibilityRole="button"
+                  style={{
+                    width: ms(44),
+                    height: ms(44),
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <MaterialCommunityIcons name="close" size={ms(24)} color={Colors.dark.text2} />
+                </Pressable>
+              </BottomSheet.Close>
+            </View>
           )}
           {children}
         </BottomSheet.Content>
