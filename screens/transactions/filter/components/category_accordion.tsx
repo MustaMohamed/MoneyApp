@@ -8,6 +8,8 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
+import { toIconName } from '@/utils/icon_name_guard';
+import { ms } from '@/utils/responsive';
 
 import { formatSelectionSummary } from '../filter.helpers';
 
@@ -73,8 +75,14 @@ export function CategoryAccordion({
                   label={c.name}
                   selected={selectedIds.includes(c.id)}
                   onPress={() => onToggleId(c.id)}
-                  // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
-                  dotColor={c.color ?? CoreTokens.text2}
+                  startIcon={
+                    <MaterialCommunityIcons
+                      name={toIconName(c.icon, 'tag')}
+                      size={ms(13)}
+                      // oxlint-disable-next-line typescript/no-unnecessary-condition -- DB color can be null despite type
+                      color={c.color ?? CoreTokens.text2}
+                    />
+                  }
                   checkable
                   accessibilityLabel={`${c.name}, category filter`}
                 />

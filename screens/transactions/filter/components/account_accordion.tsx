@@ -3,11 +3,13 @@ import { Accordion } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { SelectablePill } from '@/components/ui/chip';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
+import { ms } from '@/utils/responsive';
 
 import { formatSelectionSummary } from '../filter.helpers';
 
@@ -73,7 +75,13 @@ export function AccountAccordion({
                   label={a.name}
                   selected={selectedIds.includes(a.id)}
                   onPress={() => onToggleId(a.id)}
-                  dotColor={a.color ?? CoreTokens.text2}
+                  startIcon={
+                    <MaterialCommunityIcons
+                      name={TYPE_OPTIONS.find((o) => o.type === a.type)?.icon ?? 'bank'}
+                      size={ms(13)}
+                      color={a.color ?? CoreTokens.text2}
+                    />
+                  }
                   checkable
                   accessibilityLabel={`${a.name}, account filter`}
                 />

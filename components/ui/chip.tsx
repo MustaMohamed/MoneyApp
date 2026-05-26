@@ -20,6 +20,11 @@ export interface SelectablePillProps {
   onPress: () => void;
   /** Optional leading color dot (filter pills with a category/account color). */
   dotColor?: string;
+  /**
+   * Leading adornment node — when provided, replaces the dotColor dot.
+   * Used for type/category icons.
+   */
+  startIcon?: React.ReactNode;
   /** Show a trailing gold check when `selected` (multi-select filter pills). */
   checkable?: boolean;
   /**
@@ -48,12 +53,13 @@ export function SelectablePill({
   selected,
   onPress,
   dotColor,
+  startIcon,
   checkable = false,
   disabled = false,
   accessibilityLabel,
   style,
 }: SelectablePillProps): React.ReactElement {
-  const hasAdornment = dotColor !== undefined || checkable;
+  const hasAdornment = dotColor !== undefined || startIcon !== undefined || checkable;
   return (
     <Chip
       size="sm"
@@ -72,7 +78,9 @@ export function SelectablePill({
         selected ? 'border-accent/50 bg-accent/15' : 'border-border bg-default/40',
       )}
     >
-      {dotColor !== undefined ? (
+      {startIcon !== undefined ? (
+        startIcon
+      ) : dotColor !== undefined ? (
         <View style={{ backgroundColor: dotColor }} className="h-2 w-2 rounded-full" />
       ) : null}
       <Chip.Label
