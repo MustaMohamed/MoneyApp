@@ -7,10 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-// Warning icon tint: amber at 12% opacity, derived from Colors.dark.warning
-// (same pattern as Colors.dark.dangerBg). No warningBg token exists yet so
-// we compose it here. '#D4830A' + '1F' = ~12% opacity in RGBA hex8.
-const WARNING_ICON_BG = Colors.dark.warning + '1F';
+const WARNING_ICON_BG = Colors.dark.warningBg;
 const ICON_CONTAINER_SIZE = ms(56);
 const ICON_SIZE = ms(28);
 

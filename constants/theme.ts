@@ -25,6 +25,7 @@ export const Colors = {
     negative: '#E05A42',
     warning: '#D4830A',
     dangerBg: 'rgba(224, 90, 66, 0.12)',
+    warningBg: 'rgba(212, 131, 10, 0.12)',
     overlayWhite7: 'rgba(255, 255, 255, 0.07)',
   },
   light: {
