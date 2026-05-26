@@ -73,6 +73,7 @@ export function CommitmentRow({
     <SwipeableRow
       rowId={payment.id}
       actions={actions}
+      disabled={commitment === undefined}
       accessibilityLabel={`${commitment?.name ?? ''}, ${showTilde ? '~' : ''}${formattedAmount} ${payment.currency}, ${statusLabel}`}
     >
       <Pressable
