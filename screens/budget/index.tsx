@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: FontFamily.soraBold, fontSize: Type.title, color: Colors.dark.text1 },
   addBtn: { fontFamily: FontFamily.interMedium, fontSize: Type.body, color: Colors.dark.gold },
-  content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },
+  content: { paddingBottom: ms(96) },
   section: {
     fontFamily: FontFamily.interMedium,
     fontSize: Type.micro,
