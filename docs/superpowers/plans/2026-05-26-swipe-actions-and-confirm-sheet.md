@@ -48,9 +48,10 @@ Action tile label colour for Delete: `'#FFFFFF'` (white) is correct per spec D7.
 |------|---------------|
 | `components/ui/swipeable_row.tsx` | `SwipeableRow` component — wraps `ReanimatedSwipeable`, renders action tiles, wires registry |
 | `utils/swipeable_row_registry.ts` | Module-level singleton: tracks open row id, exposes `open(id)` / `close(id)` / `closeAll()` / `subscribe(cb)` |
+| `utils/use_confirm_action.hook.ts` | Shared hook: confirm/cancel gate with busy state — consumed by all three adoption screens |
 | `__tests__/swipeable_row_registry.test.ts` | Registry logic unit tests |
+| `__tests__/use_confirm_action.hook.test.ts` | Real unit tests for the confirm gate: fires on confirm, not on cancel, no double-invoke while busy, busy clears on rejection |
 | `screens/transactions/components/tx_delete_confirm_sheet.tsx` | Thin wrapper: `ConfirmSheet` destructive for tx delete |
-| `screens/transactions/transactions.hook.ts` | **Modified** — add `deleteTx(id)` action (or extend existing hook) |
 | `screens/commitments/components/commitment_delete_confirm_sheet.tsx` | Thin wrapper: `ConfirmSheet` destructive for commitment deactivate |
 | `screens/budget/components/budget_delete_confirm_sheet.tsx` | Thin wrapper: `ConfirmSheet` destructive for budget remove |
 
@@ -61,14 +62,17 @@ Action tile label colour for Delete: `'#FFFFFF'` (white) is correct per spec D7.
 | `components/ui/confirm_sheet.tsx` | Add `destructive?: boolean` prop — trash icon + danger button path |
 | `screens/transactions/detail/components/delete_confirm_dialog.tsx` | Replace `ConfirmDialog` with `ConfirmSheet` destructive |
 | `screens/transactions/components/transaction_row.tsx` | Wrap in `SwipeableRow` with Edit + Delete actions |
+| `screens/transactions/index.tsx` | Consume `useConfirmAction` for list-delete; add `onScrollBeginDrag` |
 | `screens/commitments/components/commitment_row.tsx` | Wrap in `SwipeableRow` with Skip + Edit + Delete actions |
+| `screens/commitments/index.tsx` | Consume `useConfirmAction` for list-delete; add `onScrollBeginDrag` |
 | `screens/budget/components/category_budget_row.tsx` | Wrap in `SwipeableRow` with Edit + Delete actions |
+| `screens/budget/index.tsx` | Consume `useConfirmAction` for list-delete; add `useFocusEffect` blur close |
 | `screens/budget/components/set_budget_sheet.tsx` | Remove the inline "Remove" `Pressable` (lines 191–201) |
 | `constants/strings.ts` | Add swipe action labels + per-list confirm copy |
-| `__tests__/budget.store.test.ts` | Extend: assert `removeBudget` fires on confirm, not on cancel |
-| `__tests__/transaction.store.test.ts` | Extend: assert `deleteTransaction` fires on confirm, not on cancel |
-| `__tests__/commitment.store.test.ts` | Extend: assert `deactivateCommitment` fires on confirm, not on cancel |
-| `__tests__/swipeable_row_registry.test.ts` | New: registry unit tests |
+| `screens/transactions/transactions.hook.ts` | Add `goToEdit(id)` if missing (mirrors `goToDetail`) |
+| `__tests__/budget.store.test.ts` | Add `removeBudget` signature smoke test |
+| `__tests__/transaction.store.test.ts` | Add `deleteTransaction` signature smoke test |
+| `__tests__/commitment.store.test.ts` | Add `deactivateCommitment` signature smoke test |
 
 ---
 
@@ -702,7 +706,214 @@ git commit -m "feat(swipe): SwipeableRow component — RNGH ReanimatedSwipeable 
 
 ---
 
-### Task 1.5 — Run full CI parity check
+### Task 1.5 — `useConfirmAction` hook (TDD)
+
+**Files:**
+- Create: `utils/use_confirm_action.hook.ts`
+- Create: `__tests__/use_confirm_action.hook.test.ts`
+
+This hook is the real gate between "user pressed Delete tile" and "store mutation runs". It owns the `pendingPayload` + `busy` state and the confirm/cancel logic. All three adoption screens consume it instead of duplicating the same boilerplate. Because it is a pure logic hook with no UI, it is fully testable without render tests.
+
+- [ ] **Step 1: Write the failing tests**
+
+Create `__tests__/use_confirm_action.hook.test.ts`:
+
+```ts
+import { act, renderHook } from '@testing-library/react-hooks';
+
+import { useConfirmAction } from '@/utils/use_confirm_action.hook';
+
+describe('useConfirmAction', () => {
+  it('starts with no pending payload and not busy', () => {
+    const { result } = renderHook(() => useConfirmAction<string>(jest.fn()));
+    expect(result.current.pendingPayload).toBeNull();
+    expect(result.current.busy).toBe(false);
+  });
+
+  it('request() sets pendingPayload', () => {
+    const { result } = renderHook(() => useConfirmAction<string>(jest.fn()));
+    act(() => { result.current.request('tx-42'); });
+    expect(result.current.pendingPayload).toBe('tx-42');
+  });
+
+  it('cancel() clears pendingPayload without calling action', () => {
+    const action = jest.fn();
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    act(() => { result.current.request('tx-42'); });
+    act(() => { result.current.cancel(); });
+    expect(result.current.pendingPayload).toBeNull();
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  it('confirm() calls action with pendingPayload exactly once, then clears pending', async () => {
+    const action = jest.fn().mockResolvedValue(undefined);
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    act(() => { result.current.request('tx-42'); });
+    await act(async () => { await result.current.confirm(); });
+    expect(action).toHaveBeenCalledTimes(1);
+    expect(action).toHaveBeenCalledWith('tx-42');
+    expect(result.current.pendingPayload).toBeNull();
+  });
+
+  it('confirm() sets busy=true during action, busy=false after', async () => {
+    let resolveFn!: () => void;
+    const action = jest.fn(
+      () => new Promise<void>((res) => { resolveFn = res; }),
+    );
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    act(() => { result.current.request('tx-99'); });
+
+    // Start confirm — do not await yet
+    let confirmPromise: Promise<void>;
+    act(() => { confirmPromise = result.current.confirm(); });
+    expect(result.current.busy).toBe(true);
+
+    // Resolve the async action
+    await act(async () => {
+      resolveFn();
+      await confirmPromise;
+    });
+    expect(result.current.busy).toBe(false);
+  });
+
+  it('confirm() while already busy does NOT invoke action a second time', async () => {
+    let resolveFn!: () => void;
+    const action = jest.fn(
+      () => new Promise<void>((res) => { resolveFn = res; }),
+    );
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    act(() => { result.current.request('tx-1'); });
+
+    let p1: Promise<void>;
+    act(() => { p1 = result.current.confirm(); });
+
+    // Second confirm while busy — must be a no-op
+    act(() => { void result.current.confirm(); });
+
+    await act(async () => {
+      resolveFn();
+      await p1;
+    });
+
+    expect(action).toHaveBeenCalledTimes(1);
+  });
+
+  it('confirm() when action rejects still clears busy and clears pending', async () => {
+    const action = jest.fn().mockRejectedValue(new Error('db error'));
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    act(() => { result.current.request('tx-bad'); });
+
+    await act(async () => {
+      try { await result.current.confirm(); } catch { /* expected */ }
+    });
+
+    expect(result.current.busy).toBe(false);
+    expect(result.current.pendingPayload).toBeNull();
+  });
+
+  it('confirm() is a no-op when pendingPayload is null', async () => {
+    const action = jest.fn();
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    // No request() called — pendingPayload is null
+    await act(async () => { await result.current.confirm(); });
+    expect(action).not.toHaveBeenCalled();
+  });
+});
+```
+
+- [ ] **Step 2: Run tests and confirm they fail**
+
+```bash
+cd /Users/musta/Code/projects/practice/MoneyApp && npm test -- --testPathPattern="use_confirm_action" --no-coverage 2>&1 | tail -15
+```
+
+Expected: FAIL — `Cannot find module '@/utils/use_confirm_action.hook'`
+
+- [ ] **Step 3: Implement the hook**
+
+Create `utils/use_confirm_action.hook.ts`:
+
+```ts
+import { useCallback, useState } from 'react';
+
+/**
+ * useConfirmAction — shared confirm/cancel gate for destructive swipe actions.
+ *
+ * Owns three pieces of state:
+ *   pendingPayload — the item id (or any typed payload) waiting for confirmation.
+ *                    null means no action is pending (sheet should be closed).
+ *   busy           — true while the async action is in flight; gates the sheet
+ *                    from being dismissed and prevents double-invocation.
+ *
+ * Usage:
+ *   const { pendingPayload, busy, request, confirm, cancel } =
+ *     useConfirmAction<string>((id) => deleteTransaction(id));
+ *
+ *   // User taps Delete tile:
+ *   onDelete={() => request(tx.id)}
+ *
+ *   // ConfirmSheet:
+ *   <ConfirmSheet
+ *     isOpen={pendingPayload !== null}
+ *     busy={busy}
+ *     onConfirm={confirm}
+ *     onCancel={cancel}
+ *   />
+ *
+ * @param action - async function that receives the pending payload and performs
+ *                 the mutation. Called exactly once per confirm(); never called
+ *                 on cancel() or when pendingPayload is null.
+ */
+export function useConfirmAction<T>(action: (payload: T) => Promise<void>) {
+  const [pendingPayload, setPendingPayload] = useState<T | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const request = useCallback((payload: T) => {
+    setPendingPayload(payload);
+  }, []);
+
+  const cancel = useCallback(() => {
+    setPendingPayload(null);
+  }, []);
+
+  const confirm = useCallback(async () => {
+    // Guard: no pending payload — nothing to confirm
+    if (pendingPayload === null) return;
+    // Guard: already in flight — prevent double-invoke
+    if (busy) return;
+
+    setBusy(true);
+    try {
+      await action(pendingPayload);
+    } finally {
+      // Always clear state, even on rejection — sheet must not stay stuck
+      setBusy(false);
+      setPendingPayload(null);
+    }
+  }, [action, pendingPayload, busy]);
+
+  return { pendingPayload, busy, request, confirm, cancel };
+}
+```
+
+- [ ] **Step 4: Run tests and confirm they pass**
+
+```bash
+cd /Users/musta/Code/projects/practice/MoneyApp && npm test -- --testPathPattern="use_confirm_action" --no-coverage 2>&1 | tail -10
+```
+
+Expected: PASS, 7 tests.
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add utils/use_confirm_action.hook.ts __tests__/use_confirm_action.hook.test.ts
+git commit -m "feat(swipe): useConfirmAction hook — tested confirm/cancel gate for swipe delete"
+```
+
+---
+
+### Task 1.6 — Run full CI parity check
 
 Wave 1 is complete. Verify the full suite before pushing.
 
@@ -728,7 +939,7 @@ Expected: all six steps pass, final line prints `CI parity green`.
 git push origin feat/swipe-actions-standard
 ```
 
-Open a PR titled "feat(swipe): Wave 1 — Foundation (SwipeableRow + ConfirmSheet destructive + registry)". This PR has no visible behaviour change — safe to merge independently.
+Open a PR titled "feat(swipe): Wave 1 — Foundation (SwipeableRow + ConfirmSheet destructive + registry + useConfirmAction)". This PR has no visible behaviour change — safe to merge independently.
 
 ---
 
@@ -738,48 +949,31 @@ Wraps `TransactionRow` in `SwipeableRow`. Migrates `delete_confirm_dialog.tsx` f
 
 ---
 
-### Task 2.1 — Extend transaction store tests (TDD: confirm fires on confirm, not on cancel)
+### Task 2.1 — Smoke-test `deleteTransaction` signature
 
 **Files:**
 - Modify: `__tests__/transaction.store.test.ts`
 
-- [ ] **Step 1: Read the existing test file**
+The confirm/cancel gate logic is fully proven in `__tests__/use_confirm_action.hook.test.ts` (Task 1.5). What belongs here is a lightweight smoke test confirming the store mutation exists with the expected signature — so a future refactor that renames or removes `deleteTransaction` breaks a named test, not a silent type error.
 
-Read `__tests__/transaction.store.test.ts` to understand the existing test setup (db mock, store reset, etc.) before adding tests.
+- [ ] **Step 1: Read `__tests__/transaction.store.test.ts` to find the existing setup**
 
-- [ ] **Step 2: Add failing tests for delete-gate logic**
+Note how the db mock and store reset are wired (e.g. `beforeEach` that calls `useTransactionStore.setState(initialState)` or similar).
 
-Append to the test file (inside the appropriate `describe` block or as a new `describe('deleteTransaction guard')`):
+- [ ] **Step 2: Add the smoke test**
+
+Append inside the existing `describe` block (or add a new `describe('deleteTransaction mutation')`):
 
 ```ts
-describe('deleteTransaction — swipe confirm gate', () => {
-  it('calls deleteTransaction when confirmed', async () => {
-    // Arrange: set up a spy on the store action
-    const deleteSpy = jest.spyOn(useTransactionStore.getState(), 'deleteTransaction');
-    deleteSpy.mockResolvedValue(undefined);
-
-    // Act: simulate confirm path — call deleteTransaction directly
-    await useTransactionStore.getState().deleteTransaction('tx-123');
-
-    // Assert
-    expect(deleteSpy).toHaveBeenCalledWith('tx-123');
-    deleteSpy.mockRestore();
-  });
-
-  it('does NOT call deleteTransaction when cancelled', () => {
-    // The cancel path never invokes the mutation — it simply closes the sheet.
-    // This test asserts the cancel callback does not reach the store.
-    const deleteSpy = jest.spyOn(useTransactionStore.getState(), 'deleteTransaction');
-
-    // Simulate cancel: do nothing — no store call
-    // Verify the spy was never called
-    expect(deleteSpy).not.toHaveBeenCalled();
-    deleteSpy.mockRestore();
-  });
+it('deleteTransaction exists and is a function on the store', () => {
+  const { deleteTransaction } = useTransactionStore.getState();
+  expect(typeof deleteTransaction).toBe('function');
 });
 ```
 
-- [ ] **Step 3: Run and confirm tests pass (they are trivial spy tests)**
+This is intentionally minimal — it is a refactor-guard, not a behaviour test. The behaviour test lives in `use_confirm_action.hook.test.ts`.
+
+- [ ] **Step 3: Run tests**
 
 ```bash
 cd /Users/musta/Code/projects/practice/MoneyApp && npm test -- --testPathPattern="transaction.store" --no-coverage 2>&1 | tail -10
@@ -791,7 +985,7 @@ Expected: all pass.
 
 ```bash
 git add __tests__/transaction.store.test.ts
-git commit -m "test(swipe): add delete-gate guard tests for transaction store"
+git commit -m "test(swipe): smoke-test deleteTransaction signature in transaction store"
 ```
 
 ---
@@ -968,20 +1162,26 @@ Keep the `Pressable` + `Animated.View` body **exactly as-is** (copy from the cur
 
 - [ ] **Step 2: Update the call site in `screens/transactions/index.tsx`**
 
-Add delete sheet state and wire `onScrollBeginDrag`:
+Use `useConfirmAction` — no hand-rolled pending/busy state. Add `onScrollBeginDrag`:
 
 ```tsx
-// Add import
+// Add imports
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { useTransactionStore } from '@/store/transaction.store';
+import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
-// Inside the component, add local state for delete confirmation:
-const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null);
+// Inside the component:
 const { deleteTransaction } = useTransactionStore(
   useShallow((s) => ({ deleteTransaction: s.deleteTransaction })),
 );
-const [deleteBusy, setDeleteBusy] = React.useState(false);
+const {
+  pendingPayload: pendingDeleteId,
+  busy: deleteBusy,
+  request: requestDelete,
+  confirm: confirmDelete,
+  cancel: cancelDelete,
+} = useConfirmAction<string>((id) => deleteTransaction(id));
 
 // Update the SectionList:
 <SectionList
@@ -995,7 +1195,7 @@ const [deleteBusy, setDeleteBusy] = React.useState(false);
       category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
       onPress={() => t.goToDetail(item.id)}
       onEdit={() => t.goToEdit(item.id)}
-      onDelete={() => setPendingDeleteId(item.id)}
+      onDelete={() => requestDelete(item.id)}
     />
   )}
 />
@@ -1004,14 +1204,8 @@ const [deleteBusy, setDeleteBusy] = React.useState(false);
 <TxDeleteConfirmSheet
   isOpen={pendingDeleteId !== null}
   busy={deleteBusy}
-  onCancel={() => setPendingDeleteId(null)}
-  onConfirm={async () => {
-    if (!pendingDeleteId) return;
-    setDeleteBusy(true);
-    await deleteTransaction(pendingDeleteId);
-    setDeleteBusy(false);
-    setPendingDeleteId(null);
-  }}
+  onCancel={cancelDelete}
+  onConfirm={() => { void confirmDelete(); }}
 />
 ```
 
@@ -1096,35 +1290,21 @@ Wraps `CommitmentRow` with Skip (info/blue), Edit (neutral), Delete (destructive
 
 ---
 
-### Task 3.1 — Extend commitment store tests
+### Task 3.1 — Smoke-test `deactivateCommitment` signature
 
 **Files:**
 - Modify: `__tests__/commitment.store.test.ts`
 
-- [ ] **Step 1: Read existing commitment store tests for setup patterns**
+The confirm/cancel gate is proven in `use_confirm_action.hook.test.ts`. This test is a refactor-guard confirming the mutation exists on the store with the expected signature.
 
-Read `__tests__/commitment.store.test.ts` before editing.
+- [ ] **Step 1: Read `__tests__/commitment.store.test.ts` for setup patterns**
 
-- [ ] **Step 2: Add delete-gate tests**
+- [ ] **Step 2: Add the smoke test**
 
 ```ts
-describe('deactivateCommitment — swipe confirm gate', () => {
-  it('calls deactivateCommitment when confirmed', async () => {
-    const spy = jest.spyOn(useCommitmentStore.getState(), 'deactivateCommitment');
-    spy.mockResolvedValue(undefined);
-
-    await useCommitmentStore.getState().deactivateCommitment('c-123');
-
-    expect(spy).toHaveBeenCalledWith('c-123');
-    spy.mockRestore();
-  });
-
-  it('does NOT call deactivateCommitment when cancelled', () => {
-    const spy = jest.spyOn(useCommitmentStore.getState(), 'deactivateCommitment');
-    // Cancel path: no store call
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
-  });
+it('deactivateCommitment exists and is a function on the store', () => {
+  const { deactivateCommitment } = useCommitmentStore.getState();
+  expect(typeof deactivateCommitment).toBe('function');
 });
 ```
 
@@ -1140,7 +1320,7 @@ Expected: all pass.
 
 ```bash
 git add __tests__/commitment.store.test.ts
-git commit -m "test(swipe): add deactivateCommitment guard tests"
+git commit -m "test(swipe): smoke-test deactivateCommitment signature in commitment store"
 ```
 
 ---
@@ -1279,20 +1459,25 @@ grep -n "CommitmentRow\|SectionList\|onScrollBeginDrag" /Users/musta/Code/projec
 Add imports:
 
 ```tsx
-import React from 'react';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { useCommitmentStore } from '@/store/commitment.store';
+import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 ```
 
-Add state inside the component:
+Add state inside the component using `useConfirmAction` — no hand-rolled pending/busy:
 
 ```tsx
-const [pendingDeleteId, setPendingDeleteId] = React.useState<string | null>(null);
-const [deleteBusy, setDeleteBusy] = React.useState(false);
 const { deactivateCommitment } = useCommitmentStore(
   useShallow((s) => ({ deactivateCommitment: s.deactivateCommitment })),
 );
+const {
+  pendingPayload: pendingDeleteId,
+  busy: deleteBusy,
+  request: requestDelete,
+  confirm: confirmDelete,
+  cancel: cancelDelete,
+} = useConfirmAction<string>((id) => deactivateCommitment(id));
 ```
 
 Update the `SectionList` renderItem to pass the new props and add `onScrollBeginDrag`:
@@ -1309,7 +1494,9 @@ Update the `SectionList` renderItem to pass the new props and add `onScrollBegin
       onPress={() => goToDetail(item.payment.id)}
       onSkip={() => openSkipSheet(item.payment.id)}
       onEdit={() => goToEdit(item.commitment?.id)}
-      onDelete={() => setPendingDeleteId(item.commitment?.id ?? null)}
+      onDelete={() => {
+        if (item.commitment?.id) requestDelete(item.commitment.id);
+      }}
     />
   )}
 />
@@ -1323,14 +1510,8 @@ Add the confirm sheet after the SectionList:
 <CommitmentDeleteConfirmSheet
   isOpen={pendingDeleteId !== null}
   busy={deleteBusy}
-  onCancel={() => setPendingDeleteId(null)}
-  onConfirm={async () => {
-    if (!pendingDeleteId) return;
-    setDeleteBusy(true);
-    await deactivateCommitment(pendingDeleteId);
-    setDeleteBusy(false);
-    setPendingDeleteId(null);
-  }}
+  onCancel={cancelDelete}
+  onConfirm={() => { void confirmDelete(); }}
 />
 ```
 
@@ -1396,35 +1577,21 @@ When you finish Wave 4, open a branch or draft PR named `feat/budget-visual-rede
 
 ---
 
-### Task 4.1 — Extend budget store tests
+### Task 4.1 — Smoke-test `removeBudget` signature
 
 **Files:**
 - Modify: `__tests__/budget.store.test.ts`
 
-- [ ] **Step 1: Read existing budget store tests**
+The confirm/cancel gate is proven in `use_confirm_action.hook.test.ts`. This test is a refactor-guard confirming the mutation exists on the store with the expected signature.
 
-Read `__tests__/budget.store.test.ts` for setup patterns.
+- [ ] **Step 1: Read `__tests__/budget.store.test.ts` for setup patterns**
 
-- [ ] **Step 2: Add delete-gate tests**
+- [ ] **Step 2: Add the smoke test**
 
 ```ts
-describe('removeBudget — swipe confirm gate', () => {
-  it('calls removeBudget when confirmed', async () => {
-    const spy = jest.spyOn(useBudgetStore.getState(), 'removeBudget');
-    spy.mockResolvedValue(undefined);
-
-    await useBudgetStore.getState().removeBudget('cat-abc');
-
-    expect(spy).toHaveBeenCalledWith('cat-abc');
-    spy.mockRestore();
-  });
-
-  it('does NOT call removeBudget when cancelled', () => {
-    const spy = jest.spyOn(useBudgetStore.getState(), 'removeBudget');
-    // Cancel path: no store call
-    expect(spy).not.toHaveBeenCalled();
-    spy.mockRestore();
-  });
+it('removeBudget exists and is a function on the store', () => {
+  const { removeBudget } = useBudgetStore.getState();
+  expect(typeof removeBudget).toBe('function');
 });
 ```
 
@@ -1440,7 +1607,7 @@ Expected: all pass.
 
 ```bash
 git add __tests__/budget.store.test.ts
-git commit -m "test(swipe): add removeBudget guard tests for budget store"
+git commit -m "test(swipe): smoke-test removeBudget signature in budget store"
 ```
 
 ---
@@ -1626,20 +1793,25 @@ Read the current index to find the `.map` call:
 grep -n "CategoryBudgetRow\|removeBudget\|openEdit" /Users/musta/Code/projects/practice/MoneyApp/screens/budget/index.tsx | head -20
 ```
 
-Add state and wire props:
+Add state and wire props using `useConfirmAction` — no hand-rolled pending/busy:
 
 ```tsx
-import React from 'react';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { BudgetDeleteConfirmSheet } from './components/budget_delete_confirm_sheet';
 import { useBudgetStore } from '@/store/budget.store';
+import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
-// Inside component:
-const [pendingDelete, setPendingDelete] = React.useState<{ id: string; name: string } | null>(null);
-const [deleteBusy, setDeleteBusy] = React.useState(false);
+// Inside component — useConfirmAction carries { id, name } as the payload:
 const { removeBudget } = useBudgetStore(
   useShallow((s) => ({ removeBudget: s.removeBudget })),
 );
+const {
+  pendingPayload: pendingDelete,
+  busy: deleteBusy,
+  request: requestDelete,
+  confirm: confirmDelete,
+  cancel: cancelDelete,
+} = useConfirmAction<{ id: string; name: string }>(({ id }) => removeBudget(id));
 
 // In the .map:
 {state.rows.map((row) => (
@@ -1648,7 +1820,7 @@ const { removeBudget } = useBudgetStore(
     row={row}
     onPress={() => openDetail(row.categoryId)}
     onEdit={() => openEdit(row)}
-    onDelete={() => setPendingDelete({ id: row.categoryId, name: row.name })}
+    onDelete={() => requestDelete({ id: row.categoryId, name: row.name })}
   />
 ))}
 
@@ -1657,14 +1829,8 @@ const { removeBudget } = useBudgetStore(
   isOpen={pendingDelete !== null}
   categoryName={pendingDelete?.name ?? ''}
   busy={deleteBusy}
-  onCancel={() => setPendingDelete(null)}
-  onConfirm={async () => {
-    if (!pendingDelete) return;
-    setDeleteBusy(true);
-    await removeBudget(pendingDelete.id);
-    setDeleteBusy(false);
-    setPendingDelete(null);
-  }}
+  onCancel={cancelDelete}
+  onConfirm={() => { void confirmDelete(); }}
 />
 ```
 
@@ -1736,6 +1902,18 @@ PR title: "feat(swipe): Wave 4 — Budget swipe wiring (edit + delete, remove in
 
 ---
 
+## Device QA flags (no code change — verify on device)
+
+These are not CI-catchable. Flag them during manual device QA before marking any wave as shipped.
+
+**QA-1: Commitments "Delete" tile vs "Deactivate" confirm sheet copy mismatch.**
+The swipe tile label reads "Delete" (`Strings.swipeDelete`). The confirm sheet says "Deactivate this commitment?" / confirm button "Deactivate" (`commitmentsDeactivate*` strings). This is intentional — "deactivate" is the technically accurate soft-delete, and using the existing strings avoids copy duplication. However, it can read as inconsistent to a user who swipes "Delete" and then sees "Deactivate". Verify on device that the intent is clear. If it isn't, a dedicated `Strings.commitmentsSwipeDeleteTitle/Body/Confirm` can be added — but that is a copy decision deferred to device QA, not a pre-merge blocker.
+
+**QA-2: SectionList recycle vs registry ghost-open.**
+Transactions and commitments both use `SectionList` (not FlashList), so the aggressive cell-recycling risk is lower than the spec's §5.4 warning implies. However, rows can still be unmounted and remounted when section boundaries scroll off screen. Verify on device with a long transaction list that fast scrolling does not leave a row in a visually open (swiped) state after the row remounts. The registry design (open id lives in the module, not component state) makes this safe in theory — confirm it empirically on a mid-range Android device.
+
+---
+
 ## Self-Review Checklist
 
 Run this before handing off to @tariq for code review.
@@ -1747,6 +1925,7 @@ Run this before handing off to @tariq for code review.
 | `SwipeableRow` at `components/ui/swipeable_row.tsx` | Task 1.4 |
 | One row open at a time registry | Task 1.2 |
 | `ConfirmSheet` `destructive` prop | Task 1.3 |
+| Confirm/cancel gate: fires on confirm, not on cancel, no double-invoke, busy clears on rejection | Task 1.5 (`useConfirmAction` hook — 7 real tests) |
 | Swipe-left trailing tiles (Edit, Delete, Skip) | Task 1.4 |
 | Tile colours from tokens (surfaceEl, transferBlue, negative) | Task 1.4 |
 | `accessibilityActions` + `onAccessibilityAction` mapping | Task 1.4 |
@@ -1754,16 +1933,20 @@ Run this before handing off to @tariq for code review.
 | `disabled` prop | Task 1.4 |
 | Transactions adoption + delete confirm sheet | Tasks 2.2–2.4 |
 | `delete_confirm_dialog.tsx` migrated to ConfirmSheet | Task 2.2 |
+| `deleteTransaction` mutation exists (refactor guard) | Task 2.1 |
 | Scroll closes open row (SectionList `onScrollBeginDrag`) | Task 2.4 / 3.3 |
 | Commitments adoption (skip/edit/delete) | Tasks 3.2–3.3 |
+| `deactivateCommitment` mutation exists (refactor guard) | Task 3.1 |
 | Budget adoption (edit/delete) | Tasks 4.2–4.4 |
+| `removeBudget` mutation exists (refactor guard) | Task 4.1 |
 | "Remove" link removed from `set_budget_sheet.tsx` | Task 4.3 |
 | Screen blur closes open row (budget, no scrollbar) | Task 4.4 |
+| All three adoption screens use shared `useConfirmAction` (no duplicated boilerplate) | Tasks 2.4, 3.3, 4.4 |
 | All strings in `constants/strings.ts` | Task 1.1 |
-| Logic-only tests for registry, store mutations | Tasks 1.2, 2.1, 3.1, 4.1 |
-| No `.tsx` render tests | (No render tests written anywhere) |
+| Logic-only tests; no `.tsx` render tests | Tasks 1.2, 1.5, 2.1, 3.1, 4.1 — all `.ts` |
 | No new dependencies | (Only `expo-haptics` used, already installed) |
 | Spec 2 coordination point documented | Task 4.4 `TODO(spec2)` comment |
+| Device QA flags documented | QA-1 (commit label mismatch), QA-2 (SectionList recycle) |
 
 ### Placeholder scan
 
@@ -1774,5 +1957,7 @@ Verify no `TBD`, `TODO (implement)`, or stub functions remain in shipped code. T
 - `SwipeAction.key` is a `string` in the interface (Task 1.4), used as `event.nativeEvent.actionName` comparison in `onAccessibilityAction` — consistent.
 - `rowId` defaults to `genId()` (string) — consistent with registry `openRow(id: string)`.
 - `closeAllRows` is re-exported from `swipeable_row.tsx` for list consumers — consistent with the registry's `closeAllRows`.
-- `pendingDeleteId` is `string | null` in all three adoption screens — consistent with `rowId: string` in the registry.
+- `useConfirmAction<string>` in transactions and commitments — `pendingPayload` is `string | null`, passed to the confirm callback as `string` — consistent with store signatures `deleteTransaction(id: string)` and `deactivateCommitment(id: string)`.
+- `useConfirmAction<{ id: string; name: string }>` in budget — destructures `{ id }` in the action callback, passes `id` to `removeBudget(id: string)` — consistent.
 - `budgetDeleteConfirmBody` is `(name: string) => string` in Task 1.1 — called as `Strings.budgetDeleteConfirmBody(categoryName)` in Task 4.2 — consistent.
+- `useConfirmAction` `confirm()` returns `Promise<void>` — call sites use `void confirmDelete()` (fire-and-forget from an event handler) — consistent with React event handler conventions.
