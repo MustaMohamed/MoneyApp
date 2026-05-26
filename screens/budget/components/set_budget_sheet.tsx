@@ -31,9 +31,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   const { sheetState, close } = useBudgetState(
     useShallow((s) => ({ sheetState: s.state, close: s.close })),
   );
-  const { setLimit, removeBudget } = useBudgetStore(
-    useShallow((s) => ({ setLimit: s.setLimit, removeBudget: s.removeBudget })),
-  );
+  const { setLimit } = useBudgetStore(useShallow((s) => ({ setLimit: s.setLimit })));
 
   const {
     pickerSheetState,
@@ -100,11 +98,6 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     await setLimit(selectedCategoryId, parseLimit(values.limitText));
     close();
   });
-
-  const onRemove = async () => {
-    if (selectedCategoryId) await removeBudget(selectedCategoryId);
-    close();
-  };
 
   return (
     <>
@@ -187,18 +180,6 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
               </>
             )}
           />
-
-          {isEdit && (
-            <Pressable
-              onPress={() => {
-                void onRemove();
-              }}
-              style={styles.remove}
-              accessibilityRole="button"
-            >
-              <Text style={styles.removeText}>{Strings.budgetRemoveCta}</Text>
-            </Pressable>
-          )}
         </View>
       </Sheet>
 
@@ -277,11 +258,5 @@ const styles = StyleSheet.create({
     fontSize: Type.micro,
     color: Colors.dark.negative,
     marginTop: Spacing.xs,
-  },
-  remove: { alignSelf: 'center', marginTop: Spacing.md, paddingVertical: Spacing.xs },
-  removeText: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.negative,
   },
 });
