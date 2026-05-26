@@ -23,8 +23,8 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { Pressable, View } from 'react-native';
 import type { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Animated from 'react-native-reanimated';
 
+import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 import {
@@ -81,6 +81,7 @@ function tileLabelColor(variant: SwipeAction['variant']): string {
 }
 
 let _idCounter = 0;
+// NOTE: callers MUST pass a stable rowId for all list rows; this counter is a last-resort fallback only and does not survive reloads/recycling.
 function genId(): string {
   _idCounter += 1;
   return `swipeable-row-${_idCounter}`;
@@ -97,16 +98,11 @@ export function SwipeableRow({
   const swipeableRef = useRef<SwipeableMethods>(null);
   const totalWidth = actions.length * ACTION_TILE_WIDTH;
 
-  // Close this row programmatically when the registry says another row opened
+  // Close this row programmatically when the registry reports any id other than ours
+  // (covers both "another row opened" and "closeAll/null").
   useEffect(() => {
     const unsub = subscribeToRegistry((activeId) => {
-      if (activeId !== rowId && activeId !== null) {
-        swipeableRef.current?.close();
-      }
-      // null means closeAll — also close this row
-      if (activeId === null) {
-        swipeableRef.current?.close();
-      }
+      if (activeId !== rowId) swipeableRef.current?.close();
     });
     return unsub;
   }, [rowId]);
@@ -151,7 +147,7 @@ export function SwipeableRow({
               size={ms(22)}
               color={tileIconColor(action.variant)}
             />
-            <Animated.Text
+            <Text
               style={{
                 fontFamily: FontFamily.interMedium,
                 fontSize: Type.micro,
@@ -159,7 +155,7 @@ export function SwipeableRow({
               }}
             >
               {action.label}
-            </Animated.Text>
+            </Text>
           </Pressable>
         ))}
       </View>
@@ -172,6 +168,8 @@ export function SwipeableRow({
   // reach Edit/Skip/Delete without needing to perform the swipe gesture.
   return (
     <View
+      accessible={true}
+      accessibilityRole="none"
       accessibilityLabel={accessibilityLabel}
       accessibilityActions={actions.map((a) => ({ name: a.key, label: a.label }))}
       onAccessibilityAction={(event: { nativeEvent: { actionName: string } }) => {
