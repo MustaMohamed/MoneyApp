@@ -88,14 +88,5 @@
     "patch-package": "^8.0.1",
     "react-test-renderer": "^19.2.0",
     "typescript": "~5.9.2"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,cjs,mjs}": [
-      "oxlint --fix",
-      "oxfmt"
-    ],
-    "*.json": [
-      "oxfmt"
-    ]
   }
 }
