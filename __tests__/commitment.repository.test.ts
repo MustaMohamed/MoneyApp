@@ -35,7 +35,7 @@ import {
 } from '@/modules/commitments/repositories/commitment.repository';
 
 jest.mock('@/modules/commitments/database/commitments');
-jest.mock('@/database/commitment_payments');
+jest.mock('@/modules/commitments/database/commitment_payments');
 jest.mock('@/database/client');
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'test-uuid-1234') }));
 
