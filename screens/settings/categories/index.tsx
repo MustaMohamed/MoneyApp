@@ -116,10 +116,12 @@ export default function CategoriesScreen() {
 
       {/* Sheets and dialogs */}
       <AddEditCategorySheet
-        visible={state.showAddSheet}
+        isOpen={state.showAddSheet}
         editingCategory={state.editingCategory}
         activeTab={state.activeTab}
-        onClose={closeSheet}
+        onOpenChange={(open) => {
+          if (!open) closeSheet();
+        }}
         onSave={handleSave}
       />
 
