@@ -61,4 +61,22 @@ describe('resolveSnapPoints', () => {
   it('explicit snapPoints override new xl size', () => {
     expect(resolveSnapPoints('xl', ['80%'])).toEqual(['80%']);
   });
+
+  // --- snapPoints accept size tokens (new) ---
+
+  it('snapPoints size token resolves to its percentage', () => {
+    expect(resolveSnapPoints(undefined, ['sm'])).toEqual(['45%']);
+  });
+
+  it('multi-stop size tokens resolve each', () => {
+    expect(resolveSnapPoints(undefined, ['sm', 'xl'])).toEqual(['45%', '85%']);
+  });
+
+  it('mixed size token + raw percentage', () => {
+    expect(resolveSnapPoints('lg', ['xs', '92%'])).toEqual(['35%', '92%']);
+  });
+
+  it('pixel-number snap points pass through', () => {
+    expect(resolveSnapPoints(undefined, [400])).toEqual([400]);
+  });
 });

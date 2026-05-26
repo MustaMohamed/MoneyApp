@@ -49,7 +49,9 @@ export function DateRangeSheet({
       title={Strings.dateRangePickerTitle}
       snapPoints={['55%']}
       footer={
-        <View className="flex-row gap-2 px-4 pt-3 pb-6">
+        // Layout only (flex-row gap) — padding/hairline/safe-area come from
+        // the Sheet footer shell, so we don't add px/pt/pb here.
+        <View className="flex-row gap-2">
           <View className="flex-1">
             <Button
               variant="ghost"
