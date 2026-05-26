@@ -1,31 +1,42 @@
 /**
- * Fix D — lg snap-point bump: 85% → 92%
+ * Sheet snap-point resolver — pure-function tests.
  *
- * Rationale: sheets sit inside <Screen> which already loses ~80px to safe
- * area + Stack header. At 85% the visible sheet height was cramped on
- * devices with tall status bars. 92% gives noticeably more room without
- * going full-screen (which would feel like a modal, not a sheet).
- * sm stays at 50% — no change.
+ * resolveSnapPoints is exported from components/ui/bottom_sheet.tsx
+ * (the new HeroUI-backed primitive). After Wave 5 (git mv bottom_sheet → sheet),
+ * update this import to '@/components/ui/sheet'.
  */
+import { resolveSnapPoints } from '@/components/ui/bottom_sheet';
 
-import * as fs from 'fs';
-import * as path from 'path';
+describe('resolveSnapPoints', () => {
+  it('sm preset resolves to 50%', () => {
+    expect(resolveSnapPoints('sm', undefined)).toEqual(['50%']);
+  });
 
-const SHEET_SOURCE = fs.readFileSync(
-  path.resolve(__dirname, '../../../components/ui/sheet.tsx'),
-  'utf8',
-);
+  it('md preset resolves to 75%', () => {
+    expect(resolveSnapPoints('md', undefined)).toEqual(['75%']);
+  });
 
-describe('Sheet SNAP_POINTS — lg bump to 92% (Fix D)', () => {
-  it('lg snap point is 92%', () => {
-    expect(SHEET_SOURCE).toContain("lg: ['92%']");
+  it('lg preset resolves to 92%', () => {
+    expect(resolveSnapPoints('lg', undefined)).toEqual(['92%']);
   });
 
   it('lg snap point is NOT 85% (old value removed)', () => {
-    expect(SHEET_SOURCE).not.toContain("lg: ['85%']");
+    expect(resolveSnapPoints('lg', undefined)).not.toContain('85%');
   });
 
-  it('sm snap point remains 50% (unchanged)', () => {
-    expect(SHEET_SOURCE).toContain("sm: ['50%']");
+  it('defaults to lg when size is undefined', () => {
+    expect(resolveSnapPoints(undefined, undefined)).toEqual(['92%']);
+  });
+
+  it('explicit snapPoints override size', () => {
+    expect(resolveSnapPoints('sm', ['40%'])).toEqual(['40%']);
+  });
+
+  it('explicit multi-stop snapPoints are preserved', () => {
+    expect(resolveSnapPoints('lg', ['45%', '92%'])).toEqual(['45%', '92%']);
+  });
+
+  it('explicit snapPoints override when size is undefined', () => {
+    expect(resolveSnapPoints(undefined, ['60%'])).toEqual(['60%']);
   });
 });

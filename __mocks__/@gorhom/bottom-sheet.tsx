@@ -141,6 +141,11 @@ function BottomSheetFooter({ children }: { children?: React.ReactNode }) {
   return <View>{children}</View>;
 }
 
+function BottomSheetTextInput(props: any) {
+  const { TextInput } = require('react-native');
+  return <TextInput {...props} />;
+}
+
 export default BottomSheet;
 export {
   BottomSheet,
@@ -148,5 +153,6 @@ export {
   BottomSheetFlatList,
   BottomSheetFooter,
   BottomSheetScrollView,
+  BottomSheetTextInput,
   BottomSheetView,
 };

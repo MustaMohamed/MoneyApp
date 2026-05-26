@@ -87,7 +87,7 @@ export default function CommitmentDetailScreen() {
       <PaySheet commitment={state.commitment} payment={state.payment} />
 
       <SkipConfirmSheet
-        visible={state.skipConfirmVisible}
+        isOpen={state.skipConfirmVisible}
         onCancel={cancelSkip}
         onConfirm={() => void skipPayment()}
       />

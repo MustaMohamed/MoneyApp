@@ -34,7 +34,7 @@ export default function EditCommitmentScreen() {
         }
       />
       <DeactivateSheet
-        visible={state.deactivateDialogVisible}
+        isOpen={state.deactivateDialogVisible}
         busy={state.saving}
         onCancel={cancelDeactivate}
         onConfirm={() => void confirmDeactivate()}

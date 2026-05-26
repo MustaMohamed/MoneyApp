@@ -12,6 +12,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
+import { PortalHost } from 'heroui-native/portal';
 import { HeroUINativeProviderRaw } from 'heroui-native/provider-raw';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -68,6 +69,9 @@ export default function RootLayout() {
             }}
           />
         </ThemeProvider>
+        {/* HeroUINativeProviderRaw omits the PortalHost; HeroUI BottomSheet
+            (and any portal-based overlay) renders into this host. */}
+        <PortalHost />
       </HeroUINativeProviderRaw>
     </GestureHandlerRootView>
   );
