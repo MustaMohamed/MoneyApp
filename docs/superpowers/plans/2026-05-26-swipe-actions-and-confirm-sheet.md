@@ -719,7 +719,7 @@ This hook is the real gate between "user pressed Delete tile" and "store mutatio
 Create `__tests__/use_confirm_action.hook.test.ts`:
 
 ```ts
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
