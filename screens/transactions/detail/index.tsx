@@ -163,7 +163,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
           </ScreenScroll>
 
           <DeleteConfirmDialog
-            visible={state.confirmVisible}
+            isOpen={state.confirmVisible}
             busy={state.deleting}
             onCancel={closeDeleteConfirm}
             onConfirm={() => {
