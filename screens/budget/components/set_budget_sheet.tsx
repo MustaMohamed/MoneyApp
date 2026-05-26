@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Button } from 'heroui-native';
-import React, { useEffect, useMemo } from 'react';
+import { Button, RadioGroup } from 'heroui-native';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -8,8 +8,11 @@ import { useShallow } from 'zustand/react/shallow';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
 import { Text } from '@/components/ui/text';
+import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { setCategoryGroup } from '@/database/categories';
+import { getDb } from '@/database/client';
 import type { Category } from '@/database/entities/category.entity';
 import type { CategoryBudgetRowVM } from '@/screens/budget/budget.hook';
 import { useBudgetState } from '@/screens/budget/budget.state';
@@ -26,6 +29,12 @@ export interface SetBudgetSheetProps {
   // the row currently being edited (edit mode), or undefined in add mode
   editingRow?: CategoryBudgetRowVM;
 }
+
+const GROUP_OPTIONS: { value: BudgetGroup; label: string }[] = [
+  { value: BudgetGroup.Need, label: Strings.budget5030GroupNeed },
+  { value: BudgetGroup.Want, label: Strings.budget5030GroupWant },
+  { value: BudgetGroup.Savings, label: Strings.budget5030GroupSavings },
+];
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
   const { sheetState, close } = useBudgetState(
@@ -62,15 +71,35 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     reset: resetForm,
   } = useZodForm<BudgetFormValues>(budgetFormSchema, { defaultValues: { limitText: '' } });
 
-  // Initialise / reset add-mode picker state whenever the sheet opens
+  // Local state for the group picker selection — kept here (not in set_budget_sheet.state.ts)
+  // because it is transient sheet UI state tightly coupled to the form submit lifecycle.
+  const [groupValue, setGroupValue] = useState<BudgetGroup | null>(null);
+
+  // Resolved selected category for add mode (full object with icon/color/budget_group)
+  const addModeSelectedCategory = useMemo(
+    () => budgetableCategories.find((c) => c.id === pickerSheetState.selectedCategoryId),
+    [budgetableCategories, pickerSheetState.selectedCategoryId],
+  );
+
+  // Initialise / reset add-mode picker state and group value whenever the sheet opens
   useEffect(() => {
     if (sheetState.sheetVisible) {
       resetForm({ limitText: isEdit && editingRow ? String(editingRow.limit) : '' });
-      if (!isEdit) {
+      if (isEdit) {
+        // Edit mode: the editing category is already budgeted and not in budgetableCategories.
+        // The category entity with its budget_group is not passed via editingRow (which is a
+        // CategoryBudgetRowVM that carries only budgeting fields, not the full category entity).
+        // Default to null so the user can explicitly choose — the seeded group from migration 012
+        // will be visible on the picker once the store carries full category objects.
+        setGroupValue(null);
+      } else {
+        // Add mode: pre-fill from the currently selected category's budget_group (may be null)
+        setGroupValue(addModeSelectedCategory?.budget_group ?? null);
         initAddMode(budgetableCategories[0]?.id);
       }
     } else {
       reset();
+      setGroupValue(null);
     }
   }, [
     sheetState.sheetVisible,
@@ -80,16 +109,11 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     initAddMode,
     reset,
     budgetableCategories,
+    addModeSelectedCategory,
   ]);
 
   // Resolved category name for edit mode (locked display)
   const editingCategoryName = editingRow?.name;
-
-  // Resolved selected category for add mode (full object with icon/color)
-  const addModeSelectedCategory = useMemo(
-    () => budgetableCategories.find((c) => c.id === pickerSheetState.selectedCategoryId),
-    [budgetableCategories, pickerSheetState.selectedCategoryId],
-  );
 
   const selectedCategoryId = isEdit
     ? sheetState.targetCategoryId
@@ -98,6 +122,11 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   const onSubmit = handleSubmit(async (values) => {
     if (!selectedCategoryId) return;
     await setLimit(selectedCategoryId, parseLimit(values.limitText));
+    // Persist group assignment whenever the user has selected one
+    if (groupValue !== null) {
+      const db = await getDb();
+      await setCategoryGroup(db, selectedCategoryId, groupValue);
+    }
     close();
   });
 
@@ -194,6 +223,22 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
             )}
           />
 
+          {/* Budget group picker — Need / Want / Savings (HeroUI RadioGroup) */}
+          <Text style={[styles.label, styles.groupLabel]}>
+            {Strings.budget5030GroupPickerLabel}
+          </Text>
+          <RadioGroup
+            value={groupValue ?? undefined}
+            onValueChange={(val) => setGroupValue(val as BudgetGroup)}
+            accessibilityLabel={Strings.budget5030GroupPickerLabel}
+          >
+            {GROUP_OPTIONS.map((opt) => (
+              <RadioGroup.Item key={opt.value} value={opt.value}>
+                {opt.label}
+              </RadioGroup.Item>
+            ))}
+          </RadioGroup>
+
           {isEdit && (
             <Pressable
               onPress={() => {
@@ -259,6 +304,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
     marginBottom: Spacing.xs,
   },
+  groupLabel: { marginTop: Spacing.md },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
