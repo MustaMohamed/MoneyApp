@@ -1,1 +1,1 @@
-export { default } from '@/screens/budget/category_detail';
+export { default } from '@/modules/budget/screens/budget/category_detail';

@@ -1,8 +1,2 @@
-export interface Budget {
-  id: string;
-  category_id: string;
-  limit_amount: number | null; // null = removed (tombstone) from effective_from onward
-  effective_from: string; // 'YYYY-MM'
-  created_at: string;
-  updated_at: string;
-}
+// Backward-compat stub — canonical in modules/budget/
+export type { Budget } from '@/modules/budget/entities/budget.entity';
