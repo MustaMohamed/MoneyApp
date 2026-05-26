@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useSettings } from '@/screens/settings/settings.hook';
+import { useSettings } from '@/modules/settings/screens/settings/settings.hook';
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),

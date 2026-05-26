@@ -25,7 +25,7 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
-import { useAbout } from '@/screens/settings/about/about.hook';
+import { useAbout } from '@/modules/settings/screens/settings/about/about.hook';
 
 // Simple test — hook returns synchronously from Constants
 describe('useAbout', () => {
