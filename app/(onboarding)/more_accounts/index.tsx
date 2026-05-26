@@ -1,1 +1,1 @@
-export { default } from '@/screens/onboarding/more_accounts';
+export { default } from '@/modules/onboarding/screens/onboarding/more_accounts';
