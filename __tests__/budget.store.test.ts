@@ -1,5 +1,14 @@
 import type { Budget } from '@/database/entities/budget.entity';
-import { useBudgetStore } from '@/store/budget.store';
+import { createBudgetStore } from '@/store/budget.store';
+
+function makeRepo() {
+  return {
+    get: jest.fn(async (_key: string) => null as string | null),
+    set: jest.fn(async (_key: string, _value: string) => {}),
+  };
+}
+
+const useBudgetStore = createBudgetStore(makeRepo());
 
 beforeEach(() => useBudgetStore.getState().reset());
 
@@ -22,7 +31,7 @@ describe('useBudgetStore', () => {
   });
 
   it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } });
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
     const s = useBudgetStore.getState().state;
     expect(s.rows).toEqual([r]);
     expect(s.spendByMonth.a['2026-05']).toBe(2400);
@@ -30,7 +39,7 @@ describe('useBudgetStore', () => {
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } });
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
     useBudgetStore.getState().reset();
     expect(useBudgetStore.getState().state.loaded).toBe(false);
   });
