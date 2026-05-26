@@ -91,25 +91,15 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     [budgetableCategories, pickerSheetState.selectedCategoryId],
   );
 
-  // Initialise / reset add-mode picker state and group value whenever the sheet opens
+  // Initialise on open / reset on close. Deliberately NOT keyed on the selected
+  // category — picking a category in add mode must not re-run this effect and
+  // snap the selection back to the first item (that was the selection-reset bug).
   useEffect(() => {
     if (sheetState.sheetVisible) {
       resetForm({ limitText: isEdit && editingRow ? String(editingRow.limit) : '' });
-      if (isEdit) {
-        // Edit mode: the editing category is already budgeted and not in budgetableCategories.
-        // The category entity with its budget_group is not passed via editingRow (which is a
-        // CategoryBudgetRowVM that carries only budgeting fields, not the full category entity).
-        // Default to null so the user can explicitly choose — the seeded group from migration 012
-        // will be visible on the picker once the store carries full category objects.
-        setGroupValue(null);
-      } else {
-        // Add mode: pre-fill from the currently selected category's budget_group (may be null)
-        setGroupValue(addModeSelectedCategory?.budget_group ?? null);
-        initAddMode(budgetableCategories[0]?.id);
-      }
+      if (!isEdit) initAddMode(budgetableCategories[0]?.id);
     } else {
       reset();
-      setGroupValue(null);
     }
   }, [
     sheetState.sheetVisible,
@@ -119,8 +109,18 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     initAddMode,
     reset,
     budgetableCategories,
-    addModeSelectedCategory,
   ]);
+
+  // Keep the group picker in sync with the selected category's seeded group.
+  // Edit mode locks the category (not in budgetableCategories), so the picker
+  // starts unselected for the user to choose explicitly.
+  useEffect(() => {
+    if (!sheetState.sheetVisible) {
+      setGroupValue(null);
+      return;
+    }
+    setGroupValue(isEdit ? null : (addModeSelectedCategory?.budget_group ?? null));
+  }, [sheetState.sheetVisible, isEdit, addModeSelectedCategory]);
 
   // Resolved category name for edit mode (locked display)
   const editingCategoryName = editingRow?.name;
