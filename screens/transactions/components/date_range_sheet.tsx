@@ -2,17 +2,17 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import React, { useState, useEffect } from 'react';
 import { Platform, Pressable, View } from 'react-native';
 
+import { Sheet } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 interface Props {
-  visible: boolean;
+  isOpen: boolean;
   initialFrom?: string;
   initialTo?: string;
-  onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   onConfirm: (from: string, to: string) => void;
   /** Optional — when provided, a "Reset" link renders top-right. Parent decides
    *  what reset means (typically: clear custom range, switch back to default
@@ -21,10 +21,10 @@ interface Props {
 }
 
 export function DateRangeSheet({
-  visible,
+  isOpen,
   initialFrom,
   initialTo,
-  onClose,
+  onOpenChange,
   onConfirm,
   onReset,
 }: Props): React.ReactElement {
@@ -34,24 +34,28 @@ export function DateRangeSheet({
   const [showToPicker, setShowToPicker] = useState(false);
 
   useEffect(() => {
-    if (visible) {
+    if (isOpen) {
       setFrom(initialFrom ? new Date(initialFrom) : new Date());
       setTo(initialTo ? new Date(initialTo) : new Date());
       setShowFromPicker(false);
       setShowToPicker(false);
     }
-  }, [visible, initialFrom, initialTo]);
+  }, [isOpen, initialFrom, initialTo]);
 
   return (
     <Sheet
-      visible={visible}
-      onClose={onClose}
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
       title={Strings.dateRangePickerTitle}
       snapPoints={['55%']}
       footer={
         <View className="flex-row gap-2 px-4 pt-3 pb-6">
           <View className="flex-1">
-            <Button variant="ghost" label={Strings.dateRangePickerCancel} onPress={onClose} />
+            <Button
+              variant="ghost"
+              label={Strings.dateRangePickerCancel}
+              onPress={() => onOpenChange(false)}
+            />
           </View>
           <View className="flex-1">
             <Button
@@ -63,29 +67,28 @@ export function DateRangeSheet({
         </View>
       }
     >
-      <Sheet.Body>
-        {onReset ? (
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'flex-end',
-              paddingHorizontal: 16,
-              paddingBottom: 4,
-            }}
+      {onReset ? (
+        <View
+          style={{
+            flexDirection: 'row',
+            justifyContent: 'flex-end',
+            paddingHorizontal: 16,
+            paddingBottom: 4,
+          }}
+        >
+          <Pressable
+            testID="date-range-reset"
+            onPress={onReset}
+            accessibilityRole="button"
+            accessibilityLabel="Reset date range"
           >
-            <Pressable
-              testID="date-range-reset"
-              onPress={onReset}
-              accessibilityRole="button"
-              accessibilityLabel="Reset date range"
-            >
-              <Text className="font-inter text-accent text-[12px] font-semibold">
-                {Strings.filterReset}
-              </Text>
-            </Pressable>
-          </View>
-        ) : null}
-        {/*
+            <Text className="font-inter text-accent text-[12px] font-semibold">
+              {Strings.filterReset}
+            </Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {/*
           Picker mounting strategy is platform-split:
           - iOS uses display="inline", which renders the calendar in place and
             updates via onChange without a native modal. Safe to mount while
@@ -97,88 +100,87 @@ export function DateRangeSheet({
             button to mount the picker, and unmount it on every onChange
             (regardless of "set" vs "dismissed").
 
-          The outer {visible ? ...} guard is still required so iOS pickers
+          The outer {isOpen ? ...} guard is still required so iOS pickers
           and Android trigger buttons don't render while the sheet is closed.
         */}
-        {visible ? (
-          <View className="px-4 py-2">
-            <Text className="font-inter text-foreground/60 mb-1 text-[10px] font-semibold uppercase">
-              {Strings.dateRangePickerFromLabel}
-            </Text>
-            {Platform.OS === 'ios' ? (
-              <DateTimePicker
-                value={from}
-                mode="date"
-                display="inline"
-                onChange={(_, d) => d && setFrom(d)}
-                maximumDate={to}
-              />
-            ) : (
-              <>
-                <Pressable
-                  testID="date-range-from-trigger"
-                  onPress={() => setShowFromPicker(true)}
-                  className="border-border bg-default/30 rounded-lg border px-3 py-3"
-                >
-                  <Text className="font-inter text-foreground text-[14px]">
-                    {formatLongDate(toLocalDateString(from))}
-                  </Text>
-                </Pressable>
-                {showFromPicker ? (
-                  <DateTimePicker
-                    value={from}
-                    mode="date"
-                    display="default"
-                    onChange={(event: DateTimePickerEvent, d?: Date) => {
-                      setShowFromPicker(false);
-                      if (event.type === 'set' && d) setFrom(d);
-                    }}
-                    maximumDate={to}
-                  />
-                ) : null}
-              </>
-            )}
-            <Text className="font-inter text-foreground/60 mt-4 mb-1 text-[10px] font-semibold uppercase">
-              {Strings.dateRangePickerToLabel}
-            </Text>
-            {Platform.OS === 'ios' ? (
-              <DateTimePicker
-                value={to}
-                mode="date"
-                display="inline"
-                onChange={(_, d) => d && setTo(d)}
-                minimumDate={from}
-                maximumDate={new Date()}
-              />
-            ) : (
-              <>
-                <Pressable
-                  testID="date-range-to-trigger"
-                  onPress={() => setShowToPicker(true)}
-                  className="border-border bg-default/30 rounded-lg border px-3 py-3"
-                >
-                  <Text className="font-inter text-foreground text-[14px]">
-                    {formatLongDate(toLocalDateString(to))}
-                  </Text>
-                </Pressable>
-                {showToPicker ? (
-                  <DateTimePicker
-                    value={to}
-                    mode="date"
-                    display="default"
-                    onChange={(event: DateTimePickerEvent, d?: Date) => {
-                      setShowToPicker(false);
-                      if (event.type === 'set' && d) setTo(d);
-                    }}
-                    minimumDate={from}
-                    maximumDate={new Date()}
-                  />
-                ) : null}
-              </>
-            )}
-          </View>
-        ) : null}
-      </Sheet.Body>
+      {isOpen ? (
+        <View className="px-4 py-2">
+          <Text className="font-inter text-foreground/60 mb-1 text-[10px] font-semibold uppercase">
+            {Strings.dateRangePickerFromLabel}
+          </Text>
+          {Platform.OS === 'ios' ? (
+            <DateTimePicker
+              value={from}
+              mode="date"
+              display="inline"
+              onChange={(_, d) => d && setFrom(d)}
+              maximumDate={to}
+            />
+          ) : (
+            <>
+              <Pressable
+                testID="date-range-from-trigger"
+                onPress={() => setShowFromPicker(true)}
+                className="border-border bg-default/30 rounded-lg border px-3 py-3"
+              >
+                <Text className="font-inter text-foreground text-[14px]">
+                  {formatLongDate(toLocalDateString(from))}
+                </Text>
+              </Pressable>
+              {showFromPicker ? (
+                <DateTimePicker
+                  value={from}
+                  mode="date"
+                  display="default"
+                  onChange={(event: DateTimePickerEvent, d?: Date) => {
+                    setShowFromPicker(false);
+                    if (event.type === 'set' && d) setFrom(d);
+                  }}
+                  maximumDate={to}
+                />
+              ) : null}
+            </>
+          )}
+          <Text className="font-inter text-foreground/60 mt-4 mb-1 text-[10px] font-semibold uppercase">
+            {Strings.dateRangePickerToLabel}
+          </Text>
+          {Platform.OS === 'ios' ? (
+            <DateTimePicker
+              value={to}
+              mode="date"
+              display="inline"
+              onChange={(_, d) => d && setTo(d)}
+              minimumDate={from}
+              maximumDate={new Date()}
+            />
+          ) : (
+            <>
+              <Pressable
+                testID="date-range-to-trigger"
+                onPress={() => setShowToPicker(true)}
+                className="border-border bg-default/30 rounded-lg border px-3 py-3"
+              >
+                <Text className="font-inter text-foreground text-[14px]">
+                  {formatLongDate(toLocalDateString(to))}
+                </Text>
+              </Pressable>
+              {showToPicker ? (
+                <DateTimePicker
+                  value={to}
+                  mode="date"
+                  display="default"
+                  onChange={(event: DateTimePickerEvent, d?: Date) => {
+                    setShowToPicker(false);
+                    if (event.type === 'set' && d) setTo(d);
+                  }}
+                  minimumDate={from}
+                  maximumDate={new Date()}
+                />
+              ) : null}
+            </>
+          )}
+        </View>
+      ) : null}
     </Sheet>
   );
 }

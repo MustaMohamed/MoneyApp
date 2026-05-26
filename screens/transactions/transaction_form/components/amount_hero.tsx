@@ -17,6 +17,7 @@ import React, { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
+import { useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -86,6 +87,7 @@ export function AmountHero({
   visible,
 }: Props): React.ReactElement {
   const inputRef = useRef<FocusableRef>(null);
+  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   useEffect(() => {
     if (visible) {
@@ -114,6 +116,8 @@ export function AmountHero({
         testID="amount-hero-value"
         value={amountStr}
         onChangeText={(t) => onChange(sanitize(t))}
+        onFocus={onFocus}
+        onBlur={onBlur}
         keyboardType="decimal-pad"
         selectTextOnFocus
         className={amountClass({ type })}

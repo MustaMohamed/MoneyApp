@@ -147,10 +147,12 @@ export default function TransactionsScreen(): React.ReactElement {
       />
       <FilterSheet />
       <DateRangeSheet
-        visible={filterUiState.dateRangeSheetVisible}
+        isOpen={filterUiState.dateRangeSheetVisible}
         initialFrom={t.state.customRange?.from}
         initialTo={t.state.customRange?.to}
-        onClose={() => setDateRangeSheetVisible(false)}
+        onOpenChange={(open) => {
+          if (!open) setDateRangeSheetVisible(false);
+        }}
         onConfirm={(from, to) => {
           t.setCustomRange({ from, to });
           t.setPeriod({ type: 'custom', from, to });
