@@ -4,7 +4,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { computeStatus, type OverallVM } from '@/screens/budget/budget.helpers';
+import { budgetBandColor, type OverallVM } from '@/screens/budget/budget.helpers';
 import { BudgetBar } from '@/screens/budget/components/budget_bar';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
@@ -15,11 +15,11 @@ export interface SummaryCardProps {
 }
 
 export function SummaryCard({ overall, daysLeft }: SummaryCardProps) {
-  const pctLabel = `${Math.round(overall.pct * 100)}% ${Strings.budgetUsedSuffix}`;
-  // FIX #2: single source of truth — delegate to computeStatus (uses BUDGET_WARNING_THRESHOLD)
-  const status = computeStatus(overall.spent, overall.budgeted);
-  // FIX #4: Left value is red when overspent (left < 0)
+  const bandColor = budgetBandColor(overall.pct);
+  const pctLabel = `${Math.round(overall.pct * 100)}%`;
+  // D6: Left figure stays green/red by sign, not by band
   const leftColor = overall.left < 0 ? Colors.dark.negative : Colors.dark.positive;
+
   return (
     <View style={styles.card}>
       <View style={styles.figs}>
@@ -33,9 +33,10 @@ export function SummaryCard({ overall, daysLeft }: SummaryCardProps) {
           accentColor={leftColor}
         />
       </View>
-      <BudgetBar pct={overall.pct} status={status} height={ms(12)} />
+      {/* Bar fill colour = 5-band scale; status kept as fallback (never used when color= passed) */}
+      <BudgetBar pct={overall.pct} status="under" color={bandColor} height={ms(12)} />
       <View style={styles.meta}>
-        <Text style={styles.metaText}>{pctLabel}</Text>
+        <Text style={[styles.metaText, { color: bandColor }]}>{pctLabel}</Text>
         <Text style={styles.metaText}>{`${daysLeft} ${Strings.budgetDaysLeftSuffix}`}</Text>
       </View>
     </View>
