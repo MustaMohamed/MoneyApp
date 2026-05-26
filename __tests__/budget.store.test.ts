@@ -34,4 +34,9 @@ describe('useBudgetStore', () => {
     useBudgetStore.getState().reset();
     expect(useBudgetStore.getState().state.loaded).toBe(false);
   });
+
+  it('removeBudget exists and is a function on the store', () => {
+    const { removeBudget } = useBudgetStore.getState();
+    expect(typeof removeBudget).toBe('function');
+  });
 });
