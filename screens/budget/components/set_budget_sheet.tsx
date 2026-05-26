@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -54,6 +54,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   );
 
   const isEdit = sheetState.mode === 'edit';
+  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const {
     control,
@@ -108,8 +109,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   return (
     <>
       <Sheet
-        visible={sheetState.sheetVisible}
-        onClose={close}
+        isOpen={sheetState.sheetVisible}
+        onOpenChange={(open) => {
+          if (!open) close();
+        }}
         title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
         size="sm"
         footer={
@@ -122,87 +125,87 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           </Button>
         }
       >
-        <Sheet.Body>
-          <View style={styles.body}>
-            {/* category picker — tappable in add mode (opens the standard
+        <View style={styles.body}>
+          {/* category picker — tappable in add mode (opens the standard
                 CategoryPickerSheet), locked in edit mode */}
-            {isEdit ? (
-              <View style={[styles.picker, styles.pickerLocked]}>
-                <Text style={styles.pickerName}>
-                  {editingCategoryName ?? Strings.budgetPickCategory}
-                </Text>
-                {/* No chevron in edit mode — picker is locked */}
-              </View>
-            ) : (
-              <Pressable
-                style={styles.picker}
-                onPress={togglePicker}
-                accessibilityRole="button"
-                accessibilityLabel={Strings.budgetPickCategory}
-              >
-                {addModeSelectedCategory ? (
-                  <View style={styles.pickerContent}>
-                    <View
-                      style={[
-                        styles.categoryIcon,
-                        { backgroundColor: `${addModeSelectedCategory.color}22` },
-                      ]}
-                    >
-                      <MaterialCommunityIcons
-                        name={toIconName(addModeSelectedCategory.icon, 'tag-outline')}
-                        size={ms(15)}
-                        color={addModeSelectedCategory.color}
-                      />
-                    </View>
-                    <Text style={styles.pickerName}>{addModeSelectedCategory.name}</Text>
-                  </View>
-                ) : (
-                  <Text style={[styles.pickerName, styles.pickerPlaceholder]}>
-                    {Strings.budgetPickCategory}
-                  </Text>
-                )}
-                <Text style={styles.chev}>{'›'}</Text>
-              </Pressable>
-            )}
-
-            <Text style={styles.label}>{Strings.budgetMonthlyLimitLabel}</Text>
-            <Controller
-              control={control}
-              name="limitText"
-              render={({ field: { value, onChange }, fieldState }) => (
-                <>
-                  <View style={[styles.field, fieldState.error && styles.fieldError]}>
-                    <TextInput
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="number-pad"
-                      placeholder="0"
-                      placeholderTextColor={Colors.dark.text3}
-                      style={styles.input}
-                      accessibilityLabel={Strings.budgetMonthlyLimitLabel}
+          {isEdit ? (
+            <View style={[styles.picker, styles.pickerLocked]}>
+              <Text style={styles.pickerName}>
+                {editingCategoryName ?? Strings.budgetPickCategory}
+              </Text>
+              {/* No chevron in edit mode — picker is locked */}
+            </View>
+          ) : (
+            <Pressable
+              style={styles.picker}
+              onPress={togglePicker}
+              accessibilityRole="button"
+              accessibilityLabel={Strings.budgetPickCategory}
+            >
+              {addModeSelectedCategory ? (
+                <View style={styles.pickerContent}>
+                  <View
+                    style={[
+                      styles.categoryIcon,
+                      { backgroundColor: `${addModeSelectedCategory.color}22` },
+                    ]}
+                  >
+                    <MaterialCommunityIcons
+                      name={toIconName(addModeSelectedCategory.icon, 'tag-outline')}
+                      size={ms(15)}
+                      color={addModeSelectedCategory.color}
                     />
-                    <Text style={styles.suffix}>EGP</Text>
                   </View>
-                  {fieldState.error && (
-                    <Text style={styles.errorText}>{fieldState.error.message}</Text>
-                  )}
-                </>
+                  <Text style={styles.pickerName}>{addModeSelectedCategory.name}</Text>
+                </View>
+              ) : (
+                <Text style={[styles.pickerName, styles.pickerPlaceholder]}>
+                  {Strings.budgetPickCategory}
+                </Text>
               )}
-            />
+              <Text style={styles.chev}>{'›'}</Text>
+            </Pressable>
+          )}
 
-            {isEdit && (
-              <Pressable
-                onPress={() => {
-                  void onRemove();
-                }}
-                style={styles.remove}
-                accessibilityRole="button"
-              >
-                <Text style={styles.removeText}>{Strings.budgetRemoveCta}</Text>
-              </Pressable>
+          <Text style={styles.label}>{Strings.budgetMonthlyLimitLabel}</Text>
+          <Controller
+            control={control}
+            name="limitText"
+            render={({ field: { value, onChange }, fieldState }) => (
+              <>
+                <View style={[styles.field, fieldState.error && styles.fieldError]}>
+                  <TextInput
+                    value={value}
+                    onChangeText={onChange}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    keyboardType="number-pad"
+                    placeholder="0"
+                    placeholderTextColor={Colors.dark.text3}
+                    style={styles.input}
+                    accessibilityLabel={Strings.budgetMonthlyLimitLabel}
+                  />
+                  <Text style={styles.suffix}>EGP</Text>
+                </View>
+                {fieldState.error && (
+                  <Text style={styles.errorText}>{fieldState.error.message}</Text>
+                )}
+              </>
             )}
-          </View>
-        </Sheet.Body>
+          />
+
+          {isEdit && (
+            <Pressable
+              onPress={() => {
+                void onRemove();
+              }}
+              style={styles.remove}
+              accessibilityRole="button"
+            >
+              <Text style={styles.removeText}>{Strings.budgetRemoveCta}</Text>
+            </Pressable>
+          )}
+        </View>
       </Sheet>
 
       {/* Standard category picker — same grid sheet used in the transaction
