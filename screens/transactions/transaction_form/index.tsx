@@ -15,14 +15,14 @@
 import { router } from 'expo-router';
 import { useCallback } from 'react';
 
+import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
+import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';
 
 import { useAddTransaction } from './add_transaction.hook';
-import { AccountPickerSheet } from './components/account_picker_sheet';
-import { CategoryPickerSheet } from './components/category_picker_sheet';
 import { NoAccountsEmpty } from './components/no_accounts_empty';
 import { SaveCta } from './components/save_cta';
 import { useEditTransaction } from './edit_transaction.hook';
@@ -100,31 +100,31 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
       </Sheet>
 
       <AccountPickerSheet
-        visible={hook.state.showAccountPicker}
+        isOpen={hook.state.showAccountPicker}
         title={
           hook.state.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle
         }
         accounts={hook.state.accountsForFrom}
         selectedId={hook.state.accountId}
         onSelect={hook.selectAccount}
-        onClose={() => hook.setShowAccountPicker(false)}
+        onOpenChange={() => hook.setShowAccountPicker(false)}
       />
       <AccountPickerSheet
-        visible={hook.state.showToPicker}
+        isOpen={hook.state.showToPicker}
         title={Strings.addTxPickToTitle}
         accounts={hook.state.accountsForTo}
         selectedId={hook.state.toAccountId}
         excludeId={hook.state.accountId}
         onSelect={hook.selectToAccount}
-        onClose={() => hook.setShowToPicker(false)}
+        onOpenChange={() => hook.setShowToPicker(false)}
       />
       <CategoryPickerSheet
-        visible={hook.state.showCategoryPicker}
+        isOpen={hook.state.showCategoryPicker}
         title={Strings.addTxPickCategoryTitle}
         categories={hook.state.visibleCategories}
         selectedId={hook.state.categoryId}
         onSelect={hook.selectCategory}
-        onClose={() => hook.setShowCategoryPicker(false)}
+        onOpenChange={() => hook.setShowCategoryPicker(false)}
       />
     </>
   );
@@ -212,12 +212,12 @@ function EditSheetInner({
       </Sheet>
 
       <CategoryPickerSheet
-        visible={hook.state.showCategoryPicker}
+        isOpen={hook.state.showCategoryPicker}
         title={Strings.addTxPickCategoryTitle}
         categories={hook.state.visibleCategories}
         selectedId={hook.state.categoryId}
         onSelect={hook.selectCategory}
-        onClose={() => hook.setShowCategoryPicker(false)}
+        onOpenChange={() => hook.setShowCategoryPicker(false)}
       />
     </>
   );

@@ -6,6 +6,8 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
+import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { SelectablePill } from '@/components/ui/chip';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
@@ -21,8 +23,6 @@ import { Colors, FontFamily, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
-import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
 import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
@@ -486,20 +486,20 @@ export function CommitmentFormBody({
       </View>
 
       <CategoryPickerSheet
-        visible={bodyState.categoryPickerVisible}
+        isOpen={bodyState.categoryPickerVisible}
         title={Strings.addTxPickCategoryTitle}
         categories={expenseCategories}
         selectedId={categoryId}
         onSelect={selectCategory}
-        onClose={() => setCategoryPickerVisible(false)}
+        onOpenChange={() => setCategoryPickerVisible(false)}
       />
       <AccountPickerSheet
-        visible={bodyState.accountPickerVisible}
+        isOpen={bodyState.accountPickerVisible}
         title={Strings.addTxPickAccountTitle}
         accounts={accounts}
         selectedId={accountId}
         onSelect={selectAccount}
-        onClose={() => setAccountPickerVisible(false)}
+        onOpenChange={() => setAccountPickerVisible(false)}
       />
     </Screen>
   );
