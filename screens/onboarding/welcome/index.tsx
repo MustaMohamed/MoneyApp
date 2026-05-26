@@ -1,4 +1,3 @@
-import { cn } from 'heroui-native';
 import React from 'react';
 import Animated from 'react-native-reanimated';
 
@@ -6,8 +5,8 @@ import { GeoIllustration } from '@/components/geo_illustration';
 import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Pressable } from '@/components/ui/pressable';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -42,35 +41,18 @@ export default function WelcomeScreen() {
             {Strings.n1CurrencyLabel}
           </Text>
 
-          <Animated.View
-            entering={pillsEntering}
-            style={{ flexDirection: 'row', width: '100%' }}
-            className="gap-3"
-          >
-            {([Currency.EGP, Currency.USD] as const).map((code) => (
-              <Pressable
-                key={code}
-                onPress={() => setSelected(code)}
-                style={{ flex: 1 }}
-                className={cn(
-                  'flex-row items-center justify-center gap-2 rounded-[10px] border-[1.5px] py-3',
-                  state.selected === code
-                    ? 'border-gold-600 bg-[rgba(201,151,58,0.08)]'
-                    : 'border-border bg-default',
-                )}
-              >
-                <Text className="text-[18px]">{code === Currency.EGP ? '🇪🇬' : '🇺🇸'}</Text>
-                <Text
-                  variant="body"
-                  className={cn(
-                    'font-soraBold',
-                    state.selected === code ? 'text-gold-600' : 'text-muted',
-                  )}
-                >
-                  {code}
-                </Text>
-              </Pressable>
-            ))}
+          <Animated.View entering={pillsEntering} style={{ width: '100%' }}>
+            <SegmentedTabs<Currency>
+              segments={[
+                { value: Currency.EGP, label: Currency.EGP },
+                { value: Currency.USD, label: Currency.USD },
+              ]}
+              value={state.selected}
+              onValueChange={setSelected}
+              variant="solid-gold"
+              listClassName="w-full"
+              accessibilityLabel={Strings.n1CurrencyLabel}
+            />
           </Animated.View>
 
           <Box className="bg-surface mt-3 w-full rounded-[10px] px-4 py-3">
