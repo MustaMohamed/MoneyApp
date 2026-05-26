@@ -6,8 +6,10 @@ import { View } from 'react-native';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
 export interface TabHeaderAction {
-  icon: string;
+  icon: IconName;
   onPress: () => void;
   accessibilityLabel: string;
 }
@@ -48,7 +50,7 @@ export function TabHeader({ title, subtitle, actions }: TabHeaderProps) {
               accessibilityLabel={action.accessibilityLabel}
             >
               <MaterialCommunityIcons
-                name={action.icon as never}
+                name={action.icon}
                 size={Size.iconMd}
                 color={CoreTokens.text2}
               />

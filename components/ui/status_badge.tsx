@@ -3,10 +3,12 @@ import { Text } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
 export interface StatusBadgeProps {
   label: string;
   color: string;
-  icon?: string;
+  icon?: IconName;
   size?: 'sm' | 'md';
 }
 
@@ -20,7 +22,7 @@ export function StatusBadge({ label, color, icon, size = 'sm' }: StatusBadgeProp
       className="gap-0.5 rounded-full px-1.5 py-0.5"
     >
       {icon != null ? (
-        <MaterialCommunityIcons name={icon as never} size={ICON_SIZE[size]} color={color} />
+        <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={color} />
       ) : null}
       <Text className={LABEL_CLASS[size]} style={{ color }}>
         {label}
