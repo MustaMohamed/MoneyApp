@@ -17,23 +17,23 @@
 
 import { renderHook } from '@testing-library/react-native';
 
-import { useCommitmentDetail } from '@/screens/commitments/detail/detail.hook';
+import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/detail/detail.hook';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
-import { useCommitmentStore } from '@/store/commitment.store';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'pay-1' }),
   router: { push: jest.fn(), back: jest.fn() },
 }));
-jest.mock('@/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/repositories/commitment.repository', () => ({
+jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsByCommitment: jest.fn().mockResolvedValue([]) },
 }));
-jest.mock('@/screens/commitments/detail/detail.state', () => ({
+jest.mock('@/modules/commitments/screens/commitments/detail/detail.state', () => ({
   useCommitmentDetailScreenData: Object.assign(
     jest.fn((sel: any) =>
       sel({
@@ -69,7 +69,7 @@ jest.mock('@/screens/commitments/detail/detail.state', () => ({
     },
   ),
 }));
-jest.mock('@/screens/commitments/detail/components/pay_sheet.state', () => ({
+jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
   usePaySheetState: Object.assign(
     jest.fn((sel: any) => sel({ state: { visible: false }, setVisible: jest.fn() })),
     { getState: jest.fn(() => ({ setVisible: jest.fn() })) },

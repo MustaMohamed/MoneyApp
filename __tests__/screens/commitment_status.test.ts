@@ -5,9 +5,9 @@ import {
   DurationType,
   RecurrencePeriod,
 } from '@/constants/enums';
-import type { Commitment } from '@/database/entities/commitment.entity';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import { resolveDisplayAmount } from '@/screens/commitments/commitment_status';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { resolveDisplayAmount } from '@/modules/commitments/screens/commitments/commitment_status';
 
 function mkPayment(over: Partial<CommitmentPayment>): CommitmentPayment {
   return {

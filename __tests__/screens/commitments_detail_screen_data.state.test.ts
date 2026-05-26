@@ -4,7 +4,7 @@
  * anatomy refactor. Verifies the store is exported and behaves correctly.
  */
 
-import { useCommitmentDetailScreenData } from '@/screens/commitments/detail/detail.state';
+import { useCommitmentDetailScreenData } from '@/modules/commitments/screens/commitments/detail/detail.state';
 
 beforeEach(() => useCommitmentDetailScreenData.getState().reset());
 

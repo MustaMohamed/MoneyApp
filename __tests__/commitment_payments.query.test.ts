@@ -14,7 +14,7 @@ import {
   markCommitmentAsPaid,
   updatePaymentStatus,
 } from '@/database/commitment_payments';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
 

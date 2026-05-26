@@ -18,21 +18,21 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
-import type { Commitment } from '@/database/entities/commitment.entity';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import { usePaySheet } from '@/screens/commitments/detail/components/pay_sheet.hook';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
 import { useAccountStore } from '@/store/account.store';
-import { useCommitmentStore } from '@/store/commitment.store';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
-jest.mock('@/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/store/currency.store', () => ({
   useCurrencyStore: jest.fn((sel: any) =>
     sel({ state: { rate: 55, isManualOverride: false, rate_updated_at: null } }),
   ),
 }));
-jest.mock('@/repositories/commitment.repository', () => ({
+jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: {
     getLastPaidPayment: jest.fn().mockResolvedValue(null),
     getPaymentsByCommitment: jest.fn().mockResolvedValue([]),
@@ -73,7 +73,7 @@ const mockPaySheetState = {
   }),
 };
 
-jest.mock('@/screens/commitments/detail/components/pay_sheet.state', () => ({
+jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
   usePaySheetState: jest.fn((sel: any) => sel(mockPaySheetState)),
 }));
 

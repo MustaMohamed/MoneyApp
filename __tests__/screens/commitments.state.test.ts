@@ -1,5 +1,5 @@
 import { CommitmentPaymentStatus } from '@/constants/enums';
-import { useCommitmentsScreenState } from '@/screens/commitments/commitments.state';
+import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 
 beforeEach(() => useCommitmentsScreenState.getState().reset());
 

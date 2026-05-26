@@ -25,16 +25,16 @@ import {
   getCommitmentById,
   getCommitments,
   updateCommitment,
-} from '@/database/commitments';
-import type { Commitment } from '@/database/entities/commitment.entity';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+} from '@/modules/commitments/database/commitments';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
   CommitmentRepository,
   type NewCommitmentInput,
   type PaymentDetails,
-} from '@/repositories/commitment.repository';
+} from '@/modules/commitments/repositories/commitment.repository';
 
-jest.mock('@/database/commitments');
+jest.mock('@/modules/commitments/database/commitments');
 jest.mock('@/database/commitment_payments');
 jest.mock('@/database/client');
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'test-uuid-1234') }));

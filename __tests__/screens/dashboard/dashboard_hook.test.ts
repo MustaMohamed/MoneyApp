@@ -30,19 +30,19 @@ jest.mock('@/database/transactions', () => ({
   getMonthExpenseStats: jest.fn().mockResolvedValue({ totalEgp: 0, usdNative: 0, count: 0 }),
 }));
 
-jest.mock('@/repositories/commitment.repository', () => ({
+jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsForMonth: jest.fn().mockResolvedValue([]) },
 }));
 
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
 jest.mock('@/screens/dashboard/dashboard.store', () => ({ useDashboardStore: jest.fn() }));
 jest.mock('@/screens/dashboard/dashboard.state', () => ({ useDashboardState: jest.fn() }));
 
 const { useAccountStore } = jest.requireMock('@/store/account.store');
 const { useCurrencyStore } = jest.requireMock('@/store/currency.store');
-const { useCommitmentStore } = jest.requireMock('@/store/commitment.store');
+const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
 const { useDashboardStore } = jest.requireMock('@/screens/dashboard/dashboard.store');
 const { useDashboardState } = jest.requireMock('@/screens/dashboard/dashboard.state');
 

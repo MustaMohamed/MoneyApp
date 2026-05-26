@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { useDecimalInputState } from '@/screens/commitments/components/decimal_amount_input.state';
+import { useDecimalInputState } from '@/modules/commitments/screens/commitments/components/decimal_amount_input.state';
 
 describe('useDecimalInputState', () => {
   it('initializes text from initialText', () => {

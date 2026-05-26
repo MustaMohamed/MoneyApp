@@ -5,10 +5,10 @@ import {
   DurationType,
   Currency,
 } from '@/constants/enums';
-import type { Commitment } from '@/database/entities/commitment.entity';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import type { ICommitmentRepository } from '@/repositories/commitment.repository';
-import { createCommitmentStore } from '@/store/commitment.store';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { ICommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
 
 // ---------------------------------------------------------------------------
 // Mock computeDueDates so we can control its output
@@ -453,7 +453,7 @@ describe('commitmentStore — selector getters', () => {
 // ---------------------------------------------------------------------------
 
 describe('commitmentStore.updateCommitment', () => {
-  const updateInput: import('@/repositories/commitment.repository').UpdateCommitmentInput = {
+  const updateInput: import('@/modules/commitments/repositories/commitment.repository').UpdateCommitmentInput = {
     name: 'Netflix Updated',
     amount_type: AmountType.Fixed,
     amount: 300,

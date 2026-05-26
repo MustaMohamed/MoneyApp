@@ -1,19 +1,19 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useEditCommitment } from '@/screens/commitments/edit_commitment/edit_commitment.hook';
+import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
-import { useCommitmentStore } from '@/store/commitment.store';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'com-1' }),
   useRouter: () => ({ back: jest.fn(), replace: jest.fn(), dismissTo: jest.fn() }),
 }));
-jest.mock('@/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/screens/commitments/edit_commitment/edit_commitment.state', () => ({
+jest.mock('@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state', () => ({
   useEditCommitmentState: jest.fn((sel: any) =>
     sel({
       state: { saving: false, deactivateDialogVisible: false },

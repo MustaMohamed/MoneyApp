@@ -8,8 +8,8 @@ import {
   addCommitment,
   updateCommitment,
   deactivateCommitment,
-} from '@/database/commitments';
-import type { Commitment } from '@/database/entities/commitment.entity';
+} from '@/modules/commitments/database/commitments';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import { MIGRATIONS } from '@/database/migrations';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
