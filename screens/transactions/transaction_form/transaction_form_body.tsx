@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Pressable, TextInput, View } from 'react-native';
 
+import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -134,13 +135,10 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               {selectedAccount ? (
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: selectedAccount.color ?? CoreTokens.border,
-                  }}
+                <MaterialCommunityIcons
+                  name={TYPE_OPTIONS.find((o) => o.type === selectedAccount.type)?.icon ?? 'bank'}
+                  size={ms(16)}
+                  color={selectedAccount.color ?? CoreTokens.text2}
                 />
               ) : null}
               <Text className="font-sora text-foreground text-[15px] font-semibold">
@@ -172,13 +170,12 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                 <Text className="font-inter text-muted text-[11px]">{Strings.addTxToLabel}</Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   {selectedToAccount ? (
-                    <View
-                      style={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: 5,
-                        backgroundColor: selectedToAccount.color ?? CoreTokens.border,
-                      }}
+                    <MaterialCommunityIcons
+                      name={
+                        TYPE_OPTIONS.find((o) => o.type === selectedToAccount.type)?.icon ?? 'bank'
+                      }
+                      size={ms(16)}
+                      color={selectedToAccount.color ?? CoreTokens.text2}
                     />
                   ) : null}
                   <Text className="font-sora text-foreground text-[15px] font-semibold">

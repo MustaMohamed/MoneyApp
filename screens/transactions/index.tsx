@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -29,22 +29,18 @@ export default function TransactionsScreen(): React.ReactElement {
     useShallow((s) => ({ state: s.state, open: s.open })),
   );
 
-  // Consume a cross-tab open request from the global FAB. Gate on the screen
-  // being focused, then wait out the tab-slide transition before flipping the
-  // sheet open: if isOpen turns true mid-transition the HeroUI/gorhom sheet
-  // mounts its children (so the amount input autofocuses the keyboard) but
-  // skips the present animation — the "keyboard opens, sheet doesn't" symptom.
-  // 250ms ≈ the tab navigation duration. (runAfterInteractions would be ideal
-  // but is @deprecated under the New Architecture.) Tune up if B1 recurs.
-  useFocusEffect(
-    useCallback(() => {
-      if (!useAddTransactionState.getState().state.pendingOpen) return undefined;
-      const timer = setTimeout(() => {
-        useAddTransactionState.getState().open();
-      }, 250);
-      return () => clearTimeout(timer);
-    }, []),
-  );
+  // Consume an open request from the global FAB. React to `pendingOpen`
+  // directly (NOT useFocusEffect): a FAB tap while ALREADY on the Transactions
+  // tab is a no-op navigation that fires no focus change, so a focus-gated
+  // effect would never run and the sheet wouldn't open. The 250ms defers the
+  // open until the tab-slide transition settles for the CROSS-tab case, so the
+  // HeroUI sheet presents instead of only mounting its children (the "keyboard
+  // opens but sheet doesn't" symptom). Harmless quarter-second on same-tab.
+  useEffect(() => {
+    if (!addTxState.pendingOpen) return undefined;
+    const timer = setTimeout(() => openAddTx(), 250);
+    return () => clearTimeout(timer);
+  }, [addTxState.pendingOpen, openAddTx]);
 
   const { state: filterUiState, setDateRangeSheetVisible } = useFilterState(
     useShallow((s) => ({
