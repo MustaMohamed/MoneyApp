@@ -304,8 +304,8 @@ function NameField({
   control: Control<{ name: string }>;
   placeholder: string;
   error?: string;
-  onFocus?: () => void;
-  onBlur?: () => void;
+  onFocus?: (e: Parameters<React.ComponentProps<typeof TextInput>['onFocus'] & {}>[0]) => void;
+  onBlur?: (e: Parameters<React.ComponentProps<typeof TextInput>['onBlur'] & {}>[0]) => void;
 }) {
   const { field } = useController({ control, name: 'name' });
   return (
