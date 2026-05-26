@@ -5,6 +5,7 @@ import { Controller } from 'react-hook-form';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -13,7 +14,6 @@ import type { Category } from '@/database/entities/category.entity';
 import type { CategoryBudgetRowVM } from '@/screens/budget/budget.hook';
 import { useBudgetState } from '@/screens/budget/budget.state';
 import { useSetBudgetSheetState } from '@/screens/budget/components/set_budget_sheet.state';
-import { CategoryPickerSheet } from '@/screens/transactions/transaction_form/components/category_picker_sheet';
 import { useBudgetStore } from '@/store/budget.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -210,12 +210,12 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           Stacks on top of the Set-budget sheet (depth 2). */}
       {!isEdit && (
         <CategoryPickerSheet
-          visible={sheetState.sheetVisible && pickerSheetState.pickerExpanded}
+          isOpen={sheetState.sheetVisible && pickerSheetState.pickerExpanded}
           title={Strings.budgetPickCategory}
           categories={budgetableCategories}
           selectedId={pickerSheetState.selectedCategoryId}
           onSelect={(cat) => setSelectedCategoryId(cat.id)}
-          onClose={collapsePicker}
+          onOpenChange={collapsePicker}
         />
       )}
     </>

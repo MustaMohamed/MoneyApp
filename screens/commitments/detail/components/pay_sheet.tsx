@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Platform, Pressable, View } from 'react-native';
 
+import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
@@ -13,7 +14,6 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import { AccountPickerSheet } from '@/screens/transactions/transaction_form/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
 import { SaveCta } from '@/screens/transactions/transaction_form/components/save_cta';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
@@ -273,12 +273,12 @@ export function PaySheet({ commitment, payment }: Props) {
       </Sheet>
 
       <AccountPickerSheet
-        visible={state.accountPickerVisible}
+        isOpen={state.accountPickerVisible}
         title={Strings.commitmentsPayAccount}
         accounts={state.accounts}
         selectedId={state.selectedAccount?.id}
         onSelect={selectAccount}
-        onClose={closeAccountPicker}
+        onOpenChange={closeAccountPicker}
       />
     </>
   );
