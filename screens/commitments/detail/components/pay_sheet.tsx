@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Platform, Pressable, View } from 'react-native';
 
+import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import {
   Sheet,
@@ -21,6 +22,7 @@ import type { Commitment } from '@/database/entities/commitment.entity';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { ExchangeRateRow } from '@/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
 
 import { usePaySheet } from './pay_sheet.hook';
 
@@ -168,13 +170,13 @@ export function PaySheet({ commitment, payment }: Props) {
             >
               {state.selectedAccount ? (
                 <>
-                  <View
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 6,
-                      backgroundColor: state.selectedAccount.color ?? CoreTokens.surfaceEl,
-                    }}
+                  <MaterialCommunityIcons
+                    name={
+                      TYPE_OPTIONS.find((o) => o.type === state.selectedAccount?.type)?.icon ??
+                      'bank'
+                    }
+                    size={ms(18)}
+                    color={state.selectedAccount.color ?? CoreTokens.text2}
                   />
                   <View style={{ flex: 1 }}>
                     <Text className="font-sora text-foreground text-[15px] font-semibold">

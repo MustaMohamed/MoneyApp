@@ -6,6 +6,7 @@ import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, Pressable, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Button } from '@/components/ui/button';
@@ -25,6 +26,7 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
 
 import {
   type CommitmentFormValues,
@@ -406,13 +408,10 @@ export function CommitmentFormBody({
           <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
             {selectedAccount ? (
               <>
-                <View
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: selectedAccount.color ?? CoreTokens.border,
-                  }}
+                <MaterialCommunityIcons
+                  name={TYPE_OPTIONS.find((o) => o.type === selectedAccount.type)?.icon ?? 'bank'}
+                  size={ms(16)}
+                  color={selectedAccount.color ?? CoreTokens.text2}
                 />
                 <Text className="font-sora text-foreground flex-1 text-[15px] font-semibold">
                   {selectedAccount.name}
