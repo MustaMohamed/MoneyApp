@@ -1,15 +1,20 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import React, { useEffect, useMemo } from 'react';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { RadioGroup } from 'heroui-native';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Button } from '@/components/ui/button';
-import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
+import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { setCategoryGroup } from '@/database/categories';
+import { getDb } from '@/database/client';
 import type { Category } from '@/database/entities/category.entity';
 import type { CategoryBudgetRowVM } from '@/screens/budget/budget.hook';
 import { useBudgetState } from '@/screens/budget/budget.state';
@@ -25,6 +30,17 @@ export interface SetBudgetSheetProps {
   budgetableCategories: Category[];
   // the row currently being edited (edit mode), or undefined in add mode
   editingRow?: CategoryBudgetRowVM;
+}
+
+const GROUP_OPTIONS: { value: BudgetGroup; label: string }[] = [
+  { value: BudgetGroup.Need, label: Strings.budget5030GroupNeed },
+  { value: BudgetGroup.Want, label: Strings.budget5030GroupWant },
+  { value: BudgetGroup.Savings, label: Strings.budget5030GroupSavings },
+];
+
+const BUDGET_GROUP_VALUES: readonly string[] = Object.values(BudgetGroup);
+function isBudgetGroup(value: string): value is BudgetGroup {
+  return BUDGET_GROUP_VALUES.includes(value);
 }
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
@@ -60,7 +76,14 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     reset: resetForm,
   } = useZodForm<BudgetFormValues>(budgetFormSchema, { defaultValues: { limitText: '' } });
 
-  // Initialise / reset add-mode picker state whenever the sheet opens
+  const [groupValue, setGroupValue] = useState<BudgetGroup | null>(null);
+
+  const addModeSelectedCategory = useMemo(
+    () => budgetableCategories.find((c) => c.id === pickerSheetState.selectedCategoryId),
+    [budgetableCategories, pickerSheetState.selectedCategoryId],
+  );
+
+  // Initialise / reset add-mode picker state and group whenever the sheet opens
   useEffect(() => {
     if (sheetState.sheetVisible) {
       resetForm({ limitText: isEdit && editingRow ? String(editingRow.limit) : '' });
@@ -80,14 +103,16 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     budgetableCategories,
   ]);
 
+  useEffect(() => {
+    if (!sheetState.sheetVisible) {
+      setGroupValue(null);
+      return;
+    }
+    setGroupValue(isEdit ? null : (addModeSelectedCategory?.budget_group ?? null));
+  }, [sheetState.sheetVisible, isEdit, addModeSelectedCategory]);
+
   // Resolved category name for edit mode (locked display)
   const editingCategoryName = editingRow?.name;
-
-  // Resolved selected category for add mode (full object with icon/color)
-  const addModeSelectedCategory = useMemo(
-    () => budgetableCategories.find((c) => c.id === pickerSheetState.selectedCategoryId),
-    [budgetableCategories, pickerSheetState.selectedCategoryId],
-  );
 
   const selectedCategoryId = isEdit
     ? sheetState.targetCategoryId
@@ -96,6 +121,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   const onSubmit = handleSubmit(async (values) => {
     if (!selectedCategoryId) return;
     await setLimit(selectedCategoryId, parseLimit(values.limitText));
+    if (groupValue !== null) {
+      const db = await getDb();
+      await setCategoryGroup(db, selectedCategoryId, groupValue);
+    }
     close();
   });
 
@@ -107,12 +136,16 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           if (!open) close();
         }}
         title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
-        size="sm"
+        size="md"
+        scrollable
         footer={
           <Button variant="primary" label={Strings.budgetSaveCta} onPress={() => void onSubmit()} />
         }
       >
-        <View style={styles.body}>
+        <BottomSheetScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.bodyContent}
+        >
           {/* category picker — tappable in add mode (opens the standard
                 CategoryPickerSheet), locked in edit mode */}
           {isEdit ? (
@@ -180,7 +213,24 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
               </>
             )}
           />
-        </View>
+
+          <Text style={[styles.label, styles.groupLabel]}>
+            {Strings.budget5030GroupPickerLabel}
+          </Text>
+          <RadioGroup
+            value={groupValue ?? undefined}
+            onValueChange={(val) => {
+              if (isBudgetGroup(val)) setGroupValue(val);
+            }}
+            accessibilityLabel={Strings.budget5030GroupPickerLabel}
+          >
+            {GROUP_OPTIONS.map((opt) => (
+              <RadioGroup.Item key={opt.value} value={opt.value}>
+                {opt.label}
+              </RadioGroup.Item>
+            ))}
+          </RadioGroup>
+        </BottomSheetScrollView>
       </Sheet>
 
       {/* Standard category picker — same grid sheet used in the transaction
@@ -201,7 +251,11 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
+  bodyContent: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: SHEET_FOOTER_CLEARANCE,
+  },
   picker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -234,6 +288,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text2,
     marginBottom: Spacing.xs,
   },
+  groupLabel: { marginTop: Spacing.md },
   field: {
     flexDirection: 'row',
     alignItems: 'center',
