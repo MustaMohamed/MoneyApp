@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { View } from 'react-native';
 
-import { Sheet } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';

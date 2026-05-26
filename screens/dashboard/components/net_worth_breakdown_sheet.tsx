@@ -3,7 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Sheet } from '@/components/ui/bottom_sheet';
+import { Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';

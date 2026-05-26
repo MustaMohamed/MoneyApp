@@ -2,10 +2,10 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';

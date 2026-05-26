@@ -1,7 +1,7 @@
 /**
  * §7 Add / Edit Transaction sheets.
  *
- * Uses the HeroUI-backed `Sheet` primitive at `components/ui/bottom_sheet.tsx`.
+ * Uses the HeroUI-backed `Sheet` primitive at `components/ui/sheet.tsx`.
  * The primitive provides: title + close button + sticky footer slot +
  * declarative `isOpen`/`onOpenChange` API. No refs, no imperative `.show()`
  * calls (V1's source of jank).
@@ -15,8 +15,8 @@ import { useCallback } from 'react';
 
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
-import { Sheet } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Transaction } from '@/database/entities/transaction.entity';

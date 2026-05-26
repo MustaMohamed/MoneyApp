@@ -17,7 +17,7 @@ import React, { useEffect, useRef } from 'react';
 import { Keyboard, View } from 'react-native';
 import { tv } from 'tailwind-variants';
 
-import { useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
+import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { CoreTokens } from '@/constants/theme_tokens';

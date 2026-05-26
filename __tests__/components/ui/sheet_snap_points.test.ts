@@ -1,11 +1,10 @@
 /**
  * Sheet snap-point resolver — pure-function tests.
  *
- * resolveSnapPoints is exported from components/ui/bottom_sheet.tsx
- * (the new HeroUI-backed primitive). After Wave 5 (git mv bottom_sheet → sheet),
- * update this import to '@/components/ui/sheet'.
+ * resolveSnapPoints is exported from components/ui/sheet.tsx
+ * (the HeroUI-backed Sheet primitive).
  */
-import { resolveSnapPoints } from '@/components/ui/bottom_sheet';
+import { resolveSnapPoints } from '@/components/ui/sheet';
 
 describe('resolveSnapPoints', () => {
   // --- 7-step scale (user-defined heights) ---

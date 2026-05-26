@@ -2,8 +2,8 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { Pressable, View } from 'react-native';
 
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 

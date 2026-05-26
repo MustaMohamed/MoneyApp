@@ -3,8 +3,8 @@ import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';

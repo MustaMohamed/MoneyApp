@@ -15,12 +15,8 @@ import {
 import { z } from 'zod/v4';
 import { useShallow } from 'zustand/react/shallow';
 
-import {
-  Sheet,
-  SHEET_FOOTER_CLEARANCE,
-  useBottomSheetAwareHandlers,
-} from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';

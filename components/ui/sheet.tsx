@@ -1,12 +1,11 @@
 /**
- * bottom_sheet.tsx — HeroUI-backed Sheet primitive.
+ * sheet.tsx — HeroUI-backed Sheet primitive.
  *
- * This file is the NEW declarative sheet primitive composing heroui-native's
- * BottomSheet compound component. It replaces the legacy sheet.tsx which
- * drove @gorhom/bottom-sheet imperatively via a ref.
+ * The declarative sheet primitive composing heroui-native's BottomSheet
+ * compound component. This is the sole sheet primitive in the app; the
+ * former imperative @gorhom-ref wrapper no longer exists.
  *
- * CONSUMERS: import from '@/components/ui/bottom_sheet' (Waves 1–4).
- * After Wave 5 (git mv), the canonical path becomes '@/components/ui/sheet'.
+ * CONSUMERS: import from '@/components/ui/sheet'.
  *
  * SCROLLABLE CONTENT RULE:
  * Any scrollable content inside a Sheet must use BottomSheetScrollView or
