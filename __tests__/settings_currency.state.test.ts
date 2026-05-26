@@ -1,4 +1,4 @@
-import { createCurrencyScreenState } from '@/screens/settings/currency/currency.state';
+import { createCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
 
 jest.mock('zustand', () => ({ create: jest.requireActual('zustand').create }));
 
