@@ -1,16 +1,14 @@
 /**
  * §7 Add / Edit Transaction sheets.
  *
- * Spec originally targeted HeroUI Native's `BottomSheet` primitive. On-device
- * smoke test surfaced a "sheet won't open" symptom that we couldn't reproduce
- * in a controlled environment without device logs. Switched to the project's
- * `Sheet` wrapper at `components/ui/sheet.tsx` — the same wrapper §3-§6 sheets
- * use successfully. The HeroUI primitive remains available in node_modules
- * (`heroui-native`) for a future bundle that revisits portal setup.
+ * Uses the HeroUI-backed `Sheet` primitive at `components/ui/bottom_sheet.tsx`.
+ * The primitive provides: title + close button + sticky footer slot +
+ * declarative `isOpen`/`onOpenChange` API. No refs, no imperative `.show()`
+ * calls (V1's source of jank).
  *
- * The Sheet wrapper provides: title + close button + sticky footer slot +
- * declarative `visible` prop. No refs, no ActionSheet ref-based imperative
- * `.show()` calls (V1's source of jank).
+ * PortalHost prerequisite (see spec §4.2.9): `app/_layout.tsx` mounts
+ * `<PortalHost />` so `Sheet.Portal` has a host to render into. This was
+ * the root cause of the "sheet won't open" symptom caught in Wave 1 QA.
  */
 import { router } from 'expo-router';
 import { useCallback } from 'react';
