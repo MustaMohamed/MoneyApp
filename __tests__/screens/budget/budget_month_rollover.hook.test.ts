@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 // Real `currentYearMonth` is used (reads the system clock); only the stores,
-// router, and focus effect are mocked so we can drive focus + time directly.
+// router, focus effect, and DB calls are mocked so we can drive focus + time directly.
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
@@ -19,6 +19,12 @@ jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
 jest.mock('@/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
 
+// Mock the DB and trailing-income query so the async effect never hits SQLite
+jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
+jest.mock('@/database/budget_stats', () => ({
+  getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
+}));
+
 const { useCategoryStore } = jest.requireMock('@/store/category.store');
 const { useBudgetStore } = jest.requireMock('@/store/budget.store');
 const { useBudgetState } = jest.requireMock('@/screens/budget/budget.state');
@@ -31,10 +37,18 @@ function setupStores() {
     sel({ state: { categories: [] }, loadCategories: jest.fn() }),
   );
   (useBudgetStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { rows: [], spendByMonth: {} }, load: jest.fn() }),
+    sel({
+      state: { rows: [], spendByMonth: {}, expectedIncome: null },
+      load: jest.fn(),
+    }),
   );
   (useBudgetState as jest.Mock).mockImplementation((sel: any) =>
-    sel({ openAdd: jest.fn(), openEdit: jest.fn() }),
+    sel({
+      openAdd: jest.fn(),
+      openEdit: jest.fn(),
+      state: { lensTab: 'categories' },
+      setLensTab: jest.fn(),
+    }),
   );
 }
 

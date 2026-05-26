@@ -3,6 +3,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
+import { getTrailingIncomeSuggestion } from '@/database/budget_stats';
+import { getDb } from '@/database/client';
 import { currentYearMonth } from '@/repositories/budget.repository';
 import {
   type CategoryBudgetVM,
@@ -10,7 +12,8 @@ import {
   computeOverall,
   resolveLimitForMonth,
 } from '@/screens/budget/budget.helpers';
-import { useBudgetState } from '@/screens/budget/budget.state';
+import { useBudgetState, type LensTab } from '@/screens/budget/budget.state';
+import { computeBuckets, type BucketsVM } from '@/screens/budget/budget_buckets.helpers';
 import { useBudgetStore } from '@/store/budget.store';
 import { useCategoryStore } from '@/store/category.store';
 
@@ -23,6 +26,7 @@ export interface CategoryBudgetRowVM extends CategoryBudgetVM {
 export function useBudget() {
   const router = useRouter();
   const [month, setMonth] = useState(currentYearMonth);
+  const [suggestion, setSuggestion] = useState<number | null>(null);
 
   const { categories, loadCategories } = useCategoryStore(
     useShallow((s) => ({ categories: s.state.categories, loadCategories: s.loadCategories })),
@@ -30,8 +34,13 @@ export function useBudget() {
   const { budgetState, load } = useBudgetStore(
     useShallow((s) => ({ budgetState: s.state, load: s.load })),
   );
-  const { openAdd, openEdit } = useBudgetState(
-    useShallow((s) => ({ openAdd: s.openAdd, openEdit: s.openEdit })),
+  const { openAdd, openEdit, lensTab, setLensTab } = useBudgetState(
+    useShallow((s) => ({
+      openAdd: s.openAdd,
+      openEdit: s.openEdit,
+      lensTab: s.state.lensTab,
+      setLensTab: s.setLensTab,
+    })),
   );
 
   useFocusEffect(
@@ -39,6 +48,16 @@ export function useBudget() {
       setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
       void loadCategories();
       void load();
+      // Fetch trailing income suggestion once per focus
+      void (async () => {
+        try {
+          const db = await getDb();
+          const s = await getTrailingIncomeSuggestion(db, currentYearMonth());
+          setSuggestion(s);
+        } catch {
+          setSuggestion(null);
+        }
+      })();
     }, [loadCategories, load]),
   );
 
@@ -60,6 +79,18 @@ export function useBudget() {
   }, [categories, budgetState.rows, budgetState.spendByMonth, month]);
 
   const overall = useMemo(() => computeOverall(rows), [rows]);
+
+  const buckets: BucketsVM = useMemo(
+    () =>
+      computeBuckets(
+        budgetState.expectedIncome ?? 0,
+        categories,
+        budgetState.rows,
+        budgetState.spendByMonth,
+        month,
+      ),
+    [categories, budgetState.rows, budgetState.spendByMonth, budgetState.expectedIncome, month],
+  );
 
   // expense categories that do NOT yet have an active budget — for the add picker
   const budgetableCategories = useMemo(
@@ -85,9 +116,20 @@ export function useBudget() {
   };
 
   return {
-    state: { rows, overall, month, daysLeft, hasBudgets: rows.length > 0, budgetableCategories },
+    state: {
+      rows,
+      overall,
+      month,
+      daysLeft,
+      hasBudgets: rows.length > 0,
+      budgetableCategories,
+      buckets,
+      suggestion,
+      lensTab,
+    },
     openAdd,
     openEdit,
+    setLensTab,
     goToCategory,
   };
 }
