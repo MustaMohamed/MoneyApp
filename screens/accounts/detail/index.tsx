@@ -197,10 +197,12 @@ export default function AccountDetailScreen() {
       </ScreenScroll>
 
       <AdjustBalanceSheet
-        visible={isAdjustVisible}
+        isOpen={isAdjustVisible}
         currentBalance={account.current_balance}
         currency={account.currency}
-        onClose={() => setAdjustVisible(false)}
+        onOpenChange={(open) => {
+          if (!open) setAdjustVisible(false);
+        }}
         onSave={(newBalance: number) => {
           void handleAdjustBalance(newBalance);
         }}
