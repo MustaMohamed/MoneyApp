@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import type { PeriodTotals } from '@/database/transactions';
+import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 
 import { computeDeltaPct, polarityColor, type TotalsMetric } from '../transactions.helpers';
 

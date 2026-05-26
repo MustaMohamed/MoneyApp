@@ -88,7 +88,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
   return (
     <View style={{ flex: 1 }}>
-      <TypeTabs active={type} onSelect={onSelectType} disabled={locked} />
+      <TypeTabs active={type} onSelect={onSelectType} isDisabled={locked} />
 
       <AmountHero
         visible={visible}

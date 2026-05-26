@@ -1,5 +1,4 @@
 // Backward-compat stub — the canonical queries live in modules/transactions/.
-// eslint-disable-next-line
 export {
   getMonthExpenseStats,
   addTransaction,

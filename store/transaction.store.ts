@@ -1,5 +1,4 @@
 // Backward-compat stub — the canonical implementation lives in modules/transactions/.
-// eslint-disable-next-line
 export {
   createTransactionStore,
   useTransactionStore,

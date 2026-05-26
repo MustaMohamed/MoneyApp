@@ -47,10 +47,10 @@ const TABS: Array<{ type: TransactionType; label: string }> = [
 interface Props {
   active: TransactionType;
   onSelect: (t: TransactionType) => void;
-  disabled: boolean;
+  isDisabled: boolean;
 }
 
-export function TypeTabs({ active, onSelect, disabled }: Props): React.ReactElement {
+export function TypeTabs({ active, onSelect, isDisabled }: Props): React.ReactElement {
   return (
     <View style={{ flexDirection: 'row' }} className="border-separator border-b">
       {TABS.map(({ type, label: lbl }) => {
@@ -60,8 +60,8 @@ export function TypeTabs({ active, onSelect, disabled }: Props): React.ReactElem
             key={type}
             testID={`type-tab-${type}`}
             accessibilityRole="tab"
-            accessibilityState={{ selected: isActive, disabled }}
-            isDisabled={disabled}
+            accessibilityState={{ selected: isActive, disabled: isDisabled }}
+            isDisabled={isDisabled}
             onPress={() => onSelect(type)}
             style={{ position: 'relative' }}
             className="flex-1 items-center justify-center py-3"
