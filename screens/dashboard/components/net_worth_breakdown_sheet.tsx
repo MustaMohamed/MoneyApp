@@ -3,7 +3,7 @@ import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Sheet } from '@/components/ui/sheet';
+import { Sheet } from '@/components/ui/bottom_sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
@@ -19,8 +19,8 @@ import { ms } from '@/utils/responsive';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface NetWorthBreakdownSheetProps {
-  visible: boolean;
-  onClose: () => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
   assetsEgp: number;
   liabilitiesEgp: number;
   netWorthEgp: number;
@@ -35,8 +35,8 @@ const RESERVE_COLOR = Colors.dark.gold;
 const LIABILITY_COLOR = Colors.dark.negative;
 
 export function NetWorthBreakdownSheet({
-  visible,
-  onClose,
+  isOpen,
+  onOpenChange,
   assetsEgp,
   liabilitiesEgp,
   netWorthEgp,
@@ -55,114 +55,116 @@ export function NetWorthBreakdownSheet({
   const assetsAccountCount = liquidity.liquidCount + liquidity.reserveCount;
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={Strings.dashboardBreakdownTitle} size="lg">
-      <Sheet.Body>
-        <BottomSheetScrollView contentContainerStyle={{ paddingBottom: ms(24) }}>
-          {/* Net Worth headline */}
-          <View className="px-4 pt-2">
-            <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
-              {Strings.dashboardBreakdownNetWorthLabel}
-            </Text>
-            <Text className="mt-1 font-bold" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
-              {formatAmount(netWorthEgp)}{' '}
-              <Text className="text-muted text-base font-medium">EGP</Text>
-            </Text>
-            <Text variant="caption" className="text-muted mt-1">
-              {rate > 0 ? `≈ ${formatAmount(netWorthUsd, 0)} USD` : '— USD'}
-            </Text>
-          </View>
+    <Sheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      title={Strings.dashboardBreakdownTitle}
+      size="lg"
+      scrollable
+    >
+      <BottomSheetScrollView contentContainerStyle={{ paddingBottom: ms(24) }}>
+        {/* Net Worth headline */}
+        <View className="px-4 pt-2">
+          <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
+            {Strings.dashboardBreakdownNetWorthLabel}
+          </Text>
+          <Text className="mt-1 font-bold" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
+            {formatAmount(netWorthEgp)}{' '}
+            <Text className="text-muted text-base font-medium">EGP</Text>
+          </Text>
+          <Text variant="caption" className="text-muted mt-1">
+            {rate > 0 ? `≈ ${formatAmount(netWorthUsd, 0)} USD` : '— USD'}
+          </Text>
+        </View>
 
-          {/* Divider */}
-          <View className="bg-separator mx-4 my-4 h-px" />
+        {/* Divider */}
+        <View className="bg-separator mx-4 my-4 h-px" />
 
-          {/* Assets */}
-          <View className="px-4">
-            <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
-              {Strings.dashAssetsLabel} ·{' '}
-              {Strings.dashboardBreakdownAssetsHeader(formatAmount(assetsEgp), assetsAccountCount)}
-            </Text>
-            {assetsTotal > 0 && (
-              <View
-                className="mb-2 overflow-hidden rounded"
-                style={{ height: ms(6), flexDirection: 'row' }}
-              >
-                {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
-                {showReserve && (
-                  <View style={{ flex: reservePct, backgroundColor: RESERVE_COLOR }} />
-                )}
-              </View>
-            )}
-            {showLiquid && (
-              <>
-                <LegendRow
-                  color={LIQUID_COLOR}
-                  icon="wallet-outline"
-                  label={Strings.dashboardBreakdownLiquid}
-                  caption={Strings.dashboardBreakdownLiquidCaption}
-                  value={liquidity.liquidEgp}
-                  count={liquidity.liquidCount}
-                />
-                {liquidity.liquidAccounts.map((acc) => (
-                  <AccountSubRow key={acc.id} account={acc} />
-                ))}
-              </>
-            )}
-            {showReserve && (
-              <>
-                <LegendRow
-                  color={RESERVE_COLOR}
-                  icon="piggy-bank"
-                  label={Strings.dashboardBreakdownReserve}
-                  caption={Strings.dashboardBreakdownReserveCaption}
-                  value={liquidity.reserveEgp}
-                  count={liquidity.reserveCount}
-                />
-                {liquidity.reserveAccounts.map((acc) => (
-                  <AccountSubRow key={acc.id} account={acc} />
-                ))}
-              </>
-            )}
-          </View>
-
-          {showLiabilities && (
+        {/* Assets */}
+        <View className="px-4">
+          <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
+            {Strings.dashAssetsLabel} ·{' '}
+            {Strings.dashboardBreakdownAssetsHeader(formatAmount(assetsEgp), assetsAccountCount)}
+          </Text>
+          {assetsTotal > 0 && (
+            <View
+              className="mb-2 overflow-hidden rounded"
+              style={{ height: ms(6), flexDirection: 'row' }}
+            >
+              {showLiquid && <View style={{ flex: liquidPct, backgroundColor: LIQUID_COLOR }} />}
+              {showReserve && <View style={{ flex: reservePct, backgroundColor: RESERVE_COLOR }} />}
+            </View>
+          )}
+          {showLiquid && (
             <>
-              <View className="bg-separator mx-4 my-4 h-px" />
-              <View className="px-4">
-                <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
-                  {Strings.dashLiabilitiesLabel} ·{' '}
-                  {Strings.dashboardBreakdownLiabilitiesHeader(
-                    formatAmount(liabilitiesEgp),
-                    liabilities.length,
-                  )}
-                </Text>
-                {liabilities.map((row) => (
-                  <LegendRow
-                    key={row.id}
-                    color={LIABILITY_COLOR}
-                    icon="credit-card"
-                    label={row.name}
-                    caption={
-                      row.statementDueDay != null && row.statementDueDay > 0
-                        ? `due ${nextDueDate(row.statementDueDay)}`
-                        : undefined
-                    }
-                    value={row.balanceEgp}
-                    valueColor={LIABILITY_COLOR}
-                    negative
-                  />
-                ))}
-                <View className="bg-separator mt-1 mb-2 h-px" />
-                <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
-                  <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
-                  <Text className="font-bold" style={{ color: Colors.dark.gold }}>
-                    {formatAmount(totalDebt)}
-                  </Text>
-                </View>
-              </View>
+              <LegendRow
+                color={LIQUID_COLOR}
+                icon="wallet-outline"
+                label={Strings.dashboardBreakdownLiquid}
+                caption={Strings.dashboardBreakdownLiquidCaption}
+                value={liquidity.liquidEgp}
+                count={liquidity.liquidCount}
+              />
+              {liquidity.liquidAccounts.map((acc) => (
+                <AccountSubRow key={acc.id} account={acc} />
+              ))}
             </>
           )}
-        </BottomSheetScrollView>
-      </Sheet.Body>
+          {showReserve && (
+            <>
+              <LegendRow
+                color={RESERVE_COLOR}
+                icon="piggy-bank"
+                label={Strings.dashboardBreakdownReserve}
+                caption={Strings.dashboardBreakdownReserveCaption}
+                value={liquidity.reserveEgp}
+                count={liquidity.reserveCount}
+              />
+              {liquidity.reserveAccounts.map((acc) => (
+                <AccountSubRow key={acc.id} account={acc} />
+              ))}
+            </>
+          )}
+        </View>
+
+        {showLiabilities && (
+          <>
+            <View className="bg-separator mx-4 my-4 h-px" />
+            <View className="px-4">
+              <Text variant="hint" className="text-muted mb-2 text-xs tracking-wide uppercase">
+                {Strings.dashLiabilitiesLabel} ·{' '}
+                {Strings.dashboardBreakdownLiabilitiesHeader(
+                  formatAmount(liabilitiesEgp),
+                  liabilities.length,
+                )}
+              </Text>
+              {liabilities.map((row) => (
+                <LegendRow
+                  key={row.id}
+                  color={LIABILITY_COLOR}
+                  icon="credit-card"
+                  label={row.name}
+                  caption={
+                    row.statementDueDay != null && row.statementDueDay > 0
+                      ? `due ${nextDueDate(row.statementDueDay)}`
+                      : undefined
+                  }
+                  value={row.balanceEgp}
+                  valueColor={LIABILITY_COLOR}
+                  negative
+                />
+              ))}
+              <View className="bg-separator mt-1 mb-2 h-px" />
+              <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
+                <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
+                <Text className="font-bold" style={{ color: Colors.dark.gold }}>
+                  {formatAmount(totalDebt)}
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
+      </BottomSheetScrollView>
     </Sheet>
   );
 }

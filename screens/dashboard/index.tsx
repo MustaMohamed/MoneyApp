@@ -216,8 +216,10 @@ export default function DashboardScreen() {
       )}
 
       <NetWorthBreakdownSheet
-        visible={state.isBreakdownVisible}
-        onClose={() => setBreakdownVisible(false)}
+        isOpen={state.isBreakdownVisible}
+        onOpenChange={(open) => {
+          if (!open) setBreakdownVisible(false);
+        }}
         assetsEgp={state.netWorth.assetsEgp}
         liabilitiesEgp={state.netWorth.liabilitiesEgp}
         netWorthEgp={state.netWorth.netWorthEgp}
