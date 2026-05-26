@@ -81,6 +81,12 @@ describe('getTrailingIncomeSuggestion', () => {
     expect(result).toBe(20000);
   });
 
+  it('uses default window size of 3 when not specified', async () => {
+    // Default windowMonths = 3, avg(10000, 20000, 30000) = 20000
+    const result = await getTrailingIncomeSuggestion(mockDb, '2026-05');
+    expect(result).toBe(20000);
+  });
+
   it('uses window size — last 2 months gives avg of Mar+Apr', async () => {
     // avg(20000, 30000) = 25000
     const result = await getTrailingIncomeSuggestion(mockDb, '2026-05', 2);
