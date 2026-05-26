@@ -3,6 +3,7 @@ import {
   Input as HInput,
   Label,
   Description,
+  FieldError,
   type InputProps as HInputProps,
 } from 'heroui-native';
 import React from 'react';
@@ -13,6 +14,7 @@ export interface InputProps extends HInputProps {
   className?: string;
   label?: string;
   helperText?: string;
+  errorMessage?: string;
   isRequired?: boolean;
 }
 
@@ -20,6 +22,7 @@ export function Input({
   className,
   label,
   helperText,
+  errorMessage,
   isInvalid,
   isDisabled,
   isRequired,
@@ -46,6 +49,7 @@ export function Input({
         {...inputProps}
       />
       {helperText ? <Description>{helperText}</Description> : null}
+      {errorMessage ? <FieldError>{errorMessage}</FieldError> : null}
     </HTextField>
   );
 }
