@@ -1,7 +1,7 @@
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/store/account.store';
+import type { Account } from '../../../../store/account.store';
 import { formatAmount } from '@/utils/format_amount';
 
 /**

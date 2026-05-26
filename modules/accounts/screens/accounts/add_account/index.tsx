@@ -1,21 +1,18 @@
-import { cn } from 'heroui-native';
+import { Switch, Text, cn } from 'heroui-native';
 import React from 'react';
 import { Controller, useWatch } from 'react-hook-form';
-import { Switch } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { TYPE_OPTIONS, TypePill } from '@/components/account_type_pill';
+import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
 import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { SegmentedTabs } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/text';
-import { AccountType, Currency } from '@/constants/enums';
+import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
+import { CurrencySelector } from '@/modules/currency';
 
 import { useAddAccountAnim } from './add_account.anim';
 import { ACCOUNT_COLORS, useAddAccountApp } from './add_account.hook';
@@ -50,7 +47,7 @@ export default function AddAccountAppScreen() {
         className="items-center justify-between px-4"
       >
         <BackButton onPress={onBack} />
-        <Text variant="title" className="font-soraBold">
+        <Text className="font-sora-bold text-foreground text-[20px] font-semibold">
           {Strings.u4Title}
         </Text>
         <Box className="h-9 w-9" />
@@ -61,7 +58,7 @@ export default function AddAccountAppScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Account Type */}
-        <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+        <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
           {Strings.o4SectionType}
         </Text>
         <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
@@ -77,7 +74,7 @@ export default function AddAccountAppScreen() {
 
         {/* Account Name */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
             {Strings.o4SectionName}
           </Text>
           <Controller
@@ -107,25 +104,18 @@ export default function AddAccountAppScreen() {
 
         {/* Currency */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
             {Strings.o4SectionCurrency}
           </Text>
-          <SegmentedTabs<Currency>
-            segments={[
-              { value: Currency.EGP, label: Currency.EGP },
-              { value: Currency.USD, label: Currency.USD },
-            ]}
+          <CurrencySelector
             value={selectedCurrency}
-            onValueChange={(c) => form.setValue('currency', c)}
-            variant="solid-gold"
-            listClassName="w-full"
-            accessibilityLabel="Account currency"
+            onChange={(c) => form.setValue('currency', c)}
           />
         </Box>
 
         {/* Balance */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
             {Strings.o4SectionBalance}
           </Text>
           <Controller
@@ -155,7 +145,7 @@ export default function AddAccountAppScreen() {
 
         {/* Color picker */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
             {Strings.o4SectionColor}
           </Text>
           <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
@@ -182,10 +172,7 @@ export default function AddAccountAppScreen() {
           <Animated.View entering={ccEntering} exiting={ccExiting} className="pt-1">
             {/* Revolving Balance */}
             <Box className="pt-1">
-              <Text
-                variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
-              >
+              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
                 {Strings.o4SectionRevolving}
               </Text>
               <Controller
@@ -204,10 +191,7 @@ export default function AddAccountAppScreen() {
 
             {/* Credit Limit */}
             <Box className="pt-1">
-              <Text
-                variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
-              >
+              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
                 {Strings.o4SectionLimit}
               </Text>
               <Controller
@@ -237,10 +221,7 @@ export default function AddAccountAppScreen() {
 
             {/* Min Payment */}
             <Box className="pt-1">
-              <Text
-                variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
-              >
+              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
                 {Strings.o4SectionMinPayment}
               </Text>
               <Controller
@@ -255,17 +236,14 @@ export default function AddAccountAppScreen() {
                   />
                 )}
               />
-              <Text variant="caption" className="text-muted mt-1">
+              <Text className="text-muted font-inter mt-1 text-[11px]">
                 {Strings.o4MinPaymentHint}
               </Text>
             </Box>
 
             {/* Due Day */}
             <Box className="pt-1">
-              <Text
-                variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
-              >
+              <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
                 {Strings.o4SectionDueDay}
               </Text>
               <Controller
@@ -283,18 +261,14 @@ export default function AddAccountAppScreen() {
               />
             </Box>
 
-            {/* Interest Tracking — native Switch */}
+            {/* Interest Tracking */}
             <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
-              <Text variant="body" className="font-interSemi text-foreground">
+              <Text className="font-inter font-semibold text-foreground text-[15px]">
                 {Strings.o4InterestLabel}
               </Text>
               <Switch
-                value={interestTracking}
-                onValueChange={(v) => form.setValue('interest_tracking', v)}
-                trackColor={{ false: CoreTokens.border, true: GoldTokens[600] }}
-                thumbColor={CoreTokens.text1}
-                ios_backgroundColor={CoreTokens.border}
-                accessibilityRole="switch"
+                isSelected={interestTracking}
+                onSelectedChange={(v) => form.setValue('interest_tracking', v)}
                 accessibilityLabel={Strings.o4InterestLabel}
               />
             </Box>
@@ -302,10 +276,7 @@ export default function AddAccountAppScreen() {
             {/* APR (when interest tracking ON) */}
             {interestTracking && (
               <Animated.View entering={aprEntering} exiting={aprExiting} className="pt-1">
-                <Text
-                  variant="hint"
-                  className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
-                >
+                <Text className="font-sora-bold text-gold-500 pt-2 pb-2 text-xs tracking-widest uppercase">
                   {Strings.o4SectionApr}
                 </Text>
                 <Controller
@@ -322,7 +293,7 @@ export default function AddAccountAppScreen() {
                     />
                   )}
                 />
-                <Text variant="caption" className="text-muted mt-1">
+                <Text className="text-muted font-inter mt-1 text-[11px]">
                   {Strings.o4AprHint}
                 </Text>
                 {errors.apr ? (

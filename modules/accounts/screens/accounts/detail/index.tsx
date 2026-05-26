@@ -9,7 +9,7 @@ import { Box } from '@/components/ui/box';
 import { Input } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { Text } from '@/components/ui/text';
+import { Text } from 'heroui-native';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 
@@ -66,7 +66,7 @@ export default function AccountDetailScreen() {
         >
           <BackButton onPress={onBack} />
 
-          <Text variant="title" numberOfLines={1} className="font-soraBold flex-1 text-center">
+          <Text numberOfLines={1} className="font-sora-bold text-foreground text-[20px] font-semibold flex-1 text-center">
             {account.name}
           </Text>
 
@@ -80,7 +80,7 @@ export default function AccountDetailScreen() {
               hitSlop={hitSlop}
               className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
             >
-              <Text variant="caption" className="font-soraBold text-accent-foreground">
+              <Text className="font-sora-bold text-accent-foreground text-[11px]">
                 {Strings.accountDetailSave}
               </Text>
             </Pressable>
@@ -93,7 +93,7 @@ export default function AccountDetailScreen() {
               hitSlop={hitSlop}
               className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
             >
-              <Text variant="caption" className="font-soraBold text-accent">
+              <Text className="font-sora-bold text-accent text-[11px]">
                 {Strings.accountDetailEdit}
               </Text>
             </Pressable>
@@ -109,7 +109,7 @@ export default function AccountDetailScreen() {
 
         {isEditing && (
           <Animated.View entering={fieldEntering} exiting={fieldExiting} className="mx-4 mt-4">
-            <Text variant="hint" className="font-soraBold text-gold-500 pb-2 tracking-widest">
+            <Text className="font-sora-bold text-gold-500 pb-2 text-xs tracking-widest uppercase">
               {Strings.o4SectionName}
             </Text>
             <Controller
@@ -135,7 +135,7 @@ export default function AccountDetailScreen() {
               </Animated.Text>
             ) : null}
 
-            <Text variant="hint" className="font-soraBold text-gold-500 pt-3 pb-2 tracking-widest">
+            <Text className="font-sora-bold text-gold-500 pt-3 pb-2 text-xs tracking-widest uppercase">
               {Strings.o4SectionColor}
             </Text>
             <Controller
@@ -169,7 +169,7 @@ export default function AccountDetailScreen() {
               className="items-center gap-3 px-4 py-3"
             >
               <MaterialCommunityIcons name="pencil" size={20} color={CoreTokens.text2} />
-              <Text variant="body" className="text-foreground flex-1">
+              <Text className="text-foreground flex-1 font-inter text-[15px]">
                 {Strings.accountDetailAdjustBalance}
               </Text>
               <MaterialCommunityIcons name="chevron-right" size={20} color={CoreTokens.text2} />
@@ -183,7 +183,7 @@ export default function AccountDetailScreen() {
               className="items-center gap-3 px-4 py-3"
             >
               <MaterialCommunityIcons name="archive" size={20} color={SemanticTokens.negative} />
-              <Text variant="body" className="text-danger flex-1">
+              <Text className="text-danger flex-1 font-inter text-[15px]">
                 {Strings.accountDetailArchive}
               </Text>
               <MaterialCommunityIcons

@@ -5,8 +5,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Text } from 'heroui-native';
+
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 
@@ -93,7 +94,7 @@ export function AdjustBalanceSheet({
       footer={footer}
     >
       <Box className="px-4 pt-2">
-        <Text variant="hint" className="font-soraBold text-gold-500 pb-2 tracking-widest">
+        <Text className="font-sora-bold text-gold-500 pb-2 text-xs tracking-widest uppercase">
           {Strings.adjustBalanceLabel}
         </Text>
         <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
@@ -110,12 +111,12 @@ export function AdjustBalanceSheet({
               isInvalid={!!adjustState.error}
             />
           </View>
-          <Text variant="body" className="text-muted font-soraBold">
+          <Text className="text-muted font-sora-bold text-[15px]">
             {currency}
           </Text>
         </Box>
         {adjustState.error ? (
-          <Text variant="caption" className="text-danger mt-1">
+          <Text className="text-danger mt-1 font-inter text-[11px]">
             {adjustState.error}
           </Text>
         ) : null}

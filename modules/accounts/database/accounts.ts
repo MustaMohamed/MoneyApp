@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import type { Account } from './entities/account.entity';
+import type { Account } from '../entities/account.entity';
 
 export async function getAccounts(db: SQLiteDatabase): Promise<Account[]> {
   return db.getAllAsync<Account>(

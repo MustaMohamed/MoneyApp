@@ -1,13 +1,13 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useAddAccountApp, ACCOUNT_COLORS } from '@/screens/accounts/add_account/add_account.hook';
-import { useAccountStore } from '@/store/account.store';
+import { useAddAccountApp, ACCOUNT_COLORS } from '@/modules/accounts/screens/accounts/add_account/add_account.hook';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
-jest.mock('@/store/account.store', () => ({
+jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: Object.assign(jest.fn(), {
     getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
   }),

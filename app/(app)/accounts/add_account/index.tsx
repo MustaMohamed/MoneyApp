@@ -1,1 +1,1 @@
-export { default } from '@/screens/accounts/add_account';
+export { default } from '@/modules/accounts/screens/accounts/add_account';

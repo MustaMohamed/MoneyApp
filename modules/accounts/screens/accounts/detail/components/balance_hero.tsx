@@ -2,12 +2,13 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { View } from 'react-native';
 
+import { Text } from 'heroui-native';
+
 import { HeroShell } from '@/components/ui/hero_shell';
-import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AcctTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/store/account.store';
+import type { Account } from '../../../../store/account.store';
 import { formatAmount } from '@/utils/format_amount';
 
 import { buildHeroCaption } from './balance_hero.helpers';
@@ -44,7 +45,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
       <View className="px-4 py-4">
         {/* Label + type chip row */}
         <View style={{ flexDirection: 'row' }} className="items-center justify-between">
-          <Text variant="caption" className="text-foreground/70 tracking-wider uppercase">
+          <Text className="text-foreground/70 tracking-wider uppercase font-inter text-[11px]">
             {Strings.accountDetailBalance}
           </Text>
           <View
@@ -52,7 +53,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
             className="border-border items-center gap-1 rounded-full border px-2 py-0.5"
           >
             <MaterialCommunityIcons name={TYPE_ICON[account.type]} size={12} color={color} />
-            <Text variant="caption" className="text-foreground/70 font-semibold">
+            <Text className="text-foreground/70 font-semibold font-inter text-[11px]">
               {TYPE_LABEL[account.type]}
             </Text>
           </View>
@@ -60,17 +61,15 @@ export function BalanceHero({ account }: BalanceHeroProps) {
 
         {/* Balance */}
         <Text
-          variant="numMd"
           numberOfLines={1}
-          className={isCC ? 'text-danger mt-1' : 'text-accent mt-1'}
+          className={isCC ? 'text-danger mt-1 font-sora text-[20px] font-semibold tabular-nums' : 'text-accent mt-1 font-sora text-[20px] font-semibold tabular-nums'}
         >
           {formatAmount(account.current_balance)} {account.currency}
         </Text>
 
         {/* Context caption */}
         <Text
-          variant="caption"
-          className="text-foreground/55 mt-1"
+          className="text-foreground/55 mt-1 font-inter text-[11px]"
           style={caption.color ? { color: caption.color } : undefined}
         >
           {caption.text}

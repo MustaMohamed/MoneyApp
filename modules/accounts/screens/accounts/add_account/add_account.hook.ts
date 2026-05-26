@@ -4,11 +4,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { useAccountStore } from '@/store/account.store';
+import { useAccountStore } from '../../../store/account.store';
 import {
   createAddAccountSchema,
   type AddAccountFormData,
-} from '@/utils/schemas/add_account.schema';
+} from '../../../utils/add_account.schema';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 // 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4), mirroring
