@@ -2,7 +2,16 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  type BlurEvent,
+  FlatList,
+  type FocusEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { z } from 'zod/v4';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -304,8 +313,8 @@ function NameField({
   control: Control<{ name: string }>;
   placeholder: string;
   error?: string;
-  onFocus?: (e: Parameters<React.ComponentProps<typeof TextInput>['onFocus'] & {}>[0]) => void;
-  onBlur?: (e: Parameters<React.ComponentProps<typeof TextInput>['onBlur'] & {}>[0]) => void;
+  onFocus?: (e: FocusEvent) => void;
+  onBlur?: (e: BlurEvent) => void;
 }) {
   const { field } = useController({ control, name: 'name' });
   return (
