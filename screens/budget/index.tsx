@@ -38,14 +38,13 @@ export default function BudgetScreen() {
         onValueChange={(key) => {
           if (key === 'categories' || key === 'fiftythirty') setLensTab(key);
         }}
-        style={styles.tabs}
       >
-        <Tabs.List>
+        <Tabs.List className="mx-4 mt-2 mb-2 self-stretch">
           <Tabs.Indicator />
-          <Tabs.Trigger value="categories">
+          <Tabs.Trigger value="categories" className="flex-1">
             <Tabs.Label>{Strings.budget5030TabCategories}</Tabs.Label>
           </Tabs.Trigger>
-          <Tabs.Trigger value="fiftythirty">
+          <Tabs.Trigger value="fiftythirty" className="flex-1">
             <Tabs.Label>{Strings.budget5030TabLens}</Tabs.Label>
           </Tabs.Trigger>
         </Tabs.List>
@@ -89,10 +88,6 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: FontFamily.soraBold, fontSize: Type.title, color: Colors.dark.text1 },
   addBtn: { fontFamily: FontFamily.interMedium, fontSize: Type.body, color: Colors.dark.gold },
-  tabs: {
-    paddingHorizontal: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
   content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },
   section: {
     fontFamily: FontFamily.interMedium,
