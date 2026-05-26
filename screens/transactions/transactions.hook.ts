@@ -5,6 +5,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { getPeriodTotals, type PeriodTotals } from '@/database/transactions';
+import { useEditTransactionState } from '@/screens/transactions/transaction_form/edit_transaction.state';
+import { useEditTransactionStore } from '@/screens/transactions/transaction_form/edit_transaction.store';
 import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useTransactionStore } from '@/store/transaction.store';
@@ -212,5 +214,17 @@ export function useTransactions() {
     openFilter: handleOpenFilter,
     resetFilters,
     goToDetail: (id: string) => router.push(`/transactions/detail/${id}`),
+    goToEdit: (id: string) => {
+      // Find the full tx object from the already-loaded sections data.
+      // Edit is done via the shared EditTransactionSheet (same sheet used by detail screen),
+      // so we open it imperatively from the list without any navigation.
+      const tx = txState.transactions.find((t) => t.id === id);
+      if (!tx) {
+        console.warn('[goToEdit] tx not in loaded window:', id);
+        return;
+      }
+      useEditTransactionStore.getState().loadFromTx(tx);
+      useEditTransactionState.getState().open(tx);
+    },
   };
 }

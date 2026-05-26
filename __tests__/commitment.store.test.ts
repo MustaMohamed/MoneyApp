@@ -880,6 +880,19 @@ describe('commitmentStore.getTotalMonthlyCommitted', () => {
 });
 
 // ---------------------------------------------------------------------------
+// deactivateCommitment — signature smoke test (refactor guard)
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore — deactivateCommitment signature smoke test', () => {
+  it('deactivateCommitment exists and is a function on the store', () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+    const { deactivateCommitment } = useStore.getState();
+    expect(typeof deactivateCommitment).toBe('function');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // reset
 // ---------------------------------------------------------------------------
 

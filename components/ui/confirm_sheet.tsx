@@ -7,7 +7,6 @@ import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
-const WARNING_ICON_BG = Colors.dark.warningBg;
 const ICON_CONTAINER_SIZE = ms(56);
 const ICON_SIZE = ms(28);
 
@@ -25,6 +24,13 @@ interface ConfirmSheetProps {
   onConfirm: () => void;
   onCancel: () => void;
   busy?: boolean;
+  /**
+   * When true: trash-can icon in dangerBg circle + danger (red) confirm button.
+   * Default false — retains the existing amber warning-circle + primary button.
+   * Existing callers (commitments SkipConfirmSheet) are untouched because they
+   * do not pass this prop.
+   */
+  destructive?: boolean;
 }
 
 export function ConfirmSheet({
@@ -37,6 +43,7 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
   busy = false,
+  destructive = false,
 }: ConfirmSheetProps) {
   // Q2 guard: when busy, suppress all close paths so the sheet stays open
   // while an async operation is in flight. Same semantics as the legacy
@@ -48,6 +55,10 @@ export function ConfirmSheet({
     onOpenChange(open);
   };
 
+  const iconContainerBg = destructive ? Colors.dark.dangerBg : Colors.dark.warningBg;
+  const iconColor = destructive ? Colors.dark.negative : Colors.dark.warning;
+  const iconName = destructive ? 'trash-can-outline' : 'alert-circle-outline';
+
   return (
     // fitContent: sheet hugs content height — no wasted space for a ~120px
     // decision sheet. No title prop: we render our own centered header below.
@@ -57,23 +68,19 @@ export function ConfirmSheet({
         className="items-center"
         style={{ paddingHorizontal: Spacing.xl, paddingTop: Spacing.xl, paddingBottom: Spacing.lg }}
       >
-        {/* Warning icon in tinted circular container */}
+        {/* Icon in tinted circular container — warning (amber) or danger (red) */}
         <View
           style={{
             width: ICON_CONTAINER_SIZE,
             height: ICON_CONTAINER_SIZE,
             borderRadius: ICON_CONTAINER_SIZE / 2,
-            backgroundColor: WARNING_ICON_BG,
+            backgroundColor: iconContainerBg,
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: Spacing.md,
           }}
         >
-          <MaterialCommunityIcons
-            name="alert-circle-outline"
-            size={ICON_SIZE}
-            color={Colors.dark.warning}
-          />
+          <MaterialCommunityIcons name={iconName} size={ICON_SIZE} color={iconColor} />
         </View>
 
         {/* Title — Sora semibold, centered */}
@@ -109,7 +116,7 @@ export function ConfirmSheet({
           </View>
           <View style={{ flex: 1 }}>
             <Button
-              variant="primary"
+              variant={destructive ? 'danger' : 'primary'}
               label={confirmLabel}
               isLoading={busy}
               isDisabled={busy}

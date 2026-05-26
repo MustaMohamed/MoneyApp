@@ -217,6 +217,44 @@ export const Strings = {
   budgetDetailCategories: 'Categories',
   budgetDetailInProgress: '* in progress',
 
+  // Budget — 50/30/20 lens
+  budget5030TabCategories: 'Categories',
+  budget5030TabLens: '50/30/20',
+  budget5030MonthlyIncome: 'Monthly income',
+  budget5030EditIncome: 'Edit',
+  budget5030SetIncomeCta: 'Set your monthly income',
+  budget5030SetIncomeCtaBody:
+    'Add your expected monthly income to see how your budget aligns with the 50/30/20 rule.',
+  budget5030NeedLabel: 'Needs',
+  budget5030WantLabel: 'Wants',
+  budget5030SavingsLabel: 'Savings',
+  budget5030NeedPct: '50%',
+  budget5030WantPct: '30%',
+  budget5030SavingsPct: '20%',
+  budget5030StatusOnTrack: 'On track',
+  budget5030StatusOver: 'Over',
+  budget5030StatusAhead: 'Ahead',
+  budget5030StatusBehind: 'Behind',
+  budget5030Unallocated: 'Unallocated',
+  budget5030OverAllocated: 'Over-allocated by',
+  budget5030Ungrouped: 'Ungrouped',
+  budget5030SavingsCaption:
+    "Savings moved as transfers won't show as spend — the allocation still reflects your plan.",
+  budget5030AllocatedLabel: 'Allocated',
+  budget5030TargetLabel: 'Target',
+  budget5030GroupPickerLabel: 'BUDGET GROUP',
+  budget5030GroupNeed: 'Need',
+  budget5030GroupWant: 'Want',
+  budget5030GroupSavings: 'Savings',
+  // Income sheet
+  incomeSheetTitle: 'Monthly income',
+  incomeSheetAmountLabel: 'Expected monthly income',
+  incomeSheetAmountPlaceholder: '0',
+  incomeSheetSuggestionNote: 'Pre-filled from your last 3 months of income',
+  incomeSheetSaveCta: 'Save',
+  incomeSheetAmountRequired: 'Enter your monthly income',
+  incomeSheetAmountInvalid: 'Enter an amount greater than 0',
+
   // U25 Settings Categories
   categoriesTitle: 'Categories',
   categoriesTabExpense: 'Expense',
@@ -611,4 +649,24 @@ export const Strings = {
   addTxRateReset: 'Reset to global',
   addTxRateStale: 'Rate may be stale',
   addTxEgpPreview: '≈ {amount} EGP',
+
+  // Swipe actions — shared labels
+  swipeEdit: 'Edit',
+  swipeDelete: 'Delete',
+  swipeSkip: 'Skip',
+
+  // Budget — swipe delete confirm
+  budgetDeleteConfirmTitle: 'Remove budget?',
+  budgetDeleteConfirmBody: (name: string) =>
+    `This stops tracking the limit for ${name}. Your transactions and spending history are kept.`,
+  budgetDeleteConfirmConfirm: 'Remove',
+  budgetDeleteConfirmCancel: 'Cancel',
+
+  // Transactions — swipe/list delete confirm
+  // Note: deleteConfirmTitle, deleteConfirmBody, deleteTransaction, deleteCancel already exist
+  // for the detail screen. Reuse them for the list-delete ConfirmSheet (same copy, consistent).
+
+  // Commitments — swipe delete confirm
+  // Note: commitmentsDeactivateTitle, commitmentsDeactivateBody, commitmentsDeactivateConfirm,
+  // commitmentsDeactivateCancel already exist. Reuse them — same action, same copy.
 } as const;

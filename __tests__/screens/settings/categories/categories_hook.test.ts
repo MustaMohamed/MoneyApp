@@ -195,6 +195,7 @@ const fakeExpenseCategory: Category = {
   color: '#C9973A',
   is_default: 1,
   sort_order: 1,
+  budget_group: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
 };

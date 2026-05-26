@@ -18,6 +18,10 @@ jest.mock('expo-router', () => ({
 jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
 jest.mock('@/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
+jest.mock('@/database/budget_stats', () => ({
+  getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
 
 const { useCategoryStore } = jest.requireMock('@/store/category.store');
 const { useBudgetStore } = jest.requireMock('@/store/budget.store');
@@ -31,10 +35,15 @@ function setupStores() {
     sel({ state: { categories: [] }, loadCategories: jest.fn() }),
   );
   (useBudgetStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { rows: [], spendByMonth: {} }, load: jest.fn() }),
+    sel({ state: { rows: [], spendByMonth: {}, expectedIncome: null }, load: jest.fn() }),
   );
   (useBudgetState as jest.Mock).mockImplementation((sel: any) =>
-    sel({ openAdd: jest.fn(), openEdit: jest.fn() }),
+    sel({
+      openAdd: jest.fn(),
+      openEdit: jest.fn(),
+      setLensTab: jest.fn(),
+      state: { lensTab: 'categories' },
+    }),
   );
 }
 

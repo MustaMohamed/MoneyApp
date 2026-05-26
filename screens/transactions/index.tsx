@@ -5,12 +5,17 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
+import { closeAllRows } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
-import { AddTransactionSheet } from '@/screens/transactions/transaction_form';
+import { AddTransactionSheet, EditTransactionSheet } from '@/screens/transactions/transaction_form';
 import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/screens/transactions/transaction_form/add_transaction.store';
+import { useEditTransactionState } from '@/screens/transactions/transaction_form/edit_transaction.state';
+import { useEditTransactionStore } from '@/screens/transactions/transaction_form/edit_transaction.store';
+import { useTransactionStore } from '@/store/transaction.store';
+import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { DateHeader } from './components/date_header';
 import { DateRangeSheet } from './components/date_range_sheet';
@@ -18,6 +23,7 @@ import { MonthCarousel } from './components/month_carousel';
 import { SearchRow } from './components/search_row';
 import { TotalsStrip } from './components/totals_strip';
 import { TransactionRow } from './components/transaction_row';
+import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { TypeChips } from './components/type_chips';
 import { FilterSheet } from './filter';
 import { useFilterState } from './filter/filter.state';
@@ -28,6 +34,24 @@ export default function TransactionsScreen(): React.ReactElement {
   const { state: addTxState, open: openAddTx } = useAddTransactionState(
     useShallow((s) => ({ state: s.state, open: s.open })),
   );
+
+  // Edit sheet state — opened imperatively from goToEdit in the hook
+  const { state: editTxUiState } = useEditTransactionState(useShallow((s) => ({ state: s.state })));
+  const { state: editTxDataState } = useEditTransactionStore(
+    useShallow((s) => ({ state: s.state })),
+  );
+
+  // Delete confirm gate for list-swipe delete
+  const { deleteTransaction } = useTransactionStore(
+    useShallow((s) => ({ deleteTransaction: s.deleteTransaction })),
+  );
+  const {
+    pendingPayload: pendingDeleteId,
+    busy: deleteBusy,
+    request: requestDelete,
+    confirm: confirmDelete,
+    cancel: cancelDelete,
+  } = useConfirmAction<string>((id) => deleteTransaction(id));
 
   // Consume an open request from the global FAB. React to `pendingOpen`
   // directly (NOT useFocusEffect): a FAB tap while ALREADY on the Transactions
@@ -111,6 +135,7 @@ export default function TransactionsScreen(): React.ReactElement {
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled
         renderSectionHeader={({ section }) => <DateHeader label={section.key} />}
+        onScrollBeginDrag={closeAllRows}
         renderItem={({ item }) => (
           <TransactionRow
             tx={item}
@@ -120,6 +145,8 @@ export default function TransactionsScreen(): React.ReactElement {
             }
             category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
             onPress={() => t.goToDetail(item.id)}
+            onEdit={() => t.goToEdit(item.id)}
+            onDelete={() => requestDelete(item.id)}
           />
         )}
         ListEmptyComponent={
@@ -150,6 +177,26 @@ export default function TransactionsScreen(): React.ReactElement {
         onClose={() => {
           useAddTransactionState.getState().close();
           useAddTransactionStore.getState().reset();
+        }}
+      />
+      <EditTransactionSheet
+        visible={editTxUiState.visible}
+        tx={editTxDataState.editingTx}
+        onClose={() => {
+          useEditTransactionStore.getState().reset();
+          useEditTransactionState.getState().close();
+        }}
+        onSaved={() => {
+          useEditTransactionStore.getState().reset();
+          useEditTransactionState.getState().close();
+        }}
+      />
+      <TxDeleteConfirmSheet
+        isOpen={pendingDeleteId !== null}
+        busy={deleteBusy}
+        onCancel={cancelDelete}
+        onConfirm={() => {
+          void confirmDelete();
         }}
       />
       <FilterSheet />

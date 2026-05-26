@@ -74,5 +74,11 @@ export enum RecurrencePreset {
   Custom = 'custom',
 }
 
+export enum BudgetGroup {
+  Need = 'need',
+  Want = 'want',
+  Savings = 'savings',
+}
+
 export const PROTECTED_CATEGORY_IDS = ['cat_other_expense', 'cat_other_income'] as const;
 export type ProtectedCategoryId = (typeof PROTECTED_CATEGORY_IDS)[number];

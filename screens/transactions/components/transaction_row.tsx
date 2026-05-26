@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
+import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
 import { Currency, TransactionType } from '@/constants/enums';
@@ -24,6 +25,8 @@ interface Props {
   toAccount?: Account;
   category?: Category;
   onPress: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
 const FALLBACK_ICON: IconName = 'shape-outline';
@@ -109,6 +112,8 @@ export function TransactionRow({
   toAccount,
   category,
   onPress,
+  onEdit,
+  onDelete,
 }: Props): React.ReactElement {
   const { scale, onPressIn, onPressOut } = useRowPressScale();
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -125,10 +130,28 @@ export function TransactionRow({
   const egpText = `${equivPrefix}${numberFmt.format(tx.egp_amount)} EGP`;
   const rateText = tx.exchange_rate != null ? `@ ${tx.exchange_rate}` : '';
 
+  const actions: SwipeAction[] = [
+    {
+      key: 'edit',
+      label: Strings.swipeEdit,
+      icon: 'pencil-outline',
+      variant: 'neutral',
+      onPress: onEdit,
+    },
+    {
+      key: 'delete',
+      label: Strings.swipeDelete,
+      icon: 'trash-can-outline',
+      variant: 'destructive',
+      onPress: onDelete,
+    },
+  ];
+
   return (
-    <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
-      <Animated.View style={[animStyle]} className="border-separator border-b px-4 py-3">
-        {/*
+    <SwipeableRow rowId={tx.id} actions={actions} accessibilityLabel={`${title}, ${nativeText}`}>
+      <Pressable onPress={onPress} onPressIn={onPressIn} onPressOut={onPressOut}>
+        <Animated.View style={[animStyle]} className="border-separator border-b px-4 py-3">
+          {/*
           Top: 3-column flex row (icon · title+ctx · amount-block).
           The middle column carries the title and account context. The note
           used to live here too, sharing the column's narrow width and
@@ -136,60 +159,61 @@ export function TransactionRow({
           essentially invisible. It is now lifted out into its own
           full-width row below this one (see `note` block).
         */}
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
-          <View
-            className={`mt-0.5 h-9 w-9 items-center justify-center rounded-lg ${iconBgClass(tx.type)}`}
-          >
-            <MaterialCommunityIcons
-              name={pickIcon(tx, category)}
-              size={18}
-              color={category?.color ?? GoldTokens[500]}
-            />
-          </View>
-          <View className="min-w-0 flex-1">
-            <View className="flex-row flex-wrap items-center gap-2">
-              <Text className="font-sora text-foreground text-[13px] font-bold">{title}</Text>
-              {tx.commitment_payment_id != null ? <TypeBadge type="commitment" /> : null}
-            </View>
-            <Text
-              className="font-inter text-foreground/55 mt-1 text-[10.5px] font-medium"
-              numberOfLines={1}
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
+            <View
+              className={`mt-0.5 h-9 w-9 items-center justify-center rounded-lg ${iconBgClass(tx.type)}`}
             >
-              {ctx}
-            </Text>
-          </View>
-          <View className="items-end">
-            <Text className={`font-sora text-[14px] font-bold ${amountColorClass(tx.type)}`}>
-              {nativeText}
-            </Text>
-            {showEquiv ? (
-              <Text className="font-inter text-foreground/60 mt-0.5 text-[10px] font-medium">
-                {egpText}
-                {rateText ? <Text className="opacity-70"> {rateText}</Text> : null}
+              <MaterialCommunityIcons
+                name={pickIcon(tx, category)}
+                size={18}
+                color={category?.color ?? GoldTokens[500]}
+              />
+            </View>
+            <View className="min-w-0 flex-1">
+              <View className="flex-row flex-wrap items-center gap-2">
+                <Text className="font-sora text-foreground text-[13px] font-bold">{title}</Text>
+                {tx.commitment_payment_id != null ? <TypeBadge type="commitment" /> : null}
+              </View>
+              <Text
+                className="font-inter text-foreground/55 mt-1 text-[10.5px] font-medium"
+                numberOfLines={1}
+              >
+                {ctx}
               </Text>
-            ) : null}
-            <Text className="font-inter text-foreground/40 mt-0.5 text-[10px]">
-              {formatTime12h(tx.transaction_time)}
-            </Text>
+            </View>
+            <View className="items-end">
+              <Text className={`font-sora text-[14px] font-bold ${amountColorClass(tx.type)}`}>
+                {nativeText}
+              </Text>
+              {showEquiv ? (
+                <Text className="font-inter text-foreground/60 mt-0.5 text-[10px] font-medium">
+                  {egpText}
+                  {rateText ? <Text className="opacity-70"> {rateText}</Text> : null}
+                </Text>
+              ) : null}
+              <Text className="font-inter text-foreground/40 mt-0.5 text-[10px]">
+                {formatTime12h(tx.transaction_time)}
+              </Text>
+            </View>
           </View>
-        </View>
 
-        {/*
+          {/*
           Note row — full-width, lives BELOW the 3-column header so a long
           note has the entire row width to breathe in (up to 2 lines, then
           ellipsis). pl-12 lines the note up with the title column (icon
           width 36 + gap 12 = 48px ≈ pl-12). Only rendered when a note
           exists; no empty spacer otherwise.
         */}
-        {note != null ? (
-          <Text
-            className="font-inter text-muted mt-1.5 pl-12 text-[11.5px] italic"
-            numberOfLines={2}
-          >
-            {note}
-          </Text>
-        ) : null}
-      </Animated.View>
-    </Pressable>
+          {note != null ? (
+            <Text
+              className="font-inter text-muted mt-1.5 pl-12 text-[11.5px] italic"
+              numberOfLines={2}
+            >
+              {note}
+            </Text>
+          ) : null}
+        </Animated.View>
+      </Pressable>
+    </SwipeableRow>
   );
 }

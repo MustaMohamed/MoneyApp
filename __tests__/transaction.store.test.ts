@@ -6,6 +6,7 @@ import type {
   TransactionListQuery,
   UpdateTransactionInput,
 } from '@/repositories/transaction.repository';
+import { useTransactionStore } from '@/store/transaction.store';
 import { createTransactionStore, PAGE_SIZE } from '@/store/transaction.store';
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -349,6 +350,13 @@ describe('transactionStore.reset', () => {
       loading: false,
       query: {},
     });
+  });
+});
+
+describe('transactionStore — deleteTransaction signature', () => {
+  it('deleteTransaction exists and is a function on the store', () => {
+    const { deleteTransaction } = useTransactionStore.getState();
+    expect(typeof deleteTransaction).toBe('function');
   });
 });
 

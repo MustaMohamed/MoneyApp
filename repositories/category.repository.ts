@@ -59,6 +59,7 @@ export class CategoryRepository implements ICategoryRepository {
       color: data.color,
       is_default: 0,
       sort_order: maxOrder + 1,
+      budget_group: null,
       created_at: now,
       updated_at: now,
     };

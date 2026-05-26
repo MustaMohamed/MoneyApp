@@ -1,10 +1,13 @@
+import { Colors } from '@/constants/theme';
 import type { Budget } from '@/database/entities/budget.entity';
 import {
   BUDGET_WARNING_THRESHOLD,
+  budgetBandColor,
   computeCategoryHistory,
   computeCategoryRow,
   computeOverall,
   computeStatus,
+  remainingLabel,
   resolveLimitForMonth,
   type MonthResultVM,
 } from '@/screens/budget/budget.helpers';
@@ -137,5 +140,53 @@ describe('computeCategoryHistory', () => {
       monthsUnder: 0,
       monthsTotal: 0,
     });
+  });
+});
+
+describe('budgetBandColor', () => {
+  it('pct=0 → budgetUnder (< 50%)', () => {
+    expect(budgetBandColor(0)).toBe(Colors.dark.budgetUnder);
+  });
+  it('pct=0.49 → budgetUnder (just under 50%)', () => {
+    expect(budgetBandColor(0.49)).toBe(Colors.dark.budgetUnder);
+  });
+  it('pct=0.5 → budgetSteady (exactly 50%)', () => {
+    expect(budgetBandColor(0.5)).toBe(Colors.dark.budgetSteady);
+  });
+  it('pct=0.79 → budgetSteady (just under 80%)', () => {
+    expect(budgetBandColor(0.79)).toBe(Colors.dark.budgetSteady);
+  });
+  it('pct=0.8 → budgetWatch (exactly 80%)', () => {
+    expect(budgetBandColor(0.8)).toBe(Colors.dark.budgetWatch);
+  });
+  it('pct=0.89 → budgetWatch (just under 90%)', () => {
+    expect(budgetBandColor(0.89)).toBe(Colors.dark.budgetWatch);
+  });
+  it('pct=0.9 → budgetNear (exactly 90%)', () => {
+    expect(budgetBandColor(0.9)).toBe(Colors.dark.budgetNear);
+  });
+  it('pct=1.0 → budgetNear (exactly 100% — boundary: near, NOT over)', () => {
+    expect(budgetBandColor(1.0)).toBe(Colors.dark.budgetNear);
+  });
+  it('pct=1.01 → budgetOver (strictly over 100%)', () => {
+    expect(budgetBandColor(1.01)).toBe(Colors.dark.budgetOver);
+  });
+  it('pct=5.0 → budgetOver (large overspend)', () => {
+    expect(budgetBandColor(5.0)).toBe(Colors.dark.budgetOver);
+  });
+});
+
+describe('remainingLabel', () => {
+  it('positive remaining → { magnitude, label: "left" }', () => {
+    expect(remainingLabel(1800)).toEqual({ magnitude: 1800, label: 'left' });
+  });
+  it('zero remaining → { magnitude: 0, label: "left" }', () => {
+    expect(remainingLabel(0)).toEqual({ magnitude: 0, label: 'left' });
+  });
+  it('negative remaining → { magnitude: 350, label: "over" }', () => {
+    expect(remainingLabel(-350)).toEqual({ magnitude: 350, label: 'over' });
+  });
+  it('large negative → absolute magnitude', () => {
+    expect(remainingLabel(-10000)).toEqual({ magnitude: 10000, label: 'over' });
   });
 });

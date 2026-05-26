@@ -11,6 +11,7 @@ const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   color: '#185FA5',
   is_default: 0,
   sort_order: 22,
+  budget_group: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
   ...overrides,

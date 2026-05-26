@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -16,7 +16,7 @@ import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 export default function CategoryBudgetDetailScreen() {
-  const { state, goBack } = useCategoryDetail();
+  const { state, goBack, editBudget } = useCategoryDetail();
 
   return (
     <Screen>
@@ -30,6 +30,17 @@ export default function CategoryBudgetDetailScreen() {
           />
         </View>
         <Text style={styles.title}>{state.name}</Text>
+        {state.liveMonth && (
+          <Pressable
+            onPress={editBudget}
+            hitSlop={ms(8)}
+            accessibilityRole="button"
+            accessibilityLabel={Strings.budgetEditTitle}
+            style={styles.editBtn}
+          >
+            <MaterialCommunityIcons name="pencil" size={ms(20)} color={Colors.dark.gold} />
+          </Pressable>
+        )}
       </View>
 
       <ScreenScroll contentContainerStyle={styles.content}>
@@ -72,7 +83,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  title: { fontFamily: FontFamily.soraBold, fontSize: Type.title, color: Colors.dark.text1 },
+  title: {
+    flex: 1,
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.title,
+    color: Colors.dark.text1,
+  },
+  editBtn: { padding: ms(4) },
   content: { paddingHorizontal: Spacing.md, paddingBottom: ms(96) },
   section: {
     fontFamily: FontFamily.interMedium,

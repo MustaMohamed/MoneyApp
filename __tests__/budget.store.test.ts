@@ -1,5 +1,5 @@
 import type { Budget } from '@/database/entities/budget.entity';
-import { useBudgetStore } from '@/store/budget.store';
+import { createBudgetStore, useBudgetStore } from '@/store/budget.store';
 
 beforeEach(() => useBudgetStore.getState().reset());
 
@@ -19,10 +19,11 @@ describe('useBudgetStore', () => {
     expect(s.rows).toEqual([]);
     expect(s.spendByMonth).toEqual({});
     expect(s.loaded).toBe(false);
+    expect(s.expectedIncome).toBeNull();
   });
 
   it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } });
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
     const s = useBudgetStore.getState().state;
     expect(s.rows).toEqual([r]);
     expect(s.spendByMonth.a['2026-05']).toBe(2400);
@@ -30,8 +31,13 @@ describe('useBudgetStore', () => {
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } });
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
     useBudgetStore.getState().reset();
     expect(useBudgetStore.getState().state.loaded).toBe(false);
+  });
+
+  it('removeBudget exists and is a function on the store', () => {
+    const { removeBudget } = useBudgetStore.getState();
+    expect(typeof removeBudget).toBe('function');
   });
 });

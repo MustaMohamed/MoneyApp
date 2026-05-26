@@ -2,11 +2,13 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { budgetBandColor, remainingLabel } from '@/screens/budget/budget.helpers';
 import type { CategoryBudgetRowVM } from '@/screens/budget/budget.hook';
-import { BudgetBar } from '@/screens/budget/components/budget_bar';
+import { BudgetRing } from '@/screens/budget/components/budget_ring';
 import { formatAmount } from '@/utils/format_amount';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
@@ -14,81 +16,113 @@ import { ms } from '@/utils/responsive';
 export interface CategoryBudgetRowProps {
   row: CategoryBudgetRowVM;
   onPress: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
 }
 
-export function CategoryBudgetRow({ row, onPress }: CategoryBudgetRowProps) {
-  const pill =
-    row.status === 'over'
-      ? Strings.budgetOverPill
-      : row.status === 'warning'
-        ? `${Math.round(row.pct * 100)}%`
-        : null;
+export function CategoryBudgetRow({ row, onPress, onEdit, onDelete }: CategoryBudgetRowProps) {
+  const bandColor = budgetBandColor(row.pct);
+  const pctText = `${Math.round(row.pct * 100)}%`;
+  const remaining = row.limit - row.spent;
+  const { magnitude, label } = remainingLabel(remaining);
+
+  const actions: SwipeAction[] = [
+    {
+      key: 'edit',
+      label: Strings.swipeEdit,
+      icon: 'pencil-outline',
+      variant: 'neutral',
+      onPress: onEdit,
+    },
+    {
+      key: 'delete',
+      label: Strings.swipeDelete,
+      icon: 'trash-can-outline',
+      variant: 'destructive',
+      onPress: onDelete,
+    },
+  ];
+
   return (
-    <Pressable
-      onPress={onPress}
-      style={styles.row}
-      accessibilityRole="button"
-      accessibilityLabel={`${row.name} budget`}
+    <SwipeableRow
+      rowId={row.categoryId}
+      actions={actions}
+      accessibilityLabel={`${row.name} budget, ${pctText}`}
     >
-      <View style={[styles.icon, { backgroundColor: `${row.color}22` }]}>
-        <MaterialCommunityIcons
-          name={toIconName(row.icon, 'tag-outline')}
-          size={ms(15)}
-          color={row.color}
-        />
-      </View>
-      <View style={styles.body}>
-        <View style={styles.top}>
-          <View style={styles.nameWrap}>
-            <Text style={styles.name}>{row.name}</Text>
-            {pill !== null && (
-              <View
-                style={[styles.pill, row.status === 'over' ? styles.pillOver : styles.pillWarn]}
-              >
-                <Text
-                  style={[
-                    styles.pillText,
-                    row.status === 'over' ? styles.pillTextOver : styles.pillTextWarn,
-                  ]}
-                >
-                  {pill}
-                </Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.amt}>
-            <Text style={[styles.amtSpent, row.status === 'over' && styles.amtOver]}>
-              {formatAmount(row.spent)}
+      <Pressable
+        onPress={onPress}
+        style={styles.row}
+        accessibilityRole="button"
+        accessibilityLabel={`${row.name} budget`}
+      >
+        {/* Left: ring + icon */}
+        <BudgetRing pct={row.pct} color={bandColor}>
+          <MaterialCommunityIcons
+            name={toIconName(row.icon, 'tag-outline')}
+            size={ms(18)}
+            color={row.color}
+          />
+        </BudgetRing>
+
+        {/* Center: name + pct */}
+        <View style={styles.center}>
+          <Text style={styles.name}>{row.name}</Text>
+          <Text style={[styles.pct, { color: bandColor }]}>{pctText}</Text>
+        </View>
+
+        {/* Right: remaining + spent/limit */}
+        <View style={styles.right}>
+          <View style={styles.remainingRow}>
+            <Text style={[styles.remainingAmount, { color: bandColor }]}>
+              {formatAmount(magnitude)}
             </Text>
-            {` / ${formatAmount(row.limit)}`}
+            <Text style={styles.remainingLabel}>{` ${label}`}</Text>
+          </View>
+          <Text style={styles.spentBudget}>
+            {`${formatAmount(row.spent)} / ${formatAmount(row.limit)}`}
           </Text>
         </View>
-        <BudgetBar pct={row.pct} status={row.status} />
-      </View>
-    </Pressable>
+      </Pressable>
+    </SwipeableRow>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: ms(10), paddingVertical: Spacing.xs },
-  icon: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: Radius.sm,
-    justifyContent: 'center',
+  row: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: ms(10),
+    paddingVertical: Spacing.xs,
+    paddingHorizontal: Spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Colors.dark.border,
   },
-  body: { flex: 1 },
-  top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  nameWrap: { flexDirection: 'row', alignItems: 'center', gap: ms(6) },
-  name: { fontFamily: FontFamily.interSemi, fontSize: Type.body, color: Colors.dark.text1 },
-  pill: { paddingHorizontal: ms(6), paddingVertical: ms(1), borderRadius: Radius.sm },
-  pillWarn: { backgroundColor: 'rgba(212,131,10,0.18)' },
-  pillOver: { backgroundColor: 'rgba(224,90,66,0.15)' },
-  pillText: { fontFamily: FontFamily.interMedium, fontSize: ms(9) },
-  pillTextWarn: { color: Colors.dark.warning },
-  pillTextOver: { color: Colors.dark.negative },
-  amt: { fontFamily: FontFamily.interRegular, fontSize: Type.micro, color: Colors.dark.text2 },
-  amtSpent: { fontFamily: FontFamily.interSemi, color: Colors.dark.text1 },
-  amtOver: { color: Colors.dark.negative },
+  center: { flex: 1 },
+  name: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+  },
+  pct: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.micro,
+    marginTop: ms(2),
+  },
+  right: { alignItems: 'flex-end' },
+  remainingRow: { flexDirection: 'row', alignItems: 'baseline' },
+  remainingAmount: {
+    fontFamily: FontFamily.soraBold,
+    fontSize: Type.subhead,
+  },
+  remainingLabel: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    color: Colors.dark.text2,
+  },
+  spentBudget: {
+    fontFamily: FontFamily.interRegular,
+    fontSize: Type.micro,
+    color: Colors.dark.text2,
+    marginTop: ms(2),
+  },
 });

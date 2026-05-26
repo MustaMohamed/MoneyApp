@@ -14,14 +14,17 @@ const STATUS_COLOR: Record<BudgetStatus, string> = {
 export interface BudgetBarProps {
   pct: number; // 0..n (clamped to 1 for width)
   status: BudgetStatus;
+  /** When provided, overrides the status-map colour. Use budgetBandColor(pct). */
+  color?: string;
   height?: number;
 }
 
-export function BudgetBar({ pct, status, height = ms(7) }: BudgetBarProps) {
+export function BudgetBar({ pct, status, color, height = ms(7) }: BudgetBarProps) {
   const width = `${Math.min(Math.max(pct, 0), 1) * 100}%` as const;
+  const fillColor = color ?? STATUS_COLOR[status];
   return (
     <View style={[styles.track, { height }]}>
-      <View style={[styles.fill, { width, backgroundColor: STATUS_COLOR[status] }]} />
+      <View style={[styles.fill, { width, backgroundColor: fillColor }]} />
     </View>
   );
 }

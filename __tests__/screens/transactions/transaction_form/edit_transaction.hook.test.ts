@@ -60,6 +60,7 @@ const mockCategoryFood = {
   color: '#fff',
   is_default: 0 as const,
   sort_order: 0,
+  budget_group: null,
   created_at: 'now',
   updated_at: 'now',
 };
@@ -71,6 +72,7 @@ const mockCategoryShop = {
   color: '#fff',
   is_default: 0 as const,
   sort_order: 1,
+  budget_group: null,
   created_at: 'now',
   updated_at: 'now',
 };
