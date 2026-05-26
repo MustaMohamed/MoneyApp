@@ -196,6 +196,25 @@ Background and handle are expressed via `className` on `BottomSheet.Content` (`b
 export { useBottomSheetAwareHandlers } from 'heroui-native';
 ```
 
+#### 4.2.9 PortalHost prerequisite
+
+**`<PortalHost />` must be mounted in `app/_layout.tsx` for any HeroUI `BottomSheet` to render.**
+
+`HeroUINativeProviderRaw` (the provider used in this project) explicitly does NOT mount a `PortalHost` — the HeroUI docs describe this as the "manage portals separately" pattern for apps that need control over portal ordering. Without a `PortalHost` in the tree, `BottomSheet.Portal` renders nothing: the sheet appears to open (state flips) but no content appears on screen.
+
+Fix (already applied in Wave 1 QA, commit `186e761`):
+
+```tsx
+// app/_layout.tsx — inside HeroUINativeProviderRaw, after the router/theme tree
+import { PortalHost } from 'heroui-native/portal';
+
+<PortalHost />
+```
+
+This is a **prerequisite for every wave**. The spec originally missed it — it was caught only on device QA of Wave 1. All subsequent waves assume this is already in the tree (it was committed in Wave 1). Callers building on the new primitive in Waves 2–5 do not need to repeat this step.
+
+**Decision (Tariq, Wave 1 QA review):** The `PortalHost` mount is infrastructure, not a per-sheet concern. It belongs in `_layout.tsx` once. Adding it per-sheet or per-screen would produce duplicate hosts and undefined portal ordering. The one-time `_layout.tsx` placement is correct.
+
 ### 4.3 Section 2 — Shared sheet kit (`components/sheets/`)
 
 #### 4.3.1 Placement rule
@@ -299,7 +318,7 @@ Files changed:
 | **Keyboard gap/jump on form sheets** | `keyboardBehavior="interactive"` on a fixed-snap sheet with no `android_keyboardInputMode="adjustResize"` — gorhom computed layout against the full window height on Android, producing a gap between the footer and keyboard | `keyboardBehavior="interactive"` + `keyboardBlurBehavior="restore"` + `android_keyboardInputMode="adjustResize"` baked into the new primitive; `useBottomSheetAwareHandlers()` wired onto any `Input` inside a sheet via `onFocus`/`onBlur` |
 | **Close reliability (overlay / button / programmatic)** | Legacy wrapper used `sheetRef.current?.close()` for programmatic close and `BottomSheetBackdrop onPress={onClose}` for overlay. Gorhom v5 treats `index` as initial-only in many code paths — the imperative ref drove state but `onClose` only fired on swipe-down; overlay-press close did not reliably call `onClose`, leaving the `visible` prop and internal gorhom state out of sync | `BottomSheet isOpen + onOpenChange` fires on **all** close paths (swipe, overlay, close button, programmatic). No imperative ref. No state synchronization problem |
 | **Scroll / gesture conflicts** | The legacy custom `BottomSheetBackdrop` with `onPress` could intercept gestures intended for scrollable content inside the sheet | `BottomSheet.Overlay isCloseOnPress={true}` (default) is handled at the HeroUI layer. Scrollables use gorhom's `BottomSheetScrollView`/`BottomSheetFlatList` with `enableOverDrag={false}` + `enableDynamicSizing={false}` + `contentContainerClassName="h-full"` — the scrollable has a bounded parent and scroll gestures are not absorbed by the sheet backdrop |
-| **Wrong snap / sizing** | `enableDynamicSizing` defaulted to `false` correctly, but individual consumers could pass `enableDynamicSizing={true}` (opt-in) or omit `snapPoints`, causing the sheet to auto-size to content and silently ignore the preset. Dynamic sizing was a footgun | New primitive hard-codes `enableDynamicSizing={false}` on `BottomSheet.Content` with no opt-out. `scrollable={true}` bakes the correct companion props instead. Explicit `snapPoints` always take effect |
+| **Wrong snap / sizing** | `enableDynamicSizing` defaulted to `false` correctly, but individual consumers could pass `enableDynamicSizing={true}` (opt-in) or omit `snapPoints`, causing the sheet to auto-size to content and silently ignore the preset. Dynamic sizing was a footgun | New primitive defaults to `enableDynamicSizing={false}` for all fixed-snap sheets. `scrollable={true}` bakes the correct companion props. Explicit `snapPoints` always take effect. **Controlled `fitContent` opt-in (added Wave 1 QA, §4.2.9):** pass `fitContent={true}` for small sheets whose content height is deterministic (e.g. `ConfirmSheet`); this enables `enableDynamicSizing=true` and omits `snapPoints` for that sheet only — the gorhom-validated contract for content-hug mode. `fitContent` is mutually exclusive with `scrollable` (scrollable needs a bounded parent height). Default is `false` — all other sheets remain on the fixed snap contract and cannot regress to snap-drift. |
 
 ### 4.6 Section 5 — API change: `visible`/`onClose` → `isOpen`/`onOpenChange`
 
