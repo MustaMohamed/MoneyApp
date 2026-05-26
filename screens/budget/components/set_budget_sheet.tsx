@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Button } from 'heroui-native';
 import React, { useEffect, useMemo } from 'react';
 import { Controller } from 'react-hook-form';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -7,6 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
+import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -116,13 +116,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
         title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
         size="sm"
         footer={
-          <Button
-            onPress={() => {
-              void onSubmit();
-            }}
-          >
-            <Button.Label>{Strings.budgetSaveCta}</Button.Label>
-          </Button>
+          <Button variant="primary" label={Strings.budgetSaveCta} onPress={() => void onSubmit()} />
         }
       >
         <View style={styles.body}>

@@ -4,8 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
  * FAB — Floating Action Button.
  *
  * Persistent across all tabs. Hidden on /settings routes.
- * Tap = open the mini menu (Add Transaction / Add Account / Add Commitment).
- * Long-press (500ms) also opens the menu (kept for muscle memory).
+ * Tap = Add Transaction (primary). Long-press (500ms) = mini menu (Add Transaction / Add Account / Add Commitment).
  *
  * Ownership: consumed by app/(app)/(tabs)/_layout.tsx only.
  * Screens do not mount or control the FAB.
@@ -131,19 +130,19 @@ export function FAB({
   const onLongPress = useCallback(
     (event: HandlerStateChangeEvent<LongPressGestureHandlerEventPayload>) => {
       if (event.nativeEvent.state === State.ACTIVE) {
-        openMenu();
+        if (!menuOpen) openMenu();
       }
     },
-    [openMenu],
+    [menuOpen, openMenu],
   );
 
   const onFABPress = useCallback(() => {
     if (menuOpen) {
       closeMenu();
     } else {
-      openMenu();
+      onAddTransaction();
     }
-  }, [menuOpen, closeMenu, openMenu]);
+  }, [menuOpen, closeMenu, onAddTransaction]);
 
   interface MenuItem {
     testID: string;
