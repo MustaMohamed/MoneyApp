@@ -36,7 +36,9 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
 
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/store/commitment.store', () => ({ useCommitmentStore: jest.fn() }));
+jest.mock('@/modules/commitments/store/commitment.store', () => ({
+  useCommitmentStore: jest.fn(),
+}));
 jest.mock('@/screens/dashboard/dashboard.store', () => ({ useDashboardStore: jest.fn() }));
 jest.mock('@/screens/dashboard/dashboard.state', () => ({ useDashboardState: jest.fn() }));
 

@@ -1,5 +1,5 @@
-import { ActivityIndicator, View } from 'react-native';
 import { PressableFeedback } from 'heroui-native';
+import { ActivityIndicator, View } from 'react-native';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';

@@ -4,6 +4,8 @@ import { create } from 'zustand';
 import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import { computeDueDates } from '@/utils/compute_due_dates';
 
+import type { Commitment } from '../entities/commitment.entity';
+import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 import {
   CommitmentRepository,
   type ICommitmentRepository,
@@ -11,8 +13,6 @@ import {
   type UpdateCommitmentInput,
   type PaymentDetails,
 } from '../repositories/commitment.repository';
-import type { Commitment } from '../entities/commitment.entity';
-import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
 export type {
   Commitment,
