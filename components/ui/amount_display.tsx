@@ -2,7 +2,7 @@ import { cn } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
+import { Text } from 'heroui-native';
 import { formatAmount } from '@/utils/format_amount';
 
 const SIZE_AMOUNT: Record<string, string> = {

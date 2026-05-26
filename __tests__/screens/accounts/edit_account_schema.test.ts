@@ -3,9 +3,9 @@ import { z } from 'zod';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/store/account.store';
+import type { Account } from '@/modules/accounts/store/account.store';
 
-// Mirrors the editSchema built in screens/accounts/detail/account_detail.hook.ts.
+// Mirrors the editSchema built in modules/accounts/screens/accounts/detail/account_detail.hook.ts.
 // Kept in lock-step with the hook: name min(1)/max(30) + self-excluding duplicate refine.
 function makeEditSchema(accounts: Account[], id: string) {
   return z.object({

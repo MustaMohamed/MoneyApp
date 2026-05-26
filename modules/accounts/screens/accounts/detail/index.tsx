@@ -5,6 +5,7 @@ import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
+import { FormErrorText } from '@/components/ui/form_error_text';
 import { Input } from '@/components/ui/input';
 import { PressableFeedback, Text } from 'heroui-native';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -46,8 +47,6 @@ export default function AccountDetailScreen() {
     triggerEditToggle,
     fieldEntering,
     fieldExiting,
-    errorEntering,
-    errorExiting,
   } = useAccountDetailAnim();
   const {
     control,
@@ -119,15 +118,7 @@ export default function AccountDetailScreen() {
                 />
               )}
             />
-            {errors.name ? (
-              <Animated.Text
-                entering={errorEntering}
-                exiting={errorExiting}
-                className="text-negative font-inter mt-1 text-[12px]"
-              >
-                {errors.name.message}
-              </Animated.Text>
-            ) : null}
+            <FormErrorText message={errors.name?.message} />
 
             <Text className="font-sora-bold text-gold-500 pt-3 pb-2 text-xs tracking-widest uppercase">
               {Strings.o4SectionColor}

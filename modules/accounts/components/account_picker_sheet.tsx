@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
 
-import { Text } from 'heroui-native';
+import { PressableFeedback, Text } from 'heroui-native';
 
 import { TYPE_OPTIONS } from './account_type_pill';
 import { Sheet } from '@/components/ui/sheet';
@@ -43,7 +43,7 @@ export function AccountPickerSheet({
         {data.map((item) => {
           const isSelected = item.id === selectedId;
           return (
-            <Pressable
+            <PressableFeedback
               key={item.id}
               testID={`account-picker-row-${item.id}`}
               onPress={() => onSelect(item)}
@@ -73,7 +73,7 @@ export function AccountPickerSheet({
                   color={CoreTokens.text1}
                 />
               ) : null}
-            </Pressable>
+            </PressableFeedback>
           );
         })}
       </BottomSheetScrollView>

@@ -7,6 +7,7 @@ import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { FormErrorText } from '@/components/ui/form_error_text';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { AccountType } from '@/constants/enums';
@@ -25,8 +26,6 @@ export default function AddAccountAppScreen() {
     ccExiting,
     aprEntering,
     aprExiting,
-    errorEntering,
-    errorExiting,
   } = useAddAccountAnim();
   const {
     control,
@@ -80,15 +79,7 @@ export default function AddAccountAppScreen() {
               />
             )}
           />
-          {errors.name ? (
-            <Animated.Text
-              entering={errorEntering}
-              exiting={errorExiting}
-              className="text-negative font-inter mt-1 text-[12px]"
-            >
-              {errors.name.message}
-            </Animated.Text>
-          ) : null}
+          <FormErrorText message={errors.name?.message} />
         </Box>
 
         {/* Currency */}
@@ -121,15 +112,7 @@ export default function AddAccountAppScreen() {
               />
             )}
           />
-          {errors.balance ? (
-            <Animated.Text
-              entering={errorEntering}
-              exiting={errorExiting}
-              className="text-negative font-inter mt-1 text-[12px]"
-            >
-              {errors.balance.message}
-            </Animated.Text>
-          ) : null}
+          <FormErrorText message={errors.balance?.message} />
         </Box>
 
         {/* Color picker */}
@@ -197,15 +180,7 @@ export default function AddAccountAppScreen() {
                   />
                 )}
               />
-              {errors.credit_limit ? (
-                <Animated.Text
-                  entering={errorEntering}
-                  exiting={errorExiting}
-                  className="text-negative font-inter mt-1 text-[12px]"
-                >
-                  {errors.credit_limit.message}
-                </Animated.Text>
-              ) : null}
+              <FormErrorText message={errors.credit_limit?.message} />
             </Box>
 
             {/* Min Payment */}
@@ -285,15 +260,7 @@ export default function AddAccountAppScreen() {
                 <Text className="text-muted font-inter mt-1 text-[11px]">
                   {Strings.o4AprHint}
                 </Text>
-                {errors.apr ? (
-                  <Animated.Text
-                    entering={errorEntering}
-                    exiting={errorExiting}
-                    className="text-negative font-inter mt-1 text-[12px]"
-                  >
-                    {errors.apr.message}
-                  </Animated.Text>
-                ) : null}
+                <FormErrorText message={errors.apr?.message} />
               </Animated.View>
             )}
           </Animated.View>
