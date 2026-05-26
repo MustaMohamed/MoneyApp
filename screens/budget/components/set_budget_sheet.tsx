@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Button, RadioGroup } from 'heroui-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller } from 'react-hook-form';
@@ -6,7 +7,11 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
-import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/bottom_sheet';
+import {
+  Sheet,
+  SHEET_FOOTER_CLEARANCE,
+  useBottomSheetAwareHandlers,
+} from '@/components/ui/bottom_sheet';
 import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -148,7 +153,8 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           if (!open) close();
         }}
         title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
-        size="sm"
+        size="md"
+        scrollable
         footer={
           <Button
             onPress={() => {
@@ -159,7 +165,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           </Button>
         }
       >
-        <View style={styles.body}>
+        <BottomSheetScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.bodyContent}
+        >
           {/* category picker — tappable in add mode (opens the standard
                 CategoryPickerSheet), locked in edit mode */}
           {isEdit ? (
@@ -257,7 +266,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
               <Text style={styles.removeText}>{Strings.budgetRemoveCta}</Text>
             </Pressable>
           )}
-        </View>
+        </BottomSheetScrollView>
       </Sheet>
 
       {/* Standard category picker — same grid sheet used in the transaction
@@ -278,7 +287,11 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
 }
 
 const styles = StyleSheet.create({
-  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
+  bodyContent: {
+    paddingHorizontal: Spacing.md,
+    paddingTop: Spacing.xs,
+    paddingBottom: SHEET_FOOTER_CLEARANCE,
+  },
   picker: {
     flexDirection: 'row',
     alignItems: 'center',
