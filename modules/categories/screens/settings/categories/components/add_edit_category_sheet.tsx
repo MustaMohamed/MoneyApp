@@ -14,11 +14,11 @@ import { SegmentedTabs } from '@/components/ui/tabs';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, Radius, Spacing } from '@/constants/theme';
-import { useCategoryStore } from '@/modules/categories/store/category.store';
-import type {
-  Category,
-  NewCategoryInput,
-  UpdateCategoryInput,
+import {
+  useCategoryStore,
+  type Category,
+  type NewCategoryInput,
+  type UpdateCategoryInput,
 } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';

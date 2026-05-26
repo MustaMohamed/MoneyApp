@@ -1,8 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 
-import { getDb } from '@/database/client';
-import { getCategoryTransactionCount } from '@/modules/categories/database/categories';
 import type {
   Category,
   NewCategoryInput,
@@ -21,6 +19,7 @@ export function useCategories() {
     updateCategory,
     deleteCategory,
     reassignAndDelete,
+    getCategoryTransactionCount,
   } = useCategoryStore(
     useShallow((s) => ({
       state: s.state,
@@ -28,6 +27,7 @@ export function useCategories() {
       updateCategory: s.updateCategory,
       deleteCategory: s.deleteCategory,
       reassignAndDelete: s.reassignAndDelete,
+      getCategoryTransactionCount: s.getCategoryTransactionCount,
     })),
   );
 
@@ -132,8 +132,7 @@ export function useCategories() {
   const handleDeletePress = async (category: Category) => {
     setIsDeleting(true);
     try {
-      const db = await getDb();
-      const count = await getCategoryTransactionCount(db, category.id);
+      const count = await getCategoryTransactionCount(category.id);
       setLinkedCount(count);
       if (count > 0) {
         openReassignSheet(category);

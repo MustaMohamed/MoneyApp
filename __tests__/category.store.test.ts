@@ -179,6 +179,16 @@ describe('categoryStore — error branches', () => {
   });
 });
 
+describe('categoryStore.getCategoryTransactionCount', () => {
+  it('delegates to repo.getTransactionCount and returns the count', async () => {
+    const repo = makeRepo({ getTransactionCount: jest.fn().mockResolvedValue(7) });
+    const useStore = createCategoryStore(repo);
+    const count = await useStore.getState().getCategoryTransactionCount('cat-1');
+    expect(repo.getTransactionCount).toHaveBeenCalledWith('cat-1');
+    expect(count).toBe(7);
+  });
+});
+
 describe('categoryStore.reset', () => {
   it('restores INITIAL_STATE', async () => {
     const repo = makeRepo({

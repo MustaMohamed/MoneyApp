@@ -188,3 +188,20 @@ describe('CategoryRepository.reassignAndDelete', () => {
     expect(row).toBeUndefined();
   });
 });
+
+describe('CategoryRepository.getTransactionCount', () => {
+  it('returns 0 when no transactions are linked to the category', async () => {
+    const count = await repo.getTransactionCount('non-existent-id');
+    expect(count).toBe(0);
+  });
+
+  it('returns 0 for a real category that has no transactions', async () => {
+    await repo.add(baseInput);
+    const id = (
+      realDb.prepare("SELECT id FROM categories WHERE name = 'Travel'").get() as { id: string }
+    ).id;
+
+    const count = await repo.getTransactionCount(id);
+    expect(count).toBe(0);
+  });
+});
