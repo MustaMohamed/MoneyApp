@@ -1,4 +1,4 @@
-import { useDashboardState } from '@/screens/dashboard/dashboard.state';
+import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
 
 beforeEach(() => useDashboardState.getState().reset());
 

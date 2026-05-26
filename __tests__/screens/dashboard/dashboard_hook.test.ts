@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
-import { useDashboard } from '@/screens/dashboard/dashboard.hook';
+import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 
 // All stores are mocked so no real Zustand stores are instantiated.
 // useDashboardState is mocked but backed by a simple object so tests
@@ -22,11 +22,11 @@ jest.mock('@/database/client', () => ({
   getDb: jest.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/database/account_stats', () => ({
+jest.mock('@/modules/accounts/database/account_stats', () => ({
   getAccountsStats: jest.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/database/transactions', () => ({
+jest.mock('@/modules/transactions/database/transactions', () => ({
   getMonthExpenseStats: jest.fn().mockResolvedValue({ totalEgp: 0, usdNative: 0, count: 0 }),
 }));
 
@@ -34,19 +34,27 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsForMonth: jest.fn().mockResolvedValue([]) },
 }));
 
-jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
-jest.mock('@/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/screens/dashboard/dashboard.store', () => ({ useDashboardStore: jest.fn() }));
-jest.mock('@/screens/dashboard/dashboard.state', () => ({ useDashboardState: jest.fn() }));
+jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
+  useDashboardStore: jest.fn(),
+}));
+jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
+  useDashboardState: jest.fn(),
+}));
 
-const { useAccountStore } = jest.requireMock('@/store/account.store');
-const { useCurrencyStore } = jest.requireMock('@/store/currency.store');
+const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
+const { useCurrencyStore } = jest.requireMock('@/modules/currency/store/currency.store');
 const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
-const { useDashboardStore } = jest.requireMock('@/screens/dashboard/dashboard.store');
-const { useDashboardState } = jest.requireMock('@/screens/dashboard/dashboard.state');
+const { useDashboardStore } = jest.requireMock(
+  '@/modules/dashboard/screens/dashboard/dashboard.store',
+);
+const { useDashboardState } = jest.requireMock(
+  '@/modules/dashboard/screens/dashboard/dashboard.state',
+);
 
 const BASE_ACCOUNTS = [
   {
