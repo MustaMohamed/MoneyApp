@@ -1,6 +1,6 @@
 import { CategoryType } from '@/constants/enums';
 import { AccountColors } from '@/constants/theme';
-import { useAddEditCategorySheetState } from '@/screens/settings/categories/components/add_edit_category_sheet.state';
+import { useAddEditCategorySheetState } from '@/modules/categories/screens/settings/categories/components/add_edit_category_sheet.state';
 
 beforeEach(() => useAddEditCategorySheetState.getState().reset());
 

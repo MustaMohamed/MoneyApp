@@ -1,4 +1,4 @@
-import { useReassignCategorySheetState } from '@/screens/settings/categories/components/reassign_category_sheet.state';
+import { useReassignCategorySheetState } from '@/modules/categories/screens/settings/categories/components/reassign_category_sheet.state';
 
 beforeEach(() => useReassignCategorySheetState.getState().reset());
 

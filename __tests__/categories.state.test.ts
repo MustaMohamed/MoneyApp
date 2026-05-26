@@ -1,5 +1,5 @@
 import { CategoryType } from '@/constants/enums';
-import { useCategoriesScreenState } from '@/screens/settings/categories/categories.state';
+import { useCategoriesScreenState } from '@/modules/categories/screens/settings/categories/categories.state';
 
 beforeEach(() => useCategoriesScreenState.getState().reset());
 

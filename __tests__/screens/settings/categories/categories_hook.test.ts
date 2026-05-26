@@ -22,14 +22,14 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
 jest.mock('@/database/client', () => ({ getDb: jest.fn() }));
-jest.mock('@/database/categories', () => ({
+jest.mock('@/modules/categories/database/categories', () => ({
   getCategoryTransactionCount: jest.fn(),
 }));
-jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/screens/settings/categories/categories.state', () => ({
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/categories/screens/settings/categories/categories.state', () => ({
   useCategoriesScreenState: jest.fn(),
 }));
-jest.mock('@/screens/settings/categories/categories.store', () => ({
+jest.mock('@/modules/categories/screens/settings/categories/categories.store', () => ({
   useCategoriesScreenStore: jest.fn(),
 }));
 
@@ -39,28 +39,28 @@ jest.mock('@/screens/settings/categories/categories.store', () => ({
 import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
-import { getCategoryTransactionCount } from '@/database/categories';
+import { getCategoryTransactionCount } from '@/modules/categories/database/categories';
 import { getDb } from '@/database/client';
-import { useCategories } from '@/screens/settings/categories/categories.hook';
-import { useCategoryStore } from '@/store/category.store';
-import type { Category } from '@/store/category.store';
+import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
+import type { Category } from '@/modules/categories/store/category.store';
 
 // Real Zustand stores — bypassing the mock for shape tests
 const realCategoriesStore = jest.requireActual<
-  typeof import('@/screens/settings/categories/categories.store')
->('@/screens/settings/categories/categories.store');
+  typeof import('@/modules/categories/screens/settings/categories/categories.store')
+>('@/modules/categories/screens/settings/categories/categories.store');
 const realCategoriesState = jest.requireActual<
-  typeof import('@/screens/settings/categories/categories.state')
->('@/screens/settings/categories/categories.state');
+  typeof import('@/modules/categories/screens/settings/categories/categories.state')
+>('@/modules/categories/screens/settings/categories/categories.state');
 const { useCategoriesScreenStore: realScreenStore } = realCategoriesStore;
 const { useCategoriesScreenState: realScreenState } = realCategoriesState;
 
 // Mocked versions for hook integration — cast through unknown to jest.Mock
 const mockedState = jest.requireMock<{ useCategoriesScreenState: jest.Mock }>(
-  '@/screens/settings/categories/categories.state',
+  '@/modules/categories/screens/settings/categories/categories.state',
 ).useCategoriesScreenState;
 const mockedStore = jest.requireMock<{ useCategoriesScreenStore: jest.Mock }>(
-  '@/screens/settings/categories/categories.store',
+  '@/modules/categories/screens/settings/categories/categories.store',
 ).useCategoriesScreenStore;
 
 // ---------------------------------------------------------------------------

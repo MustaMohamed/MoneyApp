@@ -1,7 +1,7 @@
 import { CategoryType } from '@/constants/enums';
-import type { Category } from '@/database/entities/category.entity';
-import type { ICategoryRepository } from '@/repositories/category.repository';
-import { createCategoryStore } from '@/store/category.store';
+import type { Category } from '@/modules/categories/entities/category.entity';
+import type { ICategoryRepository } from '@/modules/categories/repositories/category.repository';
+import { createCategoryStore } from '@/modules/categories/store/category.store';
 
 const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'cat-1',
@@ -25,6 +25,7 @@ function makeRepo(overrides: Partial<ICategoryRepository> = {}): ICategoryReposi
     update: jest.fn().mockResolvedValue(undefined),
     delete: jest.fn().mockResolvedValue(undefined),
     reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+    getTransactionCount: jest.fn().mockResolvedValue(0),
     ...overrides,
   };
 }

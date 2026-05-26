@@ -3,7 +3,7 @@ import * as SQLite from 'expo-sqlite';
 
 import { CategoryType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
-import { CategoryRepository, type NewCategoryInput } from '@/repositories/category.repository';
+import { CategoryRepository, type NewCategoryInput } from '@/modules/categories/repositories/category.repository';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
