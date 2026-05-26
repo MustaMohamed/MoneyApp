@@ -611,4 +611,24 @@ export const Strings = {
   addTxRateReset: 'Reset to global',
   addTxRateStale: 'Rate may be stale',
   addTxEgpPreview: '≈ {amount} EGP',
+
+  // Swipe actions — shared labels
+  swipeEdit: 'Edit',
+  swipeDelete: 'Delete',
+  swipeSkip: 'Skip',
+
+  // Budget — swipe delete confirm
+  budgetDeleteConfirmTitle: 'Remove budget?',
+  budgetDeleteConfirmBody: (name: string) =>
+    `This stops tracking the limit for ${name}. Your transactions and spending history are kept.`,
+  budgetDeleteConfirmConfirm: 'Remove',
+  budgetDeleteConfirmCancel: 'Cancel',
+
+  // Transactions — swipe/list delete confirm
+  // Note: deleteConfirmTitle, deleteConfirmBody, deleteTransaction, deleteCancel already exist
+  // for the detail screen. Reuse them for the list-delete ConfirmSheet (same copy, consistent).
+
+  // Commitments — swipe delete confirm
+  // Note: commitmentsDeactivateTitle, commitmentsDeactivateBody, commitmentsDeactivateConfirm,
+  // commitmentsDeactivateCancel already exist. Reuse them — same action, same copy.
 } as const;
