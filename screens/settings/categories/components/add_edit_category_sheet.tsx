@@ -21,6 +21,7 @@ import {
   useBottomSheetAwareHandlers,
 } from '@/components/ui/bottom_sheet';
 import { Button } from '@/components/ui/button';
+import { SegmentedTabs } from '@/components/ui/tabs';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountColors, Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -219,28 +220,17 @@ export function AddEditCategorySheet({
         {!isEditing && (
           <>
             <Text style={styles.fieldLabel}>{Strings.categoriesTypeLabel}</Text>
-            <View style={styles.typeRow}>
-              {([CategoryType.Expense, CategoryType.Income] as const).map((t) => (
-                <Pressable
-                  key={t}
-                  onPress={() => setType(t)}
-                  style={[styles.typePill, sheetState.type === t && styles.typePillActive]}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: sheetState.type === t }}
-                >
-                  <Text
-                    style={[
-                      styles.typePillText,
-                      sheetState.type === t && styles.typePillTextActive,
-                    ]}
-                  >
-                    {t === CategoryType.Expense
-                      ? Strings.categoriesTabExpense
-                      : Strings.categoriesTabIncome}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+            <SegmentedTabs<CategoryType>
+              segments={[
+                { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
+                { value: CategoryType.Income, label: Strings.categoriesTabIncome },
+              ]}
+              value={sheetState.type}
+              onValueChange={setType}
+              variant="solid-gold"
+              listClassName="w-full"
+              accessibilityLabel={Strings.categoriesTypeLabel}
+            />
           </>
         )}
 
@@ -360,26 +350,6 @@ const styles = StyleSheet.create({
     color: Colors.dark.negative,
     marginTop: 4,
   },
-  typeRow: { flexDirection: 'row', gap: Spacing.xs },
-  typePill: {
-    flex: 1,
-    paddingVertical: Spacing.xs,
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: 1,
-    borderColor: Colors.dark.border,
-  },
-  typePillActive: {
-    backgroundColor: Colors.shared.cairoGold,
-    borderColor: Colors.shared.cairoGold,
-  },
-  typePillText: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-  },
-  typePillTextActive: { color: Colors.shared.midnightBlue },
   iconGrid: { marginBottom: Spacing.xs },
   iconCell: {
     flex: 1,

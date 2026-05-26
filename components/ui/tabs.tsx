@@ -77,6 +77,11 @@ export interface SegmentedTabsProps<T extends string = string> {
    * Provide when the surrounding UI does not make the control's purpose obvious.
    */
   accessibilityLabel?: string;
+  /**
+   * When true, all triggers are non-interactive — used for locked form fields.
+   * Selected indicator still shows.
+   */
+  isDisabled?: boolean;
 }
 
 /**
@@ -114,6 +119,7 @@ export function SegmentedTabs<T extends string>({
   listClassName,
   animation,
   accessibilityLabel,
+  isDisabled,
 }: SegmentedTabsProps<T>): React.ReactElement {
   const isSolidGold = variant === 'solid-gold';
   const isScrollable = layout === 'scrollable';
@@ -126,6 +132,7 @@ export function SegmentedTabs<T extends string>({
       // 'scrollable' layout: triggers use intrinsic width — no flex-1.
       className={isScrollable ? undefined : 'flex-1'}
       accessibilityLabel={seg.accessibilityLabel ?? seg.label}
+      isDisabled={isDisabled}
     >
       <Tabs.Label
         // solid-gold: override selected label to midnight-blue.

@@ -9,8 +9,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Button } from '@/components/ui/button';
-import { SelectablePill } from '@/components/ui/chip';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import {
   AmountType,
@@ -37,12 +37,6 @@ import { CommitmentHeader } from './commitment_header';
 import { DecimalAmountInput } from './decimal_amount_input';
 import { DurationPicker } from './duration_picker';
 import { RecurrencePicker } from './recurrence_picker';
-
-const CURRENCIES: Currency[] = [Currency.EGP, Currency.USD];
-const AMOUNT_TYPES: { key: AmountType; label: string }[] = [
-  { key: AmountType.Fixed, label: Strings.commitmentsAmountFixed },
-  { key: AmountType.Variable, label: Strings.commitmentsAmountVariable },
-];
 
 interface CommitmentFormBodyProps {
   form: UseFormReturn<CommitmentFormValues>;
@@ -237,17 +231,18 @@ export function CommitmentFormBody({
           <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
             {Strings.commitmentsFieldAmountType}
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-            {AMOUNT_TYPES.map(({ key, label }) => (
-              <SelectablePill
-                key={key}
-                label={label}
-                selected={amountType === key}
-                onPress={() => handleAmountTypeChange(key)}
-                disabled={locked}
-              />
-            ))}
-          </View>
+          <SegmentedTabs<AmountType>
+            segments={[
+              { value: AmountType.Fixed, label: Strings.commitmentsAmountFixed },
+              { value: AmountType.Variable, label: Strings.commitmentsAmountVariable },
+            ]}
+            value={amountType}
+            onValueChange={handleAmountTypeChange}
+            variant="solid-gold"
+            listClassName="w-full"
+            isDisabled={locked}
+            accessibilityLabel={Strings.commitmentsFieldAmountType}
+          />
         </View>
 
         {/* Amount + Currency row */}
@@ -296,18 +291,18 @@ export function CommitmentFormBody({
             <Text className="font-inter text-muted text-[11px] tracking-wide uppercase">
               {Strings.commitmentsFieldCurrency}
             </Text>
-            <View style={{ flexDirection: 'row' }} className="gap-2">
-              {CURRENCIES.map((c) => (
-                <SelectablePill
-                  key={c}
-                  label={c}
-                  selected={currency === c}
-                  onPress={() => form.setValue('currency', c, SET_OPTS)}
-                  disabled={locked}
-                  style={{ flex: 1 }}
-                />
-              ))}
-            </View>
+            <SegmentedTabs<Currency>
+              segments={[
+                { value: Currency.EGP, label: Currency.EGP },
+                { value: Currency.USD, label: Currency.USD },
+              ]}
+              value={currency}
+              onValueChange={(c) => form.setValue('currency', c, SET_OPTS)}
+              variant="solid-gold"
+              listClassName="w-full"
+              isDisabled={locked}
+              accessibilityLabel={Strings.commitmentsFieldCurrency}
+            />
           </View>
         </View>
 
