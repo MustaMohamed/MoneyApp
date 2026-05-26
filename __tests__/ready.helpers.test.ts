@@ -1,5 +1,5 @@
 import { AccountType, Currency } from '@/constants/enums';
-import { computeTotalBalance } from '@/screens/onboarding/ready/ready.helpers';
+import { computeTotalBalance } from '@/modules/onboarding/screens/onboarding/ready/ready.helpers';
 import type { Account } from '@/store/account.store';
 
 const account = (opening_balance: number): Account => ({

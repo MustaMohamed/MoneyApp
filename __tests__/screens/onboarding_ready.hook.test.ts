@@ -1,14 +1,15 @@
 import { renderHook, act } from '@testing-library/react-native';
 
 import { Strings } from '@/constants/strings';
-import { useReady } from '@/screens/onboarding/ready/ready.hook';
+import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => require('@/store/onboarding.store'));
 jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
-jest.mock('@/screens/onboarding/ready/ready.state', () => ({
+jest.mock('@/modules/onboarding/screens/onboarding/ready/ready.state', () => ({
   useReadyState: jest.fn((sel: any) =>
     sel({ state: { completing: false }, setCompleting: jest.fn() }),
   ),
@@ -32,7 +33,7 @@ function setup(completing = false) {
   (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({ state: { accounts: fakeAccounts } }),
   );
-  const { useReadyState } = require('@/screens/onboarding/ready/ready.state');
+  const { useReadyState } = require('@/modules/onboarding/screens/onboarding/ready/ready.state');
   (useReadyState as jest.Mock).mockImplementation((sel: any) =>
     sel({ state: { completing }, setCompleting: mockSetCompleting }),
   );

@@ -3,8 +3,8 @@ import { useCallback, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { OnboardingStep } from '@/constants/enums';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { useAccountStore } from '@/store/account.store';
 
 export function useMoreAccounts() {
   const router = useRouter();

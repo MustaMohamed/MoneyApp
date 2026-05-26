@@ -11,7 +11,7 @@ import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/modules/accounts/store/account.store';
+import type { Account } from '@/store/account.store';
 
 import { AccountRow } from './components/account_row';
 import { useMoreAccountsAnim } from './more_accounts.anim';

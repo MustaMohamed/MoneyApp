@@ -1,7 +1,7 @@
 import { renderHook, act } from '@testing-library/react-native';
 
 import { OnboardingStep } from '@/constants/enums';
-import { useMoreAccounts } from '@/screens/onboarding/more_accounts/more_accounts.hook';
+import { useMoreAccounts } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook';
 import { useAccountStore } from '@/store/account.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 
@@ -16,6 +16,7 @@ jest.mock('@/store/account.store', () => ({
   }),
 }));
 jest.mock('@/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => require('@/store/onboarding.store'));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockPush = jest.fn();

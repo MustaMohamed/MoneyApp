@@ -1,8 +1,8 @@
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { useAccountStore } from '@/store/account.store';
 
 import { computeTotalBalance } from './ready.helpers';
 import { useReadyState } from './ready.state';

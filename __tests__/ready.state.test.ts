@@ -1,4 +1,4 @@
-import { useReadyState } from '@/screens/onboarding/ready/ready.state';
+import { useReadyState } from '@/modules/onboarding/screens/onboarding/ready/ready.state';
 
 beforeEach(() => useReadyState.getState().reset());
 

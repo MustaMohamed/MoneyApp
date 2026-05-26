@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/modules/accounts/store/account.store';
+import type { Account } from '@/store/account.store';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
