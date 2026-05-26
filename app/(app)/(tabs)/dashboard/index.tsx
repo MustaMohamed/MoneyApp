@@ -1,1 +1,1 @@
-export { default } from '@/screens/dashboard';
+export { default } from '@/modules/dashboard/screens/dashboard';
