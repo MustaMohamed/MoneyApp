@@ -219,7 +219,10 @@ export function useTransactions() {
       // Edit is done via the shared EditTransactionSheet (same sheet used by detail screen),
       // so we open it imperatively from the list without any navigation.
       const tx = txState.transactions.find((t) => t.id === id);
-      if (!tx) return;
+      if (!tx) {
+        console.warn('[goToEdit] tx not in loaded window:', id);
+        return;
+      }
       useEditTransactionStore.getState().loadFromTx(tx);
       useEditTransactionState.getState().open(tx);
     },
