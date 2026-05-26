@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
@@ -10,7 +9,6 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
-  const router = useRouter();
   const {
     state: currencyState,
     fetchRate,
@@ -40,6 +38,14 @@ export function useCurrencyScreen() {
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => resetState(), []); // cleanup on unmount only; resetState is a stable Zustand action
+
+  const formattedDate = currencyState.lastFetched
+    ? new Date(currencyState.lastFetched).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : Strings.currencyNeverFetched;
 
   const manualSchema = z.object({
     rate: z.string().refine(
@@ -76,20 +82,17 @@ export function useCurrencyScreen() {
     }
   });
 
-  const goBack = () => router.back();
-
   return {
     state: {
       rate: currencyState.rate,
-      lastFetched: currencyState.lastFetched,
       isManualOverride: currencyState.isManualOverride,
       isFetching: screenState.isFetching,
       isSaving: screenState.isSaving,
       fetchError: screenState.fetchError,
+      formattedDate,
     },
     form,
     handleFetchRate,
     handleSaveManualRate,
-    goBack,
   };
 }

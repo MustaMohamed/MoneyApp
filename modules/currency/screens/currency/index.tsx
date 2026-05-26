@@ -1,58 +1,54 @@
-import { Accordion } from 'heroui-native';
+import { Accordion, Card, Chip, Text } from 'heroui-native';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { FormErrorText } from '@/components/ui/form_error_text';
 import { Input } from '@/components/ui/input';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { formatAmount } from '@/utils/format_amount';
 
 import { useCurrencyScreen } from './currency.hook';
 
 export default function CurrencyScreen() {
   const { state, form, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
-  const { rate, lastFetched, isManualOverride, isFetching, isSaving, fetchError } = state;
+  const { rate, isManualOverride, isFetching, isSaving, fetchError, formattedDate } = state;
   const {
     control,
     formState: { errors },
   } = form;
 
-  const formattedDate = lastFetched
-    ? new Date(lastFetched).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : Strings.currencyNeverFetched;
-
   return (
     <Screen edges={['bottom']}>
       <ScreenScroll showsVerticalScrollIndicator={false}>
         {/* Rate card */}
-        <View className="bg-surface border-border mx-4 mt-4 rounded-2xl border p-5">
-          <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider uppercase">
-            {Strings.currencyRateLabel}
-          </Text>
-          <Text
-            className={`font-sora-bold text-4xl ${isManualOverride ? 'text-accent' : 'text-foreground'}`}
-          >
-            {rate.toFixed(2)}
-          </Text>
-          <Text className="text-muted font-inter-regular mt-1 text-xs">
-            {Strings.currencyRateSub}
-          </Text>
-          {isManualOverride && (
-            <View className="bg-default border-accent mt-2 self-start rounded-full border px-2 py-0.5">
-              <Text className="text-accent font-sora-semi text-xs">
+        <Card
+          className="border-border mx-4 mt-4 rounded-2xl border p-0"
+          style={{ elevation: 0, shadowOpacity: 0 }}
+        >
+          <Card.Body className="p-5">
+            <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider uppercase">
+              {Strings.currencyRateLabel}
+            </Text>
+            <Text
+              className={`font-sora-bold text-4xl ${isManualOverride ? 'text-accent' : 'text-foreground'}`}
+            >
+              {formatAmount(rate, 2)}
+            </Text>
+            <Text className="text-muted font-inter-regular mt-1 text-xs">
+              {Strings.currencyRateSub}
+            </Text>
+            {isManualOverride && (
+              <Chip color="accent" variant="soft" size="sm" className="mt-2 self-start">
                 {Strings.currencyManualLabel}
-              </Text>
-            </View>
-          )}
-          <Text className="text-muted font-inter-regular mt-3 text-xs">
-            {Strings.currencyLastFetched}: {formattedDate}
-          </Text>
-        </View>
+              </Chip>
+            )}
+            <Text className="text-muted font-inter-regular mt-3 text-xs">
+              {Strings.currencyLastFetched}: {formattedDate}
+            </Text>
+          </Card.Body>
+        </Card>
 
         {/* Refresh Rate button — secondary (outlined) */}
         <View className="mx-4 mt-3">
@@ -67,10 +63,7 @@ export default function CurrencyScreen() {
           />
         </View>
 
-        {/* Fetch error message */}
-        {fetchError !== '' && (
-          <Text className="text-danger font-inter-regular mx-4 mt-2 text-sm">{fetchError}</Text>
-        )}
+        <FormErrorText message={fetchError} className="mx-4 mt-2" />
 
         {/* Manual override — HeroUI Accordion */}
         <View className="mx-4 mt-2">

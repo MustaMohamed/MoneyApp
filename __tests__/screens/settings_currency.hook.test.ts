@@ -61,6 +61,17 @@ describe('useCurrencyScreen', () => {
     ).toBeUndefined();
   });
 
+  it('does not expose goBack (Expo Router stack handles back navigation)', () => {
+    const { result } = renderHook(() => useCurrencyScreen());
+    expect((result.current as unknown as Record<string, unknown>).goBack).toBeUndefined();
+  });
+
+  it('formattedDate is exposed from state (null lastFetched → never-fetched string)', () => {
+    const { result } = renderHook(() => useCurrencyScreen());
+    expect(typeof result.current.state.formattedDate).toBe('string');
+    expect(result.current.state.formattedDate.length).toBeGreaterThan(0);
+  });
+
   it('handleFetchRate sets fetchError on rejection', async () => {
     const setFetchErrorMock = jest.fn();
     const { useCurrencyScreenState } = require('@/modules/currency/screens/currency/currency.state');
