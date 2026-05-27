@@ -21,17 +21,20 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    state: { commitments: [], payments: [], selectedMonth: '2026-05' },
+    commitments: [],
+    payments: [],
+    selectedMonth: '2026-05',
     setSelectedMonth: jest.fn(),
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
     loadCommitments: jest.fn().mockResolvedValue(undefined),
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    state: { categories: [] },
+    categories: [],
   }));
   attachMockSelectorStore(useCommitmentsScreenState as unknown as jest.Mock, () => ({
-    state: { refreshing: false, statusFilter: 'all' },
+    refreshing: false,
+    statusFilter: 'all',
     setRefreshing: jest.fn(),
     setStatusFilter: jest.fn(),
   }));

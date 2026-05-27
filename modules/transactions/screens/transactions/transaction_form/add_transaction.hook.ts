@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -137,20 +138,33 @@ export function useAddTransaction(onClose: () => void) {
   const accounts = useAccountStore.useState.accounts();
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore.useState.categories();
-  const rate = useCurrencyStore.useState.rate();
-  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
+  const { rate, rateUpdatedAt } = useCurrencyStore(
+    useShallow((s) => ({
+      rate: s.rate,
+      rateUpdatedAt: s.rate_updated_at,
+    })),
+  );
   const addTransaction = useTransactionStore.getState().addTransaction;
-  const type = useAddTransactionStore.useState.type();
-  const amountStr = useAddTransactionStore.useState.amountStr();
+  const { type, amountStr } = useAddTransactionStore(
+    useShallow((s) => ({
+      type: s.type,
+      amountStr: s.amountStr,
+    })),
+  );
   const setType = useAddTransactionStore.getState().setType;
   const setAmountStr = useAddTransactionStore.getState().setAmountStr;
   const handleNumpad = useAddTransactionStore.getState().handleNumpad;
-  const visible = useAddTransactionState.useState.visible();
-  const saving = useAddTransactionState.useState.saving();
-  const showAccountPicker = useAddTransactionState.useState.showAccountPicker();
-  const showToPicker = useAddTransactionState.useState.showToPicker();
-  const showCategoryPicker = useAddTransactionState.useState.showCategoryPicker();
-  const rateOverride = useAddTransactionState.useState.rateOverride();
+  const { visible, saving, showAccountPicker, showToPicker, showCategoryPicker, rateOverride } =
+    useAddTransactionState(
+      useShallow((s) => ({
+        visible: s.visible,
+        saving: s.saving,
+        showAccountPicker: s.showAccountPicker,
+        showToPicker: s.showToPicker,
+        showCategoryPicker: s.showCategoryPicker,
+        rateOverride: s.rateOverride,
+      })),
+    );
   const setSaving = useAddTransactionState.getState().setSaving;
   const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
   const setShowToPicker = useAddTransactionState.getState().setShowToPicker;

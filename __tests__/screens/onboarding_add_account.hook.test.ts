@@ -32,12 +32,12 @@ function setup(isAddingMore = false) {
   (require('@/utils/onboarding_nav').backOrReplace as jest.Mock) = mockBackOrReplace;
 
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: [] },
+    accounts: [],
     addAccount: mockAddAccount,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    state: { baseCurrency: 'EGP' },
+    baseCurrency: 'EGP',
     setStep: mockSetStep,
   }));
 }

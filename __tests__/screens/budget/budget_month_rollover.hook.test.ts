@@ -34,15 +34,19 @@ import { useCategoryDetail } from '@/modules/budget/screens/budget/category_deta
 
 function setupStores() {
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
-    state: { categories: [], hasLoaded: false },
+    categories: [],
+    hasLoaded: false,
     loadCategories: jest.fn(),
   }));
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
-    state: { rows: [], spendByMonth: {}, loaded: false, expectedIncome: null },
+    rows: [],
+    spendByMonth: {},
+    loaded: false,
+    expectedIncome: null,
     load: jest.fn(),
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
-    state: { lensTab: 'categories' },
+    lensTab: 'categories',
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     setLensTab: jest.fn(),

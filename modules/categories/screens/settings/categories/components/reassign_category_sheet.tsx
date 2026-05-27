@@ -2,6 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { PressableFeedback, Text } from 'heroui-native';
 import { StyleSheet, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
@@ -30,8 +31,12 @@ export function ReassignCategorySheet({
   onConfirm,
   onOpenChange,
 }: ReassignCategorySheetProps) {
-  const selectedId = useReassignCategorySheetState.useState.selectedId();
-  const isLoading = useReassignCategorySheetState.useState.isLoading();
+  const { selectedId, isLoading } = useReassignCategorySheetState(
+    useShallow((s) => ({
+      selectedId: s.selectedId,
+      isLoading: s.isLoading,
+    })),
+  );
   const setSelectedId = useReassignCategorySheetState.getState().setSelectedId;
   const setIsLoading = useReassignCategorySheetState.getState().setIsLoading;
 

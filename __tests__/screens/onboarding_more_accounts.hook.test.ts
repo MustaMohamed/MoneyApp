@@ -46,9 +46,8 @@ function setup(accounts = fakeAccounts) {
   const { useRouter } = require('expo-router');
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ state: { accounts } }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts }));
   attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    state: {},
     setStep: mockSetStep,
   }));
 }

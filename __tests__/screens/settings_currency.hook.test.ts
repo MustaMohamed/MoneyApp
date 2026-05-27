@@ -16,12 +16,16 @@ jest.mock('@/modules/currency/screens/currency/currency.state', () => ({
 
 function setup() {
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
-    state: { rate: 50, lastFetched: null, isManualOverride: false },
+    rate: 50,
+    lastFetched: null,
+    isManualOverride: false,
     fetchRate: jest.fn().mockResolvedValue(undefined),
     setManualRate: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
-    state: { isFetching: false, isSaving: false, fetchError: '' },
+    isFetching: false,
+    isSaving: false,
+    fetchError: '',
     setFetching: jest.fn(),
     setSaving: jest.fn(),
     setFetchError: jest.fn(),
@@ -77,14 +81,18 @@ describe('useCurrencyScreen', () => {
       useCurrencyScreenState,
     } = require('@/modules/currency/screens/currency/currency.state');
     attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
-      state: { isFetching: false, isSaving: false, fetchError: '' },
+      isFetching: false,
+      isSaving: false,
+      fetchError: '',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: setFetchErrorMock,
       reset: jest.fn(),
     }));
     attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
-      state: { rate: 50, lastFetched: null, isManualOverride: false },
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
       fetchRate: jest.fn().mockRejectedValue(new Error('Network error')),
       setManualRate: jest.fn().mockResolvedValue(undefined),
     }));
@@ -99,14 +107,18 @@ describe('useCurrencyScreen', () => {
       useCurrencyScreenState,
     } = require('@/modules/currency/screens/currency/currency.state');
     attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
-      state: { isFetching: false, isSaving: false, fetchError: 'old error' },
+      isFetching: false,
+      isSaving: false,
+      fetchError: 'old error',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: setFetchErrorMock,
       reset: jest.fn(),
     }));
     attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
-      state: { rate: 50, lastFetched: null, isManualOverride: false },
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
       fetchRate: jest.fn().mockResolvedValue(undefined),
       setManualRate: jest.fn().mockResolvedValue(undefined),
     }));

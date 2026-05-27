@@ -6,13 +6,12 @@ interface TransactionFormBodyStateShape {
   showAndroidDatePicker: boolean;
 }
 
-interface TransactionFormBodyState {
-  state: TransactionFormBodyStateShape;
+type TransactionFormBodyState = TransactionFormBodyStateShape & {
   setKeyboardVisible: (v: boolean) => void;
   setShowIosDatePicker: (v: boolean) => void;
   setShowAndroidDatePicker: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: TransactionFormBodyStateShape = {
   keyboardVisible: false,
@@ -21,12 +20,11 @@ const INITIAL_STATE: TransactionFormBodyStateShape = {
 };
 
 export const useTransactionFormBodyState = create<TransactionFormBodyState>((set) => ({
-  state: INITIAL_STATE,
+  ...INITIAL_STATE,
 
-  setKeyboardVisible: (v) => set((s) => ({ state: { ...s.state, keyboardVisible: v } })),
-  setShowIosDatePicker: (v) => set((s) => ({ state: { ...s.state, showIosDatePicker: v } })),
-  setShowAndroidDatePicker: (v) =>
-    set((s) => ({ state: { ...s.state, showAndroidDatePicker: v } })),
+  setKeyboardVisible: (v) => set((s) => ({ ...s, keyboardVisible: v })),
+  setShowIosDatePicker: (v) => set((s) => ({ ...s, showIosDatePicker: v })),
+  setShowAndroidDatePicker: (v) => set((s) => ({ ...s, showAndroidDatePicker: v })),
 
-  reset: () => set({ state: INITIAL_STATE }),
+  reset: () => set(INITIAL_STATE),
 }));

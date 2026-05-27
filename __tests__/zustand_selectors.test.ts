@@ -4,19 +4,18 @@ import { create } from 'zustand';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface CounterStore {
-  state: {
-    count: number;
-    label: string;
-  };
+  count: number;
+  label: string;
   increment: () => void;
   setLabel: (label: string) => void;
 }
 
 function createCounterStore() {
   const baseStore = create<CounterStore>()((set) => ({
-    state: { count: 0, label: 'zero' },
-    increment: () => set((s) => ({ state: { ...s.state, count: s.state.count + 1 } })),
-    setLabel: (label) => set((s) => ({ state: { ...s.state, label } })),
+    count: 0,
+    label: 'zero',
+    increment: () => set((s) => ({ count: s.count + 1 })),
+    setLabel: (label) => set({ label }),
   }));
 
   return createMoneyAppSelectors(baseStore);
@@ -44,7 +43,8 @@ describe('createMoneyAppSelectors', () => {
   it('reuses the generated selector function for each key', () => {
     const selectorCalls: Array<(state: CounterStore) => unknown> = [];
     const state: CounterStore = {
-      state: { count: 0, label: 'zero' },
+      count: 0,
+      label: 'zero',
       increment: jest.fn(),
       setLabel: jest.fn(),
     };

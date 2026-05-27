@@ -21,8 +21,7 @@ interface DraftShape {
   draft: AdvancedFilters;
 }
 
-interface FilterStore {
-  state: DraftShape;
+type FilterStore = DraftShape & {
   setDraft: (next: AdvancedFilters) => void;
   resetDraft: () => void;
   toggleAccountId: (id: string) => void;
@@ -30,48 +29,41 @@ interface FilterStore {
   setAmountMin: (v?: number) => void;
   setAmountMax: (v?: number) => void;
   setAmountCurrency: (c: Currency) => void;
-}
+};
 
 const INITIAL_STATE: DraftShape = { draft: EMPTY_FILTERS_V2 };
 
 export const useFilterStore = createMoneyAppSelectors(
   create<FilterStore>((set) => ({
-    state: INITIAL_STATE,
+    ...INITIAL_STATE,
 
-    setDraft: (next) => set((s) => ({ state: { ...s.state, draft: next } })),
-    resetDraft: () => set((s) => ({ state: { ...s.state, draft: EMPTY_FILTERS_V2 } })),
+    setDraft: (next) => set((s) => ({ ...s, draft: next })),
+    resetDraft: () => set((s) => ({ ...s, draft: EMPTY_FILTERS_V2 })),
 
     toggleAccountId: (id) =>
       set((s) => ({
-        state: {
-          ...s.state,
-          draft: {
-            ...s.state.draft,
-            accountIds: s.state.draft.accountIds.includes(id)
-              ? s.state.draft.accountIds.filter((x) => x !== id)
-              : [...s.state.draft.accountIds, id],
-          },
+        ...s,
+        draft: {
+          ...s.draft,
+          accountIds: s.draft.accountIds.includes(id)
+            ? s.draft.accountIds.filter((x) => x !== id)
+            : [...s.draft.accountIds, id],
         },
       })),
 
     toggleCategoryId: (id) =>
       set((s) => ({
-        state: {
-          ...s.state,
-          draft: {
-            ...s.state.draft,
-            categoryIds: s.state.draft.categoryIds.includes(id)
-              ? s.state.draft.categoryIds.filter((x) => x !== id)
-              : [...s.state.draft.categoryIds, id],
-          },
+        ...s,
+        draft: {
+          ...s.draft,
+          categoryIds: s.draft.categoryIds.includes(id)
+            ? s.draft.categoryIds.filter((x) => x !== id)
+            : [...s.draft.categoryIds, id],
         },
       })),
 
-    setAmountMin: (v) =>
-      set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, amountMin: v } } })),
-    setAmountMax: (v) =>
-      set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, amountMax: v } } })),
-    setAmountCurrency: (c) =>
-      set((s) => ({ state: { ...s.state, draft: { ...s.state.draft, amountCurrency: c } } })),
+    setAmountMin: (v) => set((s) => ({ ...s, draft: { ...s.draft, amountMin: v } })),
+    setAmountMax: (v) => set((s) => ({ ...s, draft: { ...s.draft, amountMax: v } })),
+    setAmountCurrency: (c) => set((s) => ({ ...s, draft: { ...s.draft, amountCurrency: c } })),
   })),
 );

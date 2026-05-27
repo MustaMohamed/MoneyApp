@@ -51,8 +51,17 @@ let paySheetStateInner = {
   rateOverride: false,
 };
 const mockPaySheetState = {
-  get state() {
-    return { ...paySheetStateInner };
+  get visible() {
+    return paySheetStateInner.visible;
+  },
+  get saving() {
+    return paySheetStateInner.saving;
+  },
+  get accountPickerVisible() {
+    return paySheetStateInner.accountPickerVisible;
+  },
+  get rateOverride() {
+    return paySheetStateInner.rateOverride;
   },
   setVisible: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, visible: v };
@@ -125,16 +134,20 @@ let mockAccounts: Account[] = [];
 
 function setupStoreMocks() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    state: { commitments: [], payments: [], selectedMonth: '2026-05' },
+    commitments: [],
+    payments: [],
+    selectedMonth: '2026-05',
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: mockAccounts },
+    accounts: mockAccounts,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
-    state: { rate: 55, isManualOverride: false, rate_updated_at: null },
+    rate: 55,
+    isManualOverride: false,
+    rate_updated_at: null,
   }));
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => mockPaySheetState);
 }

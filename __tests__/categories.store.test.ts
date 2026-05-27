@@ -19,26 +19,26 @@ beforeEach(() => useCategoriesScreenStore.getState().reset());
 
 describe('useCategoriesScreenStore', () => {
   it('starts with no editing or deleting target', () => {
-    const s = useCategoriesScreenStore.getState().state;
+    const s = useCategoriesScreenStore.getState();
     expect(s.editingCategory).toBeNull();
     expect(s.categoryToDelete).toBeNull();
   });
 
   it('setEditingCategory stores the value', () => {
     useCategoriesScreenStore.getState().setEditingCategory(fakeCategory);
-    expect(useCategoriesScreenStore.getState().state.editingCategory).toBe(fakeCategory);
+    expect(useCategoriesScreenStore.getState().editingCategory).toBe(fakeCategory);
   });
 
   it('setCategoryToDelete stores the value', () => {
     useCategoriesScreenStore.getState().setCategoryToDelete(fakeCategory);
-    expect(useCategoriesScreenStore.getState().state.categoryToDelete).toBe(fakeCategory);
+    expect(useCategoriesScreenStore.getState().categoryToDelete).toBe(fakeCategory);
   });
 
   it('reset clears both', () => {
     useCategoriesScreenStore.getState().setEditingCategory(fakeCategory);
     useCategoriesScreenStore.getState().setCategoryToDelete(fakeCategory);
     useCategoriesScreenStore.getState().reset();
-    const s = useCategoriesScreenStore.getState().state;
+    const s = useCategoriesScreenStore.getState();
     expect(s.editingCategory).toBeNull();
     expect(s.categoryToDelete).toBeNull();
   });

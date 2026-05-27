@@ -26,18 +26,21 @@ jest.mock(
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    state: { commitments: [], payments: [], selectedMonth: '2026-05' },
+    commitments: [],
+    payments: [],
+    selectedMonth: '2026-05',
     updateCommitment: jest.fn().mockResolvedValue(undefined),
     deactivateCommitment: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: [] },
+    accounts: [],
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    state: { categories: [] },
+    categories: [],
   }));
   attachMockSelectorStore(useEditCommitmentState as unknown as jest.Mock, () => ({
-    state: { saving: false, deactivateDialogVisible: false },
+    saving: false,
+    deactivateDialogVisible: false,
     setSaving: jest.fn(),
     setDeactivateDialogVisible: jest.fn(),
     reset: jest.fn(),

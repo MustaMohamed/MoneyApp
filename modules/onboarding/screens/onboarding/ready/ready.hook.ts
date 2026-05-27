@@ -11,7 +11,7 @@ export function useReady() {
   const baseCurrency = useOnboardingStore.useState.baseCurrency();
   const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
   const accounts = useAccountStore.useState.accounts();
-  const completing = useReadyState((s) => s.state.completing);
+  const completing = useReadyState((s) => s.completing);
   const setCompleting = useReadyState((s) => s.setCompleting);
 
   const total = computeTotalBalance(accounts);

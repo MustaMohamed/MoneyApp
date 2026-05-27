@@ -1,6 +1,7 @@
 import { Text } from 'heroui-native';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
@@ -31,8 +32,12 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const input = useAdjustBalanceSheetState.useState.input();
-  const error = useAdjustBalanceSheetState.useState.error();
+  const { input, error } = useAdjustBalanceSheetState(
+    useShallow((s) => ({
+      input: s.input,
+      error: s.error,
+    })),
+  );
   const setInput = useAdjustBalanceSheetState.getState().setInput;
   const setError = useAdjustBalanceSheetState.getState().setError;
   const initialize = useAdjustBalanceSheetState.getState().initialize;

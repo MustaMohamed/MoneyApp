@@ -38,9 +38,7 @@ const INITIAL_STATE = {
   mutationVersion: 0,
 };
 
-interface TransactionStore {
-  state: typeof INITIAL_STATE;
-
+type TransactionStore = typeof INITIAL_STATE & {
   setQuery: (q: TransactionListFilters) => Promise<void>;
   refresh: () => Promise<void>;
   loadMore: () => Promise<void>;
@@ -50,7 +48,7 @@ interface TransactionStore {
   deleteTransaction: (id: string) => Promise<void>;
   updateTransaction: (id: string, data: UpdateTransactionInput) => Promise<void>;
   reset: () => void;
-}
+};
 
 export function createTransactionStore(repo: ITransactionRepository) {
   let requestId = 0;
@@ -63,34 +61,30 @@ export function createTransactionStore(repo: ITransactionRepository) {
         mode: 'replace' | 'append',
       ) {
         const myId = ++requestId;
-        set((s) => ({ state: { ...s.state, loading: true } }));
+        set((s) => ({ ...s, loading: true }));
         try {
           const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
           if (myId !== requestId) return;
           const hasMore = rows.length === PAGE_SIZE;
           if (mode === 'replace') {
             set((s) => ({
-              state: {
-                ...s.state,
-                transactions: rows,
-                hasMore,
-                loading: false,
-                hasLoaded: true,
-                query: filters,
-              },
+              ...s,
+              transactions: rows,
+              hasMore,
+              loading: false,
+              hasLoaded: true,
+              query: filters,
             }));
           } else {
             set((s) => ({
-              state: {
-                ...s.state,
-                transactions: [...s.state.transactions, ...rows],
-                hasMore,
-                loading: false,
-              },
+              ...s,
+              transactions: [...s.transactions, ...rows],
+              hasMore,
+              loading: false,
             }));
           }
         } catch (err) {
-          if (myId === requestId) set((s) => ({ state: { ...s.state, loading: false } }));
+          if (myId === requestId) set((s) => ({ ...s, loading: false }));
           console.error('[transactionStore] fetch failed:', err);
           throw err;
         }
@@ -98,19 +92,20 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
       function bumpMutationVersion() {
         set((s) => ({
-          state: { ...s.state, mutationVersion: s.state.mutationVersion + 1 },
+          ...s,
+          mutationVersion: s.mutationVersion + 1,
         }));
       }
 
       return {
-        state: INITIAL_STATE,
+        ...INITIAL_STATE,
 
         setQuery: (q) => fetchPage(q, 0, 'replace'),
 
-        refresh: () => fetchPage(get().state.query, 0, 'replace'),
+        refresh: () => fetchPage(get().query, 0, 'replace'),
 
         loadMore: async () => {
-          const { hasMore, loading, query, transactions } = get().state;
+          const { hasMore, loading, query, transactions } = get();
           if (!hasMore || loading) return;
           await fetchPage(query, transactions.length, 'append');
         },
@@ -144,7 +139,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
         reset: () => {
           requestId++;
-          set({ state: INITIAL_STATE });
+          set(INITIAL_STATE);
         },
       };
     }),

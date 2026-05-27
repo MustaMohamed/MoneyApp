@@ -22,18 +22,19 @@ jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitme
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    state: { commitments: [], payments: [] },
+    commitments: [],
+    payments: [],
     addCommitment: jest.fn().mockResolvedValue(undefined),
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: [] },
+    accounts: [],
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    state: { categories: [] },
+    categories: [],
   }));
   attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
-    state: { saving: false },
+    saving: false,
     setSaving: jest.fn(),
     reset: jest.fn(),
   }));

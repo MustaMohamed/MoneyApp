@@ -1,5 +1,6 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useMemo, useCallback, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -16,11 +17,16 @@ export type CommitmentsSection = {
 };
 
 export function useCommitments() {
-  const commitments = useCommitmentStore.useState.commitments();
-  const payments = useCommitmentStore.useState.payments();
-  const selectedMonth = useCommitmentStore.useState.selectedMonth();
-  const commitmentsLoaded = useCommitmentStore.useState.commitmentsLoaded();
-  const paymentsLoaded = useCommitmentStore.useState.paymentsLoaded();
+  const { commitments, payments, selectedMonth, commitmentsLoaded, paymentsLoaded } =
+    useCommitmentStore(
+      useShallow((s) => ({
+        commitments: s.commitments,
+        payments: s.payments,
+        selectedMonth: s.selectedMonth,
+        commitmentsLoaded: s.commitmentsLoaded,
+        paymentsLoaded: s.paymentsLoaded,
+      })),
+    );
   const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
   const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
   const loadCommitments = useCommitmentStore.getState().loadCommitments;
@@ -29,8 +35,12 @@ export function useCommitments() {
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
   const categories = useCategoryStore.useState.categories();
-  const refreshing = useCommitmentsScreenState.useState.refreshing();
-  const statusFilter = useCommitmentsScreenState.useState.statusFilter();
+  const { refreshing, statusFilter } = useCommitmentsScreenState(
+    useShallow((s) => ({
+      refreshing: s.refreshing,
+      statusFilter: s.statusFilter,
+    })),
+  );
   const setRefreshing = useCommitmentsScreenState.getState().setRefreshing;
   const setStatusFilter = useCommitmentsScreenState.getState().setStatusFilter;
 

@@ -19,7 +19,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 
 function setup() {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: [] },
+    accounts: [],
     addAccount: jest.fn(),
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));

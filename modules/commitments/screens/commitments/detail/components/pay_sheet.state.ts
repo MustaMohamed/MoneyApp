@@ -9,14 +9,13 @@ interface PaySheetStateShape {
   rateOverride: boolean;
 }
 
-interface PaySheetState {
-  state: PaySheetStateShape;
+type PaySheetState = PaySheetStateShape & {
   setVisible: (v: boolean) => void;
   setSaving: (v: boolean) => void;
   setAccountPickerVisible: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: PaySheetStateShape = {
   visible: false,
@@ -27,12 +26,11 @@ const INITIAL_STATE: PaySheetStateShape = {
 
 export const usePaySheetState = createMoneyAppSelectors(
   create<PaySheetState>((set) => ({
-    state: INITIAL_STATE,
-    setVisible: (v) => set((s) => ({ state: { ...s.state, visible: v } })),
-    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-    setAccountPickerVisible: (v) =>
-      set((s) => ({ state: { ...s.state, accountPickerVisible: v } })),
-    setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setVisible: (v) => set((s) => ({ ...s, visible: v })),
+    setSaving: (v) => set((s) => ({ ...s, saving: v })),
+    setAccountPickerVisible: (v) => set((s) => ({ ...s, accountPickerVisible: v })),
+    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

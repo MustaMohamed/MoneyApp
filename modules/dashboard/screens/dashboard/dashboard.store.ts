@@ -17,13 +17,12 @@ interface DashboardStoreShape {
   previousMonthSpend: MonthSpendStats;
 }
 
-interface DashboardStore {
-  state: DashboardStoreShape;
+type DashboardStore = DashboardStoreShape & {
   setStatsMap: (m: Record<string, AccountStats>) => void;
   setCurrentMonthCommitmentPayments: (p: CommitmentPayment[]) => void;
   setMonthSpendStats: (current: MonthSpendStats, previous: MonthSpendStats) => void;
   reset: () => void;
-}
+};
 
 const EMPTY_SPEND: MonthSpendStats = { totalEgp: 0, usdNative: 0, count: 0 };
 
@@ -36,14 +35,16 @@ const INITIAL_STATE: DashboardStoreShape = {
 
 export const useDashboardStore = createMoneyAppSelectors(
   create<DashboardStore>((set) => ({
-    state: INITIAL_STATE,
-    setStatsMap: (m) => set((s) => ({ state: { ...s.state, statsMap: m } })),
+    ...INITIAL_STATE,
+    setStatsMap: (m) => set((s) => ({ ...s, statsMap: m })),
     setCurrentMonthCommitmentPayments: (p) =>
-      set((s) => ({ state: { ...s.state, currentMonthCommitmentPayments: p } })),
+      set((s) => ({ ...s, currentMonthCommitmentPayments: p })),
     setMonthSpendStats: (current, previous) =>
       set((s) => ({
-        state: { ...s.state, currentMonthSpend: current, previousMonthSpend: previous },
+        ...s,
+        currentMonthSpend: current,
+        previousMonthSpend: previous,
       })),
-    reset: () => set({ state: INITIAL_STATE }),
+    reset: () => set(INITIAL_STATE),
   })),
 );

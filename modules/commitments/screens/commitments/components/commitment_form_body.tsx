@@ -5,6 +5,7 @@ import { Input, PressableFeedback } from 'heroui-native';
 import { useEffect, useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
@@ -101,10 +102,15 @@ export function CommitmentFormBody({
     [accounts, accountId],
   );
 
-  const categoryPickerVisible = useCommitmentFormBodyState.useState.categoryPickerVisible();
-  const accountPickerVisible = useCommitmentFormBodyState.useState.accountPickerVisible();
-  const showStartDatePicker = useCommitmentFormBodyState.useState.showStartDatePicker();
-  const showEndDatePicker = useCommitmentFormBodyState.useState.showEndDatePicker();
+  const { categoryPickerVisible, accountPickerVisible, showStartDatePicker, showEndDatePicker } =
+    useCommitmentFormBodyState(
+      useShallow((s) => ({
+        categoryPickerVisible: s.categoryPickerVisible,
+        accountPickerVisible: s.accountPickerVisible,
+        showStartDatePicker: s.showStartDatePicker,
+        showEndDatePicker: s.showEndDatePicker,
+      })),
+    );
   const setCategoryPickerVisible = useCommitmentFormBodyState.getState().setCategoryPickerVisible;
   const setAccountPickerVisible = useCommitmentFormBodyState.getState().setAccountPickerVisible;
   const setShowStartDatePicker = useCommitmentFormBodyState.getState().setShowStartDatePicker;

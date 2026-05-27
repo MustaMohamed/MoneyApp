@@ -7,12 +7,11 @@ interface ReassignCategorySheetStateShape {
   isLoading: boolean;
 }
 
-interface ReassignCategorySheetState {
-  state: ReassignCategorySheetStateShape;
+type ReassignCategorySheetState = ReassignCategorySheetStateShape & {
   setSelectedId: (id: string | null) => void;
   setIsLoading: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: ReassignCategorySheetStateShape = {
   selectedId: null,
@@ -21,9 +20,9 @@ const INITIAL_STATE: ReassignCategorySheetStateShape = {
 
 export const useReassignCategorySheetState = createMoneyAppSelectors(
   create<ReassignCategorySheetState>((set) => ({
-    state: INITIAL_STATE,
-    setSelectedId: (id) => set((s) => ({ state: { ...s.state, selectedId: id } })),
-    setIsLoading: (v) => set((s) => ({ state: { ...s.state, isLoading: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setSelectedId: (id) => set((s) => ({ ...s, selectedId: id })),
+    setIsLoading: (v) => set((s) => ({ ...s, isLoading: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

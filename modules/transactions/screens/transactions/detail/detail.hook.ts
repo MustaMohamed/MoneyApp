@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -65,9 +66,13 @@ export function useTransactionDetail(id: string) {
   const tx = useTxDetailStore.useState.tx();
   const setTx = useTxDetailStore.getState().setTx;
   const resetData = useTxDetailStore.getState().reset;
-  const confirmVisible = useTxDetailState.useState.confirmVisible();
-  const deleting = useTxDetailState.useState.deleting();
-  const reloadKey = useTxDetailState.useState.reloadKey();
+  const { confirmVisible, deleting, reloadKey } = useTxDetailState(
+    useShallow((s) => ({
+      confirmVisible: s.confirmVisible,
+      deleting: s.deleting,
+      reloadKey: s.reloadKey,
+    })),
+  );
   const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
   const setDeleting = useTxDetailState.getState().setDeleting;
   const bumpReload = useTxDetailState.getState().bumpReload;

@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -39,10 +40,14 @@ export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
 ) {
-  const visible = usePaySheetState.useState.visible();
-  const saving = usePaySheetState.useState.saving();
-  const accountPickerVisible = usePaySheetState.useState.accountPickerVisible();
-  const rateOverride = usePaySheetState.useState.rateOverride();
+  const { visible, saving, accountPickerVisible, rateOverride } = usePaySheetState(
+    useShallow((s) => ({
+      visible: s.visible,
+      saving: s.saving,
+      accountPickerVisible: s.accountPickerVisible,
+      rateOverride: s.rateOverride,
+    })),
+  );
   const setVisible = usePaySheetState.getState().setVisible;
   const setSaving = usePaySheetState.getState().setSaving;
   const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;

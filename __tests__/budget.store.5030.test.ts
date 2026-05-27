@@ -26,14 +26,14 @@ function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
 describe('useBudgetStore — 50/30/20 extensions', () => {
   it('initialises expectedIncome as null', () => {
     const store = createBudgetStore(makeRepo());
-    expect(store.getState().state.expectedIncome).toBeNull();
+    expect(store.getState().expectedIncome).toBeNull();
   });
 
   it('setExpectedIncomeLocal updates state without persisting', () => {
     const repo = makeRepo();
     const store = createBudgetStore(repo);
     store.getState().setExpectedIncomeLocal(15000);
-    expect(store.getState().state.expectedIncome).toBe(15000);
+    expect(store.getState().expectedIncome).toBe(15000);
     expect(repo.set).not.toHaveBeenCalled();
   });
 
@@ -41,14 +41,14 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
     const store = createBudgetStore(makeRepo());
     store.getState().setExpectedIncomeLocal(15000);
     store.getState().reset();
-    expect(store.getState().state.expectedIncome).toBeNull();
+    expect(store.getState().expectedIncome).toBeNull();
   });
 
   it('reset also resets loaded to false and clears rows/spendByMonth', () => {
     const store = createBudgetStore(makeRepo());
     store.getState().setData([], {}, 5000);
     store.getState().reset();
-    const s = store.getState().state;
+    const s = store.getState();
     expect(s.loaded).toBe(false);
     expect(s.rows).toEqual([]);
     expect(s.spendByMonth).toEqual({});
@@ -59,15 +59,15 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
     const repo = makeRepo({ expected_monthly_income: '25000' });
     const store = createBudgetStore(repo);
     await store.getState().load();
-    expect(store.getState().state.expectedIncome).toBe(25000);
-    expect(store.getState().state.loaded).toBe(true);
+    expect(store.getState().expectedIncome).toBe(25000);
+    expect(store.getState().loaded).toBe(true);
   });
 
   it('load stores null expectedIncome when key absent from repo', async () => {
     const repo = makeRepo({});
     const store = createBudgetStore(repo);
     await store.getState().load();
-    expect(store.getState().state.expectedIncome).toBeNull();
+    expect(store.getState().expectedIncome).toBeNull();
   });
 
   it('setExpectedIncome persists to repo then reloads', async () => {
@@ -76,7 +76,7 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
     await store.getState().setExpectedIncome(30000);
     expect(repo.set).toHaveBeenCalledWith('expected_monthly_income', '30000');
     // After reload, state should reflect the new income
-    expect(store.getState().state.expectedIncome).toBe(30000);
+    expect(store.getState().expectedIncome).toBe(30000);
   });
 
   it('setLimit delegates to budgetRepository then reloads', async () => {

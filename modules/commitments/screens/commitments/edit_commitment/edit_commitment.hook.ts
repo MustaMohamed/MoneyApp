@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -25,8 +26,12 @@ export function useEditCommitment() {
   const commitments = useCommitmentStore.useState.commitments();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
-  const saving = useEditCommitmentState.useState.saving();
-  const deactivateDialogVisible = useEditCommitmentState.useState.deactivateDialogVisible();
+  const { saving, deactivateDialogVisible } = useEditCommitmentState(
+    useShallow((s) => ({
+      saving: s.saving,
+      deactivateDialogVisible: s.deactivateDialogVisible,
+    })),
+  );
   const setSaving = useEditCommitmentState.getState().setSaving;
   const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
   const reset = useEditCommitmentState.getState().reset;

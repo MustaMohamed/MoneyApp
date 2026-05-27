@@ -10,15 +10,14 @@ interface EditTransactionStateShape {
   rateOverride: boolean;
 }
 
-interface EditTransactionState {
-  state: EditTransactionStateShape;
+type EditTransactionState = EditTransactionStateShape & {
   open: (tx: Transaction) => void;
   close: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: EditTransactionStateShape = {
   visible: false,
@@ -29,13 +28,13 @@ const INITIAL_STATE: EditTransactionStateShape = {
 
 export const useEditTransactionState = createMoneyAppSelectors(
   create<EditTransactionState>((set) => ({
-    state: INITIAL_STATE,
+    ...INITIAL_STATE,
 
-    open: () => set((s) => ({ state: { ...s.state, visible: true } })),
-    close: () => set({ state: INITIAL_STATE }),
-    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-    setShowCategoryPicker: (v) => set((s) => ({ state: { ...s.state, showCategoryPicker: v } })),
-    setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    open: () => set((s) => ({ ...s, visible: true })),
+    close: () => set(INITIAL_STATE),
+    setSaving: (v) => set((s) => ({ ...s, saving: v })),
+    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
+    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

@@ -20,18 +20,17 @@ const INITIAL_STATE = {
   rate_updated_at: null as string | null,
 };
 
-interface CurrencyStore {
-  state: typeof INITIAL_STATE;
+type CurrencyStore = typeof INITIAL_STATE & {
   loadRate: () => Promise<void>;
   fetchRate: () => Promise<void>;
   setManualRate: (rate: number) => Promise<void>;
   reset: () => void;
-}
+};
 
 export function createCurrencyStore(repo: IAppSettingsRepository) {
   return createMoneyAppSelectors(
     create<CurrencyStore>((set) => ({
-      state: INITIAL_STATE,
+      ...INITIAL_STATE,
 
       loadRate: async () => {
         try {
@@ -43,13 +42,11 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
           ]);
           if (rateStr !== null) {
             set((s) => ({
-              state: {
-                ...s.state,
-                rate: parseFloat(rateStr),
-                lastFetched: fetchedAt,
-                isManualOverride: manualStr === 'true',
-                rate_updated_at: rateUpdatedAt,
-              },
+              ...s,
+              rate: parseFloat(rateStr),
+              lastFetched: fetchedAt,
+              isManualOverride: manualStr === 'true',
+              rate_updated_at: rateUpdatedAt,
             }));
           }
         } catch (err) {
@@ -73,13 +70,11 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             repo.set(RATE_UPDATED_AT_KEY, now),
           ]);
           set((s) => ({
-            state: {
-              ...s.state,
-              rate,
-              lastFetched: now,
-              isManualOverride: false,
-              rate_updated_at: now,
-            },
+            ...s,
+            rate,
+            lastFetched: now,
+            isManualOverride: false,
+            rate_updated_at: now,
           }));
         } catch (err) {
           console.error('[currencyStore] fetchRate failed:', err);
@@ -96,7 +91,10 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             repo.set(RATE_UPDATED_AT_KEY, now),
           ]);
           set((s) => ({
-            state: { ...s.state, rate, isManualOverride: true, rate_updated_at: now },
+            ...s,
+            rate,
+            isManualOverride: true,
+            rate_updated_at: now,
           }));
         } catch (err) {
           console.error('[currencyStore] setManualRate failed:', err);
@@ -104,7 +102,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
         }
       },
 
-      reset: () => set({ state: INITIAL_STATE }),
+      reset: () => set(INITIAL_STATE),
     })),
   );
 }

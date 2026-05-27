@@ -7,11 +7,10 @@ interface TxDetailStoreShape {
   tx: Transaction | null | undefined;
 }
 
-interface TxDetailStore {
-  state: TxDetailStoreShape;
+type TxDetailStore = TxDetailStoreShape & {
   setTx: (tx: Transaction | null | undefined) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: TxDetailStoreShape = {
   tx: undefined,
@@ -19,8 +18,8 @@ const INITIAL_STATE: TxDetailStoreShape = {
 
 export const useTxDetailStore = createMoneyAppSelectors(
   create<TxDetailStore>((set) => ({
-    state: INITIAL_STATE,
-    setTx: (tx) => set((s) => ({ state: { ...s.state, tx } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setTx: (tx) => set((s) => ({ ...s, tx })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

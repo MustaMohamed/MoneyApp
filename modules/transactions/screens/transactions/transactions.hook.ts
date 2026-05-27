@@ -1,5 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
@@ -24,19 +25,27 @@ export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export function useTransactions() {
   const router = useRouter();
 
-  const searchQuery = useTransactionsScreenStore.useState.searchQuery();
-  const activeFilter = useTransactionsScreenStore.useState.activeFilter();
-  const period = useTransactionsScreenStore.useState.period();
-  const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
+  const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
+    useShallow((s) => ({
+      searchQuery: s.searchQuery,
+      activeFilter: s.activeFilter,
+      period: s.period,
+      appliedFilters: s.appliedFilters,
+    })),
+  );
   const setSearchQuery = useTransactionsScreenStore.getState().setSearchQuery;
   const setActiveFilter = useTransactionsScreenStore.getState().setActiveFilter;
   const setPeriod = useTransactionsScreenStore.getState().setPeriod;
   const clearSearch = useTransactionsScreenStore.getState().clearSearch;
-  const transactions = useTransactionStore.useState.transactions();
-  const hasMore = useTransactionStore.useState.hasMore();
-  const loading = useTransactionStore.useState.loading();
-  const hasLoaded = useTransactionStore.useState.hasLoaded();
-  const mutationVersion = useTransactionStore.useState.mutationVersion();
+  const { transactions, hasMore, loading, hasLoaded, mutationVersion } = useTransactionStore(
+    useShallow((s) => ({
+      transactions: s.transactions,
+      hasMore: s.hasMore,
+      loading: s.loading,
+      hasLoaded: s.hasLoaded,
+      mutationVersion: s.mutationVersion,
+    })),
+  );
   const setQuery = useTransactionStore.getState().setQuery;
   const loadMore = useTransactionStore.getState().loadMore;
   const refresh = useTransactionStore.getState().refresh;

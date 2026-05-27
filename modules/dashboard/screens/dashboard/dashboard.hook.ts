@@ -1,5 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -26,23 +27,39 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const accounts = useAccountStore.useState.accounts();
-  const accountsLoaded = useAccountStore.useState.hasLoaded();
+  const { accounts, accountsLoaded } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.accounts,
+      accountsLoaded: s.hasLoaded,
+    })),
+  );
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const rate = useCurrencyStore.useState.rate();
-  const isManualOverride = useCurrencyStore.useState.isManualOverride();
+  const { rate, isManualOverride } = useCurrencyStore(
+    useShallow((s) => ({
+      rate: s.rate,
+      isManualOverride: s.isManualOverride,
+    })),
+  );
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
-  const isBreakdownVisible = useDashboardState.useState.isBreakdownVisible();
-  const refreshing = useDashboardState.useState.refreshing();
-  const selectedSegment = useDashboardState.useState.selectedSegment();
+  const { isBreakdownVisible, refreshing, selectedSegment } = useDashboardState(
+    useShallow((s) => ({
+      isBreakdownVisible: s.isBreakdownVisible,
+      refreshing: s.refreshing,
+      selectedSegment: s.selectedSegment,
+    })),
+  );
   const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
   const setRefreshing = useDashboardState.getState().setRefreshing;
   const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
-  const statsMap = useDashboardStore.useState.statsMap();
-  const currentMonthCommitmentPayments =
-    useDashboardStore.useState.currentMonthCommitmentPayments();
-  const currentMonthSpend = useDashboardStore.useState.currentMonthSpend();
-  const previousMonthSpend = useDashboardStore.useState.previousMonthSpend();
+  const { statsMap, currentMonthCommitmentPayments, currentMonthSpend, previousMonthSpend } =
+    useDashboardStore(
+      useShallow((s) => ({
+        statsMap: s.statsMap,
+        currentMonthCommitmentPayments: s.currentMonthCommitmentPayments,
+        currentMonthSpend: s.currentMonthSpend,
+        previousMonthSpend: s.previousMonthSpend,
+      })),
+    );
   const setStatsMap = useDashboardStore.getState().setStatsMap;
   const setCurrentMonthCommitmentPayments =
     useDashboardStore.getState().setCurrentMonthCommitmentPayments;

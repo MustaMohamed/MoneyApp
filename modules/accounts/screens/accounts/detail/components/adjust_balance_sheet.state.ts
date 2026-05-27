@@ -7,13 +7,12 @@ interface AdjustBalanceSheetStateShape {
   error: string;
 }
 
-interface AdjustBalanceSheetState {
-  state: AdjustBalanceSheetStateShape;
+type AdjustBalanceSheetState = AdjustBalanceSheetStateShape & {
   setInput: (v: string) => void;
   setError: (v: string) => void;
   initialize: (currentBalance: number) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: AdjustBalanceSheetStateShape = {
   input: '',
@@ -22,10 +21,10 @@ const INITIAL_STATE: AdjustBalanceSheetStateShape = {
 
 export const useAdjustBalanceSheetState = createMoneyAppSelectors(
   create<AdjustBalanceSheetState>((set) => ({
-    state: INITIAL_STATE,
-    setInput: (v) => set((s) => ({ state: { ...s.state, input: v } })),
-    setError: (v) => set((s) => ({ state: { ...s.state, error: v } })),
-    initialize: (currentBalance) => set({ state: { input: String(currentBalance), error: '' } }),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setInput: (v) => set((s) => ({ ...s, input: v })),
+    setError: (v) => set((s) => ({ ...s, error: v })),
+    initialize: (currentBalance) => set({ input: String(currentBalance), error: '' }),
+    reset: () => set(INITIAL_STATE),
   })),
 );

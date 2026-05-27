@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -8,14 +9,22 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
-  const rate = useCurrencyStore.useState.rate();
-  const lastFetched = useCurrencyStore.useState.lastFetched();
-  const isManualOverride = useCurrencyStore.useState.isManualOverride();
+  const { rate, lastFetched, isManualOverride } = useCurrencyStore(
+    useShallow((s) => ({
+      rate: s.rate,
+      lastFetched: s.lastFetched,
+      isManualOverride: s.isManualOverride,
+    })),
+  );
   const fetchRate = useCurrencyStore.getState().fetchRate;
   const setManualRate = useCurrencyStore.getState().setManualRate;
-  const isFetching = useCurrencyScreenState.useState.isFetching();
-  const isSaving = useCurrencyScreenState.useState.isSaving();
-  const fetchError = useCurrencyScreenState.useState.fetchError();
+  const { isFetching, isSaving, fetchError } = useCurrencyScreenState(
+    useShallow((s) => ({
+      isFetching: s.isFetching,
+      isSaving: s.isSaving,
+      fetchError: s.fetchError,
+    })),
+  );
   const setFetching = useCurrencyScreenState.getState().setFetching;
   const setSaving = useCurrencyScreenState.getState().setSaving;
   const setFetchError = useCurrencyScreenState.getState().setFetchError;

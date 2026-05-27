@@ -5,7 +5,7 @@ beforeEach(() => useCategoriesScreenState.getState().reset());
 
 describe('useCategoriesScreenState', () => {
   it('starts with activeTab=expense and all sheets hidden', () => {
-    const s = useCategoriesScreenState.getState().state;
+    const s = useCategoriesScreenState.getState();
     expect(s.activeTab).toBe(CategoryType.Expense);
     expect(s.showAddSheet).toBe(false);
     expect(s.showDeleteConfirm).toBe(false);
@@ -14,44 +14,42 @@ describe('useCategoriesScreenState', () => {
 
   it('setActiveTab switches between expense and income', () => {
     useCategoriesScreenState.getState().setActiveTab(CategoryType.Income);
-    expect(useCategoriesScreenState.getState().state.activeTab).toBe(CategoryType.Income);
+    expect(useCategoriesScreenState.getState().activeTab).toBe(CategoryType.Income);
     useCategoriesScreenState.getState().setActiveTab(CategoryType.Expense);
-    expect(useCategoriesScreenState.getState().state.activeTab).toBe(CategoryType.Expense);
+    expect(useCategoriesScreenState.getState().activeTab).toBe(CategoryType.Expense);
   });
 
   it('setShowAddSheet toggles', () => {
     useCategoriesScreenState.getState().setShowAddSheet(true);
-    expect(useCategoriesScreenState.getState().state.showAddSheet).toBe(true);
+    expect(useCategoriesScreenState.getState().showAddSheet).toBe(true);
     useCategoriesScreenState.getState().setShowAddSheet(false);
-    expect(useCategoriesScreenState.getState().state.showAddSheet).toBe(false);
+    expect(useCategoriesScreenState.getState().showAddSheet).toBe(false);
   });
 
   it('setShowDeleteConfirm toggles', () => {
     useCategoriesScreenState.getState().setShowDeleteConfirm(true);
-    expect(useCategoriesScreenState.getState().state.showDeleteConfirm).toBe(true);
+    expect(useCategoriesScreenState.getState().showDeleteConfirm).toBe(true);
     useCategoriesScreenState.getState().setShowDeleteConfirm(false);
-    expect(useCategoriesScreenState.getState().state.showDeleteConfirm).toBe(false);
+    expect(useCategoriesScreenState.getState().showDeleteConfirm).toBe(false);
   });
 
   it('setShowReassignSheet toggles', () => {
     useCategoriesScreenState.getState().setShowReassignSheet(true);
-    expect(useCategoriesScreenState.getState().state.showReassignSheet).toBe(true);
+    expect(useCategoriesScreenState.getState().showReassignSheet).toBe(true);
     useCategoriesScreenState.getState().setShowReassignSheet(false);
-    expect(useCategoriesScreenState.getState().state.showReassignSheet).toBe(false);
+    expect(useCategoriesScreenState.getState().showReassignSheet).toBe(false);
   });
 
   it('reset returns to defaults', () => {
     useCategoriesScreenState.setState({
-      state: {
-        activeTab: CategoryType.Income,
-        showAddSheet: true,
-        showDeleteConfirm: true,
-        showReassignSheet: true,
-        isDeleting: true,
-      },
+      activeTab: CategoryType.Income,
+      showAddSheet: true,
+      showDeleteConfirm: true,
+      showReassignSheet: true,
+      isDeleting: true,
     });
     useCategoriesScreenState.getState().reset();
-    const s = useCategoriesScreenState.getState().state;
+    const s = useCategoriesScreenState.getState();
     expect(s.activeTab).toBe(CategoryType.Expense);
     expect(s.showAddSheet).toBe(false);
     expect(s.showDeleteConfirm).toBe(false);

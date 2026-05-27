@@ -16,8 +16,7 @@ interface AddEditCategorySheetStateShape {
   isLoading: boolean;
 }
 
-interface AddEditCategorySheetState {
-  state: AddEditCategorySheetStateShape;
+type AddEditCategorySheetState = AddEditCategorySheetStateShape & {
   setType: (t: CategoryType) => void;
   setSelectedIcon: (icon: IconName | null) => void;
   setSelectedColor: (c: string) => void;
@@ -25,7 +24,7 @@ interface AddEditCategorySheetState {
   setIsLoading: (v: boolean) => void;
   initialize: (params: { type: CategoryType; icon: IconName | null; color: string }) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: AddEditCategorySheetStateShape = {
   type: CategoryType.Expense,
@@ -37,22 +36,20 @@ const INITIAL_STATE: AddEditCategorySheetStateShape = {
 
 export const useAddEditCategorySheetState = createMoneyAppSelectors(
   create<AddEditCategorySheetState>((set) => ({
-    state: INITIAL_STATE,
-    setType: (t) => set((s) => ({ state: { ...s.state, type: t } })),
-    setSelectedIcon: (icon) => set((s) => ({ state: { ...s.state, selectedIcon: icon } })),
-    setSelectedColor: (c) => set((s) => ({ state: { ...s.state, selectedColor: c } })),
-    setIconError: (msg) => set((s) => ({ state: { ...s.state, iconError: msg } })),
-    setIsLoading: (v) => set((s) => ({ state: { ...s.state, isLoading: v } })),
+    ...INITIAL_STATE,
+    setType: (t) => set((s) => ({ ...s, type: t })),
+    setSelectedIcon: (icon) => set((s) => ({ ...s, selectedIcon: icon })),
+    setSelectedColor: (c) => set((s) => ({ ...s, selectedColor: c })),
+    setIconError: (msg) => set((s) => ({ ...s, iconError: msg })),
+    setIsLoading: (v) => set((s) => ({ ...s, isLoading: v })),
     initialize: ({ type, icon, color }) =>
       set({
-        state: {
-          type,
-          selectedIcon: icon,
-          selectedColor: color,
-          iconError: '',
-          isLoading: false,
-        },
+        type,
+        selectedIcon: icon,
+        selectedColor: color,
+        iconError: '',
+        isLoading: false,
       }),
-    reset: () => set({ state: INITIAL_STATE }),
+    reset: () => set(INITIAL_STATE),
   })),
 );

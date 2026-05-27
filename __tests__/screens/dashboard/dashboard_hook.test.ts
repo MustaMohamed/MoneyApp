@@ -115,28 +115,29 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 function setupMocks(accounts = BASE_ACCOUNTS) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
   attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-    state: { accounts, hasLoaded: true },
+    accounts,
+    hasLoaded: true,
     loadAccounts: jest.fn(),
   }));
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
-    state: { rate: 48.85, isManualOverride: false },
+    rate: 48.85,
+    isManualOverride: false,
   }));
   attachMockSelectorStore(useCommitmentStore as jest.Mock, () => ({
-    state: { commitments: [], payments: [] },
+    commitments: [],
+    payments: [],
   }));
   attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-    state: {
-      statsMap: {},
-      currentMonthCommitmentPayments: [],
-      currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-    },
+    statsMap: {},
+    currentMonthCommitmentPayments: [],
+    currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+    previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
     setStatsMap: jest.fn(),
     setCurrentMonthCommitmentPayments: jest.fn(),
     setMonthSpendStats: jest.fn(),
   }));
   attachMockSelectorStore(useDashboardState as jest.Mock, () => ({
-    state: uiState,
+    ...uiState,
     setBreakdownVisible,
     setRefreshing,
     setSelectedSegment,
@@ -162,7 +163,8 @@ describe('useDashboard', () => {
   it('exposes whether account data has loaded', () => {
     const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
     attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-      state: { accounts: [], hasLoaded: false },
+      accounts: [],
+      hasLoaded: false,
       loadAccounts: jest.fn(),
     }));
 

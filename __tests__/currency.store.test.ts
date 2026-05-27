@@ -14,10 +14,10 @@ function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
 describe('currencyStore initial state', () => {
   it('starts with rate=50, lastFetched=null, isManualOverride=false, rate_updated_at=null', () => {
     const store = createCurrencyStore(makeRepo());
-    expect(store.getState().state.rate).toBe(50);
-    expect(store.getState().state.lastFetched).toBeNull();
-    expect(store.getState().state.isManualOverride).toBe(false);
-    expect(store.getState().state.rate_updated_at).toBeNull();
+    expect(store.getState().rate).toBe(50);
+    expect(store.getState().lastFetched).toBeNull();
+    expect(store.getState().isManualOverride).toBe(false);
+    expect(store.getState().rate_updated_at).toBeNull();
   });
 });
 
@@ -25,8 +25,8 @@ describe('currencyStore.loadRate', () => {
   it('leaves default state when no persisted value exists', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().loadRate();
-    expect(store.getState().state.rate).toBe(50);
-    expect(store.getState().state.lastFetched).toBeNull();
+    expect(store.getState().rate).toBe(50);
+    expect(store.getState().lastFetched).toBeNull();
   });
 
   it('reads and applies persisted rate and metadata', async () => {
@@ -38,9 +38,9 @@ describe('currencyStore.loadRate', () => {
       }),
     );
     await store.getState().loadRate();
-    expect(store.getState().state.rate).toBe(57.5);
-    expect(store.getState().state.lastFetched).toBe('2026-05-01T10:00:00.000Z');
-    expect(store.getState().state.isManualOverride).toBe(false);
+    expect(store.getState().rate).toBe(57.5);
+    expect(store.getState().lastFetched).toBe('2026-05-01T10:00:00.000Z');
+    expect(store.getState().isManualOverride).toBe(false);
   });
 
   it('sets isManualOverride=true when stored as "true"', async () => {
@@ -48,7 +48,7 @@ describe('currencyStore.loadRate', () => {
       makeRepo({ usd_rate: '48', usd_rate_manual_override: 'true' }),
     );
     await store.getState().loadRate();
-    expect(store.getState().state.isManualOverride).toBe(true);
+    expect(store.getState().isManualOverride).toBe(true);
   });
 
   it('propagates repo errors', async () => {
@@ -76,9 +76,9 @@ describe('currencyStore.fetchRate', () => {
   it('updates state with fetched EGP rate', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().fetchRate();
-    expect(store.getState().state.rate).toBe(55.25);
-    expect(store.getState().state.isManualOverride).toBe(false);
-    expect(store.getState().state.lastFetched).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(store.getState().rate).toBe(55.25);
+    expect(store.getState().isManualOverride).toBe(false);
+    expect(store.getState().lastFetched).toMatch(/^\d{4}-\d{2}-\d{2}T/);
   });
 
   it('persists rate, timestamp, and manual flag to repo', async () => {
@@ -106,8 +106,8 @@ describe('currencyStore.setManualRate', () => {
   it('sets rate in state and marks isManualOverride=true', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(48.5);
-    expect(store.getState().state.rate).toBe(48.5);
-    expect(store.getState().state.isManualOverride).toBe(true);
+    expect(store.getState().rate).toBe(48.5);
+    expect(store.getState().isManualOverride).toBe(true);
   });
 
   it('persists rate and manual flag to repo', async () => {
@@ -121,7 +121,7 @@ describe('currencyStore.setManualRate', () => {
   it('does not update lastFetched', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(48.5);
-    expect(store.getState().state.lastFetched).toBeNull();
+    expect(store.getState().lastFetched).toBeNull();
   });
 
   it('propagates repo errors', async () => {
@@ -143,12 +143,12 @@ describe('currencyStore.reset', () => {
     });
     const useStore = createCurrencyStore(repo);
     await useStore.getState().loadRate();
-    expect(useStore.getState().state.rate).toBe(70);
-    expect(useStore.getState().state.isManualOverride).toBe(true);
+    expect(useStore.getState().rate).toBe(70);
+    expect(useStore.getState().isManualOverride).toBe(true);
 
     useStore.getState().reset();
 
-    expect(useStore.getState().state).toEqual({
+    expect(useStore.getState()).toMatchObject({
       rate: 50,
       lastFetched: null,
       isManualOverride: false,
@@ -160,7 +160,7 @@ describe('currencyStore.reset', () => {
 describe('currencyStore — rate_updated_at', () => {
   it('initializes rate_updated_at to null', () => {
     const store = createCurrencyStore(makeRepo());
-    expect(store.getState().state.rate_updated_at).toBeNull();
+    expect(store.getState().rate_updated_at).toBeNull();
   });
 
   it('sets rate_updated_at to current ISO timestamp when fetchRate is called', async () => {
@@ -172,7 +172,7 @@ describe('currencyStore — rate_updated_at', () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().fetchRate();
     const after = new Date().toISOString();
-    const ts = store.getState().state.rate_updated_at;
+    const ts = store.getState().rate_updated_at;
     expect(ts).not.toBeNull();
     expect(ts! >= before).toBe(true);
     expect(ts! <= after).toBe(true);
@@ -184,7 +184,7 @@ describe('currencyStore — rate_updated_at', () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(55.5);
     const after = new Date().toISOString();
-    const ts = store.getState().state.rate_updated_at;
+    const ts = store.getState().rate_updated_at;
     expect(ts).not.toBeNull();
     expect(ts! >= before).toBe(true);
     expect(ts! <= after).toBe(true);
@@ -218,8 +218,8 @@ describe('currencyStore — rate_updated_at', () => {
   it('restores rate_updated_at to null on reset', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(48.5);
-    expect(store.getState().state.rate_updated_at).not.toBeNull();
+    expect(store.getState().rate_updated_at).not.toBeNull();
     store.getState().reset();
-    expect(store.getState().state.rate_updated_at).toBeNull();
+    expect(store.getState().rate_updated_at).toBeNull();
   });
 });

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import type {
   Category,
@@ -13,24 +14,37 @@ import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
   const router = useRouter();
-  const categories = useCategoryStore.useState.categories();
-  const hasLoaded = useCategoryStore.useState.hasLoaded();
+  const { categories, hasLoaded } = useCategoryStore(
+    useShallow((s) => ({
+      categories: s.categories,
+      hasLoaded: s.hasLoaded,
+    })),
+  );
   const addCategory = useCategoryStore.getState().addCategory;
   const updateCategory = useCategoryStore.getState().updateCategory;
   const deleteCategory = useCategoryStore.getState().deleteCategory;
   const reassignAndDelete = useCategoryStore.getState().reassignAndDelete;
   const getCategoryTransactionCount = useCategoryStore.getState().getCategoryTransactionCount;
-  const editingCategory = useCategoriesScreenStore.useState.editingCategory();
-  const categoryToDelete = useCategoriesScreenStore.useState.categoryToDelete();
-  const linkedCount = useCategoriesScreenStore.useState.linkedCount();
+  const { editingCategory, categoryToDelete, linkedCount } = useCategoriesScreenStore(
+    useShallow((s) => ({
+      editingCategory: s.editingCategory,
+      categoryToDelete: s.categoryToDelete,
+      linkedCount: s.linkedCount,
+    })),
+  );
   const setEditingCategory = useCategoriesScreenStore.getState().setEditingCategory;
   const setCategoryToDelete = useCategoriesScreenStore.getState().setCategoryToDelete;
   const setLinkedCount = useCategoriesScreenStore.getState().setLinkedCount;
-  const activeTab = useCategoriesScreenState.useState.activeTab();
-  const showAddSheet = useCategoriesScreenState.useState.showAddSheet();
-  const showDeleteConfirm = useCategoriesScreenState.useState.showDeleteConfirm();
-  const showReassignSheet = useCategoriesScreenState.useState.showReassignSheet();
-  const isDeleting = useCategoriesScreenState.useState.isDeleting();
+  const { activeTab, showAddSheet, showDeleteConfirm, showReassignSheet, isDeleting } =
+    useCategoriesScreenState(
+      useShallow((s) => ({
+        activeTab: s.activeTab,
+        showAddSheet: s.showAddSheet,
+        showDeleteConfirm: s.showDeleteConfirm,
+        showReassignSheet: s.showReassignSheet,
+        isDeleting: s.isDeleting,
+      })),
+    );
   const setActiveTab = useCategoriesScreenState.getState().setActiveTab;
   const setShowAddSheet = useCategoriesScreenState.getState().setShowAddSheet;
   const setShowDeleteConfirm = useCategoriesScreenState.getState().setShowDeleteConfirm;

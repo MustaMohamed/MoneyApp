@@ -24,8 +24,7 @@ interface BudgetStoreShape {
   expectedIncome: number | null;
 }
 
-interface BudgetStore {
-  state: BudgetStoreShape;
+type BudgetStore = BudgetStoreShape & {
   setData: (
     rows: Budget[],
     spendByMonth: Record<string, Record<string, number>>,
@@ -38,7 +37,7 @@ interface BudgetStore {
   /** Synchronous setter for tests — does not persist. */
   setExpectedIncomeLocal: (amount: number | null) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: BudgetStoreShape = {
   rows: [],
@@ -50,10 +49,10 @@ const INITIAL_STATE: BudgetStoreShape = {
 export function createBudgetStore(repo: IAppSettingsRepository) {
   return createMoneyAppSelectors(
     create<BudgetStore>((set, get) => ({
-      state: INITIAL_STATE,
+      ...INITIAL_STATE,
 
       setData: (rows, spendByMonth, expectedIncome) =>
-        set((s) => ({ state: { ...s.state, rows, spendByMonth, expectedIncome, loaded: true } })),
+        set((s) => ({ ...s, rows, spendByMonth, expectedIncome, loaded: true })),
 
       load: async () => {
         const months = lastMonths(currentYearMonth(), HISTORY_MONTHS);
@@ -81,10 +80,9 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         await get().load();
       },
 
-      setExpectedIncomeLocal: (amount) =>
-        set((s) => ({ state: { ...s.state, expectedIncome: amount } })),
+      setExpectedIncomeLocal: (amount) => set((s) => ({ ...s, expectedIncome: amount })),
 
-      reset: () => set({ state: INITIAL_STATE }),
+      reset: () => set(INITIAL_STATE),
     })),
   );
 }

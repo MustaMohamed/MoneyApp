@@ -8,13 +8,12 @@ interface IncomeSheetStateShape {
   suggestion: number | null;
 }
 
-interface IncomeSheetState {
-  state: IncomeSheetStateShape;
+type IncomeSheetState = IncomeSheetStateShape & {
   open: (suggestion: number | null, currentIncome: number | null) => void;
   close: () => void;
   setAmountText: (text: string) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: IncomeSheetStateShape = {
   isOpen: false,
@@ -24,27 +23,25 @@ const INITIAL_STATE: IncomeSheetStateShape = {
 
 export const useIncomeSheetState = createMoneyAppSelectors(
   create<IncomeSheetState>((set) => ({
-    state: INITIAL_STATE,
+    ...INITIAL_STATE,
 
     open: (suggestion, currentIncome) =>
       set((s) => ({
-        state: {
-          ...s.state,
-          isOpen: true,
-          suggestion,
-          amountText:
-            currentIncome !== null
-              ? String(currentIncome)
-              : suggestion !== null
-                ? String(suggestion)
-                : '',
-        },
+        ...s,
+        isOpen: true,
+        suggestion,
+        amountText:
+          currentIncome !== null
+            ? String(currentIncome)
+            : suggestion !== null
+              ? String(suggestion)
+              : '',
       })),
 
-    close: () => set((s) => ({ state: { ...s.state, isOpen: false } })),
+    close: () => set((s) => ({ ...s, isOpen: false })),
 
-    setAmountText: (text) => set((s) => ({ state: { ...s.state, amountText: text } })),
+    setAmountText: (text) => set((s) => ({ ...s, amountText: text })),
 
-    reset: () => set({ state: INITIAL_STATE }),
+    reset: () => set(INITIAL_STATE),
   })),
 );

@@ -20,13 +20,11 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 
 function setup() {
   attachMockSelectorStore(useCategoriesScreenState as unknown as jest.Mock, () => ({
-    state: {
-      activeTab: 'expense',
-      showAddSheet: false,
-      showDeleteConfirm: false,
-      showReassignSheet: false,
-      isDeleting: false,
-    },
+    activeTab: 'expense',
+    showAddSheet: false,
+    showDeleteConfirm: false,
+    showReassignSheet: false,
+    isDeleting: false,
     setActiveTab: jest.fn(),
     setShowAddSheet: jest.fn(),
     setShowDeleteConfirm: jest.fn(),
@@ -34,13 +32,16 @@ function setup() {
     setIsDeleting: jest.fn(),
   }));
   attachMockSelectorStore(useCategoriesScreenStore as unknown as jest.Mock, () => ({
-    state: { editingCategory: null, categoryToDelete: null, linkedCount: 0 },
+    editingCategory: null,
+    categoryToDelete: null,
+    linkedCount: 0,
     setEditingCategory: jest.fn(),
     setCategoryToDelete: jest.fn(),
     setLinkedCount: jest.fn(),
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    state: { categories: [], hasLoaded: false },
+    categories: [],
+    hasLoaded: false,
     addCategory: jest.fn().mockResolvedValue(undefined),
     updateCategory: jest.fn().mockResolvedValue(undefined),
     deleteCategory: jest.fn().mockResolvedValue(undefined),

@@ -10,9 +10,7 @@ jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/onboarding/screens/onboarding/ready/ready.state', () => ({
-  useReadyState: jest.fn((sel: any) =>
-    sel({ state: { completing: false }, setCompleting: jest.fn() }),
-  ),
+  useReadyState: jest.fn((sel: any) => sel({ completing: false, setCompleting: jest.fn() })),
 }));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
@@ -25,15 +23,15 @@ const fakeAccounts = [
 
 function setup(completing = false) {
   attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    state: { baseCurrency: 'EGP' },
+    baseCurrency: 'EGP',
     completeOnboarding: mockCompleteOnboarding,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: fakeAccounts },
+    accounts: fakeAccounts,
   }));
   const { useReadyState } = require('@/modules/onboarding/screens/onboarding/ready/ready.state');
   (useReadyState as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { completing }, setCompleting: mockSetCompleting }),
+    sel({ completing, setCompleting: mockSetCompleting }),
   );
 }
 

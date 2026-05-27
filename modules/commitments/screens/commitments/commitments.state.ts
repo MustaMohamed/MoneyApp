@@ -10,12 +10,11 @@ interface CommitmentsScreenStateShape {
   statusFilter: CommitmentStatusFilter;
 }
 
-interface CommitmentsScreenState {
-  state: CommitmentsScreenStateShape;
+type CommitmentsScreenState = CommitmentsScreenStateShape & {
   setRefreshing: (v: boolean) => void;
   setStatusFilter: (f: CommitmentStatusFilter) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: CommitmentsScreenStateShape = {
   refreshing: false,
@@ -24,9 +23,9 @@ const INITIAL_STATE: CommitmentsScreenStateShape = {
 
 export const useCommitmentsScreenState = createMoneyAppSelectors(
   create<CommitmentsScreenState>((set) => ({
-    state: INITIAL_STATE,
-    setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
-    setStatusFilter: (f) => set((s) => ({ state: { ...s.state, statusFilter: f } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
+    setStatusFilter: (f) => set((s) => ({ ...s, statusFilter: f })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

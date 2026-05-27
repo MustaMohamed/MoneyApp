@@ -1,14 +1,18 @@
 import type { ExtractState, StoreApi, UseBoundStore } from 'zustand';
 
-type MoneyAppStoreState = { state: object };
+type MoneyAppStoreState = object;
+
+type StoreDataSelectors<T> = {
+  [K in keyof T as T[K] extends (...args: never[]) => unknown ? never : K]: () => T[K];
+};
+
+type StoreActionSelectors<T> = {
+  [K in keyof T as T[K] extends (...args: never[]) => unknown ? K : never]: () => T[K];
+};
 
 type StoreSelectorApi<S extends UseBoundStore<StoreApi<MoneyAppStoreState>>> = S & {
-  use: {
-    [K in keyof Omit<ExtractState<S>, 'state'>]: () => ExtractState<S>[K];
-  };
-  useState: ExtractState<S> extends { state: infer State extends object }
-    ? { [K in keyof State]: () => State[K] }
-    : never;
+  use: StoreActionSelectors<ExtractState<S>>;
+  useState: StoreDataSelectors<ExtractState<S>>;
 };
 
 export function createMoneyAppSelectors<S extends UseBoundStore<StoreApi<MoneyAppStoreState>>>(
@@ -27,15 +31,14 @@ export function createMoneyAppSelectors<S extends UseBoundStore<StoreApi<MoneyAp
   mutableStore.useState = {};
 
   for (const key of Object.keys(initialStoreState)) {
-    if (key === 'state') continue;
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Object.keys gives runtime store keys; Zustand state objects do not expose an index signature
     const selector = (s: MoneyAppStoreState) => (s as Record<string, unknown>)[key];
-    mutableStore.use[key] = () => store(selector);
-  }
-
-  for (const key of Object.keys(initialStoreState.state)) {
-    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- keys come from the store's initial state object and are exposed through the typed useState namespace
-    const selector = (s: MoneyAppStoreState) => (s.state as Record<string, unknown>)[key];
-    mutableStore.useState[key] = () => store(selector);
+    // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- same runtime-key lookup as the selector above
+    if (typeof (initialStoreState as Record<string, unknown>)[key] === 'function') {
+      mutableStore.use[key] = () => store(selector);
+    } else {
+      mutableStore.useState[key] = () => store(selector);
+    }
   }
 
   return store;

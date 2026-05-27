@@ -14,25 +14,24 @@ export type { Account, NewAccountInput, UpdateAccountInput };
 
 const INITIAL_STATE = { accounts: [] as Account[], hasLoaded: false };
 
-interface AccountStore {
-  state: typeof INITIAL_STATE;
+type AccountStore = typeof INITIAL_STATE & {
   loadAccounts: () => Promise<void>;
   addAccount: (data: NewAccountInput) => Promise<Account>;
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
   reset: () => void;
-}
+};
 
 export function createAccountStore(repo: IAccountRepository) {
   return createMoneyAppSelectors(
     create<AccountStore>((set, get) => ({
-      state: INITIAL_STATE,
+      ...INITIAL_STATE,
 
       loadAccounts: async () => {
         try {
           const accounts = await repo.getAll();
-          set((s) => ({ state: { ...s.state, accounts, hasLoaded: true } }));
+          set((s) => ({ ...s, accounts, hasLoaded: true }));
         } catch (err) {
           console.error('[accountStore] loadAccounts failed:', err);
           throw err;
@@ -80,7 +79,7 @@ export function createAccountStore(repo: IAccountRepository) {
         }
       },
 
-      reset: () => set({ state: INITIAL_STATE }),
+      reset: () => set(INITIAL_STATE),
     })),
   );
 }

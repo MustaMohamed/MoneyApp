@@ -12,13 +12,12 @@ interface DashboardStateShape {
   selectedSegment: DashboardSegment;
 }
 
-interface DashboardState {
-  state: DashboardStateShape;
+type DashboardState = DashboardStateShape & {
   setBreakdownVisible: (v: boolean) => void;
   setRefreshing: (v: boolean) => void;
   setSelectedSegment: (s: DashboardSegment) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: DashboardStateShape = {
   isBreakdownVisible: false,
@@ -28,10 +27,10 @@ const INITIAL_STATE: DashboardStateShape = {
 
 export const useDashboardState = createMoneyAppSelectors(
   create<DashboardState>((set) => ({
-    state: INITIAL_STATE,
-    setBreakdownVisible: (v) => set((s) => ({ state: { ...s.state, isBreakdownVisible: v } })),
-    setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
-    setSelectedSegment: (s) => set((prev) => ({ state: { ...prev.state, selectedSegment: s } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setBreakdownVisible: (v) => set((s) => ({ ...s, isBreakdownVisible: v })),
+    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
+    setSelectedSegment: (s) => set((prev) => ({ ...prev, selectedSegment: s })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

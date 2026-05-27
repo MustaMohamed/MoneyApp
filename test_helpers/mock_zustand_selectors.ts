@@ -1,5 +1,5 @@
 // oxlint-disable typescript/no-unsafe-return, typescript/no-unsafe-type-assertion -- Jest test helper mirrors Zustand's dynamic selector API for mocked stores
-type StoreShape = { state: object };
+type StoreShape = object;
 
 type MockSelectorStore<T extends StoreShape> = jest.Mock & {
   use: Record<string, () => unknown>;
@@ -18,8 +18,7 @@ export function makeMockSelectorStore<T extends StoreShape>(
     get: (_target, key: string) => () => hook((state: T) => state[key as keyof T]),
   });
   hook.useState = new Proxy({} as Record<string, () => unknown>, {
-    get: (_target, key: string) => () =>
-      hook((state: T) => (state.state as Record<string, unknown>)[key]),
+    get: (_target, key: string) => () => hook((state: T) => state[key as keyof T]),
   });
   hook.getState = jest.fn(getStore);
 

@@ -8,24 +8,24 @@ beforeEach(() => {
 
 describe('useCommitmentDetailState', () => {
   it('starts with skipConfirmVisible false', () => {
-    expect(useCommitmentDetailState.getState().state.skipConfirmVisible).toBe(false);
+    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(false);
   });
 
   it('setSkipConfirmVisible updates value', () => {
     useCommitmentDetailState.getState().setSkipConfirmVisible(true);
-    expect(useCommitmentDetailState.getState().state.skipConfirmVisible).toBe(true);
+    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(true);
   });
 
   it('reset returns to initial state', () => {
     useCommitmentDetailState.getState().setSkipConfirmVisible(true);
     useCommitmentDetailState.getState().reset();
-    expect(useCommitmentDetailState.getState().state.skipConfirmVisible).toBe(false);
+    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(false);
   });
 });
 
 describe('usePaySheetState', () => {
   it('starts with all false', () => {
-    const s = usePaySheetState.getState().state;
+    const s = usePaySheetState.getState();
     expect(s.visible).toBe(false);
     expect(s.saving).toBe(false);
     expect(s.accountPickerVisible).toBe(false);
@@ -33,22 +33,22 @@ describe('usePaySheetState', () => {
 
   it('setVisible updates visible', () => {
     usePaySheetState.getState().setVisible(true);
-    expect(usePaySheetState.getState().state.visible).toBe(true);
+    expect(usePaySheetState.getState().visible).toBe(true);
   });
 
   it('setSaving updates saving', () => {
     usePaySheetState.getState().setSaving(true);
-    expect(usePaySheetState.getState().state.saving).toBe(true);
+    expect(usePaySheetState.getState().saving).toBe(true);
   });
 
   it('setAccountPickerVisible updates accountPickerVisible', () => {
     usePaySheetState.getState().setAccountPickerVisible(true);
-    expect(usePaySheetState.getState().state.accountPickerVisible).toBe(true);
+    expect(usePaySheetState.getState().accountPickerVisible).toBe(true);
   });
 
   it('reset returns to initial state', () => {
     usePaySheetState.getState().setVisible(true);
     usePaySheetState.getState().reset();
-    expect(usePaySheetState.getState().state.visible).toBe(false);
+    expect(usePaySheetState.getState().visible).toBe(false);
   });
 });

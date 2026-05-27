@@ -8,41 +8,41 @@ beforeEach(() => {
 
 describe('useAddCommitmentState', () => {
   it('starts with saving false', () => {
-    expect(useAddCommitmentState.getState().state.saving).toBe(false);
+    expect(useAddCommitmentState.getState().saving).toBe(false);
   });
 
   it('setSaving updates saving', () => {
     useAddCommitmentState.getState().setSaving(true);
-    expect(useAddCommitmentState.getState().state.saving).toBe(true);
+    expect(useAddCommitmentState.getState().saving).toBe(true);
   });
 
   it('reset returns to initial state', () => {
     useAddCommitmentState.getState().setSaving(true);
     useAddCommitmentState.getState().reset();
-    expect(useAddCommitmentState.getState().state.saving).toBe(false);
+    expect(useAddCommitmentState.getState().saving).toBe(false);
   });
 });
 
 describe('useEditCommitmentState', () => {
   it('starts with saving false and deactivateDialogVisible false', () => {
-    const s = useEditCommitmentState.getState().state;
+    const s = useEditCommitmentState.getState();
     expect(s.saving).toBe(false);
     expect(s.deactivateDialogVisible).toBe(false);
   });
 
   it('setSaving updates saving', () => {
     useEditCommitmentState.getState().setSaving(true);
-    expect(useEditCommitmentState.getState().state.saving).toBe(true);
+    expect(useEditCommitmentState.getState().saving).toBe(true);
   });
 
   it('setDeactivateDialogVisible updates deactivateDialogVisible', () => {
     useEditCommitmentState.getState().setDeactivateDialogVisible(true);
-    expect(useEditCommitmentState.getState().state.deactivateDialogVisible).toBe(true);
+    expect(useEditCommitmentState.getState().deactivateDialogVisible).toBe(true);
   });
 
   it('reset returns to initial state', () => {
     useEditCommitmentState.getState().setSaving(true);
     useEditCommitmentState.getState().reset();
-    expect(useEditCommitmentState.getState().state.saving).toBe(false);
+    expect(useEditCommitmentState.getState().saving).toBe(false);
   });
 });

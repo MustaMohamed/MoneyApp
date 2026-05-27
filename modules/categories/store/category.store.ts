@@ -13,8 +13,7 @@ export type { Category, NewCategoryInput, UpdateCategoryInput };
 
 const INITIAL_STATE = { categories: [] as Category[], hasLoaded: false };
 
-interface CategoryStore {
-  state: typeof INITIAL_STATE;
+type CategoryStore = typeof INITIAL_STATE & {
   loadCategories: () => Promise<void>;
   addCategory: (data: NewCategoryInput) => Promise<void>;
   updateCategory: (id: string, data: UpdateCategoryInput) => Promise<void>;
@@ -22,17 +21,17 @@ interface CategoryStore {
   reassignAndDelete: (fromId: string, toId: string) => Promise<void>;
   getCategoryTransactionCount: (id: string) => Promise<number>;
   reset: () => void;
-}
+};
 
 export function createCategoryStore(repo: ICategoryRepository) {
   return createMoneyAppSelectors(
     create<CategoryStore>((set, get) => ({
-      state: INITIAL_STATE,
+      ...INITIAL_STATE,
 
       loadCategories: async () => {
         try {
           const categories = await repo.getAll();
-          set((s) => ({ state: { ...s.state, categories, hasLoaded: true } }));
+          set((s) => ({ ...s, categories, hasLoaded: true }));
         } catch (err) {
           console.error('[categoryStore] loadCategories failed:', err);
           throw err;
@@ -81,7 +80,7 @@ export function createCategoryStore(repo: ICategoryRepository) {
 
       getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
 
-      reset: () => set({ state: INITIAL_STATE }),
+      reset: () => set(INITIAL_STATE),
     })),
   );
 }

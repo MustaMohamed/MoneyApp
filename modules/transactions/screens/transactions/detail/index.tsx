@@ -38,7 +38,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useEditTransactionState.getState().state.visible) return;
+      if (!useEditTransactionState.getState().visible) return;
       e.preventDefault();
       useEditTransactionStore.getState().reset();
       useEditTransactionState.getState().close();

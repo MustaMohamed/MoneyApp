@@ -18,20 +18,18 @@ jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () 
 
 function setup() {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: [] },
+    accounts: [],
     updateAccount: jest.fn(),
     archiveAccount: jest.fn(),
     adjustBalance: jest.fn(),
   }));
   attachMockSelectorStore(useAccountDetailState as unknown as jest.Mock, () => ({
-    state: {
-      isEditing: false,
-      isAdjustVisible: false,
-      isArchiveVisible: false,
-      isSaving: false,
-      isAdjusting: false,
-      isArchiving: false,
-    },
+    isEditing: false,
+    isAdjustVisible: false,
+    isArchiveVisible: false,
+    isSaving: false,
+    isAdjusting: false,
+    isArchiving: false,
     setEditing: jest.fn(),
     setAdjustVisible: jest.fn(),
     setArchiveVisible: jest.fn(),

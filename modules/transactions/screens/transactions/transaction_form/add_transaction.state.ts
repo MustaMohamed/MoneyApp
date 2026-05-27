@@ -19,8 +19,7 @@ interface AddTransactionStateShape {
   rateOverride: boolean;
 }
 
-interface AddTransactionState {
-  state: AddTransactionStateShape;
+type AddTransactionState = AddTransactionStateShape & {
   open: () => void;
   requestOpen: () => void;
   close: () => void;
@@ -30,7 +29,7 @@ interface AddTransactionState {
   setShowCategoryPicker: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: AddTransactionStateShape = {
   visible: false,
@@ -44,16 +43,16 @@ const INITIAL_STATE: AddTransactionStateShape = {
 
 export const useAddTransactionState = createMoneyAppSelectors(
   create<AddTransactionState>((set) => ({
-    state: INITIAL_STATE,
+    ...INITIAL_STATE,
 
-    open: () => set((s) => ({ state: { ...s.state, visible: true, pendingOpen: false } })),
-    requestOpen: () => set((s) => ({ state: { ...s.state, pendingOpen: true } })),
-    close: () => set({ state: INITIAL_STATE }),
-    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-    setShowAccountPicker: (v) => set((s) => ({ state: { ...s.state, showAccountPicker: v } })),
-    setShowToPicker: (v) => set((s) => ({ state: { ...s.state, showToPicker: v } })),
-    setShowCategoryPicker: (v) => set((s) => ({ state: { ...s.state, showCategoryPicker: v } })),
-    setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    open: () => set((s) => ({ ...s, visible: true, pendingOpen: false })),
+    requestOpen: () => set((s) => ({ ...s, pendingOpen: true })),
+    close: () => set(INITIAL_STATE),
+    setSaving: (v) => set((s) => ({ ...s, saving: v })),
+    setShowAccountPicker: (v) => set((s) => ({ ...s, showAccountPicker: v })),
+    setShowToPicker: (v) => set((s) => ({ ...s, showToPicker: v })),
+    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
+    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

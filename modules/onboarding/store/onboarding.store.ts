@@ -15,22 +15,21 @@ const INITIAL_STATE = {
   baseCurrency: Currency.EGP,
 };
 
-interface OnboardingStore {
-  state: typeof INITIAL_STATE;
+type OnboardingStore = typeof INITIAL_STATE & {
   setStep: (step: OnboardingStep) => Promise<void>;
   setBaseCurrency: (currency: Currency) => Promise<void>;
   completeOnboarding: () => Promise<void>;
-}
+};
 
 export function createOnboardingStore(repo: IAppSettingsRepository) {
   return createMoneyAppSelectors(
     create<OnboardingStore>((set) => ({
-      state: INITIAL_STATE,
+      ...INITIAL_STATE,
 
       setStep: async (step) => {
         try {
           await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
-          set((s) => ({ state: { ...s.state, currentStep: step } }));
+          set((s) => ({ ...s, currentStep: step }));
         } catch (err) {
           console.error('[onboardingStore] setStep failed:', err);
           throw err;
@@ -41,7 +40,7 @@ export function createOnboardingStore(repo: IAppSettingsRepository) {
         try {
           await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
           await repo.set('base_currency', currency);
-          set((s) => ({ state: { ...s.state, baseCurrency: currency } }));
+          set((s) => ({ ...s, baseCurrency: currency }));
         } catch (err) {
           console.error('[onboardingStore] setBaseCurrency failed:', err);
           throw err;
@@ -52,7 +51,7 @@ export function createOnboardingStore(repo: IAppSettingsRepository) {
         try {
           await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
           await repo.set('onboarding_complete', 'true');
-          set((s) => ({ state: { ...s.state, complete: true } }));
+          set((s) => ({ ...s, complete: true }));
         } catch (err) {
           console.error('[onboardingStore] completeOnboarding failed:', err);
           throw err;
@@ -87,9 +86,7 @@ export async function loadOnboardingState(): Promise<{
   }
   const baseCurrency: Currency = isCurrency(currencyRaw) ? currencyRaw : Currency.EGP;
 
-  useOnboardingStore.setState({
-    state: { complete, currentStep: step, baseCurrency },
-  });
+  useOnboardingStore.setState({ complete, currentStep: step, baseCurrency });
 
   return { complete, step };
 }

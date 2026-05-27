@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
@@ -18,12 +19,17 @@ export function useAccountDetail() {
   const updateAccount = useAccountStore.getState().updateAccount;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const adjustBalance = useAccountStore.getState().adjustBalance;
-  const isEditing = useAccountDetailState.useState.isEditing();
-  const isAdjustVisible = useAccountDetailState.useState.isAdjustVisible();
-  const isArchiveVisible = useAccountDetailState.useState.isArchiveVisible();
-  const isSaving = useAccountDetailState.useState.isSaving();
-  const isAdjusting = useAccountDetailState.useState.isAdjusting();
-  const isArchiving = useAccountDetailState.useState.isArchiving();
+  const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
+    useAccountDetailState(
+      useShallow((s) => ({
+        isEditing: s.isEditing,
+        isAdjustVisible: s.isAdjustVisible,
+        isArchiveVisible: s.isArchiveVisible,
+        isSaving: s.isSaving,
+        isAdjusting: s.isAdjusting,
+        isArchiving: s.isArchiving,
+      })),
+    );
   const setEditing = useAccountDetailState.getState().setEditing;
   const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
   const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
@@ -37,7 +43,7 @@ export function useAccountDetail() {
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useAccountDetailState.getState().state.isEditing) return;
+      if (!useAccountDetailState.getState().isEditing) return;
       e.preventDefault();
       useAccountDetailState.getState().setEditing(false);
     });

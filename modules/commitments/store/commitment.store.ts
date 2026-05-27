@@ -61,9 +61,7 @@ interface CommitmentStoreState {
   paymentsLoaded: boolean;
 }
 
-interface CommitmentStore {
-  state: CommitmentStoreState;
-
+type CommitmentStore = CommitmentStoreState & {
   loadCommitments(): Promise<void>;
   loadPaymentsForMonth(yearMonth: string): Promise<void>;
   setSelectedMonth(yearMonth: string): Promise<void>;
@@ -89,7 +87,7 @@ interface CommitmentStore {
   getTotalMonthlyCommitted(): number;
 
   reset(): void;
-}
+};
 
 const INITIAL_STATE: CommitmentStoreState = {
   commitments: [],
@@ -104,12 +102,12 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
   return createMoneyAppSelectors(
     create<CommitmentStore>((set, get) => ({
-      state: INITIAL_STATE,
+      ...INITIAL_STATE,
 
       loadCommitments: async () => {
         try {
           const commitments = await repo.getAll();
-          set((s) => ({ state: { ...s.state, commitments, commitmentsLoaded: true } }));
+          set((s) => ({ ...s, commitments, commitmentsLoaded: true }));
         } catch (err) {
           console.error('[commitmentStore] loadCommitments failed:', err);
           throw err;
@@ -119,17 +117,15 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
       loadPaymentsForMonth: async (yearMonth) => {
         const requestId = ++paymentRequestId;
         set((s) => ({
-          state: {
-            ...s.state,
-            payments: yearMonth === s.state.selectedMonth ? s.state.payments : [],
-            paymentsLoaded: false,
-          },
+          ...s,
+          payments: yearMonth === s.selectedMonth ? s.payments : [],
+          paymentsLoaded: false,
         }));
 
         try {
           const payments = await repo.getPaymentsForMonth(yearMonth);
           if (requestId !== paymentRequestId) return;
-          set((s) => ({ state: { ...s.state, payments, paymentsLoaded: true } }));
+          set((s) => ({ ...s, payments, paymentsLoaded: true }));
         } catch (err) {
           if (requestId !== paymentRequestId) return;
           console.error('[commitmentStore] loadPaymentsForMonth failed:', err);
@@ -139,12 +135,10 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
       setSelectedMonth: async (yearMonth) => {
         set((s) => ({
-          state: {
-            ...s.state,
-            selectedMonth: yearMonth,
-            payments: yearMonth === s.state.selectedMonth ? s.state.payments : [],
-            paymentsLoaded: false,
-          },
+          ...s,
+          selectedMonth: yearMonth,
+          payments: yearMonth === s.selectedMonth ? s.payments : [],
+          paymentsLoaded: false,
         }));
         await get().loadPaymentsForMonth(yearMonth);
       },
@@ -164,7 +158,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           await repo.update(id, data);
           await get().regeneratePayments(id);
           await get().loadCommitments();
-          await get().loadPaymentsForMonth(get().state.selectedMonth);
+          await get().loadPaymentsForMonth(get().selectedMonth);
         } catch (err) {
           console.error('[commitmentStore] updateCommitment failed:', err);
           throw err;
@@ -175,7 +169,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         try {
           await repo.deactivate(id);
           await get().loadCommitments();
-          await get().loadPaymentsForMonth(get().state.selectedMonth);
+          await get().loadPaymentsForMonth(get().selectedMonth);
         } catch (err) {
           console.error('[commitmentStore] deactivateCommitment failed:', err);
           throw err;
@@ -184,13 +178,13 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
       markAsPaid: async (paymentId, details) => {
         try {
-          const payment = get().state.payments.find((p) => p.id === paymentId);
+          const payment = get().payments.find((p) => p.id === paymentId);
           const commitment = payment
-            ? get().state.commitments.find((c) => c.id === payment.commitment_id)
+            ? get().commitments.find((c) => c.id === payment.commitment_id)
             : undefined;
           if (!commitment) throw new Error(`Commitment not found for payment ${paymentId}`);
           await repo.markAsPaid(paymentId, details, commitment);
-          await get().loadPaymentsForMonth(get().state.selectedMonth);
+          await get().loadPaymentsForMonth(get().selectedMonth);
           await get().checkAndDeactivateExpired();
         } catch (err) {
           console.error('[commitmentStore] markAsPaid failed:', err);
@@ -201,7 +195,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
       skipPayment: async (paymentId) => {
         try {
           await repo.markAsSkipped(paymentId);
-          await get().loadPaymentsForMonth(get().state.selectedMonth);
+          await get().loadPaymentsForMonth(get().selectedMonth);
         } catch (err) {
           console.error('[commitmentStore] skipPayment failed:', err);
           throw err;
@@ -210,7 +204,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
       generatePayments: async () => {
         try {
-          const { commitments } = get().state;
+          const { commitments } = get();
           for (const commitment of commitments) {
             const existingDates = await repo.getExistingDueDates(commitment.id);
             const existingSet = new Set(existingDates);
@@ -260,7 +254,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
       checkAndDeactivateExpired: async () => {
         try {
-          const { commitments } = get().state;
+          const { commitments } = get();
           for (const commitment of commitments) {
             if (!commitment.is_active) continue;
             let shouldDeactivate = false;
@@ -288,35 +282,32 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         }
       },
 
-      getOverdue: () =>
-        get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Overdue),
+      getOverdue: () => get().payments.filter((p) => p.status === CommitmentPaymentStatus.Overdue),
 
-      getDueToday: () =>
-        get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Due),
+      getDueToday: () => get().payments.filter((p) => p.status === CommitmentPaymentStatus.Due),
 
       getUpcoming: () =>
-        get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Upcoming),
+        get().payments.filter((p) => p.status === CommitmentPaymentStatus.Upcoming),
 
-      getPaid: () => get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid),
+      getPaid: () => get().payments.filter((p) => p.status === CommitmentPaymentStatus.Paid),
 
-      getSkipped: () =>
-        get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Skipped),
+      getSkipped: () => get().payments.filter((p) => p.status === CommitmentPaymentStatus.Skipped),
 
       getPaidCount: () =>
-        get().state.payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
+        get().payments.filter((p) => p.status === CommitmentPaymentStatus.Paid).length,
 
       getTotalCount: () =>
-        get().state.payments.filter((p) => p.status !== CommitmentPaymentStatus.Skipped).length,
+        get().payments.filter((p) => p.status !== CommitmentPaymentStatus.Skipped).length,
 
       getTotalMonthlyCommitted: () => {
-        const { commitments } = get().state;
+        const { commitments } = get();
         return commitments.reduce((sum, c) => {
           if (!c.is_active) return sum;
           return sum + (c.amount ?? 0);
         }, 0);
       },
 
-      reset: () => set({ state: INITIAL_STATE }),
+      reset: () => set(INITIAL_STATE),
     })),
   );
 }

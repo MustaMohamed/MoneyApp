@@ -12,11 +12,10 @@ interface DetailStateShape {
   skipConfirmVisible: boolean;
 }
 
-interface CommitmentDetailState {
-  state: DetailStateShape;
+type CommitmentDetailState = DetailStateShape & {
   setSkipConfirmVisible: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: DetailStateShape = {
   skipConfirmVisible: false,
@@ -24,9 +23,9 @@ const INITIAL_STATE: DetailStateShape = {
 
 export const useCommitmentDetailState = createMoneyAppSelectors(
   create<CommitmentDetailState>((set) => ({
-    state: INITIAL_STATE,
-    setSkipConfirmVisible: (v) => set((s) => ({ state: { ...s.state, skipConfirmVisible: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setSkipConfirmVisible: (v) => set((s) => ({ ...s, skipConfirmVisible: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );
 
@@ -39,12 +38,11 @@ interface DetailScreenDataShape {
   viewState: DetailViewState;
 }
 
-interface CommitmentDetailScreenDataStore {
-  state: DetailScreenDataShape;
+type CommitmentDetailScreenDataStore = DetailScreenDataShape & {
   setAllPayments: (payments: CommitmentPayment[]) => void;
   setViewState: (vs: DetailViewState) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
   allPayments: [],
@@ -53,9 +51,9 @@ const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
 
 export const useCommitmentDetailScreenData = createMoneyAppSelectors(
   create<CommitmentDetailScreenDataStore>((set) => ({
-    state: INITIAL_SCREEN_DATA,
-    setAllPayments: (payments) => set((s) => ({ state: { ...s.state, allPayments: payments } })),
-    setViewState: (vs) => set((s) => ({ state: { ...s.state, viewState: vs } })),
-    reset: () => set({ state: INITIAL_SCREEN_DATA }),
+    ...INITIAL_SCREEN_DATA,
+    setAllPayments: (payments) => set((s) => ({ ...s, allPayments: payments })),
+    setViewState: (vs) => set((s) => ({ ...s, viewState: vs })),
+    reset: () => set(INITIAL_SCREEN_DATA),
   })),
 );

@@ -6,11 +6,10 @@ interface TransactionsStateShape {
   refreshing: boolean;
 }
 
-interface TransactionsState {
-  state: TransactionsStateShape;
+type TransactionsState = TransactionsStateShape & {
   setRefreshing: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: TransactionsStateShape = {
   refreshing: false,
@@ -18,8 +17,8 @@ const INITIAL_STATE: TransactionsStateShape = {
 
 export const useTransactionsState = createMoneyAppSelectors(
   create<TransactionsState>((set) => ({
-    state: INITIAL_STATE,
-    setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

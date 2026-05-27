@@ -58,7 +58,7 @@ describe('accountStore.loadAccounts', () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
 
-    expect(store.getState().state.hasLoaded).toBe(false);
+    expect(store.getState().hasLoaded).toBe(false);
   });
 
   it('marks accounts loaded after repo data settles', async () => {
@@ -67,7 +67,7 @@ describe('accountStore.loadAccounts', () => {
 
     await store.getState().loadAccounts();
 
-    expect(store.getState().state.hasLoaded).toBe(true);
+    expect(store.getState().hasLoaded).toBe(true);
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
@@ -75,7 +75,7 @@ describe('accountStore.loadAccounts', () => {
     const store = createAccountStore(repo);
     await store.getState().loadAccounts();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().state.accounts).toEqual([mockAccount]);
+    expect(store.getState().accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.getAll', async () => {
@@ -99,7 +99,7 @@ describe('accountStore.addAccount', () => {
     const store = createAccountStore(repo);
     await store.getState().addAccount(baseInput);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().state.accounts).toEqual([mockAccount]);
+    expect(store.getState().accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.add', async () => {
@@ -122,7 +122,7 @@ describe('accountStore.updateAccount', () => {
     const store = createAccountStore(repo);
     await store.getState().updateAccount('test-id', { name: 'New Name', color: null });
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().state.accounts).toEqual([mockAccount]);
+    expect(store.getState().accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors from repo.update', async () => {
@@ -187,10 +187,10 @@ describe('accountStore.reset', () => {
     });
     const useStore = createAccountStore(repo);
     await useStore.getState().loadAccounts();
-    expect(useStore.getState().state.accounts).toHaveLength(1);
+    expect(useStore.getState().accounts).toHaveLength(1);
 
     useStore.getState().reset();
 
-    expect(useStore.getState().state).toEqual({ accounts: [], hasLoaded: false });
+    expect(useStore.getState()).toMatchObject({ accounts: [], hasLoaded: false });
   });
 });

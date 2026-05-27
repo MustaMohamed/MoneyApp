@@ -3,6 +3,7 @@ import { Spinner } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
@@ -49,8 +50,12 @@ export default function TransactionsScreen(): React.ReactElement {
     onEndReached,
     setCustomRange,
   } = t;
-  const addTxVisible = useAddTransactionState.useState.visible();
-  const addTxPendingOpen = useAddTransactionState.useState.pendingOpen();
+  const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
+    useShallow((s) => ({
+      addTxVisible: s.visible,
+      addTxPendingOpen: s.pendingOpen,
+    })),
+  );
   const openAddTx = useAddTransactionState.getState().open;
 
   // Edit sheet state — opened imperatively from goToEdit in the hook
@@ -86,16 +91,16 @@ export default function TransactionsScreen(): React.ReactElement {
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (useAddTransactionState.getState().state.visible) {
+        if (useAddTransactionState.getState().visible) {
           useAddTransactionState.getState().close();
           useAddTransactionStore.getState().reset();
           return true;
         }
-        if (useFilterState.getState().state.visible) {
+        if (useFilterState.getState().visible) {
           useFilterState.getState().close();
           return true;
         }
-        if (useFilterState.getState().state.dateRangeSheetVisible) {
+        if (useFilterState.getState().dateRangeSheetVisible) {
           useFilterState.getState().setDateRangeSheetVisible(false);
           return true;
         }

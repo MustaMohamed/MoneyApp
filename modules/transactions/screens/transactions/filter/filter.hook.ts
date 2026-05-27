@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Currency } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -10,8 +11,12 @@ import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 
 export function useFilterSheet() {
-  const visible = useFilterState.useState.visible();
-  const openSection = useFilterState.useState.openSection();
+  const { visible, openSection } = useFilterState(
+    useShallow((s) => ({
+      visible: s.visible,
+      openSection: s.openSection,
+    })),
+  );
   const close = useFilterState.getState().close;
   const toggleSection = useFilterState.getState().toggleSection;
   const draft = useFilterStore.useState.draft();

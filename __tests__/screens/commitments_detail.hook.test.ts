@@ -51,28 +51,30 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    state: { commitments: [], payments: [] },
+    commitments: [],
+    payments: [],
     skipPayment: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    state: { accounts: [] },
+    accounts: [],
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    state: { categories: [] },
+    categories: [],
   }));
   attachMockSelectorStore(useCommitmentDetailScreenData as unknown as jest.Mock, () => ({
-    state: { viewState: 'loading' as const, allPayments: [] },
+    viewState: 'loading' as const,
+    allPayments: [],
     setAllPayments: jest.fn(),
     setViewState: jest.fn(),
     reset: jest.fn(),
   }));
   attachMockSelectorStore(useCommitmentDetailState as unknown as jest.Mock, () => ({
-    state: { skipConfirmVisible: false },
+    skipConfirmVisible: false,
     setSkipConfirmVisible: jest.fn(),
     reset: jest.fn(),
   }));
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => ({
-    state: { visible: false },
+    visible: false,
     setVisible: jest.fn(),
   }));
 }

@@ -79,12 +79,16 @@ const mockCategoryShop = {
 
 beforeEach(() => {
   useAccountStore.setState({
-    state: { accounts: [mockAccountEGP], loading: false, error: undefined },
+    accounts: [mockAccountEGP],
+    loading: false,
+    error: undefined,
   } as any);
   useCategoryStore.setState({
-    state: { categories: [mockCategoryFood, mockCategoryShop], loading: false, error: undefined },
+    categories: [mockCategoryFood, mockCategoryShop],
+    loading: false,
+    error: undefined,
   } as any);
-  useCurrencyStore.setState({ state: { rate: 50, rate_updated_at: null } } as any);
+  useCurrencyStore.setState({ rate: 50, rate_updated_at: null } as any);
   useEditTransactionState.getState().reset();
   useEditTransactionStore.getState().reset();
   useEditTransactionStore.getState().loadFromTx(mockTxExpense);

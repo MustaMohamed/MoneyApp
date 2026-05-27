@@ -1,6 +1,7 @@
 import { Input } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
@@ -12,9 +13,13 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { ms } from '@/utils/responsive';
 
 export function IncomeSheet() {
-  const isOpen = useIncomeSheetState.useState.isOpen();
-  const amountText = useIncomeSheetState.useState.amountText();
-  const suggestion = useIncomeSheetState.useState.suggestion();
+  const { isOpen, amountText, suggestion } = useIncomeSheetState(
+    useShallow((s) => ({
+      isOpen: s.isOpen,
+      amountText: s.amountText,
+      suggestion: s.suggestion,
+    })),
+  );
   const close = useIncomeSheetState.getState().close;
   const setAmountText = useIncomeSheetState.getState().setAmountText;
   const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;

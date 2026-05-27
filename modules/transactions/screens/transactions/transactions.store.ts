@@ -15,15 +15,14 @@ interface StateShape {
   appliedFilters: AdvancedFilters;
 }
 
-interface TransactionsScreenStore {
-  state: StateShape;
+type TransactionsScreenStore = StateShape & {
   setSearchQuery: (q: string) => void;
   setActiveFilter: (f: TransactionFilter) => void;
   setPeriod: (p: CarouselSelection) => void;
   setAppliedFilters: (f: AdvancedFilters) => void;
   clearSearch: () => void;
   reset: () => void;
-}
+};
 
 function initialState(): StateShape {
   return {
@@ -36,12 +35,12 @@ function initialState(): StateShape {
 
 export const useTransactionsScreenStore = createMoneyAppSelectors(
   create<TransactionsScreenStore>((set) => ({
-    state: initialState(),
-    setSearchQuery: (q) => set((s) => ({ state: { ...s.state, searchQuery: q } })),
-    setActiveFilter: (f) => set((s) => ({ state: { ...s.state, activeFilter: f } })),
-    setPeriod: (p) => set((s) => ({ state: { ...s.state, period: p } })),
-    setAppliedFilters: (f) => set((s) => ({ state: { ...s.state, appliedFilters: f } })),
-    clearSearch: () => set((s) => ({ state: { ...s.state, searchQuery: '' } })),
-    reset: () => set({ state: initialState() }),
+    ...initialState(),
+    setSearchQuery: (q) => set((s) => ({ ...s, searchQuery: q })),
+    setActiveFilter: (f) => set((s) => ({ ...s, activeFilter: f })),
+    setPeriod: (p) => set((s) => ({ ...s, period: p })),
+    setAppliedFilters: (f) => set((s) => ({ ...s, appliedFilters: f })),
+    clearSearch: () => set((s) => ({ ...s, searchQuery: '' })),
+    reset: () => set(initialState()),
   })),
 );

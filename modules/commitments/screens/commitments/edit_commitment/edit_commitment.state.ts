@@ -7,12 +7,11 @@ interface EditCommitmentStateShape {
   deactivateDialogVisible: boolean;
 }
 
-interface EditCommitmentState {
-  state: EditCommitmentStateShape;
+type EditCommitmentState = EditCommitmentStateShape & {
   setSaving: (v: boolean) => void;
   setDeactivateDialogVisible: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: EditCommitmentStateShape = {
   saving: false,
@@ -21,10 +20,9 @@ const INITIAL_STATE: EditCommitmentStateShape = {
 
 export const useEditCommitmentState = createMoneyAppSelectors(
   create<EditCommitmentState>((set) => ({
-    state: INITIAL_STATE,
-    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-    setDeactivateDialogVisible: (v) =>
-      set((s) => ({ state: { ...s.state, deactivateDialogVisible: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setSaving: (v) => set((s) => ({ ...s, saving: v })),
+    setDeactivateDialogVisible: (v) => set((s) => ({ ...s, deactivateDialogVisible: v })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

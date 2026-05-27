@@ -17,7 +17,7 @@ const mockPush = jest.fn();
 
 function setup(baseCurrency: Currency = Currency.EGP) {
   attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    state: { baseCurrency },
+    baseCurrency,
     setBaseCurrency: mockSetBaseCurrency,
     setStep: mockSetStep,
   }));

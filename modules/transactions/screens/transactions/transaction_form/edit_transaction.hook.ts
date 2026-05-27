@@ -1,5 +1,6 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -41,16 +42,24 @@ export function useEditTransaction(
   const accounts = useAccountStore.useState.accounts();
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore.useState.categories();
-  const rate = useCurrencyStore.useState.rate();
-  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
+  const { rate, rateUpdatedAt } = useCurrencyStore(
+    useShallow((s) => ({
+      rate: s.rate,
+      rateUpdatedAt: s.rate_updated_at,
+    })),
+  );
   const updateTransaction = useTransactionStore.getState().updateTransaction;
   const amountStr = useEditTransactionStore.useState.amountStr();
   const setAmountStr = useEditTransactionStore.getState().setAmountStr;
   const handleNumpad = useEditTransactionStore.getState().handleNumpad;
-  const visible = useEditTransactionState.useState.visible();
-  const saving = useEditTransactionState.useState.saving();
-  const showCategoryPicker = useEditTransactionState.useState.showCategoryPicker();
-  const rateOverride = useEditTransactionState.useState.rateOverride();
+  const { visible, saving, showCategoryPicker, rateOverride } = useEditTransactionState(
+    useShallow((s) => ({
+      visible: s.visible,
+      saving: s.saving,
+      showCategoryPicker: s.showCategoryPicker,
+      rateOverride: s.rateOverride,
+    })),
+  );
   const setSaving = useEditTransactionState.getState().setSaving;
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
   const setRateOverride = useEditTransactionState.getState().setRateOverride;

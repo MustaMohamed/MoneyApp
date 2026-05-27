@@ -6,8 +6,8 @@ describe('useAddTransactionState', () => {
   });
 
   it('initializes with all UI booleans false', () => {
-    const s = useAddTransactionState.getState().state;
-    expect(s).toEqual({
+    const s = useAddTransactionState.getState();
+    expect(s).toMatchObject({
       visible: false,
       pendingOpen: false,
       saving: false,
@@ -20,12 +20,12 @@ describe('useAddTransactionState', () => {
 
   it('open() sets visible=true', () => {
     useAddTransactionState.getState().open();
-    expect(useAddTransactionState.getState().state.visible).toBe(true);
+    expect(useAddTransactionState.getState().visible).toBe(true);
   });
 
   it('requestOpen() sets pendingOpen=true without showing the sheet', () => {
     useAddTransactionState.getState().requestOpen();
-    const s = useAddTransactionState.getState().state;
+    const s = useAddTransactionState.getState();
     expect(s.pendingOpen).toBe(true);
     expect(s.visible).toBe(false);
   });
@@ -33,7 +33,7 @@ describe('useAddTransactionState', () => {
   it('open() consumes a pending request (visible=true, pendingOpen=false)', () => {
     useAddTransactionState.getState().requestOpen();
     useAddTransactionState.getState().open();
-    const s = useAddTransactionState.getState().state;
+    const s = useAddTransactionState.getState();
     expect(s.visible).toBe(true);
     expect(s.pendingOpen).toBe(false);
   });
@@ -42,7 +42,7 @@ describe('useAddTransactionState', () => {
     useAddTransactionState.getState().open();
     useAddTransactionState.getState().setSaving(true);
     useAddTransactionState.getState().close();
-    expect(useAddTransactionState.getState().state).toEqual({
+    expect(useAddTransactionState.getState()).toMatchObject({
       visible: false,
       pendingOpen: false,
       saving: false,
@@ -55,15 +55,15 @@ describe('useAddTransactionState', () => {
 
   it('setShowAccountPicker(true) flips only that flag', () => {
     useAddTransactionState.getState().setShowAccountPicker(true);
-    const s = useAddTransactionState.getState().state;
+    const s = useAddTransactionState.getState();
     expect(s.showAccountPicker).toBe(true);
     expect(s.showToPicker).toBe(false);
   });
 
   it('setRateOverride toggles independently of other flags', () => {
     useAddTransactionState.getState().setRateOverride(true);
-    expect(useAddTransactionState.getState().state.rateOverride).toBe(true);
+    expect(useAddTransactionState.getState().rateOverride).toBe(true);
     useAddTransactionState.getState().setRateOverride(false);
-    expect(useAddTransactionState.getState().state.rateOverride).toBe(false);
+    expect(useAddTransactionState.getState().rateOverride).toBe(false);
   });
 });

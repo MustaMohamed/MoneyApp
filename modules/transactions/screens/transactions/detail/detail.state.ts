@@ -8,13 +8,12 @@ interface TxDetailStateShape {
   reloadKey: number;
 }
 
-interface TxDetailState {
-  state: TxDetailStateShape;
+type TxDetailState = TxDetailStateShape & {
   setConfirmVisible: (v: boolean) => void;
   setDeleting: (v: boolean) => void;
   bumpReload: () => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: TxDetailStateShape = {
   confirmVisible: false,
@@ -24,10 +23,10 @@ const INITIAL_STATE: TxDetailStateShape = {
 
 export const useTxDetailState = createMoneyAppSelectors(
   create<TxDetailState>((set) => ({
-    state: INITIAL_STATE,
-    setConfirmVisible: (v) => set((s) => ({ state: { ...s.state, confirmVisible: v } })),
-    setDeleting: (v) => set((s) => ({ state: { ...s.state, deleting: v } })),
-    bumpReload: () => set((s) => ({ state: { ...s.state, reloadKey: s.state.reloadKey + 1 } })),
-    reset: () => set({ state: INITIAL_STATE }),
+    ...INITIAL_STATE,
+    setConfirmVisible: (v) => set((s) => ({ ...s, confirmVisible: v })),
+    setDeleting: (v) => set((s) => ({ ...s, deleting: v })),
+    bumpReload: () => set((s) => ({ ...s, reloadKey: s.reloadKey + 1 })),
+    reset: () => set(INITIAL_STATE),
   })),
 );

@@ -5,7 +5,7 @@ beforeEach(() => useDashboardStore.getState().reset());
 
 describe('useDashboardStore', () => {
   it('starts with empty statsMap', () => {
-    expect(useDashboardStore.getState().state.statsMap).toEqual({});
+    expect(useDashboardStore.getState().statsMap).toEqual({});
   });
 
   it('setStatsMap replaces the map', () => {
@@ -17,7 +17,7 @@ describe('useDashboardStore', () => {
     };
     const next: Record<string, AccountStats> = { 'acc-1': fakeStats };
     useDashboardStore.getState().setStatsMap(next);
-    expect(useDashboardStore.getState().state.statsMap).toEqual(next);
+    expect(useDashboardStore.getState().statsMap).toEqual(next);
   });
 
   it('reset returns to empty map', () => {
@@ -29,20 +29,20 @@ describe('useDashboardStore', () => {
     };
     useDashboardStore.getState().setStatsMap({ 'acc-1': fakeStats });
     useDashboardStore.getState().reset();
-    expect(useDashboardStore.getState().state.statsMap).toEqual({});
+    expect(useDashboardStore.getState().statsMap).toEqual({});
   });
 
   it('setCurrentMonthCommitmentPayments updates the list', () => {
     const payments = [{ id: 'p1' } as any];
     useDashboardStore.getState().setCurrentMonthCommitmentPayments(payments);
-    expect(useDashboardStore.getState().state.currentMonthCommitmentPayments).toEqual(payments);
+    expect(useDashboardStore.getState().currentMonthCommitmentPayments).toEqual(payments);
   });
 
   it('setMonthSpendStats updates current and previous spend', () => {
     const current = { totalEgp: 1000, usdNative: 20, count: 5 };
     const previous = { totalEgp: 800, usdNative: 16, count: 4 };
     useDashboardStore.getState().setMonthSpendStats(current, previous);
-    expect(useDashboardStore.getState().state.currentMonthSpend).toEqual(current);
-    expect(useDashboardStore.getState().state.previousMonthSpend).toEqual(previous);
+    expect(useDashboardStore.getState().currentMonthSpend).toEqual(current);
+    expect(useDashboardStore.getState().previousMonthSpend).toEqual(previous);
   });
 });

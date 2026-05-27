@@ -6,7 +6,7 @@ beforeEach(() => {
 
 describe('useCommitmentFormBodyState initial state', () => {
   it('starts with every picker and date picker hidden', () => {
-    const s = useCommitmentFormBodyState.getState().state;
+    const s = useCommitmentFormBodyState.getState();
     expect(s.categoryPickerVisible).toBe(false);
     expect(s.accountPickerVisible).toBe(false);
     expect(s.showStartDatePicker).toBe(false);
@@ -17,30 +17,30 @@ describe('useCommitmentFormBodyState initial state', () => {
 describe('useCommitmentFormBodyState setters', () => {
   it('setCategoryPickerVisible toggles the category picker', () => {
     useCommitmentFormBodyState.getState().setCategoryPickerVisible(true);
-    expect(useCommitmentFormBodyState.getState().state.categoryPickerVisible).toBe(true);
+    expect(useCommitmentFormBodyState.getState().categoryPickerVisible).toBe(true);
     useCommitmentFormBodyState.getState().setCategoryPickerVisible(false);
-    expect(useCommitmentFormBodyState.getState().state.categoryPickerVisible).toBe(false);
+    expect(useCommitmentFormBodyState.getState().categoryPickerVisible).toBe(false);
   });
 
   it('setAccountPickerVisible toggles the account picker', () => {
     useCommitmentFormBodyState.getState().setAccountPickerVisible(true);
-    expect(useCommitmentFormBodyState.getState().state.accountPickerVisible).toBe(true);
+    expect(useCommitmentFormBodyState.getState().accountPickerVisible).toBe(true);
     useCommitmentFormBodyState.getState().setAccountPickerVisible(false);
-    expect(useCommitmentFormBodyState.getState().state.accountPickerVisible).toBe(false);
+    expect(useCommitmentFormBodyState.getState().accountPickerVisible).toBe(false);
   });
 
   it('setShowStartDatePicker toggles the start-date picker', () => {
     useCommitmentFormBodyState.getState().setShowStartDatePicker(true);
-    expect(useCommitmentFormBodyState.getState().state.showStartDatePicker).toBe(true);
+    expect(useCommitmentFormBodyState.getState().showStartDatePicker).toBe(true);
     useCommitmentFormBodyState.getState().setShowStartDatePicker(false);
-    expect(useCommitmentFormBodyState.getState().state.showStartDatePicker).toBe(false);
+    expect(useCommitmentFormBodyState.getState().showStartDatePicker).toBe(false);
   });
 
   it('setShowEndDatePicker toggles the end-date picker', () => {
     useCommitmentFormBodyState.getState().setShowEndDatePicker(true);
-    expect(useCommitmentFormBodyState.getState().state.showEndDatePicker).toBe(true);
+    expect(useCommitmentFormBodyState.getState().showEndDatePicker).toBe(true);
     useCommitmentFormBodyState.getState().setShowEndDatePicker(false);
-    expect(useCommitmentFormBodyState.getState().state.showEndDatePicker).toBe(false);
+    expect(useCommitmentFormBodyState.getState().showEndDatePicker).toBe(false);
   });
 });
 
@@ -51,7 +51,7 @@ describe('useCommitmentFormBodyState reset', () => {
     useCommitmentFormBodyState.getState().setShowStartDatePicker(true);
     useCommitmentFormBodyState.getState().setShowEndDatePicker(true);
     useCommitmentFormBodyState.getState().reset();
-    const s = useCommitmentFormBodyState.getState().state;
+    const s = useCommitmentFormBodyState.getState();
     expect(s.categoryPickerVisible).toBe(false);
     expect(s.accountPickerVisible).toBe(false);
     expect(s.showStartDatePicker).toBe(false);

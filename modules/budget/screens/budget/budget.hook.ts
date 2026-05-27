@@ -1,5 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -30,13 +31,21 @@ export function useBudget() {
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);
 
-  const categories = useCategoryStore.useState.categories();
-  const categoriesLoaded = useCategoryStore.useState.hasLoaded();
+  const { categories, categoriesLoaded } = useCategoryStore(
+    useShallow((s) => ({
+      categories: s.categories,
+      categoriesLoaded: s.hasLoaded,
+    })),
+  );
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const budgetRows = useBudgetStore.useState.rows();
-  const spendByMonth = useBudgetStore.useState.spendByMonth();
-  const budgetLoaded = useBudgetStore.useState.loaded();
-  const expectedIncome = useBudgetStore.useState.expectedIncome();
+  const { budgetRows, spendByMonth, budgetLoaded, expectedIncome } = useBudgetStore(
+    useShallow((s) => ({
+      budgetRows: s.rows,
+      spendByMonth: s.spendByMonth,
+      budgetLoaded: s.loaded,
+      expectedIncome: s.expectedIncome,
+    })),
+  );
   const load = useBudgetStore.getState().load;
   const openAdd = useBudgetState.getState().openAdd;
   const openEdit = useBudgetState.getState().openEdit;

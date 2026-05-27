@@ -15,7 +15,7 @@ const r: Budget = {
 
 describe('useBudgetStore', () => {
   it('starts empty and not loaded', () => {
-    const s = useBudgetStore.getState().state;
+    const s = useBudgetStore.getState();
     expect(s.rows).toEqual([]);
     expect(s.spendByMonth).toEqual({});
     expect(s.loaded).toBe(false);
@@ -24,7 +24,7 @@ describe('useBudgetStore', () => {
 
   it('setData stores rows + spend and flips loaded', () => {
     useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
-    const s = useBudgetStore.getState().state;
+    const s = useBudgetStore.getState();
     expect(s.rows).toEqual([r]);
     expect(s.spendByMonth.a['2026-05']).toBe(2400);
     expect(s.loaded).toBe(true);
@@ -33,7 +33,7 @@ describe('useBudgetStore', () => {
   it('reset returns to initial', () => {
     useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
     useBudgetStore.getState().reset();
-    expect(useBudgetStore.getState().state.loaded).toBe(false);
+    expect(useBudgetStore.getState().loaded).toBe(false);
   });
 
   it('removeBudget exists and is a function on the store', () => {
