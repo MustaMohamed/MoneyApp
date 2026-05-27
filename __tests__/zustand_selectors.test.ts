@@ -22,7 +22,7 @@ function createCounterStore() {
 }
 
 describe('createMoneyAppSelectors', () => {
-  it('exposes nested state leaf selectors and top-level action selectors', () => {
+  it('exposes top-level state selectors and action selectors', () => {
     const useCounterStore = createCounterStore();
 
     const countHook = renderHook(() => useCounterStore.useState.count());

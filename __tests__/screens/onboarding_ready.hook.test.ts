@@ -10,7 +10,10 @@ jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/onboarding/screens/onboarding/ready/ready.state', () => ({
-  useReadyState: jest.fn((sel: any) => sel({ completing: false, setCompleting: jest.fn() })),
+  useReadyState: Object.assign(
+    jest.fn((sel: any) => sel({ completing: false, setCompleting: jest.fn() })),
+    { getState: jest.fn(() => ({ completing: false, setCompleting: jest.fn() })) },
+  ),
 }));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
@@ -33,6 +36,10 @@ function setup(completing = false) {
   (useReadyState as jest.Mock).mockImplementation((sel: any) =>
     sel({ completing, setCompleting: mockSetCompleting }),
   );
+  (useReadyState.getState as jest.Mock).mockReturnValue({
+    completing,
+    setCompleting: mockSetCompleting,
+  });
 }
 
 describe('useReady', () => {

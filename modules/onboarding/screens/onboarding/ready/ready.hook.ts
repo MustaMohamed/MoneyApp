@@ -12,7 +12,7 @@ export function useReady() {
   const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
   const accounts = useAccountStore.useState.accounts();
   const completing = useReadyState((s) => s.completing);
-  const setCompleting = useReadyState((s) => s.setCompleting);
+  const setCompleting = useReadyState.getState().setCompleting;
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
