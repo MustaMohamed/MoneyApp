@@ -1,7 +1,9 @@
 import { renderHook } from '@testing-library/react-native';
 
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
+import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -11,7 +13,17 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
-  const mockState = {
+  return { useAccountDetailState: jest.fn() };
+});
+
+function setup() {
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    state: { accounts: [] },
+    updateAccount: jest.fn(),
+    archiveAccount: jest.fn(),
+    adjustBalance: jest.fn(),
+  }));
+  attachMockSelectorStore(useAccountDetailState as unknown as jest.Mock, () => ({
     state: {
       isEditing: false,
       isAdjustVisible: false,
@@ -27,28 +39,7 @@ jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () 
     setAdjusting: jest.fn(),
     setArchiving: jest.fn(),
     reset: jest.fn(),
-  };
-  const useAccountDetailState = Object.assign(
-    jest.fn((sel: any) => sel(mockState)),
-    {
-      getState: jest.fn(() => ({
-        state: { isEditing: false },
-        setEditing: jest.fn(),
-      })),
-    },
-  );
-  return { useAccountDetailState };
-});
-
-function setup() {
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { accounts: [] },
-      updateAccount: jest.fn(),
-      archiveAccount: jest.fn(),
-      adjustBalance: jest.fn(),
-    }),
-  );
+  }));
 }
 
 describe('useAccountDetail', () => {

@@ -2,7 +2,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
 import { PressableFeedback, Text } from 'heroui-native';
 import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
@@ -31,17 +30,10 @@ export function ReassignCategorySheet({
   onConfirm,
   onOpenChange,
 }: ReassignCategorySheetProps) {
-  const {
-    state: reassignState,
-    setSelectedId,
-    setIsLoading,
-  } = useReassignCategorySheetState(
-    useShallow((s) => ({
-      state: s.state,
-      setSelectedId: s.setSelectedId,
-      setIsLoading: s.setIsLoading,
-    })),
-  );
+  const selectedId = useReassignCategorySheetState.useState.selectedId();
+  const isLoading = useReassignCategorySheetState.useState.isLoading();
+  const setSelectedId = useReassignCategorySheetState.use.setSelectedId();
+  const setIsLoading = useReassignCategorySheetState.use.setIsLoading();
 
   const handleClose = () => {
     useReassignCategorySheetState.getState().reset();
@@ -49,10 +41,10 @@ export function ReassignCategorySheet({
   };
 
   const handleConfirm = async () => {
-    if (!reassignState.selectedId) return;
+    if (!selectedId) return;
     setIsLoading(true);
     try {
-      await onConfirm(reassignState.selectedId);
+      await onConfirm(selectedId);
     } finally {
       setIsLoading(false);
       setSelectedId(null);
@@ -64,8 +56,8 @@ export function ReassignCategorySheet({
       testID="reassign-cta"
       variant="primary"
       label={Strings.categoriesReassignConfirm}
-      isLoading={reassignState.isLoading}
-      isDisabled={!reassignState.selectedId || reassignState.isLoading}
+      isLoading={isLoading}
+      isDisabled={!selectedId || isLoading}
       onPress={() => void handleConfirm()}
     />
   );
@@ -96,12 +88,9 @@ export function ReassignCategorySheet({
         renderItem={({ item }) => (
           <PressableFeedback
             onPress={() => setSelectedId(item.id)}
-            style={[
-              styles.optionRow,
-              reassignState.selectedId === item.id && styles.optionRowActive,
-            ]}
+            style={[styles.optionRow, selectedId === item.id && styles.optionRowActive]}
             accessibilityRole="radio"
-            accessibilityState={{ selected: reassignState.selectedId === item.id }}
+            accessibilityState={{ selected: selectedId === item.id }}
           >
             <View style={[styles.iconBox, { backgroundColor: item.color + '22' }]}>
               <MaterialCommunityIcons
@@ -111,7 +100,7 @@ export function ReassignCategorySheet({
               />
             </View>
             <Text className="font-inter-medium text-foreground flex-1 text-base">{item.name}</Text>
-            {reassignState.selectedId === item.id && (
+            {selectedId === item.id && (
               <MaterialCommunityIcons
                 name="check-circle"
                 size={Size.iconXs}

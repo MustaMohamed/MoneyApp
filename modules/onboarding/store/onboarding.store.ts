@@ -7,6 +7,7 @@ import {
   AppSettingsRepository,
   type IAppSettingsRepository,
 } from '@/repositories/app_settings.repository';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 const INITIAL_STATE = {
   complete: false,
@@ -22,41 +23,43 @@ interface OnboardingStore {
 }
 
 export function createOnboardingStore(repo: IAppSettingsRepository) {
-  return create<OnboardingStore>((set) => ({
-    state: INITIAL_STATE,
+  return createMoneyAppSelectors(
+    create<OnboardingStore>((set) => ({
+      state: INITIAL_STATE,
 
-    setStep: async (step) => {
-      try {
-        await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
-        set((s) => ({ state: { ...s.state, currentStep: step } }));
-      } catch (err) {
-        console.error('[onboardingStore] setStep failed:', err);
-        throw err;
-      }
-    },
+      setStep: async (step) => {
+        try {
+          await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
+          set((s) => ({ state: { ...s.state, currentStep: step } }));
+        } catch (err) {
+          console.error('[onboardingStore] setStep failed:', err);
+          throw err;
+        }
+      },
 
-    setBaseCurrency: async (currency) => {
-      try {
-        await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
-        await repo.set('base_currency', currency);
-        set((s) => ({ state: { ...s.state, baseCurrency: currency } }));
-      } catch (err) {
-        console.error('[onboardingStore] setBaseCurrency failed:', err);
-        throw err;
-      }
-    },
+      setBaseCurrency: async (currency) => {
+        try {
+          await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
+          await repo.set('base_currency', currency);
+          set((s) => ({ state: { ...s.state, baseCurrency: currency } }));
+        } catch (err) {
+          console.error('[onboardingStore] setBaseCurrency failed:', err);
+          throw err;
+        }
+      },
 
-    completeOnboarding: async () => {
-      try {
-        await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
-        await repo.set('onboarding_complete', 'true');
-        set((s) => ({ state: { ...s.state, complete: true } }));
-      } catch (err) {
-        console.error('[onboardingStore] completeOnboarding failed:', err);
-        throw err;
-      }
-    },
-  }));
+      completeOnboarding: async () => {
+        try {
+          await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
+          await repo.set('onboarding_complete', 'true');
+          set((s) => ({ state: { ...s.state, complete: true } }));
+        } catch (err) {
+          console.error('[onboardingStore] completeOnboarding failed:', err);
+          throw err;
+        }
+      },
+    })),
+  );
 }
 
 export const useOnboardingStore = createOnboardingStore(new AppSettingsRepository());

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 type AccordionSection = 'accounts' | 'categories' | 'amount' | null;
 
 interface FilterStateShape {
@@ -31,15 +33,17 @@ const INITIAL_STATE: FilterStateShape = {
   dateRangeSheetVisible: false,
 };
 
-export const useFilterState = create<FilterState>((set) => ({
-  state: INITIAL_STATE,
-  open: () => set((s) => ({ state: { ...s.state, visible: true } })),
-  close: () => set((s) => ({ state: { ...s.state, visible: false, openSection: null } })),
-  toggleSection: (target) =>
-    set((s) => ({
-      state: { ...s.state, openSection: s.state.openSection === target ? null : target },
-    })),
-  setDateRangeSheetVisible: (v) =>
-    set((s) => ({ state: { ...s.state, dateRangeSheetVisible: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useFilterState = createMoneyAppSelectors(
+  create<FilterState>((set) => ({
+    state: INITIAL_STATE,
+    open: () => set((s) => ({ state: { ...s.state, visible: true } })),
+    close: () => set((s) => ({ state: { ...s.state, visible: false, openSection: null } })),
+    toggleSection: (target) =>
+      set((s) => ({
+        state: { ...s.state, openSection: s.state.openSection === target ? null : target },
+      })),
+    setDateRangeSheetVisible: (v) =>
+      set((s) => ({ state: { ...s.state, dateRangeSheetVisible: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

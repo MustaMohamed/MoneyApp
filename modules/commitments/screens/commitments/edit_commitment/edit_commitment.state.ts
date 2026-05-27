@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface EditCommitmentStateShape {
   saving: boolean;
   deactivateDialogVisible: boolean;
@@ -17,10 +19,12 @@ const INITIAL_STATE: EditCommitmentStateShape = {
   deactivateDialogVisible: false,
 };
 
-export const useEditCommitmentState = create<EditCommitmentState>((set) => ({
-  state: INITIAL_STATE,
-  setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-  setDeactivateDialogVisible: (v) =>
-    set((s) => ({ state: { ...s.state, deactivateDialogVisible: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useEditCommitmentState = createMoneyAppSelectors(
+  create<EditCommitmentState>((set) => ({
+    state: INITIAL_STATE,
+    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
+    setDeactivateDialogVisible: (v) =>
+      set((s) => ({ state: { ...s.state, deactivateDialogVisible: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

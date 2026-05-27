@@ -1,7 +1,6 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -28,7 +27,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
     useTransactionDetail(id);
 
-  const { state: editTxState } = useEditTransactionState(useShallow((s) => ({ state: s.state })));
+  const editTxVisible = useEditTransactionState.useState.visible();
 
   useEffect(() => {
     return () => {
@@ -172,7 +171,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
           />
 
           <EditTransactionSheet
-            visible={editTxState.visible}
+            visible={editTxVisible}
             onClose={() => {
               useEditTransactionStore.getState().reset();
               useEditTransactionState.getState().close();

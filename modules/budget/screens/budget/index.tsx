@@ -2,7 +2,6 @@ import { useFocusEffect } from 'expo-router';
 import { Spinner } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -29,10 +28,10 @@ const LENS_SEGMENTS = [
 
 export default function BudgetScreen() {
   const { state, openAdd, openEdit, setLensTab, goToCategory } = useBudget();
-  const editingTargetId = useBudgetState((s) => s.state.targetCategoryId);
+  const editingTargetId = useBudgetState.useState.targetCategoryId();
   const editingRow = state.rows.find((r) => r.categoryId === editingTargetId);
 
-  const { removeBudget } = useBudgetStore(useShallow((s) => ({ removeBudget: s.removeBudget })));
+  const removeBudget = useBudgetStore.use.removeBudget();
 
   // Payload carries both id and name so the confirm sheet can display the category name
   const {

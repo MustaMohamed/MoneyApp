@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -40,46 +39,29 @@ export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
 ) {
-  const {
-    state: paySheetState,
-    setVisible,
-    setSaving,
-    setAccountPickerVisible,
-    setRateOverride,
-    reset,
-  } = usePaySheetState(
-    useShallow((s) => ({
-      state: s.state,
-      setVisible: s.setVisible,
-      setSaving: s.setSaving,
-      setAccountPickerVisible: s.setAccountPickerVisible,
-      setRateOverride: s.setRateOverride,
-      reset: s.reset,
-    })),
-  );
+  const visible = usePaySheetState.useState.visible();
+  const saving = usePaySheetState.useState.saving();
+  const accountPickerVisible = usePaySheetState.useState.accountPickerVisible();
+  const rateOverride = usePaySheetState.useState.rateOverride();
+  const setVisible = usePaySheetState.use.setVisible();
+  const setSaving = usePaySheetState.use.setSaving();
+  const setAccountPickerVisible = usePaySheetState.use.setAccountPickerVisible();
+  const setRateOverride = usePaySheetState.use.setRateOverride();
+  const reset = usePaySheetState.use.reset();
 
-  const { state: accountState, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const loadAccounts = useAccountStore.use.loadAccounts();
   // Currency store gives the timestamp of the last stored exchange-rate
   // update — ExchangeRateRow (V2) reads this to render the "Rate may be
   // stale" warning when the stored rate is older than the staleness
   // window. §7 promoted the V2 ExchangeRateRow to a required-prop API;
   // pay_sheet now plumbs the timestamp through so the warning surfaces
   // here too (commitments was on V1 ExchangeRateRow until §7 cleanup).
-  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
+  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
 
-  const {
-    markAsPaid,
-    loadPaymentsForMonth,
-    state: commitmentState,
-  } = useCommitmentStore(
-    useShallow((s) => ({
-      markAsPaid: s.markAsPaid,
-      loadPaymentsForMonth: s.loadPaymentsForMonth,
-      state: s.state,
-    })),
-  );
+  const selectedMonth = useCommitmentStore.useState.selectedMonth();
+  const markAsPaid = useCommitmentStore.use.markAsPaid();
+  const loadPaymentsForMonth = useCommitmentStore.use.loadPaymentsForMonth();
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -91,8 +73,8 @@ export function usePaySheet(
   const exchangeRateValue = form.watch('exchange_rate');
 
   const selectedAccount = useMemo(
-    () => accountState.accounts.find((a) => a.id === accountId) ?? undefined,
-    [accountState.accounts, accountId],
+    () => accounts.find((a) => a.id === accountId) ?? undefined,
+    [accounts, accountId],
   );
 
   const requiresRate = useMemo(() => {
@@ -102,7 +84,7 @@ export function usePaySheet(
 
   // Pre-fill form when sheet becomes visible
   useEffect(() => {
-    if (!paySheetState.visible || !commitment) return;
+    if (!visible || !commitment) return;
 
     let cancelled = false;
 
@@ -130,8 +112,8 @@ export function usePaySheet(
           // silently fall through
         }
       }
-      if (!prefillAccountId && accountState.accounts.length > 0) {
-        prefillAccountId = accountState.accounts[0].id;
+      if (!prefillAccountId && accounts.length > 0) {
+        prefillAccountId = accounts[0].id;
       }
 
       if (!cancelled) {
@@ -152,7 +134,7 @@ export function usePaySheet(
       cancelled = true;
     };
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- commitment?.id already captures commitment identity changes; form/accountState are stable refs
-  }, [paySheetState.visible, commitment?.id, payment?.id]);
+  }, [visible, commitment?.id, payment?.id]);
 
   async function onValid(data: PaySheetFormValues) {
     if (!payment) return;
@@ -171,7 +153,7 @@ export function usePaySheet(
         notes: data.notes?.trim() || undefined,
       });
       await loadAccounts();
-      await loadPaymentsForMonth(commitmentState.selectedMonth);
+      await loadPaymentsForMonth(selectedMonth);
       setVisible(false);
       reset();
     } catch {
@@ -189,22 +171,22 @@ export function usePaySheet(
   return {
     form,
     state: {
-      saving: paySheetState.saving,
+      saving,
       requiresRate,
       selectedAccount,
-      accounts: accountState.accounts,
-      visible: paySheetState.visible,
-      accountPickerVisible: paySheetState.accountPickerVisible,
-      rateOverride: paySheetState.rateOverride,
+      accounts,
+      visible,
+      accountPickerVisible,
+      rateOverride,
       exchangeRateValue,
-      rateUpdatedAt: currencyState.rate_updated_at,
+      rateUpdatedAt,
     },
     onSubmit: form.handleSubmit(onValid),
     openAccountPicker: () => setAccountPickerVisible(true),
     closeAccountPicker: () => setAccountPickerVisible(false),
     selectAccount,
     setVisible,
-    toggleRateOverride: () => setRateOverride(!paySheetState.rateOverride),
+    toggleRateOverride: () => setRateOverride(!rateOverride),
     setPaidDate: (iso: string) => form.setValue('paid_date', iso, { shouldValidate: true }),
   };
 }

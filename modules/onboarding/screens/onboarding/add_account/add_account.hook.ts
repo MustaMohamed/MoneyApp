@@ -1,6 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
@@ -33,21 +32,16 @@ export const ACCOUNT_COLORS = [
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const { state: accountState, addAccount } = useAccountStore(
-    useShallow((s) => ({ state: s.state, addAccount: s.addAccount })),
-  );
-  const { state: onboardingState, setStep } = useOnboardingStore(
-    useShallow((s) => ({ state: s.state, setStep: s.setStep })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const addAccount = useAccountStore.use.addAccount();
+  const baseCurrency = useOnboardingStore.useState.baseCurrency();
+  const setStep = useOnboardingStore.use.setStep();
 
   useEffect(() => {
     void useAccountStore.getState().loadAccounts();
   }, []);
 
-  const schema = useMemo(
-    () => createAddAccountSchema(accountState.accounts),
-    [accountState.accounts],
-  );
+  const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -57,7 +51,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AcctTokens.midnight.rich,
-      currency: onboardingState.baseCurrency,
+      currency: baseCurrency,
       interest_tracking: false,
       credit_limit: '',
       apr: '',
@@ -76,7 +70,7 @@ export function useAddAccount() {
       opening_balance: parseFloat(data.balance),
       color: data.selected_color,
       interest_tracking: data.interest_tracking ? 1 : 0,
-      sort_order: accountState.accounts.length,
+      sort_order: accounts.length,
       credit_limit: isCC && data.credit_limit?.trim() ? parseFloat(data.credit_limit) : null,
       revolving_balance:
         isCC && data.revolving_balance?.trim() ? parseFloat(data.revolving_balance) || 0 : null,

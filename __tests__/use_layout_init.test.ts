@@ -17,9 +17,15 @@ jest.mock('@/store/onboarding.store', () => ({
   loadOnboardingState: () => mockLoadOnboardingState(),
 }));
 jest.mock('@/store/ready.store', () => ({
-  useReadyStore: jest.fn(
-    (sel: (s: { state: { ready: boolean }; setReady: jest.Mock }) => unknown) =>
+  useReadyStore: Object.assign(
+    jest.fn((sel: (s: { state: { ready: boolean }; setReady: jest.Mock }) => unknown) =>
       sel({ state: { ready: false }, setReady: mockSetReady }),
+    ),
+    {
+      use: { setReady: () => mockSetReady },
+      useState: { ready: () => false },
+      getState: () => ({ state: { ready: false }, setReady: mockSetReady }),
+    },
   ),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({

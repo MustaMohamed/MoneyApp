@@ -5,6 +5,7 @@ import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -30,12 +31,15 @@ function setup(isAddingMore = false) {
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush, back: jest.fn(), replace: jest.fn() });
   (require('@/utils/onboarding_nav').backOrReplace as jest.Mock) = mockBackOrReplace;
 
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts: [] }, addAccount: mockAddAccount }),
-  );
-  (useOnboardingStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { baseCurrency: 'EGP' }, setStep: mockSetStep }),
-  );
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    state: { accounts: [] },
+    addAccount: mockAddAccount,
+    loadAccounts: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+    state: { baseCurrency: 'EGP' },
+    setStep: mockSetStep,
+  }));
 }
 
 describe('useAddAccount', () => {

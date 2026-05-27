@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface SetBudgetSheetStateShape {
   selectedCategoryId: string | undefined;
   pickerExpanded: boolean;
@@ -19,16 +21,18 @@ const INITIAL_STATE: SetBudgetSheetStateShape = {
   pickerExpanded: false,
 };
 
-export const useSetBudgetSheetState = create<SetBudgetSheetState>((set) => ({
-  state: INITIAL_STATE,
-  initAddMode: (firstCategoryId) =>
-    set({
-      state: { ...INITIAL_STATE, selectedCategoryId: firstCategoryId },
-    }),
-  setSelectedCategoryId: (id) =>
-    set((s) => ({ state: { ...s.state, selectedCategoryId: id, pickerExpanded: false } })),
-  togglePicker: () =>
-    set((s) => ({ state: { ...s.state, pickerExpanded: !s.state.pickerExpanded } })),
-  collapsePicker: () => set((s) => ({ state: { ...s.state, pickerExpanded: false } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useSetBudgetSheetState = createMoneyAppSelectors(
+  create<SetBudgetSheetState>((set) => ({
+    state: INITIAL_STATE,
+    initAddMode: (firstCategoryId) =>
+      set({
+        state: { ...INITIAL_STATE, selectedCategoryId: firstCategoryId },
+      }),
+    setSelectedCategoryId: (id) =>
+      set((s) => ({ state: { ...s.state, selectedCategoryId: id, pickerExpanded: false } })),
+    togglePicker: () =>
+      set((s) => ({ state: { ...s.state, pickerExpanded: !s.state.pickerExpanded } })),
+    collapsePicker: () => set((s) => ({ state: { ...s.state, pickerExpanded: false } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

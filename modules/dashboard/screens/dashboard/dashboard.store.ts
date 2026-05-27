@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface MonthSpendStats {
   totalEgp: number;
@@ -33,14 +34,16 @@ const INITIAL_STATE: DashboardStoreShape = {
   previousMonthSpend: EMPTY_SPEND,
 };
 
-export const useDashboardStore = create<DashboardStore>((set) => ({
-  state: INITIAL_STATE,
-  setStatsMap: (m) => set((s) => ({ state: { ...s.state, statsMap: m } })),
-  setCurrentMonthCommitmentPayments: (p) =>
-    set((s) => ({ state: { ...s.state, currentMonthCommitmentPayments: p } })),
-  setMonthSpendStats: (current, previous) =>
-    set((s) => ({
-      state: { ...s.state, currentMonthSpend: current, previousMonthSpend: previous },
-    })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useDashboardStore = createMoneyAppSelectors(
+  create<DashboardStore>((set) => ({
+    state: INITIAL_STATE,
+    setStatsMap: (m) => set((s) => ({ state: { ...s.state, statsMap: m } })),
+    setCurrentMonthCommitmentPayments: (p) =>
+      set((s) => ({ state: { ...s.state, currentMonthCommitmentPayments: p } })),
+    setMonthSpendStats: (current, previous) =>
+      set((s) => ({
+        state: { ...s.state, currentMonthSpend: current, previousMonthSpend: previous },
+      })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

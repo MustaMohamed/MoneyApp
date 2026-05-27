@@ -1,6 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -31,24 +30,18 @@ export function useBudget() {
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);
 
-  const { categories, categoriesLoaded, loadCategories } = useCategoryStore(
-    useShallow((s) => ({
-      categories: s.state.categories,
-      categoriesLoaded: s.state.hasLoaded,
-      loadCategories: s.loadCategories,
-    })),
-  );
-  const { budgetState, load } = useBudgetStore(
-    useShallow((s) => ({ budgetState: s.state, load: s.load })),
-  );
-  const { openAdd, openEdit, lensTab, setLensTab } = useBudgetState(
-    useShallow((s) => ({
-      openAdd: s.openAdd,
-      openEdit: s.openEdit,
-      lensTab: s.state.lensTab,
-      setLensTab: s.setLensTab,
-    })),
-  );
+  const categories = useCategoryStore.useState.categories();
+  const categoriesLoaded = useCategoryStore.useState.hasLoaded();
+  const loadCategories = useCategoryStore.use.loadCategories();
+  const budgetRows = useBudgetStore.useState.rows();
+  const spendByMonth = useBudgetStore.useState.spendByMonth();
+  const budgetLoaded = useBudgetStore.useState.loaded();
+  const expectedIncome = useBudgetStore.useState.expectedIncome();
+  const load = useBudgetStore.use.load();
+  const openAdd = useBudgetState.use.openAdd();
+  const openEdit = useBudgetState.use.openEdit();
+  const lensTab = useBudgetState.useState.lensTab();
+  const setLensTab = useBudgetState.use.setLensTab();
 
   useFocusEffect(
     useCallback(() => {
@@ -71,9 +64,9 @@ export function useBudget() {
     const out: CategoryBudgetRowVM[] = [];
     for (const c of categories) {
       if (c.type !== CategoryType.Expense) continue;
-      const limit = resolveLimitForMonth(budgetState.rows, c.id, month);
+      const limit = resolveLimitForMonth(budgetRows, c.id, month);
       if (limit === null) continue; // unbudgeted → not shown
-      const spent = budgetState.spendByMonth[c.id]?.[month] ?? 0;
+      const spent = spendByMonth[c.id]?.[month] ?? 0;
       out.push({
         ...computeCategoryRow(c.id, limit, spent),
         name: c.name,
@@ -82,20 +75,13 @@ export function useBudget() {
       });
     }
     return out;
-  }, [categories, budgetState.rows, budgetState.spendByMonth, month]);
+  }, [budgetRows, categories, month, spendByMonth]);
 
   const overall = useMemo(() => computeOverall(rows), [rows]);
 
   const buckets: BucketsVM = useMemo(
-    () =>
-      computeBuckets(
-        budgetState.expectedIncome ?? 0,
-        categories,
-        budgetState.rows,
-        budgetState.spendByMonth,
-        month,
-      ),
-    [categories, budgetState.rows, budgetState.spendByMonth, budgetState.expectedIncome, month],
+    () => computeBuckets(expectedIncome ?? 0, categories, budgetRows, spendByMonth, month),
+    [budgetRows, categories, expectedIncome, month, spendByMonth],
   );
 
   // expense categories that do NOT yet have an active budget — for the add picker
@@ -103,10 +89,9 @@ export function useBudget() {
     () =>
       categories.filter(
         (c) =>
-          c.type === CategoryType.Expense &&
-          resolveLimitForMonth(budgetState.rows, c.id, month) === null,
+          c.type === CategoryType.Expense && resolveLimitForMonth(budgetRows, c.id, month) === null,
       ),
-    [categories, budgetState.rows, month],
+    [budgetRows, categories, month],
   );
 
   const daysLeft = useMemo(() => {
@@ -132,7 +117,7 @@ export function useBudget() {
       buckets,
       suggestion,
       lensTab,
-      hasLoaded: Boolean(categoriesLoaded && budgetState.loaded),
+      hasLoaded: Boolean(categoriesLoaded && budgetLoaded),
     },
     openAdd,
     openEdit,

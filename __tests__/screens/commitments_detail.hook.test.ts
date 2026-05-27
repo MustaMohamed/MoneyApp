@@ -19,8 +19,14 @@ import { renderHook } from '@testing-library/react-native';
 
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/detail/detail.hook';
+import {
+  useCommitmentDetailScreenData,
+  useCommitmentDetailState,
+} from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -36,61 +42,39 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsByCommitment: jest.fn().mockResolvedValue([]) },
 }));
 jest.mock('@/modules/commitments/screens/commitments/detail/detail.state', () => ({
-  useCommitmentDetailScreenData: Object.assign(
-    jest.fn((sel: any) =>
-      sel({
-        state: { viewState: 'loading', allPayments: [] },
-        setAllPayments: jest.fn(),
-        setViewState: jest.fn(),
-        reset: jest.fn(),
-      }),
-    ),
-    {
-      getState: jest.fn(() => ({
-        state: { viewState: 'loading', allPayments: [] },
-        setAllPayments: jest.fn(),
-        setViewState: jest.fn(),
-        reset: jest.fn(),
-      })),
-    },
-  ),
-  useCommitmentDetailState: Object.assign(
-    jest.fn((sel: any) =>
-      sel({
-        state: { skipConfirmVisible: false },
-        setSkipConfirmVisible: jest.fn(),
-        reset: jest.fn(),
-      }),
-    ),
-    {
-      getState: jest.fn(() => ({
-        state: { skipConfirmVisible: false },
-        setSkipConfirmVisible: jest.fn(),
-        reset: jest.fn(),
-      })),
-    },
-  ),
+  useCommitmentDetailScreenData: jest.fn(),
+  useCommitmentDetailState: jest.fn(),
 }));
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
-  usePaySheetState: Object.assign(
-    jest.fn((sel: any) => sel({ state: { visible: false }, setVisible: jest.fn() })),
-    { getState: jest.fn(() => ({ setVisible: jest.fn() })) },
-  ),
+  usePaySheetState: jest.fn(),
 }));
 
 function setup() {
-  (useCommitmentStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { commitments: [], payments: [] },
-      skipPayment: jest.fn().mockResolvedValue(undefined),
-    }),
-  );
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts: [] } }),
-  );
-  (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { categories: [] } }),
-  );
+  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+    state: { commitments: [], payments: [] },
+    skipPayment: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    state: { accounts: [] },
+  }));
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+    state: { categories: [] },
+  }));
+  attachMockSelectorStore(useCommitmentDetailScreenData as unknown as jest.Mock, () => ({
+    state: { viewState: 'loading' as const, allPayments: [] },
+    setAllPayments: jest.fn(),
+    setViewState: jest.fn(),
+    reset: jest.fn(),
+  }));
+  attachMockSelectorStore(useCommitmentDetailState as unknown as jest.Mock, () => ({
+    state: { skipConfirmVisible: false },
+    setSkipConfirmVisible: jest.fn(),
+    reset: jest.fn(),
+  }));
+  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => ({
+    state: { visible: false },
+    setVisible: jest.fn(),
+  }));
 }
 
 describe('useCommitmentDetail', () => {

@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Colors } from '@/constants/theme';
 import { useAccountStore } from '@/store/account.store';
@@ -8,13 +7,10 @@ import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 
 export default function AppLayout() {
-  const { loadAccounts } = useAccountStore(useShallow((s) => ({ loadAccounts: s.loadAccounts })));
-  const { loadCategories } = useCategoryStore(
-    useShallow((s) => ({ loadCategories: s.loadCategories })),
-  );
-  const { loadRate, fetchRate } = useCurrencyStore(
-    useShallow((s) => ({ loadRate: s.loadRate, fetchRate: s.fetchRate })),
-  );
+  const loadAccounts = useAccountStore.use.loadAccounts();
+  const loadCategories = useCategoryStore.use.loadCategories();
+  const loadRate = useCurrencyStore.use.loadRate();
+  const fetchRate = useCurrencyStore.use.fetchRate();
 
   useEffect(() => {
     loadAccounts().catch(() => {});

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 import type { DashboardSegment } from './types';
 
 export type { DashboardSegment };
@@ -24,10 +26,12 @@ const INITIAL_STATE: DashboardStateShape = {
   selectedSegment: 'overview',
 };
 
-export const useDashboardState = create<DashboardState>((set) => ({
-  state: INITIAL_STATE,
-  setBreakdownVisible: (v) => set((s) => ({ state: { ...s.state, isBreakdownVisible: v } })),
-  setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
-  setSelectedSegment: (s) => set((prev) => ({ state: { ...prev.state, selectedSegment: s } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useDashboardState = createMoneyAppSelectors(
+  create<DashboardState>((set) => ({
+    state: INITIAL_STATE,
+    setBreakdownVisible: (v) => set((s) => ({ state: { ...s.state, isBreakdownVisible: v } })),
+    setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
+    setSelectedSegment: (s) => set((prev) => ({ state: { ...prev.state, selectedSegment: s } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface ReassignCategorySheetStateShape {
   selectedId: string | null;
   isLoading: boolean;
@@ -17,9 +19,11 @@ const INITIAL_STATE: ReassignCategorySheetStateShape = {
   isLoading: false,
 };
 
-export const useReassignCategorySheetState = create<ReassignCategorySheetState>((set) => ({
-  state: INITIAL_STATE,
-  setSelectedId: (id) => set((s) => ({ state: { ...s.state, selectedId: id } })),
-  setIsLoading: (v) => set((s) => ({ state: { ...s.state, isLoading: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useReassignCategorySheetState = createMoneyAppSelectors(
+  create<ReassignCategorySheetState>((set) => ({
+    state: INITIAL_STATE,
+    setSelectedId: (id) => set((s) => ({ state: { ...s.state, selectedId: id } })),
+    setIsLoading: (v) => set((s) => ({ state: { ...s.state, isLoading: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

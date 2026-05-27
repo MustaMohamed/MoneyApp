@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -63,55 +62,36 @@ function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | 
 export function useCommitmentDetail() {
   const { id: paymentId } = useLocalSearchParams<{ id: string }>();
 
-  const { state: commitmentState, skipPayment: storeSkipPayment } = useCommitmentStore(
-    useShallow((s) => ({ state: s.state, skipPayment: s.skipPayment })),
-  );
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const payments = useCommitmentStore.useState.payments();
+  const commitments = useCommitmentStore.useState.commitments();
+  const storeSkipPayment = useCommitmentStore.use.skipPayment();
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
 
-  const {
-    state: uiState,
-    setSkipConfirmVisible,
-    reset: resetUi,
-  } = useCommitmentDetailState(
-    useShallow((s) => ({
-      state: s.state,
-      setSkipConfirmVisible: s.setSkipConfirmVisible,
-      reset: s.reset,
-    })),
-  );
+  const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();
+  const setSkipConfirmVisible = useCommitmentDetailState.use.setSkipConfirmVisible();
+  const resetUi = useCommitmentDetailState.use.reset();
 
-  const {
-    state: screenState,
-    setAllPayments,
-    setViewState,
-  } = useCommitmentDetailScreenData(
-    useShallow((s) => ({
-      state: s.state,
-      setAllPayments: s.setAllPayments,
-      setViewState: s.setViewState,
-    })),
-  );
+  const allPayments = useCommitmentDetailScreenData.useState.allPayments();
+  const screenViewState = useCommitmentDetailScreenData.useState.viewState();
+  const setAllPayments = useCommitmentDetailScreenData.use.setAllPayments();
+  const setViewState = useCommitmentDetailScreenData.use.setViewState();
 
   // Find payment from store's monthly payments
-  const payment = useMemo(
-    () => commitmentState.payments.find((p) => p.id === paymentId),
-    [commitmentState.payments, paymentId],
-  );
+  const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);
 
   // Find commitment from store
   const commitment = useMemo(
-    () =>
-      payment ? commitmentState.commitments.find((c) => c.id === payment.commitment_id) : undefined,
-    [payment, commitmentState.commitments],
+    () => (payment ? commitments.find((c) => c.id === payment.commitment_id) : undefined),
+    [payment, commitments],
   );
 
   // Derive viewState
   const viewState: DetailViewState = useMemo(() => {
-    if (screenState.viewState === 'loading') return 'loading';
+    if (screenViewState === 'loading') return 'loading';
     if (!commitment) return 'notFound';
     return 'ready';
-  }, [screenState.viewState, commitment]);
+  }, [screenViewState, commitment]);
 
   // Load all payments for this commitment from repo
   useEffect(() => {
@@ -137,7 +117,7 @@ export function useCommitmentDetail() {
       cancelled = true;
     };
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [commitment?.id, commitmentState.payments, setAllPayments, setViewState]); // commitment?.id captures identity changes; full object dep would cause spurious re-fetches
+  }, [commitment?.id, payments, setAllPayments, setViewState]); // commitment?.id captures identity changes; full object dep would cause spurious re-fetches
 
   // Cleanup on unmount
   useEffect(() => {
@@ -148,25 +128,17 @@ export function useCommitmentDetail() {
   }, [resetUi]);
 
   const category = useMemo(
-    () =>
-      commitment
-        ? categoryState.categories.find((c) => c.id === commitment.category_id)
-        : undefined,
-    [commitment, categoryState.categories],
+    () => (commitment ? categories.find((c) => c.id === commitment.category_id) : undefined),
+    [commitment, categories],
   );
 
   const account = useMemo(
     () =>
-      commitment?.account_id
-        ? accountState.accounts.find((a) => a.id === commitment.account_id)
-        : undefined,
-    [commitment, accountState.accounts],
+      commitment?.account_id ? accounts.find((a) => a.id === commitment.account_id) : undefined,
+    [commitment, accounts],
   );
 
-  const currentPayment = useMemo(
-    () => findCurrentPayment(screenState.allPayments),
-    [screenState.allPayments],
-  );
+  const currentPayment = useMemo(() => findCurrentPayment(allPayments), [allPayments]);
 
   const recurrenceLabel = useMemo(
     () => (commitment ? buildRecurrenceLabel(commitment) : ''),
@@ -220,13 +192,13 @@ export function useCommitmentDetail() {
       viewState,
       payment,
       commitment,
-      allPayments: screenState.allPayments,
+      allPayments,
       category,
       account,
       currentPayment,
       recurrenceLabel,
       durationLabel,
-      skipConfirmVisible: uiState.skipConfirmVisible,
+      skipConfirmVisible,
     },
     openPaySheet,
     skipPayment,

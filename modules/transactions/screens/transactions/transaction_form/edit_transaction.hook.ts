@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -39,41 +38,22 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { accounts, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ accounts: s.state.accounts, loadAccounts: s.loadAccounts })),
-  );
-  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
-  const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({ rate: s.state.rate, rateUpdatedAt: s.state.rate_updated_at })),
-  );
-  const { updateTransaction } = useTransactionStore(
-    useShallow((s) => ({ updateTransaction: s.updateTransaction })),
-  );
-
-  const {
-    state: storeState,
-    setAmountStr,
-    handleNumpad,
-  } = useEditTransactionStore(
-    useShallow((s) => ({
-      state: s.state,
-      setAmountStr: s.setAmountStr,
-      handleNumpad: s.handleNumpad,
-    })),
-  );
-  const {
-    state: uiState,
-    setSaving,
-    setShowCategoryPicker,
-    setRateOverride,
-  } = useEditTransactionState(
-    useShallow((s) => ({
-      state: s.state,
-      setSaving: s.setSaving,
-      setShowCategoryPicker: s.setShowCategoryPicker,
-      setRateOverride: s.setRateOverride,
-    })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const loadAccounts = useAccountStore.use.loadAccounts();
+  const categories = useCategoryStore.useState.categories();
+  const rate = useCurrencyStore.useState.rate();
+  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
+  const updateTransaction = useTransactionStore.use.updateTransaction();
+  const amountStr = useEditTransactionStore.useState.amountStr();
+  const setAmountStr = useEditTransactionStore.use.setAmountStr();
+  const handleNumpad = useEditTransactionStore.use.handleNumpad();
+  const visible = useEditTransactionState.useState.visible();
+  const saving = useEditTransactionState.useState.saving();
+  const showCategoryPicker = useEditTransactionState.useState.showCategoryPicker();
+  const rateOverride = useEditTransactionState.useState.rateOverride();
+  const setSaving = useEditTransactionState.use.setSaving();
+  const setShowCategoryPicker = useEditTransactionState.use.setShowCategoryPicker();
+  const setRateOverride = useEditTransactionState.use.setRateOverride();
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -125,18 +105,18 @@ export function useEditTransaction(
   };
 
   useEffect(() => {
-    const parsed = parseFloat(storeState.amountStr);
+    const parsed = parseFloat(amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
-  }, [storeState.amountStr]);
+  }, [amountStr]);
 
   useEffect(() => {
-    if (!uiState.visible) {
+    if (!visible) {
       form.reset(buildDefaultsFromTx(initialTx, rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
-  }, [uiState.visible]);
+  }, [visible]);
 
   async function onValid(data: EditTransactionFormValues) {
     setSaving(true);
@@ -189,7 +169,7 @@ export function useEditTransaction(
   }
 
   function toggleRateOverride() {
-    const next = !uiState.rateOverride;
+    const next = !rateOverride;
     setRateOverride(next);
     if (!next) form.setValue('exchangeRate', String(rate));
   }
@@ -202,7 +182,7 @@ export function useEditTransaction(
   return {
     state: {
       type,
-      amountStr: storeState.amountStr,
+      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -210,13 +190,13 @@ export function useEditTransaction(
       note,
       date,
       exchangeRate,
-      rateOverride: uiState.rateOverride,
+      rateOverride,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
-      saving: uiState.saving,
+      saving,
       visibleCategories,
-      showCategoryPicker: uiState.showCategoryPicker,
+      showCategoryPicker,
       rateUpdatedAt,
     },
     setAmountStr,

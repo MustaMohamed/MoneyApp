@@ -1,6 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -21,38 +20,18 @@ export function useEditCommitment() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-  const {
-    state: commitmentState,
-    updateCommitment,
-    deactivateCommitment,
-  } = useCommitmentStore(
-    useShallow((s) => ({
-      state: s.state,
-      updateCommitment: s.updateCommitment,
-      deactivateCommitment: s.deactivateCommitment,
-    })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
+  const commitments = useCommitmentStore.useState.commitments();
+  const updateCommitment = useCommitmentStore.use.updateCommitment();
+  const deactivateCommitment = useCommitmentStore.use.deactivateCommitment();
+  const saving = useEditCommitmentState.useState.saving();
+  const deactivateDialogVisible = useEditCommitmentState.useState.deactivateDialogVisible();
+  const setSaving = useEditCommitmentState.use.setSaving();
+  const setDeactivateDialogVisible = useEditCommitmentState.use.setDeactivateDialogVisible();
+  const reset = useEditCommitmentState.use.reset();
 
-  const {
-    state: screenState,
-    setSaving,
-    setDeactivateDialogVisible,
-    reset,
-  } = useEditCommitmentState(
-    useShallow((s) => ({
-      state: s.state,
-      setSaving: s.setSaving,
-      setDeactivateDialogVisible: s.setDeactivateDialogVisible,
-      reset: s.reset,
-    })),
-  );
-
-  const commitment = useMemo(
-    () => commitmentState.commitments.find((c) => c.id === id),
-    [commitmentState.commitments, id],
-  );
+  const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
 
   useEffect(() => {
     if (!commitment) router.back();
@@ -133,10 +112,10 @@ export function useEditCommitment() {
 
   return {
     state: {
-      saving: screenState.saving,
-      deactivateDialogVisible: screenState.deactivateDialogVisible,
-      categories: categoryState.categories,
-      accounts: accountState.accounts,
+      saving,
+      deactivateDialogVisible,
+      categories,
+      accounts,
     },
     form,
     onSubmit: form.handleSubmit(onValid),

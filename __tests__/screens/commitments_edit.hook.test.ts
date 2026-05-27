@@ -3,7 +3,9 @@ import { renderHook } from '@testing-library/react-native';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
+import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -18,31 +20,28 @@ jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore
 jest.mock(
   '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state',
   () => ({
-    useEditCommitmentState: jest.fn((sel: any) =>
-      sel({
-        state: { saving: false, deactivateDialogVisible: false },
-        setSaving: jest.fn(),
-        setDeactivateDialogVisible: jest.fn(),
-        reset: jest.fn(),
-      }),
-    ),
+    useEditCommitmentState: jest.fn(),
   }),
 );
 
 function setup() {
-  (useCommitmentStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { commitments: [], payments: [], selectedMonth: '2026-05' },
-      updateCommitment: jest.fn().mockResolvedValue(undefined),
-      deactivateCommitment: jest.fn().mockResolvedValue(undefined),
-    }),
-  );
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts: [] } }),
-  );
-  (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { categories: [] } }),
-  );
+  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+    state: { commitments: [], payments: [], selectedMonth: '2026-05' },
+    updateCommitment: jest.fn().mockResolvedValue(undefined),
+    deactivateCommitment: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    state: { accounts: [] },
+  }));
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+    state: { categories: [] },
+  }));
+  attachMockSelectorStore(useEditCommitmentState as unknown as jest.Mock, () => ({
+    state: { saving: false, deactivateDialogVisible: false },
+    setSaving: jest.fn(),
+    setDeactivateDialogVisible: jest.fn(),
+    reset: jest.fn(),
+  }));
 }
 
 describe('useEditCommitment', () => {

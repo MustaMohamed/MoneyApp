@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface CurrencyScreenStateShape {
   isFetching: boolean;
   isSaving: boolean;
@@ -21,13 +23,15 @@ const INITIAL_STATE: CurrencyScreenStateShape = {
 };
 
 export function createCurrencyScreenState() {
-  return create<CurrencyScreenState>((set) => ({
-    state: INITIAL_STATE,
-    setFetching: (v) => set((s) => ({ state: { ...s.state, isFetching: v } })),
-    setSaving: (v) => set((s) => ({ state: { ...s.state, isSaving: v } })),
-    setFetchError: (msg) => set((s) => ({ state: { ...s.state, fetchError: msg } })),
-    reset: () => set({ state: INITIAL_STATE }),
-  }));
+  return createMoneyAppSelectors(
+    create<CurrencyScreenState>((set) => ({
+      state: INITIAL_STATE,
+      setFetching: (v) => set((s) => ({ state: { ...s.state, isFetching: v } })),
+      setSaving: (v) => set((s) => ({ state: { ...s.state, isSaving: v } })),
+      setFetchError: (msg) => set((s) => ({ state: { ...s.state, fetchError: msg } })),
+      reset: () => set({ state: INITIAL_STATE }),
+    })),
+  );
 }
 
 export const useCurrencyScreenState = createCurrencyScreenState();

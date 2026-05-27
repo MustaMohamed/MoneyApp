@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import type {
   Category,
@@ -14,61 +13,29 @@ import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
   const router = useRouter();
-  const {
-    categories,
-    hasLoaded,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    reassignAndDelete,
-    getCategoryTransactionCount,
-  } = useCategoryStore(
-    useShallow((s) => ({
-      categories: s.state.categories,
-      hasLoaded: s.state.hasLoaded,
-      addCategory: s.addCategory,
-      updateCategory: s.updateCategory,
-      deleteCategory: s.deleteCategory,
-      reassignAndDelete: s.reassignAndDelete,
-      getCategoryTransactionCount: s.getCategoryTransactionCount,
-    })),
-  );
-
-  const {
-    state: catScreenDataState,
-    setEditingCategory,
-    setCategoryToDelete,
-    setLinkedCount,
-  } = useCategoriesScreenStore(
-    useShallow((s) => ({
-      state: s.state,
-      setEditingCategory: s.setEditingCategory,
-      setCategoryToDelete: s.setCategoryToDelete,
-      setLinkedCount: s.setLinkedCount,
-    })),
-  );
-
-  const {
-    state: catScreenUiState,
-    setActiveTab,
-    setShowAddSheet,
-    setShowDeleteConfirm,
-    setShowReassignSheet,
-    setIsDeleting,
-  } = useCategoriesScreenState(
-    useShallow((s) => ({
-      state: s.state,
-      setActiveTab: s.setActiveTab,
-      setShowAddSheet: s.setShowAddSheet,
-      setShowDeleteConfirm: s.setShowDeleteConfirm,
-      setShowReassignSheet: s.setShowReassignSheet,
-      setIsDeleting: s.setIsDeleting,
-    })),
-  );
-
-  const activeTab = catScreenUiState.activeTab;
-  const editingCategory = catScreenDataState.editingCategory;
-  const categoryToDelete = catScreenDataState.categoryToDelete;
+  const categories = useCategoryStore.useState.categories();
+  const hasLoaded = useCategoryStore.useState.hasLoaded();
+  const addCategory = useCategoryStore.use.addCategory();
+  const updateCategory = useCategoryStore.use.updateCategory();
+  const deleteCategory = useCategoryStore.use.deleteCategory();
+  const reassignAndDelete = useCategoryStore.use.reassignAndDelete();
+  const getCategoryTransactionCount = useCategoryStore.use.getCategoryTransactionCount();
+  const editingCategory = useCategoriesScreenStore.useState.editingCategory();
+  const categoryToDelete = useCategoriesScreenStore.useState.categoryToDelete();
+  const linkedCount = useCategoriesScreenStore.useState.linkedCount();
+  const setEditingCategory = useCategoriesScreenStore.use.setEditingCategory();
+  const setCategoryToDelete = useCategoriesScreenStore.use.setCategoryToDelete();
+  const setLinkedCount = useCategoriesScreenStore.use.setLinkedCount();
+  const activeTab = useCategoriesScreenState.useState.activeTab();
+  const showAddSheet = useCategoriesScreenState.useState.showAddSheet();
+  const showDeleteConfirm = useCategoriesScreenState.useState.showDeleteConfirm();
+  const showReassignSheet = useCategoriesScreenState.useState.showReassignSheet();
+  const isDeleting = useCategoriesScreenState.useState.isDeleting();
+  const setActiveTab = useCategoriesScreenState.use.setActiveTab();
+  const setShowAddSheet = useCategoriesScreenState.use.setShowAddSheet();
+  const setShowDeleteConfirm = useCategoriesScreenState.use.setShowDeleteConfirm();
+  const setShowReassignSheet = useCategoriesScreenState.use.setShowReassignSheet();
+  const setIsDeleting = useCategoriesScreenState.use.setIsDeleting();
 
   const displayedCategories = useMemo(
     () => categories.filter((c) => c.type === activeTab),
@@ -234,14 +201,14 @@ export function useCategories() {
       isAtLimit,
       hasLoaded,
       activeTab,
-      showAddSheet: catScreenUiState.showAddSheet,
+      showAddSheet,
       editingCategory,
       categoryToDelete,
-      showDeleteConfirm: catScreenUiState.showDeleteConfirm,
-      showReassignSheet: catScreenUiState.showReassignSheet,
+      showDeleteConfirm,
+      showReassignSheet,
       reassignOptions,
-      linkedCount: catScreenDataState.linkedCount,
-      isDeleting: catScreenUiState.isDeleting,
+      linkedCount,
+      isDeleting,
     },
     setActiveTab,
     openAddSheet,

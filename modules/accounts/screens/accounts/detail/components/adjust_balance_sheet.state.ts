@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface AdjustBalanceSheetStateShape {
   input: string;
   error: string;
@@ -18,10 +20,12 @@ const INITIAL_STATE: AdjustBalanceSheetStateShape = {
   error: '',
 };
 
-export const useAdjustBalanceSheetState = create<AdjustBalanceSheetState>((set) => ({
-  state: INITIAL_STATE,
-  setInput: (v) => set((s) => ({ state: { ...s.state, input: v } })),
-  setError: (v) => set((s) => ({ state: { ...s.state, error: v } })),
-  initialize: (currentBalance) => set({ state: { input: String(currentBalance), error: '' } }),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useAdjustBalanceSheetState = createMoneyAppSelectors(
+  create<AdjustBalanceSheetState>((set) => ({
+    state: INITIAL_STATE,
+    setInput: (v) => set((s) => ({ state: { ...s.state, input: v } })),
+    setError: (v) => set((s) => ({ state: { ...s.state, error: v } })),
+    initialize: (currentBalance) => set({ state: { input: String(currentBalance), error: '' } }),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

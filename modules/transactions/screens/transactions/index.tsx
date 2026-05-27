@@ -3,7 +3,6 @@ import { Spinner } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
@@ -50,20 +49,16 @@ export default function TransactionsScreen(): React.ReactElement {
     onEndReached,
     setCustomRange,
   } = t;
-  const { state: addTxState, open: openAddTx } = useAddTransactionState(
-    useShallow((s) => ({ state: s.state, open: s.open })),
-  );
+  const addTxVisible = useAddTransactionState.useState.visible();
+  const addTxPendingOpen = useAddTransactionState.useState.pendingOpen();
+  const openAddTx = useAddTransactionState.use.open();
 
   // Edit sheet state — opened imperatively from goToEdit in the hook
-  const { state: editTxUiState } = useEditTransactionState(useShallow((s) => ({ state: s.state })));
-  const { state: editTxDataState } = useEditTransactionStore(
-    useShallow((s) => ({ state: s.state })),
-  );
+  const editTxVisible = useEditTransactionState.useState.visible();
+  const editingTx = useEditTransactionStore.useState.editingTx();
 
   // Delete confirm gate for list-swipe delete
-  const { deleteTransaction } = useTransactionStore(
-    useShallow((s) => ({ deleteTransaction: s.deleteTransaction })),
-  );
+  const deleteTransaction = useTransactionStore.use.deleteTransaction();
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
@@ -80,17 +75,13 @@ export default function TransactionsScreen(): React.ReactElement {
   // HeroUI sheet presents instead of only mounting its children (the "keyboard
   // opens but sheet doesn't" symptom). Harmless quarter-second on same-tab.
   useEffect(() => {
-    if (!addTxState.pendingOpen) return undefined;
+    if (!addTxPendingOpen) return undefined;
     const timer = setTimeout(() => openAddTx(), 250);
     return () => clearTimeout(timer);
-  }, [addTxState.pendingOpen, openAddTx]);
+  }, [addTxPendingOpen, openAddTx]);
 
-  const { state: filterUiState, setDateRangeSheetVisible } = useFilterState(
-    useShallow((s) => ({
-      state: s.state,
-      setDateRangeSheetVisible: s.setDateRangeSheetVisible,
-    })),
-  );
+  const dateRangeSheetVisible = useFilterState.useState.dateRangeSheetVisible();
+  const setDateRangeSheetVisible = useFilterState.use.setDateRangeSheetVisible();
 
   useFocusEffect(
     useCallback(() => {
@@ -216,15 +207,15 @@ export default function TransactionsScreen(): React.ReactElement {
       />
 
       <AddTransactionSheet
-        visible={addTxState.visible}
+        visible={addTxVisible}
         onClose={() => {
           useAddTransactionState.getState().close();
           useAddTransactionStore.getState().reset();
         }}
       />
       <EditTransactionSheet
-        visible={editTxUiState.visible}
-        tx={editTxDataState.editingTx}
+        visible={editTxVisible}
+        tx={editingTx}
         onClose={() => {
           useEditTransactionStore.getState().reset();
           useEditTransactionState.getState().close();
@@ -244,7 +235,7 @@ export default function TransactionsScreen(): React.ReactElement {
       />
       <FilterSheet />
       <DateRangeSheet
-        isOpen={filterUiState.dateRangeSheetVisible}
+        isOpen={dateRangeSheetVisible}
         initialFrom={state.customRange?.from}
         initialTo={state.customRange?.to}
         onOpenChange={(open) => {

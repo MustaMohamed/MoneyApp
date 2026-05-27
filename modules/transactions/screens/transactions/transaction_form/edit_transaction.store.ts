@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface EditTransactionStoreShape {
   editingTx: Transaction | null;
@@ -25,38 +26,40 @@ const INITIAL_STATE: EditTransactionStoreShape = {
   amountStr: '0',
 };
 
-export const useEditTransactionStore = create<EditTransactionStore>((set) => ({
-  state: INITIAL_STATE,
+export const useEditTransactionStore = createMoneyAppSelectors(
+  create<EditTransactionStore>((set) => ({
+    state: INITIAL_STATE,
 
-  loadFromTx: (tx) =>
-    set({
-      state: {
-        editingTx: tx,
-        amountStr: String(tx.amount),
-      },
-    }),
+    loadFromTx: (tx) =>
+      set({
+        state: {
+          editingTx: tx,
+          amountStr: String(tx.amount),
+        },
+      }),
 
-  setAmountStr: (value) => set((s) => ({ state: { ...s.state, amountStr: value } })),
+    setAmountStr: (value) => set((s) => ({ state: { ...s.state, amountStr: value } })),
 
-  handleNumpad: (action, value) =>
-    set((s) => {
-      const prev = s.state.amountStr;
-      if (action === 'backspace') {
-        return { state: { ...s.state, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) } };
-      }
-      if (action === 'decimal') {
-        return { state: { ...s.state, amountStr: prev.includes('.') ? prev : prev + '.' } };
-      }
-      const digit = value ?? '';
-      if (prev === '0') {
-        return { state: { ...s.state, amountStr: digit === '0' ? '0' : digit } };
-      }
-      if (prev.includes('.')) {
-        const parts = prev.split('.');
-        if (parts[1].length >= 2) return {};
-      }
-      return { state: { ...s.state, amountStr: prev + digit } };
-    }),
+    handleNumpad: (action, value) =>
+      set((s) => {
+        const prev = s.state.amountStr;
+        if (action === 'backspace') {
+          return { state: { ...s.state, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) } };
+        }
+        if (action === 'decimal') {
+          return { state: { ...s.state, amountStr: prev.includes('.') ? prev : prev + '.' } };
+        }
+        const digit = value ?? '';
+        if (prev === '0') {
+          return { state: { ...s.state, amountStr: digit === '0' ? '0' : digit } };
+        }
+        if (prev.includes('.')) {
+          const parts = prev.split('.');
+          if (parts[1].length >= 2) return {};
+        }
+        return { state: { ...s.state, amountStr: prev + digit } };
+      }),
 
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

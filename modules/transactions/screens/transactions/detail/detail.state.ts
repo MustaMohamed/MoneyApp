@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface TxDetailStateShape {
   confirmVisible: boolean;
   deleting: boolean;
@@ -20,10 +22,12 @@ const INITIAL_STATE: TxDetailStateShape = {
   reloadKey: 0,
 };
 
-export const useTxDetailState = create<TxDetailState>((set) => ({
-  state: INITIAL_STATE,
-  setConfirmVisible: (v) => set((s) => ({ state: { ...s.state, confirmVisible: v } })),
-  setDeleting: (v) => set((s) => ({ state: { ...s.state, deleting: v } })),
-  bumpReload: () => set((s) => ({ state: { ...s.state, reloadKey: s.state.reloadKey + 1 } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useTxDetailState = createMoneyAppSelectors(
+  create<TxDetailState>((set) => ({
+    state: INITIAL_STATE,
+    setConfirmVisible: (v) => set((s) => ({ state: { ...s.state, confirmVisible: v } })),
+    setDeleting: (v) => set((s) => ({ state: { ...s.state, deleting: v } })),
+    bumpReload: () => set((s) => ({ state: { ...s.state, reloadKey: s.state.reloadKey + 1 } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

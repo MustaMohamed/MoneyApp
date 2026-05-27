@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -20,19 +19,13 @@ export type { CommitmentFormValues };
 export function useAddCommitment() {
   const router = useRouter();
 
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-  const { addCommitment, generatePayments } = useCommitmentStore(
-    useShallow((s) => ({ addCommitment: s.addCommitment, generatePayments: s.generatePayments })),
-  );
-
-  const {
-    state: screenState,
-    setSaving,
-    reset,
-  } = useAddCommitmentState(
-    useShallow((s) => ({ state: s.state, setSaving: s.setSaving, reset: s.reset })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
+  const addCommitment = useCommitmentStore.use.addCommitment();
+  const generatePayments = useCommitmentStore.use.generatePayments();
+  const saving = useAddCommitmentState.useState.saving();
+  const setSaving = useAddCommitmentState.use.setSaving();
+  const reset = useAddCommitmentState.use.reset();
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
     mode: 'onSubmit',
@@ -77,9 +70,9 @@ export function useAddCommitment() {
 
   return {
     state: {
-      saving: screenState.saving,
-      categories: categoryState.categories,
-      accounts: accountState.accounts,
+      saving,
+      categories,
+      accounts,
     },
     form,
     onSubmit: form.handleSubmit(onValid),

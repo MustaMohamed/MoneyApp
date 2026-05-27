@@ -1,7 +1,6 @@
 import { Text } from 'heroui-native';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
@@ -32,19 +31,11 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const {
-    state: adjustState,
-    setInput,
-    setError,
-    initialize,
-  } = useAdjustBalanceSheetState(
-    useShallow((s) => ({
-      state: s.state,
-      setInput: s.setInput,
-      setError: s.setError,
-      initialize: s.initialize,
-    })),
-  );
+  const input = useAdjustBalanceSheetState.useState.input();
+  const error = useAdjustBalanceSheetState.useState.error();
+  const setInput = useAdjustBalanceSheetState.use.setInput();
+  const setError = useAdjustBalanceSheetState.use.setError();
+  const initialize = useAdjustBalanceSheetState.use.initialize();
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
@@ -56,7 +47,7 @@ export function AdjustBalanceSheet({
   }, [isOpen, currentBalance, initialize]);
 
   const handleSave = () => {
-    const result = parseAdjustInput(adjustState.input);
+    const result = parseAdjustInput(input);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
@@ -99,7 +90,7 @@ export function AdjustBalanceSheet({
         <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
           <View style={{ flex: 1 }}>
             <Input
-              value={adjustState.input}
+              value={input}
               onChangeText={(v) => {
                 setInput(v);
                 setError('');
@@ -107,12 +98,12 @@ export function AdjustBalanceSheet({
               onFocus={onFocus}
               onBlur={onBlur}
               keyboardType="decimal-pad"
-              isInvalid={!!adjustState.error}
+              isInvalid={!!error}
             />
           </View>
           <Text className="text-muted font-sora-bold text-[15px]">{currency}</Text>
         </Box>
-        <FormErrorText message={adjustState.error || undefined} />
+        <FormErrorText message={error || undefined} />
       </Box>
     </Sheet>
   );

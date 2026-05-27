@@ -1,6 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
@@ -20,13 +19,12 @@ export function useCategoryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [month, setMonth] = useState(currentYearMonth);
 
-  const { categories, loadCategories } = useCategoryStore(
-    useShallow((s) => ({ categories: s.state.categories, loadCategories: s.loadCategories })),
-  );
-  const { budgetState, load } = useBudgetStore(
-    useShallow((s) => ({ budgetState: s.state, load: s.load })),
-  );
-  const { openEdit } = useBudgetState(useShallow((s) => ({ openEdit: s.openEdit })));
+  const categories = useCategoryStore.useState.categories();
+  const loadCategories = useCategoryStore.use.loadCategories();
+  const budgetRows = useBudgetStore.useState.rows();
+  const spendByMonth = useBudgetStore.useState.spendByMonth();
+  const load = useBudgetStore.use.load();
+  const openEdit = useBudgetState.use.openEdit();
 
   useFocusEffect(
     useCallback(() => {
@@ -43,9 +41,9 @@ export function useCategoryDetail() {
     const months = lastMonths(month, HISTORY_MONTHS);
     const out: MonthResultVM[] = [];
     for (const ym of months) {
-      const limit = resolveLimitForMonth(budgetState.rows, id, ym);
+      const limit = resolveLimitForMonth(budgetRows, id, ym);
       if (limit === null) continue; // only months the budget was active
-      const spent = budgetState.spendByMonth[id]?.[ym] ?? 0;
+      const spent = spendByMonth[id]?.[ym] ?? 0;
       out.push({
         yearMonth: ym,
         limit,
@@ -56,7 +54,7 @@ export function useCategoryDetail() {
       });
     }
     return out;
-  }, [id, month, budgetState.rows, budgetState.spendByMonth]);
+  }, [budgetRows, id, month, spendByMonth]);
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
   const liveMonth = useMemo(() => results.find((r) => r.yearMonth === month), [results, month]);

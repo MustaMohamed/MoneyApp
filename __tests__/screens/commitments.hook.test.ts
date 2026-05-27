@@ -4,6 +4,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -19,25 +20,21 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 }));
 
 function setup() {
-  (useCommitmentStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { commitments: [], payments: [], selectedMonth: '2026-05' },
-      setSelectedMonth: jest.fn(),
-      loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
-      loadCommitments: jest.fn().mockResolvedValue(undefined),
-      generatePayments: jest.fn().mockResolvedValue(undefined),
-    }),
-  );
-  (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { categories: [] } }),
-  );
-  (useCommitmentsScreenState as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { refreshing: false, statusFilter: 'all' },
-      setRefreshing: jest.fn(),
-      setStatusFilter: jest.fn(),
-    }),
-  );
+  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+    state: { commitments: [], payments: [], selectedMonth: '2026-05' },
+    setSelectedMonth: jest.fn(),
+    loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
+    loadCommitments: jest.fn().mockResolvedValue(undefined),
+    generatePayments: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+    state: { categories: [] },
+  }));
+  attachMockSelectorStore(useCommitmentsScreenState as unknown as jest.Mock, () => ({
+    state: { refreshing: false, statusFilter: 'all' },
+    setRefreshing: jest.fn(),
+    setStatusFilter: jest.fn(),
+  }));
 }
 
 describe('useCommitments', () => {

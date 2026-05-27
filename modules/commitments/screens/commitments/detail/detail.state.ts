@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
@@ -20,11 +22,13 @@ const INITIAL_STATE: DetailStateShape = {
   skipConfirmVisible: false,
 };
 
-export const useCommitmentDetailState = create<CommitmentDetailState>((set) => ({
-  state: INITIAL_STATE,
-  setSkipConfirmVisible: (v) => set((s) => ({ state: { ...s.state, skipConfirmVisible: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useCommitmentDetailState = createMoneyAppSelectors(
+  create<CommitmentDetailState>((set) => ({
+    state: INITIAL_STATE,
+    setSkipConfirmVisible: (v) => set((s) => ({ state: { ...s.state, skipConfirmVisible: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);
 
 // --- Screen-level data state (async-loaded payments + view state) ---
 // Relocated from detail.hook.ts to satisfy CLAUDE.md screens/ anatomy:
@@ -47,9 +51,11 @@ const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
   viewState: 'loading',
 };
 
-export const useCommitmentDetailScreenData = create<CommitmentDetailScreenDataStore>((set) => ({
-  state: INITIAL_SCREEN_DATA,
-  setAllPayments: (payments) => set((s) => ({ state: { ...s.state, allPayments: payments } })),
-  setViewState: (vs) => set((s) => ({ state: { ...s.state, viewState: vs } })),
-  reset: () => set({ state: INITIAL_SCREEN_DATA }),
-}));
+export const useCommitmentDetailScreenData = createMoneyAppSelectors(
+  create<CommitmentDetailScreenDataStore>((set) => ({
+    state: INITIAL_SCREEN_DATA,
+    setAllPayments: (payments) => set((s) => ({ state: { ...s.state, allPayments: payments } })),
+    setViewState: (vs) => set((s) => ({ state: { ...s.state, viewState: vs } })),
+    reset: () => set({ state: INITIAL_SCREEN_DATA }),
+  })),
+);

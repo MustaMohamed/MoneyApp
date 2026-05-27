@@ -22,7 +22,10 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
+import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -30,9 +33,7 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/currency/store/currency.store', () => ({
-  useCurrencyStore: jest.fn((sel: any) =>
-    sel({ state: { rate: 55, isManualOverride: false, rate_updated_at: null } }),
-  ),
+  useCurrencyStore: jest.fn(),
 }));
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: {
@@ -76,7 +77,7 @@ const mockPaySheetState = {
 };
 
 jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
-  usePaySheetState: jest.fn((sel: any) => sel(mockPaySheetState)),
+  usePaySheetState: jest.fn(),
 }));
 
 const fixedCommitment: Commitment = {
@@ -123,19 +124,19 @@ const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
 
 function setupStoreMocks() {
-  (useCommitmentStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { commitments: [], payments: [], selectedMonth: '2026-05' },
-      markAsPaid: mockMarkAsPaid,
-      loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
-    }),
-  );
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { accounts: mockAccounts },
-      loadAccounts: jest.fn().mockResolvedValue(undefined),
-    }),
-  );
+  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+    state: { commitments: [], payments: [], selectedMonth: '2026-05' },
+    markAsPaid: mockMarkAsPaid,
+    loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    state: { accounts: mockAccounts },
+    loadAccounts: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+    state: { rate: 55, isManualOverride: false, rate_updated_at: null },
+  }));
+  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => mockPaySheetState);
 }
 
 describe('usePaySheet', () => {

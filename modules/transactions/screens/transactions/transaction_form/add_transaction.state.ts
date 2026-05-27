@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface AddTransactionStateShape {
   visible: boolean;
   /**
@@ -40,16 +42,18 @@ const INITIAL_STATE: AddTransactionStateShape = {
   rateOverride: false,
 };
 
-export const useAddTransactionState = create<AddTransactionState>((set) => ({
-  state: INITIAL_STATE,
+export const useAddTransactionState = createMoneyAppSelectors(
+  create<AddTransactionState>((set) => ({
+    state: INITIAL_STATE,
 
-  open: () => set((s) => ({ state: { ...s.state, visible: true, pendingOpen: false } })),
-  requestOpen: () => set((s) => ({ state: { ...s.state, pendingOpen: true } })),
-  close: () => set({ state: INITIAL_STATE }),
-  setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-  setShowAccountPicker: (v) => set((s) => ({ state: { ...s.state, showAccountPicker: v } })),
-  setShowToPicker: (v) => set((s) => ({ state: { ...s.state, showToPicker: v } })),
-  setShowCategoryPicker: (v) => set((s) => ({ state: { ...s.state, showCategoryPicker: v } })),
-  setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+    open: () => set((s) => ({ state: { ...s.state, visible: true, pendingOpen: false } })),
+    requestOpen: () => set((s) => ({ state: { ...s.state, pendingOpen: true } })),
+    close: () => set({ state: INITIAL_STATE }),
+    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
+    setShowAccountPicker: (v) => set((s) => ({ state: { ...s.state, showAccountPicker: v } })),
+    setShowToPicker: (v) => set((s) => ({ state: { ...s.state, showToPicker: v } })),
+    setShowCategoryPicker: (v) => set((s) => ({ state: { ...s.state, showCategoryPicker: v } })),
+    setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

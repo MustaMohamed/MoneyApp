@@ -1,6 +1,5 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -26,7 +25,7 @@ export function FiftyThirtyTwentyLens({
   suggestion,
   currency = 'EGP',
 }: FiftyThirtyTwentyLensProps) {
-  const { openIncomeSheet } = useIncomeSheetState(useShallow((s) => ({ openIncomeSheet: s.open })));
+  const openIncomeSheet = useIncomeSheetState.use.open();
 
   const handleEditIncome = () => {
     openIncomeSheet(suggestion, vm.hasIncome ? vm.income : null);

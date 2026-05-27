@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
@@ -15,40 +14,23 @@ export function useAccountDetail() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const {
-    state: accountState,
-    updateAccount,
-    archiveAccount,
-    adjustBalance,
-  } = useAccountStore(
-    useShallow((s) => ({
-      state: s.state,
-      updateAccount: s.updateAccount,
-      archiveAccount: s.archiveAccount,
-      adjustBalance: s.adjustBalance,
-    })),
-  );
-  const {
-    state: detailState,
-    setEditing,
-    setAdjustVisible,
-    setArchiveVisible,
-    setSaving,
-    setAdjusting,
-    setArchiving,
-    reset,
-  } = useAccountDetailState(
-    useShallow((s) => ({
-      state: s.state,
-      setEditing: s.setEditing,
-      setAdjustVisible: s.setAdjustVisible,
-      setArchiveVisible: s.setArchiveVisible,
-      setSaving: s.setSaving,
-      setAdjusting: s.setAdjusting,
-      setArchiving: s.setArchiving,
-      reset: s.reset,
-    })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const updateAccount = useAccountStore.use.updateAccount();
+  const archiveAccount = useAccountStore.use.archiveAccount();
+  const adjustBalance = useAccountStore.use.adjustBalance();
+  const isEditing = useAccountDetailState.useState.isEditing();
+  const isAdjustVisible = useAccountDetailState.useState.isAdjustVisible();
+  const isArchiveVisible = useAccountDetailState.useState.isArchiveVisible();
+  const isSaving = useAccountDetailState.useState.isSaving();
+  const isAdjusting = useAccountDetailState.useState.isAdjusting();
+  const isArchiving = useAccountDetailState.useState.isArchiving();
+  const setEditing = useAccountDetailState.use.setEditing();
+  const setAdjustVisible = useAccountDetailState.use.setAdjustVisible();
+  const setArchiveVisible = useAccountDetailState.use.setArchiveVisible();
+  const setSaving = useAccountDetailState.use.setSaving();
+  const setAdjusting = useAccountDetailState.use.setAdjusting();
+  const setArchiving = useAccountDetailState.use.setArchiving();
+  const reset = useAccountDetailState.use.reset();
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => reset(), []); // cleanup on unmount only; reset is a stable Zustand action
@@ -62,7 +44,7 @@ export function useAccountDetail() {
     return unsubscribe;
   }, [navigation]);
 
-  const account = accountState.accounts.find((a) => a.id === id);
+  const account = accounts.find((a) => a.id === id);
 
   const editSchema = useMemo(
     () =>
@@ -73,14 +55,14 @@ export function useAccountDetail() {
           .max(30, Strings.errNameTooLong)
           .refine(
             (n) =>
-              !accountState.accounts.some(
+              !accounts.some(
                 (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
               ),
             { message: Strings.errNameDuplicate },
           ),
         color: z.string(),
       }),
-    [accountState.accounts, id],
+    [accounts, id],
   );
 
   const form = useZodForm(editSchema, {
@@ -131,7 +113,7 @@ export function useAccountDetail() {
   };
 
   const onBack = () => {
-    if (detailState.isEditing) {
+    if (isEditing) {
       setEditing(false);
     } else {
       router.back();
@@ -141,12 +123,12 @@ export function useAccountDetail() {
   return {
     state: {
       account,
-      isEditing: detailState.isEditing,
-      isAdjustVisible: detailState.isAdjustVisible,
-      isArchiveVisible: detailState.isArchiveVisible,
-      isSaving: detailState.isSaving,
-      isAdjusting: detailState.isAdjusting,
-      isArchiving: detailState.isArchiving,
+      isEditing,
+      isAdjustVisible,
+      isArchiveVisible,
+      isSaving,
+      isAdjusting,
+      isArchiving,
     },
     form,
     setEditing,

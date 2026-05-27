@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface PaySheetStateShape {
   visible: boolean;
   saving: boolean;
@@ -23,11 +25,14 @@ const INITIAL_STATE: PaySheetStateShape = {
   rateOverride: false,
 };
 
-export const usePaySheetState = create<PaySheetState>((set) => ({
-  state: INITIAL_STATE,
-  setVisible: (v) => set((s) => ({ state: { ...s.state, visible: v } })),
-  setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
-  setAccountPickerVisible: (v) => set((s) => ({ state: { ...s.state, accountPickerVisible: v } })),
-  setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const usePaySheetState = createMoneyAppSelectors(
+  create<PaySheetState>((set) => ({
+    state: INITIAL_STATE,
+    setVisible: (v) => set((s) => ({ state: { ...s.state, visible: v } })),
+    setSaving: (v) => set((s) => ({ state: { ...s.state, saving: v } })),
+    setAccountPickerVisible: (v) =>
+      set((s) => ({ state: { ...s.state, accountPickerVisible: v } })),
+    setRateOverride: (v) => set((s) => ({ state: { ...s.state, rateOverride: v } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

@@ -1,6 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useMemo, useCallback, useRef } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -17,46 +16,23 @@ export type CommitmentsSection = {
 };
 
 export function useCommitments() {
-  const {
-    commitments,
-    payments,
-    selectedMonth,
-    commitmentsLoaded,
-    paymentsLoaded,
-    setSelectedMonth,
-    loadPaymentsForMonth,
-    loadCommitments,
-    generatePayments,
-    skipPayment,
-    deactivateCommitment,
-  } = useCommitmentStore(
-    useShallow((s) => ({
-      commitments: s.state.commitments,
-      payments: s.state.payments,
-      selectedMonth: s.state.selectedMonth,
-      commitmentsLoaded: s.state.commitmentsLoaded,
-      paymentsLoaded: s.state.paymentsLoaded,
-      setSelectedMonth: s.setSelectedMonth,
-      loadPaymentsForMonth: s.loadPaymentsForMonth,
-      loadCommitments: s.loadCommitments,
-      generatePayments: s.generatePayments,
-      skipPayment: s.skipPayment,
-      deactivateCommitment: s.deactivateCommitment,
-    })),
-  );
+  const commitments = useCommitmentStore.useState.commitments();
+  const payments = useCommitmentStore.useState.payments();
+  const selectedMonth = useCommitmentStore.useState.selectedMonth();
+  const commitmentsLoaded = useCommitmentStore.useState.commitmentsLoaded();
+  const paymentsLoaded = useCommitmentStore.useState.paymentsLoaded();
+  const setSelectedMonth = useCommitmentStore.use.setSelectedMonth();
+  const loadPaymentsForMonth = useCommitmentStore.use.loadPaymentsForMonth();
+  const loadCommitments = useCommitmentStore.use.loadCommitments();
+  const generatePayments = useCommitmentStore.use.generatePayments();
+  const skipPayment = useCommitmentStore.use.skipPayment();
+  const deactivateCommitment = useCommitmentStore.use.deactivateCommitment();
 
-  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
-  const {
-    state: screenState,
-    setRefreshing,
-    setStatusFilter,
-  } = useCommitmentsScreenState(
-    useShallow((s) => ({
-      state: s.state,
-      setRefreshing: s.setRefreshing,
-      setStatusFilter: s.setStatusFilter,
-    })),
-  );
+  const categories = useCategoryStore.useState.categories();
+  const refreshing = useCommitmentsScreenState.useState.refreshing();
+  const statusFilter = useCommitmentsScreenState.useState.statusFilter();
+  const setRefreshing = useCommitmentsScreenState.use.setRefreshing();
+  const setStatusFilter = useCommitmentsScreenState.use.setStatusFilter();
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -66,7 +42,7 @@ export function useCommitments() {
   );
 
   const sections: CommitmentsSection[] = useMemo(() => {
-    const filter = screenState.statusFilter;
+    const filter = statusFilter;
     const allPayments = filter === 'all' ? payments : payments.filter((p) => p.status === filter);
     const result: CommitmentsSection[] = [];
     const overdue = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
@@ -80,7 +56,7 @@ export function useCommitments() {
     if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
     if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
     return result;
-  }, [payments, screenState.statusFilter]);
+  }, [payments, statusFilter]);
 
   const counts = useMemo(() => {
     let paid = 0;
@@ -194,7 +170,7 @@ export function useCommitments() {
       selectedMonth,
       counts,
       totalsByCurrency,
-      refreshing: screenState.refreshing,
+      refreshing,
       isEmpty,
       commitmentsLoaded,
       paymentsLoaded,
@@ -202,7 +178,7 @@ export function useCommitments() {
       // per-selected-month. The list shows the full welcome empty state only when there
       // are no commitments at all; an empty *month* keeps the nav/filters mounted.
       hasCommitments: commitments.length > 0,
-      statusFilter: screenState.statusFilter,
+      statusFilter,
       categoriesById,
       commitmentsById,
     },

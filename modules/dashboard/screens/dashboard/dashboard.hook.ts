@@ -1,6 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -27,46 +26,27 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const { accounts, accountsLoaded, loadAccounts } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.state.accounts,
-      accountsLoaded: s.state.hasLoaded,
-      loadAccounts: s.loadAccounts,
-    })),
-  );
-  const { rate, isManualOverride } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.state.rate,
-      isManualOverride: s.state.isManualOverride,
-    })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const accountsLoaded = useAccountStore.useState.hasLoaded();
+  const loadAccounts = useAccountStore.use.loadAccounts();
+  const rate = useCurrencyStore.useState.rate();
+  const isManualOverride = useCurrencyStore.useState.isManualOverride();
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
-  const {
-    state: dashUiState,
-    setBreakdownVisible,
-    setRefreshing,
-    setSelectedSegment,
-  } = useDashboardState(
-    useShallow((s) => ({
-      state: s.state,
-      setBreakdownVisible: s.setBreakdownVisible,
-      setRefreshing: s.setRefreshing,
-      setSelectedSegment: s.setSelectedSegment,
-    })),
-  );
-  const {
-    state: dashDataState,
-    setStatsMap,
-    setCurrentMonthCommitmentPayments,
-    setMonthSpendStats,
-  } = useDashboardStore(
-    useShallow((s) => ({
-      state: s.state,
-      setStatsMap: s.setStatsMap,
-      setCurrentMonthCommitmentPayments: s.setCurrentMonthCommitmentPayments,
-      setMonthSpendStats: s.setMonthSpendStats,
-    })),
-  );
+  const isBreakdownVisible = useDashboardState.useState.isBreakdownVisible();
+  const refreshing = useDashboardState.useState.refreshing();
+  const selectedSegment = useDashboardState.useState.selectedSegment();
+  const setBreakdownVisible = useDashboardState.use.setBreakdownVisible();
+  const setRefreshing = useDashboardState.use.setRefreshing();
+  const setSelectedSegment = useDashboardState.use.setSelectedSegment();
+  const statsMap = useDashboardStore.useState.statsMap();
+  const currentMonthCommitmentPayments =
+    useDashboardStore.useState.currentMonthCommitmentPayments();
+  const currentMonthSpend = useDashboardStore.useState.currentMonthSpend();
+  const previousMonthSpend = useDashboardStore.useState.previousMonthSpend();
+  const setStatsMap = useDashboardStore.use.setStatsMap();
+  const setCurrentMonthCommitmentPayments =
+    useDashboardStore.use.setCurrentMonthCommitmentPayments();
+  const setMonthSpendStats = useDashboardStore.use.setMonthSpendStats();
 
   const previousYearMonth = useMemo(() => {
     const [y, m] = currentYearMonth.split('-').map(Number);
@@ -145,11 +125,11 @@ export function useDashboard() {
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
 
   const spendDeltaPct = useMemo(() => {
-    const prev = dashDataState.previousMonthSpend.totalEgp;
-    const curr = dashDataState.currentMonthSpend.totalEgp;
+    const prev = previousMonthSpend.totalEgp;
+    const curr = currentMonthSpend.totalEgp;
     if (prev <= 0) return null;
     return Math.round(((curr - prev) / prev) * 100);
-  }, [dashDataState.currentMonthSpend, dashDataState.previousMonthSpend]);
+  }, [currentMonthSpend, previousMonthSpend]);
 
   const accountCounts = useMemo(() => {
     let assets = 0;
@@ -168,7 +148,7 @@ export function useDashboard() {
     let due = 0;
     let upcoming = 0;
     let skipped = 0;
-    for (const p of dashDataState.currentMonthCommitmentPayments) {
+    for (const p of currentMonthCommitmentPayments) {
       switch (p.status) {
         case CommitmentPaymentStatus.Paid:
           paid++;
@@ -188,11 +168,11 @@ export function useDashboard() {
       }
     }
     return { paid, overdue, due, upcoming, skipped, total: paid + overdue + due + upcoming };
-  }, [dashDataState.currentMonthCommitmentPayments]);
+  }, [currentMonthCommitmentPayments]);
 
   const commitmentTotalsByCurrency = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const p of dashDataState.currentMonthCommitmentPayments) {
+    for (const p of currentMonthCommitmentPayments) {
       if (p.status === CommitmentPaymentStatus.Skipped) continue;
       const isPaid = p.status === CommitmentPaymentStatus.Paid;
       const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
@@ -200,7 +180,7 @@ export function useDashboard() {
       totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
     }
     return totals;
-  }, [dashDataState.currentMonthCommitmentPayments]);
+  }, [currentMonthCommitmentPayments]);
 
   const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
   const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
@@ -217,15 +197,15 @@ export function useDashboard() {
       liquidity,
       liabilities,
       groupedAccounts,
-      statsMap: dashDataState.statsMap,
-      isBreakdownVisible: dashUiState.isBreakdownVisible,
-      refreshing: dashUiState.refreshing,
-      selectedSegment: dashUiState.selectedSegment,
+      statsMap,
+      isBreakdownVisible,
+      refreshing,
+      selectedSegment,
       monthSpend: {
-        currentEgp: dashDataState.currentMonthSpend.totalEgp,
-        currentUsdNative: dashDataState.currentMonthSpend.usdNative,
-        currentCount: dashDataState.currentMonthSpend.count,
-        previousEgp: dashDataState.previousMonthSpend.totalEgp,
+        currentEgp: currentMonthSpend.totalEgp,
+        currentUsdNative: currentMonthSpend.usdNative,
+        currentCount: currentMonthSpend.count,
+        previousEgp: previousMonthSpend.totalEgp,
         deltaPct: spendDeltaPct,
         yearMonth: currentYearMonth,
       },

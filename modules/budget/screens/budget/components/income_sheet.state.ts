@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface IncomeSheetStateShape {
   isOpen: boolean;
   amountText: string;
@@ -20,27 +22,29 @@ const INITIAL_STATE: IncomeSheetStateShape = {
   suggestion: null,
 };
 
-export const useIncomeSheetState = create<IncomeSheetState>((set) => ({
-  state: INITIAL_STATE,
+export const useIncomeSheetState = createMoneyAppSelectors(
+  create<IncomeSheetState>((set) => ({
+    state: INITIAL_STATE,
 
-  open: (suggestion, currentIncome) =>
-    set((s) => ({
-      state: {
-        ...s.state,
-        isOpen: true,
-        suggestion,
-        amountText:
-          currentIncome !== null
-            ? String(currentIncome)
-            : suggestion !== null
-              ? String(suggestion)
-              : '',
-      },
-    })),
+    open: (suggestion, currentIncome) =>
+      set((s) => ({
+        state: {
+          ...s.state,
+          isOpen: true,
+          suggestion,
+          amountText:
+            currentIncome !== null
+              ? String(currentIncome)
+              : suggestion !== null
+                ? String(suggestion)
+                : '',
+        },
+      })),
 
-  close: () => set((s) => ({ state: { ...s.state, isOpen: false } })),
+    close: () => set((s) => ({ state: { ...s.state, isOpen: false } })),
 
-  setAmountText: (text) => set((s) => ({ state: { ...s.state, amountText: text } })),
+    setAmountText: (text) => set((s) => ({ state: { ...s.state, amountText: text } })),
 
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

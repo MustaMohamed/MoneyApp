@@ -1,6 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
@@ -25,53 +24,33 @@ export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export function useTransactions() {
   const router = useRouter();
 
-  const {
-    state: txScreenState,
-    setSearchQuery,
-    setActiveFilter,
-    setPeriod,
-    clearSearch,
-  } = useTransactionsScreenStore(
-    useShallow((s) => ({
-      state: s.state,
-      setSearchQuery: s.setSearchQuery,
-      setActiveFilter: s.setActiveFilter,
-      setPeriod: s.setPeriod,
-      clearSearch: s.clearSearch,
-    })),
-  );
-  const {
-    transactions,
-    hasMore,
-    loading,
-    hasLoaded,
-    mutationVersion,
-    setQuery,
-    loadMore,
-    refresh,
-  } = useTransactionStore(
-    useShallow((s) => ({
-      transactions: s.state.transactions,
-      hasMore: s.state.hasMore,
-      loading: s.state.loading,
-      hasLoaded: s.state.hasLoaded,
-      mutationVersion: s.state.mutationVersion,
-      setQuery: s.setQuery,
-      loadMore: s.loadMore,
-      refresh: s.refresh,
-    })),
-  );
+  const searchQuery = useTransactionsScreenStore.useState.searchQuery();
+  const activeFilter = useTransactionsScreenStore.useState.activeFilter();
+  const period = useTransactionsScreenStore.useState.period();
+  const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
+  const setSearchQuery = useTransactionsScreenStore.use.setSearchQuery();
+  const setActiveFilter = useTransactionsScreenStore.use.setActiveFilter();
+  const setPeriod = useTransactionsScreenStore.use.setPeriod();
+  const clearSearch = useTransactionsScreenStore.use.clearSearch();
+  const transactions = useTransactionStore.useState.transactions();
+  const hasMore = useTransactionStore.useState.hasMore();
+  const loading = useTransactionStore.useState.loading();
+  const hasLoaded = useTransactionStore.useState.hasLoaded();
+  const mutationVersion = useTransactionStore.useState.mutationVersion();
+  const setQuery = useTransactionStore.use.setQuery();
+  const loadMore = useTransactionStore.use.loadMore();
+  const refresh = useTransactionStore.use.refresh();
 
-  const { accounts } = useAccountStore(useShallow((s) => ({ accounts: s.state.accounts })));
-  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
 
-  const { open: openFilter } = useFilterState(useShallow((s) => ({ open: s.open })));
-  const { setDraft } = useFilterStore(useShallow((s) => ({ setDraft: s.setDraft })));
+  const openFilter = useFilterState.use.open();
+  const setDraft = useFilterStore.use.setDraft();
 
-  const refreshing = useTransactionsState((s) => s.state.refreshing);
-  const setRefreshing = useTransactionsState((s) => s.setRefreshing);
+  const refreshing = useTransactionsState.useState.refreshing();
+  const setRefreshing = useTransactionsState.use.setRefreshing();
 
-  const debouncedSearch = useDebouncedValue(txScreenState.searchQuery, 300);
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
 
   const [totals, setTotals] = useState<{
     current: PeriodTotals;
@@ -81,20 +60,15 @@ export function useTransactions() {
 
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
-    const periodRange = resolvePeriod(txScreenState.period);
+    const periodRange = resolvePeriod(period);
     return {
       search: trimmed || undefined,
-      type: txScreenState.activeFilter === 'all' ? undefined : txScreenState.activeFilter,
+      type: activeFilter === 'all' ? undefined : activeFilter,
       dateFrom: periodRange.from,
       dateTo: periodRange.to,
-      ...toQueryFilters(txScreenState.appliedFilters),
+      ...toQueryFilters(appliedFilters),
     };
-  }, [
-    debouncedSearch,
-    txScreenState.activeFilter,
-    txScreenState.appliedFilters,
-    txScreenState.period,
-  ]);
+  }, [activeFilter, appliedFilters, debouncedSearch, period]);
 
   useEffect(() => {
     setQuery(transactionQuery).catch(() => {});
@@ -113,7 +87,7 @@ export function useTransactions() {
           from: transactionQuery.dateFrom,
           to: transactionQuery.dateTo,
         });
-        const prev = previousPeriod(txScreenState.period);
+        const prev = previousPeriod(period);
         const previous = prev
           ? await (async () => {
               const r = resolvePeriod(prev);
@@ -130,7 +104,7 @@ export function useTransactions() {
     return () => {
       cancelled = true;
     };
-  }, [mutationVersion, transactionQuery, txScreenState.period]);
+  }, [mutationVersion, transactionQuery, period]);
 
   useFocusEffect(
     useCallback(() => {
@@ -147,10 +121,7 @@ export function useTransactions() {
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
-  const activeFilterCount = useMemo(
-    () => countActiveFilters(txScreenState.appliedFilters),
-    [txScreenState.appliedFilters],
-  );
+  const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
   const hasAdvancedFilters = activeFilterCount > 0;
 
   const emptyVariant: EmptyVariant =
@@ -158,14 +129,14 @@ export function useTransactions() {
       ? 'none'
       : transactions.length > 0
         ? 'none'
-        : debouncedSearch.trim() || txScreenState.activeFilter !== 'all' || hasAdvancedFilters
+        : debouncedSearch.trim() || activeFilter !== 'all' || hasAdvancedFilters
           ? 'noResults'
           : 'noData';
 
   const handleOpenFilter = useCallback(() => {
-    setDraft(txScreenState.appliedFilters);
+    setDraft(appliedFilters);
     openFilter();
-  }, [openFilter, setDraft, txScreenState.appliedFilters]);
+  }, [appliedFilters, openFilter, setDraft]);
 
   const resetFilters = useCallback(() => {
     useTransactionsScreenStore.getState().reset();
@@ -183,10 +154,10 @@ export function useTransactions() {
   }, [refresh, setRefreshing]);
 
   const previousLabel = useMemo(() => {
-    const prev = previousPeriod(txScreenState.period);
+    const prev = previousPeriod(period);
     if (prev?.type !== 'month') return null;
     return Strings.carouselMonthShort(prev.yearMonth);
-  }, [txScreenState.period]);
+  }, [period]);
 
   const goToDetail = useCallback(
     (id: string) => router.push(`/transactions/detail/${id}`),
@@ -217,9 +188,9 @@ export function useTransactions() {
       hasLoaded,
       refreshing,
       emptyVariant,
-      searchQuery: txScreenState.searchQuery,
-      activeFilter: txScreenState.activeFilter,
-      period: txScreenState.period,
+      searchQuery,
+      activeFilter,
+      period,
       customRange,
       accountsById,
       categoriesById,

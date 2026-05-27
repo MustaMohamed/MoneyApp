@@ -1,7 +1,6 @@
 import { Input } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
@@ -13,20 +12,16 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { ms } from '@/utils/responsive';
 
 export function IncomeSheet() {
-  const { sheetState, close, setAmountText } = useIncomeSheetState(
-    useShallow((s) => ({
-      sheetState: s.state,
-      close: s.close,
-      setAmountText: s.setAmountText,
-    })),
-  );
-  const { setExpectedIncome } = useBudgetStore(
-    useShallow((s) => ({ setExpectedIncome: s.setExpectedIncome })),
-  );
+  const isOpen = useIncomeSheetState.useState.isOpen();
+  const amountText = useIncomeSheetState.useState.amountText();
+  const suggestion = useIncomeSheetState.useState.suggestion();
+  const close = useIncomeSheetState.use.close();
+  const setAmountText = useIncomeSheetState.use.setAmountText();
+  const setExpectedIncome = useBudgetStore.use.setExpectedIncome();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const handleSave = async () => {
-    const amount = parseFloat(sheetState.amountText);
+    const amount = parseFloat(amountText);
     if (!isFinite(amount) || amount <= 0) return;
     await setExpectedIncome(amount);
     close();
@@ -34,7 +29,7 @@ export function IncomeSheet() {
 
   return (
     <Sheet
-      isOpen={sheetState.isOpen}
+      isOpen={isOpen}
       onOpenChange={(open) => {
         if (!open) close();
       }}
@@ -54,7 +49,7 @@ export function IncomeSheet() {
         <Text style={styles.label}>{Strings.incomeSheetAmountLabel}</Text>
         <View style={styles.field}>
           <Input
-            value={sheetState.amountText}
+            value={amountText}
             onChangeText={setAmountText}
             onFocus={onFocus}
             onBlur={onBlur}
@@ -67,10 +62,9 @@ export function IncomeSheet() {
           />
           <Text style={styles.suffix}>EGP</Text>
         </View>
-        {sheetState.suggestion !== null &&
-          sheetState.amountText === String(sheetState.suggestion) && (
-            <Text style={styles.suggestionNote}>{Strings.incomeSheetSuggestionNote}</Text>
-          )}
+        {suggestion !== null && amountText === String(suggestion) && (
+          <Text style={styles.suggestionNote}>{Strings.incomeSheetSuggestionNote}</Text>
+        )}
       </View>
     </Sheet>
   );

@@ -16,7 +16,6 @@ import { PortalHost } from 'heroui-native/portal';
 import { HeroUINativeProviderRaw } from 'heroui-native/provider-raw';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Colors } from '@/constants/theme';
 import { useReadyStore } from '@/store/ready.store';
@@ -46,16 +45,16 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const { state: readyState } = useReadyStore(useShallow((s) => ({ state: s.state })));
+  const ready = useReadyStore.useState.ready();
   useLayoutInit();
 
   useEffect(() => {
-    if (fontsLoaded && readyState.ready) {
+    if (fontsLoaded && ready) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, readyState.ready]);
+  }, [fontsLoaded, ready]);
 
-  if (!fontsLoaded || !readyState.ready) return null;
+  if (!fontsLoaded || !ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>

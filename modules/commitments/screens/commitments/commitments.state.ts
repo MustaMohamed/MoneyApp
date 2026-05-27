@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type CommitmentStatusFilter = 'all' | CommitmentPaymentStatus;
 
@@ -21,9 +22,11 @@ const INITIAL_STATE: CommitmentsScreenStateShape = {
   statusFilter: 'all',
 };
 
-export const useCommitmentsScreenState = create<CommitmentsScreenState>((set) => ({
-  state: INITIAL_STATE,
-  setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
-  setStatusFilter: (f) => set((s) => ({ state: { ...s.state, statusFilter: f } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useCommitmentsScreenState = createMoneyAppSelectors(
+  create<CommitmentsScreenState>((set) => ({
+    state: INITIAL_STATE,
+    setRefreshing: (v) => set((s) => ({ state: { ...s.state, refreshing: v } })),
+    setStatusFilter: (f) => set((s) => ({ state: { ...s.state, statusFilter: f } })),
+    reset: () => set({ state: INITIAL_STATE }),
+  })),
+);

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 import type { Account } from '../entities/account.entity';
 import {
   AccountRepository,
@@ -23,62 +25,64 @@ interface AccountStore {
 }
 
 export function createAccountStore(repo: IAccountRepository) {
-  return create<AccountStore>((set, get) => ({
-    state: INITIAL_STATE,
+  return createMoneyAppSelectors(
+    create<AccountStore>((set, get) => ({
+      state: INITIAL_STATE,
 
-    loadAccounts: async () => {
-      try {
-        const accounts = await repo.getAll();
-        set((s) => ({ state: { ...s.state, accounts, hasLoaded: true } }));
-      } catch (err) {
-        console.error('[accountStore] loadAccounts failed:', err);
-        throw err;
-      }
-    },
+      loadAccounts: async () => {
+        try {
+          const accounts = await repo.getAll();
+          set((s) => ({ state: { ...s.state, accounts, hasLoaded: true } }));
+        } catch (err) {
+          console.error('[accountStore] loadAccounts failed:', err);
+          throw err;
+        }
+      },
 
-    addAccount: async (data) => {
-      try {
-        const account = await repo.add(data);
-        await get().loadAccounts();
-        return account;
-      } catch (err) {
-        console.error('[accountStore] addAccount failed:', err);
-        throw err;
-      }
-    },
+      addAccount: async (data) => {
+        try {
+          const account = await repo.add(data);
+          await get().loadAccounts();
+          return account;
+        } catch (err) {
+          console.error('[accountStore] addAccount failed:', err);
+          throw err;
+        }
+      },
 
-    updateAccount: async (id, data) => {
-      try {
-        await repo.update(id, data);
-        await get().loadAccounts();
-      } catch (err) {
-        console.error('[accountStore] updateAccount failed:', err);
-        throw err;
-      }
-    },
+      updateAccount: async (id, data) => {
+        try {
+          await repo.update(id, data);
+          await get().loadAccounts();
+        } catch (err) {
+          console.error('[accountStore] updateAccount failed:', err);
+          throw err;
+        }
+      },
 
-    archiveAccount: async (id) => {
-      try {
-        await repo.archive(id);
-        await get().loadAccounts();
-      } catch (err) {
-        console.error('[accountStore] archiveAccount failed:', err);
-        throw err;
-      }
-    },
+      archiveAccount: async (id) => {
+        try {
+          await repo.archive(id);
+          await get().loadAccounts();
+        } catch (err) {
+          console.error('[accountStore] archiveAccount failed:', err);
+          throw err;
+        }
+      },
 
-    adjustBalance: async (id, newBalance) => {
-      try {
-        await repo.adjustBalance(id, newBalance);
-        await get().loadAccounts();
-      } catch (err) {
-        console.error('[accountStore] adjustBalance failed:', err);
-        throw err;
-      }
-    },
+      adjustBalance: async (id, newBalance) => {
+        try {
+          await repo.adjustBalance(id, newBalance);
+          await get().loadAccounts();
+        } catch (err) {
+          console.error('[accountStore] adjustBalance failed:', err);
+          throw err;
+        }
+      },
 
-    reset: () => set({ state: INITIAL_STATE }),
-  }));
+      reset: () => set({ state: INITIAL_STATE }),
+    })),
+  );
 }
 
 export const useAccountStore = createAccountStore(new AccountRepository());

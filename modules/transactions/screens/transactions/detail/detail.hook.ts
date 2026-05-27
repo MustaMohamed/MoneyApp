@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -63,33 +62,22 @@ function signedAmount(tx: Transaction): string {
 }
 
 export function useTransactionDetail(id: string) {
-  const {
-    state: txDetailDataState,
-    setTx,
-    resetData,
-  } = useTxDetailStore(useShallow((s) => ({ state: s.state, setTx: s.setTx, resetData: s.reset })));
-  const {
-    state: txDetailUiState,
-    setConfirmVisible,
-    setDeleting,
-    bumpReload,
-    resetUi,
-  } = useTxDetailState(
-    useShallow((s) => ({
-      state: s.state,
-      setConfirmVisible: s.setConfirmVisible,
-      setDeleting: s.setDeleting,
-      bumpReload: s.bumpReload,
-      resetUi: s.reset,
-    })),
-  );
+  const tx = useTxDetailStore.useState.tx();
+  const setTx = useTxDetailStore.use.setTx();
+  const resetData = useTxDetailStore.use.reset();
+  const confirmVisible = useTxDetailState.useState.confirmVisible();
+  const deleting = useTxDetailState.useState.deleting();
+  const reloadKey = useTxDetailState.useState.reloadKey();
+  const setConfirmVisible = useTxDetailState.use.setConfirmVisible();
+  const setDeleting = useTxDetailState.use.setDeleting();
+  const bumpReload = useTxDetailState.use.bumpReload();
+  const resetUi = useTxDetailState.use.reset();
 
-  const { getById, deleteTransaction } = useTransactionStore(
-    useShallow((s) => ({ getById: s.getById, deleteTransaction: s.deleteTransaction })),
-  );
+  const getById = useTransactionStore.use.getById();
+  const deleteTransaction = useTransactionStore.use.deleteTransaction();
 
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
 
   useEffect(() => {
     let cancelled = false;
@@ -105,7 +93,7 @@ export function useTransactionDetail(id: string) {
     return () => {
       cancelled = true;
     };
-  }, [id, getById, txDetailUiState.reloadKey, setTx]);
+  }, [id, getById, reloadKey, setTx]);
 
   useEffect(() => {
     return () => {
@@ -114,25 +102,14 @@ export function useTransactionDetail(id: string) {
     };
   }, [resetData, resetUi]);
 
-  const accountsById = useMemo(
-    () => new Map(accountState.accounts.map((a) => [a.id, a])),
-    [accountState.accounts],
-  );
-  const categoriesById = useMemo(
-    () => new Map(categoryState.categories.map((c) => [c.id, c])),
-    [categoryState.categories],
-  );
+  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const viewState: DetailViewState =
-    txDetailDataState.tx === undefined
-      ? 'loading'
-      : txDetailDataState.tx === null
-        ? 'notFound'
-        : 'ready';
+    tx === undefined ? 'loading' : tx === null ? 'notFound' : 'ready';
 
   const derived = useMemo(() => {
-    if (!txDetailDataState.tx) return null;
-    const tx = txDetailDataState.tx;
+    if (!tx) return null;
     const account = accountsById.get(tx.account_id);
     const toAccount = tx.to_account_id ? accountsById.get(tx.to_account_id) : undefined;
     const category = tx.category_id ? categoriesById.get(tx.category_id) : undefined;
@@ -184,18 +161,18 @@ export function useTransactionDetail(id: string) {
             }
           : null,
     };
-  }, [txDetailDataState.tx, accountsById, categoriesById]);
+  }, [tx, accountsById, categoriesById]);
 
   const openDeleteConfirm = useCallback(() => setConfirmVisible(true), [setConfirmVisible]);
   const closeDeleteConfirm = useCallback(() => {
-    if (!txDetailUiState.deleting) setConfirmVisible(false);
-  }, [txDetailUiState.deleting, setConfirmVisible]);
+    if (!deleting) setConfirmVisible(false);
+  }, [deleting, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
-    if (!txDetailDataState.tx) return;
+    if (!tx) return;
     setDeleting(true);
     try {
-      await deleteTransaction(txDetailDataState.tx.id);
+      await deleteTransaction(tx.id);
       router.back();
     } catch (e) {
       console.error('[transactionDetail] delete failed', e);
@@ -204,17 +181,17 @@ export function useTransactionDetail(id: string) {
       setDeleting(false);
       setConfirmVisible(false);
     }
-  }, [txDetailDataState.tx, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [tx, deleteTransaction, setDeleting, setConfirmVisible]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);
 
   return {
     state: {
       viewState,
-      tx: txDetailDataState.tx,
+      tx,
       derived,
-      confirmVisible: txDetailUiState.confirmVisible,
-      deleting: txDetailUiState.deleting,
+      confirmVisible,
+      deleting,
     },
     openDeleteConfirm,
     closeDeleteConfirm,

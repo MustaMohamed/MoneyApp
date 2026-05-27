@@ -5,7 +5,6 @@ import { Input, PressableFeedback } from 'heroui-native';
 import { useEffect, useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
@@ -102,21 +101,14 @@ export function CommitmentFormBody({
     [accounts, accountId],
   );
 
-  const {
-    state: bodyState,
-    setCategoryPickerVisible,
-    setAccountPickerVisible,
-    setShowStartDatePicker,
-    setShowEndDatePicker,
-  } = useCommitmentFormBodyState(
-    useShallow((s) => ({
-      state: s.state,
-      setCategoryPickerVisible: s.setCategoryPickerVisible,
-      setAccountPickerVisible: s.setAccountPickerVisible,
-      setShowStartDatePicker: s.setShowStartDatePicker,
-      setShowEndDatePicker: s.setShowEndDatePicker,
-    })),
-  );
+  const categoryPickerVisible = useCommitmentFormBodyState.useState.categoryPickerVisible();
+  const accountPickerVisible = useCommitmentFormBodyState.useState.accountPickerVisible();
+  const showStartDatePicker = useCommitmentFormBodyState.useState.showStartDatePicker();
+  const showEndDatePicker = useCommitmentFormBodyState.useState.showEndDatePicker();
+  const setCategoryPickerVisible = useCommitmentFormBodyState.use.setCategoryPickerVisible();
+  const setAccountPickerVisible = useCommitmentFormBodyState.use.setAccountPickerVisible();
+  const setShowStartDatePicker = useCommitmentFormBodyState.use.setShowStartDatePicker();
+  const setShowEndDatePicker = useCommitmentFormBodyState.use.setShowEndDatePicker();
 
   useEffect(() => () => useCommitmentFormBodyState.getState().reset(), []);
 
@@ -172,7 +164,7 @@ export function CommitmentFormBody({
         },
       });
     } else {
-      setShowStartDatePicker(!bodyState.showStartDatePicker);
+      setShowStartDatePicker(!showStartDatePicker);
       setShowEndDatePicker(false);
     }
   }
@@ -373,7 +365,7 @@ export function CommitmentFormBody({
           ) : null}
         </PressableFeedback>
 
-        {bodyState.showStartDatePicker ? (
+        {showStartDatePicker ? (
           <DateTimePicker
             value={startDateAsDate}
             mode="date"
@@ -425,7 +417,7 @@ export function CommitmentFormBody({
           form={form}
           durationType={durationType}
           onDurationTypeChange={handleDurationTypeChange}
-          showEndDatePicker={bodyState.showEndDatePicker}
+          showEndDatePicker={showEndDatePicker}
           setShowEndDatePicker={(v) => {
             setShowEndDatePicker(v);
             if (v) setShowStartDatePicker(false);
@@ -471,7 +463,7 @@ export function CommitmentFormBody({
       </View>
 
       <CategoryPickerSheet
-        isOpen={bodyState.categoryPickerVisible}
+        isOpen={categoryPickerVisible}
         title={Strings.addTxPickCategoryTitle}
         categories={expenseCategories}
         selectedId={categoryId}
@@ -479,7 +471,7 @@ export function CommitmentFormBody({
         onOpenChange={() => setCategoryPickerVisible(false)}
       />
       <AccountPickerSheet
-        isOpen={bodyState.accountPickerVisible}
+        isOpen={accountPickerVisible}
         title={Strings.addTxPickAccountTitle}
         accounts={accounts}
         selectedId={accountId}

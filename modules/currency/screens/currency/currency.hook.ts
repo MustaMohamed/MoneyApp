@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
@@ -9,38 +8,24 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
-  const {
-    state: currencyState,
-    fetchRate,
-    setManualRate,
-  } = useCurrencyStore(
-    useShallow((s) => ({
-      state: s.state,
-      fetchRate: s.fetchRate,
-      setManualRate: s.setManualRate,
-    })),
-  );
-  const {
-    state: screenState,
-    setFetching,
-    setSaving,
-    setFetchError,
-    resetState,
-  } = useCurrencyScreenState(
-    useShallow((s) => ({
-      state: s.state,
-      setFetching: s.setFetching,
-      setSaving: s.setSaving,
-      setFetchError: s.setFetchError,
-      resetState: s.reset,
-    })),
-  );
+  const rate = useCurrencyStore.useState.rate();
+  const lastFetched = useCurrencyStore.useState.lastFetched();
+  const isManualOverride = useCurrencyStore.useState.isManualOverride();
+  const fetchRate = useCurrencyStore.use.fetchRate();
+  const setManualRate = useCurrencyStore.use.setManualRate();
+  const isFetching = useCurrencyScreenState.useState.isFetching();
+  const isSaving = useCurrencyScreenState.useState.isSaving();
+  const fetchError = useCurrencyScreenState.useState.fetchError();
+  const setFetching = useCurrencyScreenState.use.setFetching();
+  const setSaving = useCurrencyScreenState.use.setSaving();
+  const setFetchError = useCurrencyScreenState.use.setFetchError();
+  const resetState = useCurrencyScreenState.use.reset();
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => resetState(), []); // cleanup on unmount only; resetState is a stable Zustand action
 
-  const formattedDate = currencyState.lastFetched
-    ? new Date(currencyState.lastFetched).toLocaleDateString('en-US', {
+  const formattedDate = lastFetched
+    ? new Date(lastFetched).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -58,7 +43,7 @@ export function useCurrencyScreen() {
   });
 
   const form = useZodForm(manualSchema, {
-    defaultValues: { rate: String(currencyState.rate) },
+    defaultValues: { rate: String(rate) },
   });
 
   const handleFetchRate = async () => {
@@ -84,11 +69,11 @@ export function useCurrencyScreen() {
 
   return {
     state: {
-      rate: currencyState.rate,
-      isManualOverride: currencyState.isManualOverride,
-      isFetching: screenState.isFetching,
-      isSaving: screenState.isSaving,
-      fetchError: screenState.fetchError,
+      rate,
+      isManualOverride,
+      isFetching,
+      isSaving,
+      fetchError,
       formattedDate,
     },
     form,

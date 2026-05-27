@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 
 import { Currency, type TransactionType } from '@/constants/enums';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { Transaction } from '../entities/transaction.entity';
 import {
@@ -54,98 +55,100 @@ interface TransactionStore {
 export function createTransactionStore(repo: ITransactionRepository) {
   let requestId = 0;
 
-  return create<TransactionStore>((set, get) => {
-    async function fetchPage(
-      filters: TransactionListFilters,
-      offset: number,
-      mode: 'replace' | 'append',
-    ) {
-      const myId = ++requestId;
-      set((s) => ({ state: { ...s.state, loading: true } }));
-      try {
-        const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
-        if (myId !== requestId) return;
-        const hasMore = rows.length === PAGE_SIZE;
-        if (mode === 'replace') {
-          set((s) => ({
-            state: {
-              ...s.state,
-              transactions: rows,
-              hasMore,
-              loading: false,
-              hasLoaded: true,
-              query: filters,
-            },
-          }));
-        } else {
-          set((s) => ({
-            state: {
-              ...s.state,
-              transactions: [...s.state.transactions, ...rows],
-              hasMore,
-              loading: false,
-            },
-          }));
+  return createMoneyAppSelectors(
+    create<TransactionStore>((set, get) => {
+      async function fetchPage(
+        filters: TransactionListFilters,
+        offset: number,
+        mode: 'replace' | 'append',
+      ) {
+        const myId = ++requestId;
+        set((s) => ({ state: { ...s.state, loading: true } }));
+        try {
+          const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
+          if (myId !== requestId) return;
+          const hasMore = rows.length === PAGE_SIZE;
+          if (mode === 'replace') {
+            set((s) => ({
+              state: {
+                ...s.state,
+                transactions: rows,
+                hasMore,
+                loading: false,
+                hasLoaded: true,
+                query: filters,
+              },
+            }));
+          } else {
+            set((s) => ({
+              state: {
+                ...s.state,
+                transactions: [...s.state.transactions, ...rows],
+                hasMore,
+                loading: false,
+              },
+            }));
+          }
+        } catch (err) {
+          if (myId === requestId) set((s) => ({ state: { ...s.state, loading: false } }));
+          console.error('[transactionStore] fetch failed:', err);
+          throw err;
         }
-      } catch (err) {
-        if (myId === requestId) set((s) => ({ state: { ...s.state, loading: false } }));
-        console.error('[transactionStore] fetch failed:', err);
-        throw err;
       }
-    }
 
-    function bumpMutationVersion() {
-      set((s) => ({
-        state: { ...s.state, mutationVersion: s.state.mutationVersion + 1 },
-      }));
-    }
+      function bumpMutationVersion() {
+        set((s) => ({
+          state: { ...s.state, mutationVersion: s.state.mutationVersion + 1 },
+        }));
+      }
 
-    return {
-      state: INITIAL_STATE,
+      return {
+        state: INITIAL_STATE,
 
-      setQuery: (q) => fetchPage(q, 0, 'replace'),
+        setQuery: (q) => fetchPage(q, 0, 'replace'),
 
-      refresh: () => fetchPage(get().state.query, 0, 'replace'),
+        refresh: () => fetchPage(get().state.query, 0, 'replace'),
 
-      loadMore: async () => {
-        const { hasMore, loading, query, transactions } = get().state;
-        if (!hasMore || loading) return;
-        await fetchPage(query, transactions.length, 'append');
-      },
+        loadMore: async () => {
+          const { hasMore, loading, query, transactions } = get().state;
+          if (!hasMore || loading) return;
+          await fetchPage(query, transactions.length, 'append');
+        },
 
-      getById: async (id) => repo.getById(id),
+        getById: async (id) => repo.getById(id),
 
-      addTransaction: async (data) => {
-        const tx = await repo.add(data);
-        bumpMutationVersion();
-        await get()
-          .refresh()
-          .catch((err) => console.error('[transactionStore] post-add refresh failed:', err));
-        return tx;
-      },
+        addTransaction: async (data) => {
+          const tx = await repo.add(data);
+          bumpMutationVersion();
+          await get()
+            .refresh()
+            .catch((err) => console.error('[transactionStore] post-add refresh failed:', err));
+          return tx;
+        },
 
-      deleteTransaction: async (id) => {
-        await repo.delete(id);
-        bumpMutationVersion();
-        await get()
-          .refresh()
-          .catch((err) => console.error('[transactionStore] post-delete refresh failed:', err));
-      },
+        deleteTransaction: async (id) => {
+          await repo.delete(id);
+          bumpMutationVersion();
+          await get()
+            .refresh()
+            .catch((err) => console.error('[transactionStore] post-delete refresh failed:', err));
+        },
 
-      updateTransaction: async (id, data) => {
-        await repo.update(id, data);
-        bumpMutationVersion();
-        await get()
-          .refresh()
-          .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));
-      },
+        updateTransaction: async (id, data) => {
+          await repo.update(id, data);
+          bumpMutationVersion();
+          await get()
+            .refresh()
+            .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));
+        },
 
-      reset: () => {
-        requestId++;
-        set({ state: INITIAL_STATE });
-      },
-    };
-  });
+        reset: () => {
+          requestId++;
+          set({ state: INITIAL_STATE });
+        },
+      };
+    }),
+  );
 }
 
 export const useTransactionStore = createTransactionStore(new TransactionRepository());

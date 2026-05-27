@@ -1,6 +1,5 @@
 import { useRef } from 'react';
 import { create } from 'zustand';
-import { useShallow } from 'zustand/react/shallow';
 
 interface DecimalInputState {
   state: { text: string };
@@ -21,7 +20,8 @@ type Store = ReturnType<typeof createStore>;
 export function useDecimalInputState(initialText: string) {
   const storeRef = useRef<Store | null>(null);
   storeRef.current ??= createStore(initialText);
-  return storeRef.current(
-    useShallow((s) => ({ state: s.state, setText: s.setText, syncToValue: s.syncToValue })),
-  );
+  const text = storeRef.current((s) => s.state.text);
+  const setText = storeRef.current((s) => s.setText);
+  const syncToValue = storeRef.current((s) => s.syncToValue);
+  return { state: { text }, setText, syncToValue };
 }
