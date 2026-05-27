@@ -1,0 +1,107 @@
+# Signals App Flow Migration Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Replace Zustand with Preact Signals for app boot readiness and onboarding flow state.
+
+**Architecture:** Shared app/domain data uses module-level `signal(...)` values behind hook facades. Component state uses hook-local `useSignal(...)`. Consumers destructure `{ state, ...actions }` and read signal values with `.value`.
+
+**Tech Stack:** Expo Router, React Native, TypeScript strict, `@preact/signals-react`, Jest, oxlint.
+
+---
+
+## Workstream 1: App Global Boot Readiness
+
+**Owner:** Dev agent 1.
+
+**Files:**
+- Modify: `store/ready.store.ts`
+- Modify: `utils/use_layout_init.hook.ts`
+- Modify: `app/_layout.tsx`
+- Test: `__tests__/use_layout_init.test.ts`
+
+- [ ] Replace `store/ready.store.ts` Zustand store with Signals.
+  - Export `useAppReady()`.
+  - Return `{ state: { ready }, markReady, reset }`.
+  - Use a module-level `ready = signal(false)`.
+  - Provide test helper behavior without `.getState()` / `.setState()`.
+
+- [ ] Update `utils/use_layout_init.hook.ts`.
+  - Rename exported hook to `useAppInit()`.
+  - Use `const { markReady } = useAppReady()`.
+  - Keep startup behavior unchanged: run migrations, call `loadOnboardingState()`, mark ready on success or degraded failure, then schedule commitment housekeeping only when onboarding is complete.
+  - Keep `useLayoutInit` as a temporary alias only if needed by existing imports during this workstream.
+
+- [ ] Update `app/_layout.tsx`.
+  - Read app readiness through `useAppReady()`.
+  - Call `useAppInit()`.
+  - Use `state.ready.value` when deciding to hide the splash and render the root stack.
+
+- [ ] Update `__tests__/use_layout_init.test.ts`.
+  - Remove old `useReadyStore.getState()` assumptions.
+  - Assert readiness through the new Signals API or exported reset helper.
+
+- [ ] Run targeted checks:
+  - `npm run typecheck`
+  - `npm test -- --ci __tests__/use_layout_init.test.ts`
+  - `npx oxlint --type-aware --type-check store/ready.store.ts utils/use_layout_init.hook.ts app/_layout.tsx __tests__/use_layout_init.test.ts`
+
+## Workstream 2: Onboarding Flow
+
+**Owner:** Dev agent 2.
+
+**Files:**
+- Modify: `modules/onboarding/store/onboarding.store.ts`
+- Modify: `store/onboarding.store.ts`
+- Modify: `app/index.tsx`
+- Modify: `app/(onboarding)/_layout.tsx`
+- Modify: `modules/onboarding/screens/onboarding/welcome/welcome.hook.ts`
+- Modify: `modules/onboarding/screens/onboarding/add_account/add_account.hook.ts`
+- Modify: `modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook.ts`
+- Modify: `modules/onboarding/screens/onboarding/ready/ready.hook.ts`
+- Modify: `modules/onboarding/screens/onboarding/ready/ready.state.ts`
+- Test: onboarding-related Jest tests that reference the old Zustand API.
+
+- [ ] Replace `modules/onboarding/store/onboarding.store.ts` Zustand store with Signals.
+  - Export `useOnboarding()`.
+  - Return `{ state: { complete, currentStep, baseCurrency }, setStep, setBaseCurrency, completeOnboarding }`.
+  - Keep `createOnboardingStore(repo)` or an equivalent factory only if tests need repository injection.
+  - Keep `loadOnboardingState()` and update signals directly instead of calling `.setState()`.
+  - Export explicit test helpers if tests need reset/state setup.
+
+- [ ] Update root compatibility export `store/onboarding.store.ts`.
+  - Re-export `useOnboarding`, `loadOnboardingState`, and any explicit test helpers.
+  - Do not re-export old Zustand APIs.
+
+- [ ] Update root routing and onboarding layout.
+  - `app/index.tsx`: remove `useShallow`, call `useOnboarding()`, read `state.complete.value` and `state.currentStep.value`.
+  - `app/(onboarding)/_layout.tsx`: call `useOnboarding()`, read `state.complete.value`.
+
+- [ ] Update onboarding screen hooks.
+  - `welcome.hook.ts`: replace `useOnboardingStore` with `useOnboarding`.
+  - `add_account.hook.ts`: replace onboarding reads/actions only; leave account store as Zustand for now.
+  - `more_accounts.hook.ts`: replace onboarding actions only; leave account store as Zustand for now.
+  - `ready.hook.ts`: replace onboarding reads/actions only; leave account store as Zustand for now.
+
+- [ ] Replace ready screen component state.
+  - `ready.state.ts`: export `useReadyScreenState()`.
+  - Use hook-local Signals for `completing`.
+  - Update `ready.hook.ts` to read `state.completing.value`.
+
+- [ ] Update onboarding tests.
+  - Remove `.getState()`, `.setState()`, `.useState`, and mocked Zustand selector-store expectations for migrated onboarding state.
+  - Prefer explicit helpers exported from the store module for reset/setup.
+
+- [ ] Run targeted checks:
+  - `npm run typecheck`
+  - onboarding Jest tests
+  - `npx oxlint --type-aware --type-check modules/onboarding/store/onboarding.store.ts store/onboarding.store.ts app/index.tsx 'app/(onboarding)/_layout.tsx' modules/onboarding/screens/onboarding/welcome/welcome.hook.ts modules/onboarding/screens/onboarding/add_account/add_account.hook.ts modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook.ts modules/onboarding/screens/onboarding/ready/ready.hook.ts modules/onboarding/screens/onboarding/ready/ready.state.ts`
+
+## Integration
+
+- [ ] Review both workstreams for API conflicts.
+- [ ] Run `npm run format:check`.
+- [ ] Run `npm run typecheck`.
+- [ ] Run targeted Jest tests for layout init and onboarding.
+- [ ] Run changed-file oxlint.
+- [ ] Commit the integrated migration after review.
