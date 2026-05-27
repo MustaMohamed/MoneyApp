@@ -1,4 +1,5 @@
 import { useFocusEffect } from 'expo-router';
+import { Spinner } from 'heroui-native';
 import React, { useCallback, useEffect } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -150,10 +151,16 @@ export default function TransactionsScreen(): React.ReactElement {
           />
         )}
         ListEmptyComponent={
-          <EmptyState
-            variant={t.state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
-            onAction={t.state.emptyVariant === 'noData' ? openAddTx : t.resetFilters}
-          />
+          t.state.emptyVariant === 'none' ? (
+            <View className="items-center justify-center py-12">
+              <Spinner />
+            </View>
+          ) : (
+            <EmptyState
+              variant={t.state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
+              onAction={t.state.emptyVariant === 'noData' ? openAddTx : t.resetFilters}
+            />
+          )
         }
         refreshControl={
           <RefreshControl

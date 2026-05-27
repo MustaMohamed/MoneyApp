@@ -85,6 +85,22 @@ function makeRepo(initial: Transaction[] = []): ITransactionRepository {
 }
 
 describe('transactionStore.setQuery', () => {
+  it('starts unloaded so screens do not show empty states before the first fetch settles', () => {
+    const repo = makeRepo();
+    const useStore = createTransactionStore(repo);
+
+    expect(useStore.getState().state.hasLoaded).toBe(false);
+  });
+
+  it('marks the list loaded after the first fetch settles', async () => {
+    const repo = makeRepo();
+    const useStore = createTransactionStore(repo);
+
+    await useStore.getState().setQuery({});
+
+    expect(useStore.getState().state.hasLoaded).toBe(true);
+  });
+
   it('replaces the list with the page-1 result for the new query', async () => {
     const txs = Array.from({ length: 5 }, (_, i) => makeTransaction({ id: `t${i}` }));
     const repo = makeRepo(txs);
@@ -348,6 +364,7 @@ describe('transactionStore.reset', () => {
       transactions: [],
       hasMore: false,
       loading: false,
+      hasLoaded: false,
       query: {},
     });
   });

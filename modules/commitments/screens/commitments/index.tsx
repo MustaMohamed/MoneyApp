@@ -1,4 +1,5 @@
-import { RefreshControl, SectionList } from 'react-native';
+import { Spinner } from 'heroui-native';
+import { RefreshControl, SectionList, View } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
@@ -43,7 +44,11 @@ export default function CommitmentsScreen() {
     <Screen edges={['top']}>
       <CommitmentHeader title={Strings.commitmentsTitle} />
 
-      {!t.state.hasCommitments ? (
+      {!t.state.commitmentsLoaded ? (
+        <View className="items-center justify-center py-12">
+          <Spinner />
+        </View>
+      ) : !t.state.hasCommitments ? (
         <CommitmentsEmptyState onAdd={t.goToAdd} />
       ) : (
         <SectionList
@@ -90,7 +95,11 @@ export default function CommitmentsScreen() {
             />
           }
           ListEmptyComponent={
-            t.state.statusFilter === 'all' ? (
+            !t.state.paymentsLoaded ? (
+              <View className="items-center justify-center py-12">
+                <Spinner />
+              </View>
+            ) : t.state.statusFilter === 'all' ? (
               <EmptyState variant="commitmentsMonth" />
             ) : (
               <EmptyState variant="filtered" onAction={() => t.setStatusFilter('all')} />

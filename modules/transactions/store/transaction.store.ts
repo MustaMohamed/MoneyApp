@@ -32,6 +32,7 @@ const INITIAL_STATE = {
   transactions: [] as Transaction[],
   hasMore: false,
   loading: false,
+  hasLoaded: false,
   query: {} as TransactionListFilters,
 };
 
@@ -65,7 +66,9 @@ export function createTransactionStore(repo: ITransactionRepository) {
         if (myId !== requestId) return;
         const hasMore = rows.length === PAGE_SIZE;
         if (mode === 'replace') {
-          set({ state: { transactions: rows, hasMore, loading: false, query: filters } });
+          set({
+            state: { transactions: rows, hasMore, loading: false, hasLoaded: true, query: filters },
+          });
         } else {
           set((s) => ({
             state: {

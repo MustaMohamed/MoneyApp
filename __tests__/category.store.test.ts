@@ -31,6 +31,22 @@ function makeRepo(overrides: Partial<ICategoryRepository> = {}): ICategoryReposi
 }
 
 describe('categoryStore.loadCategories', () => {
+  it('starts unloaded so screens do not show empty states before category data settles', () => {
+    const repo = makeRepo();
+    const useStore = createCategoryStore(repo);
+
+    expect(useStore.getState().state.hasLoaded).toBe(false);
+  });
+
+  it('marks categories loaded after repo data settles', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
+    const useStore = createCategoryStore(repo);
+
+    await useStore.getState().loadCategories();
+
+    expect(useStore.getState().state.hasLoaded).toBe(true);
+  });
+
   it('populates categories from repo', async () => {
     const repo = makeRepo();
     const store = createCategoryStore(repo).getState();
@@ -200,6 +216,6 @@ describe('categoryStore.reset', () => {
 
     useStore.getState().reset();
 
-    expect(useStore.getState().state).toEqual({ categories: [] });
+    expect(useStore.getState().state).toEqual({ categories: [], hasLoaded: false });
   });
 });

@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Tabs } from 'heroui-native';
+import { PressableFeedback, Spinner, Tabs } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -113,7 +113,11 @@ export default function DashboardScreen() {
         </PressableFeedback>
       </View>
 
-      {!hasAccounts ? (
+      {!state.accountsLoaded ? (
+        <View className="items-center justify-center py-12">
+          <Spinner />
+        </View>
+      ) : !hasAccounts ? (
         <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
         <>

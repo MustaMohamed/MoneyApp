@@ -10,7 +10,7 @@ import {
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
-const INITIAL_STATE = { accounts: [] as Account[] };
+const INITIAL_STATE = { accounts: [] as Account[], hasLoaded: false };
 
 interface AccountStore {
   state: typeof INITIAL_STATE;
@@ -29,7 +29,7 @@ export function createAccountStore(repo: IAccountRepository) {
     loadAccounts: async () => {
       try {
         const accounts = await repo.getAll();
-        set((s) => ({ state: { ...s.state, accounts } }));
+        set((s) => ({ state: { ...s.state, accounts, hasLoaded: true } }));
       } catch (err) {
         console.error('[accountStore] loadAccounts failed:', err);
         throw err;

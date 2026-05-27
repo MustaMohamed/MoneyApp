@@ -91,6 +91,22 @@ function makeRepo(overrides: Partial<ICommitmentRepository> = {}): ICommitmentRe
 // ---------------------------------------------------------------------------
 
 describe('commitmentStore.loadCommitments', () => {
+  it('starts with commitments unloaded so screens can avoid empty-state flashes', () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+
+    expect(useStore.getState().state.commitmentsLoaded).toBe(false);
+  });
+
+  it('marks commitments loaded after repo data settles', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
+    const useStore = createCommitmentStore(repo);
+
+    await useStore.getState().loadCommitments();
+
+    expect(useStore.getState().state.commitmentsLoaded).toBe(true);
+  });
+
   it('populates state.commitments from repo', async () => {
     const commitment = mockCommitment();
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([commitment]) });
@@ -120,6 +136,22 @@ describe('commitmentStore.loadCommitments', () => {
 // ---------------------------------------------------------------------------
 
 describe('commitmentStore.loadPaymentsForMonth', () => {
+  it('starts with payments unloaded so month empty states wait for the first fetch', () => {
+    const repo = makeRepo();
+    const useStore = createCommitmentStore(repo);
+
+    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+  });
+
+  it('marks payments loaded after repo data settles', async () => {
+    const repo = makeRepo({ getPaymentsForMonth: jest.fn().mockResolvedValue([]) });
+    const useStore = createCommitmentStore(repo);
+
+    await useStore.getState().loadPaymentsForMonth('2026-06');
+
+    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+  });
+
   it('populates state.payments from repo', async () => {
     const payment = mockPayment();
     const repo = makeRepo({ getPaymentsForMonth: jest.fn().mockResolvedValue([payment]) });

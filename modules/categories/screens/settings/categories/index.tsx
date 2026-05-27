@@ -1,4 +1,5 @@
 import { FlashList } from '@shopify/flash-list';
+import { Spinner } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -70,7 +71,11 @@ export default function CategoriesScreen() {
 
       {/* List or EmptyState — flex:1 via style (not className) per CLAUDE.md Android Fabric rule */}
       <View style={{ flex: 1 }}>
-        {isEmpty ? (
+        {!state.hasLoaded ? (
+          <View className="items-center justify-center py-12">
+            <Spinner />
+          </View>
+        ) : isEmpty ? (
           <EmptyState variant="categories" />
         ) : (
           <FlashList<ListEntry>
