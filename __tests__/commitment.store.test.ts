@@ -86,6 +86,16 @@ function makeRepo(overrides: Partial<ICommitmentRepository> = {}): ICommitmentRe
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 // ---------------------------------------------------------------------------
 // loadCommitments
 // ---------------------------------------------------------------------------
@@ -197,6 +207,71 @@ describe('commitmentStore.setSelectedMonth', () => {
     const useStore = createCommitmentStore(repo);
     await useStore.getState().setSelectedMonth('2026-08');
     expect(repo.getPaymentsForMonth).toHaveBeenCalledWith('2026-08');
+  });
+
+  it('clears previous-month payments while the newly selected month is loading', async () => {
+    const aprilPayment = mockPayment({ id: 'p-april', due_date: '2026-04-01' });
+    const mayRequest = deferred<CommitmentPayment[]>();
+    const repo = makeRepo({
+      getPaymentsForMonth: jest.fn((yearMonth: string) => {
+        if (yearMonth === '2026-04') return Promise.resolve([aprilPayment]);
+        if (yearMonth === '2026-05') return mayRequest.promise;
+        return Promise.resolve([]);
+      }),
+    });
+    const useStore = createCommitmentStore(repo);
+
+    await useStore.getState().setSelectedMonth('2026-04');
+    expect(useStore.getState().state.payments).toEqual([aprilPayment]);
+    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+
+    const mayLoad = useStore.getState().setSelectedMonth('2026-05');
+
+    expect(useStore.getState().state.selectedMonth).toBe('2026-05');
+    expect(useStore.getState().state.payments).toEqual([]);
+    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+
+    mayRequest.resolve([]);
+    await mayLoad;
+  });
+
+  it('ignores stale selected-month payment responses and only marks the latest request loaded', async () => {
+    const aprilPayment = mockPayment({ id: 'p-april', due_date: '2026-04-01' });
+    const mayPayment = mockPayment({ id: 'p-may', due_date: '2026-05-01' });
+    const junePayment = mockPayment({ id: 'p-june', due_date: '2026-06-01' });
+    const mayRequest = deferred<CommitmentPayment[]>();
+    const juneRequest = deferred<CommitmentPayment[]>();
+    const repo = makeRepo({
+      getPaymentsForMonth: jest.fn((yearMonth: string) => {
+        if (yearMonth === '2026-05') return mayRequest.promise;
+        if (yearMonth === '2026-06') return juneRequest.promise;
+        return Promise.resolve([aprilPayment]);
+      }),
+    });
+    const useStore = createCommitmentStore(repo);
+
+    await useStore.getState().loadPaymentsForMonth('2026-04');
+    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+
+    const mayLoad = useStore.getState().setSelectedMonth('2026-05');
+    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+
+    const juneLoad = useStore.getState().setSelectedMonth('2026-06');
+    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+
+    juneRequest.resolve([junePayment]);
+    await juneLoad;
+
+    expect(useStore.getState().state.selectedMonth).toBe('2026-06');
+    expect(useStore.getState().state.payments).toEqual([junePayment]);
+    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+
+    mayRequest.resolve([mayPayment]);
+    await mayLoad;
+
+    expect(useStore.getState().state.selectedMonth).toBe('2026-06');
+    expect(useStore.getState().state.payments).toEqual([junePayment]);
+    expect(useStore.getState().state.paymentsLoaded).toBe(true);
   });
 });
 

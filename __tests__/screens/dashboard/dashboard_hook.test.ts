@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
@@ -49,6 +49,9 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
 const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
 const { useCurrencyStore } = jest.requireMock('@/modules/currency/store/currency.store');
 const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
+const { commitmentRepository } = jest.requireMock(
+  '@/modules/commitments/repositories/commitment.repository',
+);
 const { useDashboardStore } = jest.requireMock(
   '@/modules/dashboard/screens/dashboard/dashboard.store',
 );
@@ -148,6 +151,7 @@ beforeEach(() => {
   setBreakdownVisible.mockClear();
   setRefreshing.mockClear();
   setSelectedSegment.mockClear();
+  commitmentRepository.getPaymentsForMonth.mockClear();
   setupMocks();
 });
 
@@ -193,5 +197,18 @@ describe('useDashboard', () => {
       capturedFocusCallback?.();
     });
     expect(setSelectedSegment).toHaveBeenCalledWith('overview');
+  });
+
+  it('loads the current month commitments once on initial focus', async () => {
+    renderHook(() => useDashboard());
+
+    act(() => {
+      capturedFocusCallback?.();
+    });
+
+    expect(useCommitmentStore).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -99,6 +99,8 @@ const INITIAL_STATE: CommitmentStoreState = {
 };
 
 export function createCommitmentStore(repo: ICommitmentRepository) {
+  let paymentRequestId = 0;
+
   return create<CommitmentStore>((set, get) => ({
     state: INITIAL_STATE,
 
@@ -113,17 +115,35 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
     },
 
     loadPaymentsForMonth: async (yearMonth) => {
+      const requestId = ++paymentRequestId;
+      set((s) => ({
+        state: {
+          ...s.state,
+          payments: yearMonth === s.state.selectedMonth ? s.state.payments : [],
+          paymentsLoaded: false,
+        },
+      }));
+
       try {
         const payments = await repo.getPaymentsForMonth(yearMonth);
+        if (requestId !== paymentRequestId) return;
         set((s) => ({ state: { ...s.state, payments, paymentsLoaded: true } }));
       } catch (err) {
+        if (requestId !== paymentRequestId) return;
         console.error('[commitmentStore] loadPaymentsForMonth failed:', err);
         throw err;
       }
     },
 
     setSelectedMonth: async (yearMonth) => {
-      set((s) => ({ state: { ...s.state, selectedMonth: yearMonth } }));
+      set((s) => ({
+        state: {
+          ...s.state,
+          selectedMonth: yearMonth,
+          payments: yearMonth === s.state.selectedMonth ? s.state.payments : [],
+          paymentsLoaded: false,
+        },
+      }));
       await get().loadPaymentsForMonth(yearMonth);
     },
 

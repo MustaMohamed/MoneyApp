@@ -1,7 +1,8 @@
 import { useFocusEffect } from 'expo-router';
 import { Spinner } from 'heroui-native';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
+import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
@@ -10,6 +11,7 @@ import { closeAllRows } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
@@ -30,8 +32,24 @@ import { useEditTransactionState } from './transaction_form/edit_transaction.sta
 import { useEditTransactionStore } from './transaction_form/edit_transaction.store';
 import { useTransactions } from './transactions.hook';
 
+type TransactionSection = { key: string; data: Transaction[] };
+
 export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
+  const {
+    state,
+    setPeriod,
+    setSearchQuery,
+    clearSearch,
+    openFilter,
+    setActiveFilter,
+    goToDetail,
+    goToEdit,
+    resetFilters,
+    onRefresh,
+    onEndReached,
+    setCustomRange,
+  } = t;
   const { state: addTxState, open: openAddTx } = useAddTransactionState(
     useShallow((s) => ({ state: s.state, open: s.open })),
   );
@@ -96,6 +114,51 @@ export default function TransactionsScreen(): React.ReactElement {
     }, []),
   );
 
+  const renderSectionHeader = useCallback(
+    ({ section }: { section: SectionListData<Transaction, TransactionSection> }) => (
+      <DateHeader label={section.key} />
+    ),
+    [],
+  );
+
+  const renderItem = useCallback(
+    ({ item }: SectionListRenderItemInfo<Transaction, TransactionSection>) => (
+      <TransactionRow
+        tx={item}
+        account={state.accountsById.get(item.account_id)}
+        toAccount={item.to_account_id ? state.accountsById.get(item.to_account_id) : undefined}
+        category={item.category_id ? state.categoriesById.get(item.category_id) : undefined}
+        onPress={goToDetail}
+        onEdit={goToEdit}
+        onDelete={requestDelete}
+      />
+    ),
+    [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
+  );
+
+  const listEmptyComponent = useMemo(
+    () =>
+      state.emptyVariant === 'none' ? (
+        <View className="items-center justify-center py-12">
+          <Spinner />
+        </View>
+      ) : (
+        <EmptyState
+          variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
+          onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}
+        />
+      ),
+    [openAddTx, resetFilters, state.emptyVariant],
+  );
+
+  const handleRefresh = useCallback(() => {
+    void onRefresh();
+  }, [onRefresh]);
+
+  const handleEndReached = useCallback(() => {
+    void onEndReached();
+  }, [onEndReached]);
+
   return (
     <Screen edges={['top']}>
       <View className="px-4 pt-3 pb-1">
@@ -106,75 +169,48 @@ export default function TransactionsScreen(): React.ReactElement {
 
       <View className="mt-3">
         <MonthCarousel
-          selection={t.state.period}
-          customRange={t.state.customRange}
-          onSelect={t.setPeriod}
+          selection={state.period}
+          customRange={state.customRange}
+          onSelect={setPeriod}
           onOpenCustom={() => setDateRangeSheetVisible(true)}
         />
       </View>
 
-      {t.state.period.type !== 'all' && t.state.totals ? (
+      {state.period.type !== 'all' && state.totals ? (
         <TotalsStrip
-          current={t.state.totals.current}
-          previous={t.state.totals.previous}
-          previousLabel={t.state.previousLabel}
+          current={state.totals.current}
+          previous={state.totals.previous}
+          previousLabel={state.previousLabel}
         />
       ) : null}
 
       <SearchRow
-        value={t.state.searchQuery}
-        onChange={t.setSearchQuery}
-        onClear={t.clearSearch}
-        onOpenFilter={t.openFilter}
-        activeFilterCount={t.state.activeFilterCount}
+        value={state.searchQuery}
+        onChange={setSearchQuery}
+        onClear={clearSearch}
+        onOpenFilter={openFilter}
+        activeFilterCount={state.activeFilterCount}
       />
 
-      <TypeChips value={t.state.activeFilter} onChange={t.setActiveFilter} />
+      <TypeChips value={state.activeFilter} onChange={setActiveFilter} />
 
       <SectionList
-        sections={t.state.sections}
+        sections={state.sections}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled
-        renderSectionHeader={({ section }) => <DateHeader label={section.key} />}
+        renderSectionHeader={renderSectionHeader}
         onScrollBeginDrag={closeAllRows}
-        renderItem={({ item }) => (
-          <TransactionRow
-            tx={item}
-            account={t.state.accountsById.get(item.account_id)}
-            toAccount={
-              item.to_account_id ? t.state.accountsById.get(item.to_account_id) : undefined
-            }
-            category={item.category_id ? t.state.categoriesById.get(item.category_id) : undefined}
-            onPress={() => t.goToDetail(item.id)}
-            onEdit={() => t.goToEdit(item.id)}
-            onDelete={() => requestDelete(item.id)}
-          />
-        )}
-        ListEmptyComponent={
-          t.state.emptyVariant === 'none' ? (
-            <View className="items-center justify-center py-12">
-              <Spinner />
-            </View>
-          ) : (
-            <EmptyState
-              variant={t.state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
-              onAction={t.state.emptyVariant === 'noData' ? openAddTx : t.resetFilters}
-            />
-          )
-        }
+        renderItem={renderItem}
+        ListEmptyComponent={listEmptyComponent}
         refreshControl={
           <RefreshControl
-            refreshing={t.state.refreshing}
-            onRefresh={() => {
-              void t.onRefresh();
-            }}
+            refreshing={state.refreshing}
+            onRefresh={handleRefresh}
             tintColor={GoldTokens[500]}
             colors={[GoldTokens[500]]}
           />
         }
-        onEndReached={() => {
-          void t.onEndReached();
-        }}
+        onEndReached={handleEndReached}
         onEndReachedThreshold={0.5}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
       />
@@ -209,19 +245,19 @@ export default function TransactionsScreen(): React.ReactElement {
       <FilterSheet />
       <DateRangeSheet
         isOpen={filterUiState.dateRangeSheetVisible}
-        initialFrom={t.state.customRange?.from}
-        initialTo={t.state.customRange?.to}
+        initialFrom={state.customRange?.from}
+        initialTo={state.customRange?.to}
         onOpenChange={(open) => {
           if (!open) setDateRangeSheetVisible(false);
         }}
         onConfirm={(from, to) => {
-          t.setCustomRange({ from, to });
-          t.setPeriod({ type: 'custom', from, to });
+          setCustomRange({ from, to });
+          setPeriod({ type: 'custom', from, to });
           setDateRangeSheetVisible(false);
         }}
         onReset={() => {
-          t.setCustomRange(null);
-          t.setPeriod({ type: 'all' });
+          setCustomRange(null);
+          setPeriod({ type: 'all' });
           setDateRangeSheetVisible(false);
         }}
       />

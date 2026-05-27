@@ -34,6 +34,7 @@ const INITIAL_STATE = {
   loading: false,
   hasLoaded: false,
   query: {} as TransactionListFilters,
+  mutationVersion: 0,
 };
 
 interface TransactionStore {
@@ -66,9 +67,16 @@ export function createTransactionStore(repo: ITransactionRepository) {
         if (myId !== requestId) return;
         const hasMore = rows.length === PAGE_SIZE;
         if (mode === 'replace') {
-          set({
-            state: { transactions: rows, hasMore, loading: false, hasLoaded: true, query: filters },
-          });
+          set((s) => ({
+            state: {
+              ...s.state,
+              transactions: rows,
+              hasMore,
+              loading: false,
+              hasLoaded: true,
+              query: filters,
+            },
+          }));
         } else {
           set((s) => ({
             state: {
@@ -84,6 +92,12 @@ export function createTransactionStore(repo: ITransactionRepository) {
         console.error('[transactionStore] fetch failed:', err);
         throw err;
       }
+    }
+
+    function bumpMutationVersion() {
+      set((s) => ({
+        state: { ...s.state, mutationVersion: s.state.mutationVersion + 1 },
+      }));
     }
 
     return {
@@ -103,6 +117,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
       addTransaction: async (data) => {
         const tx = await repo.add(data);
+        bumpMutationVersion();
         await get()
           .refresh()
           .catch((err) => console.error('[transactionStore] post-add refresh failed:', err));
@@ -111,6 +126,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
       deleteTransaction: async (id) => {
         await repo.delete(id);
+        bumpMutationVersion();
         await get()
           .refresh()
           .catch((err) => console.error('[transactionStore] post-delete refresh failed:', err));
@@ -118,6 +134,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
       updateTransaction: async (id, data) => {
         await repo.update(id, data);
+        bumpMutationVersion();
         await get()
           .refresh()
           .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));

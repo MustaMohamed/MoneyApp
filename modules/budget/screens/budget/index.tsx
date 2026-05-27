@@ -85,9 +85,9 @@ export default function BudgetScreen() {
               <CategoryBudgetRow
                 key={row.categoryId}
                 row={row}
-                onPress={() => goToCategory(row.categoryId)}
-                onEdit={() => openEdit(row.categoryId)}
-                onDelete={() => requestDelete({ id: row.categoryId, name: row.name })}
+                onPress={goToCategory}
+                onEdit={openEdit}
+                onDelete={requestDelete}
               />
             ))}
           </ScreenScroll>

@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type {
@@ -14,7 +15,8 @@ import { useCategoriesScreenStore } from './categories.store';
 export function useCategories() {
   const router = useRouter();
   const {
-    state: catState,
+    categories,
+    hasLoaded,
     addCategory,
     updateCategory,
     deleteCategory,
@@ -22,7 +24,8 @@ export function useCategories() {
     getCategoryTransactionCount,
   } = useCategoryStore(
     useShallow((s) => ({
-      state: s.state,
+      categories: s.state.categories,
+      hasLoaded: s.state.hasLoaded,
       addCategory: s.addCategory,
       updateCategory: s.updateCategory,
       deleteCategory: s.deleteCategory,
@@ -63,57 +66,83 @@ export function useCategories() {
     })),
   );
 
-  const displayedCategories = catState.categories.filter(
-    (c) => c.type === catScreenUiState.activeTab,
+  const activeTab = catScreenUiState.activeTab;
+  const editingCategory = catScreenDataState.editingCategory;
+  const categoryToDelete = catScreenDataState.categoryToDelete;
+
+  const displayedCategories = useMemo(
+    () => categories.filter((c) => c.type === activeTab),
+    [activeTab, categories],
   );
-  const defaultCategories = displayedCategories.filter((c) => c.is_default === 1);
-  const customCategories = displayedCategories.filter((c) => c.is_default === 0);
-  const customCount = catState.categories.filter((c) => c.is_default === 0).length;
+  const defaultCategories = useMemo(
+    () => displayedCategories.filter((c) => c.is_default === 1),
+    [displayedCategories],
+  );
+  const customCategories = useMemo(
+    () => displayedCategories.filter((c) => c.is_default === 0),
+    [displayedCategories],
+  );
+  const customCount = useMemo(
+    () => categories.filter((c) => c.is_default === 0).length,
+    [categories],
+  );
   const isAtLimit = customCount >= 30;
 
-  function openAddSheet() {
+  const openAddSheet = useCallback(() => {
     setEditingCategory(null);
     setShowAddSheet(true);
-  }
+  }, [setEditingCategory, setShowAddSheet]);
 
-  function openEditSheet(category: Category) {
-    setEditingCategory(category);
-    setShowAddSheet(true);
-  }
+  const openEditSheet = useCallback(
+    (category: Category) => {
+      setEditingCategory(category);
+      setShowAddSheet(true);
+    },
+    [setEditingCategory, setShowAddSheet],
+  );
 
-  function closeSheet() {
+  const closeSheet = useCallback(() => {
     setShowAddSheet(false);
     setEditingCategory(null);
-  }
+  }, [setEditingCategory, setShowAddSheet]);
 
-  function openDeleteConfirm(category: Category) {
-    setCategoryToDelete(category);
-    setShowDeleteConfirm(true);
-  }
+  const openDeleteConfirm = useCallback(
+    (category: Category) => {
+      setCategoryToDelete(category);
+      setShowDeleteConfirm(true);
+    },
+    [setCategoryToDelete, setShowDeleteConfirm],
+  );
 
-  function openReassignSheet(category: Category) {
-    setCategoryToDelete(category);
-    setShowReassignSheet(true);
-  }
+  const openReassignSheet = useCallback(
+    (category: Category) => {
+      setCategoryToDelete(category);
+      setShowReassignSheet(true);
+    },
+    [setCategoryToDelete, setShowReassignSheet],
+  );
 
-  function closeDeleteFlow() {
+  const closeDeleteFlow = useCallback(() => {
     setCategoryToDelete(null);
     setShowDeleteConfirm(false);
     setShowReassignSheet(false);
     setLinkedCount(0);
-  }
+  }, [setCategoryToDelete, setLinkedCount, setShowDeleteConfirm, setShowReassignSheet]);
 
-  const handleSave = async (data: NewCategoryInput | UpdateCategoryInput) => {
-    if (catScreenDataState.editingCategory) {
-      await updateCategory(catScreenDataState.editingCategory.id, data as UpdateCategoryInput);
-    } else {
-      // addCategory throws 'already exists' on name+type collision — caller catches
-      // and surfaces as categoriesErrNameDuplicate form error (TC-06)
-      // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- else-branch means editingCategory is null, so data is always NewCategoryInput
-      await addCategory(data as NewCategoryInput);
-    }
-    closeSheet();
-  };
+  const handleSave = useCallback(
+    async (data: NewCategoryInput | UpdateCategoryInput) => {
+      if (editingCategory) {
+        await updateCategory(editingCategory.id, data as UpdateCategoryInput);
+      } else {
+        // addCategory throws 'already exists' on name+type collision — caller catches
+        // and surfaces as categoriesErrNameDuplicate form error (TC-06)
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- else-branch means editingCategory is null, so data is always NewCategoryInput
+        await addCategory(data as NewCategoryInput);
+      }
+      closeSheet();
+    },
+    [addCategory, closeSheet, editingCategory, updateCategory],
+  );
 
   /**
    * Replaces the M2a stub `hasTransactions = false`.
@@ -129,26 +158,35 @@ export function useCategories() {
    * Note: PROTECTED_CATEGORY_IDS guard is enforced in CategoryRow — this
    * handler will never be called for protected IDs.
    */
-  const handleDeletePress = async (category: Category) => {
-    setIsDeleting(true);
-    try {
-      const count = await getCategoryTransactionCount(category.id);
-      setLinkedCount(count);
-      if (count > 0) {
-        openReassignSheet(category);
-      } else {
-        openDeleteConfirm(category);
+  const handleDeletePress = useCallback(
+    async (category: Category) => {
+      setIsDeleting(true);
+      try {
+        const count = await getCategoryTransactionCount(category.id);
+        setLinkedCount(count);
+        if (count > 0) {
+          openReassignSheet(category);
+        } else {
+          openDeleteConfirm(category);
+        }
+      } finally {
+        setIsDeleting(false);
       }
-    } finally {
-      setIsDeleting(false);
-    }
-  };
+    },
+    [
+      getCategoryTransactionCount,
+      openDeleteConfirm,
+      openReassignSheet,
+      setIsDeleting,
+      setLinkedCount,
+    ],
+  );
 
-  const handleDeleteConfirm = async () => {
-    if (!catScreenDataState.categoryToDelete) return;
-    await deleteCategory(catScreenDataState.categoryToDelete.id);
+  const handleDeleteConfirm = useCallback(async () => {
+    if (!categoryToDelete) return;
+    await deleteCategory(categoryToDelete.id);
     closeDeleteFlow();
-  };
+  }, [categoryToDelete, closeDeleteFlow, deleteCategory]);
 
   /**
    * Called from ReassignCategorySheet on confirm.
@@ -157,11 +195,14 @@ export function useCategories() {
    * the caller (ReassignCategorySheet) which is responsible for surfacing the
    * error to the user.
    */
-  const handleReassignConfirm = async (toId: string) => {
-    if (!catScreenDataState.categoryToDelete) return;
-    await reassignAndDelete(catScreenDataState.categoryToDelete.id, toId);
-    closeDeleteFlow();
-  };
+  const handleReassignConfirm = useCallback(
+    async (toId: string) => {
+      if (!categoryToDelete) return;
+      await reassignAndDelete(categoryToDelete.id, toId);
+      closeDeleteFlow();
+    },
+    [categoryToDelete, closeDeleteFlow, reassignAndDelete],
+  );
 
   /**
    * Options for the reassign picker — all categories of the same type except:
@@ -172,24 +213,30 @@ export function useCategories() {
    * The picker always has at least one option because the protected "Other"
    * category can never be deleted.
    */
-  const reassignOptions = catState.categories.filter(
-    (c) =>
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
-      c.type === catScreenDataState.categoryToDelete?.type &&
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
-      c.id !== catScreenDataState.categoryToDelete?.id,
+  const reassignOptions = useMemo(
+    () =>
+      categories.filter(
+        (c) =>
+          // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
+          c.type === categoryToDelete?.type &&
+          // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
+          c.id !== categoryToDelete?.id,
+      ),
+    [categories, categoryToDelete],
   );
+
+  const goBack = useCallback(() => router.back(), [router]);
 
   return {
     state: {
       defaultCategories,
       customCategories,
       isAtLimit,
-      hasLoaded: catState.hasLoaded,
-      activeTab: catScreenUiState.activeTab,
+      hasLoaded,
+      activeTab,
       showAddSheet: catScreenUiState.showAddSheet,
-      editingCategory: catScreenDataState.editingCategory,
-      categoryToDelete: catScreenDataState.categoryToDelete,
+      editingCategory,
+      categoryToDelete,
       showDeleteConfirm: catScreenUiState.showDeleteConfirm,
       showReassignSheet: catScreenUiState.showReassignSheet,
       reassignOptions,
@@ -205,6 +252,6 @@ export function useCategories() {
     handleDeleteConfirm,
     handleReassignConfirm,
     closeDeleteFlow,
-    goBack: () => router.back(),
+    goBack,
   };
 }

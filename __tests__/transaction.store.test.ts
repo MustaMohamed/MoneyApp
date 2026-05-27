@@ -205,6 +205,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     const repo = makeRepo();
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
+    const beforeVersion = useStore.getState().state.mutationVersion;
 
     await useStore.getState().addTransaction({
       type: TransactionType.Expense,
@@ -217,6 +218,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
 
     expect(repo.add).toHaveBeenCalled();
     expect(useStore.getState().state.transactions).toHaveLength(1);
+    expect(useStore.getState().state.mutationVersion).toBe(beforeVersion + 1);
   });
 
   it('deleteTransaction calls repo.delete then refresh()', async () => {
@@ -224,10 +226,12 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
     expect(useStore.getState().state.transactions).toHaveLength(1);
+    const beforeVersion = useStore.getState().state.mutationVersion;
 
     await useStore.getState().deleteTransaction('tx-del');
     expect(repo.delete).toHaveBeenCalledWith('tx-del');
     expect(useStore.getState().state.transactions).toHaveLength(0);
+    expect(useStore.getState().state.mutationVersion).toBe(beforeVersion + 1);
   });
 
   it('addTransaction swallows a refresh failure and still returns the new transaction', async () => {
@@ -242,6 +246,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     });
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
+    const beforeVersion = useStore.getState().state.mutationVersion;
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     const result = await useStore.getState().addTransaction({
@@ -254,6 +259,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     consoleSpy.mockRestore();
 
     expect(result.id).toBe('tx-new');
+    expect(useStore.getState().state.mutationVersion).toBe(beforeVersion + 1);
   });
 
   it('deleteTransaction swallows a refresh failure and still resolves', async () => {
@@ -266,10 +272,12 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     });
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
+    const beforeVersion = useStore.getState().state.mutationVersion;
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(useStore.getState().deleteTransaction('tx-del2')).resolves.toBeUndefined();
     consoleSpy.mockRestore();
+    expect(useStore.getState().state.mutationVersion).toBe(beforeVersion + 1);
   });
 });
 
@@ -280,6 +288,7 @@ describe('transactionStore.updateTransaction', () => {
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
     expect(useStore.getState().state.transactions[0].amount).toBe(100);
+    const beforeVersion = useStore.getState().state.mutationVersion;
 
     await useStore.getState().updateTransaction('tx-upd', {
       amount: 250,
@@ -291,6 +300,7 @@ describe('transactionStore.updateTransaction', () => {
 
     expect(repo.update).toHaveBeenCalledWith('tx-upd', expect.objectContaining({ amount: 250 }));
     expect(useStore.getState().state.transactions[0].amount).toBe(250);
+    expect(useStore.getState().state.mutationVersion).toBe(beforeVersion + 1);
   });
 
   it('swallows a refresh failure after update and still resolves', async () => {
@@ -304,6 +314,7 @@ describe('transactionStore.updateTransaction', () => {
     });
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({});
+    const beforeVersion = useStore.getState().state.mutationVersion;
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(
@@ -316,6 +327,7 @@ describe('transactionStore.updateTransaction', () => {
       }),
     ).resolves.toBeUndefined();
     consoleSpy.mockRestore();
+    expect(useStore.getState().state.mutationVersion).toBe(beforeVersion + 1);
   });
 });
 
@@ -366,6 +378,7 @@ describe('transactionStore.reset', () => {
       loading: false,
       hasLoaded: false,
       query: {},
+      mutationVersion: 0,
     });
   });
 });
