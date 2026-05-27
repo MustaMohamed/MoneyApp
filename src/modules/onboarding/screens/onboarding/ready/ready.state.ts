@@ -1,18 +1,13 @@
-import { create } from 'zustand';
+import { useSignal } from '@preact/signals-react';
+import { useSignals } from '@preact/signals-react/runtime';
 
-interface ReadyStateShape {
-  completing: boolean;
+export function useReadyScreenState() {
+  useSignals();
+  const completing = useSignal(false);
+
+  const setCompleting = (nextCompleting: boolean) => {
+    completing.value = nextCompleting;
+  };
+
+  return { state: { completing }, setCompleting };
 }
-
-type ReadyState = ReadyStateShape & {
-  setCompleting: (completing: boolean) => void;
-  reset: () => void;
-};
-
-const INITIAL_STATE: ReadyStateShape = { completing: false };
-
-export const useReadyState = create<ReadyState>((set) => ({
-  ...INITIAL_STATE,
-  setCompleting: (completing) => set((s) => ({ ...s, completing })),
-  reset: () => set(INITIAL_STATE),
-}));

@@ -1,22 +1,22 @@
-import { useReadyState } from '@/modules/onboarding/screens/onboarding/ready/ready.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => useReadyState.getState().reset());
+import { useReadyScreenState } from '@/modules/onboarding/screens/onboarding/ready/ready.state';
 
 describe('readyState', () => {
   it('starts with completing=false', () => {
-    expect(useReadyState.getState().completing).toBe(false);
+    const { result } = renderHook(() => useReadyScreenState());
+    expect(result.current.state.completing.value).toBe(false);
   });
 
   it('setCompleting toggles', () => {
-    useReadyState.getState().setCompleting(true);
-    expect(useReadyState.getState().completing).toBe(true);
-    useReadyState.getState().setCompleting(false);
-    expect(useReadyState.getState().completing).toBe(false);
-  });
-
-  it('reset clears completing', () => {
-    useReadyState.getState().setCompleting(true);
-    useReadyState.getState().reset();
-    expect(useReadyState.getState().completing).toBe(false);
+    const { result } = renderHook(() => useReadyScreenState());
+    act(() => {
+      result.current.setCompleting(true);
+    });
+    expect(result.current.state.completing.value).toBe(true);
+    act(() => {
+      result.current.setCompleting(false);
+    });
+    expect(result.current.state.completing.value).toBe(false);
   });
 });

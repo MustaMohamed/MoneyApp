@@ -1,18 +1,18 @@
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 
 import { computeTotalBalance } from './ready.helpers';
-import { useReadyState } from './ready.state';
+import { useReadyScreenState } from './ready.state';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
-  const baseCurrency = useOnboardingStore.useState.baseCurrency();
-  const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
+  const { state: onboardingState, completeOnboarding } = useOnboarding();
   const accounts = useAccountStore.useState.accounts();
-  const completing = useReadyState((s) => s.completing);
-  const setCompleting = useReadyState.getState().setCompleting;
+  const { state: readyState, setCompleting } = useReadyScreenState();
+  const baseCurrency = onboardingState.baseCurrency.value;
+  const completing = readyState.completing.value;
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);

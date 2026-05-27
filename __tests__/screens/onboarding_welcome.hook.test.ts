@@ -2,25 +2,25 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { OnboardingStep, Currency } from '@/constants/enums';
 import { useWelcome } from '@/modules/onboarding/screens/onboarding/welcome/welcome.hook';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));
 
 const mockSetBaseCurrency = jest.fn().mockResolvedValue(undefined);
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockPush = jest.fn();
 
 function setup(baseCurrency: Currency = Currency.EGP) {
-  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    baseCurrency,
+  const { useOnboarding } = require('@/modules/onboarding/store/onboarding.store');
+  (useOnboarding as jest.Mock).mockReturnValue({
+    state: {
+      baseCurrency: { value: baseCurrency },
+    },
     setBaseCurrency: mockSetBaseCurrency,
     setStep: mockSetStep,
-  }));
+  });
   jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({ push: mockPush });
 }
 

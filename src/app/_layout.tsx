@@ -18,8 +18,8 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Colors } from '@/constants/theme';
-import { useReadyStore } from '@/store/ready.store';
-import { useLayoutInit } from '@/utils/use_layout_init.hook';
+import { useAppReady } from '@/store/ready.store';
+import { useAppInit } from '@/utils/use_layout_init.hook';
 
 void SplashScreen.preventAutoHideAsync();
 void SystemUI.setBackgroundColorAsync(Colors.dark.bg);
@@ -45,8 +45,9 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const ready = useReadyStore.useState.ready();
-  useLayoutInit();
+  const { state } = useAppReady();
+  useAppInit();
+  const ready = state.ready.value;
 
   useEffect(() => {
     if (fontsLoaded && ready) {

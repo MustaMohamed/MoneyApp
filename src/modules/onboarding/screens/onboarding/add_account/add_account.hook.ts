@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react';
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import {
   createAddAccountSchema,
@@ -34,8 +34,7 @@ export function useAddAccount() {
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
   const accounts = useAccountStore.useState.accounts();
   const addAccount = useAccountStore.getState().addAccount;
-  const baseCurrency = useOnboardingStore.useState.baseCurrency();
-  const setStep = useOnboardingStore.getState().setStep;
+  const { state, setStep } = useOnboarding();
 
   useEffect(() => {
     void useAccountStore.getState().loadAccounts();
@@ -51,7 +50,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AcctTokens.midnight.rich,
-      currency: baseCurrency,
+      currency: state.baseCurrency.value,
       interest_tracking: false,
       credit_limit: '',
       apr: '',

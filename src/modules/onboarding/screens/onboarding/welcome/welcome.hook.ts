@@ -2,14 +2,12 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 
 import { Currency, OnboardingStep } from '@/constants/enums';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 
 export function useWelcome() {
-  const baseCurrency = useOnboardingStore.useState.baseCurrency();
-  const setBaseCurrency = useOnboardingStore.getState().setBaseCurrency;
-  const setStep = useOnboardingStore.getState().setStep;
+  const { state, setBaseCurrency, setStep } = useOnboarding();
   const router = useRouter();
-  const [selected, setSelected] = useState<Currency>(baseCurrency);
+  const [selected, setSelected] = useState<Currency>(state.baseCurrency.value);
 
   const onContinue = async () => {
     await setBaseCurrency(selected);

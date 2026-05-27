@@ -1,6 +1,6 @@
 // modules/onboarding/index.ts
 export {
   createOnboardingStore,
-  useOnboardingStore,
+  useOnboarding,
   loadOnboardingState,
 } from './store/onboarding.store';

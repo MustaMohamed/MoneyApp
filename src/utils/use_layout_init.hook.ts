@@ -4,11 +4,12 @@ import { useEffect } from 'react';
 import { getDb, runMigrations } from '@/database/client';
 import { useCommitmentStore } from '@/store/commitment.store';
 import { loadOnboardingState } from '@/store/onboarding.store';
-import { useReadyStore } from '@/store/ready.store';
+import { useAppReady } from '@/store/ready.store';
 
-export function useLayoutInit() {
+export function useAppInit() {
+  const { markReady } = useAppReady();
+
   useEffect(() => {
-    const setReady = useReadyStore.getState().setReady;
     let onboardingComplete = false;
 
     void (async () => {
@@ -17,10 +18,10 @@ export function useLayoutInit() {
         await runMigrations(db);
         const onboarding = await loadOnboardingState();
         onboardingComplete = onboarding.complete;
-        setReady(true);
+        markReady();
       } catch (err) {
         console.warn('[layoutInit] startup failed, rendering in degraded state:', err);
-        setReady(true);
+        markReady();
         return;
       }
 
@@ -45,5 +46,7 @@ export function useLayoutInit() {
         });
       }
     })();
-  }, []);
+  }, [markReady]);
 }
+
+export const useLayoutInit = useAppInit;

@@ -1,5 +1,6 @@
+import { signal, type Signal } from '@preact/signals-react';
+import { useSignals } from '@preact/signals-react/runtime';
 import * as SecureStore from 'expo-secure-store';
-import { create } from 'zustand';
 
 import { Currency, OnboardingStep } from '@/constants/enums';
 import { SecureStoreKeys } from '@/constants/secure_store_keys';
@@ -7,7 +8,6 @@ import {
   AppSettingsRepository,
   type IAppSettingsRepository,
 } from '@/repositories/app_settings.repository';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 const INITIAL_STATE = {
   complete: false,
@@ -15,53 +15,95 @@ const INITIAL_STATE = {
   baseCurrency: Currency.EGP,
 };
 
-type OnboardingStore = typeof INITIAL_STATE & {
+type OnboardingSignalState = {
+  complete: Signal<boolean>;
+  currentStep: Signal<OnboardingStep>;
+  baseCurrency: Signal<Currency>;
+};
+
+type OnboardingStore = {
+  state: OnboardingSignalState;
   setStep: (step: OnboardingStep) => Promise<void>;
   setBaseCurrency: (currency: Currency) => Promise<void>;
   completeOnboarding: () => Promise<void>;
 };
 
-export function createOnboardingStore(repo: IAppSettingsRepository) {
-  return createMoneyAppSelectors(
-    create<OnboardingStore>((set) => ({
-      ...INITIAL_STATE,
-
-      setStep: async (step) => {
-        try {
-          await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
-          set((s) => ({ ...s, currentStep: step }));
-        } catch (err) {
-          console.error('[onboardingStore] setStep failed:', err);
-          throw err;
-        }
-      },
-
-      setBaseCurrency: async (currency) => {
-        try {
-          await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
-          await repo.set('base_currency', currency);
-          set((s) => ({ ...s, baseCurrency: currency }));
-        } catch (err) {
-          console.error('[onboardingStore] setBaseCurrency failed:', err);
-          throw err;
-        }
-      },
-
-      completeOnboarding: async () => {
-        try {
-          await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
-          await repo.set('onboarding_complete', 'true');
-          set((s) => ({ ...s, complete: true }));
-        } catch (err) {
-          console.error('[onboardingStore] completeOnboarding failed:', err);
-          throw err;
-        }
-      },
-    })),
-  );
+function createOnboardingSignals(): OnboardingSignalState {
+  return {
+    complete: signal(INITIAL_STATE.complete),
+    currentStep: signal(INITIAL_STATE.currentStep),
+    baseCurrency: signal(INITIAL_STATE.baseCurrency),
+  };
 }
 
-export const useOnboardingStore = createOnboardingStore(new AppSettingsRepository());
+function resetSignals(state: OnboardingSignalState) {
+  state.complete.value = INITIAL_STATE.complete;
+  state.currentStep.value = INITIAL_STATE.currentStep;
+  state.baseCurrency.value = INITIAL_STATE.baseCurrency;
+}
+
+function setSignals(state: OnboardingSignalState, next: typeof INITIAL_STATE) {
+  state.complete.value = next.complete;
+  state.currentStep.value = next.currentStep;
+  state.baseCurrency.value = next.baseCurrency;
+}
+
+export function createOnboardingStore(
+  repo: IAppSettingsRepository,
+  state: OnboardingSignalState = createOnboardingSignals(),
+): OnboardingStore {
+  return {
+    state,
+
+    setStep: async (step) => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.OnboardingStep, step);
+        state.currentStep.value = step;
+      } catch (err) {
+        console.error('[onboardingStore] setStep failed:', err);
+        throw err;
+      }
+    },
+
+    setBaseCurrency: async (currency) => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.BaseCurrency, currency);
+        await repo.set('base_currency', currency);
+        state.baseCurrency.value = currency;
+      } catch (err) {
+        console.error('[onboardingStore] setBaseCurrency failed:', err);
+        throw err;
+      }
+    },
+
+    completeOnboarding: async () => {
+      try {
+        await SecureStore.setItemAsync(SecureStoreKeys.OnboardingComplete, 'true');
+        await repo.set('onboarding_complete', 'true');
+        state.complete.value = true;
+      } catch (err) {
+        console.error('[onboardingStore] completeOnboarding failed:', err);
+        throw err;
+      }
+    },
+  };
+}
+
+const onboardingSignals = createOnboardingSignals();
+const onboarding = createOnboardingStore(new AppSettingsRepository(), onboardingSignals);
+
+export function useOnboarding(): OnboardingStore {
+  useSignals();
+  return onboarding;
+}
+
+export function __resetOnboardingForTests() {
+  resetSignals(onboardingSignals);
+}
+
+export function __getOnboardingStateForTests() {
+  return onboarding.state;
+}
 
 export async function loadOnboardingState(): Promise<{
   complete: boolean;
@@ -86,7 +128,7 @@ export async function loadOnboardingState(): Promise<{
   }
   const baseCurrency: Currency = isCurrency(currencyRaw) ? currencyRaw : Currency.EGP;
 
-  useOnboardingStore.setState({ complete, currentStep: step, baseCurrency });
+  setSignals(onboardingSignals, { complete, currentStep: step, baseCurrency });
 
   return { complete, step };
 }

@@ -6,9 +6,10 @@ import * as SecureStore from 'expo-secure-store';
 import { Currency, OnboardingStep } from '@/constants/enums';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 import {
+  __getOnboardingStateForTests,
+  __resetOnboardingForTests,
   createOnboardingStore,
   loadOnboardingState,
-  useOnboardingStore,
 } from '@/store/onboarding.store';
 
 const secure = SecureStore as unknown as {
@@ -27,20 +28,16 @@ function makeRepo(): IAppSettingsRepository {
 beforeEach(() => {
   secure.__reset();
   jest.clearAllMocks();
-  useOnboardingStore.setState({
-    complete: false,
-    currentStep: OnboardingStep.N1,
-    baseCurrency: Currency.EGP,
-  });
+  __resetOnboardingForTests();
 });
 
 describe('onboardingStore.setStep — TC-03', () => {
   it('writes onboarding_step to SecureStore then updates state', async () => {
     const repo = makeRepo();
     const store = createOnboardingStore(repo);
-    await store.getState().setStep(OnboardingStep.N2);
+    await store.setStep(OnboardingStep.N2);
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'N2');
-    expect(store.getState().currentStep).toBe(OnboardingStep.N2);
+    expect(store.state.currentStep.value).toBe(OnboardingStep.N2);
   });
 });
 
@@ -48,16 +45,16 @@ describe('onboardingStore.setBaseCurrency — TC-05', () => {
   it('writes SecureStore and repo.set before updating state', async () => {
     const repo = makeRepo();
     const store = createOnboardingStore(repo);
-    await store.getState().setBaseCurrency(Currency.USD);
+    await store.setBaseCurrency(Currency.USD);
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'USD');
     expect(repo.set).toHaveBeenCalledWith('base_currency', 'USD');
-    expect(store.getState().baseCurrency).toBe(Currency.USD);
+    expect(store.state.baseCurrency.value).toBe(Currency.USD);
   });
 
   it('persists EGP on the same path', async () => {
     const repo = makeRepo();
     const store = createOnboardingStore(repo);
-    await store.getState().setBaseCurrency(Currency.EGP);
+    await store.setBaseCurrency(Currency.EGP);
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'EGP');
     expect(repo.set).toHaveBeenCalledWith('base_currency', 'EGP');
   });
@@ -67,10 +64,10 @@ describe('onboardingStore.completeOnboarding — TC-13', () => {
   it('writes SecureStore + repo.set then sets complete=true', async () => {
     const repo = makeRepo();
     const store = createOnboardingStore(repo);
-    await store.getState().completeOnboarding();
+    await store.completeOnboarding();
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_complete', 'true');
     expect(repo.set).toHaveBeenCalledWith('onboarding_complete', 'true');
-    expect(store.getState().complete).toBe(true);
+    expect(store.state.complete.value).toBe(true);
   });
 });
 
@@ -80,7 +77,7 @@ describe('onboardingStore — error branches', () => {
     const store = createOnboardingStore(repo);
     secure.setItemAsync.mockRejectedValueOnce(new Error('secure fail'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(store.getState().setStep(OnboardingStep.N2)).rejects.toThrow('secure fail');
+    await expect(store.setStep(OnboardingStep.N2)).rejects.toThrow('secure fail');
     consoleSpy.mockRestore();
   });
 
@@ -89,7 +86,7 @@ describe('onboardingStore — error branches', () => {
     const store = createOnboardingStore(repo);
     secure.setItemAsync.mockRejectedValueOnce(new Error('base fail'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(store.getState().setBaseCurrency(Currency.USD)).rejects.toThrow('base fail');
+    await expect(store.setBaseCurrency(Currency.USD)).rejects.toThrow('base fail');
     consoleSpy.mockRestore();
   });
 
@@ -98,7 +95,7 @@ describe('onboardingStore — error branches', () => {
     const store = createOnboardingStore(repo);
     secure.setItemAsync.mockRejectedValueOnce(new Error('complete fail'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(store.getState().completeOnboarding()).rejects.toThrow('complete fail');
+    await expect(store.completeOnboarding()).rejects.toThrow('complete fail');
     consoleSpy.mockRestore();
   });
 });
@@ -106,12 +103,11 @@ describe('onboardingStore — error branches', () => {
 describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await loadOnboardingState();
+    const state = __getOnboardingStateForTests();
     expect(result).toEqual({ complete: false, step: OnboardingStep.N1 });
-    expect(useOnboardingStore.getState()).toMatchObject({
-      complete: false,
-      currentStep: OnboardingStep.N1,
-      baseCurrency: Currency.EGP,
-    });
+    expect(state.complete.value).toBe(false);
+    expect(state.currentStep.value).toBe(OnboardingStep.N1);
+    expect(state.baseCurrency.value).toBe(Currency.EGP);
   });
 
   it('rehydrates state when SecureStore has values', async () => {
@@ -119,12 +115,11 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
     await secure.setItemAsync('base_currency', 'USD');
 
     const result = await loadOnboardingState();
+    const state = __getOnboardingStateForTests();
     expect(result).toEqual({ complete: false, step: OnboardingStep.N2 });
-    expect(useOnboardingStore.getState()).toMatchObject({
-      complete: false,
-      currentStep: OnboardingStep.N2,
-      baseCurrency: Currency.USD,
-    });
+    expect(state.complete.value).toBe(false);
+    expect(state.currentStep.value).toBe(OnboardingStep.N2);
+    expect(state.baseCurrency.value).toBe(Currency.USD);
   });
 
   it('returns complete:true when onboarding_complete=true', async () => {
@@ -139,10 +134,9 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
     await secure.setItemAsync('base_currency', 'GBP');
 
     const result = await loadOnboardingState();
+    const state = __getOnboardingStateForTests();
     expect(result.step).toBe(OnboardingStep.N1);
-    expect(useOnboardingStore.getState()).toMatchObject({
-      currentStep: OnboardingStep.N1,
-      baseCurrency: Currency.EGP,
-    });
+    expect(state.currentStep.value).toBe(OnboardingStep.N1);
+    expect(state.baseCurrency.value).toBe(Currency.EGP);
   });
 });

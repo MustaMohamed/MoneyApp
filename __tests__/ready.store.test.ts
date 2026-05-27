@@ -1,22 +1,35 @@
-import { useReadyStore } from '@/store/ready.store';
+import { act, renderHook } from '@testing-library/react-native';
 
-describe('useReadyStore', () => {
+import { useAppReady } from '@/store/ready.store';
+
+describe('useAppReady', () => {
   beforeEach(() => {
-    useReadyStore.setState({ ready: false });
+    const { result, unmount } = renderHook(() => useAppReady());
+    act(() => {
+      result.current.reset();
+    });
+    unmount();
   });
 
   it('initialises with ready = false', () => {
-    expect(useReadyStore.getState().ready).toBe(false);
+    const { result } = renderHook(() => useAppReady());
+    expect(result.current.state.ready.value).toBe(false);
   });
 
-  it('setReady(true) sets state.ready to true', () => {
-    useReadyStore.getState().setReady(true);
-    expect(useReadyStore.getState().ready).toBe(true);
+  it('markReady sets state.ready to true', () => {
+    const { result } = renderHook(() => useAppReady());
+    act(() => {
+      result.current.markReady();
+    });
+    expect(result.current.state.ready.value).toBe(true);
   });
 
-  it('setReady(false) sets state.ready to false', () => {
-    useReadyStore.getState().setReady(true);
-    useReadyStore.getState().setReady(false);
-    expect(useReadyStore.getState().ready).toBe(false);
+  it('reset sets state.ready to false', () => {
+    const { result } = renderHook(() => useAppReady());
+    act(() => {
+      result.current.markReady();
+      result.current.reset();
+    });
+    expect(result.current.state.ready.value).toBe(false);
   });
 });

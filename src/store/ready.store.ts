@@ -1,16 +1,25 @@
-import { create } from 'zustand';
+import { signal } from '@preact/signals-react';
+import { useSignals } from '@preact/signals-react/runtime';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+const INITIAL_READY = false;
 
-const INITIAL_STATE = { ready: false };
+const ready = signal(INITIAL_READY);
+const state = { ready };
 
-type ReadyStore = typeof INITIAL_STATE & {
-  setReady: (ready: boolean) => void;
-};
+function markReady() {
+  ready.value = true;
+}
 
-export const useReadyStore = createMoneyAppSelectors(
-  create<ReadyStore>((set) => ({
-    ...INITIAL_STATE,
-    setReady: (ready) => set((s) => ({ ...s, ready })),
-  })),
-);
+function reset() {
+  ready.value = INITIAL_READY;
+}
+
+export function useAppReady() {
+  useSignals();
+
+  return {
+    state,
+    markReady,
+    reset,
+  };
+}
