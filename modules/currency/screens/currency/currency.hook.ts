@@ -11,15 +11,15 @@ export function useCurrencyScreen() {
   const rate = useCurrencyStore.useState.rate();
   const lastFetched = useCurrencyStore.useState.lastFetched();
   const isManualOverride = useCurrencyStore.useState.isManualOverride();
-  const fetchRate = useCurrencyStore.use.fetchRate();
-  const setManualRate = useCurrencyStore.use.setManualRate();
+  const fetchRate = useCurrencyStore.getState().fetchRate;
+  const setManualRate = useCurrencyStore.getState().setManualRate;
   const isFetching = useCurrencyScreenState.useState.isFetching();
   const isSaving = useCurrencyScreenState.useState.isSaving();
   const fetchError = useCurrencyScreenState.useState.fetchError();
-  const setFetching = useCurrencyScreenState.use.setFetching();
-  const setSaving = useCurrencyScreenState.use.setSaving();
-  const setFetchError = useCurrencyScreenState.use.setFetchError();
-  const resetState = useCurrencyScreenState.use.reset();
+  const setFetching = useCurrencyScreenState.getState().setFetching;
+  const setSaving = useCurrencyScreenState.getState().setSaving;
+  const setFetchError = useCurrencyScreenState.getState().setFetchError;
+  const resetState = useCurrencyScreenState.getState().reset;
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => resetState(), []); // cleanup on unmount only; resetState is a stable Zustand action

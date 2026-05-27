@@ -64,18 +64,18 @@ export function useCommitmentDetail() {
 
   const payments = useCommitmentStore.useState.payments();
   const commitments = useCommitmentStore.useState.commitments();
-  const storeSkipPayment = useCommitmentStore.use.skipPayment();
+  const storeSkipPayment = useCommitmentStore.getState().skipPayment;
   const accounts = useAccountStore.useState.accounts();
   const categories = useCategoryStore.useState.categories();
 
   const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();
-  const setSkipConfirmVisible = useCommitmentDetailState.use.setSkipConfirmVisible();
-  const resetUi = useCommitmentDetailState.use.reset();
+  const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;
+  const resetUi = useCommitmentDetailState.getState().reset;
 
   const allPayments = useCommitmentDetailScreenData.useState.allPayments();
   const screenViewState = useCommitmentDetailScreenData.useState.viewState();
-  const setAllPayments = useCommitmentDetailScreenData.use.setAllPayments();
-  const setViewState = useCommitmentDetailScreenData.use.setViewState();
+  const setAllPayments = useCommitmentDetailScreenData.getState().setAllPayments;
+  const setViewState = useCommitmentDetailScreenData.getState().setViewState;
 
   // Find payment from store's monthly payments
   const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);

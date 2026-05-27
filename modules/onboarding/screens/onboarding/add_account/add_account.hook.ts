@@ -33,9 +33,9 @@ export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
   const accounts = useAccountStore.useState.accounts();
-  const addAccount = useAccountStore.use.addAccount();
+  const addAccount = useAccountStore.getState().addAccount;
   const baseCurrency = useOnboardingStore.useState.baseCurrency();
-  const setStep = useOnboardingStore.use.setStep();
+  const setStep = useOnboardingStore.getState().setStep;
 
   useEffect(() => {
     void useAccountStore.getState().loadAccounts();

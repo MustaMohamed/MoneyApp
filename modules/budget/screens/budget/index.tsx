@@ -31,7 +31,7 @@ export default function BudgetScreen() {
   const editingTargetId = useBudgetState.useState.targetCategoryId();
   const editingRow = state.rows.find((r) => r.categoryId === editingTargetId);
 
-  const removeBudget = useBudgetStore.use.removeBudget();
+  const removeBudget = useBudgetStore.getState().removeBudget;
 
   // Payload carries both id and name so the confirm sheet can display the category name
   const {

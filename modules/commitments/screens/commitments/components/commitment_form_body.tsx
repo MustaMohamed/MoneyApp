@@ -105,10 +105,10 @@ export function CommitmentFormBody({
   const accountPickerVisible = useCommitmentFormBodyState.useState.accountPickerVisible();
   const showStartDatePicker = useCommitmentFormBodyState.useState.showStartDatePicker();
   const showEndDatePicker = useCommitmentFormBodyState.useState.showEndDatePicker();
-  const setCategoryPickerVisible = useCommitmentFormBodyState.use.setCategoryPickerVisible();
-  const setAccountPickerVisible = useCommitmentFormBodyState.use.setAccountPickerVisible();
-  const setShowStartDatePicker = useCommitmentFormBodyState.use.setShowStartDatePicker();
-  const setShowEndDatePicker = useCommitmentFormBodyState.use.setShowEndDatePicker();
+  const setCategoryPickerVisible = useCommitmentFormBodyState.getState().setCategoryPickerVisible;
+  const setAccountPickerVisible = useCommitmentFormBodyState.getState().setAccountPickerVisible;
+  const setShowStartDatePicker = useCommitmentFormBodyState.getState().setShowStartDatePicker;
+  const setShowEndDatePicker = useCommitmentFormBodyState.getState().setShowEndDatePicker;
 
   useEffect(() => () => useCommitmentFormBodyState.getState().reset(), []);
 

@@ -32,16 +32,16 @@ export function useBudget() {
 
   const categories = useCategoryStore.useState.categories();
   const categoriesLoaded = useCategoryStore.useState.hasLoaded();
-  const loadCategories = useCategoryStore.use.loadCategories();
+  const loadCategories = useCategoryStore.getState().loadCategories;
   const budgetRows = useBudgetStore.useState.rows();
   const spendByMonth = useBudgetStore.useState.spendByMonth();
   const budgetLoaded = useBudgetStore.useState.loaded();
   const expectedIncome = useBudgetStore.useState.expectedIncome();
-  const load = useBudgetStore.use.load();
-  const openAdd = useBudgetState.use.openAdd();
-  const openEdit = useBudgetState.use.openEdit();
+  const load = useBudgetStore.getState().load;
+  const openAdd = useBudgetState.getState().openAdd;
+  const openEdit = useBudgetState.getState().openEdit;
   const lensTab = useBudgetState.useState.lensTab();
-  const setLensTab = useBudgetState.use.setLensTab();
+  const setLensTab = useBudgetState.getState().setLensTab;
 
   useFocusEffect(
     useCallback(() => {

@@ -28,12 +28,14 @@ export function createMoneyAppSelectors<S extends UseBoundStore<StoreApi<MoneyAp
 
   for (const key of Object.keys(initialStoreState)) {
     if (key === 'state') continue;
-    mutableStore.use[key] = () => store((s) => (s as Record<string, unknown>)[key]);
+    const selector = (s: MoneyAppStoreState) => (s as Record<string, unknown>)[key];
+    mutableStore.use[key] = () => store(selector);
   }
 
   for (const key of Object.keys(initialStoreState.state)) {
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- keys come from the store's initial state object and are exposed through the typed useState namespace
-    mutableStore.useState[key] = () => store((s) => (s.state as Record<string, unknown>)[key]);
+    const selector = (s: MoneyAppStoreState) => (s.state as Record<string, unknown>)[key];
+    mutableStore.useState[key] = () => store(selector);
   }
 
   return store;

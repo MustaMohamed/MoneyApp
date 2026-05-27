@@ -21,18 +21,18 @@ export function useCommitments() {
   const selectedMonth = useCommitmentStore.useState.selectedMonth();
   const commitmentsLoaded = useCommitmentStore.useState.commitmentsLoaded();
   const paymentsLoaded = useCommitmentStore.useState.paymentsLoaded();
-  const setSelectedMonth = useCommitmentStore.use.setSelectedMonth();
-  const loadPaymentsForMonth = useCommitmentStore.use.loadPaymentsForMonth();
-  const loadCommitments = useCommitmentStore.use.loadCommitments();
-  const generatePayments = useCommitmentStore.use.generatePayments();
-  const skipPayment = useCommitmentStore.use.skipPayment();
-  const deactivateCommitment = useCommitmentStore.use.deactivateCommitment();
+  const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
+  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
+  const loadCommitments = useCommitmentStore.getState().loadCommitments;
+  const generatePayments = useCommitmentStore.getState().generatePayments;
+  const skipPayment = useCommitmentStore.getState().skipPayment;
+  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
   const categories = useCategoryStore.useState.categories();
   const refreshing = useCommitmentsScreenState.useState.refreshing();
   const statusFilter = useCommitmentsScreenState.useState.statusFilter();
-  const setRefreshing = useCommitmentsScreenState.use.setRefreshing();
-  const setStatusFilter = useCommitmentsScreenState.use.setStatusFilter();
+  const setRefreshing = useCommitmentsScreenState.getState().setRefreshing;
+  const setStatusFilter = useCommitmentsScreenState.getState().setStatusFilter;
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 

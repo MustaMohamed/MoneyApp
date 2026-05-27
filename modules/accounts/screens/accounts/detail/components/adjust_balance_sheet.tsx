@@ -33,9 +33,9 @@ export function AdjustBalanceSheet({
 }: AdjustBalanceSheetProps) {
   const input = useAdjustBalanceSheetState.useState.input();
   const error = useAdjustBalanceSheetState.useState.error();
-  const setInput = useAdjustBalanceSheetState.use.setInput();
-  const setError = useAdjustBalanceSheetState.use.setError();
-  const initialize = useAdjustBalanceSheetState.use.initialize();
+  const setInput = useAdjustBalanceSheetState.getState().setInput;
+  const setError = useAdjustBalanceSheetState.getState().setError;
+  const initialize = useAdjustBalanceSheetState.getState().initialize;
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 

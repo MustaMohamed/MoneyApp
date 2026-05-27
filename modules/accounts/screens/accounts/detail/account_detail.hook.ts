@@ -15,22 +15,22 @@ export function useAccountDetail() {
   const navigation = useNavigation();
 
   const accounts = useAccountStore.useState.accounts();
-  const updateAccount = useAccountStore.use.updateAccount();
-  const archiveAccount = useAccountStore.use.archiveAccount();
-  const adjustBalance = useAccountStore.use.adjustBalance();
+  const updateAccount = useAccountStore.getState().updateAccount;
+  const archiveAccount = useAccountStore.getState().archiveAccount;
+  const adjustBalance = useAccountStore.getState().adjustBalance;
   const isEditing = useAccountDetailState.useState.isEditing();
   const isAdjustVisible = useAccountDetailState.useState.isAdjustVisible();
   const isArchiveVisible = useAccountDetailState.useState.isArchiveVisible();
   const isSaving = useAccountDetailState.useState.isSaving();
   const isAdjusting = useAccountDetailState.useState.isAdjusting();
   const isArchiving = useAccountDetailState.useState.isArchiving();
-  const setEditing = useAccountDetailState.use.setEditing();
-  const setAdjustVisible = useAccountDetailState.use.setAdjustVisible();
-  const setArchiveVisible = useAccountDetailState.use.setArchiveVisible();
-  const setSaving = useAccountDetailState.use.setSaving();
-  const setAdjusting = useAccountDetailState.use.setAdjusting();
-  const setArchiving = useAccountDetailState.use.setArchiving();
-  const reset = useAccountDetailState.use.reset();
+  const setEditing = useAccountDetailState.getState().setEditing;
+  const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
+  const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
+  const setSaving = useAccountDetailState.getState().setSaving;
+  const setAdjusting = useAccountDetailState.getState().setAdjusting;
+  const setArchiving = useAccountDetailState.getState().setArchiving;
+  const reset = useAccountDetailState.getState().reset;
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => reset(), []); // cleanup on unmount only; reset is a stable Zustand action

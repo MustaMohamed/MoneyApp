@@ -21,11 +21,11 @@ export function useAddCommitment() {
 
   const accounts = useAccountStore.useState.accounts();
   const categories = useCategoryStore.useState.categories();
-  const addCommitment = useCommitmentStore.use.addCommitment();
-  const generatePayments = useCommitmentStore.use.generatePayments();
+  const addCommitment = useCommitmentStore.getState().addCommitment;
+  const generatePayments = useCommitmentStore.getState().generatePayments;
   const saving = useAddCommitmentState.useState.saving();
-  const setSaving = useAddCommitmentState.use.setSaving();
-  const reset = useAddCommitmentState.use.reset();
+  const setSaving = useAddCommitmentState.getState().setSaving;
+  const reset = useAddCommitmentState.getState().reset;
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
     mode: 'onSubmit',

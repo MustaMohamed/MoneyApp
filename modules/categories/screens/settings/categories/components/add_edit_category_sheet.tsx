@@ -110,12 +110,12 @@ export function AddEditCategorySheet({
   const selectedColor = useAddEditCategorySheetState.useState.selectedColor();
   const iconError = useAddEditCategorySheetState.useState.iconError();
   const isLoading = useAddEditCategorySheetState.useState.isLoading();
-  const setType = useAddEditCategorySheetState.use.setType();
-  const setSelectedIcon = useAddEditCategorySheetState.use.setSelectedIcon();
-  const setSelectedColor = useAddEditCategorySheetState.use.setSelectedColor();
-  const setIconError = useAddEditCategorySheetState.use.setIconError();
-  const setIsLoading = useAddEditCategorySheetState.use.setIsLoading();
-  const initialize = useAddEditCategorySheetState.use.initialize();
+  const setType = useAddEditCategorySheetState.getState().setType;
+  const setSelectedIcon = useAddEditCategorySheetState.getState().setSelectedIcon;
+  const setSelectedColor = useAddEditCategorySheetState.getState().setSelectedColor;
+  const setIconError = useAddEditCategorySheetState.getState().setIconError;
+  const setIsLoading = useAddEditCategorySheetState.getState().setIsLoading;
+  const initialize = useAddEditCategorySheetState.getState().initialize;
 
   const schema = createCategorySchema(categories, activeTab, editingCategory);
   const {

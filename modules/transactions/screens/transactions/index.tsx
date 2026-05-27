@@ -51,14 +51,14 @@ export default function TransactionsScreen(): React.ReactElement {
   } = t;
   const addTxVisible = useAddTransactionState.useState.visible();
   const addTxPendingOpen = useAddTransactionState.useState.pendingOpen();
-  const openAddTx = useAddTransactionState.use.open();
+  const openAddTx = useAddTransactionState.getState().open;
 
   // Edit sheet state — opened imperatively from goToEdit in the hook
   const editTxVisible = useEditTransactionState.useState.visible();
   const editingTx = useEditTransactionStore.useState.editingTx();
 
   // Delete confirm gate for list-swipe delete
-  const deleteTransaction = useTransactionStore.use.deleteTransaction();
+  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
@@ -81,7 +81,7 @@ export default function TransactionsScreen(): React.ReactElement {
   }, [addTxPendingOpen, openAddTx]);
 
   const dateRangeSheetVisible = useFilterState.useState.dateRangeSheetVisible();
-  const setDateRangeSheetVisible = useFilterState.use.setDateRangeSheetVisible();
+  const setDateRangeSheetVisible = useFilterState.getState().setDateRangeSheetVisible;
 
   useFocusEffect(
     useCallback(() => {

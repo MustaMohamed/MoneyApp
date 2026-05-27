@@ -9,7 +9,7 @@ type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
   const baseCurrency = useOnboardingStore.useState.baseCurrency();
-  const completeOnboarding = useOnboardingStore.use.completeOnboarding();
+  const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
   const accounts = useAccountStore.useState.accounts();
   const completing = useReadyState((s) => s.state.completing);
   const setCompleting = useReadyState((s) => s.setCompleting);

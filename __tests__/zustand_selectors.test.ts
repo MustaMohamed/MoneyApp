@@ -40,4 +40,34 @@ describe('createMoneyAppSelectors', () => {
     expect(countHook.result.current).toBe(1);
     expect(labelHook.result.current).toBe('zero');
   });
+
+  it('reuses the generated selector function for each key', () => {
+    const selectorCalls: Array<(state: CounterStore) => unknown> = [];
+    const state: CounterStore = {
+      state: { count: 0, label: 'zero' },
+      increment: jest.fn(),
+      setLabel: jest.fn(),
+    };
+    const baseStore = Object.assign(
+      ((selector: (s: CounterStore) => unknown) => {
+        selectorCalls.push(selector);
+        return selector(state);
+      }) as ReturnType<typeof createCounterStore>,
+      {
+        getState: () => state,
+        setState: jest.fn(),
+        subscribe: jest.fn(),
+        getInitialState: () => state,
+      },
+    );
+    const useCounterStore = createMoneyAppSelectors(baseStore);
+
+    useCounterStore.useState.count();
+    useCounterStore.useState.count();
+    useCounterStore.use.increment();
+    useCounterStore.use.increment();
+
+    expect(selectorCalls[0]).toBe(selectorCalls[1]);
+    expect(selectorCalls[2]).toBe(selectorCalls[3]);
+  });
 });

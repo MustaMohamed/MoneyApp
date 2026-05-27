@@ -28,25 +28,25 @@ export function useDashboard() {
 
   const accounts = useAccountStore.useState.accounts();
   const accountsLoaded = useAccountStore.useState.hasLoaded();
-  const loadAccounts = useAccountStore.use.loadAccounts();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   const rate = useCurrencyStore.useState.rate();
   const isManualOverride = useCurrencyStore.useState.isManualOverride();
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
   const isBreakdownVisible = useDashboardState.useState.isBreakdownVisible();
   const refreshing = useDashboardState.useState.refreshing();
   const selectedSegment = useDashboardState.useState.selectedSegment();
-  const setBreakdownVisible = useDashboardState.use.setBreakdownVisible();
-  const setRefreshing = useDashboardState.use.setRefreshing();
-  const setSelectedSegment = useDashboardState.use.setSelectedSegment();
+  const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
+  const setRefreshing = useDashboardState.getState().setRefreshing;
+  const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
   const statsMap = useDashboardStore.useState.statsMap();
   const currentMonthCommitmentPayments =
     useDashboardStore.useState.currentMonthCommitmentPayments();
   const currentMonthSpend = useDashboardStore.useState.currentMonthSpend();
   const previousMonthSpend = useDashboardStore.useState.previousMonthSpend();
-  const setStatsMap = useDashboardStore.use.setStatsMap();
+  const setStatsMap = useDashboardStore.getState().setStatsMap;
   const setCurrentMonthCommitmentPayments =
-    useDashboardStore.use.setCurrentMonthCommitmentPayments();
-  const setMonthSpendStats = useDashboardStore.use.setMonthSpendStats();
+    useDashboardStore.getState().setCurrentMonthCommitmentPayments;
+  const setMonthSpendStats = useDashboardStore.getState().setMonthSpendStats;
 
   const previousYearMonth = useMemo(() => {
     const [y, m] = currentYearMonth.split('-').map(Number);

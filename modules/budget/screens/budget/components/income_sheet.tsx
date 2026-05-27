@@ -15,9 +15,9 @@ export function IncomeSheet() {
   const isOpen = useIncomeSheetState.useState.isOpen();
   const amountText = useIncomeSheetState.useState.amountText();
   const suggestion = useIncomeSheetState.useState.suggestion();
-  const close = useIncomeSheetState.use.close();
-  const setAmountText = useIncomeSheetState.use.setAmountText();
-  const setExpectedIncome = useBudgetStore.use.setExpectedIncome();
+  const close = useIncomeSheetState.getState().close;
+  const setAmountText = useIncomeSheetState.getState().setAmountText;
+  const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const handleSave = async () => {

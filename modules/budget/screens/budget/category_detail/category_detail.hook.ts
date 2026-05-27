@@ -20,11 +20,11 @@ export function useCategoryDetail() {
   const [month, setMonth] = useState(currentYearMonth);
 
   const categories = useCategoryStore.useState.categories();
-  const loadCategories = useCategoryStore.use.loadCategories();
+  const loadCategories = useCategoryStore.getState().loadCategories;
   const budgetRows = useBudgetStore.useState.rows();
   const spendByMonth = useBudgetStore.useState.spendByMonth();
-  const load = useBudgetStore.use.load();
-  const openEdit = useBudgetState.use.openEdit();
+  const load = useBudgetStore.getState().load;
+  const openEdit = useBudgetState.getState().openEdit;
 
   useFocusEffect(
     useCallback(() => {

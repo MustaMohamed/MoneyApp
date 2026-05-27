@@ -135,27 +135,27 @@ function nowTimeISO(): string {
 
 export function useAddTransaction(onClose: () => void) {
   const accounts = useAccountStore.useState.accounts();
-  const loadAccounts = useAccountStore.use.loadAccounts();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore.useState.categories();
   const rate = useCurrencyStore.useState.rate();
   const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
-  const addTransaction = useTransactionStore.use.addTransaction();
+  const addTransaction = useTransactionStore.getState().addTransaction;
   const type = useAddTransactionStore.useState.type();
   const amountStr = useAddTransactionStore.useState.amountStr();
-  const setType = useAddTransactionStore.use.setType();
-  const setAmountStr = useAddTransactionStore.use.setAmountStr();
-  const handleNumpad = useAddTransactionStore.use.handleNumpad();
+  const setType = useAddTransactionStore.getState().setType;
+  const setAmountStr = useAddTransactionStore.getState().setAmountStr;
+  const handleNumpad = useAddTransactionStore.getState().handleNumpad;
   const visible = useAddTransactionState.useState.visible();
   const saving = useAddTransactionState.useState.saving();
   const showAccountPicker = useAddTransactionState.useState.showAccountPicker();
   const showToPicker = useAddTransactionState.useState.showToPicker();
   const showCategoryPicker = useAddTransactionState.useState.showCategoryPicker();
   const rateOverride = useAddTransactionState.useState.rateOverride();
-  const setSaving = useAddTransactionState.use.setSaving();
-  const setShowAccountPicker = useAddTransactionState.use.setShowAccountPicker();
-  const setShowToPicker = useAddTransactionState.use.setShowToPicker();
-  const setShowCategoryPicker = useAddTransactionState.use.setShowCategoryPicker();
-  const setRateOverride = useAddTransactionState.use.setRateOverride();
+  const setSaving = useAddTransactionState.getState().setSaving;
+  const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
+  const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
+  const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
+  const setRateOverride = useAddTransactionState.getState().setRateOverride;
 
   // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
   const openedTimeRef = useRef<string>(nowTimeISO());

@@ -39,21 +39,21 @@ export function useEditTransaction(
   onSaved?: () => void,
 ) {
   const accounts = useAccountStore.useState.accounts();
-  const loadAccounts = useAccountStore.use.loadAccounts();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore.useState.categories();
   const rate = useCurrencyStore.useState.rate();
   const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
-  const updateTransaction = useTransactionStore.use.updateTransaction();
+  const updateTransaction = useTransactionStore.getState().updateTransaction;
   const amountStr = useEditTransactionStore.useState.amountStr();
-  const setAmountStr = useEditTransactionStore.use.setAmountStr();
-  const handleNumpad = useEditTransactionStore.use.handleNumpad();
+  const setAmountStr = useEditTransactionStore.getState().setAmountStr;
+  const handleNumpad = useEditTransactionStore.getState().handleNumpad;
   const visible = useEditTransactionState.useState.visible();
   const saving = useEditTransactionState.useState.saving();
   const showCategoryPicker = useEditTransactionState.useState.showCategoryPicker();
   const rateOverride = useEditTransactionState.useState.rateOverride();
-  const setSaving = useEditTransactionState.use.setSaving();
-  const setShowCategoryPicker = useEditTransactionState.use.setShowCategoryPicker();
-  const setRateOverride = useEditTransactionState.use.setRateOverride();
+  const setSaving = useEditTransactionState.getState().setSaving;
+  const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
+  const setRateOverride = useEditTransactionState.getState().setRateOverride;
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;

@@ -43,14 +43,14 @@ export function usePaySheet(
   const saving = usePaySheetState.useState.saving();
   const accountPickerVisible = usePaySheetState.useState.accountPickerVisible();
   const rateOverride = usePaySheetState.useState.rateOverride();
-  const setVisible = usePaySheetState.use.setVisible();
-  const setSaving = usePaySheetState.use.setSaving();
-  const setAccountPickerVisible = usePaySheetState.use.setAccountPickerVisible();
-  const setRateOverride = usePaySheetState.use.setRateOverride();
-  const reset = usePaySheetState.use.reset();
+  const setVisible = usePaySheetState.getState().setVisible;
+  const setSaving = usePaySheetState.getState().setSaving;
+  const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
+  const setRateOverride = usePaySheetState.getState().setRateOverride;
+  const reset = usePaySheetState.getState().reset;
 
   const accounts = useAccountStore.useState.accounts();
-  const loadAccounts = useAccountStore.use.loadAccounts();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   // Currency store gives the timestamp of the last stored exchange-rate
   // update — ExchangeRateRow (V2) reads this to render the "Rate may be
   // stale" warning when the stored rate is older than the staleness
@@ -60,8 +60,8 @@ export function usePaySheet(
   const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
 
   const selectedMonth = useCommitmentStore.useState.selectedMonth();
-  const markAsPaid = useCommitmentStore.use.markAsPaid();
-  const loadPaymentsForMonth = useCommitmentStore.use.loadPaymentsForMonth();
+  const markAsPaid = useCommitmentStore.getState().markAsPaid;
+  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',

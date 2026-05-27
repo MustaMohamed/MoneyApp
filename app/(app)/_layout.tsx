@@ -7,10 +7,10 @@ import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 
 export default function AppLayout() {
-  const loadAccounts = useAccountStore.use.loadAccounts();
-  const loadCategories = useCategoryStore.use.loadCategories();
-  const loadRate = useCurrencyStore.use.loadRate();
-  const fetchRate = useCurrencyStore.use.fetchRate();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const loadCategories = useCategoryStore.getState().loadCategories;
+  const loadRate = useCurrencyStore.getState().loadRate;
+  const fetchRate = useCurrencyStore.getState().fetchRate;
 
   useEffect(() => {
     loadAccounts().catch(() => {});

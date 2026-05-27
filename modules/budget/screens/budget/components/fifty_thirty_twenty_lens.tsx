@@ -25,7 +25,7 @@ export function FiftyThirtyTwentyLens({
   suggestion,
   currency = 'EGP',
 }: FiftyThirtyTwentyLensProps) {
-  const openIncomeSheet = useIncomeSheetState.use.open();
+  const openIncomeSheet = useIncomeSheetState.getState().open;
 
   const handleEditIncome = () => {
     openIncomeSheet(suggestion, vm.hasIncome ? vm.income : null);

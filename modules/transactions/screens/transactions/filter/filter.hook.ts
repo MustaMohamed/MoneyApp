@@ -12,20 +12,20 @@ import { useFilterStore } from './filter.store';
 export function useFilterSheet() {
   const visible = useFilterState.useState.visible();
   const openSection = useFilterState.useState.openSection();
-  const close = useFilterState.use.close();
-  const toggleSection = useFilterState.use.toggleSection();
+  const close = useFilterState.getState().close;
+  const toggleSection = useFilterState.getState().toggleSection;
   const draft = useFilterStore.useState.draft();
-  const setDraft = useFilterStore.use.setDraft();
-  const resetDraft = useFilterStore.use.resetDraft();
-  const toggleAccountId = useFilterStore.use.toggleAccountId();
-  const toggleCategoryId = useFilterStore.use.toggleCategoryId();
-  const setAmountMin = useFilterStore.use.setAmountMin();
-  const setAmountMax = useFilterStore.use.setAmountMax();
-  const setAmountCurrency = useFilterStore.use.setAmountCurrency();
+  const setDraft = useFilterStore.getState().setDraft;
+  const resetDraft = useFilterStore.getState().resetDraft;
+  const toggleAccountId = useFilterStore.getState().toggleAccountId;
+  const toggleCategoryId = useFilterStore.getState().toggleCategoryId;
+  const setAmountMin = useFilterStore.getState().setAmountMin;
+  const setAmountMax = useFilterStore.getState().setAmountMax;
+  const setAmountCurrency = useFilterStore.getState().setAmountCurrency;
   const accounts = useAccountStore.useState.accounts();
   const categories = useCategoryStore.useState.categories();
   const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
-  const setAppliedFilters = useTransactionsScreenStore.use.setAppliedFilters();
+  const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;
 
   // When the sheet opens, seed the draft from the currently applied filters.
   useEffect(() => {

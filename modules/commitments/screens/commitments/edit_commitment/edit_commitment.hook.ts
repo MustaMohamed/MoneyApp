@@ -23,13 +23,13 @@ export function useEditCommitment() {
   const accounts = useAccountStore.useState.accounts();
   const categories = useCategoryStore.useState.categories();
   const commitments = useCommitmentStore.useState.commitments();
-  const updateCommitment = useCommitmentStore.use.updateCommitment();
-  const deactivateCommitment = useCommitmentStore.use.deactivateCommitment();
+  const updateCommitment = useCommitmentStore.getState().updateCommitment;
+  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
   const saving = useEditCommitmentState.useState.saving();
   const deactivateDialogVisible = useEditCommitmentState.useState.deactivateDialogVisible();
-  const setSaving = useEditCommitmentState.use.setSaving();
-  const setDeactivateDialogVisible = useEditCommitmentState.use.setDeactivateDialogVisible();
-  const reset = useEditCommitmentState.use.reset();
+  const setSaving = useEditCommitmentState.getState().setSaving;
+  const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
+  const reset = useEditCommitmentState.getState().reset;
 
   const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
 

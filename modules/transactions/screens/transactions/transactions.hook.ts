@@ -28,27 +28,27 @@ export function useTransactions() {
   const activeFilter = useTransactionsScreenStore.useState.activeFilter();
   const period = useTransactionsScreenStore.useState.period();
   const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
-  const setSearchQuery = useTransactionsScreenStore.use.setSearchQuery();
-  const setActiveFilter = useTransactionsScreenStore.use.setActiveFilter();
-  const setPeriod = useTransactionsScreenStore.use.setPeriod();
-  const clearSearch = useTransactionsScreenStore.use.clearSearch();
+  const setSearchQuery = useTransactionsScreenStore.getState().setSearchQuery;
+  const setActiveFilter = useTransactionsScreenStore.getState().setActiveFilter;
+  const setPeriod = useTransactionsScreenStore.getState().setPeriod;
+  const clearSearch = useTransactionsScreenStore.getState().clearSearch;
   const transactions = useTransactionStore.useState.transactions();
   const hasMore = useTransactionStore.useState.hasMore();
   const loading = useTransactionStore.useState.loading();
   const hasLoaded = useTransactionStore.useState.hasLoaded();
   const mutationVersion = useTransactionStore.useState.mutationVersion();
-  const setQuery = useTransactionStore.use.setQuery();
-  const loadMore = useTransactionStore.use.loadMore();
-  const refresh = useTransactionStore.use.refresh();
+  const setQuery = useTransactionStore.getState().setQuery;
+  const loadMore = useTransactionStore.getState().loadMore;
+  const refresh = useTransactionStore.getState().refresh;
 
   const accounts = useAccountStore.useState.accounts();
   const categories = useCategoryStore.useState.categories();
 
-  const openFilter = useFilterState.use.open();
-  const setDraft = useFilterStore.use.setDraft();
+  const openFilter = useFilterState.getState().open;
+  const setDraft = useFilterStore.getState().setDraft;
 
   const refreshing = useTransactionsState.useState.refreshing();
-  const setRefreshing = useTransactionsState.use.setRefreshing();
+  const setRefreshing = useTransactionsState.getState().setRefreshing;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
 

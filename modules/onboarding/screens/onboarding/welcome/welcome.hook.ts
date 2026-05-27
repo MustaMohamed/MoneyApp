@@ -6,8 +6,8 @@ import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store'
 
 export function useWelcome() {
   const baseCurrency = useOnboardingStore.useState.baseCurrency();
-  const setBaseCurrency = useOnboardingStore.use.setBaseCurrency();
-  const setStep = useOnboardingStore.use.setStep();
+  const setBaseCurrency = useOnboardingStore.getState().setBaseCurrency;
+  const setStep = useOnboardingStore.getState().setStep;
   const router = useRouter();
   const [selected, setSelected] = useState<Currency>(baseCurrency);
 

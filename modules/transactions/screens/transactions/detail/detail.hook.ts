@@ -63,18 +63,18 @@ function signedAmount(tx: Transaction): string {
 
 export function useTransactionDetail(id: string) {
   const tx = useTxDetailStore.useState.tx();
-  const setTx = useTxDetailStore.use.setTx();
-  const resetData = useTxDetailStore.use.reset();
+  const setTx = useTxDetailStore.getState().setTx;
+  const resetData = useTxDetailStore.getState().reset;
   const confirmVisible = useTxDetailState.useState.confirmVisible();
   const deleting = useTxDetailState.useState.deleting();
   const reloadKey = useTxDetailState.useState.reloadKey();
-  const setConfirmVisible = useTxDetailState.use.setConfirmVisible();
-  const setDeleting = useTxDetailState.use.setDeleting();
-  const bumpReload = useTxDetailState.use.bumpReload();
-  const resetUi = useTxDetailState.use.reset();
+  const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
+  const setDeleting = useTxDetailState.getState().setDeleting;
+  const bumpReload = useTxDetailState.getState().bumpReload;
+  const resetUi = useTxDetailState.getState().reset;
 
-  const getById = useTransactionStore.use.getById();
-  const deleteTransaction = useTransactionStore.use.deleteTransaction();
+  const getById = useTransactionStore.getState().getById;
+  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
   const accounts = useAccountStore.useState.accounts();
   const categories = useCategoryStore.useState.categories();

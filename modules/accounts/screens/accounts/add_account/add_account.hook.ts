@@ -28,7 +28,7 @@ export const ACCOUNT_COLORS = [
 export function useAddAccountApp() {
   const router = useRouter();
   const accounts = useAccountStore.useState.accounts();
-  const addAccount = useAccountStore.use.addAccount();
+  const addAccount = useAccountStore.getState().addAccount;
 
   useEffect(() => {
     void useAccountStore.getState().loadAccounts();

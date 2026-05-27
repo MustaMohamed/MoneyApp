@@ -46,15 +46,15 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   const sheetVisible = useBudgetState.useState.sheetVisible();
   const mode = useBudgetState.useState.mode();
   const targetCategoryId = useBudgetState.useState.targetCategoryId();
-  const close = useBudgetState.use.close();
-  const setLimit = useBudgetStore.use.setLimit();
+  const close = useBudgetState.getState().close;
+  const setLimit = useBudgetStore.getState().setLimit;
   const selectedCategoryId = useSetBudgetSheetState.useState.selectedCategoryId();
   const pickerExpanded = useSetBudgetSheetState.useState.pickerExpanded();
-  const initAddMode = useSetBudgetSheetState.use.initAddMode();
-  const setSelectedCategoryId = useSetBudgetSheetState.use.setSelectedCategoryId();
-  const togglePicker = useSetBudgetSheetState.use.togglePicker();
-  const collapsePicker = useSetBudgetSheetState.use.collapsePicker();
-  const reset = useSetBudgetSheetState.use.reset();
+  const initAddMode = useSetBudgetSheetState.getState().initAddMode;
+  const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
+  const togglePicker = useSetBudgetSheetState.getState().togglePicker;
+  const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
+  const reset = useSetBudgetSheetState.getState().reset;
 
   const isEdit = mode === 'edit';
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();

@@ -8,7 +8,7 @@ import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store'
 export function useMoreAccounts() {
   const router = useRouter();
   const accounts = useAccountStore.useState.accounts();
-  const setStep = useOnboardingStore.use.setStep();
+  const setStep = useOnboardingStore.getState().setStep;
 
   const initialCountRef = useRef<number>(accounts.length);
   const initialCount = initialCountRef.current;

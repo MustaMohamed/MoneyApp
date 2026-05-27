@@ -32,8 +32,8 @@ export function ReassignCategorySheet({
 }: ReassignCategorySheetProps) {
   const selectedId = useReassignCategorySheetState.useState.selectedId();
   const isLoading = useReassignCategorySheetState.useState.isLoading();
-  const setSelectedId = useReassignCategorySheetState.use.setSelectedId();
-  const setIsLoading = useReassignCategorySheetState.use.setIsLoading();
+  const setSelectedId = useReassignCategorySheetState.getState().setSelectedId;
+  const setIsLoading = useReassignCategorySheetState.getState().setIsLoading;
 
   const handleClose = () => {
     useReassignCategorySheetState.getState().reset();
