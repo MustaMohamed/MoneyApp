@@ -15,54 +15,42 @@ export function useAccountDetail() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const {
-    state: accountState,
-    updateAccount,
-    archiveAccount,
-    adjustBalance,
-  } = useAccountStore(
-    useShallow((s) => ({
-      state: s.state,
-      updateAccount: s.updateAccount,
-      archiveAccount: s.archiveAccount,
-      adjustBalance: s.adjustBalance,
-    })),
-  );
-  const {
-    state: detailState,
-    setEditing,
-    setAdjustVisible,
-    setArchiveVisible,
-    setSaving,
-    setAdjusting,
-    setArchiving,
-    reset,
-  } = useAccountDetailState(
-    useShallow((s) => ({
-      state: s.state,
-      setEditing: s.setEditing,
-      setAdjustVisible: s.setAdjustVisible,
-      setArchiveVisible: s.setArchiveVisible,
-      setSaving: s.setSaving,
-      setAdjusting: s.setAdjusting,
-      setArchiving: s.setArchiving,
-      reset: s.reset,
-    })),
-  );
+  const accounts = useAccountStore.useState.accounts();
+  const updateAccount = useAccountStore.getState().updateAccount;
+  const archiveAccount = useAccountStore.getState().archiveAccount;
+  const adjustBalance = useAccountStore.getState().adjustBalance;
+  const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
+    useAccountDetailState(
+      useShallow((s) => ({
+        isEditing: s.isEditing,
+        isAdjustVisible: s.isAdjustVisible,
+        isArchiveVisible: s.isArchiveVisible,
+        isSaving: s.isSaving,
+        isAdjusting: s.isAdjusting,
+        isArchiving: s.isArchiving,
+      })),
+    );
+  const setEditing = useAccountDetailState.getState().setEditing;
+  const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
+  const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
+  const setSaving = useAccountDetailState.getState().setSaving;
+  const setAdjusting = useAccountDetailState.getState().setAdjusting;
+  const setArchiving = useAccountDetailState.getState().setArchiving;
+  const reset = useAccountDetailState.getState().reset;
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => reset(), []); // cleanup on unmount only; reset is a stable Zustand action
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useAccountDetailState.getState().state.isEditing) return;
+      if (!useAccountDetailState.getState().isEditing) return;
       e.preventDefault();
       useAccountDetailState.getState().setEditing(false);
     });
     return unsubscribe;
   }, [navigation]);
 
-  const account = accountState.accounts.find((a) => a.id === id);
+  const account = accounts.find((a) => a.id === id);
 
   const editSchema = useMemo(
     () =>
@@ -73,14 +61,14 @@ export function useAccountDetail() {
           .max(30, Strings.errNameTooLong)
           .refine(
             (n) =>
-              !accountState.accounts.some(
+              !accounts.some(
                 (a) => a.id !== id && a.name.trim().toLowerCase() === n.trim().toLowerCase(),
               ),
             { message: Strings.errNameDuplicate },
           ),
         color: z.string(),
       }),
-    [accountState.accounts, id],
+    [accounts, id],
   );
 
   const form = useZodForm(editSchema, {
@@ -131,7 +119,7 @@ export function useAccountDetail() {
   };
 
   const onBack = () => {
-    if (detailState.isEditing) {
+    if (isEditing) {
       setEditing(false);
     } else {
       router.back();
@@ -141,12 +129,12 @@ export function useAccountDetail() {
   return {
     state: {
       account,
-      isEditing: detailState.isEditing,
-      isAdjustVisible: detailState.isAdjustVisible,
-      isArchiveVisible: detailState.isArchiveVisible,
-      isSaving: detailState.isSaving,
-      isAdjusting: detailState.isAdjusting,
-      isArchiving: detailState.isArchiving,
+      isEditing,
+      isAdjustVisible,
+      isArchiveVisible,
+      isSaving,
+      isAdjusting,
+      isArchiving,
     },
     form,
     setEditing,

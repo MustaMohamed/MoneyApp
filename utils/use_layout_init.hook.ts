@@ -1,6 +1,5 @@
 import '@/utils/zod_config';
 import { useEffect } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { getDb, runMigrations } from '@/database/client';
 import { useCommitmentStore } from '@/store/commitment.store';
@@ -8,9 +7,8 @@ import { loadOnboardingState } from '@/store/onboarding.store';
 import { useReadyStore } from '@/store/ready.store';
 
 export function useLayoutInit() {
-  const { setReady } = useReadyStore(useShallow((s) => ({ setReady: s.setReady })));
-
   useEffect(() => {
+    const setReady = useReadyStore.getState().setReady;
     let onboardingComplete = false;
 
     void (async () => {
@@ -47,5 +45,5 @@ export function useLayoutInit() {
         });
       }
     })();
-  }, [setReady]);
+  }, []);
 }

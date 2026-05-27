@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
@@ -10,21 +12,22 @@ interface DetailStateShape {
   skipConfirmVisible: boolean;
 }
 
-interface CommitmentDetailState {
-  state: DetailStateShape;
+type CommitmentDetailState = DetailStateShape & {
   setSkipConfirmVisible: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: DetailStateShape = {
   skipConfirmVisible: false,
 };
 
-export const useCommitmentDetailState = create<CommitmentDetailState>((set) => ({
-  state: INITIAL_STATE,
-  setSkipConfirmVisible: (v) => set((s) => ({ state: { ...s.state, skipConfirmVisible: v } })),
-  reset: () => set({ state: INITIAL_STATE }),
-}));
+export const useCommitmentDetailState = createMoneyAppSelectors(
+  create<CommitmentDetailState>((set) => ({
+    ...INITIAL_STATE,
+    setSkipConfirmVisible: (v) => set((s) => ({ ...s, skipConfirmVisible: v })),
+    reset: () => set(INITIAL_STATE),
+  })),
+);
 
 // --- Screen-level data state (async-loaded payments + view state) ---
 // Relocated from detail.hook.ts to satisfy CLAUDE.md screens/ anatomy:
@@ -35,21 +38,22 @@ interface DetailScreenDataShape {
   viewState: DetailViewState;
 }
 
-interface CommitmentDetailScreenDataStore {
-  state: DetailScreenDataShape;
+type CommitmentDetailScreenDataStore = DetailScreenDataShape & {
   setAllPayments: (payments: CommitmentPayment[]) => void;
   setViewState: (vs: DetailViewState) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
   allPayments: [],
   viewState: 'loading',
 };
 
-export const useCommitmentDetailScreenData = create<CommitmentDetailScreenDataStore>((set) => ({
-  state: INITIAL_SCREEN_DATA,
-  setAllPayments: (payments) => set((s) => ({ state: { ...s.state, allPayments: payments } })),
-  setViewState: (vs) => set((s) => ({ state: { ...s.state, viewState: vs } })),
-  reset: () => set({ state: INITIAL_SCREEN_DATA }),
-}));
+export const useCommitmentDetailScreenData = createMoneyAppSelectors(
+  create<CommitmentDetailScreenDataStore>((set) => ({
+    ...INITIAL_SCREEN_DATA,
+    setAllPayments: (payments) => set((s) => ({ ...s, allPayments: payments })),
+    setViewState: (vs) => set((s) => ({ ...s, viewState: vs })),
+    reset: () => set(INITIAL_SCREEN_DATA),
+  })),
+);

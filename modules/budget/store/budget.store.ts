@@ -10,6 +10,7 @@ import {
   AppSettingsRepository,
   type IAppSettingsRepository,
 } from '@/repositories/app_settings.repository';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 const HISTORY_MONTHS = 12;
 const EXPECTED_INCOME_KEY = 'expected_monthly_income';
@@ -23,8 +24,7 @@ interface BudgetStoreShape {
   expectedIncome: number | null;
 }
 
-interface BudgetStore {
-  state: BudgetStoreShape;
+type BudgetStore = BudgetStoreShape & {
   setData: (
     rows: Budget[],
     spendByMonth: Record<string, Record<string, number>>,
@@ -37,7 +37,7 @@ interface BudgetStore {
   /** Synchronous setter for tests — does not persist. */
   setExpectedIncomeLocal: (amount: number | null) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: BudgetStoreShape = {
   rows: [],
@@ -47,43 +47,44 @@ const INITIAL_STATE: BudgetStoreShape = {
 };
 
 export function createBudgetStore(repo: IAppSettingsRepository) {
-  return create<BudgetStore>((set, get) => ({
-    state: INITIAL_STATE,
+  return createMoneyAppSelectors(
+    create<BudgetStore>((set, get) => ({
+      ...INITIAL_STATE,
 
-    setData: (rows, spendByMonth, expectedIncome) =>
-      set((s) => ({ state: { ...s.state, rows, spendByMonth, expectedIncome, loaded: true } })),
+      setData: (rows, spendByMonth, expectedIncome) =>
+        set((s) => ({ ...s, rows, spendByMonth, expectedIncome, loaded: true })),
 
-    load: async () => {
-      const months = lastMonths(currentYearMonth(), HISTORY_MONTHS);
-      const [rows, spendByMonth, rawIncome] = await Promise.all([
-        budgetRepository.getRows(),
-        budgetRepository.getSpendByMonth(months),
-        repo.get(EXPECTED_INCOME_KEY),
-      ]);
-      const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
-      get().setData(rows, spendByMonth, expectedIncome);
-    },
+      load: async () => {
+        const months = lastMonths(currentYearMonth(), HISTORY_MONTHS);
+        const [rows, spendByMonth, rawIncome] = await Promise.all([
+          budgetRepository.getRows(),
+          budgetRepository.getSpendByMonth(months),
+          repo.get(EXPECTED_INCOME_KEY),
+        ]);
+        const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
+        get().setData(rows, spendByMonth, expectedIncome);
+      },
 
-    setLimit: async (categoryId, limit) => {
-      await budgetRepository.setLimit(categoryId, limit);
-      await get().load();
-    },
+      setLimit: async (categoryId, limit) => {
+        await budgetRepository.setLimit(categoryId, limit);
+        await get().load();
+      },
 
-    removeBudget: async (categoryId) => {
-      await budgetRepository.removeBudget(categoryId);
-      await get().load();
-    },
+      removeBudget: async (categoryId) => {
+        await budgetRepository.removeBudget(categoryId);
+        await get().load();
+      },
 
-    setExpectedIncome: async (amount) => {
-      await repo.set(EXPECTED_INCOME_KEY, String(amount));
-      await get().load();
-    },
+      setExpectedIncome: async (amount) => {
+        await repo.set(EXPECTED_INCOME_KEY, String(amount));
+        await get().load();
+      },
 
-    setExpectedIncomeLocal: (amount) =>
-      set((s) => ({ state: { ...s.state, expectedIncome: amount } })),
+      setExpectedIncomeLocal: (amount) => set((s) => ({ ...s, expectedIncome: amount })),
 
-    reset: () => set({ state: INITIAL_STATE }),
-  }));
+      reset: () => set(INITIAL_STATE),
+    })),
+  );
 }
 
 export const useBudgetStore = createBudgetStore(new AppSettingsRepository());

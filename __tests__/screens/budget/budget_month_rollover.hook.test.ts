@@ -1,5 +1,7 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+
 // Real `currentYearMonth` is used (reads the system clock); only the stores,
 // router, and focus effect are mocked so we can drive focus + time directly.
 
@@ -31,23 +33,24 @@ import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
 function setupStores() {
-  (useCategoryStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { categories: [], hasLoaded: false }, loadCategories: jest.fn() }),
-  );
-  (useBudgetStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { rows: [], spendByMonth: {}, loaded: false, expectedIncome: null },
-      load: jest.fn(),
-    }),
-  );
-  (useBudgetState as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      openAdd: jest.fn(),
-      openEdit: jest.fn(),
-      setLensTab: jest.fn(),
-      state: { lensTab: 'categories' },
-    }),
-  );
+  attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
+    categories: [],
+    hasLoaded: false,
+    loadCategories: jest.fn(),
+  }));
+  attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
+    rows: [],
+    spendByMonth: {},
+    loaded: false,
+    expectedIncome: null,
+    load: jest.fn(),
+  }));
+  attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
+    lensTab: 'categories',
+    openAdd: jest.fn(),
+    openEdit: jest.fn(),
+    setLensTab: jest.fn(),
+  }));
 }
 
 beforeEach(() => {

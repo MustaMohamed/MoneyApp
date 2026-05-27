@@ -6,7 +6,7 @@ beforeEach(() => {
 
 describe('useTxDetailState initial state', () => {
   it('starts hidden, not deleting, reloadKey = 0', () => {
-    const s = useTxDetailState.getState().state;
+    const s = useTxDetailState.getState();
     expect(s.confirmVisible).toBe(false);
     expect(s.deleting).toBe(false);
     expect(s.reloadKey).toBe(0);
@@ -16,23 +16,23 @@ describe('useTxDetailState initial state', () => {
 describe('useTxDetailState setters', () => {
   it('setConfirmVisible toggles the confirm dialog', () => {
     useTxDetailState.getState().setConfirmVisible(true);
-    expect(useTxDetailState.getState().state.confirmVisible).toBe(true);
+    expect(useTxDetailState.getState().confirmVisible).toBe(true);
     useTxDetailState.getState().setConfirmVisible(false);
-    expect(useTxDetailState.getState().state.confirmVisible).toBe(false);
+    expect(useTxDetailState.getState().confirmVisible).toBe(false);
   });
 
   it('setDeleting toggles the deleting flag', () => {
     useTxDetailState.getState().setDeleting(true);
-    expect(useTxDetailState.getState().state.deleting).toBe(true);
+    expect(useTxDetailState.getState().deleting).toBe(true);
     useTxDetailState.getState().setDeleting(false);
-    expect(useTxDetailState.getState().state.deleting).toBe(false);
+    expect(useTxDetailState.getState().deleting).toBe(false);
   });
 
   it('bumpReload increments reloadKey by 1 each call', () => {
     useTxDetailState.getState().bumpReload();
-    expect(useTxDetailState.getState().state.reloadKey).toBe(1);
+    expect(useTxDetailState.getState().reloadKey).toBe(1);
     useTxDetailState.getState().bumpReload();
-    expect(useTxDetailState.getState().state.reloadKey).toBe(2);
+    expect(useTxDetailState.getState().reloadKey).toBe(2);
   });
 });
 
@@ -42,7 +42,7 @@ describe('useTxDetailState reset', () => {
     useTxDetailState.getState().setDeleting(true);
     useTxDetailState.getState().bumpReload();
     useTxDetailState.getState().reset();
-    const s = useTxDetailState.getState().state;
+    const s = useTxDetailState.getState();
     expect(s.confirmVisible).toBe(false);
     expect(s.deleting).toBe(false);
     expect(s.reloadKey).toBe(0);

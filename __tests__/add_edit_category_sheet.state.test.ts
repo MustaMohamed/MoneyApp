@@ -6,7 +6,7 @@ beforeEach(() => useAddEditCategorySheetState.getState().reset());
 
 describe('useAddEditCategorySheetState initial state', () => {
   it('starts with default values', () => {
-    const s = useAddEditCategorySheetState.getState().state;
+    const s = useAddEditCategorySheetState.getState();
     expect(s.type).toBe(CategoryType.Expense);
     expect(s.selectedIcon).toBeNull();
     expect(s.selectedColor).toBe(AccountColors[0]);
@@ -18,35 +18,35 @@ describe('useAddEditCategorySheetState initial state', () => {
 describe('useAddEditCategorySheetState setters', () => {
   it('setType updates type', () => {
     useAddEditCategorySheetState.getState().setType(CategoryType.Income);
-    expect(useAddEditCategorySheetState.getState().state.type).toBe(CategoryType.Income);
+    expect(useAddEditCategorySheetState.getState().type).toBe(CategoryType.Income);
     useAddEditCategorySheetState.getState().setType(CategoryType.Expense);
-    expect(useAddEditCategorySheetState.getState().state.type).toBe(CategoryType.Expense);
+    expect(useAddEditCategorySheetState.getState().type).toBe(CategoryType.Expense);
   });
 
   it('setSelectedIcon updates icon', () => {
     useAddEditCategorySheetState.getState().setSelectedIcon('home');
-    expect(useAddEditCategorySheetState.getState().state.selectedIcon).toBe('home');
+    expect(useAddEditCategorySheetState.getState().selectedIcon).toBe('home');
     useAddEditCategorySheetState.getState().setSelectedIcon(null);
-    expect(useAddEditCategorySheetState.getState().state.selectedIcon).toBeNull();
+    expect(useAddEditCategorySheetState.getState().selectedIcon).toBeNull();
   });
 
   it('setSelectedColor updates color', () => {
     useAddEditCategorySheetState.getState().setSelectedColor('#ff0000');
-    expect(useAddEditCategorySheetState.getState().state.selectedColor).toBe('#ff0000');
+    expect(useAddEditCategorySheetState.getState().selectedColor).toBe('#ff0000');
   });
 
   it('setIconError updates error message', () => {
     useAddEditCategorySheetState.getState().setIconError('Icon required');
-    expect(useAddEditCategorySheetState.getState().state.iconError).toBe('Icon required');
+    expect(useAddEditCategorySheetState.getState().iconError).toBe('Icon required');
     useAddEditCategorySheetState.getState().setIconError('');
-    expect(useAddEditCategorySheetState.getState().state.iconError).toBe('');
+    expect(useAddEditCategorySheetState.getState().iconError).toBe('');
   });
 
   it('setIsLoading toggles loading flag', () => {
     useAddEditCategorySheetState.getState().setIsLoading(true);
-    expect(useAddEditCategorySheetState.getState().state.isLoading).toBe(true);
+    expect(useAddEditCategorySheetState.getState().isLoading).toBe(true);
     useAddEditCategorySheetState.getState().setIsLoading(false);
-    expect(useAddEditCategorySheetState.getState().state.isLoading).toBe(false);
+    expect(useAddEditCategorySheetState.getState().isLoading).toBe(false);
   });
 });
 
@@ -61,7 +61,7 @@ describe('useAddEditCategorySheetState initialize', () => {
       color: '#abcdef',
     });
 
-    const s = useAddEditCategorySheetState.getState().state;
+    const s = useAddEditCategorySheetState.getState();
     expect(s.type).toBe(CategoryType.Income);
     expect(s.selectedIcon).toBe('cart');
     expect(s.selectedColor).toBe('#abcdef');
@@ -75,23 +75,21 @@ describe('useAddEditCategorySheetState initialize', () => {
       icon: null,
       color: AccountColors[0],
     });
-    expect(useAddEditCategorySheetState.getState().state.selectedIcon).toBeNull();
+    expect(useAddEditCategorySheetState.getState().selectedIcon).toBeNull();
   });
 });
 
 describe('useAddEditCategorySheetState reset', () => {
   it('returns to defaults', () => {
     useAddEditCategorySheetState.setState({
-      state: {
-        type: CategoryType.Income,
-        selectedIcon: 'home',
-        selectedColor: '#ff0000',
-        iconError: 'err',
-        isLoading: true,
-      },
+      type: CategoryType.Income,
+      selectedIcon: 'home',
+      selectedColor: '#ff0000',
+      iconError: 'err',
+      isLoading: true,
     });
     useAddEditCategorySheetState.getState().reset();
-    const s = useAddEditCategorySheetState.getState().state;
+    const s = useAddEditCategorySheetState.getState();
     expect(s.type).toBe(CategoryType.Expense);
     expect(s.selectedIcon).toBeNull();
     expect(s.selectedColor).toBe(AccountColors[0]);

@@ -130,7 +130,7 @@ Sub-screens (non-route drawers like `transactions/filter/`) follow the same anat
 
 Files: `snake_case`. TS identifiers: `camelCase`.
 
-**Store/state shape:** Both `.store.ts` and `.state.ts` Zustand stores wrap their values under a single `state: { ... }` object; setters and `reset` stay flat. Setters spread the previous state: `set((s) => ({ state: { ...s.state, x: v } }))`. `reset()` is `set({ state: INITIAL_STATE })`. Hooks return `{ state: { ...reactive values... }, ...flat actions }`; consumers destructure `state` and read fields via `state.x`.
+**Store/state shape:** Both `.store.ts` and `.state.ts` Zustand stores expose reactive values as top-level fields; actions stay as top-level functions. Setters spread the previous store: `set((s) => ({ ...s, x: v }))`. `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Consumers group reactive reads with `useStore(useShallow((s) => ({ x: s.x, y: s.y })))` and read actions outside render with `useStore.getState().action`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`; screen consumers destructure `state` and read fields via `state.x`.
 
 ## Expo Dev Client (critical)
 

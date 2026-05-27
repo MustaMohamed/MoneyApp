@@ -135,58 +135,49 @@ function nowTimeISO(): string {
 }
 
 export function useAddTransaction(onClose: () => void) {
-  const { accounts, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ accounts: s.state.accounts, loadAccounts: s.loadAccounts })),
-  );
-  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
+  const accounts = useAccountStore.useState.accounts();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({ rate: s.state.rate, rateUpdatedAt: s.state.rate_updated_at })),
-  );
-  const { addTransaction } = useTransactionStore(
-    useShallow((s) => ({ addTransaction: s.addTransaction })),
-  );
-
-  const {
-    state: storeState,
-    setType,
-    setAmountStr,
-    handleNumpad,
-  } = useAddTransactionStore(
     useShallow((s) => ({
-      state: s.state,
-      setType: s.setType,
-      setAmountStr: s.setAmountStr,
-      handleNumpad: s.handleNumpad,
+      rate: s.rate,
+      rateUpdatedAt: s.rate_updated_at,
     })),
   );
-  const {
-    state: uiState,
-    setSaving,
-    setShowAccountPicker,
-    setShowToPicker,
-    setShowCategoryPicker,
-    setRateOverride,
-  } = useAddTransactionState(
+  const addTransaction = useTransactionStore.getState().addTransaction;
+  const { type, amountStr } = useAddTransactionStore(
     useShallow((s) => ({
-      state: s.state,
-      setSaving: s.setSaving,
-      setShowAccountPicker: s.setShowAccountPicker,
-      setShowToPicker: s.setShowToPicker,
-      setShowCategoryPicker: s.setShowCategoryPicker,
-      setRateOverride: s.setRateOverride,
+      type: s.type,
+      amountStr: s.amountStr,
     })),
   );
+  const setType = useAddTransactionStore.getState().setType;
+  const setAmountStr = useAddTransactionStore.getState().setAmountStr;
+  const handleNumpad = useAddTransactionStore.getState().handleNumpad;
+  const { visible, saving, showAccountPicker, showToPicker, showCategoryPicker, rateOverride } =
+    useAddTransactionState(
+      useShallow((s) => ({
+        visible: s.visible,
+        saving: s.saving,
+        showAccountPicker: s.showAccountPicker,
+        showToPicker: s.showToPicker,
+        showCategoryPicker: s.showCategoryPicker,
+        rateOverride: s.rateOverride,
+      })),
+    );
+  const setSaving = useAddTransactionState.getState().setSaving;
+  const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
+  const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
+  const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
+  const setRateOverride = useAddTransactionState.getState().setRateOverride;
 
   // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
   const openedTimeRef = useRef<string>(nowTimeISO());
   useEffect(() => {
-    if (uiState.visible) openedTimeRef.current = nowTimeISO();
-  }, [uiState.visible]);
+    if (visible) openedTimeRef.current = nowTimeISO();
+  }, [visible]);
 
-  const schema = useMemo(
-    () => createSchema(storeState.type, accounts),
-    [storeState.type, accounts],
-  );
+  const schema = useMemo(() => createSchema(type, accounts), [type, accounts]);
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -222,8 +213,7 @@ export function useAddTransaction(onClose: () => void) {
     [categories, categoryId],
   );
 
-  const isTransferOrCC =
-    storeState.type === TransactionType.Transfer || storeState.type === TransactionType.CCPayment;
+  const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const isUSD = selectedAccount?.currency === Currency.USD;
   const isToUSD = selectedToAccount?.currency === Currency.USD;
   const requiresRate = isUSD || (isTransferOrCC && isToUSD);
@@ -232,31 +222,27 @@ export function useAddTransaction(onClose: () => void) {
     () =>
       categories.filter(
         (c) =>
-          c.type ===
-          (storeState.type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
+          c.type === (type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
       ),
-    [categories, storeState.type],
+    [categories, type],
   );
 
   const accountsForFrom = useMemo(() => {
-    if (
-      storeState.type === TransactionType.CCPayment ||
-      storeState.type === TransactionType.Transfer
-    ) {
+    if (type === TransactionType.CCPayment || type === TransactionType.Transfer) {
       return accounts.filter((a) => a.type !== AccountType.CreditCard);
     }
     return accounts;
-  }, [accounts, storeState.type]);
+  }, [accounts, type]);
 
   const accountsForTo = useMemo(() => {
-    if (storeState.type === TransactionType.CCPayment) {
+    if (type === TransactionType.CCPayment) {
       return accounts.filter((a) => a.type === AccountType.CreditCard);
     }
-    if (storeState.type === TransactionType.Transfer) {
+    if (type === TransactionType.Transfer) {
       return accounts.filter((a) => a.type !== AccountType.CreditCard);
     }
     return accounts;
-  }, [accounts, storeState.type]);
+  }, [accounts, type]);
 
   const errors = {
     amount: form.formState.errors.amount?.message,
@@ -268,21 +254,21 @@ export function useAddTransaction(onClose: () => void) {
 
   // Sync numpad → RHF amount
   useEffect(() => {
-    const parsed = parseFloat(storeState.amountStr);
+    const parsed = parseFloat(amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeState.amountStr]);
+  }, [amountStr]);
 
   // Clear type-dependent fields when type changes
   useEffect(() => {
     form.setValue('toAccountId', '');
     form.setValue('categoryId', '');
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [storeState.type]);
+  }, [type]);
 
   // Reset form when sheet closes
   useEffect(() => {
-    if (!uiState.visible) {
+    if (!visible) {
       form.reset({
         amount: 0,
         accountId: '',
@@ -295,7 +281,7 @@ export function useAddTransaction(onClose: () => void) {
       setRateOverride(false);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [uiState.visible]);
+  }, [visible]);
 
   async function onValid(data: AddTransactionFormValues) {
     setSaving(true);
@@ -319,13 +305,13 @@ export function useAddTransaction(onClose: () => void) {
         } else {
           to_amount = data.amount;
         }
-        if (storeState.type === TransactionType.CCPayment) {
+        if (type === TransactionType.CCPayment) {
           to_amount = egp_amount;
         }
       }
 
       await addTransaction({
-        type: storeState.type,
+        type,
         amount: data.amount,
         currency: fromCurrency,
         egp_amount,
@@ -348,7 +334,7 @@ export function useAddTransaction(onClose: () => void) {
   }
 
   function toggleRateOverride() {
-    const next = !uiState.rateOverride;
+    const next = !rateOverride;
     setRateOverride(next);
     if (!next) form.setValue('exchangeRate', String(rate));
   }
@@ -378,8 +364,8 @@ export function useAddTransaction(onClose: () => void) {
 
   return {
     state: {
-      type: storeState.type,
-      amountStr: storeState.amountStr,
+      type,
+      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -389,19 +375,19 @@ export function useAddTransaction(onClose: () => void) {
       date,
       note,
       exchangeRate,
-      rateOverride: uiState.rateOverride,
+      rateOverride,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
-      saving: uiState.saving,
+      saving,
       accounts,
       hasAccounts: accounts.length > 0,
       accountsForFrom,
       accountsForTo,
       visibleCategories,
-      showAccountPicker: uiState.showAccountPicker,
-      showToPicker: uiState.showToPicker,
-      showCategoryPicker: uiState.showCategoryPicker,
+      showAccountPicker,
+      showToPicker,
+      showCategoryPicker,
       rateUpdatedAt,
     },
     setType,

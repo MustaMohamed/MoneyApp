@@ -1,7 +1,9 @@
 import { renderHook } from '@testing-library/react-native';
 
 import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
+import { useCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -9,25 +11,26 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/currency/screens/currency/currency.state', () => ({
-  useCurrencyScreenState: jest.fn((sel: any) =>
-    sel({
-      state: { isFetching: false, isSaving: false, fetchError: '' },
-      setFetching: jest.fn(),
-      setSaving: jest.fn(),
-      setFetchError: jest.fn(),
-      reset: jest.fn(),
-    }),
-  ),
+  useCurrencyScreenState: jest.fn(),
 }));
 
 function setup() {
-  (useCurrencyStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { rate: 50, lastFetched: null, isManualOverride: false },
-      fetchRate: jest.fn().mockResolvedValue(undefined),
-      setManualRate: jest.fn().mockResolvedValue(undefined),
-    }),
-  );
+  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+    rate: 50,
+    lastFetched: null,
+    isManualOverride: false,
+    fetchRate: jest.fn().mockResolvedValue(undefined),
+    setManualRate: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
+    isFetching: false,
+    isSaving: false,
+    fetchError: '',
+    setFetching: jest.fn(),
+    setSaving: jest.fn(),
+    setFetchError: jest.fn(),
+    reset: jest.fn(),
+  }));
 }
 
 describe('useCurrencyScreen', () => {
@@ -77,22 +80,22 @@ describe('useCurrencyScreen', () => {
     const {
       useCurrencyScreenState,
     } = require('@/modules/currency/screens/currency/currency.state');
-    (useCurrencyScreenState as jest.Mock).mockImplementation((sel: any) =>
-      sel({
-        state: { isFetching: false, isSaving: false, fetchError: '' },
-        setFetching: jest.fn(),
-        setSaving: jest.fn(),
-        setFetchError: setFetchErrorMock,
-        reset: jest.fn(),
-      }),
-    );
-    (useCurrencyStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-      sel({
-        state: { rate: 50, lastFetched: null, isManualOverride: false },
-        fetchRate: jest.fn().mockRejectedValue(new Error('Network error')),
-        setManualRate: jest.fn().mockResolvedValue(undefined),
-      }),
-    );
+    attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
+      isFetching: false,
+      isSaving: false,
+      fetchError: '',
+      setFetching: jest.fn(),
+      setSaving: jest.fn(),
+      setFetchError: setFetchErrorMock,
+      reset: jest.fn(),
+    }));
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockRejectedValue(new Error('Network error')),
+      setManualRate: jest.fn().mockResolvedValue(undefined),
+    }));
     const { result } = renderHook(() => useCurrencyScreen());
     await result.current.handleFetchRate();
     expect(setFetchErrorMock).toHaveBeenCalledWith('Could not update rate. Try again.');
@@ -103,22 +106,22 @@ describe('useCurrencyScreen', () => {
     const {
       useCurrencyScreenState,
     } = require('@/modules/currency/screens/currency/currency.state');
-    (useCurrencyScreenState as jest.Mock).mockImplementation((sel: any) =>
-      sel({
-        state: { isFetching: false, isSaving: false, fetchError: 'old error' },
-        setFetching: jest.fn(),
-        setSaving: jest.fn(),
-        setFetchError: setFetchErrorMock,
-        reset: jest.fn(),
-      }),
-    );
-    (useCurrencyStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-      sel({
-        state: { rate: 50, lastFetched: null, isManualOverride: false },
-        fetchRate: jest.fn().mockResolvedValue(undefined),
-        setManualRate: jest.fn().mockResolvedValue(undefined),
-      }),
-    );
+    attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
+      isFetching: false,
+      isSaving: false,
+      fetchError: 'old error',
+      setFetching: jest.fn(),
+      setSaving: jest.fn(),
+      setFetchError: setFetchErrorMock,
+      reset: jest.fn(),
+    }));
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate: jest.fn().mockResolvedValue(undefined),
+    }));
     const { result } = renderHook(() => useCurrencyScreen());
     await result.current.handleFetchRate();
     // First call should clear the error

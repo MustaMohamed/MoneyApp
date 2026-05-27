@@ -9,30 +9,30 @@ beforeEach(() => {
 
 describe('useSheetVisibilityStore', () => {
   it('initialises with count = 0', () => {
-    expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+    expect(useSheetVisibilityStore.getState().count).toBe(0);
   });
 
   it('increment increases the count by 1', () => {
     useSheetVisibilityStore.getState().increment();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(1);
+    expect(useSheetVisibilityStore.getState().count).toBe(1);
   });
 
   it('increment is additive — multiple calls stack correctly', () => {
     useSheetVisibilityStore.getState().increment();
     useSheetVisibilityStore.getState().increment();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(2);
+    expect(useSheetVisibilityStore.getState().count).toBe(2);
   });
 
   it('decrement decreases the count by 1', () => {
     useSheetVisibilityStore.getState().increment();
     useSheetVisibilityStore.getState().decrement();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+    expect(useSheetVisibilityStore.getState().count).toBe(0);
   });
 
   it('decrement does not go below 0 and warns in dev (guard against leaked decrements)', () => {
     const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     useSheetVisibilityStore.getState().decrement();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+    expect(useSheetVisibilityStore.getState().count).toBe(0);
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('[sheet_visibility]'));
     warnSpy.mockRestore();
   });
@@ -41,18 +41,18 @@ describe('useSheetVisibilityStore', () => {
     useSheetVisibilityStore.getState().increment();
     useSheetVisibilityStore.getState().increment();
     useSheetVisibilityStore.getState().decrement();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(1);
+    expect(useSheetVisibilityStore.getState().count).toBe(1);
     useSheetVisibilityStore.getState().decrement();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+    expect(useSheetVisibilityStore.getState().count).toBe(0);
   });
 
   it('reset() returns count to 0 from any value', () => {
     useSheetVisibilityStore.getState().increment();
     useSheetVisibilityStore.getState().increment();
     useSheetVisibilityStore.getState().increment();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(3);
+    expect(useSheetVisibilityStore.getState().count).toBe(3);
     useSheetVisibilityStore.getState().reset();
-    expect(useSheetVisibilityStore.getState().state.count).toBe(0);
+    expect(useSheetVisibilityStore.getState().count).toBe(0);
   });
 });
 

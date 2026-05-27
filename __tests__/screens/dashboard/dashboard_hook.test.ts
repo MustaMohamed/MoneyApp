@@ -113,36 +113,35 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 });
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
-  (useAccountStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts, hasLoaded: true }, loadAccounts: jest.fn() }),
-  );
-  (useCurrencyStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { rate: 48.85, isManualOverride: false } }),
-  );
-  (useCommitmentStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { commitments: [], payments: [] } }),
-  );
-  (useDashboardStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: {
-        statsMap: {},
-        currentMonthCommitmentPayments: [],
-        currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-        previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      },
-      setStatsMap: jest.fn(),
-      setCurrentMonthCommitmentPayments: jest.fn(),
-      setMonthSpendStats: jest.fn(),
-    }),
-  );
-  (useDashboardState as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: uiState,
-      setBreakdownVisible,
-      setRefreshing,
-      setSelectedSegment,
-    }),
-  );
+  const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
+  attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
+    accounts,
+    hasLoaded: true,
+    loadAccounts: jest.fn(),
+  }));
+  attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
+    rate: 48.85,
+    isManualOverride: false,
+  }));
+  attachMockSelectorStore(useCommitmentStore as jest.Mock, () => ({
+    commitments: [],
+    payments: [],
+  }));
+  attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
+    statsMap: {},
+    currentMonthCommitmentPayments: [],
+    currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+    previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+    setStatsMap: jest.fn(),
+    setCurrentMonthCommitmentPayments: jest.fn(),
+    setMonthSpendStats: jest.fn(),
+  }));
+  attachMockSelectorStore(useDashboardState as jest.Mock, () => ({
+    ...uiState,
+    setBreakdownVisible,
+    setRefreshing,
+    setSelectedSegment,
+  }));
 }
 
 beforeEach(() => {
@@ -162,9 +161,12 @@ describe('useDashboard', () => {
   });
 
   it('exposes whether account data has loaded', () => {
-    (useAccountStore as jest.Mock).mockImplementation((sel: any) =>
-      sel({ state: { accounts: [], hasLoaded: false }, loadAccounts: jest.fn() }),
-    );
+    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
+    attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
+      accounts: [],
+      hasLoaded: false,
+      loadAccounts: jest.fn(),
+    }));
 
     const { result } = renderHook(() => useDashboard());
 

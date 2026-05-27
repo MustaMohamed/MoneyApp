@@ -6,6 +6,7 @@ const mockGetDb = jest.fn().mockResolvedValue({});
 const mockRunMigrations = jest.fn().mockResolvedValue(undefined);
 const mockLoadOnboardingState = jest.fn().mockResolvedValue({ complete: false, step: 'N1' });
 const mockSetReady = jest.fn();
+const mockUseReadyActionSelector = jest.fn(() => mockSetReady);
 const mockGeneratePayments = jest.fn().mockResolvedValue(undefined);
 const mockCheckAndDeactivateExpired = jest.fn().mockResolvedValue(undefined);
 
@@ -17,9 +18,15 @@ jest.mock('@/store/onboarding.store', () => ({
   loadOnboardingState: () => mockLoadOnboardingState(),
 }));
 jest.mock('@/store/ready.store', () => ({
-  useReadyStore: jest.fn(
-    (sel: (s: { state: { ready: boolean }; setReady: jest.Mock }) => unknown) =>
-      sel({ state: { ready: false }, setReady: mockSetReady }),
+  useReadyStore: Object.assign(
+    jest.fn((sel: (s: { ready: boolean; setReady: jest.Mock }) => unknown) =>
+      sel({ ready: false, setReady: mockSetReady }),
+    ),
+    {
+      use: { setReady: () => mockUseReadyActionSelector() },
+      useState: { ready: () => false },
+      getState: () => ({ ready: false, setReady: mockSetReady }),
+    },
   ),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -65,6 +72,17 @@ describe('useLayoutInit — splash gate does not await commitment calls', () => 
     // the default implementation so subsequent tests are not affected.
     releaseGenerate?.();
     mockGeneratePayments.mockResolvedValue(undefined);
+  });
+
+  it('reads the ready action without subscribing during layout initialization', async () => {
+    renderHook(() => useLayoutInit());
+
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+
+    expect(mockUseReadyActionSelector).not.toHaveBeenCalled();
+    expect(mockSetReady).toHaveBeenCalledWith(true);
   });
 
   it('does not schedule housekeeping when onboarding is not complete', async () => {

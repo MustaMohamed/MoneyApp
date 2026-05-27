@@ -28,11 +28,9 @@ beforeEach(() => {
   secure.__reset();
   jest.clearAllMocks();
   useOnboardingStore.setState({
-    state: {
-      complete: false,
-      currentStep: OnboardingStep.N1,
-      baseCurrency: Currency.EGP,
-    },
+    complete: false,
+    currentStep: OnboardingStep.N1,
+    baseCurrency: Currency.EGP,
   });
 });
 
@@ -42,7 +40,7 @@ describe('onboardingStore.setStep — TC-03', () => {
     const store = createOnboardingStore(repo);
     await store.getState().setStep(OnboardingStep.N2);
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_step', 'N2');
-    expect(store.getState().state.currentStep).toBe(OnboardingStep.N2);
+    expect(store.getState().currentStep).toBe(OnboardingStep.N2);
   });
 });
 
@@ -53,7 +51,7 @@ describe('onboardingStore.setBaseCurrency — TC-05', () => {
     await store.getState().setBaseCurrency(Currency.USD);
     expect(secure.setItemAsync).toHaveBeenCalledWith('base_currency', 'USD');
     expect(repo.set).toHaveBeenCalledWith('base_currency', 'USD');
-    expect(store.getState().state.baseCurrency).toBe(Currency.USD);
+    expect(store.getState().baseCurrency).toBe(Currency.USD);
   });
 
   it('persists EGP on the same path', async () => {
@@ -72,7 +70,7 @@ describe('onboardingStore.completeOnboarding — TC-13', () => {
     await store.getState().completeOnboarding();
     expect(secure.setItemAsync).toHaveBeenCalledWith('onboarding_complete', 'true');
     expect(repo.set).toHaveBeenCalledWith('onboarding_complete', 'true');
-    expect(store.getState().state.complete).toBe(true);
+    expect(store.getState().complete).toBe(true);
   });
 });
 
@@ -109,7 +107,7 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await loadOnboardingState();
     expect(result).toEqual({ complete: false, step: OnboardingStep.N1 });
-    expect(useOnboardingStore.getState().state).toMatchObject({
+    expect(useOnboardingStore.getState()).toMatchObject({
       complete: false,
       currentStep: OnboardingStep.N1,
       baseCurrency: Currency.EGP,
@@ -122,7 +120,7 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
 
     const result = await loadOnboardingState();
     expect(result).toEqual({ complete: false, step: OnboardingStep.N2 });
-    expect(useOnboardingStore.getState().state).toMatchObject({
+    expect(useOnboardingStore.getState()).toMatchObject({
       complete: false,
       currentStep: OnboardingStep.N2,
       baseCurrency: Currency.USD,
@@ -142,7 +140,7 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
 
     const result = await loadOnboardingState();
     expect(result.step).toBe(OnboardingStep.N1);
-    expect(useOnboardingStore.getState().state).toMatchObject({
+    expect(useOnboardingStore.getState()).toMatchObject({
       currentStep: OnboardingStep.N1,
       baseCurrency: Currency.EGP,
     });

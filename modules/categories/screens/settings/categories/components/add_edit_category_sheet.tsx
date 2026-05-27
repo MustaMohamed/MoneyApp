@@ -103,30 +103,26 @@ export function AddEditCategorySheet({
   onOpenChange,
   onSave,
 }: AddEditCategorySheetProps) {
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const categories = useCategoryStore.useState.categories();
   const isEditing = editingCategory !== null;
 
-  const {
-    state: sheetState,
-    setType,
-    setSelectedIcon,
-    setSelectedColor,
-    setIconError,
-    setIsLoading,
-    initialize,
-  } = useAddEditCategorySheetState(
+  const { type, selectedIcon, selectedColor, iconError, isLoading } = useAddEditCategorySheetState(
     useShallow((s) => ({
-      state: s.state,
-      setType: s.setType,
-      setSelectedIcon: s.setSelectedIcon,
-      setSelectedColor: s.setSelectedColor,
-      setIconError: s.setIconError,
-      setIsLoading: s.setIsLoading,
-      initialize: s.initialize,
+      type: s.type,
+      selectedIcon: s.selectedIcon,
+      selectedColor: s.selectedColor,
+      iconError: s.iconError,
+      isLoading: s.isLoading,
     })),
   );
+  const setType = useAddEditCategorySheetState.getState().setType;
+  const setSelectedIcon = useAddEditCategorySheetState.getState().setSelectedIcon;
+  const setSelectedColor = useAddEditCategorySheetState.getState().setSelectedColor;
+  const setIconError = useAddEditCategorySheetState.getState().setIconError;
+  const setIsLoading = useAddEditCategorySheetState.getState().setIsLoading;
+  const initialize = useAddEditCategorySheetState.getState().initialize;
 
-  const schema = createCategorySchema(categoryState.categories, activeTab, editingCategory);
+  const schema = createCategorySchema(categories, activeTab, editingCategory);
   const {
     control,
     handleSubmit,
@@ -158,7 +154,7 @@ export function AddEditCategorySheet({
   }, [isOpen, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
 
   const handleSave = handleSubmit(async ({ name }) => {
-    if (!sheetState.selectedIcon) {
+    if (!selectedIcon) {
       setIconError(Strings.categoriesErrIconRequired);
       return;
     }
@@ -166,9 +162,9 @@ export function AddEditCategorySheet({
     try {
       await onSave({
         name,
-        type: sheetState.type,
-        icon: sheetState.selectedIcon,
-        color: sheetState.selectedColor,
+        type,
+        icon: selectedIcon,
+        color: selectedColor,
       });
     } finally {
       setIsLoading(false);
@@ -180,8 +176,8 @@ export function AddEditCategorySheet({
       testID="add-edit-category-save-btn"
       variant="primary"
       label={Strings.categoriesSaveCta}
-      isLoading={sheetState.isLoading}
-      isDisabled={sheetState.isLoading}
+      isLoading={isLoading}
+      isDisabled={isLoading}
       onPress={() => void handleSave()}
     />
   );
@@ -222,7 +218,7 @@ export function AddEditCategorySheet({
                 { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
                 { value: CategoryType.Income, label: Strings.categoriesTabIncome },
               ]}
-              value={sheetState.type}
+              value={type}
               onValueChange={setType}
               variant="solid-gold"
               listClassName="w-full"
@@ -234,9 +230,9 @@ export function AddEditCategorySheet({
         <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesIconLabel}
         </Text>
-        {sheetState.iconError ? (
+        {iconError ? (
           <Text testID="icon-error" className="font-inter-regular text-danger mt-1 text-xs">
-            {sheetState.iconError}
+            {iconError}
           </Text>
         ) : null}
         <FlatList
@@ -250,17 +246,15 @@ export function AddEditCategorySheet({
                 setSelectedIcon(item);
                 setIconError('');
               }}
-              style={[styles.iconCell, sheetState.selectedIcon === item && styles.iconCellActive]}
+              style={[styles.iconCell, selectedIcon === item && styles.iconCellActive]}
               accessibilityRole="button"
-              accessibilityState={{ selected: sheetState.selectedIcon === item }}
+              accessibilityState={{ selected: selectedIcon === item }}
               accessibilityLabel={item}
             >
               <MaterialCommunityIcons
                 name={item}
                 size={20}
-                color={
-                  sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
-                }
+                color={selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2}
               />
             </PressableFeedback>
           )}
@@ -278,10 +272,10 @@ export function AddEditCategorySheet({
               style={[
                 styles.colorSwatch,
                 { backgroundColor: c },
-                sheetState.selectedColor === c && styles.colorSwatchActive,
+                selectedColor === c && styles.colorSwatchActive,
               ]}
               accessibilityRole="button"
-              accessibilityState={{ selected: sheetState.selectedColor === c }}
+              accessibilityState={{ selected: selectedColor === c }}
               accessibilityLabel={c}
             />
           ))}

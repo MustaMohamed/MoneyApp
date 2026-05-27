@@ -6,7 +6,7 @@ beforeEach(() => {
 
 describe('useFilterState initial state', () => {
   it('starts hidden with no open section and date-range sheet closed', () => {
-    const s = useFilterState.getState().state;
+    const s = useFilterState.getState();
     expect(s.visible).toBe(false);
     expect(s.openSection).toBeNull();
     expect(s.dateRangeSheetVisible).toBe(false);
@@ -16,14 +16,14 @@ describe('useFilterState initial state', () => {
 describe('useFilterState open/close', () => {
   it('open() makes the sheet visible', () => {
     useFilterState.getState().open();
-    expect(useFilterState.getState().state.visible).toBe(true);
+    expect(useFilterState.getState().visible).toBe(true);
   });
 
   it('close() hides the sheet and collapses the open section', () => {
     useFilterState.getState().open();
     useFilterState.getState().toggleSection('accounts');
     useFilterState.getState().close();
-    const s = useFilterState.getState().state;
+    const s = useFilterState.getState();
     expect(s.visible).toBe(false);
     expect(s.openSection).toBeNull();
   });
@@ -32,28 +32,28 @@ describe('useFilterState open/close', () => {
 describe('useFilterState toggleSection', () => {
   it('opens a closed section', () => {
     useFilterState.getState().toggleSection('categories');
-    expect(useFilterState.getState().state.openSection).toBe('categories');
+    expect(useFilterState.getState().openSection).toBe('categories');
   });
 
   it('closes the section when toggled with the same target', () => {
     useFilterState.getState().toggleSection('amount');
     useFilterState.getState().toggleSection('amount');
-    expect(useFilterState.getState().state.openSection).toBeNull();
+    expect(useFilterState.getState().openSection).toBeNull();
   });
 
   it('switches directly to a different section', () => {
     useFilterState.getState().toggleSection('accounts');
     useFilterState.getState().toggleSection('categories');
-    expect(useFilterState.getState().state.openSection).toBe('categories');
+    expect(useFilterState.getState().openSection).toBe('categories');
   });
 });
 
 describe('useFilterState setDateRangeSheetVisible', () => {
   it('toggles the date-range sheet', () => {
     useFilterState.getState().setDateRangeSheetVisible(true);
-    expect(useFilterState.getState().state.dateRangeSheetVisible).toBe(true);
+    expect(useFilterState.getState().dateRangeSheetVisible).toBe(true);
     useFilterState.getState().setDateRangeSheetVisible(false);
-    expect(useFilterState.getState().state.dateRangeSheetVisible).toBe(false);
+    expect(useFilterState.getState().dateRangeSheetVisible).toBe(false);
   });
 });
 
@@ -63,7 +63,7 @@ describe('useFilterState reset', () => {
     useFilterState.getState().toggleSection('accounts');
     useFilterState.getState().setDateRangeSheetVisible(true);
     useFilterState.getState().reset();
-    const s = useFilterState.getState().state;
+    const s = useFilterState.getState();
     expect(s.visible).toBe(false);
     expect(s.openSection).toBeNull();
     expect(s.dateRangeSheetVisible).toBe(false);

@@ -9,38 +9,32 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 import { useCurrencyScreenState } from './currency.state';
 
 export function useCurrencyScreen() {
-  const {
-    state: currencyState,
-    fetchRate,
-    setManualRate,
-  } = useCurrencyStore(
+  const { rate, lastFetched, isManualOverride } = useCurrencyStore(
     useShallow((s) => ({
-      state: s.state,
-      fetchRate: s.fetchRate,
-      setManualRate: s.setManualRate,
+      rate: s.rate,
+      lastFetched: s.lastFetched,
+      isManualOverride: s.isManualOverride,
     })),
   );
-  const {
-    state: screenState,
-    setFetching,
-    setSaving,
-    setFetchError,
-    resetState,
-  } = useCurrencyScreenState(
+  const fetchRate = useCurrencyStore.getState().fetchRate;
+  const setManualRate = useCurrencyStore.getState().setManualRate;
+  const { isFetching, isSaving, fetchError } = useCurrencyScreenState(
     useShallow((s) => ({
-      state: s.state,
-      setFetching: s.setFetching,
-      setSaving: s.setSaving,
-      setFetchError: s.setFetchError,
-      resetState: s.reset,
+      isFetching: s.isFetching,
+      isSaving: s.isSaving,
+      fetchError: s.fetchError,
     })),
   );
+  const setFetching = useCurrencyScreenState.getState().setFetching;
+  const setSaving = useCurrencyScreenState.getState().setSaving;
+  const setFetchError = useCurrencyScreenState.getState().setFetchError;
+  const resetState = useCurrencyScreenState.getState().reset;
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => () => resetState(), []); // cleanup on unmount only; resetState is a stable Zustand action
 
-  const formattedDate = currencyState.lastFetched
-    ? new Date(currencyState.lastFetched).toLocaleDateString('en-US', {
+  const formattedDate = lastFetched
+    ? new Date(lastFetched).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric',
@@ -58,7 +52,7 @@ export function useCurrencyScreen() {
   });
 
   const form = useZodForm(manualSchema, {
-    defaultValues: { rate: String(currencyState.rate) },
+    defaultValues: { rate: String(rate) },
   });
 
   const handleFetchRate = async () => {
@@ -84,11 +78,11 @@ export function useCurrencyScreen() {
 
   return {
     state: {
-      rate: currencyState.rate,
-      isManualOverride: currencyState.isManualOverride,
-      isFetching: screenState.isFetching,
-      isSaving: screenState.isSaving,
-      fetchError: screenState.fetchError,
+      rate,
+      isManualOverride,
+      isFetching,
+      isSaving,
+      fetchError,
       formattedDate,
     },
     form,

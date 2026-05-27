@@ -4,6 +4,7 @@ import { OnboardingStep } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useMoreAccounts } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -45,12 +46,10 @@ function setup(accounts = fakeAccounts) {
   const { useRouter } = require('expo-router');
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts } }),
-  );
-  (useOnboardingStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ setStep: mockSetStep }),
-  );
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({ accounts }));
+  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+    setStep: mockSetStep,
+  }));
 }
 
 describe('useMoreAccounts', () => {

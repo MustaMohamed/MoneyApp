@@ -72,21 +72,18 @@ const mockCategoryIncome = {
 
 beforeEach(() => {
   useAccountStore.setState({
-    state: {
-      accounts: [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2],
-      loading: false,
-      error: undefined,
-    },
+    accounts: [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2],
+    loading: false,
+    error: undefined,
   } as any);
   useCategoryStore.setState({
-    state: {
-      categories: [mockCategoryExpense, mockCategoryIncome],
-      loading: false,
-      error: undefined,
-    },
+    categories: [mockCategoryExpense, mockCategoryIncome],
+    loading: false,
+    error: undefined,
   } as any);
   useCurrencyStore.setState({
-    state: { rate: 50, rate_updated_at: new Date().toISOString() },
+    rate: 50,
+    rate_updated_at: new Date().toISOString(),
   } as any);
   useAddTransactionState.getState().reset();
   useAddTransactionStore.getState().reset();
@@ -191,7 +188,7 @@ describe('useAddTransaction — cross-currency math', () => {
       expect.objectContaining({
         amount: 10,
         currency: Currency.USD,
-        egp_amount: 500, // 10 × 50.0 = 500
+        egp_amount: 500, // 10 × 50.0 = 500,
         exchange_rate: 50,
       }),
     );
@@ -235,7 +232,7 @@ describe('useAddTransaction — cross-currency math', () => {
       expect.objectContaining({
         amount: 5,
         currency: Currency.USD,
-        egp_amount: 250, // 5 × 50
+        egp_amount: 250, // 5 × 50,
         to_amount: 250,
       }),
     );
@@ -244,11 +241,9 @@ describe('useAddTransaction — cross-currency math', () => {
   it('transfer USD → USD: rate required (for egp_amount); to_amount = amount', async () => {
     const mockAccountUSD2 = { ...mockAccountUSD, id: 'a5', name: 'USD Wallet' };
     useAccountStore.setState({
-      state: {
-        accounts: [...useAccountStore.getState().state.accounts, mockAccountUSD2],
-        loading: false,
-        error: undefined,
-      },
+      accounts: [...useAccountStore.getState().accounts, mockAccountUSD2],
+      loading: false,
+      error: undefined,
     } as any);
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
@@ -286,7 +281,7 @@ describe('useAddTransaction — cross-currency math', () => {
       expect.objectContaining({
         amount: 20,
         currency: Currency.USD,
-        egp_amount: 1000, // 20 × 50
+        egp_amount: 1000, // 20 × 50,
         to_amount: 1000,
       }),
     );
@@ -302,7 +297,8 @@ describe('useAddTransaction — rounding', () => {
     //   Banker's rounding: stays at 3000 → 30.00.
     //   Regular Math.round(3000.5) = 3001 → 30.01 (would fail without roundMoney).
     useCurrencyStore.setState({
-      state: { rate: 30.005, rate_updated_at: null },
+      rate: 30.005,
+      rate_updated_at: null,
     } as any);
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);

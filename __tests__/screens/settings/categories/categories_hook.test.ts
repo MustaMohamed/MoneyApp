@@ -38,6 +38,7 @@ import { CategoryType, PROTECTED_CATEGORY_IDS } from '@/constants/enums';
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Category } from '@/modules/categories/store/category.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 // Real Zustand stores — bypassing the mock for shape tests
 const realCategoriesStore = jest.requireActual<
@@ -68,31 +69,31 @@ describe('useCategoriesScreenStore — linkedCount', () => {
   });
 
   it('has linkedCount of 0 in initial state', () => {
-    const { state } = realScreenStore.getState();
+    const state = realScreenStore.getState();
     expect(state.linkedCount).toBe(0);
   });
 
   it('setLinkedCount updates linkedCount', () => {
     realScreenStore.getState().setLinkedCount(47);
-    expect(realScreenStore.getState().state.linkedCount).toBe(47);
+    expect(realScreenStore.getState().linkedCount).toBe(47);
   });
 
   it('setLinkedCount to 0 is valid', () => {
     realScreenStore.getState().setLinkedCount(47);
     realScreenStore.getState().setLinkedCount(0);
-    expect(realScreenStore.getState().state.linkedCount).toBe(0);
+    expect(realScreenStore.getState().linkedCount).toBe(0);
   });
 
   it('reset sets linkedCount back to 0', () => {
     realScreenStore.getState().setLinkedCount(47);
     realScreenStore.getState().reset();
-    expect(realScreenStore.getState().state.linkedCount).toBe(0);
+    expect(realScreenStore.getState().linkedCount).toBe(0);
   });
 
   it('reset preserves all other INITIAL_STATE fields (editingCategory, categoryToDelete)', () => {
     realScreenStore.getState().setLinkedCount(12);
     realScreenStore.getState().reset();
-    const { state } = realScreenStore.getState();
+    const state = realScreenStore.getState();
     expect(state.editingCategory).toBeNull();
     expect(state.categoryToDelete).toBeNull();
     expect(state.linkedCount).toBe(0);
@@ -110,25 +111,25 @@ describe('useCategoriesScreenState — isDeleting', () => {
   });
 
   it('has isDeleting of false in initial state', () => {
-    const { state } = realScreenState.getState();
+    const state = realScreenState.getState();
     expect(state.isDeleting).toBe(false);
   });
 
   it('setIsDeleting(true) sets isDeleting to true', () => {
     realScreenState.getState().setIsDeleting(true);
-    expect(realScreenState.getState().state.isDeleting).toBe(true);
+    expect(realScreenState.getState().isDeleting).toBe(true);
   });
 
   it('setIsDeleting(false) clears isDeleting back to false', () => {
     realScreenState.getState().setIsDeleting(true);
     realScreenState.getState().setIsDeleting(false);
-    expect(realScreenState.getState().state.isDeleting).toBe(false);
+    expect(realScreenState.getState().isDeleting).toBe(false);
   });
 
   it('reset sets isDeleting back to false', () => {
     realScreenState.getState().setIsDeleting(true);
     realScreenState.getState().reset();
-    expect(realScreenState.getState().state.isDeleting).toBe(false);
+    expect(realScreenState.getState().isDeleting).toBe(false);
   });
 
   it('reset preserves all other INITIAL_STATE fields', () => {
@@ -138,7 +139,7 @@ describe('useCategoriesScreenState — isDeleting', () => {
     realScreenState.getState().setShowReassignSheet(true);
     realScreenState.getState().setActiveTab(CategoryType.Income);
     realScreenState.getState().reset();
-    const { state } = realScreenState.getState();
+    const state = realScreenState.getState();
     expect(state.isDeleting).toBe(false);
     expect(state.showAddSheet).toBe(false);
     expect(state.showDeleteConfirm).toBe(false);
@@ -220,46 +221,36 @@ function setupMocks(
   capturedGetCategoryTransactionCount =
     overrides.getCategoryTransactionCount ?? jest.fn().mockResolvedValue(0);
 
-  mockedState.mockImplementation((sel: any) =>
-    sel({
-      state: {
-        activeTab: 'expense',
-        showAddSheet: false,
-        showDeleteConfirm: overrides.showDeleteConfirm ?? false,
-        showReassignSheet: overrides.showReassignSheet ?? false,
-        isDeleting: overrides.isDeleting ?? false,
-      },
-      setActiveTab: jest.fn(),
-      setShowAddSheet: jest.fn(),
-      setShowDeleteConfirm: capturedSetShowDeleteConfirm,
-      setShowReassignSheet: capturedSetShowReassignSheet,
-      setIsDeleting: capturedSetIsDeleting,
-    }),
-  );
+  attachMockSelectorStore(mockedState, () => ({
+    activeTab: 'expense',
+    showAddSheet: false,
+    showDeleteConfirm: overrides.showDeleteConfirm ?? false,
+    showReassignSheet: overrides.showReassignSheet ?? false,
+    isDeleting: overrides.isDeleting ?? false,
+    setActiveTab: jest.fn(),
+    setShowAddSheet: jest.fn(),
+    setShowDeleteConfirm: capturedSetShowDeleteConfirm,
+    setShowReassignSheet: capturedSetShowReassignSheet,
+    setIsDeleting: capturedSetIsDeleting,
+  }));
 
-  mockedStore.mockImplementation((sel: any) =>
-    sel({
-      state: {
-        editingCategory: null,
-        categoryToDelete: overrides.categoryToDelete ?? null,
-        linkedCount: overrides.linkedCount ?? 0,
-      },
-      setEditingCategory: jest.fn(),
-      setCategoryToDelete: jest.fn(),
-      setLinkedCount: capturedSetLinkedCount,
-    }),
-  );
+  attachMockSelectorStore(mockedStore, () => ({
+    editingCategory: null,
+    categoryToDelete: overrides.categoryToDelete ?? null,
+    linkedCount: overrides.linkedCount ?? 0,
+    setEditingCategory: jest.fn(),
+    setCategoryToDelete: jest.fn(),
+    setLinkedCount: capturedSetLinkedCount,
+  }));
 
-  (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { categories: [] },
-      addCategory: overrides.addCategory ?? jest.fn().mockResolvedValue(undefined),
-      updateCategory: jest.fn().mockResolvedValue(undefined),
-      deleteCategory: jest.fn().mockResolvedValue(undefined),
-      reassignAndDelete: overrides.reassignAndDelete ?? jest.fn().mockResolvedValue(undefined),
-      getCategoryTransactionCount: capturedGetCategoryTransactionCount,
-    }),
-  );
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+    categories: [],
+    addCategory: overrides.addCategory ?? jest.fn().mockResolvedValue(undefined),
+    updateCategory: jest.fn().mockResolvedValue(undefined),
+    deleteCategory: jest.fn().mockResolvedValue(undefined),
+    reassignAndDelete: overrides.reassignAndDelete ?? jest.fn().mockResolvedValue(undefined),
+    getCategoryTransactionCount: capturedGetCategoryTransactionCount,
+  }));
 }
 
 describe('useCategories — linkedCount + isDeleting in hook state', () => {

@@ -4,13 +4,15 @@ import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
 jest.mock('@/modules/onboarding/screens/onboarding/ready/ready.state', () => ({
-  useReadyState: jest.fn((sel: any) =>
-    sel({ state: { completing: false }, setCompleting: jest.fn() }),
+  useReadyState: Object.assign(
+    jest.fn((sel: any) => sel({ completing: false, setCompleting: jest.fn() })),
+    { getState: jest.fn(() => ({ completing: false, setCompleting: jest.fn() })) },
   ),
 }));
 
@@ -23,19 +25,21 @@ const fakeAccounts = [
 ];
 
 function setup(completing = false) {
-  (useOnboardingStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { baseCurrency: 'EGP' },
-      completeOnboarding: mockCompleteOnboarding,
-    }),
-  );
-  (useAccountStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts: fakeAccounts } }),
-  );
+  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
+    baseCurrency: 'EGP',
+    completeOnboarding: mockCompleteOnboarding,
+  }));
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: fakeAccounts,
+  }));
   const { useReadyState } = require('@/modules/onboarding/screens/onboarding/ready/ready.state');
   (useReadyState as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { completing }, setCompleting: mockSetCompleting }),
+    sel({ completing, setCompleting: mockSetCompleting }),
   );
+  (useReadyState.getState as jest.Mock).mockReturnValue({
+    completing,
+    setCompleting: mockSetCompleting,
+  });
 }
 
 describe('useReady', () => {

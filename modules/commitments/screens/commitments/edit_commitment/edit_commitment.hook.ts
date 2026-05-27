@@ -21,38 +21,22 @@ export function useEditCommitment() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-  const {
-    state: commitmentState,
-    updateCommitment,
-    deactivateCommitment,
-  } = useCommitmentStore(
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
+  const commitments = useCommitmentStore.useState.commitments();
+  const updateCommitment = useCommitmentStore.getState().updateCommitment;
+  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
+  const { saving, deactivateDialogVisible } = useEditCommitmentState(
     useShallow((s) => ({
-      state: s.state,
-      updateCommitment: s.updateCommitment,
-      deactivateCommitment: s.deactivateCommitment,
+      saving: s.saving,
+      deactivateDialogVisible: s.deactivateDialogVisible,
     })),
   );
+  const setSaving = useEditCommitmentState.getState().setSaving;
+  const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
+  const reset = useEditCommitmentState.getState().reset;
 
-  const {
-    state: screenState,
-    setSaving,
-    setDeactivateDialogVisible,
-    reset,
-  } = useEditCommitmentState(
-    useShallow((s) => ({
-      state: s.state,
-      setSaving: s.setSaving,
-      setDeactivateDialogVisible: s.setDeactivateDialogVisible,
-      reset: s.reset,
-    })),
-  );
-
-  const commitment = useMemo(
-    () => commitmentState.commitments.find((c) => c.id === id),
-    [commitmentState.commitments, id],
-  );
+  const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
 
   useEffect(() => {
     if (!commitment) router.back();
@@ -133,10 +117,10 @@ export function useEditCommitment() {
 
   return {
     state: {
-      saving: screenState.saving,
-      deactivateDialogVisible: screenState.deactivateDialogVisible,
-      categories: categoryState.categories,
-      accounts: accountState.accounts,
+      saving,
+      deactivateDialogVisible,
+      categories,
+      accounts,
     },
     form,
     onSubmit: form.handleSubmit(onValid),

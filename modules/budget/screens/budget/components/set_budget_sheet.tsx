@@ -44,30 +44,28 @@ function isBudgetGroup(value: string): value is BudgetGroup {
 }
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
-  const { sheetState, close } = useBudgetState(
-    useShallow((s) => ({ sheetState: s.state, close: s.close })),
-  );
-  const { setLimit } = useBudgetStore(useShallow((s) => ({ setLimit: s.setLimit })));
-
-  const {
-    pickerSheetState,
-    initAddMode,
-    setSelectedCategoryId,
-    togglePicker,
-    collapsePicker,
-    reset,
-  } = useSetBudgetSheetState(
+  const { sheetVisible, mode, targetCategoryId } = useBudgetState(
     useShallow((s) => ({
-      pickerSheetState: s.state,
-      initAddMode: s.initAddMode,
-      setSelectedCategoryId: s.setSelectedCategoryId,
-      togglePicker: s.togglePicker,
-      collapsePicker: s.collapsePicker,
-      reset: s.reset,
+      sheetVisible: s.sheetVisible,
+      mode: s.mode,
+      targetCategoryId: s.targetCategoryId,
     })),
   );
+  const close = useBudgetState.getState().close;
+  const setLimit = useBudgetStore.getState().setLimit;
+  const { selectedCategoryId, pickerExpanded } = useSetBudgetSheetState(
+    useShallow((s) => ({
+      selectedCategoryId: s.selectedCategoryId,
+      pickerExpanded: s.pickerExpanded,
+    })),
+  );
+  const initAddMode = useSetBudgetSheetState.getState().initAddMode;
+  const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
+  const togglePicker = useSetBudgetSheetState.getState().togglePicker;
+  const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
+  const reset = useSetBudgetSheetState.getState().reset;
 
-  const isEdit = sheetState.mode === 'edit';
+  const isEdit = mode === 'edit';
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const {
@@ -79,13 +77,13 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   const [groupValue, setGroupValue] = useState<BudgetGroup | null>(null);
 
   const addModeSelectedCategory = useMemo(
-    () => budgetableCategories.find((c) => c.id === pickerSheetState.selectedCategoryId),
-    [budgetableCategories, pickerSheetState.selectedCategoryId],
+    () => budgetableCategories.find((c) => c.id === selectedCategoryId),
+    [budgetableCategories, selectedCategoryId],
   );
 
   // Initialise / reset add-mode picker state and group whenever the sheet opens
   useEffect(() => {
-    if (sheetState.sheetVisible) {
+    if (sheetVisible) {
       resetForm({ limitText: isEdit && editingRow ? String(editingRow.limit) : '' });
       if (!isEdit) {
         initAddMode(budgetableCategories[0]?.id);
@@ -93,37 +91,27 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     } else {
       reset();
     }
-  }, [
-    sheetState.sheetVisible,
-    isEdit,
-    editingRow,
-    resetForm,
-    initAddMode,
-    reset,
-    budgetableCategories,
-  ]);
+  }, [sheetVisible, isEdit, editingRow, resetForm, initAddMode, reset, budgetableCategories]);
 
   useEffect(() => {
-    if (!sheetState.sheetVisible) {
+    if (!sheetVisible) {
       setGroupValue(null);
       return;
     }
     setGroupValue(isEdit ? null : (addModeSelectedCategory?.budget_group ?? null));
-  }, [sheetState.sheetVisible, isEdit, addModeSelectedCategory]);
+  }, [sheetVisible, isEdit, addModeSelectedCategory]);
 
   // Resolved category name for edit mode (locked display)
   const editingCategoryName = editingRow?.name;
 
-  const selectedCategoryId = isEdit
-    ? sheetState.targetCategoryId
-    : pickerSheetState.selectedCategoryId;
+  const resolvedCategoryId = isEdit ? targetCategoryId : selectedCategoryId;
 
   const onSubmit = handleSubmit(async (values) => {
-    if (!selectedCategoryId) return;
-    await setLimit(selectedCategoryId, parseLimit(values.limitText));
+    if (!resolvedCategoryId) return;
+    await setLimit(resolvedCategoryId, parseLimit(values.limitText));
     if (groupValue !== null) {
       const db = await getDb();
-      await setCategoryGroup(db, selectedCategoryId, groupValue);
+      await setCategoryGroup(db, resolvedCategoryId, groupValue);
     }
     close();
   });
@@ -131,7 +119,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   return (
     <>
       <Sheet
-        isOpen={sheetState.sheetVisible}
+        isOpen={sheetVisible}
         onOpenChange={(open) => {
           if (!open) close();
         }}
@@ -239,10 +227,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           Stacks on top of the Set-budget sheet (depth 2). */}
       {!isEdit && (
         <CategoryPickerSheet
-          isOpen={sheetState.sheetVisible && pickerSheetState.pickerExpanded}
+          isOpen={sheetVisible && pickerExpanded}
           title={Strings.budgetPickCategory}
           categories={budgetableCategories}
-          selectedId={pickerSheetState.selectedCategoryId}
+          selectedId={selectedCategoryId}
           onSelect={(cat) => setSelectedCategoryId(cat.id)}
           onOpenChange={collapsePicker}
         />

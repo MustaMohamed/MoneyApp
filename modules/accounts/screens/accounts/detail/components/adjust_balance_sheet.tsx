@@ -32,19 +32,15 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const {
-    state: adjustState,
-    setInput,
-    setError,
-    initialize,
-  } = useAdjustBalanceSheetState(
+  const { input, error } = useAdjustBalanceSheetState(
     useShallow((s) => ({
-      state: s.state,
-      setInput: s.setInput,
-      setError: s.setError,
-      initialize: s.initialize,
+      input: s.input,
+      error: s.error,
     })),
   );
+  const setInput = useAdjustBalanceSheetState.getState().setInput;
+  const setError = useAdjustBalanceSheetState.getState().setError;
+  const initialize = useAdjustBalanceSheetState.getState().initialize;
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
@@ -56,7 +52,7 @@ export function AdjustBalanceSheet({
   }, [isOpen, currentBalance, initialize]);
 
   const handleSave = () => {
-    const result = parseAdjustInput(adjustState.input);
+    const result = parseAdjustInput(input);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
@@ -99,7 +95,7 @@ export function AdjustBalanceSheet({
         <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
           <View style={{ flex: 1 }}>
             <Input
-              value={adjustState.input}
+              value={input}
               onChangeText={(v) => {
                 setInput(v);
                 setError('');
@@ -107,12 +103,12 @@ export function AdjustBalanceSheet({
               onFocus={onFocus}
               onBlur={onBlur}
               keyboardType="decimal-pad"
-              isInvalid={!!adjustState.error}
+              isInvalid={!!error}
             />
           </View>
           <Text className="text-muted font-sora-bold text-[15px]">{currency}</Text>
         </Box>
-        <FormErrorText message={adjustState.error || undefined} />
+        <FormErrorText message={error || undefined} />
       </Box>
     </Sheet>
   );

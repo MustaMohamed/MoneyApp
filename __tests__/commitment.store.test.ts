@@ -105,7 +105,7 @@ describe('commitmentStore.loadCommitments', () => {
     const repo = makeRepo();
     const useStore = createCommitmentStore(repo);
 
-    expect(useStore.getState().state.commitmentsLoaded).toBe(false);
+    expect(useStore.getState().commitmentsLoaded).toBe(false);
   });
 
   it('marks commitments loaded after repo data settles', async () => {
@@ -114,7 +114,7 @@ describe('commitmentStore.loadCommitments', () => {
 
     await useStore.getState().loadCommitments();
 
-    expect(useStore.getState().state.commitmentsLoaded).toBe(true);
+    expect(useStore.getState().commitmentsLoaded).toBe(true);
   });
 
   it('populates state.commitments from repo', async () => {
@@ -122,7 +122,7 @@ describe('commitmentStore.loadCommitments', () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([commitment]) });
     const useStore = createCommitmentStore(repo);
     await useStore.getState().loadCommitments();
-    expect(useStore.getState().state.commitments).toEqual([commitment]);
+    expect(useStore.getState().commitments).toEqual([commitment]);
   });
 
   it('calls repo.getAll()', async () => {
@@ -150,7 +150,7 @@ describe('commitmentStore.loadPaymentsForMonth', () => {
     const repo = makeRepo();
     const useStore = createCommitmentStore(repo);
 
-    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+    expect(useStore.getState().paymentsLoaded).toBe(false);
   });
 
   it('marks payments loaded after repo data settles', async () => {
@@ -159,7 +159,7 @@ describe('commitmentStore.loadPaymentsForMonth', () => {
 
     await useStore.getState().loadPaymentsForMonth('2026-06');
 
-    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
   });
 
   it('populates state.payments from repo', async () => {
@@ -167,7 +167,7 @@ describe('commitmentStore.loadPaymentsForMonth', () => {
     const repo = makeRepo({ getPaymentsForMonth: jest.fn().mockResolvedValue([payment]) });
     const useStore = createCommitmentStore(repo);
     await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().state.payments).toEqual([payment]);
+    expect(useStore.getState().payments).toEqual([payment]);
   });
 
   it('calls repo.getPaymentsForMonth with the given yearMonth', async () => {
@@ -199,7 +199,7 @@ describe('commitmentStore.setSelectedMonth', () => {
     const repo = makeRepo();
     const useStore = createCommitmentStore(repo);
     await useStore.getState().setSelectedMonth('2026-08');
-    expect(useStore.getState().state.selectedMonth).toBe('2026-08');
+    expect(useStore.getState().selectedMonth).toBe('2026-08');
   });
 
   it('calls loadPaymentsForMonth with the new yearMonth', async () => {
@@ -222,14 +222,14 @@ describe('commitmentStore.setSelectedMonth', () => {
     const useStore = createCommitmentStore(repo);
 
     await useStore.getState().setSelectedMonth('2026-04');
-    expect(useStore.getState().state.payments).toEqual([aprilPayment]);
-    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+    expect(useStore.getState().payments).toEqual([aprilPayment]);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
 
     const mayLoad = useStore.getState().setSelectedMonth('2026-05');
 
-    expect(useStore.getState().state.selectedMonth).toBe('2026-05');
-    expect(useStore.getState().state.payments).toEqual([]);
-    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+    expect(useStore.getState().selectedMonth).toBe('2026-05');
+    expect(useStore.getState().payments).toEqual([]);
+    expect(useStore.getState().paymentsLoaded).toBe(false);
 
     mayRequest.resolve([]);
     await mayLoad;
@@ -251,27 +251,27 @@ describe('commitmentStore.setSelectedMonth', () => {
     const useStore = createCommitmentStore(repo);
 
     await useStore.getState().loadPaymentsForMonth('2026-04');
-    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
 
     const mayLoad = useStore.getState().setSelectedMonth('2026-05');
-    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+    expect(useStore.getState().paymentsLoaded).toBe(false);
 
     const juneLoad = useStore.getState().setSelectedMonth('2026-06');
-    expect(useStore.getState().state.paymentsLoaded).toBe(false);
+    expect(useStore.getState().paymentsLoaded).toBe(false);
 
     juneRequest.resolve([junePayment]);
     await juneLoad;
 
-    expect(useStore.getState().state.selectedMonth).toBe('2026-06');
-    expect(useStore.getState().state.payments).toEqual([junePayment]);
-    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+    expect(useStore.getState().selectedMonth).toBe('2026-06');
+    expect(useStore.getState().payments).toEqual([junePayment]);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
 
     mayRequest.resolve([mayPayment]);
     await mayLoad;
 
-    expect(useStore.getState().state.selectedMonth).toBe('2026-06');
-    expect(useStore.getState().state.payments).toEqual([junePayment]);
-    expect(useStore.getState().state.paymentsLoaded).toBe(true);
+    expect(useStore.getState().selectedMonth).toBe('2026-06');
+    expect(useStore.getState().payments).toEqual([junePayment]);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
   });
 });
 
@@ -1018,11 +1018,11 @@ describe('commitmentStore.reset', () => {
     await useStore.getState().loadPaymentsForMonth('2026-06');
     await useStore.getState().setSelectedMonth('2026-09');
     // State is now non-empty
-    expect(useStore.getState().state.commitments).toHaveLength(1);
-    expect(useStore.getState().state.payments).toHaveLength(1);
+    expect(useStore.getState().commitments).toHaveLength(1);
+    expect(useStore.getState().payments).toHaveLength(1);
     // Reset
     useStore.getState().reset();
-    expect(useStore.getState().state.commitments).toEqual([]);
-    expect(useStore.getState().state.payments).toEqual([]);
+    expect(useStore.getState().commitments).toEqual([]);
+    expect(useStore.getState().payments).toEqual([]);
   });
 });

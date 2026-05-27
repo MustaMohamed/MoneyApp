@@ -11,71 +11,49 @@ import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 
 export function useFilterSheet() {
-  const {
-    state: filterState,
-    close,
-    toggleSection,
-  } = useFilterState(
+  const { visible, openSection } = useFilterState(
     useShallow((s) => ({
-      state: s.state,
-      close: s.close,
-      toggleSection: s.toggleSection,
+      visible: s.visible,
+      openSection: s.openSection,
     })),
   );
-  const {
-    state: filterStoreState,
-    setDraft,
-    resetDraft,
-    toggleAccountId,
-    toggleCategoryId,
-    setAmountMin,
-    setAmountMax,
-    setAmountCurrency,
-  } = useFilterStore(
-    useShallow((s) => ({
-      state: s.state,
-      setDraft: s.setDraft,
-      resetDraft: s.resetDraft,
-      toggleAccountId: s.toggleAccountId,
-      toggleCategoryId: s.toggleCategoryId,
-      setAmountMin: s.setAmountMin,
-      setAmountMax: s.setAmountMax,
-      setAmountCurrency: s.setAmountCurrency,
-    })),
-  );
-
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-
-  const { state: txScreenState, setAppliedFilters } = useTransactionsScreenStore(
-    useShallow((s) => ({
-      state: s.state,
-      setAppliedFilters: s.setAppliedFilters,
-    })),
-  );
+  const close = useFilterState.getState().close;
+  const toggleSection = useFilterState.getState().toggleSection;
+  const draft = useFilterStore.useState.draft();
+  const setDraft = useFilterStore.getState().setDraft;
+  const resetDraft = useFilterStore.getState().resetDraft;
+  const toggleAccountId = useFilterStore.getState().toggleAccountId;
+  const toggleCategoryId = useFilterStore.getState().toggleCategoryId;
+  const setAmountMin = useFilterStore.getState().setAmountMin;
+  const setAmountMax = useFilterStore.getState().setAmountMax;
+  const setAmountCurrency = useFilterStore.getState().setAmountCurrency;
+  const accounts = useAccountStore.useState.accounts();
+  const categories = useCategoryStore.useState.categories();
+  const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
+  const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;
 
   // When the sheet opens, seed the draft from the currently applied filters.
   useEffect(() => {
-    if (filterState.visible) {
-      setDraft(txScreenState.appliedFilters);
+    if (visible) {
+      setDraft(appliedFilters);
     }
-  }, [filterState.visible, txScreenState.appliedFilters, setDraft]);
+  }, [visible, appliedFilters, setDraft]);
 
   const applyDraft = useCallback(() => {
-    setAppliedFilters(filterStoreState.draft);
+    setAppliedFilters(draft);
     close();
-  }, [filterStoreState.draft, setAppliedFilters, close]);
+  }, [draft, setAppliedFilters, close]);
 
-  const draftCount = countActiveFilters(filterStoreState.draft);
+  const draftCount = countActiveFilters(draft);
 
   return {
     state: {
-      visible: filterState.visible,
-      openSection: filterState.openSection,
-      draft: filterStoreState.draft,
+      visible,
+      openSection,
+      draft,
       draftCount,
-      accounts: accountState.accounts,
-      categories: categoryState.categories,
+      accounts,
+      categories,
     },
     close,
     toggleSection,

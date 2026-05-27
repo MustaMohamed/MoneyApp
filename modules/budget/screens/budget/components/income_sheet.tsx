@@ -13,20 +13,20 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { ms } from '@/utils/responsive';
 
 export function IncomeSheet() {
-  const { sheetState, close, setAmountText } = useIncomeSheetState(
+  const { isOpen, amountText, suggestion } = useIncomeSheetState(
     useShallow((s) => ({
-      sheetState: s.state,
-      close: s.close,
-      setAmountText: s.setAmountText,
+      isOpen: s.isOpen,
+      amountText: s.amountText,
+      suggestion: s.suggestion,
     })),
   );
-  const { setExpectedIncome } = useBudgetStore(
-    useShallow((s) => ({ setExpectedIncome: s.setExpectedIncome })),
-  );
+  const close = useIncomeSheetState.getState().close;
+  const setAmountText = useIncomeSheetState.getState().setAmountText;
+  const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const handleSave = async () => {
-    const amount = parseFloat(sheetState.amountText);
+    const amount = parseFloat(amountText);
     if (!isFinite(amount) || amount <= 0) return;
     await setExpectedIncome(amount);
     close();
@@ -34,7 +34,7 @@ export function IncomeSheet() {
 
   return (
     <Sheet
-      isOpen={sheetState.isOpen}
+      isOpen={isOpen}
       onOpenChange={(open) => {
         if (!open) close();
       }}
@@ -54,7 +54,7 @@ export function IncomeSheet() {
         <Text style={styles.label}>{Strings.incomeSheetAmountLabel}</Text>
         <View style={styles.field}>
           <Input
-            value={sheetState.amountText}
+            value={amountText}
             onChangeText={setAmountText}
             onFocus={onFocus}
             onBlur={onBlur}
@@ -67,10 +67,9 @@ export function IncomeSheet() {
           />
           <Text style={styles.suffix}>EGP</Text>
         </View>
-        {sheetState.suggestion !== null &&
-          sheetState.amountText === String(sheetState.suggestion) && (
-            <Text style={styles.suggestionNote}>{Strings.incomeSheetSuggestionNote}</Text>
-          )}
+        {suggestion !== null && amountText === String(suggestion) && (
+          <Text style={styles.suggestionNote}>{Strings.incomeSheetSuggestionNote}</Text>
+        )}
       </View>
     </Sheet>
   );

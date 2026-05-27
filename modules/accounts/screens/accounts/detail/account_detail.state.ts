@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+
 interface AccountDetailStateShape {
   isEditing: boolean;
   isAdjustVisible: boolean;
@@ -9,8 +11,7 @@ interface AccountDetailStateShape {
   isArchiving: boolean;
 }
 
-interface AccountDetailState {
-  state: AccountDetailStateShape;
+type AccountDetailState = AccountDetailStateShape & {
   setEditing: (v: boolean) => void;
   setAdjustVisible: (v: boolean) => void;
   setArchiveVisible: (v: boolean) => void;
@@ -18,7 +19,7 @@ interface AccountDetailState {
   setAdjusting: (v: boolean) => void;
   setArchiving: (v: boolean) => void;
   reset: () => void;
-}
+};
 
 const INITIAL_STATE: AccountDetailStateShape = {
   isEditing: false,
@@ -30,16 +31,18 @@ const INITIAL_STATE: AccountDetailStateShape = {
 };
 
 export function createAccountDetailState() {
-  return create<AccountDetailState>((set) => ({
-    state: INITIAL_STATE,
-    setEditing: (v) => set((s) => ({ state: { ...s.state, isEditing: v } })),
-    setAdjustVisible: (v) => set((s) => ({ state: { ...s.state, isAdjustVisible: v } })),
-    setArchiveVisible: (v) => set((s) => ({ state: { ...s.state, isArchiveVisible: v } })),
-    setSaving: (v) => set((s) => ({ state: { ...s.state, isSaving: v } })),
-    setAdjusting: (v) => set((s) => ({ state: { ...s.state, isAdjusting: v } })),
-    setArchiving: (v) => set((s) => ({ state: { ...s.state, isArchiving: v } })),
-    reset: () => set({ state: INITIAL_STATE }),
-  }));
+  return createMoneyAppSelectors(
+    create<AccountDetailState>((set) => ({
+      ...INITIAL_STATE,
+      setEditing: (v) => set((s) => ({ ...s, isEditing: v })),
+      setAdjustVisible: (v) => set((s) => ({ ...s, isAdjustVisible: v })),
+      setArchiveVisible: (v) => set((s) => ({ ...s, isArchiveVisible: v })),
+      setSaving: (v) => set((s) => ({ ...s, isSaving: v })),
+      setAdjusting: (v) => set((s) => ({ ...s, isAdjusting: v })),
+      setArchiving: (v) => set((s) => ({ ...s, isArchiving: v })),
+      reset: () => set(INITIAL_STATE),
+    })),
+  );
 }
 
 export const useAccountDetailState = createAccountDetailState();

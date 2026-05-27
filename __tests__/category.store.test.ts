@@ -35,7 +35,7 @@ describe('categoryStore.loadCategories', () => {
     const repo = makeRepo();
     const useStore = createCategoryStore(repo);
 
-    expect(useStore.getState().state.hasLoaded).toBe(false);
+    expect(useStore.getState().hasLoaded).toBe(false);
   });
 
   it('marks categories loaded after repo data settles', async () => {
@@ -44,14 +44,14 @@ describe('categoryStore.loadCategories', () => {
 
     await useStore.getState().loadCategories();
 
-    expect(useStore.getState().state.hasLoaded).toBe(true);
+    expect(useStore.getState().hasLoaded).toBe(true);
   });
 
   it('populates categories from repo', async () => {
     const repo = makeRepo();
     const store = createCategoryStore(repo).getState();
     await store.loadCategories();
-    expect(createCategoryStore(repo).getState().state.categories).toHaveLength(0); // fresh store
+    expect(createCategoryStore(repo).getState().categories).toHaveLength(0); // fresh store
   });
 
   it('calls repo.getAll()', async () => {
@@ -66,7 +66,7 @@ describe('categoryStore.loadCategories', () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([cat]) });
     const useStore = createCategoryStore(repo);
     await useStore.getState().loadCategories();
-    expect(useStore.getState().state.categories).toEqual([cat]);
+    expect(useStore.getState().categories).toEqual([cat]);
   });
 });
 
@@ -212,10 +212,10 @@ describe('categoryStore.reset', () => {
     });
     const useStore = createCategoryStore(repo);
     await useStore.getState().loadCategories();
-    expect(useStore.getState().state.categories).toHaveLength(1);
+    expect(useStore.getState().categories).toHaveLength(1);
 
     useStore.getState().reset();
 
-    expect(useStore.getState().state).toEqual({ categories: [], hasLoaded: false });
+    expect(useStore.getState()).toMatchObject({ categories: [], hasLoaded: false });
   });
 });

@@ -1,7 +1,10 @@
 import { renderHook } from '@testing-library/react-native';
 
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
+import { useCategoriesScreenState } from '@/modules/categories/screens/settings/categories/categories.state';
+import { useCategoriesScreenStore } from '@/modules/categories/screens/settings/categories/categories.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -9,42 +12,42 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/categories/screens/settings/categories/categories.state', () => ({
-  useCategoriesScreenState: jest.fn((sel: any) =>
-    sel({
-      state: {
-        activeTab: 'expense',
-        showAddSheet: false,
-        showDeleteConfirm: false,
-        showReassignSheet: false,
-      },
-      setActiveTab: jest.fn(),
-      setShowAddSheet: jest.fn(),
-      setShowDeleteConfirm: jest.fn(),
-      setShowReassignSheet: jest.fn(),
-    }),
-  ),
+  useCategoriesScreenState: jest.fn(),
 }));
 jest.mock('@/modules/categories/screens/settings/categories/categories.store', () => ({
-  useCategoriesScreenStore: jest.fn((sel: any) =>
-    sel({
-      state: { editingCategory: null, categoryToDelete: null },
-      setEditingCategory: jest.fn(),
-      setCategoryToDelete: jest.fn(),
-    }),
-  ),
+  useCategoriesScreenStore: jest.fn(),
 }));
 
 function setup() {
-  (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
-    sel({
-      state: { categories: [], hasLoaded: false },
-      addCategory: jest.fn().mockResolvedValue(undefined),
-      updateCategory: jest.fn().mockResolvedValue(undefined),
-      deleteCategory: jest.fn().mockResolvedValue(undefined),
-      reassignAndDelete: jest.fn().mockResolvedValue(undefined),
-      getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
-    }),
-  );
+  attachMockSelectorStore(useCategoriesScreenState as unknown as jest.Mock, () => ({
+    activeTab: 'expense',
+    showAddSheet: false,
+    showDeleteConfirm: false,
+    showReassignSheet: false,
+    isDeleting: false,
+    setActiveTab: jest.fn(),
+    setShowAddSheet: jest.fn(),
+    setShowDeleteConfirm: jest.fn(),
+    setShowReassignSheet: jest.fn(),
+    setIsDeleting: jest.fn(),
+  }));
+  attachMockSelectorStore(useCategoriesScreenStore as unknown as jest.Mock, () => ({
+    editingCategory: null,
+    categoryToDelete: null,
+    linkedCount: 0,
+    setEditingCategory: jest.fn(),
+    setCategoryToDelete: jest.fn(),
+    setLinkedCount: jest.fn(),
+  }));
+  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+    categories: [],
+    hasLoaded: false,
+    addCategory: jest.fn().mockResolvedValue(undefined),
+    updateCategory: jest.fn().mockResolvedValue(undefined),
+    deleteCategory: jest.fn().mockResolvedValue(undefined),
+    reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+    getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
+  }));
 }
 
 describe('useCategories', () => {

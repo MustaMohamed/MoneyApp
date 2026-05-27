@@ -39,41 +39,30 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { accounts, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ accounts: s.state.accounts, loadAccounts: s.loadAccounts })),
-  );
-  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
+  const accounts = useAccountStore.useState.accounts();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({ rate: s.state.rate, rateUpdatedAt: s.state.rate_updated_at })),
-  );
-  const { updateTransaction } = useTransactionStore(
-    useShallow((s) => ({ updateTransaction: s.updateTransaction })),
-  );
-
-  const {
-    state: storeState,
-    setAmountStr,
-    handleNumpad,
-  } = useEditTransactionStore(
     useShallow((s) => ({
-      state: s.state,
-      setAmountStr: s.setAmountStr,
-      handleNumpad: s.handleNumpad,
+      rate: s.rate,
+      rateUpdatedAt: s.rate_updated_at,
     })),
   );
-  const {
-    state: uiState,
-    setSaving,
-    setShowCategoryPicker,
-    setRateOverride,
-  } = useEditTransactionState(
+  const updateTransaction = useTransactionStore.getState().updateTransaction;
+  const amountStr = useEditTransactionStore.useState.amountStr();
+  const setAmountStr = useEditTransactionStore.getState().setAmountStr;
+  const handleNumpad = useEditTransactionStore.getState().handleNumpad;
+  const { visible, saving, showCategoryPicker, rateOverride } = useEditTransactionState(
     useShallow((s) => ({
-      state: s.state,
-      setSaving: s.setSaving,
-      setShowCategoryPicker: s.setShowCategoryPicker,
-      setRateOverride: s.setRateOverride,
+      visible: s.visible,
+      saving: s.saving,
+      showCategoryPicker: s.showCategoryPicker,
+      rateOverride: s.rateOverride,
     })),
   );
+  const setSaving = useEditTransactionState.getState().setSaving;
+  const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
+  const setRateOverride = useEditTransactionState.getState().setRateOverride;
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -125,18 +114,18 @@ export function useEditTransaction(
   };
 
   useEffect(() => {
-    const parsed = parseFloat(storeState.amountStr);
+    const parsed = parseFloat(amountStr);
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
-  }, [storeState.amountStr]);
+  }, [amountStr]);
 
   useEffect(() => {
-    if (!uiState.visible) {
+    if (!visible) {
       form.reset(buildDefaultsFromTx(initialTx, rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
-  }, [uiState.visible]);
+  }, [visible]);
 
   async function onValid(data: EditTransactionFormValues) {
     setSaving(true);
@@ -189,7 +178,7 @@ export function useEditTransaction(
   }
 
   function toggleRateOverride() {
-    const next = !uiState.rateOverride;
+    const next = !rateOverride;
     setRateOverride(next);
     if (!next) form.setValue('exchangeRate', String(rate));
   }
@@ -202,7 +191,7 @@ export function useEditTransaction(
   return {
     state: {
       type,
-      amountStr: storeState.amountStr,
+      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -210,13 +199,13 @@ export function useEditTransaction(
       note,
       date,
       exchangeRate,
-      rateOverride: uiState.rateOverride,
+      rateOverride,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
-      saving: uiState.saving,
+      saving,
       visibleCategories,
-      showCategoryPicker: uiState.showCategoryPicker,
+      showCategoryPicker,
       rateUpdatedAt,
     },
     setAmountStr,
