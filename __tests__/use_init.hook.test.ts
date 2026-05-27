@@ -25,7 +25,8 @@ describe('useInit', () => {
   it('does not re-run when a signal read inside init changes', () => {
     const value = signal(0);
     const init = jest.fn(() => {
-      value.value;
+      const currentValue = value.value;
+      if (currentValue < 0) throw new Error('unexpected negative value');
     });
 
     const { rerender } = renderHook(() => useInit(init));
