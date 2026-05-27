@@ -2,8 +2,8 @@ import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Currency } from '@/constants/enums';
-import { useAccountStore } from '@/store/account.store';
-import { useCategoryStore } from '@/store/category.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 import { useTransactionsScreenStore } from '../transactions.store';
 import { countActiveFilters } from './filter.helpers';

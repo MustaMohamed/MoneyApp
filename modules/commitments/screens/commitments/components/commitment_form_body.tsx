@@ -8,8 +8,6 @@ import { Platform, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
-import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
-import { CategoryPickerSheet } from '@/components/sheets/category_picker_sheet';
 import { Button } from '@/components/ui/button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/tabs';
@@ -25,6 +23,8 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
+import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 

@@ -5,14 +5,14 @@ import { useShallow } from 'zustand/react/shallow';
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Category } from '@/database/entities/category.entity';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   useTransactionStore,
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
-import { useAccountStore } from '@/store/account.store';
-import { useCategoryStore } from '@/store/category.store';
-import { useCurrencyStore } from '@/store/currency.store';
 import { roundMoney } from '@/utils/money';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 

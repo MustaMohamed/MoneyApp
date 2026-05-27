@@ -2,9 +2,9 @@ import { renderHook, act } from '@testing-library/react-native';
 
 import { AccountType } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
-import { useAccountStore } from '@/store/account.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -12,7 +12,7 @@ jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() })),
 }));
 jest.mock('@/utils/onboarding_nav', () => ({ backOrReplace: jest.fn() }));
-jest.mock('@/store/account.store', () => ({
+jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: Object.assign(jest.fn(), {
     getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
   }),

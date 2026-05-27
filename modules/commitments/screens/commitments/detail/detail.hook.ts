@@ -4,8 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { useAccountStore } from '@/store/account.store';
-import { useCategoryStore } from '@/store/category.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { formatLongDate } from '@/utils/format_date';
 
 import type { Commitment } from '../../../entities/commitment.entity';

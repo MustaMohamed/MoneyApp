@@ -1,5 +1,11 @@
 # Step 3: Categories Module Migration — Implementation Plan
 
+> **Historical execution record:** This plan was written for a one-time Claude
+> worktree. Commands may contain absolute local paths or destructive cleanup
+> steps. Do not replay commands verbatim. For future work, translate intent into
+> repo-relative commands from the current repository root and preserve
+> compatibility stubs unless a current plan explicitly removes them.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move the categories data layer, repository, store, shared component, and settings screens into `modules/categories/`, adding a `getTransactionCount` method to `ICategoryRepository`, applying HeroUI fixes to every moved file, and leaving backward-compat stubs at the original paths so no consumer outside this module breaks.

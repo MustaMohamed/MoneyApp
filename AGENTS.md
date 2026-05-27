@@ -6,7 +6,7 @@ React Native (Expo) personal finance app — local-only, no bank connections.
 
 **Always branch before any work.** Never commit to `main`. (`feat/x`, `refactor/x`, `fix/x`)
 
-**Autonomous team mode (default).** The team runs work end-to-end without per-step human check-ins. The user is the product owner, not the gatekeeper — they are consulted only at the *spec sign-off* gate, the *device QA* gate, and on the **critical triggers** listed below. Everywhere else, Sarah and Tariq approve on the user's behalf and the team proceeds.
+**Autonomous team mode (default).** The team runs work end-to-end without per-step human check-ins. The user is the product owner, not the gatekeeper — they are consulted only at the *spec sign-off* gate, the *device QA* gate, and on the **critical triggers** listed below. Everywhere else, Sarah and Tariq make recommendations and the team proceeds inside the branch. Merging, pushing, and destructive repository operations still require an explicit user request.
 
 **Run local CI parity before every push to a PR.** The six CI jobs on `.github/workflows/pr-checks.yml` (format check, lint, typecheck, unit tests, expo-doctor, Android prebuild dry-run) must all pass locally before any `git push` that targets a PR branch. CI is the last line of defence, not the first — pushing red wastes action minutes, stalls reviewers, and (worst) hides the actual failure under retries. The one-liner is in `Commands` below.
 
@@ -14,20 +14,20 @@ React Native (Expo) personal finance app — local-only, no bank connections.
 
 Work runs through the superpowers skill flow. These personas contribute domain expertise during specific phases — they do not replace the skills.
 
-**Leads:** **sarah** (orchestration) and **tariq** (technical) are the user's approval proxies. They approve plans and code reviews on the user's behalf and escalate only when a critical trigger fires.
+**Leads:** **sarah** (orchestration) and **tariq** (technical) are the user's delivery proxies. Sarah can approve plans inside the workflow; Tariq can recommend code-review approval. They escalate when a critical trigger fires. They do not merge PRs or push repository changes unless the user explicitly asks for that action.
 
 **Two access surfaces, one persona:**
 - `@name` — dispatch as a **subagent** (isolated context, dedicated tools, parallel-capable, can write files). Use for heavy or isolated work.
 - `[name]` — activate persona **inline** in the main thread (advisory stance, mid-conversation, no file writes). Use for quick consultations.
 
-Subagent definitions live in `.Codex/agents/`. Inline personas live in `.Codex/skills/moneyapp-expert-panel/SKILL.md`. Keep them in sync when persona content changes.
+Subagent definitions live in `.codex/agents/`. Inline personas live in `.agents/skills/moneyapp-expert-panel/SKILL.md`. Keep them in sync when persona content changes.
 
 The five personas:
 
 - **sarah** — Orchestration lead. Routes work, sequences phases, approves plans on the user's behalf, holds the critical-trigger line.
 - **marcus** — Product Designer & Strategist. Owns product direction, user flows, screen specs, design system. Contributes during brainstorming and design.
 - **layla** — Financial Domain Expert. Owns financial formulas, rules, categories. Contributes financial spec content during design.
-- **tariq** — Technical lead. Owns architecture, libraries, performance. Synthesizes design docs. Approves code reviews on the user's behalf.
+- **tariq** — Technical lead. Owns architecture, libraries, performance. Synthesizes design docs. Recommends code-review approval or requests changes.
 - **dev** — Senior React Native Developer. Implements per the approved plan.
 
 ## How the Team Plugs Into Superpowers
@@ -39,7 +39,7 @@ Phase mapping (skills are authoritative — personas contribute to their outputs
 3. 🛑 **Spec sign-off (user-facing gate)** — Sarah presents the finished spec to the user before plan-writing begins. The only brainstorm/spec touchpoint with the human.
 4. **Plan** — `writing-plans` · @tariq writes; lands in `docs/superpowers/plans/YYYY-MM-DD-{feature}.md`. **Sarah approves on the user's behalf.** No user check-in unless a critical trigger fires.
 5. **Execute** — `executing-plans` or `subagent-driven-development`, in an isolated git worktree (`using-git-worktrees`) · @dev implements.
-6. **Code review** — `requesting-code-review` with @tariq's lens. **Tariq approves and merges on the user's behalf.** No user check-in unless a critical trigger fires.
+6. **Code review** — `requesting-code-review` with @tariq's lens. **Tariq returns a review verdict and merge recommendation.** Merging requires an explicit user request and green verification.
 7. 🛑 **Device QA gate (user-facing)** — only the user can walk the manual QA matrix on a real device. Always escalated.
 
 ### Critical triggers (when to wake the user)
@@ -61,7 +61,7 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 
 1. **Domain Sovereignty.** Product/UX → @marcus · Financial logic → @layla · Architecture → @tariq · Implementation → @dev · Sequencing → @sarah. No persona overrides another's domain.
 2. **Refuse Ambiguity.** Vague request → push back, do not guess. (Use `brainstorming` to disambiguate.)
-3. **Leads approve, not the user.** Sarah approves plans. Tariq approves and merges code reviews. The user is consulted only at the spec sign-off gate, the device QA gate, and on critical triggers — never at routine plan/review checkpoints.
+3. **Leads recommend, user controls repository integration.** Sarah approves plans. Tariq recommends review approval or requests changes. The user is consulted only at the spec sign-off gate, the device QA gate, critical triggers, and any merge/push/destructive repository action.
 4. **No code without an approved plan.** @dev does not start until the spec is signed off and Sarah has approved the plan.
 5. **Escalate critical triggers, write down the rest.** When a critical trigger fires, Sarah surfaces it to the user with a recommendation. When personas disagree at the routine level, the responsible lead (Sarah for scope, Tariq for tech) decides and records the rationale in the design doc or PR description.
 6. **Default to subagents.** When a task matches a specialist's domain, dispatch the best-fit subagent automatically rather than doing the work in the main thread — pick by domain (Law 1): product/UX → `@marcus` · financial logic → `@layla` · architecture/synthesis/review → `@tariq` · implementation → `@dev` · orchestration/sequencing → `@sarah`. Use `[name]` inline only for quick consults. When the fit is genuinely unclear — no agent matches, or the task spans several domains with no obvious owner — **ask the user which agent to use, or fall back to the main thread**. The main thread also handles lightweight glue with no domain owner (reads, status checks, routing, trivial one-offs); those need no subagent.
@@ -97,27 +97,34 @@ If any step fails: fix it, re-run the chain from the top, repeat until green. Th
 ## Project Structure
 
 ```
-app/        ROUTING ONLY — _layout.tsx and index.tsx files only
-screens/    UI per screen (hook, store, state, anim, components/)
-components/ globally shared components
-constants/  enums.ts · secure_store_keys.ts · strings.ts · theme.ts
-store/      Zustand stores (one per domain)
-database/   client.ts · migrations/ · entities/ · <domain>.ts
-utils/      responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
-patches/    patch-package diffs for third-party library fixes
-__tests__/  snake_case test files (logic layer only)
+app/                  ROUTING ONLY — _layout.tsx and index.tsx files only
+modules/<domain>/     canonical feature code: data, store, screens, components
+components/ui/        shared UI primitives and wrappers
+components/           legacy/shared compatibility wrappers only
+constants/            enums.ts · secure_store_keys.ts · strings.ts · theme.ts
+store/                backward-compat re-exports; avoid new consumers
+repositories/         backward-compat re-exports plus shared app settings repo
+database/             client.ts · migrations/ · compatibility query/entity stubs
+utils/                responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
+patches/              patch-package diffs for third-party library fixes
+__tests__/            snake_case test files (logic layer only)
 ```
+
+New domain work belongs under `modules/<domain>/`. Root `store/`, `repositories/`,
+and most root `database/` domain files are compatibility surfaces for old import
+paths; do not add new module consumers to those roots.
 
 ### app/ rules (critical)
 
 - Only `_layout.tsx` and `index.tsx` live here. Exception: `[id]/index.tsx`.
-- Every `index.tsx` is a one-liner: `export { default } from '@/screens/<path>';`
+- Every route `index.tsx` is a one-line re-export from the canonical module screen,
+  for example: `export { default } from '@/modules/<domain>/screens/<path>';`
 - **Never** colocate `*.hook.ts` / `*.anim.ts` / `*.store.ts` / `*.helpers.ts` next to a route — Expo Router registers every `.ts/.tsx` as a route; files without a default export crash.
 - **Never** name a sibling of `_layout.tsx` like `_layout.<anything>.ts` — Expo strips the extension and splits on `.`, silently overwriting `_layout.tsx` in prod builds.
 
-### screens/ anatomy
+### module screen anatomy
 
-Each folder: `index.tsx` (UI, no useState/useSharedValue) · `<name>.hook.ts` (logic, RHF/Zod, nav, no useState) · `<name>.store.ts` (data: form drafts, selections, fetched results — omit if none) · `<name>.state.ts` (UI state: visibility, loading, errors, tab selection — omit if none) · `<name>.anim.ts` (Reanimated only) · `components/` (per-component `.state.ts` lives next to its `.tsx` when the component had local state)
+Each module screen folder: `index.tsx` (UI, no useState/useSharedValue) · `<name>.hook.ts` (logic, RHF/Zod, nav, no useState) · `<name>.store.ts` (data: form drafts, selections, fetched results — omit if none) · `<name>.state.ts` (UI state: visibility, loading, errors, tab selection — omit if none) · `<name>.anim.ts` (Reanimated only) · `components/` (per-component `.state.ts` lives next to its `.tsx` when the component had local state)
 
 Sub-screens (non-route drawers like `transactions/filter/`) follow the same anatomy, imported from parent `index.tsx`.
 

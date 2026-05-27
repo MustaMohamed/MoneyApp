@@ -7,13 +7,13 @@ import { Controller } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
-import { AccountPickerSheet } from '@/components/sheets/account_picker_sheet';
 import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { AmountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
+import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { ExchangeRateRow } from '@/modules/transactions/screens/transactions/transaction_form/components/exchange_rate_row';
 import { formatLongDate, formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';

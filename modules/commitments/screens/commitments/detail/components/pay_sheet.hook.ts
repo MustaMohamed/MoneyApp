@@ -5,8 +5,8 @@ import { useShallow } from 'zustand/react/shallow';
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
-import { useAccountStore } from '@/store/account.store';
-import { useCurrencyStore } from '@/store/currency.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 

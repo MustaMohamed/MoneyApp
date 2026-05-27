@@ -18,7 +18,7 @@ import {
   type BucketsVM,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import { useCategoryStore } from '@/store/category.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 export interface CategoryBudgetRowVM extends CategoryBudgetVM {
   name: string;

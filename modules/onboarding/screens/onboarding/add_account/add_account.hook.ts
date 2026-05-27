@@ -4,8 +4,8 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
-import { useAccountStore } from '@/store/account.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import {
   createAddAccountSchema,

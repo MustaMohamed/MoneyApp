@@ -18,18 +18,18 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { useAccountStore } from '@/store/account.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
-jest.mock('@/store/currency.store', () => ({
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn((sel: any) =>
     sel({ state: { rate: 55, isManualOverride: false, rate_updated_at: null } }),
   ),

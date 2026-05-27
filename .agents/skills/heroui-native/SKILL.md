@@ -1,229 +1,94 @@
 ---
 name: heroui-native
-description: "HeroUI Native component library for React Native (Tailwind v4 via Uniwind). Use when building mobile UIs with HeroUI Native — creating Buttons, Cards, TextFields, Dialogs; installing heroui-native; configuring dark/light themes; or fetching component docs. Keywords: HeroUI Native, heroui-native, React Native UI, Uniwind, mobile components."
+description: >
+  MoneyApp HeroUI Native guidance. Use when building, reviewing, or refactoring
+  React Native UI in this repository with HeroUI Native, Uniwind, Tailwind v4,
+  BottomSheet, Button, Card, Input/TextField, Dialog, Tabs, Chip, Select,
+  Switch, ListGroup, Popover, Accordion, PressableFeedback, or when deciding if
+  a custom component is justified. This skill is repo-local: read installed
+  docs from node_modules/heroui-native/src/components and do not install
+  packages or fetch remote HeroUI docs during routine work.
 metadata:
-  author: heroui
-  version: "2.0.1"
+  author: moneyapp
+  version: "1.0.0"
 ---
 
-# HeroUI Native Development Guide
+# MoneyApp HeroUI Native Guide
 
-HeroUI Native is a component library built on **Uniwind (Tailwind CSS for React Native)** and **React Native**, providing accessible, customizable UI components for mobile applications.
+HeroUI Native is already installed and configured in this Expo app. This skill
+exists to keep UI work aligned with the local package version and MoneyApp's
+design rules.
 
----
+## Hard Rules
 
-## Installation
+- Do not install `heroui-native`, `uniwind`, Tailwind, Reanimated, Gesture
+  Handler, or BottomSheet dependencies from this skill. Dependency changes are
+  a critical trigger.
+- Do not fetch remote HeroUI docs during routine work. Use local docs for the
+  installed version.
+- Do not use HeroUI React web patterns or `@heroui/react`.
+- Use `onPress`, not `onClick`.
+- Use `PressableFeedback` from `heroui-native`, not `Pressable` from
+  `react-native`, when a tappable HeroUI-style primitive is needed.
+- Use HeroUI `BottomSheet` through the existing shared wrappers. Do not hand-roll
+  a new `@gorhom/bottom-sheet` wrapper.
+- Use `className` for colors, spacing, typography, and variants; use `style` for
+  layout-critical `flex`, `flexDirection`, dynamic dimensions, and runtime
+  colors.
+
+## Local Documentation
+
+Before implementing or reviewing a HeroUI component, inspect the installed docs:
 
 ```bash
-curl -fsSL https://heroui.com/install | bash -s heroui-native
+ls node_modules/heroui-native/src/components
+sed -n '1,220p' node_modules/heroui-native/src/components/<name>/<name>.md
 ```
-
----
-
-## CRITICAL: Native Only - Do Not Use Web Patterns
-
-**This guide is for HeroUI Native ONLY.** Do NOT apply HeroUI React (web) patterns — the package, styling engine, and color format all differ:
-
-| Feature      | React (Web)          | Native (Mobile)                     |
-| ------------ | -------------------- | ----------------------------------- |
-| **Styling**  | Tailwind CSS v4      | Uniwind (Tailwind for React Native) |
-| **Colors**   | oklch format         | HSL format                          |
-| **Package**  | `@heroui/react` 	  | `heroui-native`                     |
-| **Platform** | Web browsers         | iOS & Android                       |
-
-```tsx
-// CORRECT — Native pattern
-import { Button } from "heroui-native";
-
-<Button variant="primary" onPress={() => console.log("Pressed!")}>
-	Click me
-</Button>;
-```
-
-**Always fetch Native docs before implementing.**
-
----
-
-## Core Principles
-
-- Semantic variants (`primary`, `secondary`, `tertiary`) over visual descriptions
-- Composition over configuration (compound components)
-- Theme variables with HSL color format
-- React Native StyleSheet patterns with Uniwind utilities
-
----
-
-## Accessing Documentation & Component Information
-
-**For component details, examples, props, and implementation patterns, always fetch documentation:**
-
-### Using Scripts
-
-```bash
-# List all available components
-node scripts/list_components.mjs
-
-# Get component documentation (MDX)
-node scripts/get_component_docs.mjs Button
-node scripts/get_component_docs.mjs Button Card TextField
-
-# Get theme variables
-node scripts/get_theme.mjs
-
-# Get non-component docs (guides, releases)
-node scripts/get_docs.mjs /docs/native/getting-started/theming
-```
-
-### Direct MDX URLs
-
-Component docs: `https://heroui.com/docs/native/components/{component-name}.mdx`
 
 Examples:
 
-- Button: `https://heroui.com/docs/native/components/button.mdx`
-- Dialog: `https://heroui.com/docs/native/components/dialog.mdx`
-- TextField: `https://heroui.com/docs/native/components/text-field.mdx`
-
-Getting started guides: `https://heroui.com/docs/native/getting-started/{topic}.mdx`
-
-**Important:** Always fetch component docs before implementing. The MDX docs include complete examples, props, anatomy, and API references.
-
----
-
-## Installation Essentials
-
-### Quick Install
-
 ```bash
-npm i heroui-native react-native-reanimated react-native-gesture-handler react-native-safe-area-context @gorhom/bottom-sheet react-native-svg react-native-worklets tailwind-merge tailwind-variants
+sed -n '1,220p' node_modules/heroui-native/src/components/button/button.md
+sed -n '1,220p' node_modules/heroui-native/src/components/bottom-sheet/bottom-sheet.md
+sed -n '1,220p' node_modules/heroui-native/src/components/tabs/tabs.md
 ```
 
-### Framework Setup (Expo - Recommended)
+If the exact component docs are absent, inspect the component source under the
+same package path and follow existing MoneyApp usage before inventing a wrapper.
 
-1. **Install dependencies:**
+## Component Choice
 
-```bash
-npx create-expo-app MyApp
-cd MyApp
-npm i heroui-native uniwind tailwindcss
-npm i react-native-reanimated react-native-gesture-handler react-native-safe-area-context @gorhom/bottom-sheet react-native-svg react-native-worklets tailwind-merge tailwind-variants
-```
+Prefer installed HeroUI primitives for:
 
-2. **Create `global.css`:**
+- actions: `Button`, `LinkButton`, `CloseButton`, `PressableFeedback`
+- structure: `Card`, `Surface`, `ListGroup`, `Accordion`, `Separator`
+- inputs: `Input`, `TextField`, `TextArea`, `SearchField`, `Select`, `Switch`,
+  `Checkbox`, `RadioGroup`, `Slider`
+- overlays: `Dialog`, `Popover`, `BottomSheet`, `Menu`
+- status and feedback: `Chip`, `TagGroup`, `Alert`, `Toast`, `Skeleton`,
+  `Spinner`
 
-```css
-@import "tailwindcss";
-@import "uniwind";
-@import "heroui-native/styles";
+Creating a custom or third-party replacement for an available HeroUI primitive
+requires a written justification and user sign-off.
 
-@source "./node_modules/heroui-native/lib";
-```
+## MoneyApp Patterns
 
-3. **Wrap app with providers:**
+- Full-screen routes use `Screen` / `ScreenScroll` from `@/components/ui/screen`.
+- Shared app wrappers live under `components/ui/`.
+- Domain-specific components live under `modules/<domain>/`.
+- User-visible copy belongs in `constants/strings.ts`.
+- Theme tokens belong in `constants/theme.ts` or `constants/theme_tokens.ts`.
+- Runtime account/category colors use `style={{ backgroundColor: value }}`.
 
-```tsx
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { HeroUINativeProvider } from "heroui-native";
-import "./global.css";
+## Review Checklist
 
-export default function Layout() {
-	return (
-		<GestureHandlerRootView style={{ flex: 1 }}>
-			<HeroUINativeProvider>
-				<App />
-			</HeroUINativeProvider>
-		</GestureHandlerRootView>
-	);
-}
-```
+When reviewing UI code:
 
-### Critical Setup Requirements
-
-1. **Uniwind is Required** - HeroUI Native uses Uniwind (Tailwind CSS for React Native)
-2. **HeroUINativeProvider Required** - Wrap your app with `HeroUINativeProvider`
-3. **GestureHandlerRootView Required** - Wrap with `GestureHandlerRootView` from react-native-gesture-handler
-4. **Use Compound Components** - Components use compound structure (e.g., `Card.Header`, `Card.Body`)
-5. **Use onPress, not onClick** - React Native uses `onPress` event handlers
-6. **Platform-Specific Code** - Use `Platform.OS` for iOS/Android differences
-
----
-
-## Component Patterns
-
-HeroUI Native uses **compound component patterns**. Each component has subcomponents accessed via dot notation.
-
-**Example - Card:**
-
-```tsx
-<Card>
-	<Card.Header>{/* Icons, badges */}</Card.Header>
-	<Card.Body>
-		<Card.Title>Title</Card.Title>
-		<Card.Description>Description</Card.Description>
-	</Card.Body>
-	<Card.Footer>{/* Actions */}</Card.Footer>
-</Card>
-```
-
-**Key Points:**
-
-- Always use compound structure - don't flatten to props
-- Subcomponents are accessed via dot notation (e.g., `Card.Header`)
-- Native Card uses `Card.Body` (not `Card.Content`); Title and Description go inside Body
-- **Fetch component docs for complete anatomy and examples**
-
----
-
-## Semantic Variants
-
-HeroUI uses semantic naming to communicate functional intent:
-
-| Variant       | Purpose                           | Usage          |
-| ------------- | --------------------------------- | -------------- |
-| `primary`     | Main action to move forward       | 1 per context  |
-| `secondary`   | Alternative actions               | Multiple       |
-| `tertiary`    | Dismissive actions (cancel, skip) | Sparingly      |
-| `danger`      | Destructive actions               | When needed    |
-| `danger-soft` | Soft destructive actions          | Less prominent |
-| `ghost`       | Low-emphasis actions              | Minimal weight |
-| `outline`     | Secondary actions                 | Bordered style |
-
-**Don't use raw colors** - semantic variants adapt to themes and accessibility.
-
----
-
-## Theming
-
-HeroUI Native uses CSS variables via Tailwind/Uniwind for theming. Theme colors are defined in `global.css`:
-
-```css
-@theme {
-	--color-accent: hsl(260, 100%, 70%);
-	--color-accent-foreground: hsl(0, 0%, 100%);
-}
-```
-
-**Get current theme variables:**
-
-```bash
-node scripts/get_theme.mjs
-```
-
-**Access theme colors programmatically:**
-
-```tsx
-import { useThemeColor } from "heroui-native";
-
-const accentColor = useThemeColor("accent");
-```
-
-**Theme switching (Light/Dark Mode):**
-
-```tsx
-import { Uniwind, useUniwind } from "uniwind";
-
-const { theme } = useUniwind();
-Uniwind.setTheme(theme === "light" ? "dark" : "light");
-```
-
-For detailed theming, fetch: `https://heroui.com/docs/native/getting-started/theming.mdx`
+1. Confirm the relevant local HeroUI doc/source was checked.
+2. Confirm no web HeroUI imports or React Native `Pressable` regressions.
+3. Confirm route screens use `Screen` / `ScreenScroll`.
+4. Confirm bottom sheets use existing shared sheet patterns.
+5. Confirm text fits mobile containers and covers empty/loading/error/populated
+   states where applicable.
+6. Confirm no dependency install, remote doc fetch, or new UI library was added
+   without explicit approval.

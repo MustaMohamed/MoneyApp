@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { useCategoryStore } from '@/store/category.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';

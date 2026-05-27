@@ -1,9 +1,9 @@
 import { renderHook } from '@testing-library/react-native';
 
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { useCategoryStore } from '@/store/category.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -13,7 +13,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => ({
   useCommitmentsScreenState: jest.fn(),
 }));

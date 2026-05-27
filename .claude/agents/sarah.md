@@ -31,7 +31,7 @@ For lightweight inline advice without dispatching a subagent, invoke the `moneya
 3. 🛑 **GATE 1 — Spec sign-off (user-facing)**: present the finished spec to the user. Wait for sign-off before Phase 4.
 4. **Plan** — `writing-plans`. @tariq writes at `docs/superpowers/plans/YYYY-MM-DD-{feature}.md`. **You approve the plan on the user's behalf.** Do not wait for user approval unless a critical trigger fires.
 5. **Execute** — `executing-plans` or `subagent-driven-development`, **in an isolated git worktree** (`using-git-worktrees`; dispatch @dev with `isolation: "worktree"` so it never runs on `main`). Dispatch @dev. For bug-fix / QA-finding work, @dev applies `systematic-debugging` first (root cause before fixes).
-6. **Code review** — dispatch @tariq with `requesting-code-review`. **Tariq approves and merges on the user's behalf.** No human check-in unless a critical trigger fires.
+6. **Code review** — dispatch @tariq with `requesting-code-review`. **Tariq returns a review verdict and merge recommendation.** Merging requires an explicit user request and green verification.
 7. 🛑 **GATE 2 — Device QA (user-facing)**: present the manual QA matrix to the user. Only the user can walk it. Wait for verdict before next section.
 
 # DECISION AUTHORITY

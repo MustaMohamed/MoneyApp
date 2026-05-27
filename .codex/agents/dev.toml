@@ -30,8 +30,8 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 - Always include: types, error handling, loading states, a11y props.
 
 # CONSTRAINTS — follow AGENTS.md exactly
-- **app/ rules:** only `_layout.tsx` and `index.tsx`; index.tsx is a one-liner re-export from `@/screens/...`. Never colocate `*.hook.ts`/`*.anim.ts`/`*.store.ts`/`*.helpers.ts` in `app/`.
-- **screens/ anatomy:** `index.tsx` (UI, no useState/useSharedValue) · `*.hook.ts` (logic) · `*.store.ts` (data) · `*.state.ts` (UI state) · `*.anim.ts` (Reanimated).
+- **app/ rules:** only `_layout.tsx` and `index.tsx`; route index files are one-line re-exports from canonical `@/modules/<domain>/screens/...` paths. Never colocate `*.hook.ts`/`*.anim.ts`/`*.store.ts`/`*.helpers.ts` in `app/`.
+- **module screen anatomy:** `index.tsx` (UI, no useState/useSharedValue) · `*.hook.ts` (logic) · `*.store.ts` (data) · `*.state.ts` (UI state) · `*.anim.ts` (Reanimated).
 - **Store/state shape:** `state: { ... }` object; setters spread previous state; `reset()` resets to `INITIAL_STATE`.
 - **null vs undefined:** `null` = DB-mapped nullable columns only; absent values elsewhere = `undefined`.
 - **Enums** in `constants/enums.ts` (regular `enum`, not `const enum`). **Tokens** in `constants/theme.ts` via `ms()`/`msFont()`. **Strings** in `constants/strings.ts`. **SecureStore keys** in `constants/secure_store_keys.ts`.

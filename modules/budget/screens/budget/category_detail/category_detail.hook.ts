@@ -11,7 +11,7 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import { useCategoryStore } from '@/store/category.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 const HISTORY_MONTHS = 12;
 

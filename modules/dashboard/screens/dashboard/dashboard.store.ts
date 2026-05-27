@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 
-import type { AccountStats } from '@/database/account_stats';
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
+import type { AccountStats } from '@/modules/accounts/database/account_stats';
 
 interface MonthSpendStats {
   totalEgp: number;

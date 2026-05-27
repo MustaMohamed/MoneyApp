@@ -1,5 +1,11 @@
 # Step 4 — Transactions Module Migration Implementation Plan
 
+> **Historical execution record:** This plan was written for a one-time Claude
+> worktree. Commands may contain absolute local paths or destructive cleanup
+> steps. Do not replay commands verbatim. For future work, translate intent into
+> repo-relative commands from the current repository root and preserve
+> compatibility stubs unless a current plan explicitly removes them.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Move the entire transactions feature — data layer, store, screens, and shared components — from flat `database/`, `repositories/`, `store/`, and `screens/transactions/` into a self-contained `modules/transactions/` package, following the identical pattern established by `modules/accounts/` (Step 2) and `modules/categories/` (Step 3).

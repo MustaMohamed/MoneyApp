@@ -1,16 +1,16 @@
 import { renderHook, act } from '@testing-library/react-native';
 
 import { OnboardingStep } from '@/constants/enums';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useMoreAccounts } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
-import { useAccountStore } from '@/store/account.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn() })),
   useFocusEffect: jest.fn(),
 }));
-jest.mock('@/store/account.store', () => ({
+jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: Object.assign(jest.fn(), {
     getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
   }),
