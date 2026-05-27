@@ -7,9 +7,8 @@ import { loadOnboardingState } from '@/store/onboarding.store';
 import { useReadyStore } from '@/store/ready.store';
 
 export function useLayoutInit() {
-  const setReady = useReadyStore.use.setReady();
-
   useEffect(() => {
+    const setReady = useReadyStore.getState().setReady;
     let onboardingComplete = false;
 
     void (async () => {
@@ -46,5 +45,5 @@ export function useLayoutInit() {
         });
       }
     })();
-  }, [setReady]);
+  }, []);
 }
