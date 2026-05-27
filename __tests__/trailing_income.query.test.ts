@@ -1,8 +1,8 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { getTrailingIncomeSuggestion } from '@/database/budget_stats';
 import { MIGRATIONS } from '@/database/migrations';
+import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;

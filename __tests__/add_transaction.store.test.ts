@@ -1,5 +1,5 @@
 import { TransactionType } from '@/constants/enums';
-import { useAddTransactionStore } from '@/screens/transactions/transaction_form/add_transaction.store';
+import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 
 beforeEach(() => useAddTransactionStore.getState().reset());
 

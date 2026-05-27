@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FAB } from '@/components/ui/fab';
 import { Colors, Size } from '@/constants/theme';
-import { useAddTransactionState } from '@/screens/transactions/transaction_form/add_transaction.state';
+import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 

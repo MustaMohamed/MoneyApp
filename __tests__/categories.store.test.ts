@@ -1,6 +1,6 @@
 import { CategoryType } from '@/constants/enums';
-import { useCategoriesScreenStore } from '@/screens/settings/categories/categories.store';
-import type { Category } from '@/store/category.store';
+import { useCategoriesScreenStore } from '@/modules/categories/screens/settings/categories/categories.store';
+import type { Category } from '@/modules/categories/store/category.store';
 
 const fakeCategory: Category = {
   id: 'cat-1',

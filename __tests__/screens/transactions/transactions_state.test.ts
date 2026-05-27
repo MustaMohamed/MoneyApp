@@ -1,4 +1,4 @@
-import { useTransactionsState } from '@/screens/transactions/transactions.state';
+import { useTransactionsState } from '@/modules/transactions/screens/transactions/transactions.state';
 
 beforeEach(() => {
   useTransactionsState.getState().reset();

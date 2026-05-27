@@ -3,7 +3,7 @@ import {
   EMPTY_FILTERS_V2,
   useFilterStore,
   type AdvancedFilters,
-} from '@/screens/transactions/filter/filter.store';
+} from '@/modules/transactions/screens/transactions/filter/filter.store';
 
 beforeEach(() => {
   useFilterStore.getState().resetDraft();

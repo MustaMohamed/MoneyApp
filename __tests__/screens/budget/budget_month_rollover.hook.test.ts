@@ -15,20 +15,20 @@ jest.mock('expo-router', () => ({
   },
 }));
 
-jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
-jest.mock('@/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
-jest.mock('@/database/budget_stats', () => ({
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
+jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
+jest.mock('@/modules/budget/database/budget_stats', () => ({
   getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
 
-const { useCategoryStore } = jest.requireMock('@/store/category.store');
-const { useBudgetStore } = jest.requireMock('@/store/budget.store');
-const { useBudgetState } = jest.requireMock('@/screens/budget/budget.state');
+const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
+const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
+const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
 
-import { useBudget } from '@/screens/budget/budget.hook';
-import { useCategoryDetail } from '@/screens/budget/category_detail/category_detail.hook';
+import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
+import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
 function setupStores() {
   (useCategoryStore as jest.Mock).mockImplementation((sel: any) =>
@@ -58,15 +58,16 @@ afterEach(() => {
 });
 
 describe('useBudget — month rollover', () => {
-  it('refreshes month when the screen regains focus after a month boundary', () => {
+  it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     const { result } = renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     // A month boundary passes while the screen stays mounted.
     jest.setSystemTime(new Date('2026-06-15T12:00:00'));
-    act(() => {
+    await act(async () => {
       capturedFocusCallback?.();
+      await Promise.resolve();
     });
 
     expect(result.current.state.month).toBe('2026-06');
@@ -74,14 +75,15 @@ describe('useBudget — month rollover', () => {
 });
 
 describe('useCategoryDetail — month rollover', () => {
-  it('refreshes month when the screen regains focus after a month boundary', () => {
+  it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     const { result } = renderHook(() => useCategoryDetail());
     expect(result.current.state.month).toBe('2026-05');
 
     jest.setSystemTime(new Date('2026-06-15T12:00:00'));
-    act(() => {
+    await act(async () => {
       capturedFocusCallback?.();
+      await Promise.resolve();
     });
 
     expect(result.current.state.month).toBe('2026-06');

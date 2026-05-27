@@ -1,14 +1,14 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useCategories } from '@/screens/settings/categories/categories.hook';
-import { useCategoryStore } from '@/store/category.store';
+import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
-jest.mock('@/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/screens/settings/categories/categories.state', () => ({
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/categories/screens/settings/categories/categories.state', () => ({
   useCategoriesScreenState: jest.fn((sel: any) =>
     sel({
       state: {
@@ -24,7 +24,7 @@ jest.mock('@/screens/settings/categories/categories.state', () => ({
     }),
   ),
 }));
-jest.mock('@/screens/settings/categories/categories.store', () => ({
+jest.mock('@/modules/categories/screens/settings/categories/categories.store', () => ({
   useCategoriesScreenStore: jest.fn((sel: any) =>
     sel({
       state: { editingCategory: null, categoryToDelete: null },

@@ -1,4 +1,4 @@
-import { useAdjustBalanceSheetState } from '@/screens/accounts/detail/components/adjust_balance_sheet.state';
+import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 
 beforeEach(() => useAdjustBalanceSheetState.getState().reset());
 

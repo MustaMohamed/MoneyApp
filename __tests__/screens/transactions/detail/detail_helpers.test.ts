@@ -1,5 +1,5 @@
 import { AccountType } from '@/constants/enums';
-import { getAccountTypeIcon } from '@/screens/transactions/detail/detail.helpers';
+import { getAccountTypeIcon } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 
 describe('getAccountTypeIcon', () => {
   // Locks the account-type → glyph mapping for the Detail screen's Account

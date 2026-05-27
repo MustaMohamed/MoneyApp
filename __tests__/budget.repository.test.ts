@@ -1,4 +1,4 @@
-import { currentYearMonth, lastMonths } from '@/repositories/budget.repository';
+import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 
 describe('currentYearMonth', () => {
   it('formats YYYY-MM with zero-padded month', () => {

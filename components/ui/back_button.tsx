@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { PressableFeedback } from 'heroui-native';
 /**
  * BackButton — canonical 36×36 boxy back-button matching the N2 (onboarding) style.
  *
@@ -9,7 +10,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
  */
 import React from 'react';
 
-import { Pressable } from '@/components/ui/pressable';
 import { Size } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
@@ -19,13 +19,13 @@ export interface BackButtonProps {
 
 export function BackButton({ onPress }: BackButtonProps) {
   return (
-    <Pressable
+    <PressableFeedback
       onPress={onPress}
       className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
       accessibilityRole="button"
       accessibilityLabel="Go back"
     >
       <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
-    </Pressable>
+    </PressableFeedback>
   );
 }

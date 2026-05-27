@@ -5,10 +5,10 @@ import {
   DurationType,
   Currency,
 } from '@/constants/enums';
-import type { Commitment } from '@/database/entities/commitment.entity';
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import type { ICommitmentRepository } from '@/repositories/commitment.repository';
-import { createCommitmentStore } from '@/store/commitment.store';
+import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type { ICommitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import { createCommitmentStore } from '@/modules/commitments/store/commitment.store';
 
 // ---------------------------------------------------------------------------
 // Mock computeDueDates so we can control its output
@@ -453,21 +453,22 @@ describe('commitmentStore — selector getters', () => {
 // ---------------------------------------------------------------------------
 
 describe('commitmentStore.updateCommitment', () => {
-  const updateInput: import('@/repositories/commitment.repository').UpdateCommitmentInput = {
-    name: 'Netflix Updated',
-    amount_type: AmountType.Fixed,
-    amount: 300,
-    currency: Currency.EGP,
-    category_id: 'cat-1',
-    recurrence_every: 1,
-    recurrence_period: RecurrencePeriod.Months,
-    start_date: '2026-01-01',
-    account_id: 'acc-1',
-    notes: null,
-    duration_type: DurationType.Forever,
-    end_date: null,
-    end_after_count: null,
-  };
+  const updateInput: import('@/modules/commitments/repositories/commitment.repository').UpdateCommitmentInput =
+    {
+      name: 'Netflix Updated',
+      amount_type: AmountType.Fixed,
+      amount: 300,
+      currency: Currency.EGP,
+      category_id: 'cat-1',
+      recurrence_every: 1,
+      recurrence_period: RecurrencePeriod.Months,
+      start_date: '2026-01-01',
+      account_id: 'acc-1',
+      notes: null,
+      duration_type: DurationType.Forever,
+      end_date: null,
+      end_after_count: null,
+    };
 
   it('calls repo.update with id and data', async () => {
     const repo = makeRepo();

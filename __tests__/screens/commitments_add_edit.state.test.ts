@@ -1,5 +1,5 @@
-import { useAddCommitmentState } from '@/screens/commitments/add_commitment/add_commitment.state';
-import { useEditCommitmentState } from '@/screens/commitments/edit_commitment/edit_commitment.state';
+import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
+import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 
 beforeEach(() => {
   useAddCommitmentState.getState().reset();

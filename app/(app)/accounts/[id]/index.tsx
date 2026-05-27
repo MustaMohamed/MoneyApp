@@ -1,1 +1,1 @@
-export { default } from '@/screens/accounts/detail';
+export { default } from '@/modules/accounts/screens/accounts/detail';

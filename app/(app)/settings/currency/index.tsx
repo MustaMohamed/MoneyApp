@@ -1,1 +1,1 @@
-export { default } from '@/screens/settings/currency';
+export { default } from '@/modules/currency/screens/currency';

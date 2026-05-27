@@ -1,0 +1,339 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { PressableFeedback, Text } from 'heroui-native';
+import { useEffect } from 'react';
+import { type Control, useController } from 'react-hook-form';
+import { type BlurEvent, FlatList, type FocusEvent, StyleSheet, View } from 'react-native';
+import { z } from 'zod/v4';
+import { useShallow } from 'zustand/react/shallow';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
+import { SegmentedTabs } from '@/components/ui/tabs';
+import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { AccountColors, Colors, Radius, Spacing } from '@/constants/theme';
+import {
+  useCategoryStore,
+  type Category,
+  type NewCategoryInput,
+  type UpdateCategoryInput,
+} from '@/modules/categories/store/category.store';
+import { toIconName } from '@/utils/icon_name_guard';
+import { ms } from '@/utils/responsive';
+import { useZodForm } from '@/utils/use_zod_form.hook';
+
+import { useAddEditCategorySheetState } from './add_edit_category_sheet.state';
+
+type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const CATEGORY_ICONS: IconName[] = [
+  'home',
+  'food-fork-drink',
+  'cart',
+  'silverware-fork-knife',
+  'bus',
+  'car',
+  'lightning-bolt',
+  'wifi',
+  'pill',
+  'cellphone',
+  'shopping',
+  'hanger',
+  'school',
+  'account-group',
+  'hand-heart',
+  'gift-outline',
+  'gift',
+  'receipt',
+  'bank-transfer',
+  'bank-transfer-out',
+  'bank',
+  'party-popper',
+  'briefcase',
+  'lightbulb',
+  'chart-line',
+  'arrow-down-circle',
+  'dots-horizontal',
+  'star',
+  'heart',
+  'music-note',
+  'dumbbell',
+  'airplane',
+];
+
+export function createCategorySchema(
+  categories: Category[],
+  activeTab: CategoryType,
+  editingCategory?: Category | null,
+) {
+  const editingId = editingCategory?.id;
+  const editingType = editingCategory?.type ?? activeTab;
+  return z.object({
+    name: z
+      .string()
+      .min(1, Strings.categoriesErrNameRequired)
+      .max(50, Strings.categoriesErrNameTooLong)
+      .refine(
+        (val) =>
+          !categories.some(
+            (c) =>
+              c.name.toLowerCase() === val.toLowerCase() &&
+              c.id !== editingId &&
+              c.type === editingType,
+          ),
+        Strings.categoriesErrNameDuplicate,
+      ),
+  });
+}
+
+interface AddEditCategorySheetProps {
+  isOpen: boolean;
+  editingCategory: Category | null;
+  activeTab: CategoryType;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: NewCategoryInput | UpdateCategoryInput) => Promise<void>;
+}
+
+export function AddEditCategorySheet({
+  isOpen,
+  editingCategory,
+  activeTab,
+  onOpenChange,
+  onSave,
+}: AddEditCategorySheetProps) {
+  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const isEditing = editingCategory !== null;
+
+  const {
+    state: sheetState,
+    setType,
+    setSelectedIcon,
+    setSelectedColor,
+    setIconError,
+    setIsLoading,
+    initialize,
+  } = useAddEditCategorySheetState(
+    useShallow((s) => ({
+      state: s.state,
+      setType: s.setType,
+      setSelectedIcon: s.setSelectedIcon,
+      setSelectedColor: s.setSelectedColor,
+      setIconError: s.setIconError,
+      setIsLoading: s.setIsLoading,
+      initialize: s.initialize,
+    })),
+  );
+
+  const schema = createCategorySchema(categoryState.categories, activeTab, editingCategory);
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useZodForm(schema, {
+    defaultValues: { name: '' },
+  });
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editingCategory) {
+        reset({ name: editingCategory.name });
+        initialize({
+          type: editingCategory.type,
+          icon: toIconName(editingCategory.icon, 'tag-outline'),
+          color: editingCategory.color,
+        });
+      } else {
+        reset({ name: '' });
+        initialize({
+          type: activeTab,
+          icon: null,
+          color: AccountColors[0],
+        });
+      }
+    }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
+
+  const handleSave = handleSubmit(async ({ name }) => {
+    if (!sheetState.selectedIcon) {
+      setIconError(Strings.categoriesErrIconRequired);
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await onSave({
+        name,
+        type: sheetState.type,
+        icon: sheetState.selectedIcon,
+        color: sheetState.selectedColor,
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  });
+
+  const footer = (
+    <Button
+      testID="add-edit-category-save-btn"
+      variant="primary"
+      label={Strings.categoriesSaveCta}
+      isLoading={sheetState.isLoading}
+      isDisabled={sheetState.isLoading}
+      onPress={() => void handleSave()}
+    />
+  );
+
+  const { onFocus: onInputFocus, onBlur: onInputBlur } = useBottomSheetAwareHandlers();
+
+  return (
+    <Sheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      title={isEditing ? Strings.categoriesEditSheetTitle : Strings.categoriesAddSheetTitle}
+      size="lg"
+      scrollable
+      footer={footer}
+    >
+      <BottomSheetScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+          {Strings.categoriesNameLabel.toUpperCase()}
+        </Text>
+        <NameField
+          control={control}
+          placeholder={Strings.categoriesNamePlaceholder}
+          error={errors.name?.message}
+          onFocus={onInputFocus}
+          onBlur={onInputBlur}
+        />
+
+        {!isEditing && (
+          <>
+            <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+              {Strings.categoriesTypeLabel}
+            </Text>
+            <SegmentedTabs<CategoryType>
+              segments={[
+                { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
+                { value: CategoryType.Income, label: Strings.categoriesTabIncome },
+              ]}
+              value={sheetState.type}
+              onValueChange={setType}
+              variant="solid-gold"
+              listClassName="w-full"
+              accessibilityLabel={Strings.categoriesTypeLabel}
+            />
+          </>
+        )}
+
+        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+          {Strings.categoriesIconLabel}
+        </Text>
+        {sheetState.iconError ? (
+          <Text testID="icon-error" className="font-inter-regular text-danger mt-1 text-xs">
+            {sheetState.iconError}
+          </Text>
+        ) : null}
+        <FlatList
+          data={CATEGORY_ICONS}
+          numColumns={8}
+          scrollEnabled={false}
+          keyExtractor={(item) => item}
+          renderItem={({ item }) => (
+            <PressableFeedback
+              onPress={() => {
+                setSelectedIcon(item);
+                setIconError('');
+              }}
+              style={[styles.iconCell, sheetState.selectedIcon === item && styles.iconCellActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sheetState.selectedIcon === item }}
+              accessibilityLabel={item}
+            >
+              <MaterialCommunityIcons
+                name={item}
+                size={20}
+                color={
+                  sheetState.selectedIcon === item ? Colors.shared.cairoGold : Colors.dark.text2
+                }
+              />
+            </PressableFeedback>
+          )}
+          style={styles.iconGrid}
+        />
+
+        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+          {Strings.categoriesColorLabel}
+        </Text>
+        <View style={styles.colorRow}>
+          {AccountColors.map((c) => (
+            <PressableFeedback
+              key={c}
+              onPress={() => setSelectedColor(c)}
+              style={[
+                styles.colorSwatch,
+                { backgroundColor: c },
+                sheetState.selectedColor === c && styles.colorSwatchActive,
+              ]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: sheetState.selectedColor === c }}
+              accessibilityLabel={c}
+            />
+          ))}
+        </View>
+      </BottomSheetScrollView>
+    </Sheet>
+  );
+}
+
+function NameField({
+  control,
+  placeholder,
+  error,
+  onFocus,
+  onBlur,
+}: {
+  control: Control<{ name: string }>;
+  placeholder: string;
+  error?: string;
+  onFocus?: (e: FocusEvent) => void;
+  onBlur?: (e: BlurEvent) => void;
+}) {
+  const { field } = useController({ control, name: 'name' });
+  return (
+    <Input
+      placeholder={placeholder}
+      value={field.value}
+      onChangeText={field.onChange}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      maxLength={50}
+      accessibilityLabel={placeholder}
+      isInvalid={!!error}
+      errorMessage={error}
+    />
+  );
+}
+
+const styles = StyleSheet.create({
+  scrollContent: { paddingHorizontal: Spacing.md, paddingBottom: SHEET_FOOTER_CLEARANCE },
+  iconGrid: { marginBottom: Spacing.xs },
+  iconCell: {
+    flex: 1,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: Radius.sm,
+    margin: ms(3),
+    backgroundColor: Colors.dark.surfaceEl,
+  },
+  iconCellActive: { borderWidth: 2, borderColor: Colors.shared.cairoGold },
+  colorRow: { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs, marginBottom: Spacing.sm },
+  colorSwatch: { width: ms(28), height: ms(28), borderRadius: ms(14) },
+  colorSwatchActive: { borderWidth: 2, borderColor: Colors.dark.text1 },
+});

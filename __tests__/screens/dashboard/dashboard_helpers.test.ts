@@ -4,7 +4,7 @@ import {
   computeLiquidityBreakdown,
   computeNetWorth,
   groupAccountsByType,
-} from '@/screens/dashboard/dashboard.helpers';
+} from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import type { Account } from '@/store/account.store';
 
 const makeAccount = (overrides: Partial<Account> = {}): Account => ({

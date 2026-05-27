@@ -1,5 +1,5 @@
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { useTxDetailStore } from '@/screens/transactions/detail/detail.store';
+import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
 
 beforeEach(() => {
   useTxDetailStore.getState().reset();

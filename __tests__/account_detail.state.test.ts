@@ -1,4 +1,4 @@
-import { createAccountDetailState } from '@/screens/accounts/detail/account_detail.state';
+import { createAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
 
 jest.mock('zustand', () => ({ create: jest.requireActual('zustand').create }));
 

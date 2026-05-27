@@ -1,4 +1,4 @@
-import { useIncomeSheetState } from '@/screens/budget/components/income_sheet.state';
+import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 
 beforeEach(() => useIncomeSheetState.getState().reset());
 

@@ -1,7 +1,7 @@
 import { BudgetGroup, CategoryType } from '@/constants/enums';
-import type { Budget } from '@/database/entities/budget.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { computeBuckets } from '@/screens/budget/budget_buckets.helpers';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { computeBuckets } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const MONTH = '2026-05';

@@ -1,1 +1,1 @@
-export { default } from '@/screens/budget';
+export { default } from '@/modules/budget/screens/budget';

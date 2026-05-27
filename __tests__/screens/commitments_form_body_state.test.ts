@@ -1,4 +1,4 @@
-import { useCommitmentFormBodyState } from '@/screens/commitments/components/commitment_form_body.state';
+import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
 
 beforeEach(() => {
   useCommitmentFormBodyState.getState().reset();

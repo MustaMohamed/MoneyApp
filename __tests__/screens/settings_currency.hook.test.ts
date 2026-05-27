@@ -1,14 +1,14 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useCurrencyScreen } from '@/screens/settings/currency/currency.hook';
-import { useCurrencyStore } from '@/store/currency.store';
+import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
-jest.mock('@/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/screens/settings/currency/currency.state', () => ({
+jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
+jest.mock('@/modules/currency/screens/currency/currency.state', () => ({
   useCurrencyScreenState: jest.fn((sel: any) =>
     sel({
       state: { isFetching: false, isSaving: false, fetchError: '' },
@@ -61,9 +61,22 @@ describe('useCurrencyScreen', () => {
     ).toBeUndefined();
   });
 
+  it('does not expose goBack (Expo Router stack handles back navigation)', () => {
+    const { result } = renderHook(() => useCurrencyScreen());
+    expect((result.current as unknown as Record<string, unknown>).goBack).toBeUndefined();
+  });
+
+  it('formattedDate is exposed from state (null lastFetched → never-fetched string)', () => {
+    const { result } = renderHook(() => useCurrencyScreen());
+    expect(typeof result.current.state.formattedDate).toBe('string');
+    expect(result.current.state.formattedDate.length).toBeGreaterThan(0);
+  });
+
   it('handleFetchRate sets fetchError on rejection', async () => {
     const setFetchErrorMock = jest.fn();
-    const { useCurrencyScreenState } = require('@/screens/settings/currency/currency.state');
+    const {
+      useCurrencyScreenState,
+    } = require('@/modules/currency/screens/currency/currency.state');
     (useCurrencyScreenState as jest.Mock).mockImplementation((sel: any) =>
       sel({
         state: { isFetching: false, isSaving: false, fetchError: '' },
@@ -87,7 +100,9 @@ describe('useCurrencyScreen', () => {
 
   it('handleFetchRate clears fetchError before fetching', async () => {
     const setFetchErrorMock = jest.fn();
-    const { useCurrencyScreenState } = require('@/screens/settings/currency/currency.state');
+    const {
+      useCurrencyScreenState,
+    } = require('@/modules/currency/screens/currency/currency.state');
     (useCurrencyScreenState as jest.Mock).mockImplementation((sel: any) =>
       sel({
         state: { isFetching: false, isSaving: false, fetchError: 'old error' },

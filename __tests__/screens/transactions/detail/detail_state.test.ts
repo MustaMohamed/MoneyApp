@@ -1,4 +1,4 @@
-import { useTxDetailState } from '@/screens/transactions/detail/detail.state';
+import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 
 beforeEach(() => {
   useTxDetailState.getState().reset();

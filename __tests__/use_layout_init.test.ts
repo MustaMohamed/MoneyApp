@@ -22,7 +22,7 @@ jest.mock('@/store/ready.store', () => ({
       sel({ state: { ready: false }, setReady: mockSetReady }),
   ),
 }));
-jest.mock('@/store/commitment.store', () => ({
+jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: {
     getState: () => ({
       generatePayments: mockGeneratePayments,

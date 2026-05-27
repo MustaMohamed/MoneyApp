@@ -1,1 +1,1 @@
-export { default } from '@/screens/settings/categories';
+export { default } from '@/modules/categories/screens/settings/categories';

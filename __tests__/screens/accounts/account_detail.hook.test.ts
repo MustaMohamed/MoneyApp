@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useAccountDetail } from '@/screens/accounts/detail/account_detail.hook';
-import { useAccountStore } from '@/store/account.store';
+import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
@@ -9,8 +9,8 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ back: jest.fn() }),
   useNavigation: () => ({ addListener: jest.fn(() => jest.fn()) }),
 }));
-jest.mock('@/store/account.store', () => ({ useAccountStore: jest.fn() }));
-jest.mock('@/screens/accounts/detail/account_detail.state', () => {
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
   const mockState = {
     state: {
       isEditing: false,
