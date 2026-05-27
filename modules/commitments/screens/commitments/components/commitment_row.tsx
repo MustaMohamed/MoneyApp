@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
+import React, { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 
 import { Box } from '@/components/ui/box';
@@ -24,15 +25,15 @@ interface CommitmentRowProps {
   payment: CommitmentPayment;
   commitment: Commitment | undefined;
   category: Category | undefined;
-  onPress: () => void;
-  onSkip: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onPress: (paymentId: string) => void;
+  onSkip: (paymentId: string) => void;
+  onEdit: (commitmentId: string | undefined) => void;
+  onDelete: (commitmentId: string | undefined) => void;
 }
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
-export function CommitmentRow({
+function CommitmentRowComponent({
   payment,
   commitment,
   category,
@@ -47,29 +48,36 @@ export function CommitmentRow({
   const formattedAmount = amount != null ? numberFmt.format(amount) : '—';
   const iconBg = category?.color ? `${category.color}2E` : CoreTokens.surfaceEl;
 
-  const actions: SwipeAction[] = [
-    {
-      key: 'skip',
-      label: Strings.swipeSkip,
-      icon: 'skip-next-outline',
-      variant: 'info',
-      onPress: onSkip,
-    },
-    {
-      key: 'edit',
-      label: Strings.swipeEdit,
-      icon: 'pencil-outline',
-      variant: 'neutral',
-      onPress: onEdit,
-    },
-    {
-      key: 'delete',
-      label: Strings.swipeDelete,
-      icon: 'trash-can-outline',
-      variant: 'destructive',
-      onPress: onDelete,
-    },
-  ];
+  const handlePress = useCallback(() => onPress(payment.id), [onPress, payment.id]);
+  const handleSkip = useCallback(() => onSkip(payment.id), [onSkip, payment.id]);
+  const handleEdit = useCallback(() => onEdit(commitment?.id), [commitment?.id, onEdit]);
+  const handleDelete = useCallback(() => onDelete(commitment?.id), [commitment?.id, onDelete]);
+  const actions: SwipeAction[] = useMemo(
+    () => [
+      {
+        key: 'skip',
+        label: Strings.swipeSkip,
+        icon: 'skip-next-outline',
+        variant: 'info',
+        onPress: handleSkip,
+      },
+      {
+        key: 'edit',
+        label: Strings.swipeEdit,
+        icon: 'pencil-outline',
+        variant: 'neutral',
+        onPress: handleEdit,
+      },
+      {
+        key: 'delete',
+        label: Strings.swipeDelete,
+        icon: 'trash-can-outline',
+        variant: 'destructive',
+        onPress: handleDelete,
+      },
+    ],
+    [handleDelete, handleEdit, handleSkip],
+  );
 
   return (
     <SwipeableRow
@@ -79,7 +87,7 @@ export function CommitmentRow({
       accessibilityLabel={`${commitment?.name ?? ''}, ${showTilde ? '~' : ''}${formattedAmount} ${payment.currency}, ${statusLabel}`}
     >
       <PressableFeedback
-        onPress={onPress}
+        onPress={handlePress}
         accessibilityRole="button"
         accessibilityLabel={`${commitment?.name ?? ''}, ${showTilde ? '~' : ''}${formattedAmount} ${payment.currency}, ${statusLabel}`}
         style={{ flexDirection: 'row', alignItems: 'center' }}
@@ -130,3 +138,6 @@ export function CommitmentRow({
     </SwipeableRow>
   );
 }
+
+export const CommitmentRow = React.memo(CommitmentRowComponent);
+CommitmentRow.displayName = 'CommitmentRow';

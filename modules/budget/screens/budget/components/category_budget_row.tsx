@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
@@ -16,33 +16,42 @@ import { ms } from '@/utils/responsive';
 
 export interface CategoryBudgetRowProps {
   row: CategoryBudgetRowVM;
-  onPress: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onPress: (categoryId: string) => void;
+  onEdit: (categoryId: string) => void;
+  onDelete: (payload: { id: string; name: string }) => void;
 }
 
-export function CategoryBudgetRow({ row, onPress, onEdit, onDelete }: CategoryBudgetRowProps) {
+function CategoryBudgetRowComponent({ row, onPress, onEdit, onDelete }: CategoryBudgetRowProps) {
   const bandColor = budgetBandColor(row.pct);
   const pctText = `${Math.round(row.pct * 100)}%`;
   const remaining = row.limit - row.spent;
   const { magnitude, label } = remainingLabel(remaining);
 
-  const actions: SwipeAction[] = [
-    {
-      key: 'edit',
-      label: Strings.swipeEdit,
-      icon: 'pencil-outline',
-      variant: 'neutral',
-      onPress: onEdit,
-    },
-    {
-      key: 'delete',
-      label: Strings.swipeDelete,
-      icon: 'trash-can-outline',
-      variant: 'destructive',
-      onPress: onDelete,
-    },
-  ];
+  const handlePress = useCallback(() => onPress(row.categoryId), [onPress, row.categoryId]);
+  const handleEdit = useCallback(() => onEdit(row.categoryId), [onEdit, row.categoryId]);
+  const handleDelete = useCallback(
+    () => onDelete({ id: row.categoryId, name: row.name }),
+    [onDelete, row.categoryId, row.name],
+  );
+  const actions: SwipeAction[] = useMemo(
+    () => [
+      {
+        key: 'edit',
+        label: Strings.swipeEdit,
+        icon: 'pencil-outline',
+        variant: 'neutral',
+        onPress: handleEdit,
+      },
+      {
+        key: 'delete',
+        label: Strings.swipeDelete,
+        icon: 'trash-can-outline',
+        variant: 'destructive',
+        onPress: handleDelete,
+      },
+    ],
+    [handleDelete, handleEdit],
+  );
 
   return (
     <SwipeableRow
@@ -51,7 +60,7 @@ export function CategoryBudgetRow({ row, onPress, onEdit, onDelete }: CategoryBu
       accessibilityLabel={`${row.name} budget, ${pctText}`}
     >
       <PressableFeedback
-        onPress={onPress}
+        onPress={handlePress}
         style={styles.row}
         accessibilityRole="button"
         accessibilityLabel={`${row.name} budget`}
@@ -87,6 +96,9 @@ export function CategoryBudgetRow({ row, onPress, onEdit, onDelete }: CategoryBu
     </SwipeableRow>
   );
 }
+
+export const CategoryBudgetRow = React.memo(CategoryBudgetRowComponent);
+CategoryBudgetRow.displayName = 'CategoryBudgetRow';
 
 const styles = StyleSheet.create({
   row: {

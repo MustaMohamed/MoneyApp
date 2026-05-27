@@ -1,7 +1,7 @@
 // modules/transactions/screens/transactions/components/transaction_row.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 
@@ -26,9 +26,9 @@ interface Props {
   account?: Account;
   toAccount?: Account;
   category?: Category;
-  onPress: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onPress: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
 }
 
 const FALLBACK_ICON: IconName = 'shape-outline';
@@ -97,7 +97,7 @@ function pickIcon(tx: Transaction, category?: Category): IconName {
   return toIconName(category?.icon, FALLBACK_ICON);
 }
 
-export function TransactionRow({
+function TransactionRowComponent({
   tx,
   account,
   toAccount,
@@ -121,22 +121,28 @@ export function TransactionRow({
   const egpText = `${equivPrefix}${numberFmt.format(tx.egp_amount)} EGP`;
   const rateText = tx.exchange_rate != null ? `@ ${tx.exchange_rate}` : '';
 
-  const actions: SwipeAction[] = [
-    {
-      key: 'edit',
-      label: Strings.swipeEdit,
-      icon: 'pencil-outline',
-      variant: 'neutral',
-      onPress: onEdit,
-    },
-    {
-      key: 'delete',
-      label: Strings.swipeDelete,
-      icon: 'trash-can-outline',
-      variant: 'destructive',
-      onPress: onDelete,
-    },
-  ];
+  const handlePress = useCallback(() => onPress(tx.id), [onPress, tx.id]);
+  const handleEdit = useCallback(() => onEdit(tx.id), [onEdit, tx.id]);
+  const handleDelete = useCallback(() => onDelete(tx.id), [onDelete, tx.id]);
+  const actions: SwipeAction[] = useMemo(
+    () => [
+      {
+        key: 'edit',
+        label: Strings.swipeEdit,
+        icon: 'pencil-outline',
+        variant: 'neutral',
+        onPress: handleEdit,
+      },
+      {
+        key: 'delete',
+        label: Strings.swipeDelete,
+        icon: 'trash-can-outline',
+        variant: 'destructive',
+        onPress: handleDelete,
+      },
+    ],
+    [handleDelete, handleEdit],
+  );
 
   return (
     <SwipeableRow rowId={tx.id} actions={actions} accessibilityLabel={`${title}, ${nativeText}`}>
@@ -146,7 +152,7 @@ export function TransactionRow({
         onPressIn/onPressOut are forwarded by PressableFeedback to our callbacks.
       */}
       <PressableFeedback
-        onPress={onPress}
+        onPress={handlePress}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         animation={false}
@@ -203,3 +209,6 @@ export function TransactionRow({
     </SwipeableRow>
   );
 }
+
+export const TransactionRow = React.memo(TransactionRowComponent);
+TransactionRow.displayName = 'TransactionRow';

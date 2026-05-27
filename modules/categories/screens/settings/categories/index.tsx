@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list';
 import { Spinner } from 'heroui-native';
+import { useCallback, useMemo } from 'react';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -50,7 +51,30 @@ export default function CategoriesScreen() {
   } = useCategories();
 
   const isEmpty = state.defaultCategories.length === 0 && state.customCategories.length === 0;
-  const listData = buildListEntries(state.defaultCategories, state.customCategories);
+  const listData = useMemo(
+    () => buildListEntries(state.defaultCategories, state.customCategories),
+    [state.customCategories, state.defaultCategories],
+  );
+
+  const getItemType = useCallback((item: ListEntry) => item.type, []);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: ListEntry; index: number }) =>
+      item.type === 'header' ? (
+        <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider">
+          {item.label}
+        </Text>
+      ) : (
+        <CategoryRow
+          category={item.category}
+          onEdit={openEditSheet}
+          onDelete={handleDeletePress}
+          isDeleteDisabled={state.isDeleting}
+          isLast={index === listData.length - 1 || listData[index + 1]?.type === 'header'}
+        />
+      ),
+    [handleDeletePress, listData, openEditSheet, state.isDeleting],
+  );
 
   return (
     <Screen edges={['bottom']}>
@@ -86,24 +110,8 @@ export default function CategoriesScreen() {
               paddingTop: Spacing.md,
               paddingBottom: Spacing.xxl,
             }}
-            getItemType={(item) => item.type}
-            renderItem={({ item, index }) =>
-              item.type === 'header' ? (
-                <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider">
-                  {item.label}
-                </Text>
-              ) : (
-                <CategoryRow
-                  category={item.category}
-                  onEdit={() => openEditSheet(item.category)}
-                  onDelete={() => {
-                    void handleDeletePress(item.category);
-                  }}
-                  isDeleteDisabled={state.isDeleting}
-                  isLast={index === listData.length - 1 || listData[index + 1]?.type === 'header'}
-                />
-              )
-            }
+            getItemType={getItemType}
+            renderItem={renderItem}
           />
         )}
       </View>

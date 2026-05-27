@@ -18,7 +18,11 @@ export type CommitmentsSection = {
 
 export function useCommitments() {
   const {
-    state: commitmentState,
+    commitments,
+    payments,
+    selectedMonth,
+    commitmentsLoaded,
+    paymentsLoaded,
     setSelectedMonth,
     loadPaymentsForMonth,
     loadCommitments,
@@ -27,7 +31,11 @@ export function useCommitments() {
     deactivateCommitment,
   } = useCommitmentStore(
     useShallow((s) => ({
-      state: s.state,
+      commitments: s.state.commitments,
+      payments: s.state.payments,
+      selectedMonth: s.state.selectedMonth,
+      commitmentsLoaded: s.state.commitmentsLoaded,
+      paymentsLoaded: s.state.paymentsLoaded,
       setSelectedMonth: s.setSelectedMonth,
       loadPaymentsForMonth: s.loadPaymentsForMonth,
       loadCommitments: s.loadCommitments,
@@ -37,7 +45,7 @@ export function useCommitments() {
     })),
   );
 
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
   const {
     state: screenState,
     setRefreshing,
@@ -50,22 +58,16 @@ export function useCommitments() {
     })),
   );
 
-  const categoriesById = useMemo(
-    () => new Map(categoryState.categories.map((c) => [c.id, c])),
-    [categoryState.categories],
-  );
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const commitmentsById = useMemo(
-    () => new Map(commitmentState.commitments.map((c: Commitment) => [c.id, c])),
-    [commitmentState.commitments],
+    () => new Map(commitments.map((c: Commitment) => [c.id, c])),
+    [commitments],
   );
 
   const sections: CommitmentsSection[] = useMemo(() => {
     const filter = screenState.statusFilter;
-    const allPayments =
-      filter === 'all'
-        ? commitmentState.payments
-        : commitmentState.payments.filter((p) => p.status === filter);
+    const allPayments = filter === 'all' ? payments : payments.filter((p) => p.status === filter);
     const result: CommitmentsSection[] = [];
     const overdue = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
     const dueToday = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Due);
@@ -78,7 +80,7 @@ export function useCommitments() {
     if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
     if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
     return result;
-  }, [commitmentState.payments, screenState.statusFilter]);
+  }, [payments, screenState.statusFilter]);
 
   const counts = useMemo(() => {
     let paid = 0;
@@ -86,7 +88,7 @@ export function useCommitments() {
     let due = 0;
     let upcoming = 0;
     let skipped = 0;
-    for (const p of commitmentState.payments) {
+    for (const p of payments) {
       switch (p.status) {
         case CommitmentPaymentStatus.Paid:
           paid++;
@@ -113,14 +115,14 @@ export function useCommitments() {
       skipped,
       total: paid + overdue + due + upcoming, // excludes skipped
     };
-  }, [commitmentState.payments]);
-  const isEmpty = useMemo(() => commitmentState.payments.length === 0, [commitmentState.payments]);
+  }, [payments]);
+  const isEmpty = useMemo(() => payments.length === 0, [payments]);
 
   // Group totals by currency. For paid: actual paid amount; for variable+unpaid with no
   // estimate: skipped (excluded). Skipped payments excluded entirely.
   const totalsByCurrency = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const p of commitmentState.payments) {
+    for (const p of payments) {
       if (p.status === CommitmentPaymentStatus.Skipped) continue;
       const isPaid = p.status === CommitmentPaymentStatus.Paid;
       const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
@@ -128,14 +130,14 @@ export function useCommitments() {
       totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
     }
     return totals;
-  }, [commitmentState.payments]);
+  }, [payments]);
 
-  const selectedMonthRef = useRef(commitmentState.selectedMonth);
-  selectedMonthRef.current = commitmentState.selectedMonth;
+  const selectedMonthRef = useRef(selectedMonth);
+  selectedMonthRef.current = selectedMonth;
 
   const navigateMonth = useCallback(
     (direction: 'prev' | 'next') => {
-      const [year, month] = commitmentState.selectedMonth.split('-').map(Number);
+      const [year, month] = selectedMonth.split('-').map(Number);
       let newYear = year;
       let newMonth = month + (direction === 'next' ? 1 : -1);
       if (newMonth > 12) {
@@ -149,7 +151,7 @@ export function useCommitments() {
       const newYearMonth = `${newYear}-${String(newMonth).padStart(2, '0')}`;
       void setSelectedMonth(newYearMonth);
     },
-    [commitmentState.selectedMonth, setSelectedMonth],
+    [selectedMonth, setSelectedMonth],
   );
 
   useFocusEffect(
@@ -164,17 +166,11 @@ export function useCommitments() {
     try {
       await loadCommitments();
       await generatePayments();
-      await loadPaymentsForMonth(commitmentState.selectedMonth);
+      await loadPaymentsForMonth(selectedMonth);
     } finally {
       setRefreshing(false);
     }
-  }, [
-    setRefreshing,
-    loadCommitments,
-    generatePayments,
-    loadPaymentsForMonth,
-    commitmentState.selectedMonth,
-  ]);
+  }, [setRefreshing, loadCommitments, generatePayments, loadPaymentsForMonth, selectedMonth]);
 
   const goToDetail = useCallback((paymentId: string) => {
     router.push(`/commitments/${paymentId}` as Parameters<typeof router.push>[0]);
@@ -195,17 +191,17 @@ export function useCommitments() {
   return {
     state: {
       sections,
-      selectedMonth: commitmentState.selectedMonth,
+      selectedMonth,
       counts,
       totalsByCurrency,
       refreshing: screenState.refreshing,
       isEmpty,
-      commitmentsLoaded: commitmentState.commitmentsLoaded,
-      paymentsLoaded: commitmentState.paymentsLoaded,
+      commitmentsLoaded,
+      paymentsLoaded,
       // hasCommitments is month-independent (all commitments, any month). isEmpty is
       // per-selected-month. The list shows the full welcome empty state only when there
       // are no commitments at all; an empty *month* keeps the nav/filters mounted.
-      hasCommitments: commitmentState.commitments.length > 0,
+      hasCommitments: commitments.length > 0,
       statusFilter: screenState.statusFilter,
       categoriesById,
       commitmentsById,

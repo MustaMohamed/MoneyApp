@@ -39,11 +39,13 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { state: accountState, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
+  const { accounts, loadAccounts } = useAccountStore(
+    useShallow((s) => ({ accounts: s.state.accounts, loadAccounts: s.loadAccounts })),
   );
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
+  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
+  const { rate, rateUpdatedAt } = useCurrencyStore(
+    useShallow((s) => ({ rate: s.state.rate, rateUpdatedAt: s.state.rate_updated_at })),
+  );
   const { updateTransaction } = useTransactionStore(
     useShallow((s) => ({ updateTransaction: s.updateTransaction })),
   );
@@ -80,7 +82,7 @@ export function useEditTransaction(
   const form = useZodForm(schema, {
     mode: 'onSubmit',
     reValidateMode: 'onChange',
-    defaultValues: buildDefaultsFromTx(initialTx, currencyState.rate),
+    defaultValues: buildDefaultsFromTx(initialTx, rate),
   });
 
   const categoryId = form.watch('categoryId');
@@ -89,31 +91,31 @@ export function useEditTransaction(
   const exchangeRate = form.watch('exchangeRate');
 
   const selectedAccount = useMemo(
-    () => accountState.accounts.find((a) => a.id === initialTx.account_id) ?? null,
-    [accountState.accounts, initialTx.account_id],
+    () => accounts.find((a) => a.id === initialTx.account_id) ?? null,
+    [accounts, initialTx.account_id],
   );
   const selectedToAccount = useMemo(
     () =>
       initialTx.to_account_id
-        ? (accountState.accounts.find((a) => a.id === initialTx.to_account_id) ?? null)
+        ? (accounts.find((a) => a.id === initialTx.to_account_id) ?? null)
         : null,
-    [accountState.accounts, initialTx.to_account_id],
+    [accounts, initialTx.to_account_id],
   );
   const isUSD = selectedAccount?.currency === Currency.USD;
   const isToUSD = selectedToAccount?.currency === Currency.USD;
   const requiresRate = isUSD || (isTransferOrCC && isToUSD);
 
   const selectedCategory = useMemo(
-    () => categoryState.categories.find((c) => c.id === categoryId) ?? null,
-    [categoryState.categories, categoryId],
+    () => categories.find((c) => c.id === categoryId) ?? null,
+    [categories, categoryId],
   );
   const visibleCategories = useMemo(
     () =>
-      categoryState.categories.filter(
+      categories.filter(
         (c) =>
           c.type === (type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
       ),
-    [categoryState.categories, type],
+    [categories, type],
   );
 
   const errors = {
@@ -130,7 +132,7 @@ export function useEditTransaction(
 
   useEffect(() => {
     if (!uiState.visible) {
-      form.reset(buildDefaultsFromTx(initialTx, currencyState.rate));
+      form.reset(buildDefaultsFromTx(initialTx, rate));
       setRateOverride(initialTx.exchange_rate !== null);
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
@@ -189,7 +191,7 @@ export function useEditTransaction(
   function toggleRateOverride() {
     const next = !uiState.rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', String(currencyState.rate));
+    if (!next) form.setValue('exchangeRate', String(rate));
   }
 
   function selectCategory(category: Category) {
@@ -215,7 +217,7 @@ export function useEditTransaction(
       saving: uiState.saving,
       visibleCategories,
       showCategoryPicker: uiState.showCategoryPicker,
-      rateUpdatedAt: currencyState.rate_updated_at,
+      rateUpdatedAt,
     },
     setAmountStr,
     handleNumpad,

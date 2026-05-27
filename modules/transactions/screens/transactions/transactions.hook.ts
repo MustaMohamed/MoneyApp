@@ -16,7 +16,7 @@ import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { useFilterStore } from './filter/filter.store';
-import { currentYearMonth, previousPeriod, resolvePeriod } from './transactions.helpers';
+import { previousPeriod, resolvePeriod } from './transactions.helpers';
 import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
@@ -41,21 +41,29 @@ export function useTransactions() {
     })),
   );
   const {
-    state: txState,
+    transactions,
+    hasMore,
+    loading,
+    hasLoaded,
+    mutationVersion,
     setQuery,
     loadMore,
     refresh,
   } = useTransactionStore(
     useShallow((s) => ({
-      state: s.state,
+      transactions: s.state.transactions,
+      hasMore: s.state.hasMore,
+      loading: s.state.loading,
+      hasLoaded: s.state.hasLoaded,
+      mutationVersion: s.state.mutationVersion,
       setQuery: s.setQuery,
       loadMore: s.loadMore,
       refresh: s.refresh,
     })),
   );
 
-  const { state: accountState } = useAccountStore(useShallow((s) => ({ state: s.state })));
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
+  const { accounts } = useAccountStore(useShallow((s) => ({ accounts: s.state.accounts })));
+  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
 
   const { open: openFilter } = useFilterState(useShallow((s) => ({ open: s.open })));
   const { setDraft } = useFilterStore(useShallow((s) => ({ setDraft: s.setDraft })));
@@ -71,35 +79,40 @@ export function useTransactions() {
   } | null>(null);
   const [customRange, setCustomRange] = useState<{ from: string; to: string } | null>(null);
 
-  useEffect(() => {
+  const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
     const periodRange = resolvePeriod(txScreenState.period);
-    setQuery({
+    return {
       search: trimmed || undefined,
       type: txScreenState.activeFilter === 'all' ? undefined : txScreenState.activeFilter,
       dateFrom: periodRange.from,
       dateTo: periodRange.to,
       ...toQueryFilters(txScreenState.appliedFilters),
-    }).catch(() => {});
+    };
   }, [
     debouncedSearch,
     txScreenState.activeFilter,
     txScreenState.appliedFilters,
     txScreenState.period,
-    setQuery,
   ]);
+
+  useEffect(() => {
+    setQuery(transactionQuery).catch(() => {});
+  }, [setQuery, transactionQuery]);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const periodRange = resolvePeriod(txScreenState.period);
-      if (!periodRange.from || !periodRange.to) {
+      if (!transactionQuery.dateFrom || !transactionQuery.dateTo) {
         setTotals(null);
         return;
       }
       try {
         const db = await getDb();
-        const current = await getPeriodTotals(db, { from: periodRange.from, to: periodRange.to });
+        const current = await getPeriodTotals(db, {
+          from: transactionQuery.dateFrom,
+          to: transactionQuery.dateTo,
+        });
         const prev = previousPeriod(txScreenState.period);
         const previous = prev
           ? await (async () => {
@@ -117,37 +130,23 @@ export function useTransactions() {
     return () => {
       cancelled = true;
     };
-  }, [txScreenState.period, txState.transactions]);
+  }, [mutationVersion, transactionQuery, txScreenState.period]);
 
   useFocusEffect(
     useCallback(() => {
       return () => {
-        const fresh = currentYearMonth();
-        useTransactionsScreenStore.getState().setPeriod({ type: 'month', yearMonth: fresh });
         useTransactionsScreenStore.getState().reset();
         useTransactionsState.getState().reset();
         useFilterState.getState().reset();
         useFilterStore.getState().resetDraft();
-        useTransactionStore
-          .getState()
-          .setQuery({})
-          .catch(() => {});
+        useTransactionStore.getState().reset();
       };
     }, []),
   );
 
-  const accountsById = useMemo(
-    () => new Map(accountState.accounts.map((a) => [a.id, a])),
-    [accountState.accounts],
-  );
-  const categoriesById = useMemo(
-    () => new Map(categoryState.categories.map((c) => [c.id, c])),
-    [categoryState.categories],
-  );
-  const sections = useMemo(
-    () => groupTransactionsByDate(txState.transactions),
-    [txState.transactions],
-  );
+  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
   const activeFilterCount = useMemo(
     () => countActiveFilters(txScreenState.appliedFilters),
     [txScreenState.appliedFilters],
@@ -155,24 +154,24 @@ export function useTransactions() {
   const hasAdvancedFilters = activeFilterCount > 0;
 
   const emptyVariant: EmptyVariant =
-    txState.loading || !txState.hasLoaded
+    loading || !hasLoaded
       ? 'none'
-      : txState.transactions.length > 0
+      : transactions.length > 0
         ? 'none'
         : debouncedSearch.trim() || txScreenState.activeFilter !== 'all' || hasAdvancedFilters
           ? 'noResults'
           : 'noData';
 
-  function handleOpenFilter() {
+  const handleOpenFilter = useCallback(() => {
     setDraft(txScreenState.appliedFilters);
     openFilter();
-  }
+  }, [openFilter, setDraft, txScreenState.appliedFilters]);
 
-  function resetFilters() {
+  const resetFilters = useCallback(() => {
     useTransactionsScreenStore.getState().reset();
-  }
+  }, []);
 
-  async function onRefresh() {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
       await refresh();
@@ -181,7 +180,7 @@ export function useTransactions() {
     } finally {
       setRefreshing(false);
     }
-  }
+  }, [refresh, setRefreshing]);
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(txScreenState.period);
@@ -189,12 +188,33 @@ export function useTransactions() {
     return Strings.carouselMonthShort(prev.yearMonth);
   }, [txScreenState.period]);
 
+  const goToDetail = useCallback(
+    (id: string) => router.push(`/transactions/detail/${id}`),
+    [router],
+  );
+
+  const goToEdit = useCallback(
+    (id: string) => {
+      // Find the full tx object from the already-loaded sections data.
+      // Edit is done via the shared EditTransactionSheet (same sheet used by detail screen),
+      // so we open it imperatively from the list without any navigation.
+      const tx = transactions.find((t) => t.id === id);
+      if (!tx) {
+        console.warn('[goToEdit] tx not in loaded window:', id);
+        return;
+      }
+      useEditTransactionStore.getState().loadFromTx(tx);
+      useEditTransactionState.getState().open(tx);
+    },
+    [transactions],
+  );
+
   return {
     state: {
       sections,
-      hasMore: txState.hasMore,
-      loading: txState.loading,
-      hasLoaded: txState.hasLoaded,
+      hasMore,
+      loading,
+      hasLoaded,
       refreshing,
       emptyVariant,
       searchQuery: txScreenState.searchQuery,
@@ -216,18 +236,7 @@ export function useTransactions() {
     onRefresh,
     openFilter: handleOpenFilter,
     resetFilters,
-    goToDetail: (id: string) => router.push(`/transactions/detail/${id}`),
-    goToEdit: (id: string) => {
-      // Find the full tx object from the already-loaded sections data.
-      // Edit is done via the shared EditTransactionSheet (same sheet used by detail screen),
-      // so we open it imperatively from the list without any navigation.
-      const tx = txState.transactions.find((t) => t.id === id);
-      if (!tx) {
-        console.warn('[goToEdit] tx not in loaded window:', id);
-        return;
-      }
-      useEditTransactionStore.getState().loadFromTx(tx);
-      useEditTransactionState.getState().open(tx);
-    },
+    goToDetail,
+    goToEdit,
   };
 }

@@ -7,7 +7,6 @@ import { getDb } from '@/database/client';
 import { getAccountsStats } from '@/modules/accounts/database/account_stats';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
-import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { getMonthExpenseStats } from '@/modules/transactions/database/transactions';
 import { toLocalDateString } from '@/utils/format_date';
@@ -28,11 +27,19 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const { state: accountState, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
+  const { accounts, accountsLoaded, loadAccounts } = useAccountStore(
+    useShallow((s) => ({
+      accounts: s.state.accounts,
+      accountsLoaded: s.state.hasLoaded,
+      loadAccounts: s.loadAccounts,
+    })),
   );
-  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
-  const { state: commitmentState } = useCommitmentStore(useShallow((s) => ({ state: s.state })));
+  const { rate, isManualOverride } = useCurrencyStore(
+    useShallow((s) => ({
+      rate: s.state.rate,
+      isManualOverride: s.state.isManualOverride,
+    })),
+  );
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
   const {
     state: dashUiState,
@@ -90,10 +97,6 @@ export function useDashboard() {
     }
   }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
 
-  useEffect(() => {
-    void loadCurrentMonthCommitmentPayments();
-  }, [loadCurrentMonthCommitmentPayments, commitmentState.commitments, commitmentState.payments]);
-
   useFocusEffect(
     useCallback(() => {
       void loadCurrentMonthCommitmentPayments();
@@ -104,7 +107,7 @@ export function useDashboard() {
 
   useEffect(() => {
     void loadMonthSpend();
-  }, [loadMonthSpend, accountState.accounts]);
+  }, [loadMonthSpend, accounts]);
 
   const loadStats = useCallback(
     async (ids: string[]) => {
@@ -124,34 +127,22 @@ export function useDashboard() {
   );
 
   useEffect(() => {
-    void loadStats(accountState.accounts.map((a) => a.id));
-  }, [accountState.accounts, loadStats]);
+    void loadStats(accounts.map((a) => a.id));
+  }, [accounts, loadStats]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await loadAccounts();
+      await Promise.all([loadAccounts(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadAccounts, setRefreshing]);
+  }, [loadAccounts, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
 
-  const netWorth = useMemo(
-    () => computeNetWorth(accountState.accounts, currencyState.rate),
-    [accountState.accounts, currencyState.rate],
-  );
-  const liquidity = useMemo(
-    () => computeLiquidityBreakdown(accountState.accounts, currencyState.rate),
-    [accountState.accounts, currencyState.rate],
-  );
-  const liabilities = useMemo(
-    () => computeLiabilitiesBreakdown(accountState.accounts, currencyState.rate),
-    [accountState.accounts, currencyState.rate],
-  );
-  const groupedAccounts = useMemo(
-    () => groupAccountsByType(accountState.accounts),
-    [accountState.accounts],
-  );
+  const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
+  const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
+  const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
+  const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
 
   const spendDeltaPct = useMemo(() => {
     const prev = dashDataState.previousMonthSpend.totalEgp;
@@ -163,13 +154,13 @@ export function useDashboard() {
   const accountCounts = useMemo(() => {
     let assets = 0;
     let liabilitiesCount = 0;
-    for (const a of accountState.accounts) {
+    for (const a of accounts) {
       if (a.is_archived) continue;
       if (a.type === AccountType.CreditCard) liabilitiesCount++;
       else assets++;
     }
     return { assets, liabilities: liabilitiesCount };
-  }, [accountState.accounts]);
+  }, [accounts]);
 
   const commitmentCounts = useMemo(() => {
     let paid = 0;
@@ -211,17 +202,17 @@ export function useDashboard() {
     return totals;
   }, [dashDataState.currentMonthCommitmentPayments]);
 
-  const goToAccount = (id: string) => router.push(`/accounts/${id}`);
-  const goToAddAccount = () => router.push('/accounts/add_account');
-  const goToSettings = () => router.push('/settings');
+  const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
+  const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
+  const goToSettings = useCallback(() => router.push('/settings'), [router]);
   const goToCommitments = useCallback(() => router.push('/(app)/(tabs)/commitments'), [router]);
 
   return {
     state: {
-      accounts: accountState.accounts,
-      accountsLoaded: accountState.hasLoaded,
-      rate: currencyState.rate,
-      isManualOverride: currencyState.isManualOverride,
+      accounts,
+      accountsLoaded,
+      rate,
+      isManualOverride,
       netWorth,
       liquidity,
       liabilities,

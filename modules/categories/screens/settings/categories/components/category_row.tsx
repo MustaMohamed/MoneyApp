@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
+import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
@@ -13,14 +14,14 @@ import { ms } from '@/utils/responsive';
 
 interface CategoryRowProps {
   category: Category;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit: (category: Category) => void;
+  onDelete: (category: Category) => void | Promise<void>;
   isDeleteDisabled?: boolean;
   /** When true, the bottom border divider is hidden. Use for the last row in each section. */
   isLast?: boolean;
 }
 
-export function CategoryRow({
+function CategoryRowComponent({
   category,
   onEdit,
   onDelete,
@@ -28,6 +29,8 @@ export function CategoryRow({
   isLast = false,
 }: CategoryRowProps) {
   const isProtected = category.is_default === 1;
+  const handleEdit = useCallback(() => onEdit(category), [category, onEdit]);
+  const handleDelete = useCallback(() => void onDelete(category), [category, onDelete]);
 
   return (
     <View style={[styles.row, isLast && styles.rowLast]}>
@@ -52,7 +55,7 @@ export function CategoryRow({
         ) : (
           <View style={styles.actions}>
             <PressableFeedback
-              onPress={onEdit}
+              onPress={handleEdit}
               hitSlop={8}
               style={styles.actionBtn}
               accessibilityRole="button"
@@ -65,7 +68,7 @@ export function CategoryRow({
               />
             </PressableFeedback>
             <PressableFeedback
-              onPress={onDelete}
+              onPress={handleDelete}
               hitSlop={8}
               style={styles.actionBtn}
               isDisabled={isDeleteDisabled}
@@ -84,6 +87,9 @@ export function CategoryRow({
     </View>
   );
 }
+
+export const CategoryRow = React.memo(CategoryRowComponent);
+CategoryRow.displayName = 'CategoryRow';
 
 const styles = StyleSheet.create({
   row: {

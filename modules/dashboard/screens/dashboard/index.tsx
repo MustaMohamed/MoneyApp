@@ -3,7 +3,7 @@ import { PressableFeedback, Spinner, Tabs } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
@@ -145,11 +145,7 @@ export default function DashboardScreen() {
                 />
               }
             >
-              <Animated.View
-                key={segment}
-                entering={FadeIn.duration(200)}
-                exiting={FadeOut.duration(150)}
-              >
+              <View>
                 {segment === 'overview' ? (
                   <>
                     <Animated.View style={heroStyle}>
@@ -213,7 +209,7 @@ export default function DashboardScreen() {
                     <View style={{ height: Spacing.xxl }} />
                   </>
                 )}
-              </Animated.View>
+              </View>
             </ScreenScroll>
           </GestureDetector>
         </>

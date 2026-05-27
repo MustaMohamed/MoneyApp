@@ -135,11 +135,13 @@ function nowTimeISO(): string {
 }
 
 export function useAddTransaction(onClose: () => void) {
-  const { state: accountState, loadAccounts } = useAccountStore(
-    useShallow((s) => ({ state: s.state, loadAccounts: s.loadAccounts })),
+  const { accounts, loadAccounts } = useAccountStore(
+    useShallow((s) => ({ accounts: s.state.accounts, loadAccounts: s.loadAccounts })),
   );
-  const { state: categoryState } = useCategoryStore(useShallow((s) => ({ state: s.state })));
-  const { state: currencyState } = useCurrencyStore(useShallow((s) => ({ state: s.state })));
+  const { categories } = useCategoryStore(useShallow((s) => ({ categories: s.state.categories })));
+  const { rate, rateUpdatedAt } = useCurrencyStore(
+    useShallow((s) => ({ rate: s.state.rate, rateUpdatedAt: s.state.rate_updated_at })),
+  );
   const { addTransaction } = useTransactionStore(
     useShallow((s) => ({ addTransaction: s.addTransaction })),
   );
@@ -182,8 +184,8 @@ export function useAddTransaction(onClose: () => void) {
   }, [uiState.visible]);
 
   const schema = useMemo(
-    () => createSchema(storeState.type, accountState.accounts),
-    [storeState.type, accountState.accounts],
+    () => createSchema(storeState.type, accounts),
+    [storeState.type, accounts],
   );
 
   const form = useZodForm(schema, {
@@ -196,7 +198,7 @@ export function useAddTransaction(onClose: () => void) {
       categoryId: '',
       note: '',
       date: nowDateISO(),
-      exchangeRate: String(currencyState.rate),
+      exchangeRate: String(rate),
     },
   });
 
@@ -208,16 +210,16 @@ export function useAddTransaction(onClose: () => void) {
   const exchangeRate = form.watch('exchangeRate');
 
   const selectedAccount = useMemo(
-    () => accountState.accounts.find((a) => a.id === accountId) ?? null,
-    [accountState.accounts, accountId],
+    () => accounts.find((a) => a.id === accountId) ?? null,
+    [accounts, accountId],
   );
   const selectedToAccount = useMemo(
-    () => accountState.accounts.find((a) => a.id === toAccountId) ?? null,
-    [accountState.accounts, toAccountId],
+    () => accounts.find((a) => a.id === toAccountId) ?? null,
+    [accounts, toAccountId],
   );
   const selectedCategory = useMemo(
-    () => categoryState.categories.find((c) => c.id === categoryId) ?? null,
-    [categoryState.categories, categoryId],
+    () => categories.find((c) => c.id === categoryId) ?? null,
+    [categories, categoryId],
   );
 
   const isTransferOrCC =
@@ -228,12 +230,12 @@ export function useAddTransaction(onClose: () => void) {
 
   const visibleCategories = useMemo(
     () =>
-      categoryState.categories.filter(
+      categories.filter(
         (c) =>
           c.type ===
           (storeState.type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
       ),
-    [categoryState.categories, storeState.type],
+    [categories, storeState.type],
   );
 
   const accountsForFrom = useMemo(() => {
@@ -241,20 +243,20 @@ export function useAddTransaction(onClose: () => void) {
       storeState.type === TransactionType.CCPayment ||
       storeState.type === TransactionType.Transfer
     ) {
-      return accountState.accounts.filter((a) => a.type !== AccountType.CreditCard);
+      return accounts.filter((a) => a.type !== AccountType.CreditCard);
     }
-    return accountState.accounts;
-  }, [accountState.accounts, storeState.type]);
+    return accounts;
+  }, [accounts, storeState.type]);
 
   const accountsForTo = useMemo(() => {
     if (storeState.type === TransactionType.CCPayment) {
-      return accountState.accounts.filter((a) => a.type === AccountType.CreditCard);
+      return accounts.filter((a) => a.type === AccountType.CreditCard);
     }
     if (storeState.type === TransactionType.Transfer) {
-      return accountState.accounts.filter((a) => a.type !== AccountType.CreditCard);
+      return accounts.filter((a) => a.type !== AccountType.CreditCard);
     }
-    return accountState.accounts;
-  }, [accountState.accounts, storeState.type]);
+    return accounts;
+  }, [accounts, storeState.type]);
 
   const errors = {
     amount: form.formState.errors.amount?.message,
@@ -288,7 +290,7 @@ export function useAddTransaction(onClose: () => void) {
         categoryId: '',
         note: '',
         date: nowDateISO(),
-        exchangeRate: String(currencyState.rate),
+        exchangeRate: String(rate),
       });
       setRateOverride(false);
     }
@@ -348,13 +350,13 @@ export function useAddTransaction(onClose: () => void) {
   function toggleRateOverride() {
     const next = !uiState.rateOverride;
     setRateOverride(next);
-    if (!next) form.setValue('exchangeRate', String(currencyState.rate));
+    if (!next) form.setValue('exchangeRate', String(rate));
   }
 
   function selectAccount(account: Account) {
     form.setValue('accountId', account.id);
     if (account.currency === Currency.USD) {
-      form.setValue('exchangeRate', String(currencyState.rate));
+      form.setValue('exchangeRate', String(rate));
       setRateOverride(false);
     }
     setShowAccountPicker(false);
@@ -363,7 +365,7 @@ export function useAddTransaction(onClose: () => void) {
   function selectToAccount(account: Account) {
     form.setValue('toAccountId', account.id);
     if (account.currency === Currency.USD && selectedAccount?.currency === Currency.EGP) {
-      form.setValue('exchangeRate', String(currencyState.rate));
+      form.setValue('exchangeRate', String(rate));
       setRateOverride(false);
     }
     setShowToPicker(false);
@@ -392,15 +394,15 @@ export function useAddTransaction(onClose: () => void) {
       isTransferOrCC,
       errors,
       saving: uiState.saving,
-      accounts: accountState.accounts,
-      hasAccounts: accountState.accounts.length > 0,
+      accounts,
+      hasAccounts: accounts.length > 0,
       accountsForFrom,
       accountsForTo,
       visibleCategories,
       showAccountPicker: uiState.showAccountPicker,
       showToPicker: uiState.showToPicker,
       showCategoryPicker: uiState.showCategoryPicker,
-      rateUpdatedAt: currencyState.rate_updated_at,
+      rateUpdatedAt,
     },
     setType,
     setAmountStr,
