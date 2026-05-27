@@ -1,4 +1,5 @@
 import { useFocusEffect } from 'expo-router';
+import { Spinner } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -69,7 +70,11 @@ export default function BudgetScreen() {
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
 
-      {state.lensTab === 'categories' ? (
+      {!state.hasLoaded ? (
+        <View className="items-center justify-center py-12">
+          <Spinner />
+        </View>
+      ) : state.lensTab === 'categories' ? (
         state.hasBudgets ? (
           <ScreenScroll contentContainerStyle={styles.content}>
             <View style={styles.inset}>

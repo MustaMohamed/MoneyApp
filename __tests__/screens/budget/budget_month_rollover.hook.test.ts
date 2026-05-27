@@ -32,10 +32,13 @@ import { useCategoryDetail } from '@/modules/budget/screens/budget/category_deta
 
 function setupStores() {
   (useCategoryStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { categories: [] }, loadCategories: jest.fn() }),
+    sel({ state: { categories: [], hasLoaded: false }, loadCategories: jest.fn() }),
   );
   (useBudgetStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { rows: [], spendByMonth: {}, expectedIncome: null }, load: jest.fn() }),
+    sel({
+      state: { rows: [], spendByMonth: {}, loaded: false, expectedIncome: null },
+      load: jest.fn(),
+    }),
   );
   (useBudgetState as jest.Mock).mockImplementation((sel: any) =>
     sel({
@@ -58,6 +61,12 @@ afterEach(() => {
 });
 
 describe('useBudget — month rollover', () => {
+  it('exposes unloaded state until categories and budget data settle', () => {
+    const { result } = renderHook(() => useBudget());
+
+    expect(result.current.state.hasLoaded).toBe(false);
+  });
+
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     const { result } = renderHook(() => useBudget());

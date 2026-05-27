@@ -56,6 +56,8 @@ interface CommitmentStoreState {
   commitments: Commitment[];
   payments: CommitmentPayment[];
   selectedMonth: string;
+  commitmentsLoaded: boolean;
+  paymentsLoaded: boolean;
 }
 
 interface CommitmentStore {
@@ -92,6 +94,8 @@ const INITIAL_STATE: CommitmentStoreState = {
   commitments: [],
   payments: [],
   selectedMonth: currentMonth(),
+  commitmentsLoaded: false,
+  paymentsLoaded: false,
 };
 
 export function createCommitmentStore(repo: ICommitmentRepository) {
@@ -101,7 +105,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
     loadCommitments: async () => {
       try {
         const commitments = await repo.getAll();
-        set((s) => ({ state: { ...s.state, commitments } }));
+        set((s) => ({ state: { ...s.state, commitments, commitmentsLoaded: true } }));
       } catch (err) {
         console.error('[commitmentStore] loadCommitments failed:', err);
         throw err;
@@ -111,7 +115,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
     loadPaymentsForMonth: async (yearMonth) => {
       try {
         const payments = await repo.getPaymentsForMonth(yearMonth);
-        set((s) => ({ state: { ...s.state, payments } }));
+        set((s) => ({ state: { ...s.state, payments, paymentsLoaded: true } }));
       } catch (err) {
         console.error('[commitmentStore] loadPaymentsForMonth failed:', err);
         throw err;

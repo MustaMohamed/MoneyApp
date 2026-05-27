@@ -10,7 +10,7 @@ import {
 
 export type { Category, NewCategoryInput, UpdateCategoryInput };
 
-const INITIAL_STATE = { categories: [] as Category[] };
+const INITIAL_STATE = { categories: [] as Category[], hasLoaded: false };
 
 interface CategoryStore {
   state: typeof INITIAL_STATE;
@@ -30,7 +30,7 @@ export function createCategoryStore(repo: ICategoryRepository) {
     loadCategories: async () => {
       try {
         const categories = await repo.getAll();
-        set((s) => ({ state: { ...s.state, categories } }));
+        set((s) => ({ state: { ...s.state, categories, hasLoaded: true } }));
       } catch (err) {
         console.error('[categoryStore] loadCategories failed:', err);
         throw err;

@@ -219,6 +219,7 @@ export function useDashboard() {
   return {
     state: {
       accounts: accountState.accounts,
+      accountsLoaded: accountState.hasLoaded,
       rate: currencyState.rate,
       isManualOverride: currencyState.isManualOverride,
       netWorth,

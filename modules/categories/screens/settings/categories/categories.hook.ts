@@ -185,6 +185,7 @@ export function useCategories() {
       defaultCategories,
       customCategories,
       isAtLimit,
+      hasLoaded: catState.hasLoaded,
       activeTab: catScreenUiState.activeTab,
       showAddSheet: catScreenUiState.showAddSheet,
       editingCategory: catScreenDataState.editingCategory,

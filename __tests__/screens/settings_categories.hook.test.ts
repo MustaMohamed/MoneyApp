@@ -37,11 +37,12 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 function setup() {
   (useCategoryStore as unknown as jest.Mock).mockImplementation((sel: any) =>
     sel({
-      state: { categories: [] },
+      state: { categories: [], hasLoaded: false },
       addCategory: jest.fn().mockResolvedValue(undefined),
       updateCategory: jest.fn().mockResolvedValue(undefined),
       deleteCategory: jest.fn().mockResolvedValue(undefined),
       reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+      getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
     }),
   );
 }
@@ -56,5 +57,10 @@ describe('useCategories', () => {
   it('customCategories defaults to empty array', () => {
     const { result } = renderHook(() => useCategories());
     expect(result.current.state.customCategories).toEqual([]);
+  });
+
+  it('exposes whether category data has loaded', () => {
+    const { result } = renderHook(() => useCategories());
+    expect(result.current.state.hasLoaded).toBe(false);
   });
 });

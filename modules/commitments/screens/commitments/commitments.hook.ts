@@ -200,6 +200,8 @@ export function useCommitments() {
       totalsByCurrency,
       refreshing: screenState.refreshing,
       isEmpty,
+      commitmentsLoaded: commitmentState.commitmentsLoaded,
+      paymentsLoaded: commitmentState.paymentsLoaded,
       // hasCommitments is month-independent (all commitments, any month). isEmpty is
       // per-selected-month. The list shows the full welcome empty state only when there
       // are no commitments at all; an empty *month* keeps the nav/filters mounted.

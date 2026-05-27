@@ -31,8 +31,12 @@ export function useBudget() {
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);
 
-  const { categories, loadCategories } = useCategoryStore(
-    useShallow((s) => ({ categories: s.state.categories, loadCategories: s.loadCategories })),
+  const { categories, categoriesLoaded, loadCategories } = useCategoryStore(
+    useShallow((s) => ({
+      categories: s.state.categories,
+      categoriesLoaded: s.state.hasLoaded,
+      loadCategories: s.loadCategories,
+    })),
   );
   const { budgetState, load } = useBudgetStore(
     useShallow((s) => ({ budgetState: s.state, load: s.load })),
@@ -128,6 +132,7 @@ export function useBudget() {
       buckets,
       suggestion,
       lensTab,
+      hasLoaded: Boolean(categoriesLoaded && budgetState.loaded),
     },
     openAdd,
     openEdit,

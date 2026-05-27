@@ -111,7 +111,7 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   (useAccountStore as jest.Mock).mockImplementation((sel: any) =>
-    sel({ state: { accounts }, loadAccounts: jest.fn() }),
+    sel({ state: { accounts, hasLoaded: true }, loadAccounts: jest.fn() }),
   );
   (useCurrencyStore as jest.Mock).mockImplementation((sel: any) =>
     sel({ state: { rate: 48.85, isManualOverride: false } }),
@@ -155,6 +155,16 @@ describe('useDashboard', () => {
   it('defaults selectedSegment to overview', () => {
     const { result } = renderHook(() => useDashboard());
     expect(result.current.state.selectedSegment).toBe('overview');
+  });
+
+  it('exposes whether account data has loaded', () => {
+    (useAccountStore as jest.Mock).mockImplementation((sel: any) =>
+      sel({ state: { accounts: [], hasLoaded: false }, loadAccounts: jest.fn() }),
+    );
+
+    const { result } = renderHook(() => useDashboard());
+
+    expect(result.current.state.accountsLoaded).toBe(false);
   });
 
   it('setSelectedSegment updates state', () => {

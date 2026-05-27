@@ -155,11 +155,13 @@ export function useTransactions() {
   const hasAdvancedFilters = activeFilterCount > 0;
 
   const emptyVariant: EmptyVariant =
-    txState.transactions.length > 0
+    txState.loading || !txState.hasLoaded
       ? 'none'
-      : debouncedSearch.trim() || txScreenState.activeFilter !== 'all' || hasAdvancedFilters
-        ? 'noResults'
-        : 'noData';
+      : txState.transactions.length > 0
+        ? 'none'
+        : debouncedSearch.trim() || txScreenState.activeFilter !== 'all' || hasAdvancedFilters
+          ? 'noResults'
+          : 'noData';
 
   function handleOpenFilter() {
     setDraft(txScreenState.appliedFilters);
@@ -192,6 +194,7 @@ export function useTransactions() {
       sections,
       hasMore: txState.hasMore,
       loading: txState.loading,
+      hasLoaded: txState.hasLoaded,
       refreshing,
       emptyVariant,
       searchQuery: txScreenState.searchQuery,
