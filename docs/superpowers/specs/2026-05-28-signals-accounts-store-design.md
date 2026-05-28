@@ -59,4 +59,3 @@ Focused verification:
 - `npm test -- --runTestsByPath __tests__/account.store.test.ts __tests__/screens/accounts/add_account.hook.test.ts __tests__/screens/accounts/account_detail.hook.test.ts __tests__/screens/onboarding_add_account.hook.test.ts __tests__/screens/onboarding_more_accounts.hook.test.ts __tests__/screens/onboarding_ready.hook.test.ts --runInBand`
 - `npm run typecheck`
 - `npm run format:check`
-
