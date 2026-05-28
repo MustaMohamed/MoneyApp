@@ -1,16 +1,22 @@
+import { useSignal } from '@preact/signals-react';
+import { useSignals } from '@preact/signals-react/runtime';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 
 import { Currency, OnboardingStep } from '@/constants/enums';
 import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 
 export function useWelcome() {
+  useSignals();
   const { state, setBaseCurrency, setStep } = useOnboarding();
   const router = useRouter();
-  const [selected, setSelected] = useState<Currency>(state.baseCurrency.value);
+  const selected = useSignal<Currency>(state.baseCurrency.value);
+
+  const setSelected = (nextCurrency: Currency) => {
+    selected.value = nextCurrency;
+  };
 
   const onContinue = async () => {
-    await setBaseCurrency(selected);
+    await setBaseCurrency(selected.value);
     await setStep(OnboardingStep.N2);
     router.push('/(onboarding)/add_account');
   };

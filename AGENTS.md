@@ -142,7 +142,7 @@ const { state, init, upsertClusters, deleteCluster, addClusterInput, setInputFie
 if (state.isLoading.value) return <Spinner />;
 ```
 
-Read signal values intentionally with `.value`. Avoid `Promise.try()` in helpers until Hermes support is verified; use `Promise.resolve().then(...)` for sync/async wrapping.
+Read signal values intentionally with `.value`. Avoid `Promise.try()` in helpers until Hermes support is verified. For sync/async wrapping that must invoke the function immediately, use explicit `try`/`catch` around `fn(...args)` and then normalize the returned value with `Promise.resolve(result)`.
 
 ## Expo Dev Client (critical)
 

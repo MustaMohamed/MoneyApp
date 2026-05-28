@@ -32,13 +32,13 @@ describe('useWelcome', () => {
 
   it('defaults selected to onboarding store baseCurrency (EGP)', () => {
     const { result } = renderHook(() => useWelcome());
-    expect(result.current.state.selected).toBe(Currency.EGP);
+    expect(result.current.state.selected.value).toBe(Currency.EGP);
   });
 
   it('defaults selected to USD if store baseCurrency is USD', () => {
     setup(Currency.USD);
     const { result } = renderHook(() => useWelcome());
-    expect(result.current.state.selected).toBe(Currency.USD);
+    expect(result.current.state.selected.value).toBe(Currency.USD);
   });
 
   it('setSelected updates the selected currency', () => {
@@ -46,7 +46,7 @@ describe('useWelcome', () => {
     act(() => {
       result.current.setSelected(Currency.USD);
     });
-    expect(result.current.state.selected).toBe(Currency.USD);
+    expect(result.current.state.selected.value).toBe(Currency.USD);
   });
 
   it('onContinue calls setBaseCurrency with selected currency', async () => {

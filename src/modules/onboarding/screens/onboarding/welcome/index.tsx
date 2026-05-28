@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
                 { value: Currency.EGP, label: Currency.EGP },
                 { value: Currency.USD, label: Currency.USD },
               ]}
-              value={state.selected}
+              value={state.selected.value}
               onValueChange={setSelected}
               variant="solid-gold"
               listClassName="w-full"

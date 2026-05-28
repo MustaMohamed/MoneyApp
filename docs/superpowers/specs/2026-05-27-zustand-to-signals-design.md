@@ -188,8 +188,16 @@ export function useAsync<T extends (...args: Parameters<T>) => ReturnType<T>>(
     isLoading.value = true;
     isError.value = false;
 
-    return Promise.resolve()
-      .then(() => fn(...args))
+    let result: ReturnType<T>;
+    try {
+      result = fn(...args);
+    } catch (e: unknown) {
+      isError.value = true;
+      isLoading.value = false;
+      throw e;
+    }
+
+    return Promise.resolve(result)
       .catch((e: unknown) => {
         isError.value = true;
         throw e;
@@ -206,7 +214,7 @@ export function useAsync<T extends (...args: Parameters<T>) => ReturnType<T>>(
 }
 ```
 
-Use `Promise.resolve().then(...)` instead of `Promise.try(...)` until Hermes support is verified for the project's target Expo/React Native runtime. `Promise.try()` is a new JavaScript feature and should not be assumed on-device.
+Use explicit `try`/`catch` plus `Promise.resolve(result)` instead of `Promise.try(...)` until Hermes support is verified for the project's target Expo/React Native runtime. This keeps immediate invocation semantics while normalizing sync and async return values. `Promise.try()` is a new JavaScript feature and should not be assumed on-device.
 
 ```ts
 import { untracked, useSignalEffect } from '@preact/signals-react';
@@ -349,7 +357,7 @@ Mitigation: use `@preact/signals-react` hooks consistently and verify migrated c
 
 Risk: `Promise.try()` works in Node but not on device.
 
-Mitigation: use `Promise.resolve().then(...)` in `useAsync` unless Hermes support is verified for the target runtime.
+Mitigation: use explicit `try`/`catch` plus `Promise.resolve(result)` in `useAsync` unless Hermes support is verified for the target runtime.
 
 Risk: migration grows into a broad refactor.
 

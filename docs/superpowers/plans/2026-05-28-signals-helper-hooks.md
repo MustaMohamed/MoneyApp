@@ -4,7 +4,7 @@
 
 **Goal:** Add the first small, tested Signals migration slice: dependency installation plus `useAsync` and `useInit` helper hooks.
 
-**Architecture:** This plan does not migrate any existing Zustand store. It introduces `@preact/signals-react` and two local helper hooks under `utils/` so future store migrations can use the approved custom `useXSetup()` pattern. `useAsync` owns hook-local loading/error signal refs for async actions, and `useInit` runs hook setup once through Signals effect machinery without tracking initialization reads.
+**Architecture:** This plan does not migrate any existing Zustand store. It introduces `@preact/signals-react` and two local helper hooks under `utils/` so future store migrations can use responsibility-named custom Signals hooks. `useAsync` owns hook-local loading/error signal refs for async actions, and `useInit` runs hook setup once through Signals effect machinery without tracking initialization reads.
 
 **Tech Stack:** Expo React Native, TypeScript strict, Jest, React Native Testing Library `renderHook`, `@preact/signals-react`.
 
