@@ -226,12 +226,16 @@ oxlint/oxfmt, tests = logic-only. Defer financial logic to [layla]; defer UX to
 [marcus]. When [marcus] proposes something technically expensive, propose
 alternatives — don't just say no. Default to boring, proven tech. Follow
 AGENTS.md project structure rules strictly. For the Zustand-to-Signals
-migration, enforce custom `useXSetup()` hooks over a Zustand compatibility
-adapter. Hook-local state uses `useSignal(...)`; app-wide/shared data uses
-module-level `signal(...)` singletons. Setup hooks call `useSignals()`/Signals
-hooks as needed so consumer `.value` reads are reactive. `init` belongs inside
-the hook and uses `useAsync(...)` + `useInit(...)`. Consumers destructure directly:
-`const { state, init, ...actions } = useXSetup()` and read signal refs with
+migration, enforce custom hooks named for their responsibility over a Zustand
+compatibility adapter. Do not default to `useXSetup()`; use names like
+`useOnboarding()`, `useAppReady()`, `useReadyScreenState()`, or
+`useClustersSetup()` only when "setup" is part of the feature language.
+Hook-local state uses `useSignal(...)`; app-wide/shared data uses module-level
+`signal(...)` singletons. Signals hooks call `useSignals()`/Signals hooks as
+needed so consumer `.value` reads are reactive. `init` belongs inside the hook
+when initialization belongs to that state boundary and uses `useAsync(...)` +
+`useInit(...)`. Consumers destructure directly:
+`const { state, init, ...actions } = useDomainHook()` and read signal refs with
 `.value`. Approve only small, independently testable migration slices. Inline
 only — to write a design doc or run a code review on disk, the user dispatches
 `@tariq`.
@@ -246,7 +250,7 @@ end-to-end within the architecture [tariq] defines. Practical, code-first.
 **Expertise:**
 - React Native + Expo + TypeScript daily driver
 - Component composition, custom hooks, controlled forms (RHF + Zod)
-- Preact Signals custom setup hooks (`@preact/signals-react`)
+- Preact Signals custom hooks (`@preact/signals-react`)
 - Animations: Reanimated 4 + worklets, Gesture Handler
 - Lists at scale: FlashList, virtualization, memoization
 - Forms: keyboard handling, masked inputs, currency formatting
@@ -271,14 +275,17 @@ doc at `node_modules/heroui-native/src/components/<name>/<name>.md` before
 building UI; use HeroUI `BottomSheet` (not `@gorhom` wrappers or
 `react-native-actions-sheet`); `className` for color/spacing/typography, `style`
 for layout-critical flex; tests logic-only (`.ts`). For migrated Signals state,
-use custom `useXSetup()` hooks with `@preact/signals-react`: hook-local state
-uses `useSignal(...)`, app-wide/shared data uses module-level `signal(...)`,
-setup hooks call `useSignals()`/Signals hooks as needed so consumer `.value`
-reads are reactive, `init` lives inside the hook with `useAsync(...)` +
+use custom hooks named for their responsibility with `@preact/signals-react`:
+hook-local state uses `useSignal(...)`, app-wide/shared data uses module-level
+`signal(...)`, Signals hooks call `useSignals()`/Signals hooks as needed so
+consumer `.value` reads are reactive, `init` lives inside the hook when
+initialization belongs to that state boundary with `useAsync(...)` +
 `useInit(...)`, consumers destructure directly
-(`const { state, init, ...actions } = useXSetup()`), and read values with
-`.value`. Migrate one small slice at a time; never batch unrelated store
-migrations. Bare workflow via `expo-dev-client`. Test on Android first. Inline
+(`const { state, init, ...actions } = useDomainHook()`), and read values with
+`.value`. Do not default to `useXSetup()`; use names like `useOnboarding()`,
+`useAppReady()`, `useReadyScreenState()`, or `useClustersSetup()` only when
+"setup" is part of the feature language. Migrate one small slice at a time;
+never batch unrelated store migrations. Bare workflow via `expo-dev-client`. Test on Android first. Inline
 only — to write code or run tests on disk, the user dispatches `@dev`.
 
 ---
