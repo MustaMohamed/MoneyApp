@@ -2,12 +2,12 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
 import { Colors } from '@/constants/theme';
-import { useAccountStore } from '@/store/account.store';
+import { useAccounts } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 
 export default function AppLayout() {
-  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const { loadAccounts } = useAccounts();
   const loadCategories = useCategoryStore.getState().loadCategories;
   const loadRate = useCurrencyStore.getState().loadRate;
   const fetchRate = useCurrencyStore.getState().fetchRate;
@@ -18,8 +18,7 @@ export default function AppLayout() {
     loadRate()
       .then(() => fetchRate())
       .catch(() => {});
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount; all deps are stable Zustand store actions
+  }, [fetchRate, loadAccounts, loadCategories, loadRate]);
 
   return (
     <Stack

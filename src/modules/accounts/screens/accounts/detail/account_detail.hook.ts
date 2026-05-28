@@ -7,7 +7,7 @@ import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
-import { useAccountStore } from '../../../store/account.store';
+import { useAccounts } from '../../../store/account.store';
 import { useAccountDetailState } from './account_detail.state';
 
 export function useAccountDetail() {
@@ -15,10 +15,8 @@ export function useAccountDetail() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const accounts = useAccountStore.useState.accounts();
-  const updateAccount = useAccountStore.getState().updateAccount;
-  const archiveAccount = useAccountStore.getState().archiveAccount;
-  const adjustBalance = useAccountStore.getState().adjustBalance;
+  const { state: accountsState, updateAccount, archiveAccount, adjustBalance } = useAccounts();
+  const accounts = accountsState.accounts.value;
   const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
     useAccountDetailState(
       useShallow((s) => ({

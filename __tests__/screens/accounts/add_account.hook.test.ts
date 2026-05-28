@@ -4,25 +4,23 @@ import {
   useAddAccountApp,
   ACCOUNT_COLORS,
 } from '@/modules/accounts/screens/accounts/add_account/add_account.hook';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
-  useAccountStore: Object.assign(jest.fn(), {
-    getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
-  }),
+  useAccounts: jest.fn(),
 }));
 
 function setup() {
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
+  (useAccounts as jest.Mock).mockReturnValue({
+    state: {
+      accounts: { value: [] },
+    },
     addAccount: jest.fn(),
     loadAccounts: jest.fn().mockResolvedValue(undefined),
-  }));
+  });
 }
 
 describe('useAddAccountApp', () => {

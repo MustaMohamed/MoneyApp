@@ -2,27 +2,29 @@ import { renderHook } from '@testing-library/react-native';
 
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+jest.mock('zustand/react/shallow', () => ({ useShallow: <T>(selector: T) => selector }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'acc-1' }),
   useRouter: () => ({ back: jest.fn() }),
   useNavigation: () => ({ addListener: jest.fn(() => jest.fn()) }),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
 jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
   return { useAccountDetailState: jest.fn() };
 });
 
 function setup() {
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
+  (useAccounts as jest.Mock).mockReturnValue({
+    state: {
+      accounts: { value: [] },
+    },
     updateAccount: jest.fn(),
     archiveAccount: jest.fn(),
     adjustBalance: jest.fn(),
-  }));
+  });
   attachMockSelectorStore(useAccountDetailState as unknown as jest.Mock, () => ({
     isEditing: false,
     isAdjustVisible: false,

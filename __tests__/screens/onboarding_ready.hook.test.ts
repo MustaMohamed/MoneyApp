@@ -2,10 +2,9 @@ import { renderHook, act } from '@testing-library/react-native';
 
 import { Currency, OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
 import { OnboardingStore, useOnboarding } from '@/modules/onboarding/store/onboarding.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('@/modules/onboarding/store/onboarding.store', () => {
   // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-return -- Jest requireActual is typed as any; this preserves the real class export while mocking the hook facade.
@@ -13,7 +12,7 @@ jest.mock('@/modules/onboarding/store/onboarding.store', () => {
   // oxlint-disable-next-line typescript/no-unsafe-return -- spreading requireActual preserves real exports in this Jest module factory.
   return { ...actual, useOnboarding: jest.fn() };
 });
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
 
@@ -44,10 +43,11 @@ function setup() {
     }),
   });
   jest.mocked(useOnboarding).mockReturnValue(store);
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- test helper adapts the mocked Zustand selector facade
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: fakeAccounts,
-  }));
+  jest.mocked(useAccounts).mockReturnValue({
+    state: {
+      accounts: { value: fakeAccounts },
+    },
+  } as ReturnType<typeof useAccounts>);
 }
 
 describe('useReady', () => {

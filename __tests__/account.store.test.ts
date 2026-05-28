@@ -58,30 +58,30 @@ describe('accountStore.loadAccounts', () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
 
-    expect(store.getState().hasLoaded).toBe(false);
+    expect(store.state.hasLoaded.value).toBe(false);
   });
 
   it('marks accounts loaded after repo data settles', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
     const store = createAccountStore(repo);
 
-    await store.getState().loadAccounts();
+    await store.loadAccounts();
 
-    expect(store.getState().hasLoaded).toBe(true);
+    expect(store.state.hasLoaded.value).toBe(true);
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
     const store = createAccountStore(repo);
-    await store.getState().loadAccounts();
+    await store.loadAccounts();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.state.accounts.value).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.getAll', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db error')) });
     const store = createAccountStore(repo);
-    await expect(store.getState().loadAccounts()).rejects.toThrow('db error');
+    await expect(store.loadAccounts()).rejects.toThrow('db error');
   });
 });
 
@@ -89,7 +89,7 @@ describe('accountStore.addAccount', () => {
   it('delegates to repo.add with the provided input', async () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
-    const result = await store.getState().addAccount(baseInput);
+    const result = await store.addAccount(baseInput);
     expect(repo.add).toHaveBeenCalledWith(baseInput);
     expect(result).toEqual(mockAccount);
   });
@@ -97,15 +97,15 @@ describe('accountStore.addAccount', () => {
   it('reloads accounts state after adding', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
     const store = createAccountStore(repo);
-    await store.getState().addAccount(baseInput);
+    await store.addAccount(baseInput);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.state.accounts.value).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.add', async () => {
     const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('insert failed')) });
     const store = createAccountStore(repo);
-    await expect(store.getState().addAccount(baseInput)).rejects.toThrow('insert failed');
+    await expect(store.addAccount(baseInput)).rejects.toThrow('insert failed');
   });
 });
 
@@ -113,24 +113,24 @@ describe('accountStore.updateAccount', () => {
   it('delegates to repo.update with id and data', async () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
-    await store.getState().updateAccount('test-id', { name: 'New Name', color: '#C9973A' });
+    await store.updateAccount('test-id', { name: 'New Name', color: '#C9973A' });
     expect(repo.update).toHaveBeenCalledWith('test-id', { name: 'New Name', color: '#C9973A' });
   });
 
   it('reloads accounts after updating', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
     const store = createAccountStore(repo);
-    await store.getState().updateAccount('test-id', { name: 'New Name', color: null });
+    await store.updateAccount('test-id', { name: 'New Name', color: null });
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.state.accounts.value).toEqual([mockAccount]);
   });
 
   it('propagates errors from repo.update', async () => {
     const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update failed')) });
     const store = createAccountStore(repo);
-    await expect(
-      store.getState().updateAccount('test-id', { name: 'x', color: null }),
-    ).rejects.toThrow('update failed');
+    await expect(store.updateAccount('test-id', { name: 'x', color: null })).rejects.toThrow(
+      'update failed',
+    );
   });
 });
 
@@ -138,21 +138,21 @@ describe('accountStore.archiveAccount', () => {
   it('delegates to repo.archive with the account id', async () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
-    await store.getState().archiveAccount('test-id');
+    await store.archiveAccount('test-id');
     expect(repo.archive).toHaveBeenCalledWith('test-id');
   });
 
   it('reloads accounts after archiving', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
     const store = createAccountStore(repo);
-    await store.getState().archiveAccount('test-id');
+    await store.archiveAccount('test-id');
     expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
 
   it('propagates errors from repo.archive', async () => {
     const repo = makeRepo({ archive: jest.fn().mockRejectedValue(new Error('archive failed')) });
     const store = createAccountStore(repo);
-    await expect(store.getState().archiveAccount('test-id')).rejects.toThrow('archive failed');
+    await expect(store.archiveAccount('test-id')).rejects.toThrow('archive failed');
   });
 });
 
@@ -160,14 +160,14 @@ describe('accountStore.adjustBalance', () => {
   it('delegates to repo.adjustBalance with id and balance', async () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
-    await store.getState().adjustBalance('test-id', 9999);
+    await store.adjustBalance('test-id', 9999);
     expect(repo.adjustBalance).toHaveBeenCalledWith('test-id', 9999);
   });
 
   it('reloads accounts after adjusting', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
     const store = createAccountStore(repo);
-    await store.getState().adjustBalance('test-id', 9999);
+    await store.adjustBalance('test-id', 9999);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
 
@@ -176,21 +176,22 @@ describe('accountStore.adjustBalance', () => {
       adjustBalance: jest.fn().mockRejectedValue(new Error('db error')),
     });
     const store = createAccountStore(repo);
-    await expect(store.getState().adjustBalance('test-id', 0)).rejects.toThrow('db error');
+    await expect(store.adjustBalance('test-id', 0)).rejects.toThrow('db error');
   });
 });
 
 describe('accountStore.reset', () => {
   it('restores INITIAL_STATE', async () => {
     const repo = makeRepo({
-      getAll: jest.fn().mockResolvedValue([{ id: 'a1' } as Account]),
+      getAll: jest.fn().mockResolvedValue([{ ...mockAccount, id: 'a1' }]),
     });
-    const useStore = createAccountStore(repo);
-    await useStore.getState().loadAccounts();
-    expect(useStore.getState().accounts).toHaveLength(1);
+    const store = createAccountStore(repo);
+    await store.loadAccounts();
+    expect(store.state.accounts.value).toHaveLength(1);
 
-    useStore.getState().reset();
+    store.reset();
 
-    expect(useStore.getState()).toMatchObject({ accounts: [], hasLoaded: false });
+    expect(store.state.accounts.value).toEqual([]);
+    expect(store.state.hasLoaded.value).toBe(false);
   });
 });

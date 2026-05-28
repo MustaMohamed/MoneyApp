@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import {
@@ -32,13 +32,13 @@ export const ACCOUNT_COLORS = [
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const accounts = useAccountStore.useState.accounts();
-  const addAccount = useAccountStore.getState().addAccount;
+  const { state: accountsState, addAccount, loadAccounts } = useAccounts();
+  const accounts = accountsState.accounts.value;
   const { state, setStep } = useOnboarding();
 
   useEffect(() => {
-    void useAccountStore.getState().loadAccounts();
-  }, []);
+    void loadAccounts();
+  }, [loadAccounts]);
 
   const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 

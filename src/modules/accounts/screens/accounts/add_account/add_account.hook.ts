@@ -5,7 +5,7 @@ import { AccountType, Currency } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
-import { useAccountStore } from '../../../store/account.store';
+import { useAccounts } from '../../../store/account.store';
 import { createAddAccountSchema, type AddAccountFormData } from '../../../utils/add_account.schema';
 
 // 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4), mirroring
@@ -27,12 +27,12 @@ export const ACCOUNT_COLORS = [
 
 export function useAddAccountApp() {
   const router = useRouter();
-  const accounts = useAccountStore.useState.accounts();
-  const addAccount = useAccountStore.getState().addAccount;
+  const { state, addAccount, loadAccounts } = useAccounts();
+  const accounts = state.accounts.value;
 
   useEffect(() => {
-    void useAccountStore.getState().loadAccounts();
-  }, []);
+    void loadAccounts();
+  }, [loadAccounts]);
 
   const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 
