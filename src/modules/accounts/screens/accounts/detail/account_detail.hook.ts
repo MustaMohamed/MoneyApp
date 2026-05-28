@@ -1,7 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
@@ -22,36 +21,26 @@ export function useAccountDetail() {
     adjustBalance,
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
-    useAccountDetailState(
-      useShallow((s) => ({
-        isEditing: s.isEditing,
-        isAdjustVisible: s.isAdjustVisible,
-        isArchiveVisible: s.isArchiveVisible,
-        isSaving: s.isSaving,
-        isAdjusting: s.isAdjusting,
-        isArchiving: s.isArchiving,
-      })),
-    );
-  const setEditing = useAccountDetailState.getState().setEditing;
-  const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
-  const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
-  const setSaving = useAccountDetailState.getState().setSaving;
-  const setAdjusting = useAccountDetailState.getState().setAdjusting;
-  const setArchiving = useAccountDetailState.getState().setArchiving;
-  const reset = useAccountDetailState.getState().reset;
-
-  // oxlint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => () => reset(), []); // cleanup on unmount only; reset is a stable Zustand action
+  const {
+    state: { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving },
+    setEditing,
+    setAdjustVisible,
+    setArchiveVisible,
+    setSaving,
+    setAdjusting,
+    setArchiving,
+    reset,
+  } = useAccountDetailState();
+  useEffect(() => () => reset(), [reset]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useAccountDetailState.getState().isEditing) return;
+      if (!isEditing.value) return;
       e.preventDefault();
-      useAccountDetailState.getState().setEditing(false);
+      setEditing(false);
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [isEditing, navigation, setEditing]);
 
   const account = accounts.find((a) => a.id === id);
 
@@ -122,7 +111,7 @@ export function useAccountDetail() {
   };
 
   const onBack = () => {
-    if (isEditing) {
+    if (isEditing.value) {
       setEditing(false);
     } else {
       router.back();
