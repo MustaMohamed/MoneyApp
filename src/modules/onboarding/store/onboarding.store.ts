@@ -5,7 +5,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Currency, OnboardingStep } from '@/constants/enums';
 import { SecureStoreKeys } from '@/constants/secure_store_keys';
 import {
-  AppSettingsRepository,
+  appSettingsRepository,
   type IAppSettingsRepository,
 } from '@/repositories/app_settings.repository';
 
@@ -90,7 +90,7 @@ export function createOnboardingStore(
 }
 
 const onboardingSignals = createOnboardingSignals();
-const onboarding = createOnboardingStore(new AppSettingsRepository(), onboardingSignals);
+const onboarding = createOnboardingStore(appSettingsRepository, onboardingSignals);
 
 export function useOnboarding(): OnboardingStore {
   useSignals();

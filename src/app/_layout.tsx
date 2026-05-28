@@ -18,7 +18,6 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { Colors } from '@/constants/theme';
-import { useAppReady } from '@/store/ready.store';
 import { useAppInit } from '@/utils/use_layout_init.hook';
 
 void SplashScreen.preventAutoHideAsync();
@@ -45,17 +44,17 @@ export default function RootLayout() {
     Sora_800ExtraBold,
   });
 
-  const { state } = useAppReady();
-  useAppInit();
-  const ready = state.ready.value;
+  const {
+    state: { ready },
+  } = useAppInit();
 
   useEffect(() => {
-    if (fontsLoaded && ready) {
+    if (fontsLoaded && ready.value) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, ready]);
+  }, [fontsLoaded, ready.value]);
 
-  if (!fontsLoaded || !ready) return null;
+  if (!fontsLoaded || !ready.value) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>

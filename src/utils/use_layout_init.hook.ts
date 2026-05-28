@@ -7,7 +7,7 @@ import { loadOnboardingState } from '@/store/onboarding.store';
 import { useAppReady } from '@/store/ready.store';
 
 export function useAppInit() {
-  const { markReady } = useAppReady();
+  const { state, markReady, reset } = useAppReady();
 
   useEffect(() => {
     let onboardingComplete = false;
@@ -47,6 +47,12 @@ export function useAppInit() {
       }
     })();
   }, [markReady]);
+
+  return {
+    state,
+    reset,
+    markReady,
+  } as const;
 }
 
 export const useLayoutInit = useAppInit;
