@@ -28,8 +28,12 @@ export const ACCOUNT_COLORS = [
 
 export function useAddAccountApp() {
   const router = useRouter();
-  const { state, addAccount, init } = useAccountStore();
-  const accounts = state.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+    addAccount,
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value ?? EMPTY_ACCOUNTS;
 
   useInit(init);
 
