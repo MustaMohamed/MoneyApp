@@ -54,7 +54,7 @@ export function usePaySheet(
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const reset = usePaySheetState.getState().reset;
 
-  const { state: accountsState, loadAccounts } = useAccountStore();
+  const { state: accountsState, init } = useAccountStore();
   const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   // Currency store gives the timestamp of the last stored exchange-rate
   // update — ExchangeRateRow (V2) reads this to render the "Rate may be
@@ -157,7 +157,7 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      await loadAccounts();
+      await init();
       await loadPaymentsForMonth(selectedMonth);
       setVisible(false);
       reset();

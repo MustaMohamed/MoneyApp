@@ -31,7 +31,7 @@ The Babel `@preact/signals-react-transform` plugin handles render tracking, so d
 - [ ] Update `utils/use_layout_init.hook.ts`.
   - Rename exported hook to `useAppInit()`.
   - Use `const { markReady } = useAppReadyStore()`.
-  - Keep startup behavior unchanged: run migrations, call `useOnboardingStore().load()`, mark ready on success or degraded failure, then schedule commitment housekeeping only when onboarding is complete.
+  - Keep startup behavior unchanged: run migrations, call `useOnboardingStore().init()`, mark ready on success or degraded failure, then schedule commitment housekeeping only when onboarding is complete.
   - Keep `useLayoutInit` as a temporary alias only if needed by existing imports during this workstream.
 
 - [ ] Update `app/_layout.tsx`.
@@ -68,7 +68,7 @@ The Babel `@preact/signals-react-transform` plugin handles render tracking, so d
   - Return `{ state: { complete, currentStep, baseCurrency }, setStep, setBaseCurrency, completeOnboarding }`.
   - Keep persistence behind `modules/onboarding/repositories/onboarding.repository.ts`.
   - Do not keep a store factory or `__*ForTests` helpers just for tests; mock the repository module and use the public store API.
-  - Keep `OnboardingStore.load()` and update signals directly instead of calling `.setState()`.
+  - Keep `OnboardingStore.init()` and update signals directly instead of calling `.setState()`.
   - Expose a normal `reset` action only if the store needs local state reset parity with existing stores.
 
 - [ ] Update root compatibility export `store/onboarding.store.ts`.

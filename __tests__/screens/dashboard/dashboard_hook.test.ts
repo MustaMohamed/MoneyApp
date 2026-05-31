@@ -121,7 +121,7 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
     state: {
       accounts: { value: accounts },
     },
-    loadAccounts: jest.fn(),
+    init: jest.fn(),
   });
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
     rate: 48.85,
@@ -169,7 +169,7 @@ describe('useDashboard', () => {
       state: {
         accounts: { value: undefined },
       },
-      loadAccounts: jest.fn(),
+      init: jest.fn(),
     });
 
     const { result } = renderHook(() => useDashboard());

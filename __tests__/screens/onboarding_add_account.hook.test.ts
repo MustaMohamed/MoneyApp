@@ -32,7 +32,7 @@ function setup(isAddingMore = false) {
       accounts: { value: [] },
     },
     addAccount: mockAddAccount,
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
+    init: jest.fn().mockResolvedValue(undefined),
   });
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
   (useOnboardingStore as jest.Mock).mockReturnValue({

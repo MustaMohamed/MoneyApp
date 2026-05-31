@@ -20,7 +20,7 @@
 - [x] Write failing tests that use the Signals API:
   - `store.state.accounts.value`
   - unresolved data is represented by `undefined`
-  - direct actions such as `store.loadAccounts()`
+  - direct actions such as `store.init()`
 - [x] Verify the tests fail against the Zustand implementation.
 - [x] Replace the Zustand store with `AccountStore`, a class-based shared Signals store, and `useAccountStore()`.
 - [x] Use `batch(...)` when multiple account signals are updated together.

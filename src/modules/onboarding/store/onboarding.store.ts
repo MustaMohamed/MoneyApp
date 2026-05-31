@@ -58,7 +58,7 @@ export class OnboardingStore {
     }
   };
 
-  load = async (): Promise<{
+  init = async (): Promise<{
     complete: boolean;
     step: OnboardingStep;
   }> => {

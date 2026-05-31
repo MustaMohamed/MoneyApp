@@ -39,7 +39,7 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { state: accountsState, loadAccounts } = useAccountStore();
+  const { state: accountsState, init } = useAccountStore();
   const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
@@ -164,7 +164,7 @@ export function useEditTransaction(
         transaction_time: initialTx.transaction_time, // preserved — no time UI
       };
       await updateTransaction(initialTx.id, update);
-      await loadAccounts();
+      await init();
       if (onSaved) {
         onSaved();
       } else {

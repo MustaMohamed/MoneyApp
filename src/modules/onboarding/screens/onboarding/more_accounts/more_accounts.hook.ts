@@ -7,7 +7,7 @@ import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store'
 
 export function useMoreAccounts() {
   const router = useRouter();
-  const { state: accountsState, loadAccounts } = useAccountStore();
+  const { state: accountsState, init } = useAccountStore();
   const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const { setStep } = useOnboardingStore();
 
@@ -16,8 +16,8 @@ export function useMoreAccounts() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadAccounts();
-    }, [loadAccounts]),
+      void init();
+    }, [init]),
   );
 
   const handleAddAnother = () => {

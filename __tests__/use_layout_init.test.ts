@@ -17,7 +17,7 @@ jest.mock('@/database/client', () => ({
 }));
 jest.mock('@/store/onboarding.store', () => ({
   useOnboardingStore: () => ({
-    load: () => mockLoadOnboardingState(),
+    init: () => mockLoadOnboardingState(),
   }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({

@@ -22,7 +22,7 @@ This slice covers the account data store and consumers that read account data or
 The module store remains the source of truth. `modules/accounts/store/account.store.ts` exposes a small class-based shared store. The store owns its `signal(...)` refs and repository dependency, and the module exports one singleton through a responsibility-named hook:
 
 ```ts
-const { state, loadAccounts, addAccount } = useAccountStore();
+const { state, init, addAccount } = useAccountStore();
 const accounts = state.accounts.value ?? [];
 ```
 
@@ -34,9 +34,9 @@ The store does not expose a separate loading or loaded flag. Unresolved account 
 
 ## Data Flow
 
-`loadAccounts()` reads from `AccountRepository.getAll()` and updates `state.accounts.value`.
+`init()` reads from `AccountRepository.getAll()` and updates `state.accounts.value`.
 
-Mutating actions delegate to the repository and then call `loadAccounts()`:
+Mutating actions delegate to the repository and then refresh account signals internally:
 
 - `addAccount(data)` returns the created account
 - `updateAccount(id, data)`
@@ -51,7 +51,7 @@ Store tests should stop using Zustand `.getState()` for the migrated factory and
 
 ```ts
 const store = new AccountStore(repo);
-await store.loadAccounts();
+await store.init();
 expect(store.state.accounts.value).toEqual([mockAccount]);
 ```
 

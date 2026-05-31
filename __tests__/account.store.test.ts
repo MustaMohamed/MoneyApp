@@ -64,7 +64,7 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('accountStore.loadAccounts', () => {
+describe('accountStore.init', () => {
   it('starts with unresolved account data', () => {
     const repo = makeRepo();
     const store = new AccountStore(repo);
@@ -75,7 +75,7 @@ describe('accountStore.loadAccounts', () => {
   it('calls repo.getAll and sets accounts in state', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
     const store = new AccountStore(repo);
-    await store.loadAccounts();
+    await store.init();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
     expect(store.state.accounts.value).toEqual([mockAccount]);
   });
@@ -83,7 +83,7 @@ describe('accountStore.loadAccounts', () => {
   it('propagates errors thrown by repo.getAll', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db error')) });
     const store = new AccountStore(repo);
-    await expect(store.loadAccounts()).rejects.toThrow('db error');
+    await expect(store.init()).rejects.toThrow('db error');
   });
 
   it('does not let an older load overwrite a newer load result', async () => {
@@ -97,8 +97,8 @@ describe('accountStore.loadAccounts', () => {
     });
     const store = new AccountStore(repo);
 
-    const firstRequest = store.loadAccounts();
-    const secondRequest = store.loadAccounts();
+    const firstRequest = store.init();
+    const secondRequest = store.init();
 
     const newerAccount = { ...mockAccount, id: 'newer' };
     secondLoad.resolve([newerAccount]);
@@ -214,7 +214,7 @@ describe('accountStore.reset', () => {
       getAll: jest.fn().mockResolvedValue([{ ...mockAccount, id: 'a1' }]),
     });
     const store = new AccountStore(repo);
-    await store.loadAccounts();
+    await store.init();
     expect(store.state.accounts.value).toHaveLength(1);
 
     store.reset();
@@ -227,7 +227,7 @@ describe('accountStore.reset', () => {
     const repo = makeRepo({ getAll: jest.fn().mockReturnValueOnce(load.promise) });
     const store = new AccountStore(repo);
 
-    const request = store.loadAccounts();
+    const request = store.init();
     store.reset();
 
     load.resolve([mockAccount]);

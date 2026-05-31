@@ -27,7 +27,7 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const { state: accountsState, loadAccounts } = useAccountStore();
+  const { state: accountsState, init } = useAccountStore();
   const accountsValue = accountsState.accounts.value;
   const accounts = accountsValue ?? EMPTY_ACCOUNTS;
   const accountsLoaded = accountsValue !== undefined;
@@ -127,11 +127,11 @@ export function useDashboard() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadAccounts(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
+      await Promise.all([init(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadAccounts, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
+  }, [init, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
 
   const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);

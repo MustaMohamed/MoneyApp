@@ -135,7 +135,7 @@ function nowTimeISO(): string {
 }
 
 export function useAddTransaction(onClose: () => void) {
-  const { state: accountsState, loadAccounts } = useAccountStore();
+  const { state: accountsState, init } = useAccountStore();
   const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
@@ -324,7 +324,7 @@ export function useAddTransaction(onClose: () => void) {
         transaction_date: data.date,
         transaction_time: openedTimeRef.current,
       });
-      await loadAccounts();
+      await init();
       onClose();
     } catch {
       // error logged by store

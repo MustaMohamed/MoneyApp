@@ -1,23 +1,22 @@
 import '@/utils/zod_config';
-import { useEffect } from 'react';
-
 import { getDb, runMigrations } from '@/database/client';
 import { useCommitmentStore } from '@/store/commitment.store';
 import { useOnboardingStore } from '@/store/onboarding.store';
 import { useAppReadyStore } from '@/store/ready.store';
+import { useInit } from '@/utils/use_init.hook';
 
 export function useAppInit() {
   const { state, markReady, reset } = useAppReadyStore();
-  const { load } = useOnboardingStore();
+  const { init } = useOnboardingStore();
 
-  useEffect(() => {
+  useInit(() => {
     let onboardingComplete = false;
 
-    void (async () => {
+    return (async () => {
       try {
         const db = await getDb();
         await runMigrations(db);
-        const onboarding = await load();
+        const onboarding = await init();
         onboardingComplete = onboarding.complete;
         markReady();
       } catch (err) {
@@ -47,7 +46,7 @@ export function useAppInit() {
         });
       }
     })();
-  }, [load, markReady]);
+  });
 
   return {
     state,

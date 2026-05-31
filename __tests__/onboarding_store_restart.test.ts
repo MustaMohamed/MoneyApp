@@ -36,7 +36,7 @@ describe('onboardingStore.load — legacy O* migration', () => {
       return Promise.resolve(null);
     });
 
-    const result = await useOnboardingStore().load();
+    const result = await useOnboardingStore().init();
 
     expect(result.step).toBe(OnboardingStep.N1);
     expect(mockSetItemAsync).toHaveBeenCalledWith(
@@ -53,7 +53,7 @@ describe('onboardingStore.load — legacy O* migration', () => {
       return Promise.resolve(null);
     });
 
-    const result = await useOnboardingStore().load();
+    const result = await useOnboardingStore().init();
 
     expect(result.step).toBe(OnboardingStep.N3);
     // setItemAsync should NOT have been called for the restart (it may be called by other store actions but not specifically for force-restart)

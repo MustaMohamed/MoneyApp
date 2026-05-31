@@ -27,7 +27,11 @@ export class AccountStore {
 
   constructor(private readonly repository: IAccountRepository = accountRepository) {}
 
-  loadAccounts = async (): Promise<void> => {
+  init = async (): Promise<void> => {
+    await this.syncAccounts();
+  };
+
+  private syncAccounts = async (): Promise<void> => {
     const requestId = ++this.loadRequestId;
 
     try {
@@ -36,7 +40,7 @@ export class AccountStore {
         this.state.accounts.value = accounts;
       }
     } catch (err) {
-      console.error('[accountStore] loadAccounts failed:', err);
+      console.error('[accountStore] init failed:', err);
       throw err;
     }
   };
@@ -44,7 +48,7 @@ export class AccountStore {
   addAccount = async (data: NewAccountInput): Promise<Account> => {
     try {
       const account = await this.repository.add(data);
-      await this.loadAccounts();
+      await this.syncAccounts();
       return account;
     } catch (err) {
       console.error('[accountStore] addAccount failed:', err);
@@ -55,7 +59,7 @@ export class AccountStore {
   updateAccount = async (id: string, data: UpdateAccountInput): Promise<void> => {
     try {
       await this.repository.update(id, data);
-      await this.loadAccounts();
+      await this.syncAccounts();
     } catch (err) {
       console.error('[accountStore] updateAccount failed:', err);
       throw err;
@@ -65,7 +69,7 @@ export class AccountStore {
   archiveAccount = async (id: string): Promise<void> => {
     try {
       await this.repository.archive(id);
-      await this.loadAccounts();
+      await this.syncAccounts();
     } catch (err) {
       console.error('[accountStore] archiveAccount failed:', err);
       throw err;
@@ -75,7 +79,7 @@ export class AccountStore {
   adjustBalance = async (id: string, newBalance: number): Promise<void> => {
     try {
       await this.repository.adjustBalance(id, newBalance);
-      await this.loadAccounts();
+      await this.syncAccounts();
     } catch (err) {
       console.error('[accountStore] adjustBalance failed:', err);
       throw err;

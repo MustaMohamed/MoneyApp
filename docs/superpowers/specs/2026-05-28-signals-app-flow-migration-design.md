@@ -47,9 +47,9 @@ Backward-compat root exports may remain under `store/` while consumers are migra
 
 ## Data Flow
 
-`useAppInit()` runs DB migrations, loads onboarding persisted state through `useOnboardingStore().load()`, marks app readiness, and schedules commitment housekeeping for completed users. The readiness signal gates splash hiding in `app/_layout.tsx`.
+`useAppInit()` runs DB migrations, loads onboarding persisted state through `useOnboardingStore().init()`, marks app readiness, and schedules commitment housekeeping for completed users. The readiness signal gates splash hiding in `app/_layout.tsx`.
 
-`OnboardingStore.load()` reads persisted onboarding values through the repository, normalizes legacy onboarding steps, writes normalized values back when needed, updates onboarding signals, and returns `{ complete, step }`.
+`OnboardingStore.init()` reads persisted onboarding values through the repository, normalizes legacy onboarding steps, writes normalized values back when needed, updates onboarding signals, and returns `{ complete, step }`.
 
 Onboarding screens read `state.baseCurrency.value`, `state.currentStep.value`, `state.complete.value`, and call flat actions such as `setStep`, `setBaseCurrency`, and `completeOnboarding`.
 

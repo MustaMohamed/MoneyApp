@@ -20,7 +20,7 @@ function setup() {
       accounts: { value: [] },
     },
     addAccount: jest.fn(),
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
+    init: jest.fn().mockResolvedValue(undefined),
   });
 }
 

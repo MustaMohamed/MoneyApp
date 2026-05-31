@@ -151,7 +151,7 @@ function setupStoreMocks() {
         },
       },
     },
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
+    init: jest.fn().mockResolvedValue(undefined),
   } as unknown as ReturnType<typeof useAccountStore>);
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
     rate: 55,
