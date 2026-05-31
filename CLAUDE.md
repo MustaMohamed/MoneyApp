@@ -97,25 +97,35 @@ If any step fails: fix it, re-run the chain from the top, repeat until green. Th
 ## Project Structure
 
 ```
-app/        ROUTING ONLY — _layout.tsx and index.tsx files only
-screens/    UI per screen (hook, store, state, anim, components/)
-components/ globally shared components
-constants/  enums.ts · secure_store_keys.ts · strings.ts · theme.ts
-store/      Zustand stores (one per domain)
-database/   client.ts · migrations/ · entities/ · <domain>.ts
-utils/      responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
-patches/    patch-package diffs for third-party library fixes
-__tests__/  snake_case test files (logic layer only)
+src/app/              ROUTING ONLY — _layout.tsx and index.tsx files only
+src/modules/<domain>/ canonical feature code: database, repository, store, screens, components
+src/components/ui/    shared UI primitives and wrappers
+src/components/       legacy/shared compatibility wrappers only
+src/constants/        enums.ts · secure_store_keys.ts · strings.ts · theme.ts
+src/store/            backward-compat re-exports; avoid new consumers
+src/repositories/     backward-compat re-exports plus shared app settings repo
+src/database/         client.ts · migrations/ · compatibility query/entity stubs
+src/test_helpers/     test-only helpers imported through @/test_helpers
+src/utils/            responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
+patches/              patch-package diffs for third-party library fixes
+__tests__/            snake_case test files (logic layer only)
 ```
+
+New domain work belongs under `src/modules/<domain>/` using the existing module
+shape: `database/`, `repository/`, `store/`, `screens/`, and optional
+`components/`. Do not introduce a `data/` folder. Root `src/store/`,
+`src/repositories/`, and most `src/database/` domain files are compatibility
+surfaces for old import paths; do not add new module consumers to those roots.
 
 ### app/ rules (critical)
 
 - Only `_layout.tsx` and `index.tsx` live here. Exception: `[id]/index.tsx`.
-- Every `index.tsx` is a one-liner: `export { default } from '@/screens/<path>';`
+- Every route `index.tsx` is a one-line re-export from the canonical module screen,
+  for example: `export { default } from '@/modules/<domain>/screens/<path>';`
 - **Never** colocate `*.hook.ts` / `*.anim.ts` / `*.store.ts` / `*.helpers.ts` next to a route — Expo Router registers every `.ts/.tsx` as a route; files without a default export crash.
 - **Never** name a sibling of `_layout.tsx` like `_layout.<anything>.ts` — Expo strips the extension and splits on `.`, silently overwriting `_layout.tsx` in prod builds.
 
-### screens/ anatomy
+### module screen anatomy
 
 Each folder: `index.tsx` (UI, no useState/useSharedValue) · `<name>.hook.ts` (logic, RHF/Zod, nav, no useState) · `<name>.store.ts` (data: form drafts, selections, fetched results — omit if none) · `<name>.state.ts` (UI state: visibility, loading, errors, tab selection — omit if none) · `<name>.anim.ts` (Reanimated only) · `components/` (per-component `.state.ts` lives next to its `.tsx` when the component had local state)
 
@@ -123,7 +133,18 @@ Sub-screens (non-route drawers like `transactions/filter/`) follow the same anat
 
 Files: `snake_case`. TS identifiers: `camelCase`.
 
-**Store/state shape:** Both `.store.ts` and `.state.ts` Zustand stores wrap their values under a single `state: { ... }` object; setters and `reset` stay flat. Setters spread the previous state: `set((s) => ({ state: { ...s.state, x: v } }))`. `reset()` is `set({ state: INITIAL_STATE })`. Hooks return `{ state: { ...reactive values... }, ...flat actions }`; consumers destructure `state` and read fields via `state.x`.
+**Legacy Zustand store/state shape:** Existing `.store.ts` and `.state.ts` Zustand stores expose reactive values as top-level fields; actions stay as top-level functions. Setters spread the previous store: `set((s) => ({ ...s, x: v }))`. `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Consumers group reactive reads with `useStore(useShallow((s) => ({ x: s.x, y: s.y })))` and read actions outside render with `useStore.getState().action`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`; screen consumers destructure `state` and read fields via `state.x`.
+
+**Signals migration store/state shape:** New or migrated store/state code uses custom hooks with `@preact/signals-react`, not a Zustand compatibility adapter. Name hooks for their responsibility, such as `useOnboarding()`, `useAppReady()`, `useReadyScreenState()`, or `useClustersSetup()` only when "setup" is part of the feature language. Migrate small part by small part: helper hooks first, then one leaf UI state store, then one small screen state store, then one shared store. Do not sweep unrelated stores in the same change. Store/shared domain data uses module-level `signal(...)` singletons so multiple screens do not fork copies. Internal screen/component state uses `useSignal(...)` inside the hook. Keep writable signals private to the store/hook boundary; consumers read `.value` and mutate through returned flat actions. The Babel `@preact/signals-react-transform` plugin is installed, so do not add empty `useSignals()` calls just to enable render tracking. Use explicit Signals runtime helpers only for a specific behavior, such as `useSignalEffect`, `untracked`, `computed`, or `batch`. The hook owns `init` when initialization belongs to that state boundary and uses `useAsync(...)` plus `useInit(...)` for async operation state. Prefer `useAsync` loading/error refs over custom shared `isLoading`/`isError` store signals unless operation state must be global across multiple mounted consumers. Return signal refs under `state` and actions as flat functions. Consumers destructure directly:
+
+```tsx
+const { state, init, upsertClusters, deleteCluster, addClusterInput, setInputField } =
+  useClustersSetup();
+
+if (init.isLoading.value) return <Spinner />;
+```
+
+Read signal values intentionally with `.value`. Avoid `Promise.try()` in helpers until Hermes support is verified. For sync/async wrapping that must invoke the function immediately, use explicit `try`/`catch` around `fn(...args)` and then normalize the returned value with `Promise.resolve(result)`.
 
 ## Expo Dev Client (critical)
 

@@ -230,11 +230,16 @@ migration, enforce custom hooks named for their responsibility over a Zustand
 compatibility adapter. Do not default to `useXSetup()`; use names like
 `useOnboarding()`, `useAppReady()`, `useReadyScreenState()`, or
 `useClustersSetup()` only when "setup" is part of the feature language.
-Hook-local state uses `useSignal(...)`; app-wide/shared data uses module-level
-`signal(...)` singletons. Signals hooks call `useSignals()`/Signals hooks as
-needed so consumer `.value` reads are reactive. `init` belongs inside the hook
-when initialization belongs to that state boundary and uses `useAsync(...)` +
-`useInit(...)`. Consumers destructure directly:
+Store/shared domain data uses module-level `signal(...)` singletons; internal
+screen/component state uses `useSignal(...)` inside the hook. Keep writable
+signals private and mutate through returned flat actions. The Babel signals
+transform is installed, so do not add empty `useSignals()` calls for render
+tracking. Use explicit runtime helpers only for specific behavior
+(`useSignalEffect`, `untracked`, `computed`, `batch`). `init` belongs inside the
+hook when initialization belongs to that state boundary and uses `useAsync(...)`
+plus `useInit(...)`; prefer `useAsync` loading/error refs over custom shared store
+`isLoading`/`isError` signals unless operation state must be global. Consumers
+destructure directly:
 `const { state, init, ...actions } = useDomainHook()` and read signal refs with
 `.value`. Approve only small, independently testable migration slices. Inline
 only — to write a design doc or run a code review on disk, the user dispatches
@@ -268,7 +273,8 @@ clarifying questions BEFORE writing code if specs are ambiguous. Flag spec
 conflicts — don't silently resolve them. Always include: types, error
 handling, loading states, a11y props.
 
-**Constraints:** Follow AGENTS.md exactly (app/ rules, module screen anatomy,
+**Constraints:** Follow AGENTS.md exactly (app/ rules, module layout and screen
+anatomy: `database/`, `repository/`, `store/`, `screens/`; no `data/` folder,
 store/state shape, null vs undefined, theme tokens, strings, secure store keys,
 database layer rules). **HeroUI Native first (Team Law 7)** — read the component
 doc at `node_modules/heroui-native/src/components/<name>/<name>.md` before
@@ -276,11 +282,14 @@ building UI; use HeroUI `BottomSheet` (not `@gorhom` wrappers or
 `react-native-actions-sheet`); `className` for color/spacing/typography, `style`
 for layout-critical flex; tests logic-only (`.ts`). For migrated Signals state,
 use custom hooks named for their responsibility with `@preact/signals-react`:
-hook-local state uses `useSignal(...)`, app-wide/shared data uses module-level
-`signal(...)`, Signals hooks call `useSignals()`/Signals hooks as needed so
-consumer `.value` reads are reactive, `init` lives inside the hook when
-initialization belongs to that state boundary with `useAsync(...)` +
-`useInit(...)`, consumers destructure directly
+store/shared domain data uses module-level `signal(...)`, internal
+screen/component state uses `useSignal(...)`, writable signals stay private and
+mutate through flat actions, empty `useSignals()` calls are not needed because
+the Babel signals transform is installed, explicit runtime helpers are only for
+specific behavior, `init` lives inside the hook when initialization belongs to
+that state boundary with `useAsync(...)` + `useInit(...)`, `useAsync` loading/error
+refs are preferred over custom shared store `isLoading`/`isError` signals unless
+operation state must be global, consumers destructure directly
 (`const { state, init, ...actions } = useDomainHook()`), and read values with
 `.value`. Do not default to `useXSetup()`; use names like `useOnboarding()`,
 `useAppReady()`, `useReadyScreenState()`, or `useClustersSetup()` only when
