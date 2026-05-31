@@ -1,10 +1,10 @@
 import { act, renderHook } from '@testing-library/react-native';
 
-import { useAppReady } from '@/store/ready.store';
+import { useAppReadyStore } from '@/store/ready.store';
 
-describe('useAppReady', () => {
+describe('useAppReadyStore', () => {
   beforeEach(() => {
-    const { result, unmount } = renderHook(() => useAppReady());
+    const { result, unmount } = renderHook(() => useAppReadyStore());
     act(() => {
       result.current.reset();
     });
@@ -12,12 +12,12 @@ describe('useAppReady', () => {
   });
 
   it('initialises with ready = false', () => {
-    const { result } = renderHook(() => useAppReady());
+    const { result } = renderHook(() => useAppReadyStore());
     expect(result.current.state.ready.value).toBe(false);
   });
 
   it('markReady sets state.ready to true', () => {
-    const { result } = renderHook(() => useAppReady());
+    const { result } = renderHook(() => useAppReadyStore());
     act(() => {
       result.current.markReady();
     });
@@ -25,7 +25,7 @@ describe('useAppReady', () => {
   });
 
   it('reset sets state.ready to false', () => {
-    const { result } = renderHook(() => useAppReady());
+    const { result } = renderHook(() => useAppReadyStore());
     act(() => {
       result.current.markReady();
       result.current.reset();

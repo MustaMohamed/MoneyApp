@@ -1,6 +1,2 @@
 // Backward-compat stub — canonical in modules/onboarding/
-export {
-  loadOnboardingState,
-  OnboardingStore,
-  useOnboarding,
-} from '@/modules/onboarding/store/onboarding.store';
+export { OnboardingStore, useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';

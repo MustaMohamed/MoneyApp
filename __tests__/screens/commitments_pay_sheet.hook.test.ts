@@ -31,7 +31,10 @@ jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccountStore: jest.fn(),
+}));
 jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn(),
 }));
@@ -140,10 +143,16 @@ function setupStoreMocks() {
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: mockAccounts,
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
-  }));
+  jest.mocked(useAccountStore).mockReturnValue({
+    state: {
+      accounts: {
+        get value() {
+          return mockAccounts;
+        },
+      },
+    },
+    init: jest.fn().mockResolvedValue(undefined),
+  } as unknown as ReturnType<typeof useAccountStore>);
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
     rate: 55,
     isManualOverride: false,

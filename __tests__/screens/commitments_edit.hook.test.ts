@@ -15,7 +15,10 @@ jest.mock('expo-router', () => ({
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccountStore: jest.fn(),
+}));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock(
   '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state',
@@ -32,9 +35,11 @@ function setup() {
     updateCommitment: jest.fn().mockResolvedValue(undefined),
     deactivateCommitment: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
-  }));
+  jest
+    .mocked(useAccountStore)
+    .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
+      typeof useAccountStore
+    >);
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
   }));

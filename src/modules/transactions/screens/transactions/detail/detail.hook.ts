@@ -81,7 +81,10 @@ export function useTransactionDetail(id: string) {
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
-  const accounts = useAccountStore.useState.accounts();
+  const {
+    state: { accounts: accountsSignal },
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
 
   useEffect(() => {

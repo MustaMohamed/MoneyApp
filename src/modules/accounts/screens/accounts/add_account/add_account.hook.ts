@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
+import { useInit } from '@/utils/use_init.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAccountStore } from '../../../store/account.store';
@@ -27,12 +28,14 @@ export const ACCOUNT_COLORS = [
 
 export function useAddAccountApp() {
   const router = useRouter();
-  const accounts = useAccountStore.useState.accounts();
-  const addAccount = useAccountStore.getState().addAccount;
+  const {
+    state: { accounts: accountsSignal },
+    addAccount,
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
 
-  useEffect(() => {
-    void useAccountStore.getState().loadAccounts();
-  }, []);
+  useInit(init);
 
   const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 

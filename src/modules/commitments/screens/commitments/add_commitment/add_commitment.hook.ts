@@ -19,7 +19,10 @@ export type { CommitmentFormValues };
 export function useAddCommitment() {
   const router = useRouter();
 
-  const accounts = useAccountStore.useState.accounts();
+  const {
+    state: { accounts: accountsSignal },
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
   const addCommitment = useCommitmentStore.getState().addCommitment;
   const generatePayments = useCommitmentStore.getState().generatePayments;

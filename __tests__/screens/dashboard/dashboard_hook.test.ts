@@ -34,7 +34,10 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsForMonth: jest.fn().mockResolvedValue([]) },
 }));
 
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccountStore: jest.fn(),
+}));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
@@ -114,11 +117,12 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-  attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-    accounts,
-    hasLoaded: true,
-    loadAccounts: jest.fn(),
-  }));
+  (useAccountStore as jest.Mock).mockReturnValue({
+    state: {
+      accounts: { value: accounts },
+    },
+    init: jest.fn(),
+  });
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
     rate: 48.85,
     isManualOverride: false,
@@ -160,17 +164,18 @@ describe('useDashboard', () => {
     expect(result.current.state.selectedSegment).toBe('overview');
   });
 
-  it('exposes whether account data has loaded', () => {
-    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-      accounts: [],
-      hasLoaded: false,
-      loadAccounts: jest.fn(),
-    }));
+  it('does not expose a store-loaded sentinel', () => {
+    (useAccountStore as jest.Mock).mockReturnValue({
+      state: {
+        accounts: { value: [] },
+      },
+      init: jest.fn(),
+    });
 
     const { result } = renderHook(() => useDashboard());
 
-    expect(result.current.state.accountsLoaded).toBe(false);
+    expect(result.current.state.accounts).toEqual([]);
+    expect('accountsLoaded' in result.current.state).toBe(false);
   });
 
   it('setSelectedSegment updates state', () => {

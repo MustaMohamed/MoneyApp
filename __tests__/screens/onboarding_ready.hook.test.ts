@@ -4,18 +4,21 @@ import { Currency, OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
-import { OnboardingStore, useOnboarding } from '@/modules/onboarding/store/onboarding.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { OnboardingStore, useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 jest.mock('@/modules/onboarding/store/onboarding.store', () => {
   // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-return -- Jest requireActual is typed as any; this preserves the real class export while mocking the hook facade.
   const actual = jest.requireActual('@/modules/onboarding/store/onboarding.store');
   // oxlint-disable-next-line typescript/no-unsafe-return -- spreading requireActual preserves real exports in this Jest module factory.
-  return { ...actual, useOnboarding: jest.fn() };
+  return { ...actual, useOnboardingStore: jest.fn() };
 });
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccountStore: jest.fn(),
+}));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
+const mockInitAccounts = jest.fn().mockResolvedValue(undefined);
 
 const fakeAccounts = [
   { id: '1', current_balance: 5000, type: 'bank', opening_balance: 5000 },
@@ -43,11 +46,13 @@ function setup() {
       baseCurrency: Currency.EGP,
     }),
   });
-  jest.mocked(useOnboarding).mockReturnValue(store);
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- test helper adapts the mocked Zustand selector facade
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: fakeAccounts,
-  }));
+  jest.mocked(useOnboardingStore).mockReturnValue(store);
+  jest.mocked(useAccountStore).mockReturnValue({
+    state: {
+      accounts: { value: fakeAccounts },
+    },
+    init: mockInitAccounts,
+  } as unknown as ReturnType<typeof useAccountStore>);
 }
 
 describe('useReady', () => {
@@ -78,6 +83,12 @@ describe('useReady', () => {
     const balanceRow = result.current.state.rows.find((r) => r.label === Strings.o6TotalBalance);
     // 5000 + 200 = 5200 → formatted as "5,200 EGP"
     expect(balanceRow?.value).toContain('5,200');
+  });
+
+  it('initializes accounts for restart directly on the ready step', () => {
+    renderHook(() => useReady());
+
+    expect(mockInitAccounts).toHaveBeenCalledTimes(1);
   });
 
   it('completing defaults to false', () => {

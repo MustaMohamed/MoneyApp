@@ -15,10 +15,13 @@ export function useAccountDetail() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const accounts = useAccountStore.useState.accounts();
-  const updateAccount = useAccountStore.getState().updateAccount;
-  const archiveAccount = useAccountStore.getState().archiveAccount;
-  const adjustBalance = useAccountStore.getState().adjustBalance;
+  const {
+    state: { accounts: accountsSignal },
+    updateAccount,
+    archiveAccount,
+    adjustBalance,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
     useAccountDetailState(
       useShallow((s) => ({

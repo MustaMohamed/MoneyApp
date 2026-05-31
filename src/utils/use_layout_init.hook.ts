@@ -1,22 +1,28 @@
 import '@/utils/zod_config';
-import { useEffect } from 'react';
-
 import { getDb, runMigrations } from '@/database/client';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useCommitmentStore } from '@/store/commitment.store';
-import { loadOnboardingState } from '@/store/onboarding.store';
-import { useAppReady } from '@/store/ready.store';
+import { useAppReadyStore } from '@/store/ready.store';
+import { useInit } from '@/utils/use_init.hook';
 
 export function useAppInit() {
-  const { state, markReady, reset } = useAppReady();
+  const {
+    state: { ready },
+    markReady,
+    reset,
+  } = useAppReadyStore();
+  const { init: initAccounts } = useAccountStore();
+  const { init: initOnboarding } = useOnboardingStore();
 
-  useEffect(() => {
+  useInit(() => {
     let onboardingComplete = false;
 
-    void (async () => {
+    return (async () => {
       try {
         const db = await getDb();
         await runMigrations(db);
-        const onboarding = await loadOnboardingState();
+        const [onboarding] = await Promise.all([initOnboarding(), initAccounts()]);
         onboardingComplete = onboarding.complete;
         markReady();
       } catch (err) {
@@ -46,10 +52,10 @@ export function useAppInit() {
         });
       }
     })();
-  }, [markReady]);
+  });
 
   return {
-    state,
+    state: { ready },
     reset,
     markReady,
   } as const;

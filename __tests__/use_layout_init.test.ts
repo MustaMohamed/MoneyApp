@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { useAppReady } from '@/store/ready.store';
+import { useAppReadyStore } from '@/store/ready.store';
 import { useAppInit } from '@/utils/use_layout_init.hook';
 
 const mockGetDb = jest.fn<Promise<unknown>, []>().mockResolvedValue({});
@@ -8,6 +8,7 @@ const mockRunMigrations = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(
 const mockLoadOnboardingState = jest
   .fn<Promise<{ complete: boolean; step: string }>, []>()
   .mockResolvedValue({ complete: false, step: 'N1' });
+const mockInitAccounts = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
 const mockGeneratePayments = jest.fn().mockResolvedValue(undefined);
 const mockCheckAndDeactivateExpired = jest.fn().mockResolvedValue(undefined);
 
@@ -15,8 +16,15 @@ jest.mock('@/database/client', () => ({
   getDb: () => mockGetDb(),
   runMigrations: (db: unknown) => mockRunMigrations(db),
 }));
-jest.mock('@/store/onboarding.store', () => ({
-  loadOnboardingState: () => mockLoadOnboardingState(),
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
+  useOnboardingStore: () => ({
+    init: () => mockLoadOnboardingState(),
+  }),
+}));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  useAccountStore: () => ({
+    init: () => mockInitAccounts(),
+  }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: {
@@ -29,14 +37,14 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 jest.mock('@/utils/zod_config', () => {});
 
 function readReady() {
-  const { result, unmount } = renderHook(() => useAppReady());
+  const { result, unmount } = renderHook(() => useAppReadyStore());
   const value = result.current.state.ready.value;
   unmount();
   return value;
 }
 
 function resetReady() {
-  const { result, unmount } = renderHook(() => useAppReady());
+  const { result, unmount } = renderHook(() => useAppReadyStore());
   act(() => {
     result.current.reset();
   });
@@ -51,6 +59,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     resetReady();
     mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
+    mockInitAccounts.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

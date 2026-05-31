@@ -36,9 +36,9 @@ Component-local state uses hook-based stores with hook-created `useSignal(...)` 
 
 Names should describe responsibility, not use a fixed `Setup` suffix:
 
-- `useAppReady()` for global boot readiness.
+- `useAppReadyStore()` for global boot readiness.
 - `useAppInit()` for root startup effects.
-- `useOnboarding()` for onboarding shared data and actions.
+- `useOnboardingStore()` for onboarding shared data and actions.
 - `useReady()` for ready screen orchestration; completion loading comes from `useAsync(completeOnboarding)`.
 
 ## Compatibility
@@ -47,11 +47,11 @@ Backward-compat root exports may remain under `store/` while consumers are migra
 
 ## Data Flow
 
-`useAppInit()` runs DB migrations, loads onboarding persisted state through `loadOnboardingState()`, marks app readiness, and schedules commitment housekeeping for completed users. The readiness signal gates splash hiding in `app/_layout.tsx`.
+`useAppInit()` runs DB migrations, loads onboarding persisted state through `useOnboardingStore().init()`, initializes account data through `useAccountStore().init()`, marks app readiness, and schedules commitment housekeeping for completed users. The readiness signal gates splash hiding in `app/_layout.tsx`.
 
-`loadOnboardingState()` reads SecureStore values, normalizes legacy onboarding steps, writes normalized values back when needed, updates onboarding signals, and returns `{ complete, step }`.
+`OnboardingStore.init()` reads persisted onboarding values through the repository, normalizes legacy onboarding steps, writes normalized values back when needed, updates onboarding signals, and returns `{ complete, step }`.
 
-Onboarding screens read `state.baseCurrency.value`, `state.currentStep.value`, `state.complete.value`, and call flat actions such as `setStep`, `setBaseCurrency`, and `completeOnboarding`.
+Onboarding screens destructure the needed signal refs from store `state`, read them with `.value`, and call flat actions such as `setStep`, `setBaseCurrency`, and `completeOnboarding`.
 
 ## Testing
 

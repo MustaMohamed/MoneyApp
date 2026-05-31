@@ -1,15 +1,16 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import {
   createAddAccountSchema,
   type AddAccountFormData,
 } from '@/utils/schemas/add_account.schema';
+import { useInit } from '@/utils/use_init.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 // The 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4).
@@ -32,13 +33,18 @@ export const ACCOUNT_COLORS = [
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const accounts = useAccountStore.useState.accounts();
-  const addAccount = useAccountStore.getState().addAccount;
-  const { state, setStep } = useOnboarding();
+  const {
+    state: { accounts: accountsSignal },
+    addAccount,
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
+  const {
+    state: { baseCurrency },
+    setStep,
+  } = useOnboardingStore();
 
-  useEffect(() => {
-    void useAccountStore.getState().loadAccounts();
-  }, []);
+  useInit(init);
 
   const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 
@@ -50,7 +56,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AcctTokens.midnight.rich,
-      currency: state.baseCurrency.value,
+      currency: baseCurrency.value,
       interest_tracking: false,
       credit_limit: '',
       apr: '',

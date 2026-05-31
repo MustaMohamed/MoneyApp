@@ -1,10 +1,8 @@
-import { create } from 'zustand';
-
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import { signal, type Signal } from '@preact/signals-react';
 
 import type { Account } from '../entities/account.entity';
 import {
-  AccountRepository,
+  accountRepository,
   type IAccountRepository,
   type NewAccountInput,
   type UpdateAccountInput,
@@ -12,76 +10,90 @@ import {
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
-const INITIAL_STATE = { accounts: [] as Account[], hasLoaded: false };
+export const EMPTY_ACCOUNTS: Account[] = [];
+Object.freeze(EMPTY_ACCOUNTS);
+const INITIAL_ACCOUNTS = EMPTY_ACCOUNTS;
 
-type AccountStore = typeof INITIAL_STATE & {
-  loadAccounts: () => Promise<void>;
-  addAccount: (data: NewAccountInput) => Promise<Account>;
-  updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
-  archiveAccount: (id: string) => Promise<void>;
-  adjustBalance: (id: string, newBalance: number) => Promise<void>;
-  reset: () => void;
+type AccountSignalState = {
+  accounts: Signal<Account[]>;
 };
 
-export function createAccountStore(repo: IAccountRepository) {
-  return createMoneyAppSelectors(
-    create<AccountStore>((set, get) => ({
-      ...INITIAL_STATE,
+export class AccountStore {
+  readonly state: AccountSignalState = {
+    accounts: signal(INITIAL_ACCOUNTS),
+  };
 
-      loadAccounts: async () => {
-        try {
-          const accounts = await repo.getAll();
-          set((s) => ({ ...s, accounts, hasLoaded: true }));
-        } catch (err) {
-          console.error('[accountStore] loadAccounts failed:', err);
-          throw err;
-        }
-      },
+  private loadRequestId = 0;
 
-      addAccount: async (data) => {
-        try {
-          const account = await repo.add(data);
-          await get().loadAccounts();
-          return account;
-        } catch (err) {
-          console.error('[accountStore] addAccount failed:', err);
-          throw err;
-        }
-      },
+  constructor(private readonly repository: IAccountRepository = accountRepository) {}
 
-      updateAccount: async (id, data) => {
-        try {
-          await repo.update(id, data);
-          await get().loadAccounts();
-        } catch (err) {
-          console.error('[accountStore] updateAccount failed:', err);
-          throw err;
-        }
-      },
+  init = async (): Promise<void> => {
+    await this.syncAccounts();
+  };
 
-      archiveAccount: async (id) => {
-        try {
-          await repo.archive(id);
-          await get().loadAccounts();
-        } catch (err) {
-          console.error('[accountStore] archiveAccount failed:', err);
-          throw err;
-        }
-      },
+  private syncAccounts = async (): Promise<void> => {
+    const requestId = ++this.loadRequestId;
 
-      adjustBalance: async (id, newBalance) => {
-        try {
-          await repo.adjustBalance(id, newBalance);
-          await get().loadAccounts();
-        } catch (err) {
-          console.error('[accountStore] adjustBalance failed:', err);
-          throw err;
-        }
-      },
+    try {
+      const accounts = await this.repository.getAll();
+      if (requestId === this.loadRequestId) {
+        this.state.accounts.value = accounts;
+      }
+    } catch (err) {
+      console.error('[accountStore] init failed:', err);
+      throw err;
+    }
+  };
 
-      reset: () => set(INITIAL_STATE),
-    })),
-  );
+  addAccount = async (data: NewAccountInput): Promise<Account> => {
+    try {
+      const account = await this.repository.add(data);
+      await this.syncAccounts();
+      return account;
+    } catch (err) {
+      console.error('[accountStore] addAccount failed:', err);
+      throw err;
+    }
+  };
+
+  updateAccount = async (id: string, data: UpdateAccountInput): Promise<void> => {
+    try {
+      await this.repository.update(id, data);
+      await this.syncAccounts();
+    } catch (err) {
+      console.error('[accountStore] updateAccount failed:', err);
+      throw err;
+    }
+  };
+
+  archiveAccount = async (id: string): Promise<void> => {
+    try {
+      await this.repository.archive(id);
+      await this.syncAccounts();
+    } catch (err) {
+      console.error('[accountStore] archiveAccount failed:', err);
+      throw err;
+    }
+  };
+
+  adjustBalance = async (id: string, newBalance: number): Promise<void> => {
+    try {
+      await this.repository.adjustBalance(id, newBalance);
+      await this.syncAccounts();
+    } catch (err) {
+      console.error('[accountStore] adjustBalance failed:', err);
+      throw err;
+    }
+  };
+
+  reset = () => {
+    this.loadRequestId += 1;
+    this.state.accounts.value = INITIAL_ACCOUNTS;
+  };
 }
 
-export const useAccountStore = createAccountStore(new AccountRepository());
+const accountsStore = new AccountStore(accountRepository);
+
+export function useAccountStore(): AccountStore {
+  return accountsStore;
+}

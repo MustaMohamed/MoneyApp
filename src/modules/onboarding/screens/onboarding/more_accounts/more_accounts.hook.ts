@@ -3,20 +3,24 @@ import { useCallback, useRef } from 'react';
 
 import { OnboardingStep } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 export function useMoreAccounts() {
   const router = useRouter();
-  const accounts = useAccountStore.useState.accounts();
-  const { setStep } = useOnboarding();
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
+  const { setStep } = useOnboardingStore();
 
   const initialCountRef = useRef<number>(accounts.length);
   const initialCount = initialCountRef.current;
 
   useFocusEffect(
     useCallback(() => {
-      void useAccountStore.getState().loadAccounts();
-    }, []),
+      void init();
+    }, [init]),
   );
 
   const handleAddAnother = () => {

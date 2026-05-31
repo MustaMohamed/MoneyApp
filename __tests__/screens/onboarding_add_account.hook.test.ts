@@ -4,7 +4,6 @@ import { AccountType } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({})),
@@ -12,11 +11,10 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/utils/onboarding_nav', () => ({ backOrReplace: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
-  useAccountStore: Object.assign(jest.fn(), {
-    getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
-  }),
+  EMPTY_ACCOUNTS: [],
+  useAccountStore: jest.fn(),
 }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockAddAccount = jest.fn().mockResolvedValue(undefined);
@@ -29,13 +27,15 @@ function setup(isAddingMore = false) {
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush, back: jest.fn(), replace: jest.fn() });
   (require('@/utils/onboarding_nav').backOrReplace as jest.Mock) = mockBackOrReplace;
 
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
+  (useAccountStore as jest.Mock).mockReturnValue({
+    state: {
+      accounts: { value: [] },
+    },
     addAccount: mockAddAccount,
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
-  }));
-  const { useOnboarding } = require('@/modules/onboarding/store/onboarding.store');
-  (useOnboarding as jest.Mock).mockReturnValue({
+    init: jest.fn().mockResolvedValue(undefined),
+  });
+  const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
+  (useOnboardingStore as jest.Mock).mockReturnValue({
     state: {
       baseCurrency: { value: 'EGP' },
     },

@@ -54,8 +54,11 @@ export function usePaySheet(
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const reset = usePaySheetState.getState().reset;
 
-  const accounts = useAccountStore.useState.accounts();
-  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   // Currency store gives the timestamp of the last stored exchange-rate
   // update — ExchangeRateRow (V2) reads this to render the "Rate may be
   // stale" warning when the stored rate is older than the staleness
@@ -157,7 +160,7 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      await loadAccounts();
+      await init();
       await loadPaymentsForMonth(selectedMonth);
       setVisible(false);
       reset();

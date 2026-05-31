@@ -1,7 +1,7 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
+import { AccountStore, EMPTY_ACCOUNTS } from '@/modules/accounts/store/account.store';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
-import { createAccountStore } from '@/store/account.store';
 
 const mockAccount: Account = {
   id: 'test-id',
@@ -49,125 +49,153 @@ function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountReposito
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, resolve, reject };
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe('accountStore.loadAccounts', () => {
-  it('starts unloaded so screens do not show empty states before account data settles', () => {
+describe('accountStore.init', () => {
+  it('starts with an empty account list', () => {
     const repo = makeRepo();
-    const store = createAccountStore(repo);
+    const store = new AccountStore(repo);
 
-    expect(store.getState().hasLoaded).toBe(false);
-  });
-
-  it('marks accounts loaded after repo data settles', async () => {
-    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
-    const store = createAccountStore(repo);
-
-    await store.getState().loadAccounts();
-
-    expect(store.getState().hasLoaded).toBe(true);
+    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
-    const store = createAccountStore(repo);
-    await store.getState().loadAccounts();
+    const store = new AccountStore(repo);
+    await store.init();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.state.accounts.value).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.getAll', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db error')) });
-    const store = createAccountStore(repo);
-    await expect(store.getState().loadAccounts()).rejects.toThrow('db error');
+    const store = new AccountStore(repo);
+    await expect(store.init()).rejects.toThrow('db error');
+  });
+
+  it('does not let an older load overwrite a newer load result', async () => {
+    const firstLoad = deferred<Account[]>();
+    const secondLoad = deferred<Account[]>();
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockReturnValueOnce(firstLoad.promise)
+        .mockReturnValueOnce(secondLoad.promise),
+    });
+    const store = new AccountStore(repo);
+
+    const firstRequest = store.init();
+    const secondRequest = store.init();
+
+    const newerAccount = { ...mockAccount, id: 'newer' };
+    secondLoad.resolve([newerAccount]);
+    await secondRequest;
+    expect(store.state.accounts.value).toEqual([newerAccount]);
+
+    const olderAccount = { ...mockAccount, id: 'older' };
+    firstLoad.resolve([olderAccount]);
+    await firstRequest;
+
+    expect(store.state.accounts.value).toEqual([newerAccount]);
   });
 });
 
 describe('accountStore.addAccount', () => {
   it('delegates to repo.add with the provided input', async () => {
     const repo = makeRepo();
-    const store = createAccountStore(repo);
-    const result = await store.getState().addAccount(baseInput);
+    const store = new AccountStore(repo);
+    const result = await store.addAccount(baseInput);
     expect(repo.add).toHaveBeenCalledWith(baseInput);
     expect(result).toEqual(mockAccount);
   });
 
   it('reloads accounts state after adding', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
-    const store = createAccountStore(repo);
-    await store.getState().addAccount(baseInput);
+    const store = new AccountStore(repo);
+    await store.addAccount(baseInput);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.state.accounts.value).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.add', async () => {
     const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('insert failed')) });
-    const store = createAccountStore(repo);
-    await expect(store.getState().addAccount(baseInput)).rejects.toThrow('insert failed');
+    const store = new AccountStore(repo);
+    await expect(store.addAccount(baseInput)).rejects.toThrow('insert failed');
   });
 });
 
 describe('accountStore.updateAccount', () => {
   it('delegates to repo.update with id and data', async () => {
     const repo = makeRepo();
-    const store = createAccountStore(repo);
-    await store.getState().updateAccount('test-id', { name: 'New Name', color: '#C9973A' });
+    const store = new AccountStore(repo);
+    await store.updateAccount('test-id', { name: 'New Name', color: '#C9973A' });
     expect(repo.update).toHaveBeenCalledWith('test-id', { name: 'New Name', color: '#C9973A' });
   });
 
   it('reloads accounts after updating', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
-    const store = createAccountStore(repo);
-    await store.getState().updateAccount('test-id', { name: 'New Name', color: null });
+    const store = new AccountStore(repo);
+    await store.updateAccount('test-id', { name: 'New Name', color: null });
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.getState().accounts).toEqual([mockAccount]);
+    expect(store.state.accounts.value).toEqual([mockAccount]);
   });
 
   it('propagates errors from repo.update', async () => {
     const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update failed')) });
-    const store = createAccountStore(repo);
-    await expect(
-      store.getState().updateAccount('test-id', { name: 'x', color: null }),
-    ).rejects.toThrow('update failed');
+    const store = new AccountStore(repo);
+    await expect(store.updateAccount('test-id', { name: 'x', color: null })).rejects.toThrow(
+      'update failed',
+    );
   });
 });
 
 describe('accountStore.archiveAccount', () => {
   it('delegates to repo.archive with the account id', async () => {
     const repo = makeRepo();
-    const store = createAccountStore(repo);
-    await store.getState().archiveAccount('test-id');
+    const store = new AccountStore(repo);
+    await store.archiveAccount('test-id');
     expect(repo.archive).toHaveBeenCalledWith('test-id');
   });
 
   it('reloads accounts after archiving', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
-    const store = createAccountStore(repo);
-    await store.getState().archiveAccount('test-id');
+    const store = new AccountStore(repo);
+    await store.archiveAccount('test-id');
     expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
 
   it('propagates errors from repo.archive', async () => {
     const repo = makeRepo({ archive: jest.fn().mockRejectedValue(new Error('archive failed')) });
-    const store = createAccountStore(repo);
-    await expect(store.getState().archiveAccount('test-id')).rejects.toThrow('archive failed');
+    const store = new AccountStore(repo);
+    await expect(store.archiveAccount('test-id')).rejects.toThrow('archive failed');
   });
 });
 
 describe('accountStore.adjustBalance', () => {
   it('delegates to repo.adjustBalance with id and balance', async () => {
     const repo = makeRepo();
-    const store = createAccountStore(repo);
-    await store.getState().adjustBalance('test-id', 9999);
+    const store = new AccountStore(repo);
+    await store.adjustBalance('test-id', 9999);
     expect(repo.adjustBalance).toHaveBeenCalledWith('test-id', 9999);
   });
 
   it('reloads accounts after adjusting', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
-    const store = createAccountStore(repo);
-    await store.getState().adjustBalance('test-id', 9999);
+    const store = new AccountStore(repo);
+    await store.adjustBalance('test-id', 9999);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
 
@@ -175,22 +203,42 @@ describe('accountStore.adjustBalance', () => {
     const repo = makeRepo({
       adjustBalance: jest.fn().mockRejectedValue(new Error('db error')),
     });
-    const store = createAccountStore(repo);
-    await expect(store.getState().adjustBalance('test-id', 0)).rejects.toThrow('db error');
+    const store = new AccountStore(repo);
+    await expect(store.adjustBalance('test-id', 0)).rejects.toThrow('db error');
   });
 });
 
 describe('accountStore.reset', () => {
-  it('restores INITIAL_STATE', async () => {
+  it('restores the empty account list', async () => {
     const repo = makeRepo({
-      getAll: jest.fn().mockResolvedValue([{ id: 'a1' } as Account]),
+      getAll: jest.fn().mockResolvedValue([{ ...mockAccount, id: 'a1' }]),
     });
-    const useStore = createAccountStore(repo);
-    await useStore.getState().loadAccounts();
-    expect(useStore.getState().accounts).toHaveLength(1);
+    const store = new AccountStore(repo);
+    await store.init();
+    expect(store.state.accounts.value).toHaveLength(1);
 
-    useStore.getState().reset();
+    store.reset();
 
-    expect(useStore.getState()).toMatchObject({ accounts: [], hasLoaded: false });
+    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
+  });
+
+  it('prevents pending loads from writing after reset', async () => {
+    const load = deferred<Account[]>();
+    const repo = makeRepo({ getAll: jest.fn().mockReturnValueOnce(load.promise) });
+    const store = new AccountStore(repo);
+
+    const request = store.init();
+    store.reset();
+
+    load.resolve([mockAccount]);
+    await request;
+
+    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
+  });
+});
+
+describe('EMPTY_ACCOUNTS', () => {
+  it('is immutable', () => {
+    expect(Object.isFrozen(EMPTY_ACCOUNTS)).toBe(true);
   });
 });

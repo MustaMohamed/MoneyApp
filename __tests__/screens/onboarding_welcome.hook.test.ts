@@ -6,15 +6,15 @@ import { useWelcome } from '@/modules/onboarding/screens/onboarding/welcome/welc
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
 }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 
 const mockSetBaseCurrency = jest.fn().mockResolvedValue(undefined);
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockPush = jest.fn();
 
 function setup(baseCurrency: Currency = Currency.EGP) {
-  const { useOnboarding } = require('@/modules/onboarding/store/onboarding.store');
-  (useOnboarding as jest.Mock).mockReturnValue({
+  const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
+  (useOnboardingStore as jest.Mock).mockReturnValue({
     state: {
       baseCurrency: { value: baseCurrency },
     },

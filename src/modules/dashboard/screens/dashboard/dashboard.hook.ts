@@ -27,13 +27,11 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const { accounts, accountsLoaded } = useAccountStore(
-    useShallow((s) => ({
-      accounts: s.accounts,
-      accountsLoaded: s.hasLoaded,
-    })),
-  );
-  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const { rate, isManualOverride } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -130,11 +128,11 @@ export function useDashboard() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadAccounts(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
+      await Promise.all([init(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadAccounts, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
+  }, [init, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
 
   const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
@@ -207,7 +205,6 @@ export function useDashboard() {
   return {
     state: {
       accounts,
-      accountsLoaded,
       rate,
       isManualOverride,
       netWorth,

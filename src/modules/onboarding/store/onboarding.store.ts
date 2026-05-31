@@ -58,7 +58,7 @@ export class OnboardingStore {
     }
   };
 
-  load = async (): Promise<{
+  init = async (): Promise<{
     complete: boolean;
     step: OnboardingStep;
   }> => {
@@ -87,13 +87,6 @@ export class OnboardingStore {
 
 const onboardingStore = new OnboardingStore(onboardingRepository);
 
-export function useOnboarding(): OnboardingStore {
+export function useOnboardingStore(): OnboardingStore {
   return onboardingStore;
-}
-
-export function loadOnboardingState(): Promise<{
-  complete: boolean;
-  step: OnboardingStep;
-}> {
-  return onboardingStore.load();
 }

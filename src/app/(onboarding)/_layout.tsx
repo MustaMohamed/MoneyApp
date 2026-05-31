@@ -1,7 +1,7 @@
 import { Redirect, Stack } from 'expo-router';
 
 import { Colors } from '@/constants/theme';
-import { useOnboarding } from '@/store/onboarding.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 export type OnboardingStackParams = {
   welcome: undefined;
@@ -11,8 +11,10 @@ export type OnboardingStackParams = {
 };
 
 export default function OnboardingLayout() {
-  const { state } = useOnboarding();
-  if (state.complete.value) return <Redirect href="/dashboard" />;
+  const {
+    state: { complete },
+  } = useOnboardingStore();
+  if (complete.value) return <Redirect href="/dashboard" />;
 
   return (
     <Stack

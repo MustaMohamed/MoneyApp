@@ -226,12 +226,13 @@ oxlint/oxfmt, tests = logic-only. Defer financial logic to [layla]; defer UX to
 [marcus]. When [marcus] proposes something technically expensive, propose
 alternatives — don't just say no. Default to boring, proven tech. Follow
 AGENTS.md project structure rules strictly. For the Zustand-to-Signals
-migration, enforce custom hooks named for their responsibility over a Zustand
-compatibility adapter. Do not default to `useXSetup()`; use names like
-`useOnboarding()`, `useAppReady()`, `useReadyScreenState()`, or
-`useClustersSetup()` only when "setup" is part of the feature language.
-Shared/global domain stores use small class-based stores that own their `signal(...)` refs and dependencies; internal
-screen/component state uses hook-based stores with `useSignal(...)` inside the hook. Keep writable
+Signals migration, enforce Signals stores over Zustand compatibility adapters.
+Shared/global domain stores use small class-based stores that own their
+`signal(...)` refs and dependencies, exposed through a `useXStore()` facade such
+as `useAccountStore()`, `useOnboardingStore()`, or `useAppReadyStore()`.
+Internal screen/component state uses hook-based stores with `useSignal(...)`
+inside the hook and responsibility names such as `useReadyScreenState()` or
+`useClustersSetup()` only when "setup" is part of the feature language. Keep writable
 signals private and mutate through returned flat actions. The Babel signals
 transform is installed, so do not add empty `useSignals()` calls for render
 tracking. Use explicit runtime helpers only for specific behavior
@@ -291,9 +292,10 @@ that state boundary with `useAsync(...)` + `useInit(...)`, `useAsync` loading/er
 refs are preferred over custom shared store `isLoading`/`isError` signals unless
 operation state must be global, consumers destructure directly
 (`const { state, init, ...actions } = useDomainHook()`), and read values with
-`.value`. Do not default to `useXSetup()`; use names like `useOnboarding()`,
-`useAppReady()`, `useReadyScreenState()`, or `useClustersSetup()` only when
-"setup" is part of the feature language. Migrate one small slice at a time;
+`.value`. Shared/global domain stores use `useXStore()` facade names, while
+internal screen/component state uses responsibility hook names such as
+`useReadyScreenState()` or `useClustersSetup()` only when "setup" is part of the
+feature language. Migrate one small slice at a time;
 never batch unrelated store migrations. Bare workflow via `expo-dev-client`. Test on Android first. Inline
 only — to write code or run tests on disk, the user dispatches `@dev`.
 

@@ -1,6 +1,6 @@
 import { Currency, OnboardingStep } from '@/constants/enums';
 import type { IOnboardingRepository } from '@/modules/onboarding/repositories/onboarding.repository';
-import { OnboardingStore, useOnboarding } from '@/store/onboarding.store';
+import { OnboardingStore, useOnboardingStore } from '@/store/onboarding.store';
 
 function makeRepo(): jest.Mocked<IOnboardingRepository> {
   return {
@@ -76,9 +76,9 @@ describe('onboardingStore — error branches', () => {
   });
 });
 
-describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
+describe('onboardingStore.init — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
-    const result = await store.load();
+    const result = await store.init();
     const { state } = store;
     expect(result).toEqual({ complete: false, step: OnboardingStep.N1 });
     expect(state.complete.value).toBe(false);
@@ -93,7 +93,7 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
       baseCurrency: Currency.USD,
     });
 
-    const result = await store.load();
+    const result = await store.init();
     const { state } = store;
     expect(result).toEqual({ complete: false, step: OnboardingStep.N2 });
     expect(state.complete.value).toBe(false);
@@ -107,12 +107,12 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
       step: OnboardingStep.N4,
       baseCurrency: Currency.EGP,
     });
-    const result = await store.load();
+    const result = await store.init();
     expect(result.complete).toBe(true);
   });
 
   it('applies the repository-loaded fallback values', async () => {
-    const result = await store.load();
+    const result = await store.init();
     const { state } = store;
     expect(result.step).toBe(OnboardingStep.N1);
     expect(state.currentStep.value).toBe(OnboardingStep.N1);
@@ -120,8 +120,8 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   });
 });
 
-describe('useOnboarding', () => {
+describe('useOnboardingStore', () => {
   it('returns the shared app singleton', () => {
-    expect(useOnboarding()).toBe(useOnboarding());
+    expect(useOnboardingStore()).toBe(useOnboardingStore());
   });
 });
