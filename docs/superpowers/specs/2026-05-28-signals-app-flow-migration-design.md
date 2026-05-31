@@ -19,28 +19,27 @@ The migration runs as two small parts with disjoint ownership:
    - `app/index.tsx`
    - `app/(onboarding)/_layout.tsx`
    - onboarding screen hooks
-   - `modules/onboarding/screens/onboarding/ready/ready.state.ts`
    - onboarding tests that directly depend on the old Zustand API
 
 `app/(app)/_layout.tsx` stays out of this wave because it still depends on account, category, and currency stores. It should become Signals-only when those data stores are migrated.
 
 ## Architecture
 
-Shared app/domain data uses module-level `signal(...)` singletons and hook facades that call `useSignals()` so component reads are reactive. The returned shape stays consistent:
+Shared app/domain data uses small class-based stores that own their `signal(...)` refs and persistence dependencies, then export one singleton through a `useX()` facade. The Babel `@preact/signals-react-transform` plugin handles render tracking, so hook facades should not add empty `useSignals()` calls. The returned shape stays consistent:
 
 ```ts
 const { state, action } = useDomain();
 state.valueSignal.value;
 ```
 
-Component-local state uses hook-created `useSignal(...)` values. Actions remain flat on the returned object.
+Component-local state uses hook-based stores with hook-created `useSignal(...)` values. Async operation state uses `useAsync(...)` loading/error signal refs instead of custom loading booleans unless that operation state must be global. Actions remain flat on the returned object.
 
 Names should describe responsibility, not use a fixed `Setup` suffix:
 
 - `useAppReady()` for global boot readiness.
 - `useAppInit()` for root startup effects.
 - `useOnboarding()` for onboarding shared data and actions.
-- `useReadyScreenState()` for ready screen component state.
+- `useReady()` for ready screen orchestration; completion loading comes from `useAsync(completeOnboarding)`.
 
 ## Compatibility
 

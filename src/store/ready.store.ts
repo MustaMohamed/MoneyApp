@@ -1,24 +1,23 @@
 import { signal } from '@preact/signals-react';
-import { useCallback } from 'react';
 
 const INITIAL_READY = false;
 
-const ready = signal(INITIAL_READY);
-
-export function useAppReady() {
-  const reset = useCallback(() => {
-    ready.value = INITIAL_READY;
-  }, []);
-
-  const markReady = useCallback(() => {
-    ready.value = true;
-  }, []);
-
-  return {
-    state: {
-      ready,
-    },
-    markReady,
-    reset,
+export class AppReadyStore {
+  readonly state = {
+    ready: signal(INITIAL_READY),
   };
+
+  markReady = () => {
+    this.state.ready.value = true;
+  };
+
+  reset = () => {
+    this.state.ready.value = INITIAL_READY;
+  };
+}
+
+const appReadyStore = new AppReadyStore();
+
+export function useAppReady(): AppReadyStore {
+  return appReadyStore;
 }

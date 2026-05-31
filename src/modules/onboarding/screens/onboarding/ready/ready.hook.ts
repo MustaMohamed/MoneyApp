@@ -1,18 +1,17 @@
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
+import { useAsync } from '@/utils/use_async.hook';
 
 import { computeTotalBalance } from './ready.helpers';
-import { useReadyScreenState } from './ready.state';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
   const { state: onboardingState, completeOnboarding } = useOnboarding();
   const accounts = useAccountStore.useState.accounts();
-  const { state: readyState, setCompleting } = useReadyScreenState();
+  const complete = useAsync(completeOnboarding);
   const baseCurrency = onboardingState.baseCurrency.value;
-  const completing = readyState.completing.value;
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -37,17 +36,12 @@ export function useReady() {
   ];
 
   const handleComplete = async () => {
-    if (completing) return;
-    setCompleting(true);
-    try {
-      await completeOnboarding();
-    } finally {
-      setCompleting(false);
-    }
+    if (complete.isLoading.value) return;
+    await complete();
   };
 
   return {
-    state: { rows, completing },
+    state: { rows, completing: complete.isLoading },
     handleComplete,
   };
 }

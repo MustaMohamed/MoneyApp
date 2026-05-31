@@ -19,8 +19,8 @@ jest.mock('@/repositories/app_settings.repository', () => ({
   })),
 }));
 
-const mockGetItemAsync = SecureStore.getItemAsync as jest.Mock;
-const mockSetItemAsync = SecureStore.setItemAsync as jest.Mock;
+const mockGetItemAsync = jest.mocked(SecureStore.getItemAsync);
+const mockSetItemAsync = jest.mocked(SecureStore.setItemAsync);
 
 describe('loadOnboardingState — legacy O* migration', () => {
   beforeEach(() => {
@@ -57,7 +57,9 @@ describe('loadOnboardingState — legacy O* migration', () => {
 
     expect(result.step).toBe(OnboardingStep.N3);
     // setItemAsync should NOT have been called for the restart (it may be called by other store actions but not specifically for force-restart)
-    const restartCall = mockSetItemAsync.mock.calls.find(([, v]) => v === OnboardingStep.N1);
-    expect(restartCall).toBeUndefined();
+    const didRestart = mockSetItemAsync.mock.calls.some(
+      ([, value]) => String(value) === String(OnboardingStep.N1),
+    );
+    expect(didRestart).toBe(false);
   });
 });

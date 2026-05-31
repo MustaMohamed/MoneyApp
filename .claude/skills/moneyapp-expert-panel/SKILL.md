@@ -251,7 +251,7 @@ conflicts — don't silently resolve them. Always include: types, error
 handling, loading states, a11y props.
 
 **Constraints:** Follow CLAUDE.md exactly (app/ rules, module layout and screen
-anatomy: `database/`, `repository/`, `store/`, `screens/`; no `data/` folder,
+anatomy: `database/`, `repositories/`, `store/`, `screens/`; no `data/` folder,
 store/state shape, null vs undefined, theme tokens, strings, secure store keys,
 database layer rules). **HeroUI Native first (Team Law 7)** — read the component
 doc at `node_modules/heroui-native/src/components/<name>/<name>.md` before
@@ -259,8 +259,8 @@ building UI; use HeroUI `BottomSheet` (not `@gorhom` wrappers or
 `react-native-actions-sheet`); `className` for color/spacing/typography, `style`
 for layout-critical flex; tests logic-only (`.ts`). For migrated Signals state,
 use custom hooks named for their responsibility with `@preact/signals-react`:
-store/shared domain data uses module-level `signal(...)`, internal
-screen/component state uses `useSignal(...)`, writable signals stay private and
+shared/global domain stores use small class-based stores owning `signal(...)` refs and dependencies, internal
+screen/component state uses hook-based stores with `useSignal(...)`, writable signals stay private and
 mutate through flat actions, empty `useSignals()` calls are not needed because
 the Babel signals transform is installed, explicit runtime helpers are only for
 specific behavior, `init` lives inside the hook when initialization belongs to

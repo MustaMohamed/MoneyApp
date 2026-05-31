@@ -15,8 +15,10 @@ import { useReadyAnim } from './ready.anim';
 import { useReady } from './ready.hook';
 
 export default function ReadyScreen() {
-  const { state, handleComplete } = useReady();
-  const { rows, completing } = state;
+  const {
+    state: { rows, completing },
+    handleComplete,
+  } = useReady();
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering } =
     useReadyAnim();
 
@@ -77,7 +79,7 @@ export default function ReadyScreen() {
             onPress={() => {
               void handleComplete();
             }}
-            isDisabled={completing}
+            isDisabled={completing.value}
           />
         </Animated.View>
       </Box>

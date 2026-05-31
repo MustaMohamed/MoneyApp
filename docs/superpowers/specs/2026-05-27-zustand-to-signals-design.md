@@ -77,7 +77,7 @@ const {
   setInputField,
 } = useClustersSetup();
 
-if (state.isLoading.value) {
+if (init.isLoading.value) {
   return <Spinner />;
 }
 
@@ -168,7 +168,7 @@ export function useAccountsSetup() {
 }
 ```
 
-Shared data must not be created with `useSignal` inside a hook. Doing that would create separate data copies for each caller.
+Shared/global data must not be created with `useSignal` inside a hook. Use a small class-based store that owns `signal(...)` refs and export one singleton through a hook facade. Creating shared data with hook-local `useSignal` would create separate data copies for each caller.
 
 ## Helper Hooks
 
@@ -177,23 +177,37 @@ Add signal helper hooks before migrating stores. These helpers establish the app
 ```ts
 import { type Signal, useSignal } from '@preact/signals-react';
 
-export function useAsync<T extends (...args: Parameters<T>) => ReturnType<T>>(
-  fn: T,
-): T & { isLoading: Signal<boolean>; isError: Signal<boolean> } {
+type AsyncStatus = {
+  isLoading: Signal<boolean>;
+  isError: Signal<boolean>;
+};
+
+// oxlint-disable-next-line typescript/no-explicit-any -- generic function wrapper must preserve arbitrary callable parameters
+type AnyFn = (...args: any[]) => unknown;
+
+type AsyncFn<T extends AnyFn> = ((...args: Parameters<T>) => Promise<Awaited<ReturnType<T>>>) &
+  AsyncStatus;
+
+export function useAsync<T extends AnyFn>(fn: T): AsyncFn<T> {
   const isLoading = useSignal(false);
   const isError = useSignal(false);
+  const pendingCalls = useSignal(0);
 
-  // TS cannot unify the augmented intersection with T's generic call signature.
   const asyncFn = (async (...args: Parameters<T>) => {
-    isLoading.value = true;
+    pendingCalls.value += 1;
     isError.value = false;
+
+    if (pendingCalls.value > 0) {
+      isLoading.value = true;
+    }
 
     let result: ReturnType<T>;
     try {
-      result = fn(...args);
+      result = fn(...args) as ReturnType<T>;
     } catch (e: unknown) {
       isError.value = true;
-      isLoading.value = false;
+      pendingCalls.value = Math.max(0, pendingCalls.value - 1);
+      isLoading.value = pendingCalls.value > 0;
       throw e;
     }
 
@@ -203,9 +217,10 @@ export function useAsync<T extends (...args: Parameters<T>) => ReturnType<T>>(
         throw e;
       })
       .finally(() => {
-        isLoading.value = false;
+        pendingCalls.value = Math.max(0, pendingCalls.value - 1);
+        isLoading.value = pendingCalls.value > 0;
       });
-  }) as T & { isLoading: Signal<boolean>; isError: Signal<boolean> };
+  }) as AsyncFn<T>;
 
   asyncFn.isLoading = isLoading;
   asyncFn.isError = isError;
