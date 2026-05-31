@@ -4,7 +4,7 @@ import { AccountType, CategoryType, Currency, TransactionType } from '@/constant
 // AccountType.Cash does not exist in the enum; PhysicalWallet is a non-CC
 // asset type that satisfies all "non-credit-card" rules in the schema.
 import type { Account } from '@/database/entities/account.entity';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
@@ -71,7 +71,7 @@ const mockCategoryIncome = {
 };
 
 beforeEach(() => {
-  const accountsStore = useAccounts();
+  const accountsStore = useAccountStore();
   accountsStore.reset();
   accountsStore.state.accounts.value = [
     mockAccountEGP,
@@ -243,7 +243,7 @@ describe('useAddTransaction — cross-currency math', () => {
 
   it('transfer USD → USD: rate required (for egp_amount); to_amount = amount', async () => {
     const mockAccountUSD2 = { ...mockAccountUSD, id: 'a5', name: 'USD Wallet' };
-    const accountsStore = useAccounts();
+    const accountsStore = useAccountStore();
     accountsStore.state.accounts.value = [
       ...(accountsStore.state.accounts.value ?? []),
       mockAccountUSD2,

@@ -1,6 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { useAppReady } from '@/store/ready.store';
+import { useAppReadyStore } from '@/store/ready.store';
 import { useAppInit } from '@/utils/use_layout_init.hook';
 
 const mockGetDb = jest.fn<Promise<unknown>, []>().mockResolvedValue({});
@@ -16,7 +16,9 @@ jest.mock('@/database/client', () => ({
   runMigrations: (db: unknown) => mockRunMigrations(db),
 }));
 jest.mock('@/store/onboarding.store', () => ({
-  loadOnboardingState: () => mockLoadOnboardingState(),
+  useOnboardingStore: () => ({
+    load: () => mockLoadOnboardingState(),
+  }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: {
@@ -29,14 +31,14 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 jest.mock('@/utils/zod_config', () => {});
 
 function readReady() {
-  const { result, unmount } = renderHook(() => useAppReady());
+  const { result, unmount } = renderHook(() => useAppReadyStore());
   const value = result.current.state.ready.value;
   unmount();
   return value;
 }
 
 function resetReady() {
-  const { result, unmount } = renderHook(() => useAppReady());
+  const { result, unmount } = renderHook(() => useAppReadyStore());
   act(() => {
     result.current.reset();
   });

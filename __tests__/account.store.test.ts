@@ -1,7 +1,7 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
-import { AccountStore } from '@/store/account.store';
+import { AccountStore, EMPTY_ACCOUNTS } from '@/store/account.store';
 
 const mockAccount: Account = {
   id: 'test-id',
@@ -49,6 +49,17 @@ function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountReposito
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+
+  return { promise, resolve, reject };
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -73,6 +84,32 @@ describe('accountStore.loadAccounts', () => {
     const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db error')) });
     const store = new AccountStore(repo);
     await expect(store.loadAccounts()).rejects.toThrow('db error');
+  });
+
+  it('does not let an older load overwrite a newer load result', async () => {
+    const firstLoad = deferred<Account[]>();
+    const secondLoad = deferred<Account[]>();
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockReturnValueOnce(firstLoad.promise)
+        .mockReturnValueOnce(secondLoad.promise),
+    });
+    const store = new AccountStore(repo);
+
+    const firstRequest = store.loadAccounts();
+    const secondRequest = store.loadAccounts();
+
+    const newerAccount = { ...mockAccount, id: 'newer' };
+    secondLoad.resolve([newerAccount]);
+    await secondRequest;
+    expect(store.state.accounts.value).toEqual([newerAccount]);
+
+    const olderAccount = { ...mockAccount, id: 'older' };
+    firstLoad.resolve([olderAccount]);
+    await firstRequest;
+
+    expect(store.state.accounts.value).toEqual([newerAccount]);
   });
 });
 
@@ -183,5 +220,25 @@ describe('accountStore.reset', () => {
     store.reset();
 
     expect(store.state.accounts.value).toBeUndefined();
+  });
+
+  it('prevents pending loads from writing after reset', async () => {
+    const load = deferred<Account[]>();
+    const repo = makeRepo({ getAll: jest.fn().mockReturnValueOnce(load.promise) });
+    const store = new AccountStore(repo);
+
+    const request = store.loadAccounts();
+    store.reset();
+
+    load.resolve([mockAccount]);
+    await request;
+
+    expect(store.state.accounts.value).toBeUndefined();
+  });
+});
+
+describe('EMPTY_ACCOUNTS', () => {
+  it('is immutable', () => {
+    expect(Object.isFrozen(EMPTY_ACCOUNTS)).toBe(true);
   });
 });

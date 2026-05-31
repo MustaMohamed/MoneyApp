@@ -12,6 +12,7 @@ export type { Account, NewAccountInput, UpdateAccountInput };
 
 const INITIAL_ACCOUNTS: Account[] | undefined = undefined;
 export const EMPTY_ACCOUNTS: Account[] = [];
+Object.freeze(EMPTY_ACCOUNTS);
 
 type AccountSignalState = {
   accounts: Signal<Account[] | undefined>;
@@ -22,12 +23,18 @@ export class AccountStore {
     accounts: signal(INITIAL_ACCOUNTS),
   };
 
+  private loadRequestId = 0;
+
   constructor(private readonly repository: IAccountRepository = new AccountRepository()) {}
 
   loadAccounts = async (): Promise<void> => {
+    const requestId = ++this.loadRequestId;
+
     try {
       const accounts = await this.repository.getAll();
-      this.state.accounts.value = accounts;
+      if (requestId === this.loadRequestId) {
+        this.state.accounts.value = accounts;
+      }
     } catch (err) {
       console.error('[accountStore] loadAccounts failed:', err);
       throw err;
@@ -76,12 +83,13 @@ export class AccountStore {
   };
 
   reset = () => {
+    this.loadRequestId += 1;
     this.state.accounts.value = INITIAL_ACCOUNTS;
   };
 }
 
 const accountsStore = new AccountStore(new AccountRepository());
 
-export function useAccounts(): AccountStore {
+export function useAccountStore(): AccountStore {
   return accountsStore;
 }

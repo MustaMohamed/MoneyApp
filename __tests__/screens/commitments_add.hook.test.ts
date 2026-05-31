@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
@@ -16,7 +16,7 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitment.state', () => ({
@@ -31,9 +31,9 @@ function setup() {
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
   jest
-    .mocked(useAccounts)
+    .mocked(useAccountStore)
     .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
-      typeof useAccounts
+      typeof useAccountStore
     >);
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],

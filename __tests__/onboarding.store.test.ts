@@ -1,6 +1,6 @@
 import { Currency, OnboardingStep } from '@/constants/enums';
 import type { IOnboardingRepository } from '@/modules/onboarding/repositories/onboarding.repository';
-import { OnboardingStore, useOnboarding } from '@/store/onboarding.store';
+import { OnboardingStore, useOnboardingStore } from '@/store/onboarding.store';
 
 function makeRepo(): jest.Mocked<IOnboardingRepository> {
   return {
@@ -76,7 +76,7 @@ describe('onboardingStore — error branches', () => {
   });
 });
 
-describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
+describe('onboardingStore.load — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await store.load();
     const { state } = store;
@@ -120,8 +120,8 @@ describe('loadOnboardingState — TC-02 / TC-03 resume', () => {
   });
 });
 
-describe('useOnboarding', () => {
+describe('useOnboardingStore', () => {
   it('returns the shared app singleton', () => {
-    expect(useOnboarding()).toBe(useOnboarding());
+    expect(useOnboardingStore()).toBe(useOnboardingStore());
   });
 });

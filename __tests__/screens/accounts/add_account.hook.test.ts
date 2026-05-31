@@ -4,18 +4,18 @@ import {
   useAddAccountApp,
   ACCOUNT_COLORS,
 } from '@/modules/accounts/screens/accounts/add_account/add_account.hook';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
 
 function setup() {
-  (useAccounts as jest.Mock).mockReturnValue({
+  (useAccountStore as jest.Mock).mockReturnValue({
     state: {
       accounts: { value: [] },
     },

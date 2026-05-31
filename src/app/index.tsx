@@ -1,7 +1,7 @@
 import { type Href, Redirect } from 'expo-router';
 
 import { type OnboardingStep } from '@/constants/enums';
-import { useOnboarding } from '@/store/onboarding.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
 
 const STEP_HREF: Record<OnboardingStep, Href> = {
   N1: '/(onboarding)/welcome',
@@ -11,7 +11,7 @@ const STEP_HREF: Record<OnboardingStep, Href> = {
 };
 
 export default function Index() {
-  const { state } = useOnboarding();
+  const { state } = useOnboardingStore();
   if (state.complete.value) return <Redirect href="/dashboard" />;
   return <Redirect href={STEP_HREF[state.currentStep.value]} />;
 }

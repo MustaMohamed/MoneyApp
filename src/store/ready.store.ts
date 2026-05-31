@@ -18,6 +18,6 @@ export class AppReadyStore {
 
 const appReadyStore = new AppReadyStore();
 
-export function useAppReady(): AppReadyStore {
+export function useAppReadyStore(): AppReadyStore {
   return appReadyStore;
 }

@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
@@ -17,7 +17,7 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock(
@@ -36,9 +36,9 @@ function setup() {
     deactivateCommitment: jest.fn().mockResolvedValue(undefined),
   }));
   jest
-    .mocked(useAccounts)
+    .mocked(useAccountStore)
     .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
-      typeof useAccounts
+      typeof useAccountStore
     >);
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],

@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react-native';
 
 import { AccountType } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
 
 jest.mock('expo-router', () => ({
@@ -12,9 +12,9 @@ jest.mock('expo-router', () => ({
 jest.mock('@/utils/onboarding_nav', () => ({ backOrReplace: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockAddAccount = jest.fn().mockResolvedValue(undefined);
@@ -27,15 +27,15 @@ function setup(isAddingMore = false) {
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush, back: jest.fn(), replace: jest.fn() });
   (require('@/utils/onboarding_nav').backOrReplace as jest.Mock) = mockBackOrReplace;
 
-  (useAccounts as jest.Mock).mockReturnValue({
+  (useAccountStore as jest.Mock).mockReturnValue({
     state: {
       accounts: { value: [] },
     },
     addAccount: mockAddAccount,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   });
-  const { useOnboarding } = require('@/modules/onboarding/store/onboarding.store');
-  (useOnboarding as jest.Mock).mockReturnValue({
+  const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
+  (useOnboardingStore as jest.Mock).mockReturnValue({
     state: {
       baseCurrency: { value: 'EGP' },
     },

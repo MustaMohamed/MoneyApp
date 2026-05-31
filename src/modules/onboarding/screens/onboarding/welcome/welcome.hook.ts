@@ -2,10 +2,10 @@ import { useSignal } from '@preact/signals-react';
 import { useRouter } from 'expo-router';
 
 import { Currency, OnboardingStep } from '@/constants/enums';
-import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 export function useWelcome() {
-  const { state, setBaseCurrency, setStep } = useOnboarding();
+  const { state, setBaseCurrency, setStep } = useOnboardingStore();
   const router = useRouter();
   const selected = useSignal<Currency>(state.baseCurrency.value);
 

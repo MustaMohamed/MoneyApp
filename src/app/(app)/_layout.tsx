@@ -2,12 +2,12 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 
 import { Colors } from '@/constants/theme';
-import { useAccounts } from '@/store/account.store';
+import { useAccountStore } from '@/store/account.store';
 import { useCategoryStore } from '@/store/category.store';
 import { useCurrencyStore } from '@/store/currency.store';
 
 export default function AppLayout() {
-  const { loadAccounts } = useAccounts();
+  const { loadAccounts } = useAccountStore();
   const loadCategories = useCategoryStore.getState().loadCategories;
   const loadRate = useCurrencyStore.getState().loadRate;
   const fetchRate = useCurrencyStore.getState().fetchRate;

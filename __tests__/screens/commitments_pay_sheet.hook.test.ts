@@ -18,7 +18,7 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.hook';
@@ -33,7 +33,7 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn(),
@@ -143,7 +143,7 @@ function setupStoreMocks() {
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
-  jest.mocked(useAccounts).mockReturnValue({
+  jest.mocked(useAccountStore).mockReturnValue({
     state: {
       accounts: {
         get value() {
@@ -152,7 +152,7 @@ function setupStoreMocks() {
       },
     },
     loadAccounts: jest.fn().mockResolvedValue(undefined),
-  } as unknown as ReturnType<typeof useAccounts>);
+  } as unknown as ReturnType<typeof useAccountStore>);
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
     rate: 55,
     isManualOverride: false,

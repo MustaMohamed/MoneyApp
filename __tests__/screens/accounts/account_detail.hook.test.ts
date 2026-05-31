@@ -2,7 +2,7 @@ import { renderHook } from '@testing-library/react-native';
 
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: <T>(selector: T) => selector }));
@@ -13,14 +13,14 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
   return { useAccountDetailState: jest.fn() };
 });
 
 function setup() {
-  (useAccounts as jest.Mock).mockReturnValue({
+  (useAccountStore as jest.Mock).mockReturnValue({
     state: {
       accounts: { value: [] },
     },

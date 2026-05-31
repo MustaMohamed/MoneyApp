@@ -36,7 +36,7 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
 
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
-  useAccounts: jest.fn(),
+  useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -49,7 +49,7 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
   useDashboardState: jest.fn(),
 }));
 
-const { useAccounts } = jest.requireMock('@/modules/accounts/store/account.store');
+const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
 const { useCurrencyStore } = jest.requireMock('@/modules/currency/store/currency.store');
 const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
 const { commitmentRepository } = jest.requireMock(
@@ -117,7 +117,7 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-  (useAccounts as jest.Mock).mockReturnValue({
+  (useAccountStore as jest.Mock).mockReturnValue({
     state: {
       accounts: { value: accounts },
     },
@@ -165,7 +165,7 @@ describe('useDashboard', () => {
   });
 
   it('exposes whether account data has loaded', () => {
-    (useAccounts as jest.Mock).mockReturnValue({
+    (useAccountStore as jest.Mock).mockReturnValue({
       state: {
         accounts: { value: undefined },
       },

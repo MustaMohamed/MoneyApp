@@ -23,19 +23,19 @@ The Babel `@preact/signals-react-transform` plugin handles render tracking, so d
 - Test: `__tests__/use_layout_init.test.ts`
 
 - [ ] Replace `store/ready.store.ts` Zustand store with Signals.
-  - Export `useAppReady()`.
+  - Export `useAppReadyStore()`.
   - Return `{ state: { ready }, markReady, reset }`.
   - Use a module-level `ready = signal(false)`.
   - Provide test helper behavior without `.getState()` / `.setState()`.
 
 - [ ] Update `utils/use_layout_init.hook.ts`.
   - Rename exported hook to `useAppInit()`.
-  - Use `const { markReady } = useAppReady()`.
-  - Keep startup behavior unchanged: run migrations, call `loadOnboardingState()`, mark ready on success or degraded failure, then schedule commitment housekeeping only when onboarding is complete.
+  - Use `const { markReady } = useAppReadyStore()`.
+  - Keep startup behavior unchanged: run migrations, call `useOnboardingStore().load()`, mark ready on success or degraded failure, then schedule commitment housekeeping only when onboarding is complete.
   - Keep `useLayoutInit` as a temporary alias only if needed by existing imports during this workstream.
 
 - [ ] Update `app/_layout.tsx`.
-  - Read app readiness through `useAppReady()`.
+  - Read app readiness through `useAppReadyStore()`.
   - Call `useAppInit()`.
   - Use `state.ready.value` when deciding to hide the splash and render the root stack.
 
@@ -64,23 +64,23 @@ The Babel `@preact/signals-react-transform` plugin handles render tracking, so d
 - Test: onboarding-related Jest tests that reference the old Zustand API.
 
 - [ ] Replace `modules/onboarding/store/onboarding.store.ts` Zustand store with Signals.
-  - Export `OnboardingStore` plus `useOnboarding()`.
+  - Export `OnboardingStore` plus `useOnboardingStore()`.
   - Return `{ state: { complete, currentStep, baseCurrency }, setStep, setBaseCurrency, completeOnboarding }`.
   - Keep persistence behind `modules/onboarding/repositories/onboarding.repository.ts`.
   - Do not keep a store factory or `__*ForTests` helpers just for tests; mock the repository module and use the public store API.
-  - Keep `loadOnboardingState()` and update signals directly instead of calling `.setState()`.
+  - Keep `OnboardingStore.load()` and update signals directly instead of calling `.setState()`.
   - Expose a normal `reset` action only if the store needs local state reset parity with existing stores.
 
 - [ ] Update root compatibility export `store/onboarding.store.ts`.
-  - Re-export `useOnboarding`, `loadOnboardingState`, and any explicit test helpers.
+  - Re-export `useOnboardingStore` and any explicit test helpers.
   - Do not re-export old Zustand APIs.
 
 - [ ] Update root routing and onboarding layout.
-  - `app/index.tsx`: remove `useShallow`, call `useOnboarding()`, read `state.complete.value` and `state.currentStep.value`.
-  - `app/(onboarding)/_layout.tsx`: call `useOnboarding()`, read `state.complete.value`.
+  - `app/index.tsx`: remove `useShallow`, call `useOnboardingStore()`, read `state.complete.value` and `state.currentStep.value`.
+  - `app/(onboarding)/_layout.tsx`: call `useOnboardingStore()`, read `state.complete.value`.
 
 - [ ] Update onboarding screen hooks.
-  - `welcome.hook.ts`: replace `useOnboardingStore` with `useOnboarding`.
+  - `welcome.hook.ts`: call `useOnboardingStore()` for shared onboarding data/actions.
   - `add_account.hook.ts`: replace onboarding reads/actions only; leave account store as Zustand for now.
   - `more_accounts.hook.ts`: replace onboarding actions only; leave account store as Zustand for now.
   - `ready.hook.ts`: replace onboarding reads/actions only; leave account store as Zustand for now.

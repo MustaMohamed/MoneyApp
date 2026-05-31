@@ -1,6 +1,6 @@
 import { Strings } from '@/constants/strings';
-import { EMPTY_ACCOUNTS, useAccounts } from '@/modules/accounts/store/account.store';
-import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
+import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useAsync } from '@/utils/use_async.hook';
 
 import { computeTotalBalance } from './ready.helpers';
@@ -8,9 +8,9 @@ import { computeTotalBalance } from './ready.helpers';
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
-  const { state: onboardingState, completeOnboarding } = useOnboarding();
+  const { state: onboardingState, completeOnboarding } = useOnboardingStore();
   const complete = useAsync(completeOnboarding);
-  const { state: accountsState } = useAccounts();
+  const { state: accountsState } = useAccountStore();
   const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const baseCurrency = onboardingState.baseCurrency.value;
 

@@ -3,11 +3,12 @@ import { useEffect } from 'react';
 
 import { getDb, runMigrations } from '@/database/client';
 import { useCommitmentStore } from '@/store/commitment.store';
-import { loadOnboardingState } from '@/store/onboarding.store';
-import { useAppReady } from '@/store/ready.store';
+import { useOnboardingStore } from '@/store/onboarding.store';
+import { useAppReadyStore } from '@/store/ready.store';
 
 export function useAppInit() {
-  const { state, markReady, reset } = useAppReady();
+  const { state, markReady, reset } = useAppReadyStore();
+  const { load } = useOnboardingStore();
 
   useEffect(() => {
     let onboardingComplete = false;
@@ -16,7 +17,7 @@ export function useAppInit() {
       try {
         const db = await getDb();
         await runMigrations(db);
-        const onboarding = await loadOnboardingState();
+        const onboarding = await load();
         onboardingComplete = onboarding.complete;
         markReady();
       } catch (err) {
@@ -46,7 +47,7 @@ export function useAppInit() {
         });
       }
     })();
-  }, [markReady]);
+  }, [load, markReady]);
 
   return {
     state,
