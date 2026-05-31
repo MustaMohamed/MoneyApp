@@ -11,7 +11,10 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ back: jest.fn() }),
   useNavigation: () => ({ addListener: jest.fn(() => jest.fn()) }),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccounts: jest.fn(),
+}));
 jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () => {
   return { useAccountDetailState: jest.fn() };
 });

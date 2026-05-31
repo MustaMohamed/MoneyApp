@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { EMPTY_ACCOUNTS, useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals, type PeriodTotals } from '@/modules/transactions/database/transactions';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
@@ -51,7 +51,7 @@ export function useTransactions() {
   const refresh = useTransactionStore.getState().refresh;
 
   const { state: accountsState } = useAccounts();
-  const accounts = accountsState.accounts.value;
+  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const categories = useCategoryStore.useState.categories();
 
   const openFilter = useFilterState.getState().open;

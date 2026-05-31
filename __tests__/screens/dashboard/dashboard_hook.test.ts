@@ -34,7 +34,10 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsForMonth: jest.fn().mockResolvedValue([]) },
 }));
 
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccounts: jest.fn(),
+}));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
@@ -117,7 +120,6 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
   (useAccounts as jest.Mock).mockReturnValue({
     state: {
       accounts: { value: accounts },
-      hasLoaded: { value: true },
     },
     loadAccounts: jest.fn(),
   });
@@ -165,8 +167,7 @@ describe('useDashboard', () => {
   it('exposes whether account data has loaded', () => {
     (useAccounts as jest.Mock).mockReturnValue({
       state: {
-        accounts: { value: [] },
-        hasLoaded: { value: false },
+        accounts: { value: undefined },
       },
       loadAccounts: jest.fn(),
     });

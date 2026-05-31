@@ -12,7 +12,10 @@ jest.mock('@/modules/onboarding/store/onboarding.store', () => {
   // oxlint-disable-next-line typescript/no-unsafe-return -- spreading requireActual preserves real exports in this Jest module factory.
   return { ...actual, useOnboarding: jest.fn() };
 });
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccounts: jest.fn(),
+}));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
 

@@ -11,6 +11,7 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('@/utils/onboarding_nav', () => ({ backOrReplace: jest.fn() }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
   useAccounts: jest.fn(),
 }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));

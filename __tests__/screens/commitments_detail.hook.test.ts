@@ -36,7 +36,10 @@ jest.mock('expo-router', () => ({
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccounts: jest.fn(),
+}));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsByCommitment: jest.fn().mockResolvedValue([]) },

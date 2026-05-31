@@ -23,16 +23,18 @@ The module store remains the source of truth. `modules/accounts/store/account.st
 
 ```ts
 const { state, loadAccounts, addAccount } = useAccounts();
-const accounts = state.accounts.value;
+const accounts = state.accounts.value ?? [];
 ```
 
 The root `store/account.store.ts` remains a compatibility re-export only. It must not create a second account state instance.
 
 The branch does not keep a Zustand-shaped `useAccountStore` adapter. Existing consumers in this PR scope move to `useAccounts()` directly. The Babel Signals transform handles render tracking, so no empty `useSignals()` calls are needed.
 
+The store does not expose a separate loading or loaded flag. Unresolved account data is represented by `state.accounts.value === undefined`; consumers that need render readiness derive it locally, and consumers that only need a list coerce with `state.accounts.value ?? []`.
+
 ## Data Flow
 
-`loadAccounts()` reads from `AccountRepository.getAll()` and updates `state.accounts.value` plus `state.hasLoaded.value` inside `batch(...)`.
+`loadAccounts()` reads from `AccountRepository.getAll()` and updates `state.accounts.value`.
 
 Mutating actions delegate to the repository and then call `loadAccounts()`:
 
@@ -41,7 +43,7 @@ Mutating actions delegate to the repository and then call `loadAccounts()`:
 - `archiveAccount(id)`
 - `adjustBalance(id, newBalance)`
 
-`reset()` restores `accounts = []` and `hasLoaded = false` inside `batch(...)`.
+`reset()` restores `accounts = undefined`.
 
 ## Testing
 

@@ -9,6 +9,7 @@ jest.mock('expo-router', () => ({
   useFocusEffect: jest.fn(),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
   useAccounts: jest.fn(),
 }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));

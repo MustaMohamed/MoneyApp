@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { EMPTY_ACCOUNTS, useAccounts } from '@/modules/accounts/store/account.store';
 import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import {
@@ -33,7 +33,7 @@ export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
   const { state: accountsState, addAccount, loadAccounts } = useAccounts();
-  const accounts = accountsState.accounts.value;
+  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const { state, setStep } = useOnboarding();
 
   useEffect(() => {

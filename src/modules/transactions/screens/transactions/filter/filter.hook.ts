@@ -2,7 +2,7 @@ import { useCallback, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Currency } from '@/constants/enums';
-import { useAccounts } from '@/modules/accounts/store/account.store';
+import { EMPTY_ACCOUNTS, useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 import { useTransactionsScreenStore } from '../transactions.store';
@@ -28,7 +28,7 @@ export function useFilterSheet() {
   const setAmountMax = useFilterStore.getState().setAmountMax;
   const setAmountCurrency = useFilterStore.getState().setAmountCurrency;
   const { state: accountsState } = useAccounts();
-  const accounts = accountsState.accounts.value;
+  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
   const categories = useCategoryStore.useState.categories();
   const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
   const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;

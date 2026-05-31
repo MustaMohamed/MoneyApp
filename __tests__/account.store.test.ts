@@ -54,20 +54,11 @@ beforeEach(() => {
 });
 
 describe('accountStore.loadAccounts', () => {
-  it('starts unloaded so screens do not show empty states before account data settles', () => {
+  it('starts with unresolved account data', () => {
     const repo = makeRepo();
     const store = createAccountStore(repo);
 
-    expect(store.state.hasLoaded.value).toBe(false);
-  });
-
-  it('marks accounts loaded after repo data settles', async () => {
-    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
-    const store = createAccountStore(repo);
-
-    await store.loadAccounts();
-
-    expect(store.state.hasLoaded.value).toBe(true);
+    expect(store.state.accounts.value).toBeUndefined();
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
@@ -191,7 +182,6 @@ describe('accountStore.reset', () => {
 
     store.reset();
 
-    expect(store.state.accounts.value).toEqual([]);
-    expect(store.state.hasLoaded.value).toBe(false);
+    expect(store.state.accounts.value).toBeUndefined();
   });
 });

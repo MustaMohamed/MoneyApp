@@ -31,7 +31,10 @@ jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  EMPTY_ACCOUNTS: [],
+  useAccounts: jest.fn(),
+}));
 jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn(),
 }));

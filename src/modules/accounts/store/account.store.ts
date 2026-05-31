@@ -1,4 +1,4 @@
-import { batch, signal, type Signal } from '@preact/signals-react';
+import { signal, type Signal } from '@preact/signals-react';
 
 import type { Account } from '../entities/account.entity';
 import {
@@ -10,17 +10,16 @@ import {
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
-const INITIAL_STATE = { accounts: [] as Account[], hasLoaded: false };
+const INITIAL_STATE = { accounts: undefined as Account[] | undefined };
+export const EMPTY_ACCOUNTS: Account[] = [];
 
 type AccountSignalState = {
-  accounts: Signal<Account[]>;
-  hasLoaded: Signal<boolean>;
+  accounts: Signal<Account[] | undefined>;
 };
 
 function createAccountSignals(): AccountSignalState {
   return {
     accounts: signal(INITIAL_STATE.accounts),
-    hasLoaded: signal(INITIAL_STATE.hasLoaded),
   };
 }
 
@@ -37,10 +36,7 @@ export class AccountStore {
   loadAccounts = async (): Promise<void> => {
     try {
       const accounts = await this.repository.getAll();
-      batch(() => {
-        this.state.accounts.value = accounts;
-        this.state.hasLoaded.value = true;
-      });
+      this.state.accounts.value = accounts;
     } catch (err) {
       console.error('[accountStore] loadAccounts failed:', err);
       throw err;
@@ -89,10 +85,7 @@ export class AccountStore {
   };
 
   reset = () => {
-    batch(() => {
-      this.state.accounts.value = INITIAL_STATE.accounts;
-      this.state.hasLoaded.value = INITIAL_STATE.hasLoaded;
-    });
+    this.state.accounts.value = INITIAL_STATE.accounts;
   };
 }
 

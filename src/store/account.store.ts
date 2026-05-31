@@ -2,6 +2,7 @@
 export {
   AccountStore,
   createAccountStore,
+  EMPTY_ACCOUNTS,
   useAccounts,
 } from '@/modules/accounts/store/account.store';
 export type {
