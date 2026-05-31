@@ -20,6 +20,7 @@
 - `src/repositories/`: moved from `repositories/`; compatibility repositories plus shared app settings repository.
 - `src/screens/`: moved from `screens/`; legacy/dev screens.
 - `src/store/`: moved from `store/`; compatibility stores and global stores.
+- `src/test_helpers/`: moved from `test_helpers/`; test support imported through `@/...`.
 - `src/utils/`: moved from `utils/`; shared hooks, schemas, helpers.
 - Root config/docs: `tsconfig.json`, `jest.config.js`, `scripts/generate-typed-routes.js`, `AGENTS.md`.
 
@@ -191,6 +192,22 @@ git mv utils src/utils
 
 Expected: `git status --short` shows renames under `src/utils`.
 
+### Task 9A: Move Imported Test Helpers Folder
+
+**Files:**
+- Move: `test_helpers/` -> `src/test_helpers/`
+
+- [ ] **Step 1: Move the folder**
+
+Run:
+
+```bash
+mkdir -p src
+git mv test_helpers src/test_helpers
+```
+
+Expected: `git status --short` shows renames under `src/test_helpers`.
+
 ## Central Integration Tasks
 
 Run these after the folder-move workers have landed.
@@ -339,7 +356,7 @@ Change `app/ rules (critical)` to `src/app/ rules (critical)` and keep the one-l
 Run:
 
 ```bash
-test ! -d app && test ! -d modules && test ! -d components && test ! -d constants && test ! -d database && test ! -d repositories && test ! -d screens && test ! -d store && test ! -d utils
+test ! -d app && test ! -d modules && test ! -d components && test ! -d constants && test ! -d database && test ! -d repositories && test ! -d screens && test ! -d store && test ! -d test_helpers && test ! -d utils
 ```
 
 Expected: exit 0.
@@ -349,7 +366,7 @@ Expected: exit 0.
 Run:
 
 ```bash
-test -d src/app && test -d src/modules && test -d src/components && test -d src/constants && test -d src/database && test -d src/repositories && test -d src/screens && test -d src/store && test -d src/utils
+test -d src/app && test -d src/modules && test -d src/components && test -d src/constants && test -d src/database && test -d src/repositories && test -d src/screens && test -d src/store && test -d src/test_helpers && test -d src/utils
 ```
 
 Expected: exit 0.

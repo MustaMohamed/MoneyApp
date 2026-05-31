@@ -35,6 +35,7 @@ src/
   repositories/
   screens/
   store/
+  test_helpers/
   utils/
 ```
 
@@ -59,7 +60,7 @@ expo-env.d.ts
 uniwind.d.ts
 ```
 
-If a top-level application folder is discovered during implementation and is not listed above, treat it as in-scope only if it contains imported app code. Keep purely tooling or generated folders at root.
+If a top-level application folder is discovered during implementation and is not listed above, treat it as in-scope only if it contains code imported through `@/...`. Keep purely tooling or generated folders at root.
 
 ## Routing
 
