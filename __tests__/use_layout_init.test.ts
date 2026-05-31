@@ -1,33 +1,22 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { useLayoutInit } from '@/utils/use_layout_init.hook';
+import { useAppReady } from '@/store/ready.store';
+import { useAppInit } from '@/utils/use_layout_init.hook';
 
-const mockGetDb = jest.fn().mockResolvedValue({});
-const mockRunMigrations = jest.fn().mockResolvedValue(undefined);
-const mockLoadOnboardingState = jest.fn().mockResolvedValue({ complete: false, step: 'N1' });
-const mockSetReady = jest.fn();
-const mockUseReadyActionSelector = jest.fn(() => mockSetReady);
+const mockGetDb = jest.fn<Promise<unknown>, []>().mockResolvedValue({});
+const mockRunMigrations = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(undefined);
+const mockLoadOnboardingState = jest
+  .fn<Promise<{ complete: boolean; step: string }>, []>()
+  .mockResolvedValue({ complete: false, step: 'N1' });
 const mockGeneratePayments = jest.fn().mockResolvedValue(undefined);
 const mockCheckAndDeactivateExpired = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('@/database/client', () => ({
   getDb: () => mockGetDb(),
-  runMigrations: (...args: unknown[]) => mockRunMigrations(...args),
+  runMigrations: (db: unknown) => mockRunMigrations(db),
 }));
 jest.mock('@/store/onboarding.store', () => ({
   loadOnboardingState: () => mockLoadOnboardingState(),
-}));
-jest.mock('@/store/ready.store', () => ({
-  useReadyStore: Object.assign(
-    jest.fn((sel: (s: { ready: boolean; setReady: jest.Mock }) => unknown) =>
-      sel({ ready: false, setReady: mockSetReady }),
-    ),
-    {
-      use: { setReady: () => mockUseReadyActionSelector() },
-      useState: { ready: () => false },
-      getState: () => ({ ready: false, setReady: mockSetReady }),
-    },
-  ),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: {
@@ -37,19 +26,41 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
     }),
   },
 }));
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: unknown) => sel }));
 jest.mock('@/utils/zod_config', () => {});
 
-describe('useLayoutInit — splash gate does not await commitment calls', () => {
+function readReady() {
+  const { result, unmount } = renderHook(() => useAppReady());
+  const value = result.current.state.ready.value;
+  unmount();
+  return value;
+}
+
+function resetReady() {
+  const { result, unmount } = renderHook(() => useAppReady());
+  act(() => {
+    result.current.reset();
+  });
+  unmount();
+}
+
+describe('useAppInit - splash gate does not await commitment calls', () => {
+  let consoleWarnSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    resetReady();
     mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
   });
 
-  it('calls setReady(true) without awaiting commitment calls', async () => {
-    // Onboarding complete so housekeeping is scheduled
+  afterEach(() => {
+    consoleWarnSpy.mockRestore();
+  });
+
+  it('marks ready without awaiting commitment calls', async () => {
+    // Onboarding complete so housekeeping is scheduled.
     mockLoadOnboardingState.mockResolvedValue({ complete: true, step: 'N4' });
-    // generatePayments never resolves — if setReady awaits it, the test will time out
+    // generatePayments never resolves; if readiness awaits it, the test will time out.
     let releaseGenerate: (() => void) | undefined;
     mockGeneratePayments.mockImplementation(
       () =>
@@ -58,36 +69,37 @@ describe('useLayoutInit — splash gate does not await commitment calls', () => 
         }),
     );
 
-    renderHook(() => useLayoutInit());
+    renderHook(() => useAppInit());
 
-    // Drain only the awaited promise chain (NOT the queueMicrotask housekeeping)
+    // Drain only the awaited promise chain, not the queueMicrotask housekeeping.
     await act(async () => {
       await Promise.resolve();
       await Promise.resolve();
       await Promise.resolve();
     });
 
-    expect(mockSetReady).toHaveBeenCalledWith(true);
+    expect(readReady()).toBe(true);
     // Cleanup: release the held promise so jest can exit cleanly, then restore
     // the default implementation so subsequent tests are not affected.
     releaseGenerate?.();
     mockGeneratePayments.mockResolvedValue(undefined);
   });
 
-  it('reads the ready action without subscribing during layout initialization', async () => {
-    renderHook(() => useLayoutInit());
+  it('marks app readiness through the Signals app-ready API', async () => {
+    expect(readReady()).toBe(false);
+
+    renderHook(() => useAppInit());
 
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
-    expect(mockUseReadyActionSelector).not.toHaveBeenCalled();
-    expect(mockSetReady).toHaveBeenCalledWith(true);
+    expect(readReady()).toBe(true);
   });
 
   it('does not schedule housekeeping when onboarding is not complete', async () => {
     mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
-    renderHook(() => useLayoutInit());
+    renderHook(() => useAppInit());
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
@@ -97,7 +109,7 @@ describe('useLayoutInit — splash gate does not await commitment calls', () => 
 
   it('schedules housekeeping when onboarding is complete', async () => {
     mockLoadOnboardingState.mockResolvedValue({ complete: true, step: 'N4' });
-    renderHook(() => useLayoutInit());
+    renderHook(() => useAppInit());
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
@@ -105,12 +117,12 @@ describe('useLayoutInit — splash gate does not await commitment calls', () => 
     expect(mockCheckAndDeactivateExpired).toHaveBeenCalledTimes(1);
   });
 
-  it('calls setReady(true) even when DB initialization fails', async () => {
+  it('marks ready even when DB initialization fails', async () => {
     mockGetDb.mockRejectedValueOnce(new Error('db init failed'));
-    renderHook(() => useLayoutInit());
+    renderHook(() => useAppInit());
     await act(async () => {
       await new Promise((r) => setTimeout(r, 0));
     });
-    expect(mockSetReady).toHaveBeenCalledWith(true);
+    expect(readReady()).toBe(true);
   });
 });

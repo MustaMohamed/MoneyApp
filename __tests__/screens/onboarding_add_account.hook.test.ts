@@ -4,10 +4,8 @@ import { AccountType } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({})),
   useRouter: jest.fn(() => ({ push: jest.fn(), back: jest.fn(), replace: jest.fn() })),
@@ -18,7 +16,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
     getState: jest.fn(() => ({ loadAccounts: jest.fn().mockResolvedValue(undefined) })),
   }),
 }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboarding: jest.fn() }));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
 const mockAddAccount = jest.fn().mockResolvedValue(undefined);
@@ -36,10 +34,13 @@ function setup(isAddingMore = false) {
     addAccount: mockAddAccount,
     loadAccounts: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    baseCurrency: 'EGP',
+  const { useOnboarding } = require('@/modules/onboarding/store/onboarding.store');
+  (useOnboarding as jest.Mock).mockReturnValue({
+    state: {
+      baseCurrency: { value: 'EGP' },
+    },
     setStep: mockSetStep,
-  }));
+  });
 }
 
 describe('useAddAccount', () => {

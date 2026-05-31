@@ -2,6 +2,6 @@ module.exports = function (api) {
   api.cache(true);
   return {
     presets: ['babel-preset-expo'],
-    plugins: ['react-native-worklets/plugin'],
+    plugins: [['module:@preact/signals-react-transform'], 'react-native-worklets/plugin'],
   };
 };

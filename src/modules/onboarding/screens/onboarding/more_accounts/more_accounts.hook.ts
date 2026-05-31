@@ -3,12 +3,12 @@ import { useCallback, useRef } from 'react';
 
 import { OnboardingStep } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 
 export function useMoreAccounts() {
   const router = useRouter();
   const accounts = useAccountStore.useState.accounts();
-  const setStep = useOnboardingStore.getState().setStep;
+  const { setStep } = useOnboarding();
 
   const initialCountRef = useRef<number>(accounts.length);
   const initialCount = initialCountRef.current;

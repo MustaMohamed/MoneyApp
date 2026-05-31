@@ -1,45 +1,53 @@
 import { renderHook, act } from '@testing-library/react-native';
 
+import { Currency, OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
-import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import { OnboardingStore, useOnboarding } from '@/modules/onboarding/store/onboarding.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
-jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
+jest.mock('@/modules/onboarding/store/onboarding.store', () => {
+  // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-return -- Jest requireActual is typed as any; this preserves the real class export while mocking the hook facade.
+  const actual = jest.requireActual('@/modules/onboarding/store/onboarding.store');
+  // oxlint-disable-next-line typescript/no-unsafe-return -- spreading requireActual preserves real exports in this Jest module factory.
+  return { ...actual, useOnboarding: jest.fn() };
+});
 jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
-jest.mock('@/modules/onboarding/screens/onboarding/ready/ready.state', () => ({
-  useReadyState: Object.assign(
-    jest.fn((sel: any) => sel({ completing: false, setCompleting: jest.fn() })),
-    { getState: jest.fn(() => ({ completing: false, setCompleting: jest.fn() })) },
-  ),
-}));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
-const mockSetCompleting = jest.fn();
 
 const fakeAccounts = [
   { id: '1', current_balance: 5000, type: 'bank', opening_balance: 5000 },
   { id: '2', current_balance: 200, type: 'physical_wallet', opening_balance: 200 },
 ];
 
-function setup(completing = false) {
-  attachMockSelectorStore(useOnboardingStore as unknown as jest.Mock, () => ({
-    baseCurrency: 'EGP',
-    completeOnboarding: mockCompleteOnboarding,
-  }));
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function setup() {
+  const store = new OnboardingStore({
+    setStep: jest.fn().mockResolvedValue(undefined),
+    setBaseCurrency: jest.fn().mockResolvedValue(undefined),
+    complete: mockCompleteOnboarding,
+    load: jest.fn().mockResolvedValue({
+      complete: false,
+      step: OnboardingStep.N4,
+      baseCurrency: Currency.EGP,
+    }),
+  });
+  jest.mocked(useOnboarding).mockReturnValue(store);
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- test helper adapts the mocked Zustand selector facade
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: fakeAccounts,
   }));
-  const { useReadyState } = require('@/modules/onboarding/screens/onboarding/ready/ready.state');
-  (useReadyState as jest.Mock).mockImplementation((sel: any) =>
-    sel({ completing, setCompleting: mockSetCompleting }),
-  );
-  (useReadyState.getState as jest.Mock).mockReturnValue({
-    completing,
-    setCompleting: mockSetCompleting,
-  });
 }
 
 describe('useReady', () => {
@@ -74,7 +82,7 @@ describe('useReady', () => {
 
   it('completing defaults to false', () => {
     const { result } = renderHook(() => useReady());
-    expect(result.current.state.completing).toBe(false);
+    expect(result.current.state.completing.value).toBe(false);
   });
 
   it('handleComplete calls completeOnboarding', async () => {
@@ -85,12 +93,27 @@ describe('useReady', () => {
     expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1);
   });
 
-  it('double-tap guard: handleComplete does nothing when completing=true', async () => {
-    setup(true); // completing = true
+  it('double-tap guard: handleComplete ignores a second press while completion is pending', async () => {
+    const pending = deferred<void>();
+    mockCompleteOnboarding.mockReturnValueOnce(pending.promise);
     const { result } = renderHook(() => useReady());
+
+    let firstCall!: Promise<void>;
+    act(() => {
+      firstCall = result.current.handleComplete();
+    });
+
+    expect(result.current.state.completing.value).toBe(true);
+
     await act(async () => {
       await result.current.handleComplete();
     });
-    expect(mockCompleteOnboarding).not.toHaveBeenCalled();
+
+    expect(mockCompleteOnboarding).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pending.resolve();
+      await firstCall;
+    });
   });
 });

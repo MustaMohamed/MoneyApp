@@ -3,6 +3,7 @@ import { getDb } from '@/database/client';
 
 export interface IAppSettingsRepository {
   get(key: string): Promise<string | null>;
+
   set(key: string, value: string): Promise<void>;
 }
 
@@ -17,3 +18,5 @@ export class AppSettingsRepository implements IAppSettingsRepository {
     await setSetting(db, key, value);
   }
 }
+
+export const appSettingsRepository = new AppSettingsRepository();
