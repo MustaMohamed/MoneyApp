@@ -1,6 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useEditCommitment } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.hook';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
@@ -15,7 +15,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock(
   '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state',
@@ -32,9 +32,11 @@ function setup() {
     updateCommitment: jest.fn().mockResolvedValue(undefined),
     deactivateCommitment: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
-  }));
+  jest
+    .mocked(useAccounts)
+    .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
+      typeof useAccounts
+    >);
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
   }));

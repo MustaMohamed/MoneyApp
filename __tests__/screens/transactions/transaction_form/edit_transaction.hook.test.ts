@@ -2,7 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
@@ -78,11 +78,9 @@ const mockCategoryShop = {
 };
 
 beforeEach(() => {
-  useAccountStore.setState({
-    accounts: [mockAccountEGP],
-    loading: false,
-    error: undefined,
-  } as any);
+  const accountsStore = useAccounts();
+  accountsStore.reset();
+  accountsStore.state.accounts.value = [mockAccountEGP];
   useCategoryStore.setState({
     categories: [mockCategoryFood, mockCategoryShop],
     loading: false,

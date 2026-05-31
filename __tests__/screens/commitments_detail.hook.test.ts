@@ -17,7 +17,7 @@
 
 import { renderHook } from '@testing-library/react-native';
 
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/detail/detail.hook';
@@ -36,7 +36,7 @@ jest.mock('expo-router', () => ({
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsByCommitment: jest.fn().mockResolvedValue([]) },
@@ -55,9 +55,11 @@ function setup() {
     payments: [],
     skipPayment: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
-    accounts: [],
-  }));
+  jest
+    .mocked(useAccounts)
+    .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
+      typeof useAccounts
+    >);
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
   }));

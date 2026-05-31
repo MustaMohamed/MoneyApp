@@ -34,7 +34,7 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsForMonth: jest.fn().mockResolvedValue([]) },
 }));
 
-jest.mock('@/modules/accounts/store/account.store', () => ({ useAccountStore: jest.fn() }));
+jest.mock('@/modules/accounts/store/account.store', () => ({ useAccounts: jest.fn() }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
@@ -46,7 +46,7 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
   useDashboardState: jest.fn(),
 }));
 
-const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
+const { useAccounts } = jest.requireMock('@/modules/accounts/store/account.store');
 const { useCurrencyStore } = jest.requireMock('@/modules/currency/store/currency.store');
 const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
 const { commitmentRepository } = jest.requireMock(
@@ -114,11 +114,13 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-  attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-    accounts,
-    hasLoaded: true,
+  (useAccounts as jest.Mock).mockReturnValue({
+    state: {
+      accounts: { value: accounts },
+      hasLoaded: { value: true },
+    },
     loadAccounts: jest.fn(),
-  }));
+  });
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
     rate: 48.85,
     isManualOverride: false,
@@ -161,12 +163,13 @@ describe('useDashboard', () => {
   });
 
   it('exposes whether account data has loaded', () => {
-    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-      accounts: [],
-      hasLoaded: false,
+    (useAccounts as jest.Mock).mockReturnValue({
+      state: {
+        accounts: { value: [] },
+        hasLoaded: { value: false },
+      },
       loadAccounts: jest.fn(),
-    }));
+    });
 
     const { result } = renderHook(() => useDashboard());
 

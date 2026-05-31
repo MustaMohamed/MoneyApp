@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 
 import { DurationType } from '@/constants/enums';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -19,7 +19,8 @@ export type { CommitmentFormValues };
 export function useAddCommitment() {
   const router = useRouter();
 
-  const accounts = useAccountStore.useState.accounts();
+  const { state: accountsState } = useAccounts();
+  const accounts = accountsState.accounts.value;
   const categories = useCategoryStore.useState.categories();
   const addCommitment = useCommitmentStore.getState().addCommitment;
   const generatePayments = useCommitmentStore.getState().generatePayments;

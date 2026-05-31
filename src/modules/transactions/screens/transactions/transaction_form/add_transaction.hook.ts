@@ -6,7 +6,7 @@ import { AccountType, CategoryType, Currency, TransactionType } from '@/constant
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccounts } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -135,8 +135,8 @@ function nowTimeISO(): string {
 }
 
 export function useAddTransaction(onClose: () => void) {
-  const accounts = useAccountStore.useState.accounts();
-  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const { state: accountsState, loadAccounts } = useAccounts();
+  const accounts = accountsState.accounts.value;
   const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({

@@ -4,7 +4,7 @@
 
 **Goal:** Replace the canonical accounts data store with Preact Signals while keeping the migration slice small.
 
-**Architecture:** `modules/accounts/store/account.store.ts` owns module-level Signals and exports `useAccounts()`. Migrated consumers read signal refs with `.value` and call flat actions from the hook return. Root `store/account.store.ts` remains a re-export compatibility surface and must not create another store instance.
+**Architecture:** `modules/accounts/store/account.store.ts` exposes a class-based shared Signals store and exports one singleton through `useAccounts()`. Consumers read signal refs with `.value` and call flat actions from the hook return. Root `store/account.store.ts` remains a re-export compatibility surface and must not create another store instance.
 
 **Tech Stack:** Expo Router, React Native, TypeScript strict, `@preact/signals-react`, Jest, oxlint/oxfmt.
 
@@ -17,14 +17,15 @@
 - Modify: `modules/accounts/store/account.store.ts`
 - Modify: `store/account.store.ts`
 
-- [ ] Write failing tests that use the Signals API:
+- [x] Write failing tests that use the Signals API:
   - `store.state.accounts.value`
   - `store.state.hasLoaded.value`
   - direct actions such as `store.loadAccounts()`
-- [ ] Verify the tests fail against the Zustand implementation.
-- [ ] Replace the Zustand store with module-level Signals and `useAccounts()`.
-- [ ] Keep a temporary `useAccountStore` compatibility export only where needed for unmigrated consumers.
-- [ ] Run `npm test -- --runTestsByPath __tests__/account.store.test.ts --runInBand`.
+- [x] Verify the tests fail against the Zustand implementation.
+- [x] Replace the Zustand store with `AccountStore`, a class-based shared Signals store, and `useAccounts()`.
+- [x] Use `batch(...)` when multiple account signals are updated together.
+- [x] Do not keep a Zustand-shaped `useAccountStore` compatibility adapter in this migrated slice.
+- [x] Run `npm test -- --runTestsByPath __tests__/account.store.test.ts --runInBand`.
 
 ### Task 2: Migrated Account Consumers
 
@@ -34,10 +35,10 @@
 - Modify: `modules/accounts/screens/accounts/detail/account_detail.hook.ts`
 - Modify: related account screen tests
 
-- [ ] Update account module consumers to call `useAccounts()`.
-- [ ] Read `state.accounts.value` and `state.hasLoaded.value`.
-- [ ] Keep non-account UI state stores unchanged.
-- [ ] Run account hook tests.
+- [x] Update account module consumers to call `useAccounts()`.
+- [x] Read `state.accounts.value` and `state.hasLoaded.value`.
+- [x] Keep non-account UI state stores unchanged.
+- [x] Run account hook tests.
 
 ### Task 3: Onboarding Account Consumers
 
@@ -47,14 +48,14 @@
 - Modify: `modules/onboarding/screens/onboarding/ready/ready.hook.ts`
 - Modify: related onboarding tests
 
-- [ ] Replace account store reads/actions with `useAccounts()`.
-- [ ] Keep onboarding Signals store usage unchanged.
-- [ ] Run onboarding hook tests.
+- [x] Replace account store reads/actions with `useAccounts()`.
+- [x] Keep onboarding Signals store usage unchanged.
+- [x] Run onboarding hook tests.
 
 ### Task 4: Verification
 
-- [ ] Run `npm run format:check`.
-- [ ] Run `npm run typecheck`.
-- [ ] Run focused account/onboarding Jest tests.
-- [ ] Review diff for accidental broad migration into dashboard, transactions, or commitments.
-- [ ] Commit the branch.
+- [x] Run `npm run format:check`.
+- [x] Run `npm run typecheck`.
+- [x] Run focused account/onboarding Jest tests.
+- [x] Run focused dashboard, transaction, and commitment hook tests touched by the account API update.
+- [x] Commit the branch.
