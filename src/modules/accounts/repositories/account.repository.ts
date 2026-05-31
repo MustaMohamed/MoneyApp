@@ -66,3 +66,5 @@ export class AccountRepository implements IAccountRepository {
     await setAccountBalance(db, id, newBalance, new Date().toISOString());
   }
 }
+
+export const accountRepository = new AccountRepository();

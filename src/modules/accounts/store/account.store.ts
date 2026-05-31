@@ -2,7 +2,7 @@ import { signal, type Signal } from '@preact/signals-react';
 
 import type { Account } from '../entities/account.entity';
 import {
-  AccountRepository,
+  accountRepository,
   type IAccountRepository,
   type NewAccountInput,
   type UpdateAccountInput,
@@ -25,7 +25,7 @@ export class AccountStore {
 
   private loadRequestId = 0;
 
-  constructor(private readonly repository: IAccountRepository = new AccountRepository()) {}
+  constructor(private readonly repository: IAccountRepository = accountRepository) {}
 
   loadAccounts = async (): Promise<void> => {
     const requestId = ++this.loadRequestId;
@@ -88,7 +88,7 @@ export class AccountStore {
   };
 }
 
-const accountsStore = new AccountStore(new AccountRepository());
+const accountsStore = new AccountStore(accountRepository);
 
 export function useAccountStore(): AccountStore {
   return accountsStore;

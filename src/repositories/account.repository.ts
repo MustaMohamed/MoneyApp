@@ -1,5 +1,8 @@
 // backward-compat re-export — remove when all consumers are migrated to @/modules/accounts
-export { AccountRepository } from '@/modules/accounts/repositories/account.repository';
+export {
+  accountRepository,
+  AccountRepository,
+} from '@/modules/accounts/repositories/account.repository';
 export type {
   IAccountRepository,
   NewAccountInput,
