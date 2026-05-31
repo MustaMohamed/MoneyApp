@@ -10,7 +10,7 @@ import {
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
-const INITIAL_STATE = { accounts: undefined as Account[] | undefined };
+const INITIAL_ACCOUNTS: Account[] | undefined = undefined;
 export const EMPTY_ACCOUNTS: Account[] = [];
 
 type AccountSignalState = {
@@ -19,7 +19,7 @@ type AccountSignalState = {
 
 function createAccountSignals(): AccountSignalState {
   return {
-    accounts: signal(INITIAL_STATE.accounts),
+    accounts: signal(INITIAL_ACCOUNTS),
   };
 }
 
@@ -85,7 +85,7 @@ export class AccountStore {
   };
 
   reset = () => {
-    this.state.accounts.value = INITIAL_STATE.accounts;
+    this.state.accounts.value = INITIAL_ACCOUNTS;
   };
 }
 
