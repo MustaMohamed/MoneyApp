@@ -1,18 +1,26 @@
 import { Strings } from '@/constants/strings';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useAsync } from '@/utils/use_async.hook';
+import { useInit } from '@/utils/use_init.hook';
 
 import { computeTotalBalance } from './ready.helpers';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
-  const { state: onboardingState, completeOnboarding } = useOnboardingStore();
+  const {
+    state: { baseCurrency },
+    completeOnboarding,
+  } = useOnboardingStore();
   const complete = useAsync(completeOnboarding);
-  const { state: accountsState } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
-  const baseCurrency = onboardingState.baseCurrency.value;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
+
+  useInit(init);
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -21,7 +29,7 @@ export function useReady() {
   const rows: SummaryRow[] = [
     {
       label: Strings.o6Currency,
-      value: baseCurrency,
+      value: baseCurrency.value,
       gold: true,
     },
     {
@@ -31,7 +39,7 @@ export function useReady() {
     },
     {
       label: Strings.o6TotalBalance,
-      value: `${formattedTotal} ${baseCurrency}`,
+      value: `${formattedTotal} ${baseCurrency.value}`,
       gold: true,
     },
   ];

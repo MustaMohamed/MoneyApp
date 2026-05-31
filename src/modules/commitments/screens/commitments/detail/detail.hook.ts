@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { formatLongDate } from '@/utils/format_date';
 
@@ -70,8 +70,10 @@ export function useCommitmentDetail() {
     })),
   );
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
-  const { state: accountsState } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
 
   const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();

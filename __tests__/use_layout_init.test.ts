@@ -8,6 +8,7 @@ const mockRunMigrations = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(
 const mockLoadOnboardingState = jest
   .fn<Promise<{ complete: boolean; step: string }>, []>()
   .mockResolvedValue({ complete: false, step: 'N1' });
+const mockInitAccounts = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
 const mockGeneratePayments = jest.fn().mockResolvedValue(undefined);
 const mockCheckAndDeactivateExpired = jest.fn().mockResolvedValue(undefined);
 
@@ -15,9 +16,14 @@ jest.mock('@/database/client', () => ({
   getDb: () => mockGetDb(),
   runMigrations: (db: unknown) => mockRunMigrations(db),
 }));
-jest.mock('@/store/onboarding.store', () => ({
+jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
   useOnboardingStore: () => ({
     init: () => mockLoadOnboardingState(),
+  }),
+}));
+jest.mock('@/modules/accounts/store/account.store', () => ({
+  useAccountStore: () => ({
+    init: () => mockInitAccounts(),
   }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
@@ -53,6 +59,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     resetReady();
     mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
+    mockInitAccounts.mockResolvedValue(undefined);
   });
 
   afterEach(() => {

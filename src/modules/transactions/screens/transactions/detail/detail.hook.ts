@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -81,8 +81,10 @@ export function useTransactionDetail(id: string) {
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
-  const { state: accountsState } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
 
   useEffect(() => {

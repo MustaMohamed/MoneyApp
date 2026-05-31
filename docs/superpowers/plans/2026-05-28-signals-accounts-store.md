@@ -4,7 +4,7 @@
 
 **Goal:** Replace the canonical accounts data store with Preact Signals while keeping the migration slice small.
 
-**Architecture:** `modules/accounts/store/account.store.ts` exposes a class-based shared Signals store and exports one singleton through `useAccountStore()`. Consumers read signal refs with `.value`, coerce unresolved account data locally when needed, and call flat actions from the hook return. Root `store/account.store.ts` remains a re-export compatibility surface and must not create another store instance.
+**Architecture:** `modules/accounts/store/account.store.ts` exposes a class-based shared Signals store and exports one singleton through `useAccountStore()`. Consumers read signal refs with `.value`; account data is always a list initialized to `EMPTY_ACCOUNTS`. Consumers call flat actions from the hook return. Root `store/account.store.ts` remains a re-export compatibility surface and must not create another store instance.
 
 **Tech Stack:** Expo Router, React Native, TypeScript strict, `@preact/signals-react`, Jest, oxlint/oxfmt.
 
@@ -19,11 +19,11 @@
 
 - [x] Write failing tests that use the Signals API:
   - `store.state.accounts.value`
-  - unresolved data is represented by `undefined`
+  - empty account data is represented by `EMPTY_ACCOUNTS`
   - direct actions such as `store.init()`
 - [x] Verify the tests fail against the Zustand implementation.
 - [x] Replace the Zustand store with `AccountStore`, a class-based shared Signals store, and `useAccountStore()`.
-- [x] Use `batch(...)` when multiple account signals are updated together.
+- [x] Avoid `batch(...)` in the account store because it owns one account list signal.
 - [x] Do not keep a Zustand-shaped `useAccountStore` compatibility adapter in this migrated slice.
 - [x] Run `npm test -- --runTestsByPath __tests__/account.store.test.ts --runInBand`.
 
@@ -36,7 +36,7 @@
 - Modify: related account screen tests
 
 - [x] Update account module consumers to call `useAccountStore()`.
-- [x] Read `state.accounts.value` and derive any screen readiness locally.
+- [x] Read `state.accounts.value`; loading state belongs to the hook operation, not a store sentinel.
 - [x] Keep non-account UI state stores unchanged.
 - [x] Run account hook tests.
 

@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 
 import { AccountType, OnboardingStep } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { backOrReplace } from '@/utils/onboarding_nav';
 import {
@@ -33,9 +33,16 @@ export const ACCOUNT_COLORS = [
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const { state: accountsState, addAccount, init } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
-  const { state, setStep } = useOnboardingStore();
+  const {
+    state: { accounts: accountsSignal },
+    addAccount,
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
+  const {
+    state: { baseCurrency },
+    setStep,
+  } = useOnboardingStore();
 
   useInit(init);
 
@@ -49,7 +56,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AcctTokens.midnight.rich,
-      currency: state.baseCurrency.value,
+      currency: baseCurrency.value,
       interest_tracking: false,
       credit_limit: '',
       apr: '',

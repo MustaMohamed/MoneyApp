@@ -244,10 +244,7 @@ describe('useAddTransaction — cross-currency math', () => {
   it('transfer USD → USD: rate required (for egp_amount); to_amount = amount', async () => {
     const mockAccountUSD2 = { ...mockAccountUSD, id: 'a5', name: 'USD Wallet' };
     const accountsStore = useAccountStore();
-    accountsStore.state.accounts.value = [
-      ...(accountsStore.state.accounts.value ?? []),
-      mockAccountUSD2,
-    ];
+    accountsStore.state.accounts.value = [...accountsStore.state.accounts.value, mockAccountUSD2];
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));

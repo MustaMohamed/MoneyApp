@@ -22,15 +22,19 @@ This slice covers the account data store and consumers that read account data or
 The module store remains the source of truth. `modules/accounts/store/account.store.ts` exposes a small class-based shared store. The store owns its `signal(...)` refs and repository dependency, and the module exports one singleton through a responsibility-named hook:
 
 ```ts
-const { state, init, addAccount } = useAccountStore();
-const accounts = state.accounts.value ?? [];
+const {
+  state: { accounts: accountsSignal },
+  init,
+  addAccount,
+} = useAccountStore();
+const accounts = accountsSignal.value;
 ```
 
 The root `store/account.store.ts` remains a compatibility re-export only. It must not create a second account state instance.
 
 The branch does not keep a Zustand-shaped compatibility adapter. Existing consumers in this PR scope move to the Signals `useAccountStore()` facade directly. The Babel Signals transform handles render tracking, so no empty `useSignals()` calls are needed.
 
-The store does not expose a separate loading or loaded flag. Unresolved account data is represented by `state.accounts.value === undefined`; consumers that need render readiness derive it locally, and consumers that only need a list coerce with `state.accounts.value ?? []`.
+The store does not expose a separate loading or loaded flag. Account data is always a list, initialized to the frozen `EMPTY_ACCOUNTS` array. Consumers that need operation loading state wrap `init()` with `useAsync(...)` at the hook boundary that owns the operation.
 
 ## Data Flow
 
@@ -43,7 +47,7 @@ Mutating actions delegate to the repository and then refresh account signals int
 - `archiveAccount(id)`
 - `adjustBalance(id, newBalance)`
 
-`reset()` restores `accounts = undefined`.
+`reset()` restores `accounts = EMPTY_ACCOUNTS`.
 
 ## Testing
 

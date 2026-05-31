@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -54,8 +54,11 @@ export function usePaySheet(
   const setRateOverride = usePaySheetState.getState().setRateOverride;
   const reset = usePaySheetState.getState().reset;
 
-  const { state: accountsState, init } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   // Currency store gives the timestamp of the last stored exchange-rate
   // update — ExchangeRateRow (V2) reads this to render the "Rate may be
   // stale" warning when the stored rate is older than the staleness

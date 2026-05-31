@@ -18,6 +18,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 }));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
+const mockInitAccounts = jest.fn().mockResolvedValue(undefined);
 
 const fakeAccounts = [
   { id: '1', current_balance: 5000, type: 'bank', opening_balance: 5000 },
@@ -50,7 +51,8 @@ function setup() {
     state: {
       accounts: { value: fakeAccounts },
     },
-  } as ReturnType<typeof useAccountStore>);
+    init: mockInitAccounts,
+  } as unknown as ReturnType<typeof useAccountStore>);
 }
 
 describe('useReady', () => {
@@ -81,6 +83,12 @@ describe('useReady', () => {
     const balanceRow = result.current.state.rows.find((r) => r.label === Strings.o6TotalBalance);
     // 5000 + 200 = 5200 → formatted as "5,200 EGP"
     expect(balanceRow?.value).toContain('5,200');
+  });
+
+  it('initializes accounts for restart directly on the ready step', () => {
+    renderHook(() => useReady());
+
+    expect(mockInitAccounts).toHaveBeenCalledTimes(1);
   });
 
   it('completing defaults to false', () => {

@@ -2,13 +2,16 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef } from 'react';
 
 import { OnboardingStep } from '@/constants/enums';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 export function useMoreAccounts() {
   const router = useRouter();
-  const { state: accountsState, init } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const { setStep } = useOnboardingStore();
 
   const initialCountRef = useRef<number>(accounts.length);

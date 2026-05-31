@@ -3,7 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -21,8 +21,10 @@ export function useEditCommitment() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { state: accountsState } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
   const commitments = useCommitmentStore.useState.commitments();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;

@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Category } from '@/database/entities/category.entity';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -39,8 +39,11 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { state: accountsState, init } = useAccountStore();
-  const accounts = accountsState.accounts.value ?? EMPTY_ACCOUNTS;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({

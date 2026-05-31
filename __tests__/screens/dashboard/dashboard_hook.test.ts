@@ -164,17 +164,18 @@ describe('useDashboard', () => {
     expect(result.current.state.selectedSegment).toBe('overview');
   });
 
-  it('exposes whether account data has loaded', () => {
+  it('does not expose a store-loaded sentinel', () => {
     (useAccountStore as jest.Mock).mockReturnValue({
       state: {
-        accounts: { value: undefined },
+        accounts: { value: [] },
       },
       init: jest.fn(),
     });
 
     const { result } = renderHook(() => useDashboard());
 
-    expect(result.current.state.accountsLoaded).toBe(false);
+    expect(result.current.state.accounts).toEqual([]);
+    expect('accountsLoaded' in result.current.state).toBe(false);
   });
 
   it('setSelectedSegment updates state', () => {

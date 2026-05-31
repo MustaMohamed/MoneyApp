@@ -6,7 +6,7 @@ import { AcctTokens } from '@/constants/theme_tokens';
 import { useInit } from '@/utils/use_init.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
-import { EMPTY_ACCOUNTS, useAccountStore } from '../../../store/account.store';
+import { useAccountStore } from '../../../store/account.store';
 import { createAddAccountSchema, type AddAccountFormData } from '../../../utils/add_account.schema';
 
 // 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4), mirroring
@@ -33,7 +33,7 @@ export function useAddAccountApp() {
     addAccount,
     init,
   } = useAccountStore();
-  const accounts = accountsSignal.value ?? EMPTY_ACCOUNTS;
+  const accounts = accountsSignal.value;
 
   useInit(init);
 

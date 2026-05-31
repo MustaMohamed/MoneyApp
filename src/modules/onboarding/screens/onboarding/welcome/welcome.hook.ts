@@ -5,9 +5,13 @@ import { Currency, OnboardingStep } from '@/constants/enums';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 
 export function useWelcome() {
-  const { state, setBaseCurrency, setStep } = useOnboardingStore();
+  const {
+    state: { baseCurrency },
+    setBaseCurrency,
+    setStep,
+  } = useOnboardingStore();
   const router = useRouter();
-  const selected = useSignal<Currency>(state.baseCurrency.value);
+  const selected = useSignal<Currency>(baseCurrency.value);
 
   const setSelected = (nextCurrency: Currency) => {
     selected.value = nextCurrency;

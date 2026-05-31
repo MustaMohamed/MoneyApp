@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { getAccountsStats } from '@/modules/accounts/database/account_stats';
-import { EMPTY_ACCOUNTS, useAccountStore } from '@/modules/accounts/store/account.store';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { getMonthExpenseStats } from '@/modules/transactions/database/transactions';
@@ -27,10 +27,11 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const { state: accountsState, init } = useAccountStore();
-  const accountsValue = accountsState.accounts.value;
-  const accounts = accountsValue ?? EMPTY_ACCOUNTS;
-  const accountsLoaded = accountsValue !== undefined;
+  const {
+    state: { accounts: accountsSignal },
+    init,
+  } = useAccountStore();
+  const accounts = accountsSignal.value;
   const { rate, isManualOverride } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -204,7 +205,6 @@ export function useDashboard() {
   return {
     state: {
       accounts,
-      accountsLoaded,
       rate,
       isManualOverride,
       netWorth,

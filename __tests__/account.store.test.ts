@@ -1,7 +1,7 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
+import { AccountStore, EMPTY_ACCOUNTS } from '@/modules/accounts/store/account.store';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
-import { AccountStore, EMPTY_ACCOUNTS } from '@/store/account.store';
 
 const mockAccount: Account = {
   id: 'test-id',
@@ -65,11 +65,11 @@ beforeEach(() => {
 });
 
 describe('accountStore.init', () => {
-  it('starts with unresolved account data', () => {
+  it('starts with an empty account list', () => {
     const repo = makeRepo();
     const store = new AccountStore(repo);
 
-    expect(store.state.accounts.value).toBeUndefined();
+    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
@@ -209,7 +209,7 @@ describe('accountStore.adjustBalance', () => {
 });
 
 describe('accountStore.reset', () => {
-  it('restores unresolved account data', async () => {
+  it('restores the empty account list', async () => {
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([{ ...mockAccount, id: 'a1' }]),
     });
@@ -219,7 +219,7 @@ describe('accountStore.reset', () => {
 
     store.reset();
 
-    expect(store.state.accounts.value).toBeUndefined();
+    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
   });
 
   it('prevents pending loads from writing after reset', async () => {
@@ -233,7 +233,7 @@ describe('accountStore.reset', () => {
     load.resolve([mockAccount]);
     await request;
 
-    expect(store.state.accounts.value).toBeUndefined();
+    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
   });
 });
 

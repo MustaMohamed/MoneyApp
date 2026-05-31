@@ -1,13 +1,19 @@
 import '@/utils/zod_config';
 import { getDb, runMigrations } from '@/database/client';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useCommitmentStore } from '@/store/commitment.store';
-import { useOnboardingStore } from '@/store/onboarding.store';
 import { useAppReadyStore } from '@/store/ready.store';
 import { useInit } from '@/utils/use_init.hook';
 
 export function useAppInit() {
-  const { state, markReady, reset } = useAppReadyStore();
-  const { init } = useOnboardingStore();
+  const {
+    state: { ready },
+    markReady,
+    reset,
+  } = useAppReadyStore();
+  const { init: initAccounts } = useAccountStore();
+  const { init: initOnboarding } = useOnboardingStore();
 
   useInit(() => {
     let onboardingComplete = false;
@@ -16,7 +22,7 @@ export function useAppInit() {
       try {
         const db = await getDb();
         await runMigrations(db);
-        const onboarding = await init();
+        const [onboarding] = await Promise.all([initOnboarding(), initAccounts()]);
         onboardingComplete = onboarding.complete;
         markReady();
       } catch (err) {
@@ -49,7 +55,7 @@ export function useAppInit() {
   });
 
   return {
-    state,
+    state: { ready },
     reset,
     markReady,
   } as const;

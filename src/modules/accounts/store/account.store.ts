@@ -10,12 +10,12 @@ import {
 
 export type { Account, NewAccountInput, UpdateAccountInput };
 
-const INITIAL_ACCOUNTS: Account[] | undefined = undefined;
 export const EMPTY_ACCOUNTS: Account[] = [];
 Object.freeze(EMPTY_ACCOUNTS);
+const INITIAL_ACCOUNTS = EMPTY_ACCOUNTS;
 
 type AccountSignalState = {
-  accounts: Signal<Account[] | undefined>;
+  accounts: Signal<Account[]>;
 };
 
 export class AccountStore {
