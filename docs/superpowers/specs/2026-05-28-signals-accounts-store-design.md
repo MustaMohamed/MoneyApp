@@ -50,7 +50,7 @@ Mutating actions delegate to the repository and then call `loadAccounts()`:
 Store tests should stop using Zustand `.getState()` for the migrated factory and instead exercise the returned Signals store object directly:
 
 ```ts
-const store = createAccountStore(repo);
+const store = new AccountStore(repo);
 await store.loadAccounts();
 expect(store.state.accounts.value).toEqual([mockAccount]);
 ```

@@ -17,21 +17,12 @@ type AccountSignalState = {
   accounts: Signal<Account[] | undefined>;
 };
 
-function createAccountSignals(): AccountSignalState {
-  return {
+export class AccountStore {
+  readonly state: AccountSignalState = {
     accounts: signal(INITIAL_ACCOUNTS),
   };
-}
 
-export class AccountStore {
-  readonly state: AccountSignalState;
-
-  constructor(
-    private readonly repository: IAccountRepository = new AccountRepository(),
-    state: AccountSignalState = createAccountSignals(),
-  ) {
-    this.state = state;
-  }
+  constructor(private readonly repository: IAccountRepository = new AccountRepository()) {}
 
   loadAccounts = async (): Promise<void> => {
     try {
@@ -87,10 +78,6 @@ export class AccountStore {
   reset = () => {
     this.state.accounts.value = INITIAL_ACCOUNTS;
   };
-}
-
-export function createAccountStore(repo: IAccountRepository): AccountStore {
-  return new AccountStore(repo);
 }
 
 const accountsStore = new AccountStore(new AccountRepository());
