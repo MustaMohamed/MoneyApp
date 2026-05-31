@@ -1,5 +1,5 @@
 /**
- * Generates .expo/types/router.d.ts from the app/ directory so tsc --noEmit
+ * Generates .expo/types/router.d.ts from the src/app/ directory so tsc --noEmit
  * works without needing to start the Expo dev server first.
  *
  * Called by the "typecheck" npm script. The generated file is gitignored.
@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const appDir = path.join(root, 'app');
+const appDir = path.join(root, 'src', 'app');
 const outFile = path.join(root, '.expo/types/router.d.ts');
 
 function collectRouteFiles(dir) {

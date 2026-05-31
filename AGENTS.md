@@ -97,24 +97,25 @@ If any step fails: fix it, re-run the chain from the top, repeat until green. Th
 ## Project Structure
 
 ```
-app/                  ROUTING ONLY — _layout.tsx and index.tsx files only
-modules/<domain>/     canonical feature code: data, store, screens, components
-components/ui/        shared UI primitives and wrappers
-components/           legacy/shared compatibility wrappers only
-constants/            enums.ts · secure_store_keys.ts · strings.ts · theme.ts
-store/                backward-compat re-exports; avoid new consumers
-repositories/         backward-compat re-exports plus shared app settings repo
-database/             client.ts · migrations/ · compatibility query/entity stubs
-utils/                responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
+src/app/              ROUTING ONLY — _layout.tsx and index.tsx files only
+src/modules/<domain>/ canonical feature code: data, store, screens, components
+src/components/ui/    shared UI primitives and wrappers
+src/components/       legacy/shared compatibility wrappers only
+src/constants/        enums.ts · secure_store_keys.ts · strings.ts · theme.ts
+src/store/            backward-compat re-exports; avoid new consumers
+src/repositories/     backward-compat re-exports plus shared app settings repo
+src/database/         client.ts · migrations/ · compatibility query/entity stubs
+src/test_helpers/     test-only helpers imported through @/test_helpers
+src/utils/            responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
 patches/              patch-package diffs for third-party library fixes
 __tests__/            snake_case test files (logic layer only)
 ```
 
-New domain work belongs under `modules/<domain>/`. Root `store/`, `repositories/`,
-and most root `database/` domain files are compatibility surfaces for old import
+New domain work belongs under `src/modules/<domain>/`. Root `src/store/`, `src/repositories/`,
+and most `src/database/` domain files are compatibility surfaces for old import
 paths; do not add new module consumers to those roots.
 
-### app/ rules (critical)
+### src/app/ rules (critical)
 
 - Only `_layout.tsx` and `index.tsx` live here. Exception: `[id]/index.tsx`.
 - Every route `index.tsx` is a one-line re-export from the canonical module screen,
@@ -151,11 +152,11 @@ eas build --profile development --platform android   # cloud dev build
 
 HeroUI Native composes Tailwind classes (`className=`) into Unistyles 3 styles at build time via Uniwind. Theme lives in `global.css` as CSS variables under `@layer theme { @variant dark { ... } }`, exposed to Tailwind via `@theme inline`. There is no `tailwind.config.js` — Tailwind v4 is CSS-first.
 
-- `cn(...)` utility: `import { cn } from 'heroui-native'`. There is no `utils/cn.ts`.
+- `cn(...)` utility: `import { cn } from 'heroui-native'`. There is no `src/utils/cn.ts`.
 - Theme color slots: `bg-background`, `text-foreground`, `bg-surface`, `bg-default`, `border-border`, `border-separator`, `text-accent`, `text-muted`, `text-danger`, etc. See `global.css` for the full list.
-- Variant composition: `import { tv } from 'tailwind-variants'` for opinionated wrappers in `components/ui/`.
+- Variant composition: `import { tv } from 'tailwind-variants'` for opinionated wrappers in `src/components/ui/`.
 - Runtime hex (e.g. account swatches): pass `style={{ backgroundColor: hex }}` — `className` is build-time only.
-- Module-level theme access (`SystemUI.setBackgroundColorAsync`, `expo-linear-gradient` colors, `MaterialCommunityIcons` color prop): import `Colors` / `GoldTokens` / `CoreTokens` from `constants/theme_tokens.ts` directly (cannot use `useThemeColor` hook outside React).
+- Module-level theme access (`SystemUI.setBackgroundColorAsync`, `expo-linear-gradient` colors, `MaterialCommunityIcons` color prop): import `Colors` / `GoldTokens` / `CoreTokens` from `src/constants/theme_tokens.ts` directly (cannot use `useThemeColor` hook outside React).
 
 ### Screen layout (critical)
 
@@ -186,7 +187,7 @@ Same rule for inner flex-row/flex-1 rows: when in doubt, use `style={{ flexDirec
 
 Installed catalog (`heroui-native` v1.0.3 — check it before writing anything): Accordion, Alert, Avatar, **BottomSheet**, Button, Card, Checkbox, Chip, CloseButton, Dialog, Input (+ InputGroup, InputOTP, TextField, TextArea, SearchField), Label, LinkButton, ListGroup, Menu (+ SubMenu), Popover, PressableFeedback, Radio (+ RadioGroup), ScrollShadow, Select, Separator, Skeleton (+ SkeletonGroup), Slider, Spinner, Surface, Switch, Tabs, TagGroup, Text, Toast, and form helpers (ControlField, Description, FieldError).
 
-Project wrappers in `components/ui/` compose HeroUI: `Screen`, `ScreenScroll`, `Text`, `EmptyState`, `SettingsSection`, `FAB`, `Sheet` (HeroUI-backed — see Bottom Sheets). Compose these.
+Project wrappers in `src/components/ui/` compose HeroUI: `Screen`, `ScreenScroll`, `Text`, `EmptyState`, `SettingsSection`, `FAB`, `Sheet` (HeroUI-backed — see Bottom Sheets). Compose these.
 
 **Introducing a custom or third-party UI component that a HeroUI primitive could cover is a critical trigger — it needs sign-off + a written "no HeroUI primitive fits" justification.** If a HeroUI primitive almost fits but needs tweaks, compose/wrap it — never build a parallel implementation. The only standing non-HeroUI primitives are layout/effect pieces HeroUI does not provide (`Screen`/`ScreenScroll` full-screen layout, the gold-gradient `HeroShell`, `FAB`, SVG textures); extend that list only with sign-off.
 
@@ -218,7 +219,7 @@ import { BottomSheet, Button } from 'heroui-native';
 **Scrollable content:** import `BottomSheetScrollView` / `BottomSheetFlatList` from `@gorhom/bottom-sheet` (NOT `react-native`) and nest inside `BottomSheet.Content`; set `enableOverDrag={false}`, `enableDynamicSizing={false}`, and a fixed height via `contentContainerClassName="h-full"`.
 **Keyboard-aware inputs:** wire `useBottomSheetAwareHandlers()` onto the input's `onFocus`/`onBlur` and set `keyboardBehavior="extend"` on `Content`.
 
-**`Sheet` wrapper:** every sheet in the app goes through the HeroUI-backed `Sheet` primitive at `components/ui/sheet.tsx` — a thin declarative wrapper (`isOpen`/`onOpenChange`, `size`, `scrollable`, `footer`) composing HeroUI `BottomSheet`. The migration off the old hand-rolled `@gorhom` wrapper is complete; no imperative gorhom-ref wrapper exists anywhere. Build new sheets on `Sheet` (or HeroUI `BottomSheet` directly); never hand-roll a new `@gorhom` wrapper.
+**`Sheet` wrapper:** every sheet in the app goes through the HeroUI-backed `Sheet` primitive at `src/components/ui/sheet.tsx` — a thin declarative wrapper (`isOpen`/`onOpenChange`, `size`, `scrollable`, `footer`) composing HeroUI `BottomSheet`. The migration off the old hand-rolled `@gorhom` wrapper is complete; no imperative gorhom-ref wrapper exists anywhere. Build new sheets on `Sheet` (or HeroUI `BottomSheet` directly); never hand-roll a new `@gorhom` wrapper.
 
 ## Patches
 
@@ -227,20 +228,20 @@ import { BottomSheet, Button } from 'heroui-native';
 ## Conventions
 
 - **null vs undefined:** `null` = DB-mapped nullable columns only. Absent values elsewhere = `undefined`.
-- **Enums:** String enums in `constants/enums.ts` — regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.
-- **Tokens:** All sizing/spacing/radius/color from `constants/theme.ts`, scaled with `ms()` / `msFont()`. Never hardcode hex/spacing/radius.
-- **Strings:** All user-visible copy in `constants/strings.ts`.
-- **SecureStore keys:** Centralised in `constants/secure_store_keys.ts` as `as const`.
+- **Enums:** String enums in `src/constants/enums.ts` — regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.
+- **Tokens:** All sizing/spacing/radius/color from `src/constants/theme.ts`, scaled with `ms()` / `msFont()`. Never hardcode hex/spacing/radius.
+- **Strings:** All user-visible copy in `src/constants/strings.ts`.
+- **SecureStore keys:** Centralised in `src/constants/secure_store_keys.ts` as `as const`.
 
 ## Database Layer
 
-**Migrations** (`database/migrations/`): One file per DDL change, named `NNN_<description>.ts`. Exports `{ version, up }`. `CREATE TABLE IF NOT EXISTS`. Append to `migrations/index.ts`. **Never edit a shipped migration.**
+**Migrations** (`src/database/migrations/`): One file per DDL change, named `NNN_<description>.ts`. Exports `{ version, up }`. `CREATE TABLE IF NOT EXISTS`. Append to `migrations/index.ts`. **Never edit a shipped migration.**
 
-**Entities** (`database/entities/<domain>.entity.ts`): Types only — no logic, no functions, no cross-imports from `database/`. May import from `@/constants/enums`.
+**Entities** (`src/database/entities/<domain>.entity.ts`): Types only — no logic, no functions, no cross-imports from `src/database/`. May import from `@/constants/enums`.
 
-**Query files** (`database/<domain>.ts`): SQL for one table. First param always `db: SQLiteDatabase`. Verbs: `get*` SELECT · `add*` INSERT · `set*` INSERT OR REPLACE/UPDATE · `update*` UPDATE · `delete*` DELETE. Business logic lives in stores, not here.
+**Query files** (`src/database/<domain>.ts`): SQL for one table. First param always `db: SQLiteDatabase`. Verbs: `get*` SELECT · `add*` INSERT · `set*` INSERT OR REPLACE/UPDATE · `update*` UPDATE · `delete*` DELETE. Business logic lives in stores, not here.
 
-**Client** (`database/client.ts`): `getDb()` singleton — opens `moneyapp.db`, enables WAL + foreign keys. `runMigrations(db)` called once at startup from `utils/use_layout_init.hook.ts`.
+**Client** (`src/database/client.ts`): `getDb()` singleton — opens `moneyapp.db`, enables WAL + foreign keys. `runMigrations(db)` called once at startup from `src/utils/use_layout_init.hook.ts`.
 
 Account creation defaults: `current_balance = opening_balance`, `is_archived = 0`, `id = uuidv4()`, `created_at = updated_at = new Date().toISOString()`.
 
@@ -257,7 +258,7 @@ Account creation defaults: `current_balance = opening_balance`, `is_archived = 0
 
 ## Design System — Cairo Nights
 
-All values in `constants/theme.ts`. Never hardcode.
+All values in `src/constants/theme.ts`. Never hardcode.
 
 - **Typography:** Sora (numbers, headings, CTAs) · Inter (body, labels, secondary).
 - **Numbers:** `Intl.NumberFormat('en-US', { style: 'decimal' })` → `122,300`.
