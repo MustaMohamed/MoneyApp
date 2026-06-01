@@ -1,26 +1,41 @@
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => useBudgetState.getState().reset());
+import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 
 describe('useBudgetState — lensTab', () => {
   it('initialises lensTab to categories', () => {
-    expect(useBudgetState.getState().lensTab).toBe('categories');
+    const { result } = renderHook(() => useBudgetState());
+
+    expect(result.current.state.lensTab.value).toBe('categories');
   });
 
   it('setLensTab updates to fiftythirty', () => {
-    useBudgetState.getState().setLensTab('fiftythirty');
-    expect(useBudgetState.getState().lensTab).toBe('fiftythirty');
+    const { result } = renderHook(() => useBudgetState());
+
+    act(() => result.current.setLensTab('fiftythirty'));
+
+    expect(result.current.state.lensTab.value).toBe('fiftythirty');
   });
 
   it('setLensTab updates back to categories', () => {
-    useBudgetState.getState().setLensTab('fiftythirty');
-    useBudgetState.getState().setLensTab('categories');
-    expect(useBudgetState.getState().lensTab).toBe('categories');
+    const { result } = renderHook(() => useBudgetState());
+
+    act(() => {
+      result.current.setLensTab('fiftythirty');
+      result.current.setLensTab('categories');
+    });
+
+    expect(result.current.state.lensTab.value).toBe('categories');
   });
 
   it('reset clears lensTab to categories', () => {
-    useBudgetState.getState().setLensTab('fiftythirty');
-    useBudgetState.getState().reset();
-    expect(useBudgetState.getState().lensTab).toBe('categories');
+    const { result } = renderHook(() => useBudgetState());
+
+    act(() => {
+      result.current.setLensTab('fiftythirty');
+      result.current.reset();
+    });
+
+    expect(result.current.state.lensTab.value).toBe('categories');
   });
 });

@@ -1,7 +1,7 @@
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import { createBudgetStore, useBudgetStore } from '@/modules/budget/store/budget.store';
+import { useBudgetStore } from '@/modules/budget/store/budget.store';
 
-beforeEach(() => useBudgetStore.getState().reset());
+beforeEach(() => useBudgetStore().reset());
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const r: Budget = {
@@ -15,29 +15,29 @@ const r: Budget = {
 
 describe('useBudgetStore', () => {
   it('starts empty and not loaded', () => {
-    const s = useBudgetStore.getState();
-    expect(s.rows).toEqual([]);
-    expect(s.spendByMonth).toEqual({});
-    expect(s.loaded).toBe(false);
-    expect(s.expectedIncome).toBeNull();
+    const s = useBudgetStore().state;
+    expect(s.rows.value).toEqual([]);
+    expect(s.spendByMonth.value).toEqual({});
+    expect(s.loaded.value).toBe(false);
+    expect(s.expectedIncome.value).toBeNull();
   });
 
   it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
-    const s = useBudgetStore.getState();
-    expect(s.rows).toEqual([r]);
-    expect(s.spendByMonth.a['2026-05']).toBe(2400);
-    expect(s.loaded).toBe(true);
+    useBudgetStore().setData([r], { a: { '2026-05': 2400 } }, null);
+    const s = useBudgetStore().state;
+    expect(s.rows.value).toEqual([r]);
+    expect(s.spendByMonth.value.a['2026-05']).toBe(2400);
+    expect(s.loaded.value).toBe(true);
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
-    useBudgetStore.getState().reset();
-    expect(useBudgetStore.getState().loaded).toBe(false);
+    useBudgetStore().setData([r], { a: { '2026-05': 2400 } }, null);
+    useBudgetStore().reset();
+    expect(useBudgetStore().state.loaded.value).toBe(false);
   });
 
   it('removeBudget exists and is a function on the store', () => {
-    const { removeBudget } = useBudgetStore.getState();
+    const { removeBudget } = useBudgetStore();
     expect(typeof removeBudget).toBe('function');
   });
 });

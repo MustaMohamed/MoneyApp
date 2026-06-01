@@ -1,47 +1,66 @@
-import { create } from 'zustand';
+import { batch, type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type IncomeSheetStateShape = {
+  isOpen: ReadonlySignal<boolean>;
+  amountText: ReadonlySignal<string>;
+  suggestion: ReadonlySignal<number | null>;
+};
 
-interface IncomeSheetStateShape {
-  isOpen: boolean;
-  amountText: string;
-  suggestion: number | null;
-}
-
-type IncomeSheetState = IncomeSheetStateShape & {
+type IncomeSheetStateActions = {
   open: (suggestion: number | null, currentIncome: number | null) => void;
   close: () => void;
   setAmountText: (text: string) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: IncomeSheetStateShape = {
-  isOpen: false,
-  amountText: '',
-  suggestion: null,
-};
+export type IncomeSheetStateSetup = { state: IncomeSheetStateShape } & IncomeSheetStateActions;
 
-export const useIncomeSheetState = createMoneyAppSelectors(
-  create<IncomeSheetState>((set) => ({
-    ...INITIAL_STATE,
+export function useIncomeSheetState(): IncomeSheetStateSetup {
+  const isOpen = useSignal(false);
+  const amountText = useSignal('');
+  const suggestion = useSignal<number | null>(null);
 
-    open: (suggestion, currentIncome) =>
-      set((s) => ({
-        ...s,
-        isOpen: true,
-        suggestion,
-        amountText:
+  const open = useCallback(
+    (nextSuggestion: number | null, currentIncome: number | null) => {
+      batch(() => {
+        isOpen.value = true;
+        suggestion.value = nextSuggestion;
+        amountText.value =
           currentIncome !== null
             ? String(currentIncome)
-            : suggestion !== null
-              ? String(suggestion)
-              : '',
-      })),
+            : nextSuggestion !== null
+              ? String(nextSuggestion)
+              : '';
+      });
+    },
+    [amountText, isOpen, suggestion],
+  );
 
-    close: () => set((s) => ({ ...s, isOpen: false })),
+  const close = useCallback(() => {
+    isOpen.value = false;
+  }, [isOpen]);
 
-    setAmountText: (text) => set((s) => ({ ...s, amountText: text })),
+  const setAmountText = useCallback(
+    (text: string) => {
+      amountText.value = text;
+    },
+    [amountText],
+  );
 
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const reset = useCallback(() => {
+    batch(() => {
+      isOpen.value = false;
+      amountText.value = '';
+      suggestion.value = null;
+    });
+  }, [amountText, isOpen, suggestion]);
+
+  return {
+    state: { isOpen, amountText, suggestion },
+    open,
+    close,
+    setAmountText,
+    reset,
+  };
+}

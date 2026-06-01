@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { batch, signal, type ReadonlySignal } from '@preact/signals-react';
 
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
@@ -10,81 +10,103 @@ import {
   AppSettingsRepository,
   type IAppSettingsRepository,
 } from '@/repositories/app_settings.repository';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 const HISTORY_MONTHS = 12;
 const EXPECTED_INCOME_KEY = 'expected_monthly_income';
 
-interface BudgetStoreShape {
-  rows: Budget[];
-  // spend keyed { [categoryId]: { [yearMonth]: number } } over the loaded window
-  spendByMonth: Record<string, Record<string, number>>;
-  loaded: boolean;
+type SpendByMonth = Record<string, Record<string, number>>;
+
+type BudgetSignalState = {
+  rows: ReadonlySignal<Budget[]>;
+  spendByMonth: ReadonlySignal<SpendByMonth>;
+  loaded: ReadonlySignal<boolean>;
   /** Expected monthly income in EGP. null = not yet set by the user. */
-  expectedIncome: number | null;
-}
+  expectedIncome: ReadonlySignal<number | null>;
+};
 
-type BudgetStore = BudgetStoreShape & {
-  setData: (
-    rows: Budget[],
-    spendByMonth: Record<string, Record<string, number>>,
-    expectedIncome: number | null,
-  ) => void;
-  load: () => Promise<void>;
-  setLimit: (categoryId: string, limit: number) => Promise<void>;
-  removeBudget: (categoryId: string) => Promise<void>;
-  setExpectedIncome: (amount: number) => Promise<void>;
+const INITIAL_ROWS: Budget[] = [];
+Object.freeze(INITIAL_ROWS);
+const INITIAL_SPEND_BY_MONTH: SpendByMonth = {};
+Object.freeze(INITIAL_SPEND_BY_MONTH);
+
+export class BudgetStore {
+  private readonly rows = signal(INITIAL_ROWS);
+  private readonly spendByMonth = signal(INITIAL_SPEND_BY_MONTH);
+  private readonly loaded = signal(false);
+  private readonly expectedIncome = signal<number | null>(null);
+
+  readonly state: BudgetSignalState = {
+    rows: this.rows,
+    spendByMonth: this.spendByMonth,
+    loaded: this.loaded,
+    expectedIncome: this.expectedIncome,
+  };
+
+  private loadRequestId = 0;
+
+  constructor(private readonly appSettingsRepository: IAppSettingsRepository) {}
+
+  setData = (rows: Budget[], spendByMonth: SpendByMonth, expectedIncome: number | null): void => {
+    batch(() => {
+      this.rows.value = rows;
+      this.spendByMonth.value = spendByMonth;
+      this.expectedIncome.value = expectedIncome;
+      this.loaded.value = true;
+    });
+  };
+
+  load = async (): Promise<void> => {
+    const requestId = ++this.loadRequestId;
+    const months = lastMonths(currentYearMonth(), HISTORY_MONTHS);
+    const [rows, spendByMonth, rawIncome] = await Promise.all([
+      budgetRepository.getRows(),
+      budgetRepository.getSpendByMonth(months),
+      this.appSettingsRepository.get(EXPECTED_INCOME_KEY),
+    ]);
+    const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
+
+    if (requestId === this.loadRequestId) {
+      this.setData(rows, spendByMonth, expectedIncome);
+    }
+  };
+
+  setLimit = async (categoryId: string, limit: number): Promise<void> => {
+    await budgetRepository.setLimit(categoryId, limit);
+    await this.load();
+  };
+
+  removeBudget = async (categoryId: string): Promise<void> => {
+    await budgetRepository.removeBudget(categoryId);
+    await this.load();
+  };
+
+  setExpectedIncome = async (amount: number): Promise<void> => {
+    await this.appSettingsRepository.set(EXPECTED_INCOME_KEY, String(amount));
+    await this.load();
+  };
+
   /** Synchronous setter for tests — does not persist. */
-  setExpectedIncomeLocal: (amount: number | null) => void;
-  reset: () => void;
-};
+  setExpectedIncomeLocal = (amount: number | null): void => {
+    this.expectedIncome.value = amount;
+  };
 
-const INITIAL_STATE: BudgetStoreShape = {
-  rows: [],
-  spendByMonth: {},
-  loaded: false,
-  expectedIncome: null,
-};
-
-export function createBudgetStore(repo: IAppSettingsRepository) {
-  return createMoneyAppSelectors(
-    create<BudgetStore>((set, get) => ({
-      ...INITIAL_STATE,
-
-      setData: (rows, spendByMonth, expectedIncome) =>
-        set((s) => ({ ...s, rows, spendByMonth, expectedIncome, loaded: true })),
-
-      load: async () => {
-        const months = lastMonths(currentYearMonth(), HISTORY_MONTHS);
-        const [rows, spendByMonth, rawIncome] = await Promise.all([
-          budgetRepository.getRows(),
-          budgetRepository.getSpendByMonth(months),
-          repo.get(EXPECTED_INCOME_KEY),
-        ]);
-        const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
-        get().setData(rows, spendByMonth, expectedIncome);
-      },
-
-      setLimit: async (categoryId, limit) => {
-        await budgetRepository.setLimit(categoryId, limit);
-        await get().load();
-      },
-
-      removeBudget: async (categoryId) => {
-        await budgetRepository.removeBudget(categoryId);
-        await get().load();
-      },
-
-      setExpectedIncome: async (amount) => {
-        await repo.set(EXPECTED_INCOME_KEY, String(amount));
-        await get().load();
-      },
-
-      setExpectedIncomeLocal: (amount) => set((s) => ({ ...s, expectedIncome: amount })),
-
-      reset: () => set(INITIAL_STATE),
-    })),
-  );
+  reset = (): void => {
+    this.loadRequestId += 1;
+    batch(() => {
+      this.rows.value = INITIAL_ROWS;
+      this.spendByMonth.value = INITIAL_SPEND_BY_MONTH;
+      this.loaded.value = false;
+      this.expectedIncome.value = null;
+    });
+  };
 }
 
-export const useBudgetStore = createBudgetStore(new AppSettingsRepository());
+export function createBudgetStore(repo: IAppSettingsRepository): BudgetStore {
+  return new BudgetStore(repo);
+}
+
+const budgetStore = createBudgetStore(new AppSettingsRepository());
+
+export function useBudgetStore(): BudgetStore {
+  return budgetStore;
+}

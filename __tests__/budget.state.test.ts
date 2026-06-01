@@ -1,35 +1,50 @@
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => useBudgetState.getState().reset());
+import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 
 describe('useBudgetState', () => {
   it('starts closed', () => {
-    const s = useBudgetState.getState();
-    expect(s.sheetVisible).toBe(false);
-    expect(s.mode).toBe('add');
-    expect(s.targetCategoryId).toBeUndefined();
+    const { result } = renderHook(() => useBudgetState());
+    const s = result.current.state;
+
+    expect(s.sheetVisible.value).toBe(false);
+    expect(s.mode.value).toBe('add');
+    expect(s.targetCategoryId.value).toBeUndefined();
   });
 
   it('openAdd opens in add mode with no target', () => {
-    useBudgetState.getState().openEdit('cat_food');
-    useBudgetState.getState().openAdd();
-    const s = useBudgetState.getState();
-    expect(s.sheetVisible).toBe(true);
-    expect(s.mode).toBe('add');
-    expect(s.targetCategoryId).toBeUndefined();
+    const { result } = renderHook(() => useBudgetState());
+
+    act(() => {
+      result.current.openEdit('cat_food');
+      result.current.openAdd();
+    });
+
+    const s = result.current.state;
+    expect(s.sheetVisible.value).toBe(true);
+    expect(s.mode.value).toBe('add');
+    expect(s.targetCategoryId.value).toBeUndefined();
   });
 
   it('openEdit opens in edit mode targeting a category', () => {
-    useBudgetState.getState().openEdit('cat_food');
-    const s = useBudgetState.getState();
-    expect(s.sheetVisible).toBe(true);
-    expect(s.mode).toBe('edit');
-    expect(s.targetCategoryId).toBe('cat_food');
+    const { result } = renderHook(() => useBudgetState());
+
+    act(() => result.current.openEdit('cat_food'));
+
+    const s = result.current.state;
+    expect(s.sheetVisible.value).toBe(true);
+    expect(s.mode.value).toBe('edit');
+    expect(s.targetCategoryId.value).toBe('cat_food');
   });
 
   it('close hides the sheet', () => {
-    useBudgetState.getState().openAdd();
-    useBudgetState.getState().close();
-    expect(useBudgetState.getState().sheetVisible).toBe(false);
+    const { result } = renderHook(() => useBudgetState());
+
+    act(() => {
+      result.current.openAdd();
+      result.current.close();
+    });
+
+    expect(result.current.state.sheetVisible.value).toBe(false);
   });
 });

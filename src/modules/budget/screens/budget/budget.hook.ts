@@ -1,6 +1,5 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { CategoryType } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -12,7 +11,7 @@ import {
   computeOverall,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import type { BudgetStateSetup } from '@/modules/budget/screens/budget/budget.state';
 import {
   computeBuckets,
   type BucketsVM,
@@ -26,8 +25,9 @@ export interface CategoryBudgetRowVM extends CategoryBudgetVM {
   color: string;
 }
 
-export function useBudget() {
+export function useBudget(budgetState: BudgetStateSetup) {
   const router = useRouter();
+  const { editCategoryId } = useLocalSearchParams<{ editCategoryId?: string }>();
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);
 
@@ -35,25 +35,19 @@ export function useBudget() {
   const categories = categoryStore.state.categories.value;
   const categoriesLoaded = categoryStore.state.hasLoaded.value;
   const loadCategories = categoryStore.loadCategories;
-  const { budgetRows, spendByMonth, budgetLoaded, expectedIncome } = useBudgetStore(
-    useShallow((s) => ({
-      budgetRows: s.rows,
-      spendByMonth: s.spendByMonth,
-      budgetLoaded: s.loaded,
-      expectedIncome: s.expectedIncome,
-    })),
-  );
-  const load = useBudgetStore.getState().load;
-  const openAdd = useBudgetState.getState().openAdd;
-  const openEdit = useBudgetState.getState().openEdit;
-  const lensTab = useBudgetState.useState.lensTab();
-  const setLensTab = useBudgetState.getState().setLensTab;
+  const budgetStore = useBudgetStore();
+  const budgetRows = budgetStore.state.rows.value;
+  const spendByMonth = budgetStore.state.spendByMonth.value;
+  const budgetLoaded = budgetStore.state.loaded.value;
+  const expectedIncome = budgetStore.state.expectedIncome.value;
+  const { openAdd, openEdit, setLensTab } = budgetState;
+  const lensTab = budgetState.state.lensTab.value;
 
   useFocusEffect(
     useCallback(() => {
       setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
       void loadCategories();
-      void load();
+      void budgetStore.load();
       void (async () => {
         try {
           const db = await getDb();
@@ -63,8 +57,14 @@ export function useBudget() {
           setSuggestion(null);
         }
       })();
-    }, [loadCategories, load]),
+    }, [loadCategories, budgetStore]),
   );
+
+  useEffect(() => {
+    if (!editCategoryId) return;
+    openEdit(editCategoryId);
+    router.setParams({ editCategoryId: '' });
+  }, [editCategoryId, openEdit, router]);
 
   const rows: CategoryBudgetRowVM[] = useMemo(() => {
     const out: CategoryBudgetRowVM[] = [];

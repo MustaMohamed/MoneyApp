@@ -1,6 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
@@ -9,7 +8,6 @@ import {
   computeStatus,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
@@ -23,21 +21,16 @@ export function useCategoryDetail() {
   const categoryStore = useCategoryStore();
   const categories = categoryStore.state.categories.value;
   const loadCategories = categoryStore.loadCategories;
-  const { budgetRows, spendByMonth } = useBudgetStore(
-    useShallow((s) => ({
-      budgetRows: s.rows,
-      spendByMonth: s.spendByMonth,
-    })),
-  );
-  const load = useBudgetStore.getState().load;
-  const openEdit = useBudgetState.getState().openEdit;
+  const budgetStore = useBudgetStore();
+  const budgetRows = budgetStore.state.rows.value;
+  const spendByMonth = budgetStore.state.spendByMonth.value;
 
   useFocusEffect(
     useCallback(() => {
       setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
       void loadCategories();
-      void load();
-    }, [loadCategories, load]),
+      void budgetStore.load();
+    }, [loadCategories, budgetStore]),
   );
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
@@ -85,8 +78,10 @@ export function useCategoryDetail() {
     goBack: () => router.back(),
     editBudget: () => {
       if (!id) return;
-      router.back();
-      openEdit(id);
+      router.replace({
+        pathname: '/(app)/(tabs)/budget',
+        params: { editCategoryId: id },
+      });
     },
   };
 }

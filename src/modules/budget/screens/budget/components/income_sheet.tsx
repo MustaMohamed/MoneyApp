@@ -1,28 +1,26 @@
 import { Input } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
+import type { IncomeSheetStateSetup } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { ms } from '@/utils/responsive';
 
-export function IncomeSheet() {
-  const { isOpen, amountText, suggestion } = useIncomeSheetState(
-    useShallow((s) => ({
-      isOpen: s.isOpen,
-      amountText: s.amountText,
-      suggestion: s.suggestion,
-    })),
-  );
-  const close = useIncomeSheetState.getState().close;
-  const setAmountText = useIncomeSheetState.getState().setAmountText;
-  const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
+type IncomeSheetProps = {
+  incomeSheetState: IncomeSheetStateSetup;
+};
+
+export function IncomeSheet({ incomeSheetState }: IncomeSheetProps) {
+  const { state, close, setAmountText } = incomeSheetState;
+  const isOpen = state.isOpen.value;
+  const amountText = state.amountText.value;
+  const suggestion = state.suggestion.value;
+  const { setExpectedIncome } = useBudgetStore();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const handleSave = async () => {

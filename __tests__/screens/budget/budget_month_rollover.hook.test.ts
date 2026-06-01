@@ -1,18 +1,22 @@
+// oxlint-disable typescript/no-unsafe-assignment typescript/no-unsafe-argument typescript/no-unsafe-call typescript/no-unsafe-member-access typescript/no-unsafe-return typescript/no-unsafe-type-assertion -- Jest module mocks are intentionally untyped in this focused hook test.
 import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
-
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 // Real `currentYearMonth` is used (reads the system clock); only the stores,
 // router, and focus effect are mocked so we can drive focus + time directly.
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
-
 let capturedFocusCallback: (() => void) | null = null;
+let mockSearchParams: Record<string, string | undefined> = { id: 'cat-1' };
+const mockRouter = {
+  push: jest.fn(),
+  replace: jest.fn(),
+  back: jest.fn(),
+  setParams: jest.fn(),
+};
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
-  useLocalSearchParams: () => ({ id: 'cat-1' }),
+  useRouter: () => mockRouter,
+  useLocalSearchParams: () => mockSearchParams,
   useFocusEffect: (cb: () => void) => {
     capturedFocusCallback = cb;
   },
@@ -41,23 +45,39 @@ function setupStores() {
     },
     loadCategories: jest.fn(),
   });
-  attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
-    rows: [],
-    spendByMonth: {},
-    loaded: false,
-    expectedIncome: null,
+
+  (useBudgetStore as jest.Mock).mockReturnValue({
+    state: {
+      rows: signal([]),
+      spendByMonth: signal({}),
+      loaded: signal(false),
+      expectedIncome: signal(null),
+    },
     load: jest.fn(),
-  }));
-  attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
-    lensTab: 'categories',
+  });
+
+  (useBudgetState as jest.Mock).mockReturnValue({
+    state: {
+      sheetVisible: signal(false),
+      mode: signal('add'),
+      targetCategoryId: signal(undefined),
+      lensTab: signal('categories'),
+    },
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     setLensTab: jest.fn(),
-  }));
+    close: jest.fn(),
+    reset: jest.fn(),
+  });
 }
 
 beforeEach(() => {
   capturedFocusCallback = null;
+  mockSearchParams = { id: 'cat-1' };
+  mockRouter.push.mockClear();
+  mockRouter.replace.mockClear();
+  mockRouter.back.mockClear();
+  mockRouter.setParams.mockClear();
   jest.useFakeTimers();
   setupStores();
 });
@@ -68,14 +88,16 @@ afterEach(() => {
 
 describe('useBudget — month rollover', () => {
   it('exposes unloaded state until categories and budget data settle', () => {
-    const { result } = renderHook(() => useBudget());
+    const budgetState = (useBudgetState as jest.Mock)();
+    const { result } = renderHook(() => useBudget(budgetState));
 
     expect(result.current.state.hasLoaded).toBe(false);
   });
 
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = renderHook(() => useBudget());
+    const budgetState = (useBudgetState as jest.Mock)();
+    const { result } = renderHook(() => useBudget(budgetState));
     expect(result.current.state.month).toBe('2026-05');
 
     // A month boundary passes while the screen stays mounted.
@@ -86,6 +108,16 @@ describe('useBudget — month rollover', () => {
     });
 
     expect(result.current.state.month).toBe('2026-06');
+  });
+
+  it('opens the edit sheet from editCategoryId and clears the handoff param', () => {
+    mockSearchParams = { editCategoryId: 'cat-food' };
+    const budgetState = (useBudgetState as jest.Mock)();
+
+    renderHook(() => useBudget(budgetState));
+
+    expect(budgetState.openEdit).toHaveBeenCalledWith('cat-food');
+    expect(mockRouter.setParams).toHaveBeenCalledWith({ editCategoryId: '' });
   });
 });
 
@@ -102,5 +134,17 @@ describe('useCategoryDetail — month rollover', () => {
     });
 
     expect(result.current.state.month).toBe('2026-06');
+  });
+
+  it('replaces the detail route with the budget edit handoff when editing a budget', () => {
+    const { result } = renderHook(() => useCategoryDetail());
+
+    act(() => result.current.editBudget());
+
+    expect(mockRouter.replace).toHaveBeenCalledWith({
+      pathname: '/(app)/(tabs)/budget',
+      params: { editCategoryId: 'cat-1' },
+    });
+    expect(mockRouter.push).not.toHaveBeenCalled();
   });
 });
