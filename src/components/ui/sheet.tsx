@@ -193,8 +193,7 @@ export function Sheet({
   footer,
   children,
 }: SheetProps) {
-  const increment = useSheetVisibilityStore((s) => s.increment);
-  const decrement = useSheetVisibilityStore((s) => s.decrement);
+  const { increment, decrement } = useSheetVisibilityStore();
   const insets = useSafeAreaInsets();
 
   // FAB-hide: increment on open, decrement on close or unmount-while-open.
