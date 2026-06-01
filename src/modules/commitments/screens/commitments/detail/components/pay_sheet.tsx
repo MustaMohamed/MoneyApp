@@ -2,7 +2,6 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Input, PressableFeedback } from 'heroui-native';
-import { useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 
@@ -21,15 +20,17 @@ import { ms } from '@/utils/responsive';
 import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { usePaySheet } from './pay_sheet.hook';
+import type { PaySheetStateApi } from './pay_sheet.state';
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 interface Props {
   commitment: Commitment | undefined;
   payment: CommitmentPayment | undefined;
+  sheetState: PaySheetStateApi;
 }
 
-export function PaySheet({ commitment, payment }: Props) {
+export function PaySheet({ commitment, payment, sheetState }: Props) {
   const {
     form,
     state,
@@ -40,10 +41,10 @@ export function PaySheet({ commitment, payment }: Props) {
     setVisible,
     toggleRateOverride,
     setPaidDate,
-  } = usePaySheet(commitment, payment);
+  } = usePaySheet(commitment, payment, sheetState);
 
-  const [showIosDate, setShowIosDate] = useState(false);
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const showIosDatePicker = sheetState.state.showIosDatePicker.value;
 
   const isAlreadyPaid =
     payment?.status === CommitmentPaymentStatus.Paid ||
@@ -74,7 +75,7 @@ export function PaySheet({ commitment, payment }: Props) {
         },
       });
     } else {
-      setShowIosDate((v) => !v);
+      sheetState.toggleIosDatePicker();
     }
   }
 
@@ -244,7 +245,7 @@ export function PaySheet({ commitment, payment }: Props) {
               </Text>
               <MaterialCommunityIcons name="calendar" size={18} color={CoreTokens.text2} />
             </PressableFeedback>
-            {Platform.OS === 'ios' && showIosDate ? (
+            {Platform.OS === 'ios' && showIosDatePicker ? (
               <DateTimePicker
                 value={paidDateAsDate}
                 mode="date"

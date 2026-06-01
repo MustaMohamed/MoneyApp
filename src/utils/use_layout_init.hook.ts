@@ -38,7 +38,7 @@ export function useAppInit() {
         queueMicrotask(() => {
           void (async () => {
             try {
-              const store = useCommitmentStore.getState();
+              const store = useCommitmentStore();
               await store.generatePayments();
               await store.checkAndDeactivateExpired();
             } catch (err) {

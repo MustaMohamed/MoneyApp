@@ -5,9 +5,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
   useFocusEffect: jest.fn(),
@@ -21,24 +19,35 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 }));
 
 function setup() {
-  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    commitments: [],
-    payments: [],
-    selectedMonth: '2026-05',
+  jest.mocked(useCommitmentStore).mockReturnValue({
+    state: {
+      commitments: { value: [] },
+      payments: { value: [] },
+      selectedMonth: { value: '2026-05' },
+      commitmentsLoaded: { value: true },
+      paymentsLoaded: { value: true },
+    },
     setSelectedMonth: jest.fn(),
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
     loadCommitments: jest.fn().mockResolvedValue(undefined),
     generatePayments: jest.fn().mockResolvedValue(undefined),
-  }));
-  (useCategoryStore as unknown as jest.Mock).mockReturnValue({
-    state: { categories: signal([]) },
-  });
-  attachMockSelectorStore(useCommitmentsScreenState as unknown as jest.Mock, () => ({
-    refreshing: false,
-    statusFilter: 'all',
+    skipPayment: jest.fn().mockResolvedValue(undefined),
+    deactivateCommitment: jest.fn().mockResolvedValue(undefined),
+  } as unknown as ReturnType<typeof useCommitmentStore>);
+  jest
+    .mocked(useCategoryStore)
+    .mockReturnValue({ state: { categories: signal([]) } } as unknown as ReturnType<
+      typeof useCategoryStore
+    >);
+  jest.mocked(useCommitmentsScreenState).mockReturnValue({
+    state: {
+      refreshing: signal(false),
+      statusFilter: signal('all' as const),
+    },
     setRefreshing: jest.fn(),
     setStatusFilter: jest.fn(),
-  }));
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useCommitmentsScreenState>);
 }
 
 describe('useCommitments', () => {

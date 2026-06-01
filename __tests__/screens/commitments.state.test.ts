@@ -1,28 +1,41 @@
+import { act, renderHook } from '@testing-library/react-native';
+
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 
-beforeEach(() => useCommitmentsScreenState.getState().reset());
-
 describe('useCommitmentsScreenState', () => {
   it('starts with refreshing false and statusFilter all', () => {
-    const s = useCommitmentsScreenState.getState();
-    expect(s.refreshing).toBe(false);
-    expect(s.statusFilter).toBe('all');
+    const { result } = renderHook(() => useCommitmentsScreenState());
+
+    expect(result.current.state.refreshing.value).toBe(false);
+    expect(result.current.state.statusFilter.value).toBe('all');
   });
 
   it('setRefreshing updates refreshing', () => {
-    useCommitmentsScreenState.getState().setRefreshing(true);
-    expect(useCommitmentsScreenState.getState().refreshing).toBe(true);
+    const { result } = renderHook(() => useCommitmentsScreenState());
+
+    act(() => result.current.setRefreshing(true));
+
+    expect(result.current.state.refreshing.value).toBe(true);
   });
 
   it('setStatusFilter updates statusFilter', () => {
-    useCommitmentsScreenState.getState().setStatusFilter(CommitmentPaymentStatus.Paid);
-    expect(useCommitmentsScreenState.getState().statusFilter).toBe(CommitmentPaymentStatus.Paid);
+    const { result } = renderHook(() => useCommitmentsScreenState());
+
+    act(() => result.current.setStatusFilter(CommitmentPaymentStatus.Paid));
+
+    expect(result.current.state.statusFilter.value).toBe(CommitmentPaymentStatus.Paid);
   });
 
   it('reset returns to initial state', () => {
-    useCommitmentsScreenState.getState().setRefreshing(true);
-    useCommitmentsScreenState.getState().reset();
-    expect(useCommitmentsScreenState.getState().refreshing).toBe(false);
+    const { result } = renderHook(() => useCommitmentsScreenState());
+
+    act(() => {
+      result.current.setRefreshing(true);
+      result.current.reset();
+    });
+
+    expect(result.current.state.refreshing.value).toBe(false);
+    expect(result.current.state.statusFilter.value).toBe('all');
   });
 });

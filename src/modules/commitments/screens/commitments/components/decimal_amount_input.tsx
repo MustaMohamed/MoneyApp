@@ -22,7 +22,7 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
       syncToValue('');
       return;
     }
-    if (parseFloat(state.text) !== value) syncToValue(String(value));
+    if (parseFloat(state.text.value) !== value) syncToValue(String(value));
   }, [value]); // oxlint-disable-line react-hooks/exhaustive-deps -- omit syncToValue/state.text to prevent sync loop
 
   return (
@@ -30,7 +30,7 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
       {...rest}
       placeholderTextColor={Colors.dark.text2}
       style={[styles.input, hasError ? styles.inputError : null, style]}
-      value={state.text}
+      value={state.text.value}
       keyboardType="decimal-pad"
       onChangeText={(v) => {
         if (v !== '' && !/^\d*\.?\d*$/.test(v)) return;
@@ -43,7 +43,7 @@ export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, .
         onChange(isNaN(n) ? undefined : n);
       }}
       onBlur={(e) => {
-        const n = parseFloat(state.text);
+        const n = parseFloat(state.text.value);
         if (isNaN(n)) {
           syncToValue('');
           onChange(undefined);

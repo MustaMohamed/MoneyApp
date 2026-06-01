@@ -103,40 +103,40 @@ function deferred<T>() {
 describe('commitmentStore.loadCommitments', () => {
   it('starts with commitments unloaded so screens can avoid empty-state flashes', () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
 
-    expect(useStore.getState().commitmentsLoaded).toBe(false);
+    expect(store.state.commitmentsLoaded.value).toBe(false);
   });
 
   it('marks commitments loaded after repo data settles', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
 
-    await useStore.getState().loadCommitments();
+    await store.loadCommitments();
 
-    expect(useStore.getState().commitmentsLoaded).toBe(true);
+    expect(store.state.commitmentsLoaded.value).toBe(true);
   });
 
   it('populates state.commitments from repo', async () => {
     const commitment = mockCommitment();
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([commitment]) });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    expect(useStore.getState().commitments).toEqual([commitment]);
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    expect(store.state.commitments.value).toEqual([commitment]);
   });
 
   it('calls repo.getAll()', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
 
   it('propagates repo errors', async () => {
     const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db fail')) });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().loadCommitments()).rejects.toThrow('db fail');
+    await expect(store.loadCommitments()).rejects.toThrow('db fail');
     consoleSpy.mockRestore();
   });
 });
@@ -148,32 +148,32 @@ describe('commitmentStore.loadCommitments', () => {
 describe('commitmentStore.loadPaymentsForMonth', () => {
   it('starts with payments unloaded so month empty states wait for the first fetch', () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
 
-    expect(useStore.getState().paymentsLoaded).toBe(false);
+    expect(store.state.paymentsLoaded.value).toBe(false);
   });
 
   it('marks payments loaded after repo data settles', async () => {
     const repo = makeRepo({ getPaymentsForMonth: jest.fn().mockResolvedValue([]) });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
 
-    await useStore.getState().loadPaymentsForMonth('2026-06');
+    await store.loadPaymentsForMonth('2026-06');
 
-    expect(useStore.getState().paymentsLoaded).toBe(true);
+    expect(store.state.paymentsLoaded.value).toBe(true);
   });
 
   it('populates state.payments from repo', async () => {
     const payment = mockPayment();
     const repo = makeRepo({ getPaymentsForMonth: jest.fn().mockResolvedValue([payment]) });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().payments).toEqual([payment]);
+    const store = createCommitmentStore(repo);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.state.payments.value).toEqual([payment]);
   });
 
   it('calls repo.getPaymentsForMonth with the given yearMonth', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
+    const store = createCommitmentStore(repo);
+    await store.loadPaymentsForMonth('2026-06');
     expect(repo.getPaymentsForMonth).toHaveBeenCalledWith('2026-06');
   });
 
@@ -181,11 +181,9 @@ describe('commitmentStore.loadPaymentsForMonth', () => {
     const repo = makeRepo({
       getPaymentsForMonth: jest.fn().mockRejectedValue(new Error('payments fail')),
     });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().loadPaymentsForMonth('2026-06')).rejects.toThrow(
-      'payments fail',
-    );
+    await expect(store.loadPaymentsForMonth('2026-06')).rejects.toThrow('payments fail');
     consoleSpy.mockRestore();
   });
 });
@@ -197,15 +195,15 @@ describe('commitmentStore.loadPaymentsForMonth', () => {
 describe('commitmentStore.setSelectedMonth', () => {
   it('updates state.selectedMonth', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().setSelectedMonth('2026-08');
-    expect(useStore.getState().selectedMonth).toBe('2026-08');
+    const store = createCommitmentStore(repo);
+    await store.setSelectedMonth('2026-08');
+    expect(store.state.selectedMonth.value).toBe('2026-08');
   });
 
   it('calls loadPaymentsForMonth with the new yearMonth', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().setSelectedMonth('2026-08');
+    const store = createCommitmentStore(repo);
+    await store.setSelectedMonth('2026-08');
     expect(repo.getPaymentsForMonth).toHaveBeenCalledWith('2026-08');
   });
 
@@ -219,17 +217,17 @@ describe('commitmentStore.setSelectedMonth', () => {
         return Promise.resolve([]);
       }),
     });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
 
-    await useStore.getState().setSelectedMonth('2026-04');
-    expect(useStore.getState().payments).toEqual([aprilPayment]);
-    expect(useStore.getState().paymentsLoaded).toBe(true);
+    await store.setSelectedMonth('2026-04');
+    expect(store.state.payments.value).toEqual([aprilPayment]);
+    expect(store.state.paymentsLoaded.value).toBe(true);
 
-    const mayLoad = useStore.getState().setSelectedMonth('2026-05');
+    const mayLoad = store.setSelectedMonth('2026-05');
 
-    expect(useStore.getState().selectedMonth).toBe('2026-05');
-    expect(useStore.getState().payments).toEqual([]);
-    expect(useStore.getState().paymentsLoaded).toBe(false);
+    expect(store.state.selectedMonth.value).toBe('2026-05');
+    expect(store.state.payments.value).toEqual([]);
+    expect(store.state.paymentsLoaded.value).toBe(false);
 
     mayRequest.resolve([]);
     await mayLoad;
@@ -248,30 +246,30 @@ describe('commitmentStore.setSelectedMonth', () => {
         return Promise.resolve([aprilPayment]);
       }),
     });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
 
-    await useStore.getState().loadPaymentsForMonth('2026-04');
-    expect(useStore.getState().paymentsLoaded).toBe(true);
+    await store.loadPaymentsForMonth('2026-04');
+    expect(store.state.paymentsLoaded.value).toBe(true);
 
-    const mayLoad = useStore.getState().setSelectedMonth('2026-05');
-    expect(useStore.getState().paymentsLoaded).toBe(false);
+    const mayLoad = store.setSelectedMonth('2026-05');
+    expect(store.state.paymentsLoaded.value).toBe(false);
 
-    const juneLoad = useStore.getState().setSelectedMonth('2026-06');
-    expect(useStore.getState().paymentsLoaded).toBe(false);
+    const juneLoad = store.setSelectedMonth('2026-06');
+    expect(store.state.paymentsLoaded.value).toBe(false);
 
     juneRequest.resolve([junePayment]);
     await juneLoad;
 
-    expect(useStore.getState().selectedMonth).toBe('2026-06');
-    expect(useStore.getState().payments).toEqual([junePayment]);
-    expect(useStore.getState().paymentsLoaded).toBe(true);
+    expect(store.state.selectedMonth.value).toBe('2026-06');
+    expect(store.state.payments.value).toEqual([junePayment]);
+    expect(store.state.paymentsLoaded.value).toBe(true);
 
     mayRequest.resolve([mayPayment]);
     await mayLoad;
 
-    expect(useStore.getState().selectedMonth).toBe('2026-06');
-    expect(useStore.getState().payments).toEqual([junePayment]);
-    expect(useStore.getState().paymentsLoaded).toBe(true);
+    expect(store.state.selectedMonth.value).toBe('2026-06');
+    expect(store.state.payments.value).toEqual([junePayment]);
+    expect(store.state.paymentsLoaded.value).toBe(true);
   });
 });
 
@@ -298,15 +296,15 @@ describe('commitmentStore.addCommitment', () => {
 
   it('calls repo.add with the input', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().addCommitment(newInput);
+    const store = createCommitmentStore(repo);
+    await store.addCommitment(newInput);
     expect(repo.add).toHaveBeenCalledWith(newInput);
   });
 
   it('reloads commitments after add', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().addCommitment(newInput);
+    const store = createCommitmentStore(repo);
+    await store.addCommitment(newInput);
     expect(repo.getAll).toHaveBeenCalled();
   });
 });
@@ -330,11 +328,11 @@ describe('commitmentStore.markAsPaid', () => {
       getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
       getPaidCount: jest.fn().mockResolvedValue(0),
     });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
     // Seed state
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    await useStore.getState().markAsPaid('p-1', paymentDetails);
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
+    await store.markAsPaid('p-1', paymentDetails);
     expect(repo.markAsPaid).toHaveBeenCalledWith('p-1', paymentDetails, commitment);
   });
 
@@ -346,10 +344,10 @@ describe('commitmentStore.markAsPaid', () => {
       getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
       getPaidCount: jest.fn().mockResolvedValue(0),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    await useStore.getState().markAsPaid('p-1', paymentDetails);
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
+    await store.markAsPaid('p-1', paymentDetails);
     // getPaymentsForMonth is called at least twice (initial load + after markAsPaid)
     expect(repo.getPaymentsForMonth).toHaveBeenCalledTimes(2);
   });
@@ -362,10 +360,10 @@ describe('commitmentStore.markAsPaid', () => {
       getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
       getPaidCount: jest.fn().mockResolvedValue(0),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    await useStore.getState().markAsPaid('p-1', paymentDetails);
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
+    await store.markAsPaid('p-1', paymentDetails);
     // checkAndDeactivateExpired calls getPaidCount for active AfterCount commitments
     // Here commitment is Forever so getPaidCount won't be called, but getAll will be called again
     expect(repo.getAll).toHaveBeenCalledTimes(2); // initial load + checkAndDeactivateExpired reload
@@ -377,11 +375,11 @@ describe('commitmentStore.markAsPaid', () => {
       getAll: jest.fn().mockResolvedValue([mockCommitment({ id: 'c-1' })]),
       getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().markAsPaid('p-1', paymentDetails)).rejects.toThrow(
+    await expect(store.markAsPaid('p-1', paymentDetails)).rejects.toThrow(
       'Commitment not found for payment p-1',
     );
     consoleSpy.mockRestore();
@@ -393,11 +391,11 @@ describe('commitmentStore.markAsPaid', () => {
       getAll: jest.fn().mockResolvedValue([mockCommitment({ id: 'c-1' })]),
       getPaymentsForMonth: jest.fn().mockResolvedValue([]), // no payments
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().markAsPaid('p-nonexistent', paymentDetails)).rejects.toThrow(
+    await expect(store.markAsPaid('p-nonexistent', paymentDetails)).rejects.toThrow(
       'Commitment not found for payment p-nonexistent',
     );
     consoleSpy.mockRestore();
@@ -411,15 +409,15 @@ describe('commitmentStore.markAsPaid', () => {
 describe('commitmentStore.skipPayment', () => {
   it('calls repo.markAsSkipped with the paymentId', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().skipPayment('p-1');
+    const store = createCommitmentStore(repo);
+    await store.skipPayment('p-1');
     expect(repo.markAsSkipped).toHaveBeenCalledWith('p-1');
   });
 
   it('reloads payments after skipping', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().skipPayment('p-1');
+    const store = createCommitmentStore(repo);
+    await store.skipPayment('p-1');
     expect(repo.getPaymentsForMonth).toHaveBeenCalled();
   });
 });
@@ -436,10 +434,10 @@ describe('commitmentStore.generatePayments', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getExistingDueDates: jest.fn().mockResolvedValue([]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
     (computeDueDates as jest.Mock).mockClear();
-    await useStore.getState().generatePayments();
+    await store.generatePayments();
     expect(computeDueDates).toHaveBeenCalledTimes(1);
     expect(computeDueDates).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -459,9 +457,9 @@ describe('commitmentStore.generatePayments', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getExistingDueDates: jest.fn().mockResolvedValue(['2026-06-01']), // already exists
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().generatePayments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.generatePayments();
 
     expect(repo.insertPayments).toHaveBeenCalledTimes(1);
     const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
@@ -478,9 +476,9 @@ describe('commitmentStore.generatePayments', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getExistingDueDates: jest.fn().mockResolvedValue(['2026-06-01']),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().generatePayments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.generatePayments();
     expect(repo.insertPayments).not.toHaveBeenCalled();
   });
 });
@@ -492,55 +490,55 @@ describe('commitmentStore.generatePayments', () => {
 describe('commitmentStore — selector getters', () => {
   function storeWithPayments(payments: CommitmentPayment[]) {
     const repo = makeRepo({ getPaymentsForMonth: jest.fn().mockResolvedValue(payments) });
-    const useStore = createCommitmentStore(repo);
-    return useStore;
+    const store = createCommitmentStore(repo);
+    return store;
   }
 
   it('getOverdue filters by Overdue status', async () => {
     const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Overdue });
     const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Upcoming });
-    const useStore = storeWithPayments([p1, p2]);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getOverdue()).toEqual([p1]);
+    const store = storeWithPayments([p1, p2]);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getOverdue()).toEqual([p1]);
   });
 
   it('getDueToday filters by Due status', async () => {
     const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Due });
     const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Upcoming });
-    const useStore = storeWithPayments([p1, p2]);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getDueToday()).toEqual([p1]);
+    const store = storeWithPayments([p1, p2]);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getDueToday()).toEqual([p1]);
   });
 
   it('getPaid filters by Paid status', async () => {
     const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Paid });
     const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Overdue });
-    const useStore = storeWithPayments([p1, p2]);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getPaid()).toEqual([p1]);
+    const store = storeWithPayments([p1, p2]);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getPaid()).toEqual([p1]);
   });
 
   it('getUpcoming filters by Upcoming status', async () => {
     const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Upcoming });
     const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Paid });
-    const useStore = storeWithPayments([p1, p2]);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getUpcoming()).toEqual([p1]);
+    const store = storeWithPayments([p1, p2]);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getUpcoming()).toEqual([p1]);
   });
 
   it('getSkipped filters by Skipped status', async () => {
     const p1 = mockPayment({ id: 'p-1', status: CommitmentPaymentStatus.Skipped });
     const p2 = mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Upcoming });
-    const useStore = storeWithPayments([p1, p2]);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getSkipped()).toEqual([p1]);
+    const store = storeWithPayments([p1, p2]);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getSkipped()).toEqual([p1]);
   });
 
   it('getTotalCount returns all payments length', async () => {
     const payments = [mockPayment({ id: 'p-1' }), mockPayment({ id: 'p-2' })];
-    const useStore = storeWithPayments(payments);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getTotalCount()).toBe(2);
+    const store = storeWithPayments(payments);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getTotalCount()).toBe(2);
   });
 
   it('getPaidCount returns count of Paid payments', async () => {
@@ -549,9 +547,9 @@ describe('commitmentStore — selector getters', () => {
       mockPayment({ id: 'p-2', status: CommitmentPaymentStatus.Paid }),
       mockPayment({ id: 'p-3', status: CommitmentPaymentStatus.Upcoming }),
     ];
-    const useStore = storeWithPayments(payments);
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    expect(useStore.getState().getPaidCount()).toBe(2);
+    const store = storeWithPayments(payments);
+    await store.loadPaymentsForMonth('2026-06');
+    expect(store.getPaidCount()).toBe(2);
   });
 });
 
@@ -579,22 +577,22 @@ describe('commitmentStore.updateCommitment', () => {
 
   it('calls repo.update with id and data', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().updateCommitment('c-1', updateInput);
+    const store = createCommitmentStore(repo);
+    await store.updateCommitment('c-1', updateInput);
     expect(repo.update).toHaveBeenCalledWith('c-1', updateInput);
   });
 
   it('calls repo.deleteUnpaidPayments as part of regeneratePayments', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().updateCommitment('c-1', updateInput);
+    const store = createCommitmentStore(repo);
+    await store.updateCommitment('c-1', updateInput);
     expect(repo.deleteUnpaidPayments).toHaveBeenCalledWith('c-1');
   });
 
   it('calls repo.getById as part of regeneratePayments', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().updateCommitment('c-1', updateInput);
+    const store = createCommitmentStore(repo);
+    await store.updateCommitment('c-1', updateInput);
     expect(repo.getById).toHaveBeenCalledWith('c-1');
   });
 
@@ -603,15 +601,15 @@ describe('commitmentStore.updateCommitment', () => {
       getById: jest.fn().mockResolvedValue(mockCommitment()),
       getExistingDueDates: jest.fn().mockResolvedValue([]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().updateCommitment('c-1', updateInput);
+    const store = createCommitmentStore(repo);
+    await store.updateCommitment('c-1', updateInput);
     expect(repo.insertPayments).toHaveBeenCalled();
   });
 
   it('reloads commitments after update', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().updateCommitment('c-1', updateInput);
+    const store = createCommitmentStore(repo);
+    await store.updateCommitment('c-1', updateInput);
     expect(repo.getAll).toHaveBeenCalled();
   });
 });
@@ -623,24 +621,24 @@ describe('commitmentStore.updateCommitment', () => {
 describe('commitmentStore.deactivateCommitment', () => {
   it('calls repo.deactivate with the id', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().deactivateCommitment('c-1');
+    const store = createCommitmentStore(repo);
+    await store.deactivateCommitment('c-1');
     expect(repo.deactivate).toHaveBeenCalledWith('c-1');
   });
 
   it('reloads commitments after deactivation', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().deactivateCommitment('c-1');
+    const store = createCommitmentStore(repo);
+    await store.deactivateCommitment('c-1');
     expect(repo.getAll).toHaveBeenCalled();
   });
 
   it('reloads payments for selectedMonth after deactivation', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().setSelectedMonth('2026-09');
+    const store = createCommitmentStore(repo);
+    await store.setSelectedMonth('2026-09');
     (repo.getPaymentsForMonth as jest.Mock).mockClear();
-    await useStore.getState().deactivateCommitment('c-1');
+    await store.deactivateCommitment('c-1');
     expect(repo.getPaymentsForMonth).toHaveBeenCalledWith('2026-09');
   });
 });
@@ -652,15 +650,15 @@ describe('commitmentStore.deactivateCommitment', () => {
 describe('commitmentStore.regeneratePayments', () => {
   it('calls repo.deleteUnpaidPayments with the commitmentId', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().regeneratePayments('c-1');
+    const store = createCommitmentStore(repo);
+    await store.regeneratePayments('c-1');
     expect(repo.deleteUnpaidPayments).toHaveBeenCalledWith('c-1');
   });
 
   it('calls repo.getById to fetch the commitment', async () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().regeneratePayments('c-1');
+    const store = createCommitmentStore(repo);
+    await store.regeneratePayments('c-1');
     expect(repo.getById).toHaveBeenCalledWith('c-1');
   });
 
@@ -671,8 +669,8 @@ describe('commitmentStore.regeneratePayments', () => {
       getById: jest.fn().mockResolvedValue(mockCommitment()),
       getExistingDueDates: jest.fn().mockResolvedValue([]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().regeneratePayments('c-1');
+    const store = createCommitmentStore(repo);
+    await store.regeneratePayments('c-1');
     expect(repo.insertPayments).toHaveBeenCalledTimes(1);
     const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
     expect(inserted).toHaveLength(2);
@@ -685,8 +683,8 @@ describe('commitmentStore.regeneratePayments', () => {
       getById: jest.fn().mockResolvedValue(mockCommitment()),
       getExistingDueDates: jest.fn().mockResolvedValue(['2026-06-01']),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().regeneratePayments('c-1');
+    const store = createCommitmentStore(repo);
+    await store.regeneratePayments('c-1');
     expect(repo.insertPayments).not.toHaveBeenCalled();
   });
 
@@ -694,8 +692,8 @@ describe('commitmentStore.regeneratePayments', () => {
     const repo = makeRepo({
       getById: jest.fn().mockResolvedValue(undefined),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().regeneratePayments('c-missing');
+    const store = createCommitmentStore(repo);
+    await store.regeneratePayments('c-missing');
     expect(repo.insertPayments).not.toHaveBeenCalled();
   });
 });
@@ -716,9 +714,9 @@ describe('commitmentStore.checkAndDeactivateExpired', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getPaidCount: jest.fn().mockResolvedValue(3),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().checkAndDeactivateExpired();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.checkAndDeactivateExpired();
     expect(repo.deactivate).toHaveBeenCalledWith('c-1');
   });
 
@@ -733,9 +731,9 @@ describe('commitmentStore.checkAndDeactivateExpired', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getPaidCount: jest.fn().mockResolvedValue(2),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().checkAndDeactivateExpired();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.checkAndDeactivateExpired();
     expect(repo.deactivate).not.toHaveBeenCalled();
   });
 
@@ -749,9 +747,9 @@ describe('commitmentStore.checkAndDeactivateExpired', () => {
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([commitment]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().checkAndDeactivateExpired();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.checkAndDeactivateExpired();
     expect(repo.deactivate).toHaveBeenCalledWith('c-1');
   });
 
@@ -766,19 +764,19 @@ describe('commitmentStore.checkAndDeactivateExpired', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getPaidCount: jest.fn().mockResolvedValue(5),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().checkAndDeactivateExpired();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.checkAndDeactivateExpired();
     expect(repo.deactivate).not.toHaveBeenCalled();
   });
 
   it('reloads commitments after checking', async () => {
     const commitment = mockCommitment({ duration_type: DurationType.Forever });
     const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([commitment]) });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
     const callsBefore = (repo.getAll as jest.Mock).mock.calls.length;
-    await useStore.getState().checkAndDeactivateExpired();
+    await store.checkAndDeactivateExpired();
     expect((repo.getAll as jest.Mock).mock.calls.length).toBe(callsBefore + 1);
   });
 });
@@ -798,9 +796,9 @@ describe('commitmentStore.generatePayments — payment status assignment', () =>
       getAll: jest.fn().mockResolvedValue([commitment]),
       getExistingDueDates: jest.fn().mockResolvedValue([]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().generatePayments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.generatePayments();
 
     const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
     expect(inserted[0].status).toBe(CommitmentPaymentStatus.Overdue);
@@ -816,9 +814,9 @@ describe('commitmentStore.generatePayments — payment status assignment', () =>
       getAll: jest.fn().mockResolvedValue([commitment]),
       getExistingDueDates: jest.fn().mockResolvedValue([]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().generatePayments();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.generatePayments();
 
     const inserted: CommitmentPayment[] = (repo.insertPayments as jest.Mock).mock.calls[0][0];
     expect(inserted[0].status).toBe(CommitmentPaymentStatus.Due);
@@ -840,9 +838,9 @@ describe('commitmentStore.checkAndDeactivateExpired — UntilDate not expired', 
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([commitment]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().checkAndDeactivateExpired();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.checkAndDeactivateExpired();
     expect(repo.deactivate).not.toHaveBeenCalled();
   });
 
@@ -856,9 +854,9 @@ describe('commitmentStore.checkAndDeactivateExpired — UntilDate not expired', 
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([commitment]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().checkAndDeactivateExpired();
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.checkAndDeactivateExpired();
     expect(repo.deactivate).not.toHaveBeenCalled();
   });
 });
@@ -876,26 +874,22 @@ describe('commitmentStore — error paths', () => {
 
   it('addCommitment propagates repo.add errors', async () => {
     const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('add fail')) });
-    const useStore = createCommitmentStore(repo);
-    await expect(useStore.getState().addCommitment({} as never)).rejects.toThrow('add fail');
+    const store = createCommitmentStore(repo);
+    await expect(store.addCommitment({} as never)).rejects.toThrow('add fail');
   });
 
   it('updateCommitment propagates repo.update errors', async () => {
     const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update fail')) });
-    const useStore = createCommitmentStore(repo);
-    await expect(useStore.getState().updateCommitment('c-1', {} as never)).rejects.toThrow(
-      'update fail',
-    );
+    const store = createCommitmentStore(repo);
+    await expect(store.updateCommitment('c-1', {} as never)).rejects.toThrow('update fail');
   });
 
   it('deactivateCommitment propagates repo.deactivate errors', async () => {
     const repo = makeRepo({
       deactivate: jest.fn().mockRejectedValue(new Error('deactivate fail')),
     });
-    const useStore = createCommitmentStore(repo);
-    await expect(useStore.getState().deactivateCommitment('c-1')).rejects.toThrow(
-      'deactivate fail',
-    );
+    const store = createCommitmentStore(repo);
+    await expect(store.deactivateCommitment('c-1')).rejects.toThrow('deactivate fail');
   });
 
   it('markAsPaid propagates repo.markAsPaid errors', async () => {
@@ -906,13 +900,15 @@ describe('commitmentStore — error paths', () => {
       getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
       markAsPaid: jest.fn().mockRejectedValue(new Error('markAsPaid fail')),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
     await expect(
-      useStore
-        .getState()
-        .markAsPaid('p-1', { amount_paid: 200, account_id: 'acc-1', paid_date: '2026-06-01' }),
+      store.markAsPaid('p-1', {
+        amount_paid: 200,
+        account_id: 'acc-1',
+        paid_date: '2026-06-01',
+      }),
     ).rejects.toThrow('markAsPaid fail');
   });
 
@@ -920,8 +916,8 @@ describe('commitmentStore — error paths', () => {
     const repo = makeRepo({
       markAsSkipped: jest.fn().mockRejectedValue(new Error('skip fail')),
     });
-    const useStore = createCommitmentStore(repo);
-    await expect(useStore.getState().skipPayment('p-1')).rejects.toThrow('skip fail');
+    const store = createCommitmentStore(repo);
+    await expect(store.skipPayment('p-1')).rejects.toThrow('skip fail');
   });
 
   it('generatePayments propagates repo.getExistingDueDates errors', async () => {
@@ -929,17 +925,17 @@ describe('commitmentStore — error paths', () => {
       getAll: jest.fn().mockResolvedValue([mockCommitment()]),
       getExistingDueDates: jest.fn().mockRejectedValue(new Error('dates fail')),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await expect(useStore.getState().generatePayments()).rejects.toThrow('dates fail');
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await expect(store.generatePayments()).rejects.toThrow('dates fail');
   });
 
   it('regeneratePayments propagates repo.deleteUnpaidPayments errors', async () => {
     const repo = makeRepo({
       deleteUnpaidPayments: jest.fn().mockRejectedValue(new Error('delete fail')),
     });
-    const useStore = createCommitmentStore(repo);
-    await expect(useStore.getState().regeneratePayments('c-1')).rejects.toThrow('delete fail');
+    const store = createCommitmentStore(repo);
+    await expect(store.regeneratePayments('c-1')).rejects.toThrow('delete fail');
   });
 
   it('checkAndDeactivateExpired propagates repo.getPaidCount errors', async () => {
@@ -953,9 +949,9 @@ describe('commitmentStore — error paths', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getPaidCount: jest.fn().mockRejectedValue(new Error('paidCount fail')),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    await expect(useStore.getState().checkAndDeactivateExpired()).rejects.toThrow('paidCount fail');
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    await expect(store.checkAndDeactivateExpired()).rejects.toThrow('paidCount fail');
   });
 });
 
@@ -971,9 +967,9 @@ describe('commitmentStore.getTotalMonthlyCommitted', () => {
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([active1, active2, inactive]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    expect(useStore.getState().getTotalMonthlyCommitted()).toBe(300);
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    expect(store.getTotalMonthlyCommitted()).toBe(300);
   });
 
   it('treats null amount as 0', async () => {
@@ -981,9 +977,9 @@ describe('commitmentStore.getTotalMonthlyCommitted', () => {
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([variableCommitment]),
     });
-    const useStore = createCommitmentStore(repo);
-    await useStore.getState().loadCommitments();
-    expect(useStore.getState().getTotalMonthlyCommitted()).toBe(0);
+    const store = createCommitmentStore(repo);
+    await store.loadCommitments();
+    expect(store.getTotalMonthlyCommitted()).toBe(0);
   });
 });
 
@@ -994,8 +990,8 @@ describe('commitmentStore.getTotalMonthlyCommitted', () => {
 describe('commitmentStore — deactivateCommitment signature smoke test', () => {
   it('deactivateCommitment exists and is a function on the store', () => {
     const repo = makeRepo();
-    const useStore = createCommitmentStore(repo);
-    const { deactivateCommitment } = useStore.getState();
+    const store = createCommitmentStore(repo);
+    const { deactivateCommitment } = store;
     expect(typeof deactivateCommitment).toBe('function');
   });
 });
@@ -1012,17 +1008,17 @@ describe('commitmentStore.reset', () => {
       getAll: jest.fn().mockResolvedValue([commitment]),
       getPaymentsForMonth: jest.fn().mockResolvedValue([payment]),
     });
-    const useStore = createCommitmentStore(repo);
+    const store = createCommitmentStore(repo);
     // Populate state
-    await useStore.getState().loadCommitments();
-    await useStore.getState().loadPaymentsForMonth('2026-06');
-    await useStore.getState().setSelectedMonth('2026-09');
+    await store.loadCommitments();
+    await store.loadPaymentsForMonth('2026-06');
+    await store.setSelectedMonth('2026-09');
     // State is now non-empty
-    expect(useStore.getState().commitments).toHaveLength(1);
-    expect(useStore.getState().payments).toHaveLength(1);
+    expect(store.state.commitments.value).toHaveLength(1);
+    expect(store.state.payments.value).toHaveLength(1);
     // Reset
-    useStore.getState().reset();
-    expect(useStore.getState().commitments).toEqual([]);
-    expect(useStore.getState().payments).toEqual([]);
+    store.reset();
+    expect(store.state.commitments.value).toEqual([]);
+    expect(store.state.payments.value).toEqual([]);
   });
 });

@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -14,7 +13,7 @@ import type { Commitment } from '../../../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../../../entities/commitment_payment.entity';
 import { commitmentRepository } from '../../../../repositories/commitment.repository';
 import { useCommitmentStore } from '../../../../store/commitment.store';
-import { usePaySheetState } from './pay_sheet.state';
+import type { PaySheetStateApi } from './pay_sheet.state';
 
 const schema = z.object({
   amount: z.number({ error: Strings.commitmentsPayErrAmountRequired }).positive(),
@@ -39,20 +38,20 @@ function buildDefaults(): PaySheetFormValues {
 export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
+  paySheetState: PaySheetStateApi,
 ) {
-  const { visible, saving, accountPickerVisible, rateOverride } = usePaySheetState(
-    useShallow((s) => ({
-      visible: s.visible,
-      saving: s.saving,
-      accountPickerVisible: s.accountPickerVisible,
-      rateOverride: s.rateOverride,
-    })),
-  );
-  const setVisible = usePaySheetState.getState().setVisible;
-  const setSaving = usePaySheetState.getState().setSaving;
-  const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
-  const setRateOverride = usePaySheetState.getState().setRateOverride;
-  const reset = usePaySheetState.getState().reset;
+  const {
+    state: sheetState,
+    setVisible,
+    setSaving,
+    setAccountPickerVisible,
+    setRateOverride,
+    reset,
+  } = paySheetState;
+  const visible = sheetState.visible.value;
+  const saving = sheetState.saving.value;
+  const accountPickerVisible = sheetState.accountPickerVisible.value;
+  const rateOverride = sheetState.rateOverride.value;
 
   const {
     state: { accounts: accountsSignal },
@@ -70,9 +69,9 @@ export function usePaySheet(
   } = useCurrencyStore();
   const rateUpdatedAt = rateUpdatedAtSignal.value;
 
-  const selectedMonth = useCommitmentStore.useState.selectedMonth();
-  const markAsPaid = useCommitmentStore.getState().markAsPaid;
-  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
+  const commitmentStore = useCommitmentStore();
+  const selectedMonth = commitmentStore.state.selectedMonth.value;
+  const { markAsPaid, loadPaymentsForMonth } = commitmentStore;
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',

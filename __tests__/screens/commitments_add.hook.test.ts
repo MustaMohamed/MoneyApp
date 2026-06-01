@@ -6,9 +6,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useAddCommitment } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.hook';
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
@@ -25,25 +23,32 @@ jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitme
 }));
 
 function setup() {
-  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    commitments: [],
-    payments: [],
+  jest.mocked(useCommitmentStore).mockReturnValue({
+    state: {
+      commitments: { value: [] },
+      payments: { value: [] },
+      selectedMonth: { value: '2026-05' },
+      commitmentsLoaded: { value: true },
+      paymentsLoaded: { value: true },
+    },
     addCommitment: jest.fn().mockResolvedValue(undefined),
     generatePayments: jest.fn().mockResolvedValue(undefined),
-  }));
+  } as unknown as ReturnType<typeof useCommitmentStore>);
   jest
     .mocked(useAccountStore)
     .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
       typeof useAccountStore
     >);
-  (useCategoryStore as unknown as jest.Mock).mockReturnValue({
-    state: { categories: signal([]) },
-  });
-  attachMockSelectorStore(useAddCommitmentState as unknown as jest.Mock, () => ({
-    saving: false,
+  jest
+    .mocked(useCategoryStore)
+    .mockReturnValue({ state: { categories: signal([]) } } as unknown as ReturnType<
+      typeof useCategoryStore
+    >);
+  jest.mocked(useAddCommitmentState).mockReturnValue({
+    state: { saving: signal(false) },
     setSaving: jest.fn(),
     reset: jest.fn(),
-  }));
+  } as unknown as ReturnType<typeof useAddCommitmentState>);
 }
 
 describe('useAddCommitment', () => {

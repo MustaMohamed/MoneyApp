@@ -27,12 +27,10 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: {
-    getState: () => ({
-      generatePayments: mockGeneratePayments,
-      checkAndDeactivateExpired: mockCheckAndDeactivateExpired,
-    }),
-  },
+  useCommitmentStore: () => ({
+    generatePayments: mockGeneratePayments,
+    checkAndDeactivateExpired: mockCheckAndDeactivateExpired,
+  }),
 }));
 jest.mock('@/utils/zod_config', () => {});
 

@@ -26,9 +26,7 @@ import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/co
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -53,19 +51,35 @@ let paySheetStateInner = {
   saving: false,
   accountPickerVisible: false,
   rateOverride: false,
+  showIosDatePicker: false,
 };
 const mockPaySheetState = {
-  get visible() {
-    return paySheetStateInner.visible;
-  },
-  get saving() {
-    return paySheetStateInner.saving;
-  },
-  get accountPickerVisible() {
-    return paySheetStateInner.accountPickerVisible;
-  },
-  get rateOverride() {
-    return paySheetStateInner.rateOverride;
+  state: {
+    visible: {
+      get value() {
+        return paySheetStateInner.visible;
+      },
+    },
+    saving: {
+      get value() {
+        return paySheetStateInner.saving;
+      },
+    },
+    accountPickerVisible: {
+      get value() {
+        return paySheetStateInner.accountPickerVisible;
+      },
+    },
+    rateOverride: {
+      get value() {
+        return paySheetStateInner.rateOverride;
+      },
+    },
+    showIosDatePicker: {
+      get value() {
+        return paySheetStateInner.showIosDatePicker;
+      },
+    },
   },
   setVisible: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, visible: v };
@@ -79,12 +93,19 @@ const mockPaySheetState = {
   setRateOverride: jest.fn((v: boolean) => {
     paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
   }),
+  toggleIosDatePicker: jest.fn(() => {
+    paySheetStateInner = {
+      ...paySheetStateInner,
+      showIosDatePicker: !paySheetStateInner.showIosDatePicker,
+    };
+  }),
   reset: jest.fn(() => {
     paySheetStateInner = {
       visible: false,
       saving: false,
       accountPickerVisible: false,
       rateOverride: false,
+      showIosDatePicker: false,
     };
   }),
 };
@@ -137,13 +158,17 @@ const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
 
 function setupStoreMocks() {
-  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    commitments: [],
-    payments: [],
-    selectedMonth: '2026-05',
+  jest.mocked(useCommitmentStore).mockReturnValue({
+    state: {
+      commitments: { value: [] },
+      payments: { value: [] },
+      selectedMonth: { value: '2026-05' },
+      commitmentsLoaded: { value: true },
+      paymentsLoaded: { value: true },
+    },
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
-  }));
+  } as unknown as ReturnType<typeof useCommitmentStore>);
   jest.mocked(useAccountStore).mockReturnValue({
     state: {
       accounts: {
@@ -154,14 +179,21 @@ function setupStoreMocks() {
     },
     init: jest.fn().mockResolvedValue(undefined),
   } as unknown as ReturnType<typeof useAccountStore>);
-  (useCurrencyStore as unknown as jest.Mock).mockReturnValue({
+  jest.mocked(useCurrencyStore).mockReturnValue({
     state: {
       rate: signal(55),
+      lastFetched: signal<string | null>(null),
       isManualOverride: signal(false),
       rateUpdatedAt: signal<string | null>(null),
     },
-  });
-  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => mockPaySheetState);
+    loadRate: jest.fn().mockResolvedValue(undefined),
+    fetchRate: jest.fn().mockResolvedValue(undefined),
+    setManualRate: jest.fn().mockResolvedValue(undefined),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useCurrencyStore>);
+  jest
+    .mocked(usePaySheetState)
+    .mockReturnValue(mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>);
 }
 
 describe('usePaySheet', () => {
@@ -182,12 +214,19 @@ describe('usePaySheet', () => {
     mockPaySheetState.setRateOverride.mockImplementation((v: boolean) => {
       paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
     });
+    mockPaySheetState.toggleIosDatePicker.mockImplementation(() => {
+      paySheetStateInner = {
+        ...paySheetStateInner,
+        showIosDatePicker: !paySheetStateInner.showIosDatePicker,
+      };
+    });
     mockPaySheetState.reset.mockImplementation(() => {
       paySheetStateInner = {
         visible: false,
         saving: false,
         accountPickerVisible: false,
         rateOverride: false,
+        showIosDatePicker: false,
       };
     });
     // Reset the capturable store mocks
@@ -201,7 +240,13 @@ describe('usePaySheet', () => {
   it('prefills the fixed amount from amount_due when the sheet is visible on mount', async () => {
     // Start with visible=true so the prefill useEffect fires on first render
     paySheetStateInner = { ...paySheetStateInner, visible: true };
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        fixedCommitment,
+        duePayment,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     // prefill runs in a useEffect; flush microtasks
     await act(async () => {});
     expect(result.current.form.getValues('amount')).toBe(15);
@@ -209,13 +254,25 @@ describe('usePaySheet', () => {
   });
 
   it('starts with rateOverride false on open', async () => {
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        fixedCommitment,
+        duePayment,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     // rateOverride starts false (initial state, sheet not yet opened)
     expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('toggleRateOverride flips the flag', async () => {
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        fixedCommitment,
+        duePayment,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     // Initial state: rateOverride = false
     expect(result.current.state.rateOverride).toBe(false);
     // Toggle: calls setRateOverride(!false) = setRateOverride(true)
@@ -224,7 +281,13 @@ describe('usePaySheet', () => {
   });
 
   it('setPaidDate writes an ISO string into the form (date-picker upgrade)', async () => {
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        fixedCommitment,
+        duePayment,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     act(() => result.current.setPaidDate('2026-05-20'));
     expect(result.current.form.getValues('paid_date')).toBe('2026-05-20');
   });
@@ -232,11 +295,25 @@ describe('usePaySheet', () => {
   // Render-safety + default cases (folded in from the former pay_sheet.hook.test.ts
   // during §8 cleanup — that file duplicated this hook's mock setup).
   it('renders without throwing when commitment and payment are undefined', () => {
-    expect(() => renderHook(() => usePaySheet(undefined, undefined))).not.toThrow();
+    expect(() =>
+      renderHook(() =>
+        usePaySheet(
+          undefined,
+          undefined,
+          mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+        ),
+      ),
+    ).not.toThrow();
   });
 
   it('saving defaults to false', () => {
-    const { result } = renderHook(() => usePaySheet(undefined, undefined));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        undefined,
+        undefined,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     expect(result.current.state.saving).toBe(false);
   });
 
@@ -246,7 +323,13 @@ describe('usePaySheet', () => {
   // conversion, so exchange_rate_snapshot must be undefined.
   it('does not snapshot a stale exchange_rate when the account currency matches the commitment', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        fixedCommitment,
+        duePayment,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
       result.current.form.setValue('amount', 15);
@@ -265,7 +348,13 @@ describe('usePaySheet', () => {
 
   it('snapshots the entered rate when the payment crosses currencies', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = renderHook(() =>
+      usePaySheet(
+        fixedCommitment,
+        duePayment,
+        mockPaySheetState as unknown as ReturnType<typeof usePaySheetState>,
+      ),
+    );
     act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amount', 15);

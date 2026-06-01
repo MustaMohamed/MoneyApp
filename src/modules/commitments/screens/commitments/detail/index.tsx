@@ -16,8 +16,16 @@ import { SkipConfirmSheet } from './components/skip_confirm_sheet';
 import { useCommitmentDetail } from './detail.hook';
 
 export default function CommitmentDetailScreen() {
-  const { state, confirmSkip, skipPayment, cancelSkip, openPaySheet, goToEdit, goBack } =
-    useCommitmentDetail();
+  const {
+    state,
+    confirmSkip,
+    skipPayment,
+    cancelSkip,
+    openPaySheet,
+    goToEdit,
+    goBack,
+    paySheetState,
+  } = useCommitmentDetail();
 
   return (
     <Screen edges={['top', 'bottom']}>
@@ -85,7 +93,7 @@ export default function CommitmentDetailScreen() {
         </ScreenScroll>
       ) : null}
 
-      <PaySheet commitment={state.commitment} payment={state.payment} />
+      <PaySheet commitment={state.commitment} payment={state.payment} sheetState={paySheetState} />
 
       <SkipConfirmSheet
         isOpen={state.skipConfirmVisible}

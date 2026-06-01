@@ -1,28 +1,46 @@
-import { create } from 'zustand';
+import { batch, type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type EditCommitmentState = {
+  saving: ReadonlySignal<boolean>;
+  deactivateDialogVisible: ReadonlySignal<boolean>;
+};
 
-interface EditCommitmentStateShape {
-  saving: boolean;
-  deactivateDialogVisible: boolean;
-}
-
-type EditCommitmentState = EditCommitmentStateShape & {
+type EditCommitmentActions = {
   setSaving: (v: boolean) => void;
   setDeactivateDialogVisible: (v: boolean) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: EditCommitmentStateShape = {
-  saving: false,
-  deactivateDialogVisible: false,
-};
+export function useEditCommitmentState(): { state: EditCommitmentState } & EditCommitmentActions {
+  const saving = useSignal(false);
+  const deactivateDialogVisible = useSignal(false);
 
-export const useEditCommitmentState = createMoneyAppSelectors(
-  create<EditCommitmentState>((set) => ({
-    ...INITIAL_STATE,
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setDeactivateDialogVisible: (v) => set((s) => ({ ...s, deactivateDialogVisible: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setSaving = useCallback(
+    (v: boolean) => {
+      saving.value = v;
+    },
+    [saving],
+  );
+
+  const setDeactivateDialogVisible = useCallback(
+    (v: boolean) => {
+      deactivateDialogVisible.value = v;
+    },
+    [deactivateDialogVisible],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      saving.value = false;
+      deactivateDialogVisible.value = false;
+    });
+  }, [deactivateDialogVisible, saving]);
+
+  return {
+    state: { saving, deactivateDialogVisible },
+    setSaving,
+    setDeactivateDialogVisible,
+    reset,
+  };
+}

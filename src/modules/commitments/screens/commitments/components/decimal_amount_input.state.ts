@@ -1,26 +1,37 @@
-import { useRef } from 'react';
-import { create } from 'zustand';
+import { type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-type DecimalInputState = { text: string } & {
+type DecimalInputState = {
+  text: ReadonlySignal<string>;
+};
+
+type DecimalInputActions = {
   setText: (text: string) => void;
   syncToValue: (text: string) => void;
 };
 
-function createStore(initialText: string) {
-  return create<DecimalInputState>((set) => ({
-    text: initialText,
-    setText: (text) => set((s) => ({ ...s, text })),
-    syncToValue: (text) => set((s) => ({ ...s, text })),
-  }));
-}
+export function useDecimalInputState(initialText: string): {
+  state: DecimalInputState;
+} & DecimalInputActions {
+  const text = useSignal(initialText);
 
-type Store = ReturnType<typeof createStore>;
+  const setText = useCallback(
+    (nextText: string) => {
+      text.value = nextText;
+    },
+    [text],
+  );
 
-export function useDecimalInputState(initialText: string) {
-  const storeRef = useRef<Store | null>(null);
-  storeRef.current ??= createStore(initialText);
-  const text = storeRef.current((s) => s.text);
-  const setText = storeRef.current((s) => s.setText);
-  const syncToValue = storeRef.current((s) => s.syncToValue);
-  return { state: { text }, setText, syncToValue };
+  const syncToValue = useCallback(
+    (nextText: string) => {
+      text.value = nextText;
+    },
+    [text],
+  );
+
+  return {
+    state: { text },
+    setText,
+    syncToValue,
+  };
 }

@@ -3,7 +3,7 @@
  *
  * Background: detail.hook.ts calls setViewState inside a useEffect on mount.
  * In the React test renderer, this fires synchronously within renderHook's
- * act(). Any real Zustand store + useShallow:(sel)=>sel passthrough produces
+ * act(). Any real selector store produces
  * a new object reference every call → useSyncExternalStore "unstable snapshot"
  * → "Maximum update depth exceeded".
  *
@@ -27,9 +27,7 @@ import {
   useCommitmentDetailState,
 } from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'pay-1' }),
   router: { push: jest.fn(), back: jest.fn() },
@@ -54,35 +52,55 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
 }));
 
 function setup() {
-  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    commitments: [],
-    payments: [],
+  jest.mocked(useCommitmentStore).mockReturnValue({
+    state: {
+      commitments: { value: [] },
+      payments: { value: [] },
+      selectedMonth: { value: '2026-05' },
+      commitmentsLoaded: { value: true },
+      paymentsLoaded: { value: true },
+    },
     skipPayment: jest.fn().mockResolvedValue(undefined),
-  }));
+  } as unknown as ReturnType<typeof useCommitmentStore>);
   jest
     .mocked(useAccountStore)
     .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
       typeof useAccountStore
     >);
-  (useCategoryStore as unknown as jest.Mock).mockReturnValue({
-    state: { categories: signal([]) },
-  });
-  attachMockSelectorStore(useCommitmentDetailScreenData as unknown as jest.Mock, () => ({
-    viewState: 'loading' as const,
-    allPayments: [],
+  jest
+    .mocked(useCategoryStore)
+    .mockReturnValue({ state: { categories: signal([]) } } as unknown as ReturnType<
+      typeof useCategoryStore
+    >);
+  jest.mocked(useCommitmentDetailScreenData).mockReturnValue({
+    state: {
+      viewState: signal('loading' as const),
+      allPayments: signal([]),
+    },
     setAllPayments: jest.fn(),
     setViewState: jest.fn(),
     reset: jest.fn(),
-  }));
-  attachMockSelectorStore(useCommitmentDetailState as unknown as jest.Mock, () => ({
-    skipConfirmVisible: false,
+  } as unknown as ReturnType<typeof useCommitmentDetailScreenData>);
+  jest.mocked(useCommitmentDetailState).mockReturnValue({
+    state: { skipConfirmVisible: { value: false } },
     setSkipConfirmVisible: jest.fn(),
     reset: jest.fn(),
-  }));
-  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => ({
-    visible: false,
+  } as unknown as ReturnType<typeof useCommitmentDetailState>);
+  jest.mocked(usePaySheetState).mockReturnValue({
+    state: {
+      visible: { value: false },
+      saving: { value: false },
+      accountPickerVisible: { value: false },
+      rateOverride: { value: false },
+      showIosDatePicker: { value: false },
+    },
     setVisible: jest.fn(),
-  }));
+    setSaving: jest.fn(),
+    setAccountPickerVisible: jest.fn(),
+    setRateOverride: jest.fn(),
+    toggleIosDatePicker: jest.fn(),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof usePaySheetState>);
 }
 
 describe('useCommitmentDetail', () => {

@@ -1,22 +1,32 @@
-import { create } from 'zustand';
+import { type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type AddCommitmentState = {
+  saving: ReadonlySignal<boolean>;
+};
 
-interface AddCommitmentStateShape {
-  saving: boolean;
-}
-
-type AddCommitmentState = AddCommitmentStateShape & {
+type AddCommitmentActions = {
   setSaving: (v: boolean) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: AddCommitmentStateShape = { saving: false };
+export function useAddCommitmentState(): { state: AddCommitmentState } & AddCommitmentActions {
+  const saving = useSignal(false);
 
-export const useAddCommitmentState = createMoneyAppSelectors(
-  create<AddCommitmentState>((set) => ({
-    ...INITIAL_STATE,
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setSaving = useCallback(
+    (v: boolean) => {
+      saving.value = v;
+    },
+    [saving],
+  );
+
+  const reset = useCallback(() => {
+    saving.value = false;
+  }, [saving]);
+
+  return {
+    state: { saving },
+    setSaving,
+    reset,
+  };
+}

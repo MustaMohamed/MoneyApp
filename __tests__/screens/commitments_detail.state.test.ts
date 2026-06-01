@@ -1,54 +1,96 @@
+import { act, renderHook } from '@testing-library/react-native';
+
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetailState } from '@/modules/commitments/screens/commitments/detail/detail.state';
 
-beforeEach(() => {
-  useCommitmentDetailState.getState().reset();
-  usePaySheetState.getState().reset();
-});
-
 describe('useCommitmentDetailState', () => {
   it('starts with skipConfirmVisible false', () => {
-    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(false);
+    const { result } = renderHook(() => useCommitmentDetailState());
+
+    expect(result.current.state.skipConfirmVisible.value).toBe(false);
   });
 
   it('setSkipConfirmVisible updates value', () => {
-    useCommitmentDetailState.getState().setSkipConfirmVisible(true);
-    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(true);
+    const { result } = renderHook(() => useCommitmentDetailState());
+
+    act(() => result.current.setSkipConfirmVisible(true));
+
+    expect(result.current.state.skipConfirmVisible.value).toBe(true);
   });
 
   it('reset returns to initial state', () => {
-    useCommitmentDetailState.getState().setSkipConfirmVisible(true);
-    useCommitmentDetailState.getState().reset();
-    expect(useCommitmentDetailState.getState().skipConfirmVisible).toBe(false);
+    const { result } = renderHook(() => useCommitmentDetailState());
+
+    act(() => {
+      result.current.setSkipConfirmVisible(true);
+      result.current.reset();
+    });
+
+    expect(result.current.state.skipConfirmVisible.value).toBe(false);
   });
 });
 
 describe('usePaySheetState', () => {
   it('starts with all false', () => {
-    const s = usePaySheetState.getState();
-    expect(s.visible).toBe(false);
-    expect(s.saving).toBe(false);
-    expect(s.accountPickerVisible).toBe(false);
+    const { result } = renderHook(() => usePaySheetState());
+
+    expect(result.current.state.visible.value).toBe(false);
+    expect(result.current.state.saving.value).toBe(false);
+    expect(result.current.state.accountPickerVisible.value).toBe(false);
+    expect(result.current.state.rateOverride.value).toBe(false);
+    expect(result.current.state.showIosDatePicker.value).toBe(false);
   });
 
   it('setVisible updates visible', () => {
-    usePaySheetState.getState().setVisible(true);
-    expect(usePaySheetState.getState().visible).toBe(true);
+    const { result } = renderHook(() => usePaySheetState());
+
+    act(() => result.current.setVisible(true));
+
+    expect(result.current.state.visible.value).toBe(true);
   });
 
   it('setSaving updates saving', () => {
-    usePaySheetState.getState().setSaving(true);
-    expect(usePaySheetState.getState().saving).toBe(true);
+    const { result } = renderHook(() => usePaySheetState());
+
+    act(() => result.current.setSaving(true));
+
+    expect(result.current.state.saving.value).toBe(true);
   });
 
   it('setAccountPickerVisible updates accountPickerVisible', () => {
-    usePaySheetState.getState().setAccountPickerVisible(true);
-    expect(usePaySheetState.getState().accountPickerVisible).toBe(true);
+    const { result } = renderHook(() => usePaySheetState());
+
+    act(() => result.current.setAccountPickerVisible(true));
+
+    expect(result.current.state.accountPickerVisible.value).toBe(true);
+  });
+
+  it('toggleIosDatePicker flips showIosDatePicker', () => {
+    const { result } = renderHook(() => usePaySheetState());
+
+    act(() => result.current.toggleIosDatePicker());
+    expect(result.current.state.showIosDatePicker.value).toBe(true);
+
+    act(() => result.current.toggleIosDatePicker());
+    expect(result.current.state.showIosDatePicker.value).toBe(false);
   });
 
   it('reset returns to initial state', () => {
-    usePaySheetState.getState().setVisible(true);
-    usePaySheetState.getState().reset();
-    expect(usePaySheetState.getState().visible).toBe(false);
+    const { result } = renderHook(() => usePaySheetState());
+
+    act(() => {
+      result.current.setVisible(true);
+      result.current.setSaving(true);
+      result.current.setAccountPickerVisible(true);
+      result.current.setRateOverride(true);
+      result.current.toggleIosDatePicker();
+      result.current.reset();
+    });
+
+    expect(result.current.state.visible.value).toBe(false);
+    expect(result.current.state.saving.value).toBe(false);
+    expect(result.current.state.accountPickerVisible.value).toBe(false);
+    expect(result.current.state.rateOverride.value).toBe(false);
+    expect(result.current.state.showIosDatePicker.value).toBe(false);
   });
 });

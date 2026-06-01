@@ -5,7 +5,6 @@ import { Input, PressableFeedback } from 'heroui-native';
 import { useEffect, useMemo } from 'react';
 import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
@@ -102,21 +101,20 @@ export function CommitmentFormBody({
     [accounts, accountId],
   );
 
-  const { categoryPickerVisible, accountPickerVisible, showStartDatePicker, showEndDatePicker } =
-    useCommitmentFormBodyState(
-      useShallow((s) => ({
-        categoryPickerVisible: s.categoryPickerVisible,
-        accountPickerVisible: s.accountPickerVisible,
-        showStartDatePicker: s.showStartDatePicker,
-        showEndDatePicker: s.showEndDatePicker,
-      })),
-    );
-  const setCategoryPickerVisible = useCommitmentFormBodyState.getState().setCategoryPickerVisible;
-  const setAccountPickerVisible = useCommitmentFormBodyState.getState().setAccountPickerVisible;
-  const setShowStartDatePicker = useCommitmentFormBodyState.getState().setShowStartDatePicker;
-  const setShowEndDatePicker = useCommitmentFormBodyState.getState().setShowEndDatePicker;
+  const {
+    state: formBodyState,
+    setCategoryPickerVisible,
+    setAccountPickerVisible,
+    setShowStartDatePicker,
+    setShowEndDatePicker,
+    reset,
+  } = useCommitmentFormBodyState();
+  const categoryPickerVisible = formBodyState.categoryPickerVisible.value;
+  const accountPickerVisible = formBodyState.accountPickerVisible.value;
+  const showStartDatePicker = formBodyState.showStartDatePicker.value;
+  const showEndDatePicker = formBodyState.showEndDatePicker.value;
 
-  useEffect(() => () => useCommitmentFormBodyState.getState().reset(), []);
+  useEffect(() => () => reset(), [reset]);
 
   const errors = {
     name: form.formState.errors.name?.message,

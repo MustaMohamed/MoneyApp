@@ -1,59 +1,84 @@
-import { create } from 'zustand';
-
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import { batch, type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
 import type { CommitmentPayment } from '../../../entities/commitment_payment.entity';
 
 export type DetailViewState = 'loading' | 'notFound' | 'ready';
 
-// --- UI interaction state (skip confirmation dialog) ---
+type CommitmentDetailState = {
+  skipConfirmVisible: ReadonlySignal<boolean>;
+};
 
-interface DetailStateShape {
-  skipConfirmVisible: boolean;
-}
-
-type CommitmentDetailState = DetailStateShape & {
+type CommitmentDetailActions = {
   setSkipConfirmVisible: (v: boolean) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: DetailStateShape = {
-  skipConfirmVisible: false,
-};
+export function useCommitmentDetailState(): {
+  state: CommitmentDetailState;
+} & CommitmentDetailActions {
+  const skipConfirmVisible = useSignal(false);
 
-export const useCommitmentDetailState = createMoneyAppSelectors(
-  create<CommitmentDetailState>((set) => ({
-    ...INITIAL_STATE,
-    setSkipConfirmVisible: (v) => set((s) => ({ ...s, skipConfirmVisible: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setSkipConfirmVisible = useCallback(
+    (v: boolean) => {
+      skipConfirmVisible.value = v;
+    },
+    [skipConfirmVisible],
+  );
 
-// --- Screen-level data state (async-loaded payments + view state) ---
-// Relocated from detail.hook.ts to satisfy CLAUDE.md screens/ anatomy:
-// Zustand stores belong in *.state.ts, never in *.hook.ts.
+  const reset = useCallback(() => {
+    skipConfirmVisible.value = false;
+  }, [skipConfirmVisible]);
 
-interface DetailScreenDataShape {
-  allPayments: CommitmentPayment[];
-  viewState: DetailViewState;
+  return {
+    state: { skipConfirmVisible },
+    setSkipConfirmVisible,
+    reset,
+  };
 }
 
-type CommitmentDetailScreenDataStore = DetailScreenDataShape & {
+type CommitmentDetailScreenDataState = {
+  allPayments: ReadonlySignal<CommitmentPayment[]>;
+  viewState: ReadonlySignal<DetailViewState>;
+};
+
+type CommitmentDetailScreenDataActions = {
   setAllPayments: (payments: CommitmentPayment[]) => void;
   setViewState: (vs: DetailViewState) => void;
   reset: () => void;
 };
 
-const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
-  allPayments: [],
-  viewState: 'loading',
-};
+export function useCommitmentDetailScreenData(): {
+  state: CommitmentDetailScreenDataState;
+} & CommitmentDetailScreenDataActions {
+  const allPayments = useSignal<CommitmentPayment[]>([]);
+  const viewState = useSignal<DetailViewState>('loading');
 
-export const useCommitmentDetailScreenData = createMoneyAppSelectors(
-  create<CommitmentDetailScreenDataStore>((set) => ({
-    ...INITIAL_SCREEN_DATA,
-    setAllPayments: (payments) => set((s) => ({ ...s, allPayments: payments })),
-    setViewState: (vs) => set((s) => ({ ...s, viewState: vs })),
-    reset: () => set(INITIAL_SCREEN_DATA),
-  })),
-);
+  const setAllPayments = useCallback(
+    (payments: CommitmentPayment[]) => {
+      allPayments.value = payments;
+    },
+    [allPayments],
+  );
+
+  const setViewState = useCallback(
+    (vs: DetailViewState) => {
+      viewState.value = vs;
+    },
+    [viewState],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      allPayments.value = [];
+      viewState.value = 'loading';
+    });
+  }, [allPayments, viewState]);
+
+  return {
+    state: { allPayments, viewState },
+    setAllPayments,
+    setViewState,
+    reset,
+  };
+}

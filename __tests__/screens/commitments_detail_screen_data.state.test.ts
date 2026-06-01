@@ -1,46 +1,51 @@
-/**
- * Tests for the useCommitmentDetailScreenData store relocated from
- * detail.hook.ts into detail.state.ts as part of the Fix 1 CLAUDE.md
- * anatomy refactor. Verifies the store is exported and behaves correctly.
- */
+import { act, renderHook } from '@testing-library/react-native';
 
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitmentDetailScreenData } from '@/modules/commitments/screens/commitments/detail/detail.state';
 
-beforeEach(() => useCommitmentDetailScreenData.getState().reset());
+describe('useCommitmentDetailScreenData', () => {
+  it('starts with viewState loading and empty allPayments', () => {
+    const { result } = renderHook(() => useCommitmentDetailScreenData());
 
-describe('useCommitmentDetailScreenData (relocated store)', () => {
-  it('is exported and accessible via getState()', () => {
-    expect(typeof useCommitmentDetailScreenData.getState).toBe('function');
-  });
-
-  it('starts with viewState = loading and empty allPayments', () => {
-    const s = useCommitmentDetailScreenData.getState();
-    expect(s.viewState).toBe('loading');
-    expect(s.allPayments).toEqual([]);
+    expect(result.current.state.viewState.value).toBe('loading');
+    expect(result.current.state.allPayments.value).toEqual([]);
   });
 
   it('setViewState updates to notFound', () => {
-    useCommitmentDetailScreenData.getState().setViewState('notFound');
-    expect(useCommitmentDetailScreenData.getState().viewState).toBe('notFound');
+    const { result } = renderHook(() => useCommitmentDetailScreenData());
+
+    act(() => result.current.setViewState('notFound'));
+
+    expect(result.current.state.viewState.value).toBe('notFound');
   });
 
   it('setViewState updates to ready', () => {
-    useCommitmentDetailScreenData.getState().setViewState('ready');
-    expect(useCommitmentDetailScreenData.getState().viewState).toBe('ready');
+    const { result } = renderHook(() => useCommitmentDetailScreenData());
+
+    act(() => result.current.setViewState('ready'));
+
+    expect(result.current.state.viewState.value).toBe('ready');
   });
 
   it('setAllPayments updates allPayments', () => {
-    const payments = [{ id: 'pay-1' } as any];
-    useCommitmentDetailScreenData.getState().setAllPayments(payments);
-    expect(useCommitmentDetailScreenData.getState().allPayments).toEqual(payments);
+    const payments = [{ id: 'pay-1' }] as CommitmentPayment[];
+    const { result } = renderHook(() => useCommitmentDetailScreenData());
+
+    act(() => result.current.setAllPayments(payments));
+
+    expect(result.current.state.allPayments.value).toEqual(payments);
   });
 
   it('reset returns viewState to loading and clears allPayments', () => {
-    useCommitmentDetailScreenData.getState().setViewState('ready');
-    useCommitmentDetailScreenData.getState().setAllPayments([{ id: 'pay-1' } as any]);
-    useCommitmentDetailScreenData.getState().reset();
-    const s = useCommitmentDetailScreenData.getState();
-    expect(s.viewState).toBe('loading');
-    expect(s.allPayments).toEqual([]);
+    const { result } = renderHook(() => useCommitmentDetailScreenData());
+
+    act(() => {
+      result.current.setViewState('ready');
+      result.current.setAllPayments([{ id: 'pay-1' }] as CommitmentPayment[]);
+      result.current.reset();
+    });
+
+    expect(result.current.state.viewState.value).toBe('loading');
+    expect(result.current.state.allPayments.value).toEqual([]);
   });
 });
