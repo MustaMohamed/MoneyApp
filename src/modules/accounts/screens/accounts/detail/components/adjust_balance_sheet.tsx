@@ -1,7 +1,6 @@
 import { Text } from 'heroui-native';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
@@ -32,15 +31,12 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
-  const { input, error } = useAdjustBalanceSheetState(
-    useShallow((s) => ({
-      input: s.input,
-      error: s.error,
-    })),
-  );
-  const setInput = useAdjustBalanceSheetState.getState().setInput;
-  const setError = useAdjustBalanceSheetState.getState().setError;
-  const initialize = useAdjustBalanceSheetState.getState().initialize;
+  const {
+    state: { input, error },
+    setInput,
+    setError,
+    initialize,
+  } = useAdjustBalanceSheetState();
 
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
@@ -52,7 +48,7 @@ export function AdjustBalanceSheet({
   }, [isOpen, currentBalance, initialize]);
 
   const handleSave = () => {
-    const result = parseAdjustInput(input);
+    const result = parseAdjustInput(input.value);
     if (!result.ok) {
       setError(Strings.errBalanceInvalid);
       return;
@@ -95,7 +91,7 @@ export function AdjustBalanceSheet({
         <Box style={{ flexDirection: 'row' }} className="items-center gap-2">
           <View style={{ flex: 1 }}>
             <Input
-              value={input}
+              value={input.value}
               onChangeText={(v) => {
                 setInput(v);
                 setError('');
@@ -103,12 +99,12 @@ export function AdjustBalanceSheet({
               onFocus={onFocus}
               onBlur={onBlur}
               keyboardType="decimal-pad"
-              isInvalid={!!error}
+              isInvalid={!!error.value}
             />
           </View>
           <Text className="text-muted font-sora-bold text-[15px]">{currency}</Text>
         </Box>
-        <FormErrorText message={error || undefined} />
+        <FormErrorText message={error.value || undefined} />
       </Box>
     </Sheet>
   );

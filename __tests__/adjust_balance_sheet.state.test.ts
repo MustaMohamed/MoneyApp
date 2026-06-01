@@ -1,74 +1,107 @@
-import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => useAdjustBalanceSheetState.getState().reset());
+import { useAdjustBalanceSheetState } from '@/modules/accounts/screens/accounts/detail/components/adjust_balance_sheet.state';
 
 describe('useAdjustBalanceSheetState initial state', () => {
   it('starts with empty input and error', () => {
-    const s = useAdjustBalanceSheetState.getState();
-    expect(s.input).toBe('');
-    expect(s.error).toBe('');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    expect(result.current.state.input.value).toBe('');
+    expect(result.current.state.error.value).toBe('');
   });
 });
 
 describe('useAdjustBalanceSheetState setters', () => {
   it('setInput updates input value', () => {
-    useAdjustBalanceSheetState.getState().setInput('123.45');
-    expect(useAdjustBalanceSheetState.getState().input).toBe('123.45');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => result.current.setInput('123.45'));
+
+    expect(result.current.state.input.value).toBe('123.45');
   });
 
   it('setInput preserves error when only changing input', () => {
-    useAdjustBalanceSheetState.getState().setError('boom');
-    useAdjustBalanceSheetState.getState().setInput('42');
-    const s = useAdjustBalanceSheetState.getState();
-    expect(s.input).toBe('42');
-    expect(s.error).toBe('boom');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => {
+      result.current.setError('boom');
+      result.current.setInput('42');
+    });
+
+    expect(result.current.state.input.value).toBe('42');
+    expect(result.current.state.error.value).toBe('boom');
   });
 
   it('setError updates error value', () => {
-    useAdjustBalanceSheetState.getState().setError('invalid');
-    expect(useAdjustBalanceSheetState.getState().error).toBe('invalid');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => result.current.setError('invalid'));
+
+    expect(result.current.state.error.value).toBe('invalid');
   });
 
   it('setError preserves input when only changing error', () => {
-    useAdjustBalanceSheetState.getState().setInput('99');
-    useAdjustBalanceSheetState.getState().setError('nope');
-    const s = useAdjustBalanceSheetState.getState();
-    expect(s.input).toBe('99');
-    expect(s.error).toBe('nope');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => {
+      result.current.setInput('99');
+      result.current.setError('nope');
+    });
+
+    expect(result.current.state.input.value).toBe('99');
+    expect(result.current.state.error.value).toBe('nope');
   });
 });
 
 describe('useAdjustBalanceSheetState initialize', () => {
   it('sets input from current balance and clears error', () => {
-    useAdjustBalanceSheetState.getState().setError('previous error');
-    useAdjustBalanceSheetState.getState().initialize(1500);
-    const s = useAdjustBalanceSheetState.getState();
-    expect(s.input).toBe('1500');
-    expect(s.error).toBe('');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => {
+      result.current.setError('previous error');
+      result.current.initialize(1500);
+    });
+
+    expect(result.current.state.input.value).toBe('1500');
+    expect(result.current.state.error.value).toBe('');
   });
 
   it('handles zero balance', () => {
-    useAdjustBalanceSheetState.getState().initialize(0);
-    expect(useAdjustBalanceSheetState.getState().input).toBe('0');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => result.current.initialize(0));
+
+    expect(result.current.state.input.value).toBe('0');
   });
 
   it('handles decimal balance', () => {
-    useAdjustBalanceSheetState.getState().initialize(123.45);
-    expect(useAdjustBalanceSheetState.getState().input).toBe('123.45');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => result.current.initialize(123.45));
+
+    expect(result.current.state.input.value).toBe('123.45');
   });
 
   it('handles negative balance', () => {
-    useAdjustBalanceSheetState.getState().initialize(-50);
-    expect(useAdjustBalanceSheetState.getState().input).toBe('-50');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => result.current.initialize(-50));
+
+    expect(result.current.state.input.value).toBe('-50');
   });
 });
 
 describe('useAdjustBalanceSheetState reset', () => {
   it('returns to defaults', () => {
-    useAdjustBalanceSheetState.setState({ input: '999', error: 'something' });
-    useAdjustBalanceSheetState.getState().reset();
-    const s = useAdjustBalanceSheetState.getState();
-    expect(s.input).toBe('');
-    expect(s.error).toBe('');
+    const { result } = renderHook(() => useAdjustBalanceSheetState());
+
+    act(() => {
+      result.current.setInput('999');
+      result.current.setError('something');
+      result.current.reset();
+    });
+
+    expect(result.current.state.input.value).toBe('');
+    expect(result.current.state.error.value).toBe('');
   });
 });

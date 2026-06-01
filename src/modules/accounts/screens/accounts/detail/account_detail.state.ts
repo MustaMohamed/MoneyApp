@@ -1,17 +1,16 @@
-import { create } from 'zustand';
+import { batch, type Signal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type AccountDetailState = {
+  isEditing: Signal<boolean>;
+  isAdjustVisible: Signal<boolean>;
+  isArchiveVisible: Signal<boolean>;
+  isSaving: Signal<boolean>;
+  isAdjusting: Signal<boolean>;
+  isArchiving: Signal<boolean>;
+};
 
-interface AccountDetailStateShape {
-  isEditing: boolean;
-  isAdjustVisible: boolean;
-  isArchiveVisible: boolean;
-  isSaving: boolean;
-  isAdjusting: boolean;
-  isArchiving: boolean;
-}
-
-type AccountDetailState = AccountDetailStateShape & {
+type AccountDetailActions = {
   setEditing: (v: boolean) => void;
   setAdjustVisible: (v: boolean) => void;
   setArchiveVisible: (v: boolean) => void;
@@ -21,28 +20,76 @@ type AccountDetailState = AccountDetailStateShape & {
   reset: () => void;
 };
 
-const INITIAL_STATE: AccountDetailStateShape = {
-  isEditing: false,
-  isAdjustVisible: false,
-  isArchiveVisible: false,
-  isSaving: false,
-  isAdjusting: false,
-  isArchiving: false,
-};
+export function useAccountDetailState(): { state: AccountDetailState } & AccountDetailActions {
+  const isEditing = useSignal(false);
+  const isAdjustVisible = useSignal(false);
+  const isArchiveVisible = useSignal(false);
+  const isSaving = useSignal(false);
+  const isAdjusting = useSignal(false);
+  const isArchiving = useSignal(false);
 
-export function createAccountDetailState() {
-  return createMoneyAppSelectors(
-    create<AccountDetailState>((set) => ({
-      ...INITIAL_STATE,
-      setEditing: (v) => set((s) => ({ ...s, isEditing: v })),
-      setAdjustVisible: (v) => set((s) => ({ ...s, isAdjustVisible: v })),
-      setArchiveVisible: (v) => set((s) => ({ ...s, isArchiveVisible: v })),
-      setSaving: (v) => set((s) => ({ ...s, isSaving: v })),
-      setAdjusting: (v) => set((s) => ({ ...s, isAdjusting: v })),
-      setArchiving: (v) => set((s) => ({ ...s, isArchiving: v })),
-      reset: () => set(INITIAL_STATE),
-    })),
+  const setEditing = useCallback(
+    (v: boolean) => {
+      isEditing.value = v;
+    },
+    [isEditing],
   );
-}
+  const setAdjustVisible = useCallback(
+    (v: boolean) => {
+      isAdjustVisible.value = v;
+    },
+    [isAdjustVisible],
+  );
+  const setArchiveVisible = useCallback(
+    (v: boolean) => {
+      isArchiveVisible.value = v;
+    },
+    [isArchiveVisible],
+  );
+  const setSaving = useCallback(
+    (v: boolean) => {
+      isSaving.value = v;
+    },
+    [isSaving],
+  );
+  const setAdjusting = useCallback(
+    (v: boolean) => {
+      isAdjusting.value = v;
+    },
+    [isAdjusting],
+  );
+  const setArchiving = useCallback(
+    (v: boolean) => {
+      isArchiving.value = v;
+    },
+    [isArchiving],
+  );
+  const reset = useCallback(() => {
+    batch(() => {
+      isEditing.value = false;
+      isAdjustVisible.value = false;
+      isArchiveVisible.value = false;
+      isSaving.value = false;
+      isAdjusting.value = false;
+      isArchiving.value = false;
+    });
+  }, [isAdjustVisible, isAdjusting, isArchiveVisible, isArchiving, isEditing, isSaving]);
 
-export const useAccountDetailState = createAccountDetailState();
+  return {
+    state: {
+      isEditing,
+      isAdjustVisible,
+      isArchiveVisible,
+      isSaving,
+      isAdjusting,
+      isArchiving,
+    },
+    setEditing,
+    setAdjustVisible,
+    setArchiveVisible,
+    setSaving,
+    setAdjusting,
+    setArchiving,
+    reset,
+  };
+}
