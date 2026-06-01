@@ -1,4 +1,4 @@
-import '../global.css';
+import '../../global.css';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
   Sora_400Regular,
