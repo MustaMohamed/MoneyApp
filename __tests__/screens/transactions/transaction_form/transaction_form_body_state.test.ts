@@ -2,43 +2,40 @@ import { useTransactionFormBodyState } from '@/modules/transactions/screens/tran
 
 describe('useTransactionFormBodyState', () => {
   beforeEach(() => {
-    useTransactionFormBodyState.getState().reset();
+    useTransactionFormBodyState().reset();
   });
 
   it('initializes with keyboardVisible=false and showIosDatePicker=false', () => {
-    const s = useTransactionFormBodyState.getState();
-    expect(s).toMatchObject({
-      keyboardVisible: false,
-      showIosDatePicker: false,
-      showAndroidDatePicker: false,
-    });
+    const { state } = useTransactionFormBodyState();
+    expect(state.keyboardVisible.value).toBe(false);
+    expect(state.showIosDatePicker.value).toBe(false);
+    expect(state.showAndroidDatePicker.value).toBe(false);
   });
 
   it('setKeyboardVisible(true) flips only that flag', () => {
-    useTransactionFormBodyState.getState().setKeyboardVisible(true);
-    const s = useTransactionFormBodyState.getState();
-    expect(s.keyboardVisible).toBe(true);
-    expect(s.showIosDatePicker).toBe(false);
+    useTransactionFormBodyState().setKeyboardVisible(true);
+    const { state } = useTransactionFormBodyState();
+    expect(state.keyboardVisible.value).toBe(true);
+    expect(state.showIosDatePicker.value).toBe(false);
   });
 
   it('setShowIosDatePicker(true) flips only that flag', () => {
-    useTransactionFormBodyState.getState().setShowIosDatePicker(true);
-    expect(useTransactionFormBodyState.getState().showIosDatePicker).toBe(true);
+    useTransactionFormBodyState().setShowIosDatePicker(true);
+    expect(useTransactionFormBodyState().state.showIosDatePicker.value).toBe(true);
   });
 
   it('setShowAndroidDatePicker(true) flips only that flag', () => {
-    useTransactionFormBodyState.getState().setShowAndroidDatePicker(true);
-    expect(useTransactionFormBodyState.getState().showAndroidDatePicker).toBe(true);
+    useTransactionFormBodyState().setShowAndroidDatePicker(true);
+    expect(useTransactionFormBodyState().state.showAndroidDatePicker.value).toBe(true);
   });
 
   it('reset() restores all flags to false', () => {
-    useTransactionFormBodyState.getState().setKeyboardVisible(true);
-    useTransactionFormBodyState.getState().setShowIosDatePicker(true);
-    useTransactionFormBodyState.getState().reset();
-    expect(useTransactionFormBodyState.getState()).toMatchObject({
-      keyboardVisible: false,
-      showIosDatePicker: false,
-      showAndroidDatePicker: false,
-    });
+    useTransactionFormBodyState().setKeyboardVisible(true);
+    useTransactionFormBodyState().setShowIosDatePicker(true);
+    useTransactionFormBodyState().reset();
+    const { state } = useTransactionFormBodyState();
+    expect(state.keyboardVisible.value).toBe(false);
+    expect(state.showIosDatePicker.value).toBe(false);
+    expect(state.showAndroidDatePicker.value).toBe(false);
   });
 });

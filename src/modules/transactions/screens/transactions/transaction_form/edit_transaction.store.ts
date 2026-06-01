@@ -1,62 +1,66 @@
-import { create } from 'zustand';
+import { batch, signal, type ReadonlySignal } from '@preact/signals-react';
 
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface EditTransactionStoreShape {
-  editingTx: Transaction | null;
-  amountStr: string;
+type NumpadAction = 'digit' | 'decimal' | 'backspace';
+
+type EditTransactionSignalState = {
+  editingTx: ReadonlySignal<Transaction | null>;
+  amountStr: ReadonlySignal<string>;
+};
+
+function nextNumpadAmount(prev: string, action: NumpadAction, value?: string): string {
+  if (action === 'backspace') {
+    return prev.length <= 1 ? '0' : prev.slice(0, -1);
+  }
+  if (action === 'decimal') {
+    return prev.includes('.') ? prev : `${prev}.`;
+  }
+  const digit = value ?? '';
+  if (prev === '0') {
+    return digit === '0' ? '0' : digit;
+  }
+  if (prev.includes('.')) {
+    const parts = prev.split('.');
+    if (parts[1].length >= 2) return prev;
+  }
+  return prev + digit;
 }
 
-type EditTransactionStore = EditTransactionStoreShape & {
-  loadFromTx: (tx: Transaction) => void;
-  /**
-   * Direct amount setter for the editable AmountHero TextInput (system
-   * decimal-pad keyboard). Replaces the custom numpad UI; `handleNumpad`
-   * stays for legacy hook tests but is no longer wired to any component.
-   */
-  setAmountStr: (value: string) => void;
-  handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
-  reset: () => void;
-};
+class EditTransactionStore {
+  private readonly editingTx = signal<Transaction | null>(null);
+  private readonly amountStr = signal('0');
 
-const INITIAL_STATE: EditTransactionStoreShape = {
-  editingTx: null,
-  amountStr: '0',
-};
+  readonly state: EditTransactionSignalState = {
+    editingTx: this.editingTx,
+    amountStr: this.amountStr,
+  };
 
-export const useEditTransactionStore = createMoneyAppSelectors(
-  create<EditTransactionStore>((set) => ({
-    ...INITIAL_STATE,
+  loadFromTx = (tx: Transaction) => {
+    batch(() => {
+      this.editingTx.value = tx;
+      this.amountStr.value = String(tx.amount);
+    });
+  };
 
-    loadFromTx: (tx) =>
-      set({
-        editingTx: tx,
-        amountStr: String(tx.amount),
-      }),
+  setAmountStr = (value: string) => {
+    this.amountStr.value = value;
+  };
 
-    setAmountStr: (value) => set((s) => ({ ...s, amountStr: value })),
+  handleNumpad = (action: NumpadAction, value?: string) => {
+    this.amountStr.value = nextNumpadAmount(this.amountStr.value, action, value);
+  };
 
-    handleNumpad: (action, value) =>
-      set((s) => {
-        const prev = s.amountStr;
-        if (action === 'backspace') {
-          return { ...s, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
-        }
-        if (action === 'decimal') {
-          return { ...s, amountStr: prev.includes('.') ? prev : prev + '.' };
-        }
-        const digit = value ?? '';
-        if (prev === '0') {
-          return { ...s, amountStr: digit === '0' ? '0' : digit };
-        }
-        if (prev.includes('.')) {
-          const parts = prev.split('.');
-          if (parts[1].length >= 2) return {};
-        }
-        return { ...s, amountStr: prev + digit };
-      }),
+  reset = () => {
+    batch(() => {
+      this.editingTx.value = null;
+      this.amountStr.value = '0';
+    });
+  };
+}
 
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+const editTransactionStore = new EditTransactionStore();
+
+export function useEditTransactionStore(): EditTransactionStore {
+  return editTransactionStore;
+}

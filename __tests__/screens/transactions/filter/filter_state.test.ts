@@ -1,71 +1,71 @@
 import { useFilterState } from '@/modules/transactions/screens/transactions/filter/filter.state';
 
 beforeEach(() => {
-  useFilterState.getState().reset();
+  useFilterState().reset();
 });
 
 describe('useFilterState initial state', () => {
   it('starts hidden with no open section and date-range sheet closed', () => {
-    const s = useFilterState.getState();
-    expect(s.visible).toBe(false);
-    expect(s.openSection).toBeNull();
-    expect(s.dateRangeSheetVisible).toBe(false);
+    const { state } = useFilterState();
+    expect(state.visible.value).toBe(false);
+    expect(state.openSection.value).toBeNull();
+    expect(state.dateRangeSheetVisible.value).toBe(false);
   });
 });
 
 describe('useFilterState open/close', () => {
   it('open() makes the sheet visible', () => {
-    useFilterState.getState().open();
-    expect(useFilterState.getState().visible).toBe(true);
+    useFilterState().open();
+    expect(useFilterState().state.visible.value).toBe(true);
   });
 
   it('close() hides the sheet and collapses the open section', () => {
-    useFilterState.getState().open();
-    useFilterState.getState().toggleSection('accounts');
-    useFilterState.getState().close();
-    const s = useFilterState.getState();
-    expect(s.visible).toBe(false);
-    expect(s.openSection).toBeNull();
+    useFilterState().open();
+    useFilterState().toggleSection('accounts');
+    useFilterState().close();
+    const { state } = useFilterState();
+    expect(state.visible.value).toBe(false);
+    expect(state.openSection.value).toBeNull();
   });
 });
 
 describe('useFilterState toggleSection', () => {
   it('opens a closed section', () => {
-    useFilterState.getState().toggleSection('categories');
-    expect(useFilterState.getState().openSection).toBe('categories');
+    useFilterState().toggleSection('categories');
+    expect(useFilterState().state.openSection.value).toBe('categories');
   });
 
   it('closes the section when toggled with the same target', () => {
-    useFilterState.getState().toggleSection('amount');
-    useFilterState.getState().toggleSection('amount');
-    expect(useFilterState.getState().openSection).toBeNull();
+    useFilterState().toggleSection('amount');
+    useFilterState().toggleSection('amount');
+    expect(useFilterState().state.openSection.value).toBeNull();
   });
 
   it('switches directly to a different section', () => {
-    useFilterState.getState().toggleSection('accounts');
-    useFilterState.getState().toggleSection('categories');
-    expect(useFilterState.getState().openSection).toBe('categories');
+    useFilterState().toggleSection('accounts');
+    useFilterState().toggleSection('categories');
+    expect(useFilterState().state.openSection.value).toBe('categories');
   });
 });
 
 describe('useFilterState setDateRangeSheetVisible', () => {
   it('toggles the date-range sheet', () => {
-    useFilterState.getState().setDateRangeSheetVisible(true);
-    expect(useFilterState.getState().dateRangeSheetVisible).toBe(true);
-    useFilterState.getState().setDateRangeSheetVisible(false);
-    expect(useFilterState.getState().dateRangeSheetVisible).toBe(false);
+    useFilterState().setDateRangeSheetVisible(true);
+    expect(useFilterState().state.dateRangeSheetVisible.value).toBe(true);
+    useFilterState().setDateRangeSheetVisible(false);
+    expect(useFilterState().state.dateRangeSheetVisible.value).toBe(false);
   });
 });
 
 describe('useFilterState reset', () => {
   it('returns every field to its initial value', () => {
-    useFilterState.getState().open();
-    useFilterState.getState().toggleSection('accounts');
-    useFilterState.getState().setDateRangeSheetVisible(true);
-    useFilterState.getState().reset();
-    const s = useFilterState.getState();
-    expect(s.visible).toBe(false);
-    expect(s.openSection).toBeNull();
-    expect(s.dateRangeSheetVisible).toBe(false);
+    useFilterState().open();
+    useFilterState().toggleSection('accounts');
+    useFilterState().setDateRangeSheetVisible(true);
+    useFilterState().reset();
+    const { state } = useFilterState();
+    expect(state.visible.value).toBe(false);
+    expect(state.openSection.value).toBeNull();
+    expect(state.dateRangeSheetVisible.value).toBe(false);
   });
 });

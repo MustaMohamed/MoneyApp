@@ -1,50 +1,50 @@
 import { useTxDetailState } from '@/modules/transactions/screens/transactions/detail/detail.state';
 
 beforeEach(() => {
-  useTxDetailState.getState().reset();
+  useTxDetailState().reset();
 });
 
 describe('useTxDetailState initial state', () => {
   it('starts hidden, not deleting, reloadKey = 0', () => {
-    const s = useTxDetailState.getState();
-    expect(s.confirmVisible).toBe(false);
-    expect(s.deleting).toBe(false);
-    expect(s.reloadKey).toBe(0);
+    const { state } = useTxDetailState();
+    expect(state.confirmVisible.value).toBe(false);
+    expect(state.deleting.value).toBe(false);
+    expect(state.reloadKey.value).toBe(0);
   });
 });
 
 describe('useTxDetailState setters', () => {
   it('setConfirmVisible toggles the confirm dialog', () => {
-    useTxDetailState.getState().setConfirmVisible(true);
-    expect(useTxDetailState.getState().confirmVisible).toBe(true);
-    useTxDetailState.getState().setConfirmVisible(false);
-    expect(useTxDetailState.getState().confirmVisible).toBe(false);
+    useTxDetailState().setConfirmVisible(true);
+    expect(useTxDetailState().state.confirmVisible.value).toBe(true);
+    useTxDetailState().setConfirmVisible(false);
+    expect(useTxDetailState().state.confirmVisible.value).toBe(false);
   });
 
   it('setDeleting toggles the deleting flag', () => {
-    useTxDetailState.getState().setDeleting(true);
-    expect(useTxDetailState.getState().deleting).toBe(true);
-    useTxDetailState.getState().setDeleting(false);
-    expect(useTxDetailState.getState().deleting).toBe(false);
+    useTxDetailState().setDeleting(true);
+    expect(useTxDetailState().state.deleting.value).toBe(true);
+    useTxDetailState().setDeleting(false);
+    expect(useTxDetailState().state.deleting.value).toBe(false);
   });
 
   it('bumpReload increments reloadKey by 1 each call', () => {
-    useTxDetailState.getState().bumpReload();
-    expect(useTxDetailState.getState().reloadKey).toBe(1);
-    useTxDetailState.getState().bumpReload();
-    expect(useTxDetailState.getState().reloadKey).toBe(2);
+    useTxDetailState().bumpReload();
+    expect(useTxDetailState().state.reloadKey.value).toBe(1);
+    useTxDetailState().bumpReload();
+    expect(useTxDetailState().state.reloadKey.value).toBe(2);
   });
 });
 
 describe('useTxDetailState reset', () => {
   it('returns every field to its initial value', () => {
-    useTxDetailState.getState().setConfirmVisible(true);
-    useTxDetailState.getState().setDeleting(true);
-    useTxDetailState.getState().bumpReload();
-    useTxDetailState.getState().reset();
-    const s = useTxDetailState.getState();
-    expect(s.confirmVisible).toBe(false);
-    expect(s.deleting).toBe(false);
-    expect(s.reloadKey).toBe(0);
+    useTxDetailState().setConfirmVisible(true);
+    useTxDetailState().setDeleting(true);
+    useTxDetailState().bumpReload();
+    useTxDetailState().reset();
+    const { state } = useTxDetailState();
+    expect(state.confirmVisible.value).toBe(false);
+    expect(state.deleting.value).toBe(false);
+    expect(state.reloadKey.value).toBe(0);
   });
 });

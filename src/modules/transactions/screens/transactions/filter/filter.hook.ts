@@ -1,5 +1,4 @@
 import { useCallback, useEffect } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Currency } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -11,29 +10,34 @@ import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 
 export function useFilterSheet() {
-  const { visible, openSection } = useFilterState(
-    useShallow((s) => ({
-      visible: s.visible,
-      openSection: s.openSection,
-    })),
-  );
-  const close = useFilterState.getState().close;
-  const toggleSection = useFilterState.getState().toggleSection;
-  const draft = useFilterStore.useState.draft();
-  const setDraft = useFilterStore.getState().setDraft;
-  const resetDraft = useFilterStore.getState().resetDraft;
-  const toggleAccountId = useFilterStore.getState().toggleAccountId;
-  const toggleCategoryId = useFilterStore.getState().toggleCategoryId;
-  const setAmountMin = useFilterStore.getState().setAmountMin;
-  const setAmountMax = useFilterStore.getState().setAmountMax;
-  const setAmountCurrency = useFilterStore.getState().setAmountCurrency;
+  const {
+    state: { visible: visibleSignal, openSection: openSectionSignal },
+    close,
+    toggleSection,
+  } = useFilterState();
+  const visible = visibleSignal.value;
+  const openSection = openSectionSignal.value;
+  const {
+    state: { draft: draftSignal },
+    setDraft,
+    resetDraft,
+    toggleAccountId,
+    toggleCategoryId,
+    setAmountMin,
+    setAmountMax,
+    setAmountCurrency,
+  } = useFilterStore();
+  const draft = draftSignal.value;
   const {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
   const categories = useCategoryStore().state.categories.value;
-  const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
-  const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;
+  const {
+    state: { appliedFilters: appliedFiltersSignal },
+    setAppliedFilters,
+  } = useTransactionsScreenStore();
+  const appliedFilters = appliedFiltersSignal.value;
 
   // When the sheet opens, seed the draft from the currently applied filters.
   useEffect(() => {

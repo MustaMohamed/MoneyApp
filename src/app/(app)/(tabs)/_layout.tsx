@@ -27,7 +27,7 @@ function useFABActions() {
   const router = useRouter();
   return {
     handleAddTransaction: () => {
-      useAddTransactionState.getState().requestOpen();
+      useAddTransactionState().requestOpen();
       router.navigate('/transactions');
     },
     handleAddAccount: () => {

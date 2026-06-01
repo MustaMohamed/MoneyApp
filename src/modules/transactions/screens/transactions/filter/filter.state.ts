@@ -1,48 +1,50 @@
-import { create } from 'zustand';
-
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import { batch, signal, type ReadonlySignal } from '@preact/signals-react';
 
 type AccordionSection = 'accounts' | 'categories' | 'amount' | null;
 
-interface FilterStateShape {
-  visible: boolean;
-  openSection: AccordionSection;
-  dateRangeSheetVisible: boolean;
+type FilterSignalState = {
+  visible: ReadonlySignal<boolean>;
+  openSection: ReadonlySignal<AccordionSection>;
+  dateRangeSheetVisible: ReadonlySignal<boolean>;
+};
+
+class FilterState {
+  private readonly visible = signal(false);
+  private readonly openSection = signal<AccordionSection>(null);
+  private readonly dateRangeSheetVisible = signal(false);
+
+  readonly state: FilterSignalState = {
+    visible: this.visible,
+    openSection: this.openSection,
+    dateRangeSheetVisible: this.dateRangeSheetVisible,
+  };
+
+  open = () => {
+    this.visible.value = true;
+  };
+  close = () => {
+    batch(() => {
+      this.visible.value = false;
+      this.openSection.value = null;
+    });
+  };
+  toggleSection = (target: AccordionSection) => {
+    this.openSection.value = this.openSection.value === target ? null : target;
+  };
+  setDateRangeSheetVisible = (v: boolean) => {
+    this.dateRangeSheetVisible.value = v;
+  };
+  reset = () => {
+    batch(() => {
+      this.visible.value = false;
+      this.openSection.value = null;
+      this.dateRangeSheetVisible.value = false;
+    });
+  };
 }
 
-type FilterState = FilterStateShape & {
-  open: () => void;
-  close: () => void;
-  /**
-   * Toggles the given section open/closed using a functional updater so the
-   * current value of openSection is read at call time, not at render time.
-   * This prevents the stale-closure bug where a second tap on an already-open
-   * header re-opens it because the arrow function in JSX captured an outdated
-   * openSection value from the previous render. Use this from JSX — there is
-   * no plain `setOpenSection` setter to invite the bug back.
-   */
-  toggleSection: (target: AccordionSection) => void;
-  setDateRangeSheetVisible: (v: boolean) => void;
-  reset: () => void;
-};
+const filterState = new FilterState();
 
-const INITIAL_STATE: FilterStateShape = {
-  visible: false,
-  openSection: null,
-  dateRangeSheetVisible: false,
-};
-
-export const useFilterState = createMoneyAppSelectors(
-  create<FilterState>((set) => ({
-    ...INITIAL_STATE,
-    open: () => set((s) => ({ ...s, visible: true })),
-    close: () => set((s) => ({ ...s, visible: false, openSection: null })),
-    toggleSection: (target) =>
-      set((s) => ({
-        ...s,
-        openSection: s.openSection === target ? null : target,
-      })),
-    setDateRangeSheetVisible: (v) => set((s) => ({ ...s, dateRangeSheetVisible: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useFilterState(): FilterState {
+  return filterState;
+}

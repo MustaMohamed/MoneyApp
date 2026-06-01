@@ -1,60 +1,66 @@
-import { create } from 'zustand';
+import { batch, signal, type ReadonlySignal } from '@preact/signals-react';
 
 import { TransactionType } from '@/constants/enums';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 type NumpadAction = 'digit' | 'decimal' | 'backspace';
 
-interface AddTransactionStoreShape {
-  type: TransactionType;
-  amountStr: string;
+type AddTransactionSignalState = {
+  type: ReadonlySignal<TransactionType>;
+  amountStr: ReadonlySignal<string>;
+};
+
+function nextNumpadAmount(prev: string, action: NumpadAction, value?: string): string {
+  if (action === 'backspace') {
+    return prev.length <= 1 ? '0' : prev.slice(0, -1);
+  }
+  if (action === 'decimal') {
+    return prev.includes('.') ? prev : `${prev}.`;
+  }
+  const digit = value ?? '';
+  if (prev === '0') {
+    return digit === '0' ? '0' : digit;
+  }
+  if (prev.includes('.')) {
+    const parts = prev.split('.');
+    if (parts[1].length >= 2) return prev;
+  }
+  return prev + digit;
 }
 
-type AddTransactionStore = AddTransactionStoreShape & {
-  setType: (type: TransactionType) => void;
-  /**
-   * Direct amount setter for the editable AmountHero TextInput (system
-   * decimal-pad keyboard). Replaces the custom numpad UI; `handleNumpad`
-   * stays for legacy hook tests but is no longer wired to any component.
-   */
-  setAmountStr: (value: string) => void;
-  handleNumpad: (action: NumpadAction, value?: string) => void;
-  reset: () => void;
-};
+class AddTransactionStore {
+  private readonly type = signal(TransactionType.Expense);
+  private readonly amountStr = signal('0');
 
-const INITIAL_STATE: AddTransactionStoreShape = {
-  type: TransactionType.Expense,
-  amountStr: '0',
-};
+  readonly state: AddTransactionSignalState = {
+    type: this.type,
+    amountStr: this.amountStr,
+  };
 
-export const useAddTransactionStore = createMoneyAppSelectors(
-  create<AddTransactionStore>((set) => ({
-    ...INITIAL_STATE,
+  setType = (type: TransactionType) => {
+    batch(() => {
+      this.type.value = type;
+      this.amountStr.value = '0';
+    });
+  };
 
-    setType: (type) => set((s) => ({ ...s, type, amountStr: '0' })),
+  setAmountStr = (value: string) => {
+    this.amountStr.value = value;
+  };
 
-    setAmountStr: (value) => set((s) => ({ ...s, amountStr: value })),
+  handleNumpad = (action: NumpadAction, value?: string) => {
+    this.amountStr.value = nextNumpadAmount(this.amountStr.value, action, value);
+  };
 
-    handleNumpad: (action, value) =>
-      set((s) => {
-        const prev = s.amountStr;
-        if (action === 'backspace') {
-          return { ...s, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
-        }
-        if (action === 'decimal') {
-          return { ...s, amountStr: prev.includes('.') ? prev : prev + '.' };
-        }
-        const digit = value ?? '';
-        if (prev === '0') {
-          return { ...s, amountStr: digit === '0' ? '0' : digit };
-        }
-        if (prev.includes('.')) {
-          const parts = prev.split('.');
-          if (parts[1].length >= 2) return {};
-        }
-        return { ...s, amountStr: prev + digit };
-      }),
+  reset = () => {
+    batch(() => {
+      this.type.value = TransactionType.Expense;
+      this.amountStr.value = '0';
+    });
+  };
+}
 
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+const addTransactionStore = new AddTransactionStore();
+
+export function useAddTransactionStore(): AddTransactionStore {
+  return addTransactionStore;
+}

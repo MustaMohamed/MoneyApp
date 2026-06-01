@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -63,23 +62,28 @@ function signedAmount(tx: Transaction): string {
 }
 
 export function useTransactionDetail(id: string) {
-  const tx = useTxDetailStore.useState.tx();
-  const setTx = useTxDetailStore.getState().setTx;
-  const resetData = useTxDetailStore.getState().reset;
-  const { confirmVisible, deleting, reloadKey } = useTxDetailState(
-    useShallow((s) => ({
-      confirmVisible: s.confirmVisible,
-      deleting: s.deleting,
-      reloadKey: s.reloadKey,
-    })),
-  );
-  const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
-  const setDeleting = useTxDetailState.getState().setDeleting;
-  const bumpReload = useTxDetailState.getState().bumpReload;
-  const resetUi = useTxDetailState.getState().reset;
+  const {
+    state: { tx: txSignal },
+    setTx,
+    reset: resetData,
+  } = useTxDetailStore();
+  const tx = txSignal.value;
+  const {
+    state: {
+      confirmVisible: confirmVisibleSignal,
+      deleting: deletingSignal,
+      reloadKey: reloadKeySignal,
+    },
+    setConfirmVisible,
+    setDeleting,
+    bumpReload,
+    reset: resetUi,
+  } = useTxDetailState();
+  const confirmVisible = confirmVisibleSignal.value;
+  const deleting = deletingSignal.value;
+  const reloadKey = reloadKeySignal.value;
 
-  const getById = useTransactionStore.getState().getById;
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
+  const { getById, deleteTransaction } = useTransactionStore();
 
   const {
     state: { accounts: accountsSignal },

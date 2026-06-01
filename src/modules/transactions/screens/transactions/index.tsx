@@ -3,7 +3,6 @@ import { Spinner } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
@@ -50,20 +49,28 @@ export default function TransactionsScreen(): React.ReactElement {
     onEndReached,
     setCustomRange,
   } = t;
-  const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
-    useShallow((s) => ({
-      addTxVisible: s.visible,
-      addTxPendingOpen: s.pendingOpen,
-    })),
-  );
-  const openAddTx = useAddTransactionState.getState().open;
+  const {
+    state: { visible: addTxVisibleSignal, pendingOpen: addTxPendingOpenSignal },
+    open: openAddTx,
+    close: closeAddTx,
+  } = useAddTransactionState();
+  const addTxVisible = addTxVisibleSignal.value;
+  const addTxPendingOpen = addTxPendingOpenSignal.value;
 
   // Edit sheet state — opened imperatively from goToEdit in the hook
-  const editTxVisible = useEditTransactionState.useState.visible();
-  const editingTx = useEditTransactionStore.useState.editingTx();
+  const {
+    state: { visible: editTxVisibleSignal },
+    close: closeEditTx,
+  } = useEditTransactionState();
+  const {
+    state: { editingTx: editingTxSignal },
+    reset: resetEditTx,
+  } = useEditTransactionStore();
+  const editTxVisible = editTxVisibleSignal.value;
+  const editingTx = editingTxSignal.value;
 
   // Delete confirm gate for list-swipe delete
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
+  const { deleteTransaction } = useTransactionStore();
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
@@ -85,23 +92,26 @@ export default function TransactionsScreen(): React.ReactElement {
     return () => clearTimeout(timer);
   }, [addTxPendingOpen, openAddTx]);
 
-  const dateRangeSheetVisible = useFilterState.useState.dateRangeSheetVisible();
-  const setDateRangeSheetVisible = useFilterState.getState().setDateRangeSheetVisible;
+  const {
+    state: { dateRangeSheetVisible: dateRangeSheetVisibleSignal },
+    setDateRangeSheetVisible,
+  } = useFilterState();
+  const dateRangeSheetVisible = dateRangeSheetVisibleSignal.value;
 
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (useAddTransactionState.getState().visible) {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
+        if (useAddTransactionState().state.visible.value) {
+          useAddTransactionState().close();
+          useAddTransactionStore().reset();
           return true;
         }
-        if (useFilterState.getState().visible) {
-          useFilterState.getState().close();
+        if (useFilterState().state.visible.value) {
+          useFilterState().close();
           return true;
         }
-        if (useFilterState.getState().dateRangeSheetVisible) {
-          useFilterState.getState().setDateRangeSheetVisible(false);
+        if (useFilterState().state.dateRangeSheetVisible.value) {
+          useFilterState().setDateRangeSheetVisible(false);
           return true;
         }
         return false;
@@ -214,20 +224,20 @@ export default function TransactionsScreen(): React.ReactElement {
       <AddTransactionSheet
         visible={addTxVisible}
         onClose={() => {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
+          closeAddTx();
+          useAddTransactionStore().reset();
         }}
       />
       <EditTransactionSheet
         visible={editTxVisible}
         tx={editingTx}
         onClose={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
+          resetEditTx();
+          closeEditTx();
         }}
         onSaved={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
+          resetEditTx();
+          closeEditTx();
         }}
       />
       <TxDeleteConfirmSheet

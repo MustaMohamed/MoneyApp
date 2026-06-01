@@ -114,14 +114,15 @@ function setupCategoryStoreMock() {
 }
 
 beforeEach(() => {
+  jest.restoreAllMocks();
   const accountsStore = useAccountStore();
   accountsStore.reset();
   accountsStore.state.accounts.value = [mockAccountEGP];
   setupCategoryStoreMock();
   setupCurrencyStoreMock();
-  useEditTransactionState.getState().reset();
-  useEditTransactionStore.getState().reset();
-  useEditTransactionStore.getState().loadFromTx(mockTxExpense);
+  useEditTransactionState().reset();
+  useEditTransactionStore().reset();
+  useEditTransactionStore().loadFromTx(mockTxExpense);
 });
 
 describe('useEditTransaction', () => {
@@ -151,7 +152,7 @@ describe('useEditTransaction', () => {
 
   it('calls updateTransaction with new values on save', async () => {
     const updateTx = jest.fn();
-    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    jest.spyOn(useTransactionStore(), 'updateTransaction').mockImplementation(updateTx);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     // Update amount via numpad
     act(() => result.current.handleNumpad('backspace'));
@@ -172,7 +173,7 @@ describe('useEditTransaction', () => {
 
   it('preserves the original transaction_time on save (no time UI in edit either)', async () => {
     const updateTx = jest.fn();
-    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    jest.spyOn(useTransactionStore(), 'updateTransaction').mockImplementation(updateTx);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await act(async () => {
       await result.current.handleSave();

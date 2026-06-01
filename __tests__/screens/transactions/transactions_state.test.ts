@@ -1,28 +1,28 @@
 import { useTransactionsState } from '@/modules/transactions/screens/transactions/transactions.state';
 
 beforeEach(() => {
-  useTransactionsState.getState().reset();
+  useTransactionsState().reset();
 });
 
 describe('useTransactionsState', () => {
   it('initialises with refreshing = false', () => {
-    expect(useTransactionsState.getState().refreshing).toBe(false);
+    expect(useTransactionsState().state.refreshing.value).toBe(false);
   });
 
   it('setRefreshing(true) flips refreshing on', () => {
-    useTransactionsState.getState().setRefreshing(true);
-    expect(useTransactionsState.getState().refreshing).toBe(true);
+    useTransactionsState().setRefreshing(true);
+    expect(useTransactionsState().state.refreshing.value).toBe(true);
   });
 
   it('setRefreshing(false) flips refreshing off', () => {
-    useTransactionsState.getState().setRefreshing(true);
-    useTransactionsState.getState().setRefreshing(false);
-    expect(useTransactionsState.getState().refreshing).toBe(false);
+    useTransactionsState().setRefreshing(true);
+    useTransactionsState().setRefreshing(false);
+    expect(useTransactionsState().state.refreshing.value).toBe(false);
   });
 
   it('reset() returns refreshing to false', () => {
-    useTransactionsState.getState().setRefreshing(true);
-    useTransactionsState.getState().reset();
-    expect(useTransactionsState.getState().refreshing).toBe(false);
+    useTransactionsState().setRefreshing(true);
+    useTransactionsState().reset();
+    expect(useTransactionsState().state.refreshing.value).toBe(false);
   });
 });

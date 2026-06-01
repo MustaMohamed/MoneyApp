@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -50,21 +49,28 @@ export function useEditTransaction(
   } = useCurrencyStore();
   const rate = rateSignal.value;
   const rateUpdatedAt = rateUpdatedAtSignal.value;
-  const updateTransaction = useTransactionStore.getState().updateTransaction;
-  const amountStr = useEditTransactionStore.useState.amountStr();
-  const setAmountStr = useEditTransactionStore.getState().setAmountStr;
-  const handleNumpad = useEditTransactionStore.getState().handleNumpad;
-  const { visible, saving, showCategoryPicker, rateOverride } = useEditTransactionState(
-    useShallow((s) => ({
-      visible: s.visible,
-      saving: s.saving,
-      showCategoryPicker: s.showCategoryPicker,
-      rateOverride: s.rateOverride,
-    })),
-  );
-  const setSaving = useEditTransactionState.getState().setSaving;
-  const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
-  const setRateOverride = useEditTransactionState.getState().setRateOverride;
+  const { updateTransaction } = useTransactionStore();
+  const {
+    state: { amountStr: amountStrSignal },
+    setAmountStr,
+    handleNumpad,
+  } = useEditTransactionStore();
+  const amountStr = amountStrSignal.value;
+  const {
+    state: {
+      visible: visibleSignal,
+      saving: savingSignal,
+      showCategoryPicker: showCategoryPickerSignal,
+      rateOverride: rateOverrideSignal,
+    },
+    setSaving,
+    setShowCategoryPicker,
+    setRateOverride,
+  } = useEditTransactionState();
+  const visible = visibleSignal.value;
+  const saving = savingSignal.value;
+  const showCategoryPicker = showCategoryPickerSignal.value;
+  const rateOverride = rateOverrideSignal.value;
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;

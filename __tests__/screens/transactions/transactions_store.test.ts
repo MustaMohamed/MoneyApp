@@ -6,69 +6,67 @@ import {
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 
 beforeEach(() => {
-  useTransactionsScreenStore.getState().reset();
+  useTransactionsScreenStore().reset();
 });
 
 describe('useTransactionsScreenStore initial state', () => {
   it('starts with empty search, "all" filter, a month period, and empty applied filters', () => {
-    const s = useTransactionsScreenStore.getState();
-    expect(s.searchQuery).toBe('');
-    expect(s.activeFilter).toBe('all');
-    expect(s.period.type).toBe('month');
-    expect(s.appliedFilters).toEqual(EMPTY_FILTERS_V2);
+    const { state } = useTransactionsScreenStore();
+    expect(state.searchQuery.value).toBe('');
+    expect(state.activeFilter.value).toBe('all');
+    expect(state.period.value.type).toBe('month');
+    expect(state.appliedFilters.value).toEqual(EMPTY_FILTERS_V2);
   });
 
   it('seeds the period with the current year-month string', () => {
-    const s = useTransactionsScreenStore.getState();
-    if (s.period.type !== 'month') throw new Error('expected month period');
-    expect(s.period.yearMonth).toMatch(/^\d{4}-\d{2}$/);
+    const { state } = useTransactionsScreenStore();
+    if (state.period.value.type !== 'month') throw new Error('expected month period');
+    expect(state.period.value.yearMonth).toMatch(/^\d{4}-\d{2}$/);
   });
 });
 
 describe('useTransactionsScreenStore setters', () => {
   it('setSearchQuery updates the query', () => {
-    useTransactionsScreenStore.getState().setSearchQuery('coffee');
-    expect(useTransactionsScreenStore.getState().searchQuery).toBe('coffee');
+    useTransactionsScreenStore().setSearchQuery('coffee');
+    expect(useTransactionsScreenStore().state.searchQuery.value).toBe('coffee');
   });
 
   it('setActiveFilter updates the active filter', () => {
-    useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
-    expect(useTransactionsScreenStore.getState().activeFilter).toBe(TransactionType.Expense);
+    useTransactionsScreenStore().setActiveFilter(TransactionType.Expense);
+    expect(useTransactionsScreenStore().state.activeFilter.value).toBe(TransactionType.Expense);
   });
 
   it('setPeriod replaces the period selection', () => {
-    useTransactionsScreenStore.getState().setPeriod({ type: 'all' });
-    expect(useTransactionsScreenStore.getState().period).toEqual({ type: 'all' });
+    useTransactionsScreenStore().setPeriod({ type: 'all' });
+    expect(useTransactionsScreenStore().state.period.value).toEqual({ type: 'all' });
   });
 
   it('setAppliedFilters replaces the applied filters', () => {
     const next: AdvancedFilters = { ...EMPTY_FILTERS_V2, accountIds: ['a1'] };
-    useTransactionsScreenStore.getState().setAppliedFilters(next);
-    expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(next);
+    useTransactionsScreenStore().setAppliedFilters(next);
+    expect(useTransactionsScreenStore().state.appliedFilters.value).toEqual(next);
   });
 
   it('clearSearch empties the query without touching other fields', () => {
-    useTransactionsScreenStore.getState().setSearchQuery('rent');
-    useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Income);
-    useTransactionsScreenStore.getState().clearSearch();
-    expect(useTransactionsScreenStore.getState().searchQuery).toBe('');
-    expect(useTransactionsScreenStore.getState().activeFilter).toBe(TransactionType.Income);
+    useTransactionsScreenStore().setSearchQuery('rent');
+    useTransactionsScreenStore().setActiveFilter(TransactionType.Income);
+    useTransactionsScreenStore().clearSearch();
+    expect(useTransactionsScreenStore().state.searchQuery.value).toBe('');
+    expect(useTransactionsScreenStore().state.activeFilter.value).toBe(TransactionType.Income);
   });
 });
 
 describe('useTransactionsScreenStore reset', () => {
   it('returns every field to its initial value', () => {
-    useTransactionsScreenStore.getState().setSearchQuery('x');
-    useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
-    useTransactionsScreenStore.getState().setPeriod({ type: 'all' });
-    useTransactionsScreenStore
-      .getState()
-      .setAppliedFilters({ ...EMPTY_FILTERS_V2, accountIds: ['a'] });
-    useTransactionsScreenStore.getState().reset();
-    const s = useTransactionsScreenStore.getState();
-    expect(s.searchQuery).toBe('');
-    expect(s.activeFilter).toBe('all');
-    expect(s.period.type).toBe('month');
-    expect(s.appliedFilters).toEqual(EMPTY_FILTERS_V2);
+    useTransactionsScreenStore().setSearchQuery('x');
+    useTransactionsScreenStore().setActiveFilter(TransactionType.Expense);
+    useTransactionsScreenStore().setPeriod({ type: 'all' });
+    useTransactionsScreenStore().setAppliedFilters({ ...EMPTY_FILTERS_V2, accountIds: ['a'] });
+    useTransactionsScreenStore().reset();
+    const { state } = useTransactionsScreenStore();
+    expect(state.searchQuery.value).toBe('');
+    expect(state.activeFilter.value).toBe('all');
+    expect(state.period.value.type).toBe('month');
+    expect(state.appliedFilters.value).toEqual(EMPTY_FILTERS_V2);
   });
 });

@@ -114,6 +114,7 @@ const mockCategoryIncome = {
 };
 
 beforeEach(() => {
+  jest.restoreAllMocks();
   const accountsStore = useAccountStore();
   accountsStore.reset();
   accountsStore.state.accounts.value = [
@@ -124,8 +125,8 @@ beforeEach(() => {
   ];
   setupCategoryStoreMock();
   setupCurrencyStoreMock();
-  useAddTransactionState.getState().reset();
-  useAddTransactionStore.getState().reset();
+  useAddTransactionState().reset();
+  useAddTransactionStore().reset();
 });
 
 describe('useAddTransaction — validation', () => {
@@ -214,7 +215,7 @@ describe('useAddTransaction — validation', () => {
 describe('useAddTransaction — cross-currency math', () => {
   it('non-transfer USD source: egp_amount = amount × rate (rounded)', async () => {
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.handleNumpad('digit', '1'));
     act(() => result.current.handleNumpad('digit', '0'));
@@ -235,7 +236,7 @@ describe('useAddTransaction — cross-currency math', () => {
 
   it('transfer EGP → USD: to_amount = amount / rate (rounded)', async () => {
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.handleNumpad('digit', '1'));
@@ -258,7 +259,7 @@ describe('useAddTransaction — cross-currency math', () => {
 
   it('transfer USD → EGP: to_amount = egp_amount = amount × rate', async () => {
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.handleNumpad('digit', '5'));
@@ -282,7 +283,7 @@ describe('useAddTransaction — cross-currency math', () => {
     const accountsStore = useAccountStore();
     accountsStore.state.accounts.value = [...accountsStore.state.accounts.value, mockAccountUSD2];
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.handleNumpad('digit', '5'));
@@ -303,7 +304,7 @@ describe('useAddTransaction — cross-currency math', () => {
 
   it('cc_payment: to_amount = egp_amount (CC debt always EGP-denominated)', async () => {
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
     act(() => result.current.handleNumpad('digit', '2'));
@@ -334,7 +335,7 @@ describe('useAddTransaction — rounding', () => {
     //   Regular Math.round(3000.5) = 3001 → 30.01 (would fail without roundMoney).
     setupCurrencyStoreMock({ rate: 30.005, rateUpdatedAt: null });
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.handleNumpad('digit', '1'));
     act(() => result.current.selectAccount(mockAccountUSD));
@@ -354,7 +355,7 @@ describe('useAddTransaction — rounding', () => {
 describe('useAddTransaction — auto-now time', () => {
   it('sets transaction_time to the current device clock and never exposes a setter', async () => {
     const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    jest.spyOn(useTransactionStore(), 'addTransaction').mockImplementation(addTx);
     const before = new Date().toTimeString().slice(0, 8);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.handleNumpad('digit', '5'));

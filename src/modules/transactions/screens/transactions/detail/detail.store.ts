@@ -1,25 +1,28 @@
-import { create } from 'zustand';
+import { signal, type ReadonlySignal } from '@preact/signals-react';
 
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface TxDetailStoreShape {
-  tx: Transaction | null | undefined;
+type TxDetailSignalState = {
+  tx: ReadonlySignal<Transaction | null | undefined>;
+};
+
+class TxDetailStore {
+  private readonly tx = signal<Transaction | null | undefined>(undefined);
+
+  readonly state: TxDetailSignalState = {
+    tx: this.tx,
+  };
+
+  setTx = (tx: Transaction | null | undefined) => {
+    this.tx.value = tx;
+  };
+  reset = () => {
+    this.tx.value = undefined;
+  };
 }
 
-type TxDetailStore = TxDetailStoreShape & {
-  setTx: (tx: Transaction | null | undefined) => void;
-  reset: () => void;
-};
+const txDetailStore = new TxDetailStore();
 
-const INITIAL_STATE: TxDetailStoreShape = {
-  tx: undefined,
-};
-
-export const useTxDetailStore = createMoneyAppSelectors(
-  create<TxDetailStore>((set) => ({
-    ...INITIAL_STATE,
-    setTx: (tx) => set((s) => ({ ...s, tx })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useTxDetailStore(): TxDetailStore {
+  return txDetailStore;
+}

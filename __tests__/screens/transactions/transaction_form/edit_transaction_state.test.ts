@@ -2,29 +2,27 @@ import { useEditTransactionState } from '@/modules/transactions/screens/transact
 
 describe('useEditTransactionState', () => {
   beforeEach(() => {
-    useEditTransactionState.getState().reset();
+    useEditTransactionState().reset();
   });
 
   it('initializes with all UI booleans false', () => {
-    const s = useEditTransactionState.getState();
-    expect(s).toMatchObject({
-      visible: false,
-      saving: false,
-      showCategoryPicker: false,
-      rateOverride: false,
-    });
+    const { state } = useEditTransactionState();
+    expect(state.visible.value).toBe(false);
+    expect(state.saving.value).toBe(false);
+    expect(state.showCategoryPicker.value).toBe(false);
+    expect(state.rateOverride.value).toBe(false);
   });
 
   it('open() sets visible=true', () => {
-    useEditTransactionState.getState().open({ id: 't1' } as any);
-    expect(useEditTransactionState.getState().visible).toBe(true);
+    useEditTransactionState().open({ id: 't1' } as any);
+    expect(useEditTransactionState().state.visible.value).toBe(true);
   });
 
   it('close() resets to initial', () => {
-    useEditTransactionState.getState().open({ id: 't1' } as any);
-    useEditTransactionState.getState().setSaving(true);
-    useEditTransactionState.getState().close();
-    expect(useEditTransactionState.getState().visible).toBe(false);
-    expect(useEditTransactionState.getState().saving).toBe(false);
+    useEditTransactionState().open({ id: 't1' } as any);
+    useEditTransactionState().setSaving(true);
+    useEditTransactionState().close();
+    expect(useEditTransactionState().state.visible.value).toBe(false);
+    expect(useEditTransactionState().state.saving.value).toBe(false);
   });
 });

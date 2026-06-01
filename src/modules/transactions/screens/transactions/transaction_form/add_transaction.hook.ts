@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -146,32 +145,36 @@ export function useAddTransaction(onClose: () => void) {
   } = useCurrencyStore();
   const rate = rateSignal.value;
   const rateUpdatedAt = rateUpdatedAtSignal.value;
-  const addTransaction = useTransactionStore.getState().addTransaction;
-  const { type, amountStr } = useAddTransactionStore(
-    useShallow((s) => ({
-      type: s.type,
-      amountStr: s.amountStr,
-    })),
-  );
-  const setType = useAddTransactionStore.getState().setType;
-  const setAmountStr = useAddTransactionStore.getState().setAmountStr;
-  const handleNumpad = useAddTransactionStore.getState().handleNumpad;
-  const { visible, saving, showAccountPicker, showToPicker, showCategoryPicker, rateOverride } =
-    useAddTransactionState(
-      useShallow((s) => ({
-        visible: s.visible,
-        saving: s.saving,
-        showAccountPicker: s.showAccountPicker,
-        showToPicker: s.showToPicker,
-        showCategoryPicker: s.showCategoryPicker,
-        rateOverride: s.rateOverride,
-      })),
-    );
-  const setSaving = useAddTransactionState.getState().setSaving;
-  const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
-  const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
-  const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
-  const setRateOverride = useAddTransactionState.getState().setRateOverride;
+  const { addTransaction } = useTransactionStore();
+  const {
+    state: { type: typeSignal, amountStr: amountStrSignal },
+    setType,
+    setAmountStr,
+    handleNumpad,
+  } = useAddTransactionStore();
+  const type = typeSignal.value;
+  const amountStr = amountStrSignal.value;
+  const {
+    state: {
+      visible: visibleSignal,
+      saving: savingSignal,
+      showAccountPicker: showAccountPickerSignal,
+      showToPicker: showToPickerSignal,
+      showCategoryPicker: showCategoryPickerSignal,
+      rateOverride: rateOverrideSignal,
+    },
+    setSaving,
+    setShowAccountPicker,
+    setShowToPicker,
+    setShowCategoryPicker,
+    setRateOverride,
+  } = useAddTransactionState();
+  const visible = visibleSignal.value;
+  const saving = savingSignal.value;
+  const showAccountPicker = showAccountPickerSignal.value;
+  const showToPicker = showToPickerSignal.value;
+  const showCategoryPicker = showCategoryPickerSignal.value;
+  const rateOverride = rateOverrideSignal.value;
 
   // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
   const openedTimeRef = useRef<string>(nowTimeISO());

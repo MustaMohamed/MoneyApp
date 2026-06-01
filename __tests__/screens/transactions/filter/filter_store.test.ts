@@ -6,12 +6,12 @@ import {
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 
 beforeEach(() => {
-  useFilterStore.getState().resetDraft();
+  useFilterStore().resetDraft();
 });
 
 describe('useFilterStore initial state', () => {
   it('starts with the empty-filters draft', () => {
-    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS_V2);
+    expect(useFilterStore().state.draft.value).toEqual(EMPTY_FILTERS_V2);
   });
 });
 
@@ -24,60 +24,60 @@ describe('useFilterStore setDraft / resetDraft', () => {
       amountMin: 10,
       amountMax: 50,
     };
-    useFilterStore.getState().setDraft(next);
-    expect(useFilterStore.getState().draft).toEqual(next);
+    useFilterStore().setDraft(next);
+    expect(useFilterStore().state.draft.value).toEqual(next);
   });
 
   it('resetDraft restores the empty-filters draft', () => {
-    useFilterStore.getState().setDraft({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] });
-    useFilterStore.getState().resetDraft();
-    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS_V2);
+    useFilterStore().setDraft({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] });
+    useFilterStore().resetDraft();
+    expect(useFilterStore().state.draft.value).toEqual(EMPTY_FILTERS_V2);
   });
 });
 
 describe('useFilterStore toggleAccountId', () => {
   it('adds an id that is not yet selected', () => {
-    useFilterStore.getState().toggleAccountId('a1');
-    expect(useFilterStore.getState().draft.accountIds).toEqual(['a1']);
+    useFilterStore().toggleAccountId('a1');
+    expect(useFilterStore().state.draft.value.accountIds).toEqual(['a1']);
   });
 
   it('removes an id that is already selected', () => {
-    useFilterStore.getState().toggleAccountId('a1');
-    useFilterStore.getState().toggleAccountId('a1');
-    expect(useFilterStore.getState().draft.accountIds).toEqual([]);
+    useFilterStore().toggleAccountId('a1');
+    useFilterStore().toggleAccountId('a1');
+    expect(useFilterStore().state.draft.value.accountIds).toEqual([]);
   });
 });
 
 describe('useFilterStore toggleCategoryId', () => {
   it('adds an id that is not yet selected', () => {
-    useFilterStore.getState().toggleCategoryId('c1');
-    expect(useFilterStore.getState().draft.categoryIds).toEqual(['c1']);
+    useFilterStore().toggleCategoryId('c1');
+    expect(useFilterStore().state.draft.value.categoryIds).toEqual(['c1']);
   });
 
   it('removes an id that is already selected', () => {
-    useFilterStore.getState().toggleCategoryId('c1');
-    useFilterStore.getState().toggleCategoryId('c1');
-    expect(useFilterStore.getState().draft.categoryIds).toEqual([]);
+    useFilterStore().toggleCategoryId('c1');
+    useFilterStore().toggleCategoryId('c1');
+    expect(useFilterStore().state.draft.value.categoryIds).toEqual([]);
   });
 });
 
 describe('useFilterStore amount setters', () => {
   it('setAmountMin sets and clears the minimum', () => {
-    useFilterStore.getState().setAmountMin(25);
-    expect(useFilterStore.getState().draft.amountMin).toBe(25);
-    useFilterStore.getState().setAmountMin(undefined);
-    expect(useFilterStore.getState().draft.amountMin).toBeUndefined();
+    useFilterStore().setAmountMin(25);
+    expect(useFilterStore().state.draft.value.amountMin).toBe(25);
+    useFilterStore().setAmountMin(undefined);
+    expect(useFilterStore().state.draft.value.amountMin).toBeUndefined();
   });
 
   it('setAmountMax sets and clears the maximum', () => {
-    useFilterStore.getState().setAmountMax(100);
-    expect(useFilterStore.getState().draft.amountMax).toBe(100);
-    useFilterStore.getState().setAmountMax(undefined);
-    expect(useFilterStore.getState().draft.amountMax).toBeUndefined();
+    useFilterStore().setAmountMax(100);
+    expect(useFilterStore().state.draft.value.amountMax).toBe(100);
+    useFilterStore().setAmountMax(undefined);
+    expect(useFilterStore().state.draft.value.amountMax).toBeUndefined();
   });
 
   it('setAmountCurrency switches the currency', () => {
-    useFilterStore.getState().setAmountCurrency(Currency.USD);
-    expect(useFilterStore.getState().draft.amountCurrency).toBe(Currency.USD);
+    useFilterStore().setAmountCurrency(Currency.USD);
+    expect(useFilterStore().state.draft.value.amountCurrency).toBe(Currency.USD);
   });
 });

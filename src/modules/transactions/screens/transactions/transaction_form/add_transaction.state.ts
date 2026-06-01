@@ -1,58 +1,74 @@
-import { create } from 'zustand';
+import { batch, signal, type ReadonlySignal } from '@preact/signals-react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type AddTransactionSignalState = {
+  visible: ReadonlySignal<boolean>;
+  pendingOpen: ReadonlySignal<boolean>;
+  saving: ReadonlySignal<boolean>;
+  showAccountPicker: ReadonlySignal<boolean>;
+  showToPicker: ReadonlySignal<boolean>;
+  showCategoryPicker: ReadonlySignal<boolean>;
+  rateOverride: ReadonlySignal<boolean>;
+};
 
-interface AddTransactionStateShape {
-  visible: boolean;
-  /**
-   * Cross-tab open request. The global FAB (mounted outside the transactions
-   * tab) sets this and navigates here; the transactions screen consumes it once
-   * mounted, flipping `visible` false→true so the sheet actually presents. (The
-   * FAB can't set `visible` directly: the sheet would mount already-true and
-   * skip the open animation while still hiding the FAB.)
-   */
-  pendingOpen: boolean;
-  saving: boolean;
-  showAccountPicker: boolean;
-  showToPicker: boolean;
-  showCategoryPicker: boolean;
-  rateOverride: boolean;
+class AddTransactionState {
+  private readonly visible = signal(false);
+  private readonly pendingOpen = signal(false);
+  private readonly saving = signal(false);
+  private readonly showAccountPicker = signal(false);
+  private readonly showToPicker = signal(false);
+  private readonly showCategoryPicker = signal(false);
+  private readonly rateOverride = signal(false);
+
+  readonly state: AddTransactionSignalState = {
+    visible: this.visible,
+    pendingOpen: this.pendingOpen,
+    saving: this.saving,
+    showAccountPicker: this.showAccountPicker,
+    showToPicker: this.showToPicker,
+    showCategoryPicker: this.showCategoryPicker,
+    rateOverride: this.rateOverride,
+  };
+
+  open = () => {
+    batch(() => {
+      this.visible.value = true;
+      this.pendingOpen.value = false;
+    });
+  };
+  requestOpen = () => {
+    this.pendingOpen.value = true;
+  };
+  close = () => this.reset();
+  setSaving = (v: boolean) => {
+    this.saving.value = v;
+  };
+  setShowAccountPicker = (v: boolean) => {
+    this.showAccountPicker.value = v;
+  };
+  setShowToPicker = (v: boolean) => {
+    this.showToPicker.value = v;
+  };
+  setShowCategoryPicker = (v: boolean) => {
+    this.showCategoryPicker.value = v;
+  };
+  setRateOverride = (v: boolean) => {
+    this.rateOverride.value = v;
+  };
+  reset = () => {
+    batch(() => {
+      this.visible.value = false;
+      this.pendingOpen.value = false;
+      this.saving.value = false;
+      this.showAccountPicker.value = false;
+      this.showToPicker.value = false;
+      this.showCategoryPicker.value = false;
+      this.rateOverride.value = false;
+    });
+  };
 }
 
-type AddTransactionState = AddTransactionStateShape & {
-  open: () => void;
-  requestOpen: () => void;
-  close: () => void;
-  setSaving: (v: boolean) => void;
-  setShowAccountPicker: (v: boolean) => void;
-  setShowToPicker: (v: boolean) => void;
-  setShowCategoryPicker: (v: boolean) => void;
-  setRateOverride: (v: boolean) => void;
-  reset: () => void;
-};
+const addTransactionState = new AddTransactionState();
 
-const INITIAL_STATE: AddTransactionStateShape = {
-  visible: false,
-  pendingOpen: false,
-  saving: false,
-  showAccountPicker: false,
-  showToPicker: false,
-  showCategoryPicker: false,
-  rateOverride: false,
-};
-
-export const useAddTransactionState = createMoneyAppSelectors(
-  create<AddTransactionState>((set) => ({
-    ...INITIAL_STATE,
-
-    open: () => set((s) => ({ ...s, visible: true, pendingOpen: false })),
-    requestOpen: () => set((s) => ({ ...s, pendingOpen: true })),
-    close: () => set(INITIAL_STATE),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setShowAccountPicker: (v) => set((s) => ({ ...s, showAccountPicker: v })),
-    setShowToPicker: (v) => set((s) => ({ ...s, showToPicker: v })),
-    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useAddTransactionState(): AddTransactionState {
+  return addTransactionState;
+}

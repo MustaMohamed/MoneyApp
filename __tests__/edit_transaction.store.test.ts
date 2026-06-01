@@ -28,99 +28,99 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
   };
 }
 
-beforeEach(() => useEditTransactionStore.getState().reset());
+beforeEach(() => useEditTransactionStore().reset());
 
 describe('useEditTransactionStore initial state', () => {
   it('starts with editingTx=null and amountStr="0"', () => {
-    const s = useEditTransactionStore.getState();
-    expect(s.editingTx).toBeNull();
-    expect(s.amountStr).toBe('0');
+    const { state } = useEditTransactionStore();
+    expect(state.editingTx.value).toBeNull();
+    expect(state.amountStr.value).toBe('0');
   });
 });
 
 describe('useEditTransactionStore.loadFromTx', () => {
   it('stores the transaction', () => {
     const tx = makeTx();
-    useEditTransactionStore.getState().loadFromTx(tx);
-    expect(useEditTransactionStore.getState().editingTx).toBe(tx);
+    useEditTransactionStore().loadFromTx(tx);
+    expect(useEditTransactionStore().state.editingTx.value).toBe(tx);
   });
 
   it('formats integer amount without decimal for integer amounts', () => {
-    useEditTransactionStore.getState().loadFromTx(makeTx({ amount: 200 }));
-    expect(useEditTransactionStore.getState().amountStr).toBe('200');
+    useEditTransactionStore().loadFromTx(makeTx({ amount: 200 }));
+    expect(useEditTransactionStore().state.amountStr.value).toBe('200');
   });
 
   it('formats fractional amount as a string with decimal', () => {
-    useEditTransactionStore.getState().loadFromTx(makeTx({ amount: 99.5 }));
-    expect(useEditTransactionStore.getState().amountStr).toBe('99.5');
+    useEditTransactionStore().loadFromTx(makeTx({ amount: 99.5 }));
+    expect(useEditTransactionStore().state.amountStr.value).toBe('99.5');
   });
 });
 
 describe('useEditTransactionStore.handleNumpad', () => {
   it('digit replaces "0" with the digit (leading-zero guard)', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '7');
-    expect(useEditTransactionStore.getState().amountStr).toBe('7');
+    useEditTransactionStore().handleNumpad('digit', '7');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('7');
   });
 
   it('pressing "0" when amountStr is "0" keeps it "0"', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '0');
-    expect(useEditTransactionStore.getState().amountStr).toBe('0');
+    useEditTransactionStore().handleNumpad('digit', '0');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('0');
   });
 
   it('digit appends to a non-zero string', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '4');
-    useEditTransactionStore.getState().handleNumpad('digit', '2');
-    expect(useEditTransactionStore.getState().amountStr).toBe('42');
+    useEditTransactionStore().handleNumpad('digit', '4');
+    useEditTransactionStore().handleNumpad('digit', '2');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('42');
   });
 
   it('decimal appends "." when not already present', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.');
+    useEditTransactionStore().handleNumpad('digit', '5');
+    useEditTransactionStore().handleNumpad('decimal');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('5.');
   });
 
   it('decimal is a no-op when "." is already present', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.');
+    useEditTransactionStore().handleNumpad('digit', '5');
+    useEditTransactionStore().handleNumpad('decimal');
+    useEditTransactionStore().handleNumpad('decimal');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('5.');
   });
 
   it('backspace removes the last character', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('digit', '3');
-    useEditTransactionStore.getState().handleNumpad('backspace');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5');
+    useEditTransactionStore().handleNumpad('digit', '5');
+    useEditTransactionStore().handleNumpad('digit', '3');
+    useEditTransactionStore().handleNumpad('backspace');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('5');
   });
 
   it('backspace on a single character resets to "0"', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('backspace');
-    expect(useEditTransactionStore.getState().amountStr).toBe('0');
+    useEditTransactionStore().handleNumpad('digit', '5');
+    useEditTransactionStore().handleNumpad('backspace');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('0');
   });
 
   it('limits decimal digits to 2', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    useEditTransactionStore.getState().handleNumpad('digit', '1');
-    useEditTransactionStore.getState().handleNumpad('digit', '2');
-    useEditTransactionStore.getState().handleNumpad('digit', '3');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.12');
+    useEditTransactionStore().handleNumpad('digit', '5');
+    useEditTransactionStore().handleNumpad('decimal');
+    useEditTransactionStore().handleNumpad('digit', '1');
+    useEditTransactionStore().handleNumpad('digit', '2');
+    useEditTransactionStore().handleNumpad('digit', '3');
+    expect(useEditTransactionStore().state.amountStr.value).toBe('5.12');
   });
 
   it('digit action without value argument defaults to empty string (covers ?? "" branch)', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('digit'); // value = undefined → digit = ''
-    expect(useEditTransactionStore.getState().amountStr).toBe('5'); // '' appended → '5'
+    useEditTransactionStore().handleNumpad('digit', '5');
+    useEditTransactionStore().handleNumpad('digit'); // value = undefined → digit = ''
+    expect(useEditTransactionStore().state.amountStr.value).toBe('5'); // '' appended → '5'
   });
 });
 
 describe('useEditTransactionStore.reset', () => {
   it('clears editingTx and amountStr', () => {
-    useEditTransactionStore.getState().loadFromTx(makeTx());
-    useEditTransactionStore.getState().reset();
-    const s = useEditTransactionStore.getState();
-    expect(s.editingTx).toBeNull();
-    expect(s.amountStr).toBe('0');
+    useEditTransactionStore().loadFromTx(makeTx());
+    useEditTransactionStore().reset();
+    const { state } = useEditTransactionStore();
+    expect(state.editingTx.value).toBeNull();
+    expect(state.amountStr.value).toBe('0');
   });
 });

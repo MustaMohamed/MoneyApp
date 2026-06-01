@@ -1,30 +1,42 @@
-import { create } from 'zustand';
+import { batch, signal, type ReadonlySignal } from '@preact/signals-react';
 
-interface TransactionFormBodyStateShape {
-  keyboardVisible: boolean;
-  showIosDatePicker: boolean;
-  showAndroidDatePicker: boolean;
+type TransactionFormBodySignalState = {
+  keyboardVisible: ReadonlySignal<boolean>;
+  showIosDatePicker: ReadonlySignal<boolean>;
+  showAndroidDatePicker: ReadonlySignal<boolean>;
+};
+
+class TransactionFormBodyState {
+  private readonly keyboardVisible = signal(false);
+  private readonly showIosDatePicker = signal(false);
+  private readonly showAndroidDatePicker = signal(false);
+
+  readonly state: TransactionFormBodySignalState = {
+    keyboardVisible: this.keyboardVisible,
+    showIosDatePicker: this.showIosDatePicker,
+    showAndroidDatePicker: this.showAndroidDatePicker,
+  };
+
+  setKeyboardVisible = (v: boolean) => {
+    this.keyboardVisible.value = v;
+  };
+  setShowIosDatePicker = (v: boolean) => {
+    this.showIosDatePicker.value = v;
+  };
+  setShowAndroidDatePicker = (v: boolean) => {
+    this.showAndroidDatePicker.value = v;
+  };
+  reset = () => {
+    batch(() => {
+      this.keyboardVisible.value = false;
+      this.showIosDatePicker.value = false;
+      this.showAndroidDatePicker.value = false;
+    });
+  };
 }
 
-type TransactionFormBodyState = TransactionFormBodyStateShape & {
-  setKeyboardVisible: (v: boolean) => void;
-  setShowIosDatePicker: (v: boolean) => void;
-  setShowAndroidDatePicker: (v: boolean) => void;
-  reset: () => void;
-};
+const transactionFormBodyState = new TransactionFormBodyState();
 
-const INITIAL_STATE: TransactionFormBodyStateShape = {
-  keyboardVisible: false,
-  showIosDatePicker: false,
-  showAndroidDatePicker: false,
-};
-
-export const useTransactionFormBodyState = create<TransactionFormBodyState>((set) => ({
-  ...INITIAL_STATE,
-
-  setKeyboardVisible: (v) => set((s) => ({ ...s, keyboardVisible: v })),
-  setShowIosDatePicker: (v) => set((s) => ({ ...s, showIosDatePicker: v })),
-  setShowAndroidDatePicker: (v) => set((s) => ({ ...s, showAndroidDatePicker: v })),
-
-  reset: () => set(INITIAL_STATE),
-}));
+export function useTransactionFormBodyState(): TransactionFormBodyState {
+  return transactionFormBodyState;
+}

@@ -27,29 +27,29 @@ export default function TransactionDetailScreen(): React.ReactElement {
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
     useTransactionDetail(id);
 
-  const editTxVisible = useEditTransactionState.useState.visible();
+  const editTxVisible = useEditTransactionState().state.visible.value;
 
   useEffect(() => {
     return () => {
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      useEditTransactionStore().reset();
+      useEditTransactionState().close();
     };
   }, []);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useEditTransactionState.getState().visible) return;
+      if (!useEditTransactionState().state.visible.value) return;
       e.preventDefault();
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      useEditTransactionStore().reset();
+      useEditTransactionState().close();
     });
     return unsubscribe;
   }, [navigation]);
 
   function handleEdit() {
     if (state.tx) {
-      useEditTransactionStore.getState().loadFromTx(state.tx);
-      useEditTransactionState.getState().open(state.tx);
+      useEditTransactionStore().loadFromTx(state.tx);
+      useEditTransactionState().open(state.tx);
     }
   }
 
@@ -173,12 +173,12 @@ export default function TransactionDetailScreen(): React.ReactElement {
           <EditTransactionSheet
             visible={editTxVisible}
             onClose={() => {
-              useEditTransactionStore.getState().reset();
-              useEditTransactionState.getState().close();
+              useEditTransactionStore().reset();
+              useEditTransactionState().close();
             }}
             onSaved={() => {
-              useEditTransactionStore.getState().reset();
-              useEditTransactionState.getState().close();
+              useEditTransactionStore().reset();
+              useEditTransactionState().close();
               reload();
             }}
             tx={state.tx}

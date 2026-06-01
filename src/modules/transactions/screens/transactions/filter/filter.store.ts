@@ -1,7 +1,6 @@
-import { create } from 'zustand';
+import { signal, type ReadonlySignal } from '@preact/signals-react';
 
 import { Currency } from '@/constants/enums';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export interface AdvancedFilters {
   accountIds: string[];
@@ -17,53 +16,54 @@ export const EMPTY_FILTERS_V2: AdvancedFilters = {
   amountCurrency: Currency.EGP,
 };
 
-interface DraftShape {
-  draft: AdvancedFilters;
-}
-
-type FilterStore = DraftShape & {
-  setDraft: (next: AdvancedFilters) => void;
-  resetDraft: () => void;
-  toggleAccountId: (id: string) => void;
-  toggleCategoryId: (id: string) => void;
-  setAmountMin: (v?: number) => void;
-  setAmountMax: (v?: number) => void;
-  setAmountCurrency: (c: Currency) => void;
+type FilterSignalState = {
+  draft: ReadonlySignal<AdvancedFilters>;
 };
 
-const INITIAL_STATE: DraftShape = { draft: EMPTY_FILTERS_V2 };
+class FilterStore {
+  private readonly draft = signal(EMPTY_FILTERS_V2);
 
-export const useFilterStore = createMoneyAppSelectors(
-  create<FilterStore>((set) => ({
-    ...INITIAL_STATE,
+  readonly state: FilterSignalState = {
+    draft: this.draft,
+  };
 
-    setDraft: (next) => set((s) => ({ ...s, draft: next })),
-    resetDraft: () => set((s) => ({ ...s, draft: EMPTY_FILTERS_V2 })),
+  setDraft = (next: AdvancedFilters) => {
+    this.draft.value = next;
+  };
+  resetDraft = () => {
+    this.draft.value = EMPTY_FILTERS_V2;
+  };
+  toggleAccountId = (id: string) => {
+    const draft = this.draft.value;
+    this.draft.value = {
+      ...draft,
+      accountIds: draft.accountIds.includes(id)
+        ? draft.accountIds.filter((x) => x !== id)
+        : [...draft.accountIds, id],
+    };
+  };
+  toggleCategoryId = (id: string) => {
+    const draft = this.draft.value;
+    this.draft.value = {
+      ...draft,
+      categoryIds: draft.categoryIds.includes(id)
+        ? draft.categoryIds.filter((x) => x !== id)
+        : [...draft.categoryIds, id],
+    };
+  };
+  setAmountMin = (v?: number) => {
+    this.draft.value = { ...this.draft.value, amountMin: v };
+  };
+  setAmountMax = (v?: number) => {
+    this.draft.value = { ...this.draft.value, amountMax: v };
+  };
+  setAmountCurrency = (c: Currency) => {
+    this.draft.value = { ...this.draft.value, amountCurrency: c };
+  };
+}
 
-    toggleAccountId: (id) =>
-      set((s) => ({
-        ...s,
-        draft: {
-          ...s.draft,
-          accountIds: s.draft.accountIds.includes(id)
-            ? s.draft.accountIds.filter((x) => x !== id)
-            : [...s.draft.accountIds, id],
-        },
-      })),
+const filterStore = new FilterStore();
 
-    toggleCategoryId: (id) =>
-      set((s) => ({
-        ...s,
-        draft: {
-          ...s.draft,
-          categoryIds: s.draft.categoryIds.includes(id)
-            ? s.draft.categoryIds.filter((x) => x !== id)
-            : [...s.draft.categoryIds, id],
-        },
-      })),
-
-    setAmountMin: (v) => set((s) => ({ ...s, draft: { ...s.draft, amountMin: v } })),
-    setAmountMax: (v) => set((s) => ({ ...s, draft: { ...s.draft, amountMax: v } })),
-    setAmountCurrency: (c) => set((s) => ({ ...s, draft: { ...s.draft, amountCurrency: c } })),
-  })),
-);
+export function useFilterStore(): FilterStore {
+  return filterStore;
+}

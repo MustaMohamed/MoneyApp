@@ -87,56 +87,56 @@ function makeRepo(initial: Transaction[] = []): ITransactionRepository {
 describe('transactionStore.setQuery', () => {
   it('starts unloaded so screens do not show empty states before the first fetch settles', () => {
     const repo = makeRepo();
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    expect(useStore.getState().hasLoaded).toBe(false);
+    expect(store.state.hasLoaded.value).toBe(false);
   });
 
   it('marks the list loaded after the first fetch settles', async () => {
     const repo = makeRepo();
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await useStore.getState().setQuery({});
+    await store.setQuery({});
 
-    expect(useStore.getState().hasLoaded).toBe(true);
+    expect(store.state.hasLoaded.value).toBe(true);
   });
 
   it('replaces the list with the page-1 result for the new query', async () => {
     const txs = Array.from({ length: 5 }, (_, i) => makeTransaction({ id: `t${i}` }));
     const repo = makeRepo(txs);
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions).toHaveLength(5);
-    expect(useStore.getState().query).toEqual({});
+    await store.setQuery({});
+    expect(store.state.transactions.value).toHaveLength(5);
+    expect(store.state.query.value).toEqual({});
   });
 
   it('sets hasMore=true at exactly PAGE_SIZE rows', async () => {
     const txs = Array.from({ length: PAGE_SIZE }, (_, i) => makeTransaction({ id: `t${i}` }));
     const repo = makeRepo(txs);
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    expect(useStore.getState().hasMore).toBe(true);
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    expect(store.state.hasMore.value).toBe(true);
   });
 
   it('sets hasMore=false when fewer than PAGE_SIZE rows return', async () => {
     const repo = makeRepo([makeTransaction({ id: 't1' })]);
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    expect(useStore.getState().hasMore).toBe(false);
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    expect(store.state.hasMore.value).toBe(false);
   });
 
   it('toggles loading true during fetch and false on completion', async () => {
     const repo = makeRepo();
     const def = deferred<Transaction[]>();
     repo.getAll = jest.fn(() => def.promise);
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    const inFlight = useStore.getState().setQuery({});
-    expect(useStore.getState().loading).toBe(true);
+    const inFlight = store.setQuery({});
+    expect(store.state.loading.value).toBe(true);
     def.resolve([]);
     await inFlight;
-    expect(useStore.getState().loading).toBe(false);
+    expect(store.state.loading.value).toBe(false);
   });
 });
 
@@ -144,23 +144,23 @@ describe('transactionStore.loadMore', () => {
   it('appends the next page and bumps the offset', async () => {
     const txs = Array.from({ length: PAGE_SIZE + 5 }, (_, i) => makeTransaction({ id: `t${i}` }));
     const repo = makeRepo(txs);
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions).toHaveLength(PAGE_SIZE);
-    await useStore.getState().loadMore();
-    expect(useStore.getState().transactions).toHaveLength(PAGE_SIZE + 5);
-    expect(useStore.getState().hasMore).toBe(false);
+    await store.setQuery({});
+    expect(store.state.transactions.value).toHaveLength(PAGE_SIZE);
+    await store.loadMore();
+    expect(store.state.transactions.value).toHaveLength(PAGE_SIZE + 5);
+    expect(store.state.hasMore.value).toBe(false);
     expect(repo.getAll).toHaveBeenLastCalledWith({ limit: PAGE_SIZE, offset: PAGE_SIZE });
   });
 
   it('is a no-op when hasMore is false', async () => {
     const repo = makeRepo([makeTransaction({ id: 't1' })]);
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await useStore.getState().setQuery({});
+    await store.setQuery({});
     (repo.getAll as jest.Mock).mockClear();
-    await useStore.getState().loadMore();
+    await store.loadMore();
     expect(repo.getAll).not.toHaveBeenCalled();
   });
 
@@ -168,12 +168,12 @@ describe('transactionStore.loadMore', () => {
     const txs = Array.from({ length: PAGE_SIZE * 2 }, (_, i) => makeTransaction({ id: `t${i}` }));
     const repo = makeRepo(txs);
     const def = deferred<Transaction[]>();
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await useStore.getState().setQuery({});
+    await store.setQuery({});
     repo.getAll = jest.fn(() => def.promise);
-    const first = useStore.getState().loadMore();
-    const second = useStore.getState().loadMore();
+    const first = store.loadMore();
+    const second = store.loadMore();
     def.resolve([]);
     await Promise.all([first, second]);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
@@ -187,11 +187,11 @@ describe('transactionStore.refresh', () => {
     );
     txs.push(makeTransaction({ id: 'expense-1' }));
     const repo = makeRepo(txs);
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await useStore.getState().setQuery({ type: TransactionType.Income });
+    await store.setQuery({ type: TransactionType.Income });
     (repo.getAll as jest.Mock).mockClear();
-    await useStore.getState().refresh();
+    await store.refresh();
     expect(repo.getAll).toHaveBeenCalledWith({
       type: TransactionType.Income,
       limit: PAGE_SIZE,
@@ -203,11 +203,11 @@ describe('transactionStore.refresh', () => {
 describe('transactionStore.addTransaction / deleteTransaction', () => {
   it('addTransaction calls repo.add then refresh()', async () => {
     const repo = makeRepo();
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    const beforeVersion = useStore.getState().mutationVersion;
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    const beforeVersion = store.state.mutationVersion.value;
 
-    await useStore.getState().addTransaction({
+    await store.addTransaction({
       type: TransactionType.Expense,
       amount: 50,
       currency: Currency.EGP,
@@ -217,21 +217,21 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     });
 
     expect(repo.add).toHaveBeenCalled();
-    expect(useStore.getState().transactions).toHaveLength(1);
-    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(store.state.transactions.value).toHaveLength(1);
+    expect(store.state.mutationVersion.value).toBe(beforeVersion + 1);
   });
 
   it('deleteTransaction calls repo.delete then refresh()', async () => {
     const repo = makeRepo([makeTransaction({ id: 'tx-del' })]);
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions).toHaveLength(1);
-    const beforeVersion = useStore.getState().mutationVersion;
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    expect(store.state.transactions.value).toHaveLength(1);
+    const beforeVersion = store.state.mutationVersion.value;
 
-    await useStore.getState().deleteTransaction('tx-del');
+    await store.deleteTransaction('tx-del');
     expect(repo.delete).toHaveBeenCalledWith('tx-del');
-    expect(useStore.getState().transactions).toHaveLength(0);
-    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(store.state.transactions.value).toHaveLength(0);
+    expect(store.state.mutationVersion.value).toBe(beforeVersion + 1);
   });
 
   it('addTransaction swallows a refresh failure and still returns the new transaction', async () => {
@@ -244,12 +244,12 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
       if (callCount++ === 0) return [];
       throw new Error('refresh failed');
     });
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    const beforeVersion = useStore.getState().mutationVersion;
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    const beforeVersion = store.state.mutationVersion.value;
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const result = await useStore.getState().addTransaction({
+    const result = await store.addTransaction({
       type: TransactionType.Expense,
       amount: 50,
       currency: Currency.EGP,
@@ -259,7 +259,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
     consoleSpy.mockRestore();
 
     expect(result.id).toBe('tx-new');
-    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(store.state.mutationVersion.value).toBe(beforeVersion + 1);
   });
 
   it('deleteTransaction swallows a refresh failure and still resolves', async () => {
@@ -270,14 +270,14 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
       if (callCount++ === 0) return originalGetAll(query);
       throw new Error('refresh failed after delete');
     });
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    const beforeVersion = useStore.getState().mutationVersion;
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    const beforeVersion = store.state.mutationVersion.value;
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().deleteTransaction('tx-del2')).resolves.toBeUndefined();
+    await expect(store.deleteTransaction('tx-del2')).resolves.toBeUndefined();
     consoleSpy.mockRestore();
-    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(store.state.mutationVersion.value).toBe(beforeVersion + 1);
   });
 });
 
@@ -285,12 +285,12 @@ describe('transactionStore.updateTransaction', () => {
   it('calls repo.update then refreshes the list', async () => {
     const tx = makeTransaction({ id: 'tx-upd', amount: 100 });
     const repo = makeRepo([tx]);
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    expect(useStore.getState().transactions[0].amount).toBe(100);
-    const beforeVersion = useStore.getState().mutationVersion;
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    expect(store.state.transactions.value[0].amount).toBe(100);
+    const beforeVersion = store.state.mutationVersion.value;
 
-    await useStore.getState().updateTransaction('tx-upd', {
+    await store.updateTransaction('tx-upd', {
       amount: 250,
       currency: Currency.EGP,
       egp_amount: 250,
@@ -299,8 +299,8 @@ describe('transactionStore.updateTransaction', () => {
     });
 
     expect(repo.update).toHaveBeenCalledWith('tx-upd', expect.objectContaining({ amount: 250 }));
-    expect(useStore.getState().transactions[0].amount).toBe(250);
-    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(store.state.transactions.value[0].amount).toBe(250);
+    expect(store.state.mutationVersion.value).toBe(beforeVersion + 1);
   });
 
   it('swallows a refresh failure after update and still resolves', async () => {
@@ -312,13 +312,13 @@ describe('transactionStore.updateTransaction', () => {
       if (callCount++ === 0) return originalGetAll(query);
       throw new Error('refresh failed after update');
     });
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({});
-    const beforeVersion = useStore.getState().mutationVersion;
+    const store = createTransactionStore(repo);
+    await store.setQuery({});
+    const beforeVersion = store.state.mutationVersion.value;
 
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(
-      useStore.getState().updateTransaction('tx-upd2', {
+      store.updateTransaction('tx-upd2', {
         amount: 99,
         currency: Currency.EGP,
         egp_amount: 99,
@@ -327,7 +327,7 @@ describe('transactionStore.updateTransaction', () => {
       }),
     ).resolves.toBeUndefined();
     consoleSpy.mockRestore();
-    expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+    expect(store.state.mutationVersion.value).toBe(beforeVersion + 1);
   });
 });
 
@@ -335,18 +335,18 @@ describe('transactionStore.getById', () => {
   it('passes through to repo.getById without touching list state', async () => {
     const tx = makeTransaction({ id: 'one' });
     const repo = makeRepo([tx]);
-    const useStore = createTransactionStore(repo);
-    const before = useStore.getState().transactions;
+    const store = createTransactionStore(repo);
+    const before = store.state.transactions.value;
 
-    const got = await useStore.getState().getById('one');
+    const got = await store.getById('one');
     expect(got?.id).toBe('one');
-    expect(useStore.getState().transactions).toBe(before);
+    expect(store.state.transactions.value).toBe(before);
   });
 
   it('returns null for a missing id', async () => {
     const repo = makeRepo();
-    const useStore = createTransactionStore(repo);
-    const got = await useStore.getState().getById('missing');
+    const store = createTransactionStore(repo);
+    const got = await store.getById('missing');
     expect(got).toBeNull();
   });
 });
@@ -355,37 +355,80 @@ describe('transactionStore — error handling', () => {
   it('clears the loading flag and rethrows when the repo errors', async () => {
     const repo = makeRepo();
     repo.getAll = jest.fn().mockRejectedValue(new Error('db down'));
-    const useStore = createTransactionStore(repo);
+    const store = createTransactionStore(repo);
 
-    await expect(useStore.getState().setQuery({})).rejects.toThrow('db down');
-    expect(useStore.getState().loading).toBe(false);
+    await expect(store.setQuery({})).rejects.toThrow('db down');
+    expect(store.state.loading.value).toBe(false);
   });
 });
 
 describe('transactionStore.reset', () => {
   it('restores INITIAL_STATE (empty list, no query, not loading)', async () => {
     const repo = makeRepo([makeTransaction({ id: 't1' })]);
-    const useStore = createTransactionStore(repo);
-    await useStore.getState().setQuery({ search: 'x' });
-    expect(useStore.getState().transactions).toHaveLength(1);
-    expect(useStore.getState().query).toEqual({ search: 'x' });
+    const store = createTransactionStore(repo);
+    await store.setQuery({ search: 'x' });
+    expect(store.state.transactions.value).toHaveLength(1);
+    expect(store.state.query.value).toEqual({ search: 'x' });
 
-    useStore.getState().reset();
+    store.reset();
 
-    expect(useStore.getState()).toMatchObject({
-      transactions: [],
-      hasMore: false,
-      loading: false,
-      hasLoaded: false,
-      query: {},
-      mutationVersion: 0,
-    });
+    expect(store.state.transactions.value).toEqual([]);
+    expect(store.state.hasMore.value).toBe(false);
+    expect(store.state.loading.value).toBe(false);
+    expect(store.state.hasLoaded.value).toBe(false);
+    expect(store.state.query.value).toEqual({});
+    expect(store.state.mutationVersion.value).toBe(0);
+  });
+
+  it('prevents in-flight setQuery and loadMore results from repopulating state after reset', async () => {
+    const setQueryRepo = makeRepo();
+    const setQueryDef = deferred<Transaction[]>();
+    setQueryRepo.getAll = jest.fn(() => setQueryDef.promise);
+    const setQueryStore = createTransactionStore(setQueryRepo);
+
+    const inFlightSetQuery = setQueryStore.setQuery({ search: 'stale' });
+    expect(setQueryStore.state.loading.value).toBe(true);
+
+    setQueryStore.reset();
+    expect(setQueryStore.state.transactions.value).toEqual([]);
+    expect(setQueryStore.state.loading.value).toBe(false);
+
+    setQueryDef.resolve([makeTransaction({ id: 'stale-set-query' })]);
+    await inFlightSetQuery;
+
+    expect(setQueryStore.state.transactions.value).toEqual([]);
+    expect(setQueryStore.state.query.value).toEqual({});
+    expect(setQueryStore.state.hasLoaded.value).toBe(false);
+
+    const loadMoreRows = Array.from({ length: PAGE_SIZE + 1 }, (_, i) =>
+      makeTransaction({ id: `loaded-${i}` }),
+    );
+    const loadMoreRepo = makeRepo(loadMoreRows);
+    const loadMoreStore = createTransactionStore(loadMoreRepo);
+    await loadMoreStore.setQuery({});
+    expect(loadMoreStore.state.transactions.value).toHaveLength(PAGE_SIZE);
+
+    const loadMoreDef = deferred<Transaction[]>();
+    loadMoreRepo.getAll = jest.fn(() => loadMoreDef.promise);
+    const inFlightLoadMore = loadMoreStore.loadMore();
+    expect(loadMoreStore.state.loading.value).toBe(true);
+
+    loadMoreStore.reset();
+    expect(loadMoreStore.state.transactions.value).toEqual([]);
+    expect(loadMoreStore.state.loading.value).toBe(false);
+
+    loadMoreDef.resolve([makeTransaction({ id: 'stale-load-more' })]);
+    await inFlightLoadMore;
+
+    expect(loadMoreStore.state.transactions.value).toEqual([]);
+    expect(loadMoreStore.state.hasMore.value).toBe(false);
+    expect(loadMoreStore.state.hasLoaded.value).toBe(false);
   });
 });
 
 describe('transactionStore — deleteTransaction signature', () => {
   it('deleteTransaction exists and is a function on the store', () => {
-    const { deleteTransaction } = useTransactionStore.getState();
+    const { deleteTransaction } = useTransactionStore();
     expect(typeof deleteTransaction).toBe('function');
   });
 });
@@ -398,9 +441,9 @@ describe('transactionStore — race guard', () => {
     let call = 0;
     repo.getAll = jest.fn(() => (call++ === 0 ? firstDef.promise : secondDef.promise));
 
-    const useStore = createTransactionStore(repo);
-    const slow = useStore.getState().setQuery({ search: 'a' });
-    const fast = useStore.getState().setQuery({ search: 'ab' });
+    const store = createTransactionStore(repo);
+    const slow = store.setQuery({ search: 'a' });
+    const fast = store.setQuery({ search: 'ab' });
 
     // Resolve the fresher request first, then the stale one.
     secondDef.resolve([makeTransaction({ id: 'fresh' })]);
@@ -408,8 +451,8 @@ describe('transactionStore — race guard', () => {
     firstDef.resolve([makeTransaction({ id: 'stale' })]);
     await slow;
 
-    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
-    expect(useStore.getState().query).toEqual({ search: 'ab' });
+    expect(store.state.transactions.value.map((t) => t.id)).toEqual(['fresh']);
+    expect(store.state.query.value).toEqual({ search: 'ab' });
   });
 
   it('a stale request that errors does not clear loading set by a newer request', async () => {
@@ -419,14 +462,14 @@ describe('transactionStore — race guard', () => {
     let call = 0;
     repo.getAll = jest.fn(() => (call++ === 0 ? firstDef.promise : secondDef.promise));
 
-    const useStore = createTransactionStore(repo);
-    const stale = useStore.getState().setQuery({ search: 'a' });
-    const fresh = useStore.getState().setQuery({ search: 'ab' });
+    const store = createTransactionStore(repo);
+    const stale = store.setQuery({ search: 'a' });
+    const fresh = store.setQuery({ search: 'ab' });
 
     // The newer request resolves first and clears loading.
     secondDef.resolve([makeTransaction({ id: 'fresh' })]);
     await fresh;
-    expect(useStore.getState().loading).toBe(false);
+    expect(store.state.loading.value).toBe(false);
 
     // Now have the older request reject (e.g. its DB call timed out). The
     // catch path's `if (myId === requestId)` guard must be FALSE, so it
@@ -435,7 +478,7 @@ describe('transactionStore — race guard', () => {
     firstDef.reject(new Error('stale db error'));
     await expect(stale).rejects.toThrow('stale db error');
 
-    expect(useStore.getState().loading).toBe(false);
-    expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
+    expect(store.state.loading.value).toBe(false);
+    expect(store.state.transactions.value.map((t) => t.id)).toEqual(['fresh']);
   });
 });
