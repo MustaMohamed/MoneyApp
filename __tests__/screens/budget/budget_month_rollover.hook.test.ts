@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -33,11 +34,13 @@ import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
 function setupStores() {
-  attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
-    categories: [],
-    hasLoaded: false,
+  (useCategoryStore as jest.Mock).mockReturnValue({
+    state: {
+      categories: signal([]),
+      hasLoaded: signal(false),
+    },
     loadCategories: jest.fn(),
-  }));
+  });
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: [],
     spendByMonth: {},

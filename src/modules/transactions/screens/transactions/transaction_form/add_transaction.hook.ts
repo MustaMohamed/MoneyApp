@@ -140,7 +140,7 @@ export function useAddTransaction(onClose: () => void) {
     init,
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
   const {
     state: { rate: rateSignal, rateUpdatedAt: rateUpdatedAtSignal },
   } = useCurrencyStore();

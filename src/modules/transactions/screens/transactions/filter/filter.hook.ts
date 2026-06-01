@@ -31,7 +31,7 @@ export function useFilterSheet() {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
   const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
   const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;
 

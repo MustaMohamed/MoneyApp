@@ -13,7 +13,24 @@ import { useAddTransactionState } from '@/modules/transactions/screens/transacti
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useTransactionStore } from '@/store/transaction.store';
 
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
+
+function setupCategoryStoreMock(categories = [mockCategoryExpense, mockCategoryIncome]) {
+  jest.mocked(useCategoryStore).mockReturnValue({
+    state: {
+      categories: signal(categories),
+      hasLoaded: signal(true),
+    },
+    loadCategories: jest.fn().mockResolvedValue(undefined),
+    addCategory: jest.fn().mockResolvedValue(undefined),
+    updateCategory: jest.fn().mockResolvedValue(undefined),
+    deleteCategory: jest.fn().mockResolvedValue(undefined),
+    reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+    getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useCategoryStore>);
+}
 
 function setupCurrencyStoreMock({
   rate = 50,
@@ -105,11 +122,7 @@ beforeEach(() => {
     mockAccountCC,
     mockAccountCC2,
   ];
-  useCategoryStore.setState({
-    categories: [mockCategoryExpense, mockCategoryIncome],
-    loading: false,
-    error: undefined,
-  } as any);
+  setupCategoryStoreMock();
   setupCurrencyStoreMock();
   useAddTransactionState.getState().reset();
   useAddTransactionStore.getState().reset();

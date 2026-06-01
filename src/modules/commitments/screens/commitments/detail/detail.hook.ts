@@ -74,7 +74,7 @@ export function useCommitmentDetail() {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
 
   const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();
   const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;

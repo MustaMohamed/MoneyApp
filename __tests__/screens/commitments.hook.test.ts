@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals-react';
 import { renderHook } from '@testing-library/react-native';
 
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -29,9 +30,9 @@ function setup() {
     loadCommitments: jest.fn().mockResolvedValue(undefined),
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    categories: [],
-  }));
+  (useCategoryStore as unknown as jest.Mock).mockReturnValue({
+    state: { categories: signal([]) },
+  });
   attachMockSelectorStore(useCommitmentsScreenState as unknown as jest.Mock, () => ({
     refreshing: false,
     statusFilter: 'all',

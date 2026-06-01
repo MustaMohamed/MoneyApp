@@ -23,7 +23,7 @@ export function useAddCommitment() {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
   const addCommitment = useCommitmentStore.getState().addCommitment;
   const generatePayments = useCommitmentStore.getState().generatePayments;
   const saving = useAddCommitmentState.useState.saving();

@@ -31,13 +31,10 @@ export function useBudget() {
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);
 
-  const { categories, categoriesLoaded } = useCategoryStore(
-    useShallow((s) => ({
-      categories: s.categories,
-      categoriesLoaded: s.hasLoaded,
-    })),
-  );
-  const loadCategories = useCategoryStore.getState().loadCategories;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.state.categories.value;
+  const categoriesLoaded = categoryStore.state.hasLoaded.value;
+  const loadCategories = categoryStore.loadCategories;
   const { budgetRows, spendByMonth, budgetLoaded, expectedIncome } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,

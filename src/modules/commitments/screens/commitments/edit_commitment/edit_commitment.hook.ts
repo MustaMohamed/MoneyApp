@@ -25,7 +25,7 @@ export function useEditCommitment() {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
   const commitments = useCommitmentStore.useState.commitments();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;

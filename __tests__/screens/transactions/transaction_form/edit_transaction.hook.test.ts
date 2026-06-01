@@ -2,6 +2,7 @@ import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
+import type { Account } from '@/database/entities/account.entity';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -11,6 +12,7 @@ import { useEditTransactionState } from '@/modules/transactions/screens/transact
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import { useTransactionStore } from '@/store/transaction.store';
 
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
 
 function setupCurrencyStoreMock() {
@@ -50,8 +52,6 @@ const mockTxExpense: Transaction = {
   created_at: 'now',
   updated_at: 'now',
 };
-
-import type { Account } from '@/database/entities/account.entity';
 
 const mockAccountEGP: Account = {
   id: 'a1',
@@ -97,15 +97,27 @@ const mockCategoryShop = {
   updated_at: 'now',
 };
 
+function setupCategoryStoreMock() {
+  jest.mocked(useCategoryStore).mockReturnValue({
+    state: {
+      categories: signal([mockCategoryFood, mockCategoryShop]),
+      hasLoaded: signal(true),
+    },
+    loadCategories: jest.fn().mockResolvedValue(undefined),
+    addCategory: jest.fn().mockResolvedValue(undefined),
+    updateCategory: jest.fn().mockResolvedValue(undefined),
+    deleteCategory: jest.fn().mockResolvedValue(undefined),
+    reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+    getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useCategoryStore>);
+}
+
 beforeEach(() => {
   const accountsStore = useAccountStore();
   accountsStore.reset();
   accountsStore.state.accounts.value = [mockAccountEGP];
-  useCategoryStore.setState({
-    categories: [mockCategoryFood, mockCategoryShop],
-    loading: false,
-    error: undefined,
-  } as any);
+  setupCategoryStoreMock();
   setupCurrencyStoreMock();
   useEditTransactionState.getState().reset();
   useEditTransactionStore.getState().reset();

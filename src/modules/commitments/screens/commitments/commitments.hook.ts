@@ -34,7 +34,7 @@ export function useCommitments() {
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
   const { refreshing, statusFilter } = useCommitmentsScreenState(
     useShallow((s) => ({
       refreshing: s.refreshing,

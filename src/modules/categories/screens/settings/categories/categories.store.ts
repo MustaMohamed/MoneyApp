@@ -1,33 +1,59 @@
-import { create } from 'zustand';
+import { batch, type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
 import type { Category } from '@/modules/categories/store/category.store';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface CategoriesScreenStoreShape {
-  editingCategory: Category | null;
-  categoryToDelete: Category | null;
-  linkedCount: number;
-}
+type CategoriesScreenSignalStore = {
+  editingCategory: ReadonlySignal<Category | null>;
+  categoryToDelete: ReadonlySignal<Category | null>;
+  linkedCount: ReadonlySignal<number>;
+};
 
-type CategoriesScreenStore = CategoriesScreenStoreShape & {
+type CategoriesScreenStoreActions = {
   setEditingCategory: (c: Category | null) => void;
   setCategoryToDelete: (c: Category | null) => void;
   setLinkedCount: (count: number) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: CategoriesScreenStoreShape = {
-  editingCategory: null,
-  categoryToDelete: null,
-  linkedCount: 0,
-};
+export function useCategoriesScreenStore(): {
+  state: CategoriesScreenSignalStore;
+} & CategoriesScreenStoreActions {
+  const editingCategory = useSignal<Category | null>(null);
+  const categoryToDelete = useSignal<Category | null>(null);
+  const linkedCount = useSignal(0);
 
-export const useCategoriesScreenStore = createMoneyAppSelectors(
-  create<CategoriesScreenStore>((set) => ({
-    ...INITIAL_STATE,
-    setEditingCategory: (c) => set((s) => ({ ...s, editingCategory: c })),
-    setCategoryToDelete: (c) => set((s) => ({ ...s, categoryToDelete: c })),
-    setLinkedCount: (count) => set((s) => ({ ...s, linkedCount: count })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setEditingCategory = useCallback(
+    (c: Category | null) => {
+      editingCategory.value = c;
+    },
+    [editingCategory],
+  );
+  const setCategoryToDelete = useCallback(
+    (c: Category | null) => {
+      categoryToDelete.value = c;
+    },
+    [categoryToDelete],
+  );
+  const setLinkedCount = useCallback(
+    (count: number) => {
+      linkedCount.value = count;
+    },
+    [linkedCount],
+  );
+  const reset = useCallback(() => {
+    batch(() => {
+      editingCategory.value = null;
+      categoryToDelete.value = null;
+      linkedCount.value = 0;
+    });
+  }, [categoryToDelete, editingCategory, linkedCount]);
+
+  return {
+    state: { editingCategory, categoryToDelete, linkedCount },
+    setEditingCategory,
+    setCategoryToDelete,
+    setLinkedCount,
+    reset,
+  };
+}

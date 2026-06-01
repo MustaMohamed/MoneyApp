@@ -20,8 +20,9 @@ export function useCategoryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [month, setMonth] = useState(currentYearMonth);
 
-  const categories = useCategoryStore.useState.categories();
-  const loadCategories = useCategoryStore.getState().loadCategories;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.state.categories.value;
+  const loadCategories = categoryStore.loadCategories;
   const { budgetRows, spendByMonth } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,

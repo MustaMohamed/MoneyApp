@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
 import { type BlurEvent, FlatList, type FocusEvent, StyleSheet, View } from 'react-native';
 import { z } from 'zod/v4';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,24 +102,24 @@ export function AddEditCategorySheet({
   onOpenChange,
   onSave,
 }: AddEditCategorySheetProps) {
-  const categories = useCategoryStore.useState.categories();
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.state.categories.value;
   const isEditing = editingCategory !== null;
 
-  const { type, selectedIcon, selectedColor, iconError, isLoading } = useAddEditCategorySheetState(
-    useShallow((s) => ({
-      type: s.type,
-      selectedIcon: s.selectedIcon,
-      selectedColor: s.selectedColor,
-      iconError: s.iconError,
-      isLoading: s.isLoading,
-    })),
-  );
-  const setType = useAddEditCategorySheetState.getState().setType;
-  const setSelectedIcon = useAddEditCategorySheetState.getState().setSelectedIcon;
-  const setSelectedColor = useAddEditCategorySheetState.getState().setSelectedColor;
-  const setIconError = useAddEditCategorySheetState.getState().setIconError;
-  const setIsLoading = useAddEditCategorySheetState.getState().setIsLoading;
-  const initialize = useAddEditCategorySheetState.getState().initialize;
+  const {
+    state,
+    setType,
+    setSelectedIcon,
+    setSelectedColor,
+    setIconError,
+    setIsLoading,
+    initialize,
+  } = useAddEditCategorySheetState();
+  const type = state.type.value;
+  const selectedIcon = state.selectedIcon.value;
+  const selectedColor = state.selectedColor.value;
+  const iconError = state.iconError.value;
+  const isLoading = state.isLoading.value;
 
   const schema = createCategorySchema(categories, activeTab, editingCategory);
   const {

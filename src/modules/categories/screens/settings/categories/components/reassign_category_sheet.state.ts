@@ -1,28 +1,46 @@
-import { create } from 'zustand';
+import { batch, type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type ReassignCategorySheetSignalState = {
+  selectedId: ReadonlySignal<string | null>;
+  isLoading: ReadonlySignal<boolean>;
+};
 
-interface ReassignCategorySheetStateShape {
-  selectedId: string | null;
-  isLoading: boolean;
-}
-
-type ReassignCategorySheetState = ReassignCategorySheetStateShape & {
+type ReassignCategorySheetActions = {
   setSelectedId: (id: string | null) => void;
   setIsLoading: (v: boolean) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: ReassignCategorySheetStateShape = {
-  selectedId: null,
-  isLoading: false,
-};
+export function useReassignCategorySheetState(): {
+  state: ReassignCategorySheetSignalState;
+} & ReassignCategorySheetActions {
+  const selectedId = useSignal<string | null>(null);
+  const isLoading = useSignal(false);
 
-export const useReassignCategorySheetState = createMoneyAppSelectors(
-  create<ReassignCategorySheetState>((set) => ({
-    ...INITIAL_STATE,
-    setSelectedId: (id) => set((s) => ({ ...s, selectedId: id })),
-    setIsLoading: (v) => set((s) => ({ ...s, isLoading: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setSelectedId = useCallback(
+    (id: string | null) => {
+      selectedId.value = id;
+    },
+    [selectedId],
+  );
+  const setIsLoading = useCallback(
+    (v: boolean) => {
+      isLoading.value = v;
+    },
+    [isLoading],
+  );
+  const reset = useCallback(() => {
+    batch(() => {
+      selectedId.value = null;
+      isLoading.value = false;
+    });
+  }, [isLoading, selectedId]);
+
+  return {
+    state: { selectedId, isLoading },
+    setSelectedId,
+    setIsLoading,
+    reset,
+  };
+}

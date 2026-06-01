@@ -6,7 +6,7 @@ import { useCurrencyStore } from '@/store/currency.store';
 import { useInit } from '@/utils/use_init.hook';
 
 export default function AppLayout() {
-  const loadCategories = useCategoryStore.getState().loadCategories;
+  const { loadCategories } = useCategoryStore();
   const { loadRate, fetchRate } = useCurrencyStore();
 
   useInit(() => {

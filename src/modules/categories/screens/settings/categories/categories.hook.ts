@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import type {
   Category,
@@ -14,42 +13,38 @@ import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
   const router = useRouter();
-  const { categories, hasLoaded } = useCategoryStore(
-    useShallow((s) => ({
-      categories: s.categories,
-      hasLoaded: s.hasLoaded,
-    })),
-  );
-  const addCategory = useCategoryStore.getState().addCategory;
-  const updateCategory = useCategoryStore.getState().updateCategory;
-  const deleteCategory = useCategoryStore.getState().deleteCategory;
-  const reassignAndDelete = useCategoryStore.getState().reassignAndDelete;
-  const getCategoryTransactionCount = useCategoryStore.getState().getCategoryTransactionCount;
-  const { editingCategory, categoryToDelete, linkedCount } = useCategoriesScreenStore(
-    useShallow((s) => ({
-      editingCategory: s.editingCategory,
-      categoryToDelete: s.categoryToDelete,
-      linkedCount: s.linkedCount,
-    })),
-  );
-  const setEditingCategory = useCategoriesScreenStore.getState().setEditingCategory;
-  const setCategoryToDelete = useCategoriesScreenStore.getState().setCategoryToDelete;
-  const setLinkedCount = useCategoriesScreenStore.getState().setLinkedCount;
-  const { activeTab, showAddSheet, showDeleteConfirm, showReassignSheet, isDeleting } =
-    useCategoriesScreenState(
-      useShallow((s) => ({
-        activeTab: s.activeTab,
-        showAddSheet: s.showAddSheet,
-        showDeleteConfirm: s.showDeleteConfirm,
-        showReassignSheet: s.showReassignSheet,
-        isDeleting: s.isDeleting,
-      })),
-    );
-  const setActiveTab = useCategoriesScreenState.getState().setActiveTab;
-  const setShowAddSheet = useCategoriesScreenState.getState().setShowAddSheet;
-  const setShowDeleteConfirm = useCategoriesScreenState.getState().setShowDeleteConfirm;
-  const setShowReassignSheet = useCategoriesScreenState.getState().setShowReassignSheet;
-  const setIsDeleting = useCategoriesScreenState.getState().setIsDeleting;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.state.categories.value;
+  const hasLoaded = categoryStore.state.hasLoaded.value;
+  const {
+    addCategory,
+    updateCategory,
+    deleteCategory,
+    reassignAndDelete,
+    getCategoryTransactionCount,
+  } = categoryStore;
+  const {
+    state: screenStore,
+    setEditingCategory,
+    setCategoryToDelete,
+    setLinkedCount,
+  } = useCategoriesScreenStore();
+  const editingCategory = screenStore.editingCategory.value;
+  const categoryToDelete = screenStore.categoryToDelete.value;
+  const linkedCount = screenStore.linkedCount.value;
+  const {
+    state: screenState,
+    setActiveTab,
+    setShowAddSheet,
+    setShowDeleteConfirm,
+    setShowReassignSheet,
+    setIsDeleting,
+  } = useCategoriesScreenState();
+  const activeTab = screenState.activeTab.value;
+  const showAddSheet = screenState.showAddSheet.value;
+  const showDeleteConfirm = screenState.showDeleteConfirm.value;
+  const showReassignSheet = screenState.showReassignSheet.value;
+  const isDeleting = screenState.isDeleting.value;
 
   const displayedCategories = useMemo(
     () => categories.filter((c) => c.type === activeTab),

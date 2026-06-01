@@ -15,6 +15,7 @@
  * action callbacks shapes).
  */
 
+import { signal } from '@preact/signals-react';
 import { renderHook } from '@testing-library/react-native';
 
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -63,9 +64,9 @@ function setup() {
     .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
       typeof useAccountStore
     >);
-  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
-    categories: [],
-  }));
+  (useCategoryStore as unknown as jest.Mock).mockReturnValue({
+    state: { categories: signal([]) },
+  });
   attachMockSelectorStore(useCommitmentDetailScreenData as unknown as jest.Mock, () => ({
     viewState: 'loading' as const,
     allPayments: [],

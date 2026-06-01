@@ -85,7 +85,7 @@ export function useTransactionDetail(id: string) {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
 
   useEffect(() => {
     let cancelled = false;

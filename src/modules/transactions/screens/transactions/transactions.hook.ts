@@ -54,7 +54,7 @@ export function useTransactions() {
     state: { accounts: accountsSignal },
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore().state.categories.value;
 
   const openFilter = useFilterState.getState().open;
   const setDraft = useFilterStore.getState().setDraft;
