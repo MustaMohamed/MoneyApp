@@ -7,8 +7,6 @@ import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.ho
 // Dashboard-owned stores are mocked with signal-shaped refs so the hook tests
 // exercise the post-migration API without instantiating the real stores.
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: <T>(sel: T) => sel }));
-
 let capturedFocusCallback: (() => void) | null = null;
 
 jest.mock('expo-router', () => ({
