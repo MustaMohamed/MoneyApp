@@ -37,9 +37,6 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: jest.fn(),
 }));
 jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: jest.fn(),
-}));
 jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
   useDashboardStore: jest.fn(),
 }));
@@ -49,7 +46,6 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
 
 const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
 const { useCurrencyStore } = jest.requireMock('@/modules/currency/store/currency.store');
-const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
 const { commitmentRepository } = jest.requireMock(
   '@/modules/commitments/repositories/commitment.repository',
 );
@@ -122,7 +118,6 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 });
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
-  const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
   uiSignals = {
     isBreakdownVisible: signal(uiState.isBreakdownVisible),
     refreshing: signal(uiState.refreshing),
@@ -140,10 +135,6 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
       isManualOverride: signal(false),
     },
   });
-  attachMockSelectorStore(useCommitmentStore as jest.Mock, () => ({
-    commitments: [],
-    payments: [],
-  }));
   (useDashboardStore as jest.Mock).mockReturnValue({
     state: {
       statsMap: { value: {} },
@@ -234,7 +225,6 @@ describe('useDashboard', () => {
       capturedFocusCallback?.();
     });
 
-    expect(useCommitmentStore).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
     });

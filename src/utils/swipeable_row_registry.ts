@@ -6,9 +6,8 @@
  * with the new id; closing notifies with null. Components compare the
  * notified id with their own rowId to decide whether to close.
  *
- * Why not Zustand? The registry is called synchronously from gesture
- * callbacks and Reanimated worklets — Zustand's async setState would
- * introduce frame-level jank. A plain module variable is instantaneous.
+ * The registry is called synchronously from gesture callbacks and Reanimated
+ * worklets, so a plain module variable keeps row coordination instantaneous.
  */
 
 type Subscriber = (activeId: string | null) => void;

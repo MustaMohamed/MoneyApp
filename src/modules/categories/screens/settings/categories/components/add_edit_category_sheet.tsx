@@ -150,7 +150,7 @@ export function AddEditCategorySheet({
       }
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, editingCategory, activeTab]); // initialize is a stable Zustand action; reset is stable RHF method
+  }, [isOpen, editingCategory, activeTab]); // initialize is stable sheet state; reset is stable RHF method
 
   const handleSave = handleSubmit(async ({ name }) => {
     if (!selectedIcon) {
