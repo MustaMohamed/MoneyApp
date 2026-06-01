@@ -1,14 +1,13 @@
-import { signal } from '@preact/signals-react';
+import { signal, type Signal } from '@preact/signals-react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 
-// All stores are mocked so no real Zustand stores are instantiated.
-// useDashboardState is mocked but backed by a simple object so tests
-// can inspect and mutate selectedSegment directly.
+// Dashboard-owned stores are mocked with signal-shaped refs so the hook tests
+// exercise the post-migration API without instantiating the real stores.
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+jest.mock('zustand/react/shallow', () => ({ useShallow: <T>(sel: T) => sel }));
 
 let capturedFocusCallback: (() => void) | null = null;
 
@@ -99,25 +98,38 @@ const BASE_ACCOUNTS = [
   },
 ];
 
-// Shared mutable state for the V2 UI state mock — lets tests observe and
-// manipulate selectedSegment without a real Zustand store.
+// Shared mutable state for the Dashboard UI state mock lets tests observe and
+// manipulate selectedSegment without the real hook-local signals.
 let uiState = {
   isBreakdownVisible: false,
   refreshing: false,
   selectedSegment: 'overview' as 'overview' | 'accounts',
 };
+let uiSignals: {
+  isBreakdownVisible: Signal<boolean>;
+  refreshing: Signal<boolean>;
+  selectedSegment: Signal<'overview' | 'accounts'>;
+};
 const setBreakdownVisible = jest.fn((v: boolean) => {
   uiState.isBreakdownVisible = v;
+  uiSignals.isBreakdownVisible.value = v;
 });
 const setRefreshing = jest.fn((v: boolean) => {
   uiState.refreshing = v;
+  uiSignals.refreshing.value = v;
 });
 const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
   uiState.selectedSegment = s;
+  uiSignals.selectedSegment.value = s;
 });
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
+  uiSignals = {
+    isBreakdownVisible: signal(uiState.isBreakdownVisible),
+    refreshing: signal(uiState.refreshing),
+    selectedSegment: signal(uiState.selectedSegment),
+  };
   (useAccountStore as jest.Mock).mockReturnValue({
     state: {
       accounts: { value: accounts },
@@ -134,21 +146,27 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
     commitments: [],
     payments: [],
   }));
-  attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-    statsMap: {},
-    currentMonthCommitmentPayments: [],
-    currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-    previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+  (useDashboardStore as jest.Mock).mockReturnValue({
+    state: {
+      statsMap: { value: {} },
+      currentMonthCommitmentPayments: { value: [] },
+      currentMonthSpend: { value: { totalEgp: 0, usdNative: 0, count: 0 } },
+      previousMonthSpend: { value: { totalEgp: 0, usdNative: 0, count: 0 } },
+    },
     setStatsMap: jest.fn(),
     setCurrentMonthCommitmentPayments: jest.fn(),
     setMonthSpendStats: jest.fn(),
-  }));
-  attachMockSelectorStore(useDashboardState as jest.Mock, () => ({
-    ...uiState,
+  });
+  (useDashboardState as jest.Mock).mockReturnValue({
+    state: {
+      isBreakdownVisible: uiSignals.isBreakdownVisible,
+      refreshing: uiSignals.refreshing,
+      selectedSegment: uiSignals.selectedSegment,
+    },
     setBreakdownVisible,
     setRefreshing,
     setSelectedSegment,
-  }));
+  });
 }
 
 beforeEach(() => {
@@ -182,9 +200,11 @@ describe('useDashboard', () => {
   });
 
   it('setSelectedSegment updates state', () => {
-    const { result } = renderHook(() => useDashboard());
+    const { result, rerender } = renderHook(() => useDashboard());
     act(() => result.current.setSelectedSegment('accounts'));
     expect(setSelectedSegment).toHaveBeenCalledWith('accounts');
+    rerender({});
+    expect(result.current.state.selectedSegment).toBe('accounts');
   });
 
   it('exposes liquidity memo computed from accounts', () => {

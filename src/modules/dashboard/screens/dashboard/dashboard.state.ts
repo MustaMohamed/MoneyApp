@@ -1,36 +1,66 @@
-import { create } from 'zustand';
-
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import { batch, type ReadonlySignal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
 import type { DashboardSegment } from './types';
 
 export type { DashboardSegment };
 
-interface DashboardStateShape {
-  isBreakdownVisible: boolean;
-  refreshing: boolean;
-  selectedSegment: DashboardSegment;
-}
+type DashboardState = {
+  isBreakdownVisible: ReadonlySignal<boolean>;
+  refreshing: ReadonlySignal<boolean>;
+  selectedSegment: ReadonlySignal<DashboardSegment>;
+};
 
-type DashboardState = DashboardStateShape & {
+type DashboardStateActions = {
   setBreakdownVisible: (v: boolean) => void;
   setRefreshing: (v: boolean) => void;
   setSelectedSegment: (s: DashboardSegment) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: DashboardStateShape = {
-  isBreakdownVisible: false,
-  refreshing: false,
-  selectedSegment: 'overview',
-};
+export function useDashboardState(): { state: DashboardState } & DashboardStateActions {
+  const isBreakdownVisible = useSignal(false);
+  const refreshing = useSignal(false);
+  const selectedSegment = useSignal<DashboardSegment>('overview');
 
-export const useDashboardState = createMoneyAppSelectors(
-  create<DashboardState>((set) => ({
-    ...INITIAL_STATE,
-    setBreakdownVisible: (v) => set((s) => ({ ...s, isBreakdownVisible: v })),
-    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
-    setSelectedSegment: (s) => set((prev) => ({ ...prev, selectedSegment: s })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setBreakdownVisible = useCallback(
+    (v: boolean) => {
+      isBreakdownVisible.value = v;
+    },
+    [isBreakdownVisible],
+  );
+
+  const setRefreshing = useCallback(
+    (v: boolean) => {
+      refreshing.value = v;
+    },
+    [refreshing],
+  );
+
+  const setSelectedSegment = useCallback(
+    (s: DashboardSegment) => {
+      selectedSegment.value = s;
+    },
+    [selectedSegment],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      isBreakdownVisible.value = false;
+      refreshing.value = false;
+      selectedSegment.value = 'overview';
+    });
+  }, [isBreakdownVisible, refreshing, selectedSegment]);
+
+  return {
+    state: {
+      isBreakdownVisible,
+      refreshing,
+      selectedSegment,
+    },
+    setBreakdownVisible,
+    setRefreshing,
+    setSelectedSegment,
+    reset,
+  };
+}

@@ -1,46 +1,51 @@
-import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => useDashboardState.getState().reset());
+import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
 
 describe('useDashboardState', () => {
   it('starts with the expected initial state', () => {
-    const s = useDashboardState.getState();
-    expect(s.isBreakdownVisible).toBe(false);
-    expect(s.refreshing).toBe(false);
-    expect(s.selectedSegment).toBe('overview');
+    const { result } = renderHook(() => useDashboardState());
+    const { state } = result.current;
+    expect(state.isBreakdownVisible.value).toBe(false);
+    expect(state.refreshing.value).toBe(false);
+    expect(state.selectedSegment.value).toBe('overview');
   });
 
   it('setBreakdownVisible toggles', () => {
-    useDashboardState.getState().setBreakdownVisible(true);
-    expect(useDashboardState.getState().isBreakdownVisible).toBe(true);
-    useDashboardState.getState().setBreakdownVisible(false);
-    expect(useDashboardState.getState().isBreakdownVisible).toBe(false);
+    const { result } = renderHook(() => useDashboardState());
+    act(() => result.current.setBreakdownVisible(true));
+    expect(result.current.state.isBreakdownVisible.value).toBe(true);
+    act(() => result.current.setBreakdownVisible(false));
+    expect(result.current.state.isBreakdownVisible.value).toBe(false);
   });
 
   it('setRefreshing toggles', () => {
-    useDashboardState.getState().setRefreshing(true);
-    expect(useDashboardState.getState().refreshing).toBe(true);
-    useDashboardState.getState().setRefreshing(false);
-    expect(useDashboardState.getState().refreshing).toBe(false);
+    const { result } = renderHook(() => useDashboardState());
+    act(() => result.current.setRefreshing(true));
+    expect(result.current.state.refreshing.value).toBe(true);
+    act(() => result.current.setRefreshing(false));
+    expect(result.current.state.refreshing.value).toBe(false);
   });
 
   it('setSelectedSegment switches between overview and accounts', () => {
-    useDashboardState.getState().setSelectedSegment('accounts');
-    expect(useDashboardState.getState().selectedSegment).toBe('accounts');
-    useDashboardState.getState().setSelectedSegment('overview');
-    expect(useDashboardState.getState().selectedSegment).toBe('overview');
+    const { result } = renderHook(() => useDashboardState());
+    act(() => result.current.setSelectedSegment('accounts'));
+    expect(result.current.state.selectedSegment.value).toBe('accounts');
+    act(() => result.current.setSelectedSegment('overview'));
+    expect(result.current.state.selectedSegment.value).toBe('overview');
   });
 
   it('reset clears all fields back to initial state', () => {
-    useDashboardState.setState({
-      isBreakdownVisible: true,
-      refreshing: true,
-      selectedSegment: 'accounts',
+    const { result } = renderHook(() => useDashboardState());
+    act(() => {
+      result.current.setBreakdownVisible(true);
+      result.current.setRefreshing(true);
+      result.current.setSelectedSegment('accounts');
     });
-    useDashboardState.getState().reset();
-    const s = useDashboardState.getState();
-    expect(s.isBreakdownVisible).toBe(false);
-    expect(s.refreshing).toBe(false);
-    expect(s.selectedSegment).toBe('overview');
+    act(() => result.current.reset());
+    const { state } = result.current;
+    expect(state.isBreakdownVisible.value).toBe(false);
+    expect(state.refreshing.value).toBe(false);
+    expect(state.selectedSegment.value).toBe('overview');
   });
 });

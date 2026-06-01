@@ -38,29 +38,34 @@ export function useDashboard() {
   const rate = rateSignal.value;
   const isManualOverride = isManualOverrideSignal.value;
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
-  const { isBreakdownVisible, refreshing, selectedSegment } = useDashboardState(
-    useShallow((s) => ({
-      isBreakdownVisible: s.isBreakdownVisible,
-      refreshing: s.refreshing,
-      selectedSegment: s.selectedSegment,
-    })),
-  );
-  const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
-  const setRefreshing = useDashboardState.getState().setRefreshing;
-  const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
-  const { statsMap, currentMonthCommitmentPayments, currentMonthSpend, previousMonthSpend } =
-    useDashboardStore(
-      useShallow((s) => ({
-        statsMap: s.statsMap,
-        currentMonthCommitmentPayments: s.currentMonthCommitmentPayments,
-        currentMonthSpend: s.currentMonthSpend,
-        previousMonthSpend: s.previousMonthSpend,
-      })),
-    );
-  const setStatsMap = useDashboardStore.getState().setStatsMap;
-  const setCurrentMonthCommitmentPayments =
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments;
-  const setMonthSpendStats = useDashboardStore.getState().setMonthSpendStats;
+  const {
+    state: {
+      isBreakdownVisible: isBreakdownVisibleSignal,
+      refreshing: refreshingSignal,
+      selectedSegment: selectedSegmentSignal,
+    },
+    setBreakdownVisible,
+    setRefreshing,
+    setSelectedSegment,
+  } = useDashboardState();
+  const isBreakdownVisible = isBreakdownVisibleSignal.value;
+  const refreshing = refreshingSignal.value;
+  const selectedSegment = selectedSegmentSignal.value;
+  const {
+    state: {
+      statsMap: statsMapSignal,
+      currentMonthCommitmentPayments: currentMonthCommitmentPaymentsSignal,
+      currentMonthSpend: currentMonthSpendSignal,
+      previousMonthSpend: previousMonthSpendSignal,
+    },
+    setStatsMap,
+    setCurrentMonthCommitmentPayments,
+    setMonthSpendStats,
+  } = useDashboardStore();
+  const statsMap = statsMapSignal.value;
+  const currentMonthCommitmentPayments = currentMonthCommitmentPaymentsSignal.value;
+  const currentMonthSpend = currentMonthSpendSignal.value;
+  const previousMonthSpend = previousMonthSpendSignal.value;
 
   const previousYearMonth = useMemo(() => {
     const [y, m] = currentYearMonth.split('-').map(Number);

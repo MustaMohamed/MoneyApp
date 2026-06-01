@@ -1,11 +1,13 @@
+import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import type { AccountStats } from '@/database/account_stats';
+import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
 
-beforeEach(() => useDashboardStore.getState().reset());
+beforeEach(() => useDashboardStore().reset());
 
 describe('useDashboardStore', () => {
   it('starts with empty statsMap', () => {
-    expect(useDashboardStore.getState().statsMap).toEqual({});
+    expect(useDashboardStore().state.statsMap.value).toEqual({});
   });
 
   it('setStatsMap replaces the map', () => {
@@ -16,8 +18,8 @@ describe('useDashboardStore', () => {
       week_out: 10,
     };
     const next: Record<string, AccountStats> = { 'acc-1': fakeStats };
-    useDashboardStore.getState().setStatsMap(next);
-    expect(useDashboardStore.getState().statsMap).toEqual(next);
+    useDashboardStore().setStatsMap(next);
+    expect(useDashboardStore().state.statsMap.value).toEqual(next);
   });
 
   it('reset returns to empty map', () => {
@@ -27,22 +29,40 @@ describe('useDashboardStore', () => {
       week_in: 0,
       week_out: 0,
     };
-    useDashboardStore.getState().setStatsMap({ 'acc-1': fakeStats });
-    useDashboardStore.getState().reset();
-    expect(useDashboardStore.getState().statsMap).toEqual({});
+    useDashboardStore().setStatsMap({ 'acc-1': fakeStats });
+    useDashboardStore().reset();
+    expect(useDashboardStore().state.statsMap.value).toEqual({});
   });
 
   it('setCurrentMonthCommitmentPayments updates the list', () => {
-    const payments = [{ id: 'p1' } as any];
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments(payments);
-    expect(useDashboardStore.getState().currentMonthCommitmentPayments).toEqual(payments);
+    const payments: CommitmentPayment[] = [
+      {
+        id: 'p1',
+        commitment_id: 'c1',
+        due_date: '2026-06-01',
+        paid_date: null,
+        skipped_date: null,
+        amount_due: 100,
+        amount_paid: null,
+        currency: Currency.EGP,
+        exchange_rate_snapshot: null,
+        account_id: null,
+        transaction_id: null,
+        status: CommitmentPaymentStatus.Due,
+        notes: null,
+        created_at: '2026-06-01T00:00:00.000Z',
+        updated_at: '2026-06-01T00:00:00.000Z',
+      },
+    ];
+    useDashboardStore().setCurrentMonthCommitmentPayments(payments);
+    expect(useDashboardStore().state.currentMonthCommitmentPayments.value).toEqual(payments);
   });
 
   it('setMonthSpendStats updates current and previous spend', () => {
     const current = { totalEgp: 1000, usdNative: 20, count: 5 };
     const previous = { totalEgp: 800, usdNative: 16, count: 4 };
-    useDashboardStore.getState().setMonthSpendStats(current, previous);
-    expect(useDashboardStore.getState().currentMonthSpend).toEqual(current);
-    expect(useDashboardStore.getState().previousMonthSpend).toEqual(previous);
+    useDashboardStore().setMonthSpendStats(current, previous);
+    expect(useDashboardStore().state.currentMonthSpend.value).toEqual(current);
+    expect(useDashboardStore().state.previousMonthSpend.value).toEqual(previous);
   });
 });
