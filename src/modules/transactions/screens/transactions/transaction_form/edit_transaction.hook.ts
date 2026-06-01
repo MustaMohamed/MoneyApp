@@ -45,12 +45,11 @@ export function useEditTransaction(
   } = useAccountStore();
   const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
-  const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      rateUpdatedAt: s.rate_updated_at,
-    })),
-  );
+  const {
+    state: { rate: rateSignal, rateUpdatedAt: rateUpdatedAtSignal },
+  } = useCurrencyStore();
+  const rate = rateSignal.value;
+  const rateUpdatedAt = rateUpdatedAtSignal.value;
   const updateTransaction = useTransactionStore.getState().updateTransaction;
   const amountStr = useEditTransactionStore.useState.amountStr();
   const setAmountStr = useEditTransactionStore.getState().setAmountStr;

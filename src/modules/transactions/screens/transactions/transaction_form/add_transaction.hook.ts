@@ -141,12 +141,11 @@ export function useAddTransaction(onClose: () => void) {
   } = useAccountStore();
   const accounts = accountsSignal.value;
   const categories = useCategoryStore.useState.categories();
-  const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      rateUpdatedAt: s.rate_updated_at,
-    })),
-  );
+  const {
+    state: { rate: rateSignal, rateUpdatedAt: rateUpdatedAtSignal },
+  } = useCurrencyStore();
+  const rate = rateSignal.value;
+  const rateUpdatedAt = rateUpdatedAtSignal.value;
   const addTransaction = useTransactionStore.getState().addTransaction;
   const { type, amountStr } = useAddTransactionStore(
     useShallow((s) => ({

@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
@@ -9,6 +10,25 @@ import { useEditTransaction } from '@/modules/transactions/screens/transactions/
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import { useTransactionStore } from '@/store/transaction.store';
+
+jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
+
+function setupCurrencyStoreMock() {
+  const state = {
+    rate: signal(50),
+    lastFetched: signal<string | null>(null),
+    isManualOverride: signal(false),
+    rateUpdatedAt: signal<string | null>(null),
+  };
+
+  jest.mocked(useCurrencyStore).mockReturnValue({
+    state,
+    loadRate: jest.fn().mockResolvedValue(undefined),
+    fetchRate: jest.fn().mockResolvedValue(undefined),
+    setManualRate: jest.fn().mockResolvedValue(undefined),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useCurrencyStore>);
+}
 
 const mockTxExpense: Transaction = {
   id: 't1',
@@ -86,7 +106,7 @@ beforeEach(() => {
     loading: false,
     error: undefined,
   } as any);
-  useCurrencyStore.setState({ rate: 50, rate_updated_at: null } as any);
+  setupCurrencyStoreMock();
   useEditTransactionState.getState().reset();
   useEditTransactionStore.getState().reset();
   useEditTransactionStore.getState().loadFromTx(mockTxExpense);

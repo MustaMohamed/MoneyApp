@@ -7,8 +7,7 @@ import { useInit } from '@/utils/use_init.hook';
 
 export default function AppLayout() {
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const loadRate = useCurrencyStore.getState().loadRate;
-  const fetchRate = useCurrencyStore.getState().fetchRate;
+  const { loadRate, fetchRate } = useCurrencyStore();
 
   useInit(() => {
     loadCategories().catch(() => {});

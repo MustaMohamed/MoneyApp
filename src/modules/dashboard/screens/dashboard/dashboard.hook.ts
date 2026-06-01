@@ -32,12 +32,11 @@ export function useDashboard() {
     init,
   } = useAccountStore();
   const accounts = accountsSignal.value;
-  const { rate, isManualOverride } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      isManualOverride: s.isManualOverride,
-    })),
-  );
+  const {
+    state: { rate: rateSignal, isManualOverride: isManualOverrideSignal },
+  } = useCurrencyStore();
+  const rate = rateSignal.value;
+  const isManualOverride = isManualOverrideSignal.value;
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
   const { isBreakdownVisible, refreshing, selectedSegment } = useDashboardState(
     useShallow((s) => ({

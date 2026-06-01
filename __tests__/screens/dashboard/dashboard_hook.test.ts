@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals-react';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, Currency } from '@/constants/enums';
@@ -123,10 +124,12 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
     },
     init: jest.fn(),
   });
-  attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
-    rate: 48.85,
-    isManualOverride: false,
-  }));
+  (useCurrencyStore as jest.Mock).mockReturnValue({
+    state: {
+      rate: signal(48.85),
+      isManualOverride: signal(false),
+    },
+  });
   attachMockSelectorStore(useCommitmentStore as jest.Mock, () => ({
     commitments: [],
     payments: [],

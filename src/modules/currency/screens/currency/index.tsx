@@ -32,14 +32,14 @@ export default function CurrencyScreen() {
               {Strings.currencyRateLabel}
             </Text>
             <Text
-              className={`font-sora-bold text-4xl ${isManualOverride ? 'text-accent' : 'text-foreground'}`}
+              className={`font-sora-bold text-4xl ${isManualOverride.value ? 'text-accent' : 'text-foreground'}`}
             >
-              {formatAmount(rate, 2)}
+              {formatAmount(rate.value, 2)}
             </Text>
             <Text className="text-muted font-inter-regular mt-1 text-xs">
               {Strings.currencyRateSub}
             </Text>
-            {isManualOverride && (
+            {isManualOverride.value && (
               <Chip color="accent" variant="soft" size="sm" className="mt-2 self-start">
                 {Strings.currencyManualLabel}
               </Chip>
@@ -58,12 +58,12 @@ export default function CurrencyScreen() {
             onPress={() => {
               void handleFetchRate();
             }}
-            isDisabled={isFetching}
-            isLoading={isFetching}
+            isDisabled={isFetching.value}
+            isLoading={isFetching.value}
           />
         </View>
 
-        <FormErrorText message={fetchError} className="mx-4 mt-2" />
+        <FormErrorText message={fetchError.value} className="mx-4 mt-2" />
 
         {/* Manual override — HeroUI Accordion */}
         <View className="mx-4 mt-2">
@@ -106,8 +106,8 @@ export default function CurrencyScreen() {
                     onPress={() => {
                       void handleSaveManualRate();
                     }}
-                    isDisabled={isSaving}
-                    isLoading={isSaving}
+                    isDisabled={isSaving.value}
+                    isLoading={isSaving.value}
                   />
                 </View>
               </Accordion.Content>

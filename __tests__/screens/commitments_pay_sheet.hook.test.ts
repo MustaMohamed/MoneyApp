@@ -8,6 +8,7 @@
  * transitions can be tracked across act() calls.
  */
 
+import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
 
 import {
@@ -153,11 +154,13 @@ function setupStoreMocks() {
     },
     init: jest.fn().mockResolvedValue(undefined),
   } as unknown as ReturnType<typeof useAccountStore>);
-  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
-    rate: 55,
-    isManualOverride: false,
-    rate_updated_at: null,
-  }));
+  (useCurrencyStore as unknown as jest.Mock).mockReturnValue({
+    state: {
+      rate: signal(55),
+      isManualOverride: signal(false),
+      rateUpdatedAt: signal<string | null>(null),
+    },
+  });
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => mockPaySheetState);
 }
 

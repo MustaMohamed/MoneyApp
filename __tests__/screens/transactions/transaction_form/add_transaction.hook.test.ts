@@ -1,3 +1,4 @@
+import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
@@ -11,6 +12,31 @@ import { useAddTransaction } from '@/modules/transactions/screens/transactions/t
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useTransactionStore } from '@/store/transaction.store';
+
+jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
+
+function setupCurrencyStoreMock({
+  rate = 50,
+  rateUpdatedAt = new Date().toISOString(),
+}: {
+  rate?: number;
+  rateUpdatedAt?: string | null;
+} = {}) {
+  const state = {
+    rate: signal(rate),
+    lastFetched: signal<string | null>(null),
+    isManualOverride: signal(false),
+    rateUpdatedAt: signal<string | null>(rateUpdatedAt),
+  };
+
+  jest.mocked(useCurrencyStore).mockReturnValue({
+    state,
+    loadRate: jest.fn().mockResolvedValue(undefined),
+    fetchRate: jest.fn().mockResolvedValue(undefined),
+    setManualRate: jest.fn().mockResolvedValue(undefined),
+    reset: jest.fn(),
+  } as unknown as ReturnType<typeof useCurrencyStore>);
+}
 
 const mockAccountEGP: Account = {
   id: 'a1',
@@ -84,10 +110,7 @@ beforeEach(() => {
     loading: false,
     error: undefined,
   } as any);
-  useCurrencyStore.setState({
-    rate: 50,
-    rate_updated_at: new Date().toISOString(),
-  } as any);
+  setupCurrencyStoreMock();
   useAddTransactionState.getState().reset();
   useAddTransactionStore.getState().reset();
 });
@@ -296,10 +319,7 @@ describe('useAddTransaction — rounding', () => {
     //   1 × 30.005 = 30.005 → scaled=3000.5, truncated=3000 (even).
     //   Banker's rounding: stays at 3000 → 30.00.
     //   Regular Math.round(3000.5) = 3001 → 30.01 (would fail without roundMoney).
-    useCurrencyStore.setState({
-      rate: 30.005,
-      rate_updated_at: null,
-    } as any);
+    setupCurrencyStoreMock({ rate: 30.005, rateUpdatedAt: null });
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));

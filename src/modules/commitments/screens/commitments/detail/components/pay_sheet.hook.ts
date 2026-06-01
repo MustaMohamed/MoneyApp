@@ -65,7 +65,10 @@ export function usePaySheet(
   // window. §7 promoted the V2 ExchangeRateRow to a required-prop API;
   // pay_sheet now plumbs the timestamp through so the warning surfaces
   // here too (commitments was on V1 ExchangeRateRow until §7 cleanup).
-  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
+  const {
+    state: { rateUpdatedAt: rateUpdatedAtSignal },
+  } = useCurrencyStore();
+  const rateUpdatedAt = rateUpdatedAtSignal.value;
 
   const selectedMonth = useCommitmentStore.useState.selectedMonth();
   const markAsPaid = useCommitmentStore.getState().markAsPaid;
