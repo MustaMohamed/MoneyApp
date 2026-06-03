@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { router, useFocusEffect } from 'expo-router';
 import { useMemo, useCallback, useRef } from 'react';
 
@@ -16,6 +17,7 @@ export type CommitmentsSection = {
 };
 
 export function useCommitments() {
+  useSignals();
   const commitmentStore = useCommitmentStore();
   const commitments = commitmentStore.commitments;
   const payments = commitmentStore.payments;

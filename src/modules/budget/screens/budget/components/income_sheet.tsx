@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { Input } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -12,6 +13,7 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { ms } from '@/utils/responsive';
 
 export function IncomeSheet() {
+  useSignals();
   const incomeSheetState = useIncomeSheetState();
   const isOpen = incomeSheetState.state.isOpen.value;
   const amountText = incomeSheetState.state.amountText.value;

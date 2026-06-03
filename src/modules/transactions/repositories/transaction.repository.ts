@@ -127,3 +127,5 @@ export class TransactionRepository implements ITransactionRepository {
     await updateTransaction(db, id, data);
   }
 }
+
+export const transactionRepository = new TransactionRepository();

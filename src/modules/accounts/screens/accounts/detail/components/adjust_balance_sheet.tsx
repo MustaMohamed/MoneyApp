@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { Text } from 'heroui-native';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
@@ -31,6 +32,7 @@ export function AdjustBalanceSheet({
   onSave,
   isLoading,
 }: AdjustBalanceSheetProps) {
+  useSignals();
   const {
     state: { input, error },
     setInput,

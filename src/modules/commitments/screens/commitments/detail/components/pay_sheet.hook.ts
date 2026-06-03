@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 
@@ -39,6 +40,7 @@ export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
 ) {
+  useSignals();
   const paySheetState = usePaySheetState();
   const visible = paySheetState.state.visible.value;
   const saving = paySheetState.state.saving.value;

@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
@@ -10,6 +11,7 @@ import { useAccountStore } from '../../../store/account.store';
 import { useAccountDetailState } from './account_detail.state';
 
 export function useAccountDetail() {
+  useSignals();
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const navigation = useNavigation();

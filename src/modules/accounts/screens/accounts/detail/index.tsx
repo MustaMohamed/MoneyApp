@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useSignals } from '@preact/signals-react/runtime';
 import { ListGroup, PressableFeedback, Separator, Text } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
@@ -24,6 +25,7 @@ import { BalanceHero } from './components/balance_hero';
 const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
 export default function AccountDetailScreen() {
+  useSignals();
   const {
     state: {
       account,

@@ -5,7 +5,7 @@ import type { Currency, TransactionType } from '@/constants/enums';
 
 import type { Transaction } from '../entities/transaction.entity';
 import {
-  TransactionRepository,
+  transactionRepository,
   type ITransactionRepository,
   type NewTransactionInput,
   type TransactionListQuery,
@@ -38,7 +38,7 @@ export class TransactionStore {
 
   private requestId = 0;
 
-  constructor(private readonly repository: ITransactionRepository = new TransactionRepository()) {
+  constructor(private readonly repository: ITransactionRepository = transactionRepository) {
     makeAutoObservable<TransactionStore, 'repository' | 'requestId' | 'fetchPage'>(
       this,
       {
@@ -108,7 +108,9 @@ export class TransactionStore {
     mode: 'replace' | 'append',
   ): Promise<void> {
     const requestId = ++this.requestId;
-    this.loading = true;
+    runInAction(() => {
+      this.loading = true;
+    });
 
     try {
       const rows = await this.repository.getAll({ ...filters, limit: PAGE_SIZE, offset });
@@ -149,7 +151,7 @@ export function createTransactionStore(repo: ITransactionRepository): Transactio
   return new TransactionStore(repo);
 }
 
-export const transactionStore = new TransactionStore(new TransactionRepository());
+export const transactionStore = new TransactionStore(transactionRepository);
 
 export function useTransactionStore(): TransactionStore {
   return transactionStore;

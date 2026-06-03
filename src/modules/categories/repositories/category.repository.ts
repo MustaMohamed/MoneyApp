@@ -109,3 +109,5 @@ export class CategoryRepository implements ICategoryRepository {
     return getCategoryTransactionCount(db, id);
   }
 }
+
+export const categoryRepository = new CategoryRepository();

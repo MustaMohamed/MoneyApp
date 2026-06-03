@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
@@ -62,6 +63,7 @@ function signedAmount(tx: Transaction): string {
 }
 
 export function useTransactionDetail(id: string) {
+  useSignals();
   const detailStore = useTxDetailStore();
   const tx = detailStore.state.tx.value;
   const { setTx, reset: resetData } = detailStore;

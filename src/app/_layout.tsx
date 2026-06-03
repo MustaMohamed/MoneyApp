@@ -1,4 +1,4 @@
-import '../global.css';
+import '../../global.css';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
   Sora_400Regular,
@@ -6,6 +6,7 @@ import {
   Sora_700Bold,
   Sora_800ExtraBold,
 } from '@expo-google-fonts/sora';
+import { useSignals } from '@preact/signals-react/runtime';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -34,6 +35,7 @@ const AppTheme = {
 };
 
 export default function RootLayout() {
+  useSignals();
   const [fontsLoaded] = useFonts({
     Inter_400Regular,
     Inter_500Medium,

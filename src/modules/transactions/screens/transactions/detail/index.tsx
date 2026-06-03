@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -22,6 +23,7 @@ import { TransferFlowCard } from './components/transfer_flow_card';
 import { useTransactionDetail } from './detail.hook';
 
 export default function TransactionDetailScreen(): React.ReactElement {
+  useSignals();
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =

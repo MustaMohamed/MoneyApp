@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 
@@ -60,6 +61,7 @@ function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | 
 }
 
 export function useCommitmentDetail() {
+  useSignals();
   const { id: paymentId } = useLocalSearchParams<{ id: string }>();
 
   const commitmentStore = useCommitmentStore();

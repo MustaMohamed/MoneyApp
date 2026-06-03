@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 
@@ -17,6 +18,7 @@ import { useAddCommitmentState } from './add_commitment.state';
 export type { CommitmentFormValues };
 
 export function useAddCommitment() {
+  useSignals();
   const router = useRouter();
 
   const accountStore = useAccountStore();

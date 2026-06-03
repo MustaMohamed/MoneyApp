@@ -1,3 +1,5 @@
+import { useSignals } from '@preact/signals-react/runtime';
+
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
@@ -9,6 +11,7 @@ import { computeTotalBalance } from './ready.helpers';
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
+  useSignals();
   const { baseCurrency, completeOnboarding } = useOnboardingStore();
   const complete = useAsync(completeOnboarding);
   const accountStore = useAccountStore();

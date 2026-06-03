@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useSignals } from '@preact/signals-react/runtime';
 import { cn } from 'heroui-native';
 import React from 'react';
 import Animated from 'react-native-reanimated';
@@ -15,6 +16,7 @@ import { useReadyAnim } from './ready.anim';
 import { useReady } from './ready.hook';
 
 export default function ReadyScreen() {
+  useSignals();
   const {
     state: { rows, completing },
     handleComplete,

@@ -1,3 +1,5 @@
+import { autorun } from 'mobx';
+
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import type {
@@ -358,6 +360,36 @@ describe('transactionStore — error handling', () => {
 
     await expect(store.setQuery({})).rejects.toThrow('db down');
     expect(store.loading).toBe(false);
+  });
+
+  it('does not warn when the internal page fetch toggles loading while observed', async () => {
+    const repo = makeRepo();
+    const def = deferred<Transaction[]>();
+    repo.getAll = jest.fn(() => def.promise);
+    const store = new TransactionStore(repo);
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const dispose = autorun(() => {
+      void store.loading;
+    });
+
+    try {
+      const inFlight = (
+        store as unknown as {
+          fetchPage: (
+            filters: Record<string, never>,
+            offset: number,
+            mode: 'replace' | 'append',
+          ) => Promise<void>;
+        }
+      ).fetchPage({}, 0, 'replace');
+      def.resolve([]);
+      await inFlight;
+
+      expect(warnSpy).not.toHaveBeenCalledWith(expect.stringContaining('Since strict-mode'));
+    } finally {
+      dispose();
+      warnSpy.mockRestore();
+    }
   });
 });
 

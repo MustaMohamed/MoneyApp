@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useEffect } from 'react';
 import { StyleSheet, TextInput, type TextInputProps } from 'react-native';
 
@@ -15,6 +16,7 @@ interface Props extends Omit<
 }
 
 export function DecimalAmountInput({ value, onChange, onBlur, hasError, style, ...rest }: Props) {
+  useSignals();
   const { state, setText, syncToValue } = useDecimalInputState(value != null ? String(value) : '');
 
   useEffect(() => {

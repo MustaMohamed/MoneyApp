@@ -2,7 +2,7 @@ import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
-  CategoryRepository,
+  categoryRepository,
   type ICategoryRepository,
   type NewCategoryInput,
   type UpdateCategoryInput,
@@ -15,7 +15,7 @@ export class CategoryStore {
 
   hasLoaded = false;
 
-  constructor(private readonly repository: ICategoryRepository = new CategoryRepository()) {
+  constructor(private readonly repository: ICategoryRepository = categoryRepository) {
     makeAutoObservable<CategoryStore, 'repository'>(
       this,
       {
@@ -93,7 +93,7 @@ export function createCategoryStore(repo: ICategoryRepository): CategoryStore {
   return new CategoryStore(repo);
 }
 
-export const categoryStore = new CategoryStore(new CategoryRepository());
+export const categoryStore = new CategoryStore(categoryRepository);
 
 export function useCategoryStore(): CategoryStore {
   return categoryStore;

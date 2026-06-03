@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useSignals } from '@preact/signals-react/runtime';
 import { PressableFeedback, Text } from 'heroui-native';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
@@ -102,6 +103,7 @@ export function AddEditCategorySheet({
   onOpenChange,
   onSave,
 }: AddEditCategorySheetProps) {
+  useSignals();
   const categoryStore = useCategoryStore();
   const categories = categoryStore.categories;
   const isEditing = editingCategory !== null;

@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { useSignals } from '@preact/signals-react/runtime';
 import { PressableFeedback, Text } from 'heroui-native';
 import { StyleSheet, View } from 'react-native';
 
@@ -30,6 +31,7 @@ export function ReassignCategorySheet({
   onConfirm,
   onOpenChange,
 }: ReassignCategorySheetProps) {
+  useSignals();
   const { state, setSelectedId, setIsLoading, reset } = useReassignCategorySheetState();
   const selectedId = state.selectedId.value;
   const isLoading = state.isLoading.value;

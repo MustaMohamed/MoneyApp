@@ -8,7 +8,7 @@ module.exports = function (api) {
   return {
     presets: ['babel-preset-expo'],
     plugins: [
-      ['module:@preact/signals-react-transform'],
+      ['module:@preact/signals-react-transform', { mode: 'manual' }],
       mobxReactObserverPlugin(),
       'react-native-worklets/plugin',
     ],

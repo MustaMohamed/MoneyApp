@@ -1,4 +1,5 @@
 import { type Signal, useSignal } from '@preact/signals-react';
+import { useSignals } from '@preact/signals-react/runtime';
 
 type AsyncStatus = {
   isLoading: Signal<boolean>;
@@ -12,6 +13,7 @@ type AsyncFn<T extends AnyFn> = ((...args: Parameters<T>) => Promise<Awaited<Ret
   AsyncStatus;
 
 export function useAsync<T extends AnyFn>(fn: T): AsyncFn<T> {
+  useSignals();
   const isLoading = useSignal(false);
   const isError = useSignal(false);
   const pendingCalls = useSignal(0);

@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import React from 'react';
 import Animated from 'react-native-reanimated';
 
@@ -15,6 +16,7 @@ import { useWelcomeAnim } from './welcome.anim';
 import { useWelcome } from './welcome.hook';
 
 export default function WelcomeScreen() {
+  useSignals();
   const { state, setSelected, onContinue } = useWelcome();
   const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
 

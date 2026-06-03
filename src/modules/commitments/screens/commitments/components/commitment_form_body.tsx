@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { useSignals } from '@preact/signals-react/runtime';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { Input, PressableFeedback } from 'heroui-native';
@@ -61,6 +62,7 @@ export function CommitmentFormBody({
   locked,
   footerExtra,
 }: CommitmentFormBodyProps) {
+  useSignals();
   const [
     amountType,
     currency,

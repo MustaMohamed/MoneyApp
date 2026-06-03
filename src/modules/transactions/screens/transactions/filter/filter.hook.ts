@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useCallback, useEffect } from 'react';
 
 import { Currency } from '@/constants/enums';
@@ -10,6 +11,7 @@ import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 
 export function useFilterSheet() {
+  useSignals();
   const filterState = useFilterState();
   const visible = filterState.state.visible.value;
   const openSection = filterState.state.openSection.value;

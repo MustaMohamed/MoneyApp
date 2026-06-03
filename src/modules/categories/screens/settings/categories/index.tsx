@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { FlashList } from '@shopify/flash-list';
 import { Spinner } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
@@ -37,6 +38,7 @@ function buildListEntries(defaults: Category[], customs: Category[]): ListEntry[
 }
 
 export default function CategoriesScreen() {
+  useSignals();
   const {
     state,
     setActiveTab,

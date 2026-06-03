@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useFocusEffect } from 'expo-router';
 import { Spinner } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
@@ -34,6 +35,7 @@ import { useTransactions } from './transactions.hook';
 type TransactionSection = { key: string; data: Transaction[] };
 
 export default function TransactionsScreen(): React.ReactElement {
+  useSignals();
   const t = useTransactions();
   const {
     state,

@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 
@@ -26,6 +27,7 @@ export interface CategoryBudgetRowVM extends CategoryBudgetVM {
 }
 
 export function useBudget() {
+  useSignals();
   const router = useRouter();
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);

@@ -7,7 +7,7 @@ import { computeDueDates } from '@/utils/compute_due_dates';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 import {
-  CommitmentRepository,
+  commitmentRepository,
   type ICommitmentRepository,
   type NewCommitmentInput,
   type UpdateCommitmentInput,
@@ -61,7 +61,7 @@ export class CommitmentStore {
 
   private paymentRequestId = 0;
 
-  constructor(private readonly repository: ICommitmentRepository = new CommitmentRepository()) {
+  constructor(private readonly repository: ICommitmentRepository = commitmentRepository) {
     makeAutoObservable<CommitmentStore, 'repository' | 'paymentRequestId'>(
       this,
       {
@@ -308,7 +308,7 @@ export function createCommitmentStore(repo: ICommitmentRepository): CommitmentSt
   return new CommitmentStore(repo);
 }
 
-export const commitmentStore = new CommitmentStore(new CommitmentRepository());
+export const commitmentStore = new CommitmentStore(commitmentRepository);
 
 export function useCommitmentStore(): CommitmentStore {
   return commitmentStore;

@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -22,6 +23,7 @@ import { useTransactionsScreenStore } from './transactions.store';
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 
 export function useTransactions() {
+  useSignals();
   const router = useRouter();
 
   const transactionsScreenStore = useTransactionsScreenStore();

@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 
@@ -17,6 +18,7 @@ import { useEditCommitmentState } from './edit_commitment.state';
 export type { CommitmentFormValues };
 
 export function useEditCommitment() {
+  useSignals();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 

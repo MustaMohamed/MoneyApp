@@ -1,5 +1,8 @@
 // Backward-compat stub — canonical in modules/transactions/.
-export { TransactionRepository } from '@/modules/transactions/repositories/transaction.repository';
+export {
+  TransactionRepository,
+  transactionRepository,
+} from '@/modules/transactions/repositories/transaction.repository';
 export type {
   ITransactionRepository,
   NewTransactionInput,

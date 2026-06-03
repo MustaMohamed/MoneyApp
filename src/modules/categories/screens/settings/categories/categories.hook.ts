@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 
@@ -12,6 +13,7 @@ import { useCategoriesScreenState } from './categories.state';
 import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
+  useSignals();
   const router = useRouter();
   const categoryStore = useCategoryStore();
   const categories = categoryStore.categories;

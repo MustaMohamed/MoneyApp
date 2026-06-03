@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 
@@ -38,6 +39,7 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
+  useSignals();
   const accountStore = useAccountStore();
   const { init } = accountStore;
   const accounts = accountStore.accounts;

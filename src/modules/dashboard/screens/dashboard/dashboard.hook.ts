@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 
@@ -24,6 +25,7 @@ function getCurrentYearMonth(): string {
 }
 
 export function useDashboard() {
+  useSignals();
   const router = useRouter();
 
   const accountStore = useAccountStore();

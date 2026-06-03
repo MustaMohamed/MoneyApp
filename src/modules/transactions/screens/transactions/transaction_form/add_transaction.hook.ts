@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 
@@ -134,6 +135,7 @@ function nowTimeISO(): string {
 }
 
 export function useAddTransaction(onClose: () => void) {
+  useSignals();
   const accountStore = useAccountStore();
   const { init } = accountStore;
   const accounts = accountStore.accounts;

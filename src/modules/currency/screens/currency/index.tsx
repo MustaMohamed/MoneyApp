@@ -1,3 +1,4 @@
+import { useSignals } from '@preact/signals-react/runtime';
 import { Accordion, Card, Chip, Text } from 'heroui-native';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
@@ -12,6 +13,7 @@ import { formatAmount } from '@/utils/format_amount';
 import { useCurrencyScreen } from './currency.hook';
 
 export default function CurrencyScreen() {
+  useSignals();
   const { state, form, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
   const { rate, isManualOverride, isFetching, isSaving, fetchError, formattedDate } = state;
   const {

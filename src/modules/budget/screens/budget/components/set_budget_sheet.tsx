@@ -1,5 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import { useSignals } from '@preact/signals-react/runtime';
 import { Input, PressableFeedback, RadioGroup } from 'heroui-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller } from 'react-hook-form';
@@ -48,6 +49,7 @@ export function SetBudgetSheet({
   budgetableCategories,
   editingRow,
 }: SetBudgetSheetProps) {
+  useSignals();
   const sheetVisible = budgetState.state.sheetVisible.value;
   const mode = budgetState.state.mode.value;
   const targetCategoryId = budgetState.state.targetCategoryId.value;
