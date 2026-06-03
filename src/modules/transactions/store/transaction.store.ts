@@ -1,8 +1,7 @@
 // modules/transactions/store/transaction.store.ts
-import { create } from 'zustand';
+import { makeAutoObservable, runInAction } from 'mobx';
 
-import { Currency, type TransactionType } from '@/constants/enums';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import type { Currency, TransactionType } from '@/constants/enums';
 
 import type { Transaction } from '../entities/transaction.entity';
 import {
@@ -29,121 +28,129 @@ export interface TransactionListFilters {
   amountCurrency?: Currency;
 }
 
-const INITIAL_STATE = {
-  transactions: [] as Transaction[],
-  hasMore: false,
-  loading: false,
-  hasLoaded: false,
-  query: {} as TransactionListFilters,
-  mutationVersion: 0,
-};
+export class TransactionStore {
+  transactions: Transaction[] = [];
+  hasMore = false;
+  loading = false;
+  hasLoaded = false;
+  query: TransactionListFilters = {};
+  mutationVersion = 0;
 
-type TransactionStore = typeof INITIAL_STATE & {
-  setQuery: (q: TransactionListFilters) => Promise<void>;
-  refresh: () => Promise<void>;
-  loadMore: () => Promise<void>;
+  private requestId = 0;
 
-  getById: (id: string) => Promise<Transaction | null>;
-  addTransaction: (data: NewTransactionInput) => Promise<Transaction>;
-  deleteTransaction: (id: string) => Promise<void>;
-  updateTransaction: (id: string, data: UpdateTransactionInput) => Promise<void>;
-  reset: () => void;
-};
+  constructor(private readonly repository: ITransactionRepository = new TransactionRepository()) {
+    makeAutoObservable<TransactionStore, 'repository' | 'requestId' | 'fetchPage'>(
+      this,
+      {
+        repository: false,
+        requestId: false,
+        fetchPage: false,
+      },
+      { autoBind: true },
+    );
+  }
 
-export function createTransactionStore(repo: ITransactionRepository) {
-  let requestId = 0;
+  async setQuery(query: TransactionListFilters): Promise<void> {
+    await this.fetchPage(query, 0, 'replace');
+  }
 
-  return createMoneyAppSelectors(
-    create<TransactionStore>((set, get) => {
-      async function fetchPage(
-        filters: TransactionListFilters,
-        offset: number,
-        mode: 'replace' | 'append',
-      ) {
-        const myId = ++requestId;
-        set((s) => ({ ...s, loading: true }));
-        try {
-          const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
-          if (myId !== requestId) return;
-          const hasMore = rows.length === PAGE_SIZE;
-          if (mode === 'replace') {
-            set((s) => ({
-              ...s,
-              transactions: rows,
-              hasMore,
-              loading: false,
-              hasLoaded: true,
-              query: filters,
-            }));
-          } else {
-            set((s) => ({
-              ...s,
-              transactions: [...s.transactions, ...rows],
-              hasMore,
-              loading: false,
-            }));
-          }
-        } catch (err) {
-          if (myId === requestId) set((s) => ({ ...s, loading: false }));
-          console.error('[transactionStore] fetch failed:', err);
-          throw err;
+  async refresh(): Promise<void> {
+    await this.fetchPage(this.query, 0, 'replace');
+  }
+
+  async loadMore(): Promise<void> {
+    if (!this.hasMore || this.loading) return;
+    await this.fetchPage(this.query, this.transactions.length, 'append');
+  }
+
+  async getById(id: string): Promise<Transaction | null> {
+    return this.repository.getById(id);
+  }
+
+  async addTransaction(data: NewTransactionInput): Promise<Transaction> {
+    const transaction = await this.repository.add(data);
+    this.bumpMutationVersion();
+    await this.refresh().catch((err) =>
+      console.error('[transactionStore] post-add refresh failed:', err),
+    );
+    return transaction;
+  }
+
+  async deleteTransaction(id: string): Promise<void> {
+    await this.repository.delete(id);
+    this.bumpMutationVersion();
+    await this.refresh().catch((err) =>
+      console.error('[transactionStore] post-delete refresh failed:', err),
+    );
+  }
+
+  async updateTransaction(id: string, data: UpdateTransactionInput): Promise<void> {
+    await this.repository.update(id, data);
+    this.bumpMutationVersion();
+    await this.refresh().catch((err) =>
+      console.error('[transactionStore] post-update refresh failed:', err),
+    );
+  }
+
+  reset(): void {
+    this.requestId += 1;
+    this.transactions = [];
+    this.hasMore = false;
+    this.loading = false;
+    this.hasLoaded = false;
+    this.query = {};
+    this.mutationVersion = 0;
+  }
+
+  private async fetchPage(
+    filters: TransactionListFilters,
+    offset: number,
+    mode: 'replace' | 'append',
+  ): Promise<void> {
+    const requestId = ++this.requestId;
+    this.loading = true;
+
+    try {
+      const rows = await this.repository.getAll({ ...filters, limit: PAGE_SIZE, offset });
+      if (requestId !== this.requestId) return;
+
+      const hasMore = rows.length === PAGE_SIZE;
+      runInAction(() => {
+        if (mode === 'replace') {
+          this.transactions = rows;
+          this.hasMore = hasMore;
+          this.loading = false;
+          this.hasLoaded = true;
+          this.query = filters;
+          return;
         }
+
+        this.transactions = [...this.transactions, ...rows];
+        this.hasMore = hasMore;
+        this.loading = false;
+      });
+    } catch (err) {
+      if (requestId === this.requestId) {
+        runInAction(() => {
+          this.loading = false;
+        });
       }
+      console.error('[transactionStore] fetch failed:', err);
+      throw err;
+    }
+  }
 
-      function bumpMutationVersion() {
-        set((s) => ({
-          ...s,
-          mutationVersion: s.mutationVersion + 1,
-        }));
-      }
-
-      return {
-        ...INITIAL_STATE,
-
-        setQuery: (q) => fetchPage(q, 0, 'replace'),
-
-        refresh: () => fetchPage(get().query, 0, 'replace'),
-
-        loadMore: async () => {
-          const { hasMore, loading, query, transactions } = get();
-          if (!hasMore || loading) return;
-          await fetchPage(query, transactions.length, 'append');
-        },
-
-        getById: async (id) => repo.getById(id),
-
-        addTransaction: async (data) => {
-          const tx = await repo.add(data);
-          bumpMutationVersion();
-          await get()
-            .refresh()
-            .catch((err) => console.error('[transactionStore] post-add refresh failed:', err));
-          return tx;
-        },
-
-        deleteTransaction: async (id) => {
-          await repo.delete(id);
-          bumpMutationVersion();
-          await get()
-            .refresh()
-            .catch((err) => console.error('[transactionStore] post-delete refresh failed:', err));
-        },
-
-        updateTransaction: async (id, data) => {
-          await repo.update(id, data);
-          bumpMutationVersion();
-          await get()
-            .refresh()
-            .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));
-        },
-
-        reset: () => {
-          requestId++;
-          set(INITIAL_STATE);
-        },
-      };
-    }),
-  );
+  private bumpMutationVersion(): void {
+    this.mutationVersion += 1;
+  }
 }
 
-export const useTransactionStore = createTransactionStore(new TransactionRepository());
+export function createTransactionStore(repo: ITransactionRepository): TransactionStore {
+  return new TransactionStore(repo);
+}
+
+export const transactionStore = new TransactionStore(new TransactionRepository());
+
+export function useTransactionStore(): TransactionStore {
+  return transactionStore;
+}

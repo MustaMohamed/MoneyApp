@@ -18,6 +18,7 @@ The implementation must add only pure JavaScript React bindings:
 
 - `mobx`
 - `mobx-react-lite`
+- `mobx-react-observer` for Babel auto-observer wrapping
 
 No native module, Expo config, prebuild plugin, schema migration, secure-store change, or UI dependency is part of this design.
 
@@ -90,7 +91,7 @@ Pros:
 Cons:
 
 - Overkill for simple sheet visibility, input text, picker visibility, and local loading flags.
-- Increases `observer(...)` surface area for state that does not need global observability.
+- Increases render-observer surface area for state that does not need global observability.
 - Moves away from already-working local Signals helpers.
 
 ### Approach C: MobX Shared Stores + Signals Local State
@@ -108,7 +109,7 @@ Cons:
 
 - The app keeps two reactive models.
 - Developers must classify state correctly before creating a store.
-- Components that read MobX observables must be wrapped with `observer(...)`.
+- Components that read MobX observables rely on the Babel auto-observer transform or an explicit wrapper for exceptional patterns.
 
 Recommendation: use Approach C.
 
@@ -193,18 +194,16 @@ export function useAccountStore() {
 }
 ```
 
-Store fields are read directly in MobX-aware React components and hooks:
+Store fields are read directly in MobX-aware React components and hooks. The `mobx-react-observer` Babel plugin auto-wraps project React components, so ordinary screens do not need manual `observer(...)` wrappers:
 
 ```tsx
-import { observer } from 'mobx-react-lite';
-
-export const AccountsScreen = observer(function AccountsScreen() {
+export function AccountsScreen() {
   const accountStore = useAccountStore();
 
   return accountStore.accounts.map((account) => (
     <AccountRow key={account.id} account={account} />
   ));
-});
+}
 ```
 
 For test factories, export the class and allow repository injection:
@@ -257,8 +256,10 @@ Consumers read signal refs intentionally with `.value`. The Babel Signals transf
 
 MobX consumers:
 
-- Wrap React components that read observable fields during render with `observer(...)`.
-- Hooks may return MobX stores directly, but the component doing the render read must be an observer.
+- Keep `mobx-react-observer/babel-plugin` enabled in `babel.config.js`; it auto-wraps project React components that return JSX.
+- Do not add manual `observer(...)` wrappers for normal function components just to get MobX tracking.
+- Use explicit `observer(...)` or `<Observer>` only when the transform cannot see the render boundary, such as callback render props or unusual higher-order component composition.
+- Hooks may return MobX stores directly, but observable fields must still be read inside a transformed or explicitly observed render boundary.
 - Do not destructure observable fields outside render if it breaks tracking.
 - Prefer direct store methods over action objects or selector helpers.
 
@@ -272,7 +273,7 @@ Signals consumers:
 Mixed consumers:
 
 - A screen may use a MobX domain store and a Signals local state hook together.
-- The screen component must be `observer(...)` if it reads MobX observable fields in render.
+- The screen component must be auto-observed or explicitly observed if it reads MobX observable fields in render.
 - Local signal reads still use `.value`.
 
 ## Migration Inventory
@@ -337,7 +338,7 @@ Root compatibility re-exports to keep thin:
 
 ## Migration Sequence
 
-1. Add `mobx` and `mobx-react-lite`. Verify install, typecheck, unit tests, and Expo doctor compatibility.
+1. Add `mobx`, `mobx-react-lite`, and `mobx-react-observer`; wire the Babel auto-observer plugin before the Worklets plugin. Verify install, typecheck, unit tests, and Expo doctor compatibility.
 2. Migrate app-flow stores first: readiness, onboarding, sheet visibility. These establish conventions and reduce boot-flow risk before larger domain stores.
 3. Migrate accounts to MobX from the current class-wrapped Signals implementation.
 4. Migrate categories and currency.
@@ -386,9 +387,9 @@ npm run format:check \
 
 ## Acceptance Criteria
 
-- `mobx` and `mobx-react-lite` are installed and used for shared/domain/application stores.
+- `mobx`, `mobx-react-lite`, and the `mobx-react-observer` Babel plugin are installed and used for shared/domain/application stores.
 - Shared/domain stores are class-based MobX stores with repository injection for tests.
-- Components that read MobX observables during render are wrapped with `observer(...)`.
+- Components that read MobX observables during render are covered by the auto-observer transform, with explicit observers only for exceptional render boundaries.
 - Simple screen/component-local state uses Preact Signals hooks.
 - No runtime Zustand usage remains.
 - `zustand` is removed from `package.json` and `package-lock.json`.

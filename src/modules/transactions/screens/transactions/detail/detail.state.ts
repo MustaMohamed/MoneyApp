@@ -1,32 +1,39 @@
-import { create } from 'zustand';
+import { batch, signal } from '@preact/signals-react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+const confirmVisible = signal(false);
+const deleting = signal(false);
+const reloadKey = signal(0);
 
-interface TxDetailStateShape {
-  confirmVisible: boolean;
-  deleting: boolean;
-  reloadKey: number;
+function setConfirmVisible(v: boolean): void {
+  confirmVisible.value = v;
 }
 
-type TxDetailState = TxDetailStateShape & {
-  setConfirmVisible: (v: boolean) => void;
-  setDeleting: (v: boolean) => void;
-  bumpReload: () => void;
-  reset: () => void;
-};
+function setDeleting(v: boolean): void {
+  deleting.value = v;
+}
 
-const INITIAL_STATE: TxDetailStateShape = {
-  confirmVisible: false,
-  deleting: false,
-  reloadKey: 0,
-};
+function bumpReload(): void {
+  reloadKey.value += 1;
+}
 
-export const useTxDetailState = createMoneyAppSelectors(
-  create<TxDetailState>((set) => ({
-    ...INITIAL_STATE,
-    setConfirmVisible: (v) => set((s) => ({ ...s, confirmVisible: v })),
-    setDeleting: (v) => set((s) => ({ ...s, deleting: v })),
-    bumpReload: () => set((s) => ({ ...s, reloadKey: s.reloadKey + 1 })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+function reset(): void {
+  batch(() => {
+    confirmVisible.value = false;
+    deleting.value = false;
+    reloadKey.value = 0;
+  });
+}
+
+export function useTxDetailState() {
+  return {
+    state: {
+      confirmVisible,
+      deleting,
+      reloadKey,
+    },
+    setConfirmVisible,
+    setDeleting,
+    bumpReload,
+    reset,
+  };
+}

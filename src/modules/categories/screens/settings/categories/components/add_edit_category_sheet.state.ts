@@ -1,22 +1,22 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { batch, type Signal, useSignal } from '@preact/signals-react';
 import type React from 'react';
-import { create } from 'zustand';
+import { useCallback } from 'react';
 
 import { CategoryType } from '@/constants/enums';
 import { AccountColors } from '@/constants/theme';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-interface AddEditCategorySheetStateShape {
-  type: CategoryType;
-  selectedIcon: IconName | null;
-  selectedColor: string;
-  iconError: string;
-  isLoading: boolean;
-}
+type AddEditCategorySheetState = {
+  type: Signal<CategoryType>;
+  selectedIcon: Signal<IconName | null>;
+  selectedColor: Signal<string>;
+  iconError: Signal<string>;
+  isLoading: Signal<boolean>;
+};
 
-type AddEditCategorySheetState = AddEditCategorySheetStateShape & {
+type AddEditCategorySheetActions = {
   setType: (t: CategoryType) => void;
   setSelectedIcon: (icon: IconName | null) => void;
   setSelectedColor: (c: string) => void;
@@ -26,30 +26,95 @@ type AddEditCategorySheetState = AddEditCategorySheetStateShape & {
   reset: () => void;
 };
 
-const INITIAL_STATE: AddEditCategorySheetStateShape = {
-  type: CategoryType.Expense,
-  selectedIcon: null,
-  selectedColor: AccountColors[0],
-  iconError: '',
-  isLoading: false,
-};
+export function useAddEditCategorySheetState(): {
+  state: AddEditCategorySheetState;
+} & AddEditCategorySheetActions {
+  const type = useSignal(CategoryType.Expense);
+  const selectedIcon = useSignal<IconName | null>(null);
+  const selectedColor = useSignal<string>(AccountColors[0]);
+  const iconError = useSignal('');
+  const isLoading = useSignal(false);
 
-export const useAddEditCategorySheetState = createMoneyAppSelectors(
-  create<AddEditCategorySheetState>((set) => ({
-    ...INITIAL_STATE,
-    setType: (t) => set((s) => ({ ...s, type: t })),
-    setSelectedIcon: (icon) => set((s) => ({ ...s, selectedIcon: icon })),
-    setSelectedColor: (c) => set((s) => ({ ...s, selectedColor: c })),
-    setIconError: (msg) => set((s) => ({ ...s, iconError: msg })),
-    setIsLoading: (v) => set((s) => ({ ...s, isLoading: v })),
-    initialize: ({ type, icon, color }) =>
-      set({
-        type,
-        selectedIcon: icon,
-        selectedColor: color,
-        iconError: '',
-        isLoading: false,
-      }),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setType = useCallback(
+    (t: CategoryType) => {
+      type.value = t;
+    },
+    [type],
+  );
+
+  const setSelectedIcon = useCallback(
+    (icon: IconName | null) => {
+      selectedIcon.value = icon;
+    },
+    [selectedIcon],
+  );
+
+  const setSelectedColor = useCallback(
+    (c: string) => {
+      selectedColor.value = c;
+    },
+    [selectedColor],
+  );
+
+  const setIconError = useCallback(
+    (msg: string) => {
+      iconError.value = msg;
+    },
+    [iconError],
+  );
+
+  const setIsLoading = useCallback(
+    (v: boolean) => {
+      isLoading.value = v;
+    },
+    [isLoading],
+  );
+
+  const initialize = useCallback(
+    ({
+      type: nextType,
+      icon,
+      color,
+    }: {
+      type: CategoryType;
+      icon: IconName | null;
+      color: string;
+    }) => {
+      batch(() => {
+        type.value = nextType;
+        selectedIcon.value = icon;
+        selectedColor.value = color;
+        iconError.value = '';
+        isLoading.value = false;
+      });
+    },
+    [iconError, isLoading, selectedColor, selectedIcon, type],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      type.value = CategoryType.Expense;
+      selectedIcon.value = null;
+      selectedColor.value = AccountColors[0];
+      iconError.value = '';
+      isLoading.value = false;
+    });
+  }, [iconError, isLoading, selectedColor, selectedIcon, type]);
+
+  return {
+    state: {
+      type,
+      selectedIcon,
+      selectedColor,
+      iconError,
+      isLoading,
+    },
+    setType,
+    setSelectedIcon,
+    setSelectedColor,
+    setIconError,
+    setIsLoading,
+    initialize,
+    reset,
+  };
+}

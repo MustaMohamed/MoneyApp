@@ -1,48 +1,69 @@
+import { act, renderHook } from '@testing-library/react-native';
+
 import { useAddCommitmentState } from '@/modules/commitments/screens/commitments/add_commitment/add_commitment.state';
 import { useEditCommitmentState } from '@/modules/commitments/screens/commitments/edit_commitment/edit_commitment.state';
 
-beforeEach(() => {
-  useAddCommitmentState.getState().reset();
-  useEditCommitmentState.getState().reset();
-});
-
 describe('useAddCommitmentState', () => {
   it('starts with saving false', () => {
-    expect(useAddCommitmentState.getState().saving).toBe(false);
+    const { result } = renderHook(() => useAddCommitmentState());
+
+    expect(result.current.state.saving.value).toBe(false);
   });
 
   it('setSaving updates saving', () => {
-    useAddCommitmentState.getState().setSaving(true);
-    expect(useAddCommitmentState.getState().saving).toBe(true);
+    const { result } = renderHook(() => useAddCommitmentState());
+
+    act(() => result.current.setSaving(true));
+
+    expect(result.current.state.saving.value).toBe(true);
   });
 
   it('reset returns to initial state', () => {
-    useAddCommitmentState.getState().setSaving(true);
-    useAddCommitmentState.getState().reset();
-    expect(useAddCommitmentState.getState().saving).toBe(false);
+    const { result } = renderHook(() => useAddCommitmentState());
+
+    act(() => {
+      result.current.setSaving(true);
+      result.current.reset();
+    });
+
+    expect(result.current.state.saving.value).toBe(false);
   });
 });
 
 describe('useEditCommitmentState', () => {
   it('starts with saving false and deactivateDialogVisible false', () => {
-    const s = useEditCommitmentState.getState();
-    expect(s.saving).toBe(false);
-    expect(s.deactivateDialogVisible).toBe(false);
+    const { result } = renderHook(() => useEditCommitmentState());
+
+    expect(result.current.state.saving.value).toBe(false);
+    expect(result.current.state.deactivateDialogVisible.value).toBe(false);
   });
 
   it('setSaving updates saving', () => {
-    useEditCommitmentState.getState().setSaving(true);
-    expect(useEditCommitmentState.getState().saving).toBe(true);
+    const { result } = renderHook(() => useEditCommitmentState());
+
+    act(() => result.current.setSaving(true));
+
+    expect(result.current.state.saving.value).toBe(true);
   });
 
   it('setDeactivateDialogVisible updates deactivateDialogVisible', () => {
-    useEditCommitmentState.getState().setDeactivateDialogVisible(true);
-    expect(useEditCommitmentState.getState().deactivateDialogVisible).toBe(true);
+    const { result } = renderHook(() => useEditCommitmentState());
+
+    act(() => result.current.setDeactivateDialogVisible(true));
+
+    expect(result.current.state.deactivateDialogVisible.value).toBe(true);
   });
 
   it('reset returns to initial state', () => {
-    useEditCommitmentState.getState().setSaving(true);
-    useEditCommitmentState.getState().reset();
-    expect(useEditCommitmentState.getState().saving).toBe(false);
+    const { result } = renderHook(() => useEditCommitmentState());
+
+    act(() => {
+      result.current.setSaving(true);
+      result.current.setDeactivateDialogVisible(true);
+      result.current.reset();
+    });
+
+    expect(result.current.state.saving.value).toBe(false);
+    expect(result.current.state.deactivateDialogVisible.value).toBe(false);
   });
 });

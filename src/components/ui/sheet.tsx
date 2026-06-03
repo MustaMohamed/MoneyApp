@@ -193,20 +193,19 @@ export function Sheet({
   footer,
   children,
 }: SheetProps) {
-  const increment = useSheetVisibilityStore((s) => s.increment);
-  const decrement = useSheetVisibilityStore((s) => s.decrement);
+  const sheetVisibility = useSheetVisibilityStore();
   const insets = useSafeAreaInsets();
 
   // FAB-hide: increment on open, decrement on close or unmount-while-open.
   useEffect(() => {
     if (isOpen) {
-      increment();
+      sheetVisibility.increment();
       return () => {
-        decrement();
+        sheetVisibility.decrement();
       };
     }
     return undefined;
-  }, [isOpen, increment, decrement]);
+  }, [isOpen, sheetVisibility]);
 
   const renderFooter = useCallback(
     (props: BottomSheetFooterProps) =>

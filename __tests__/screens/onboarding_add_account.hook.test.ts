@@ -28,9 +28,7 @@ function setup(isAddingMore = false) {
   (require('@/utils/onboarding_nav').backOrReplace as jest.Mock) = mockBackOrReplace;
 
   (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: [] },
-    },
+    accounts: [],
     addAccount: mockAddAccount,
     init: jest.fn().mockResolvedValue(undefined),
   });

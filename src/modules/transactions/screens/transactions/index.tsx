@@ -3,7 +3,6 @@ import { Spinner } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen } from '@/components/ui/screen';
@@ -50,20 +49,27 @@ export default function TransactionsScreen(): React.ReactElement {
     onEndReached,
     setCustomRange,
   } = t;
-  const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
-    useShallow((s) => ({
-      addTxVisible: s.visible,
-      addTxPendingOpen: s.pendingOpen,
-    })),
-  );
-  const openAddTx = useAddTransactionState.getState().open;
+  const addTransactionState = useAddTransactionState();
+  const addTxVisibleRef = addTransactionState.state.visible;
+  const addTxPendingOpenRef = addTransactionState.state.pendingOpen;
+  const addTxVisible = addTxVisibleRef.value;
+  const addTxPendingOpen = addTxPendingOpenRef.value;
+  const { open: openAddTx, close: closeAddTx } = addTransactionState;
+  const addTransactionStore = useAddTransactionStore();
+  const resetAddTx = addTransactionStore.reset;
 
   // Edit sheet state — opened imperatively from goToEdit in the hook
-  const editTxVisible = useEditTransactionState.useState.visible();
-  const editingTx = useEditTransactionStore.useState.editingTx();
+  const editTransactionState = useEditTransactionState();
+  const editTxVisibleRef = editTransactionState.state.visible;
+  const editTxVisible = editTxVisibleRef.value;
+  const closeEditTx = editTransactionState.close;
+  const editTransactionStore = useEditTransactionStore();
+  const editingTx = editTransactionStore.state.editingTx.value;
+  const resetEditTx = editTransactionStore.reset;
 
   // Delete confirm gate for list-swipe delete
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
+  const transactionStore = useTransactionStore();
+  const deleteTransaction = transactionStore.deleteTransaction;
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
@@ -85,29 +91,41 @@ export default function TransactionsScreen(): React.ReactElement {
     return () => clearTimeout(timer);
   }, [addTxPendingOpen, openAddTx]);
 
-  const dateRangeSheetVisible = useFilterState.useState.dateRangeSheetVisible();
-  const setDateRangeSheetVisible = useFilterState.getState().setDateRangeSheetVisible;
+  const filterState = useFilterState();
+  const filterVisibleRef = filterState.state.visible;
+  const dateRangeSheetVisibleRef = filterState.state.dateRangeSheetVisible;
+  const dateRangeSheetVisible = dateRangeSheetVisibleRef.value;
+  const closeFilter = filterState.close;
+  const setDateRangeSheetVisible = filterState.setDateRangeSheetVisible;
 
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (useAddTransactionState.getState().visible) {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
+        if (addTxVisibleRef.value) {
+          closeAddTx();
+          resetAddTx();
           return true;
         }
-        if (useFilterState.getState().visible) {
-          useFilterState.getState().close();
+        if (filterVisibleRef.value) {
+          closeFilter();
           return true;
         }
-        if (useFilterState.getState().dateRangeSheetVisible) {
-          useFilterState.getState().setDateRangeSheetVisible(false);
+        if (dateRangeSheetVisibleRef.value) {
+          setDateRangeSheetVisible(false);
           return true;
         }
         return false;
       });
       return () => sub.remove();
-    }, []),
+    }, [
+      addTxVisibleRef,
+      closeAddTx,
+      closeFilter,
+      dateRangeSheetVisibleRef,
+      filterVisibleRef,
+      resetAddTx,
+      setDateRangeSheetVisible,
+    ]),
   );
 
   const renderSectionHeader = useCallback(
@@ -214,20 +232,20 @@ export default function TransactionsScreen(): React.ReactElement {
       <AddTransactionSheet
         visible={addTxVisible}
         onClose={() => {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
+          closeAddTx();
+          resetAddTx();
         }}
       />
       <EditTransactionSheet
         visible={editTxVisible}
         tx={editingTx}
         onClose={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
+          resetEditTx();
+          closeEditTx();
         }}
         onSaved={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
+          resetEditTx();
+          closeEditTx();
         }}
       />
       <TxDeleteConfirmSheet

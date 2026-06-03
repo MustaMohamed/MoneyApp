@@ -19,9 +19,7 @@ jest.mock('@/modules/accounts/screens/accounts/detail/account_detail.state', () 
 
 function setup() {
   (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: [] },
-    },
+    accounts: [],
     updateAccount: jest.fn(),
     archiveAccount: jest.fn(),
     adjustBalance: jest.fn(),

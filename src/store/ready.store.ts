@@ -1,19 +1,21 @@
-import { signal } from '@preact/signals-react';
+import { makeAutoObservable } from 'mobx';
 
 const INITIAL_READY = false;
 
 export class AppReadyStore {
-  readonly state = {
-    ready: signal(INITIAL_READY),
-  };
+  ready = INITIAL_READY;
 
-  markReady = () => {
-    this.state.ready.value = true;
-  };
+  constructor() {
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
 
-  reset = () => {
-    this.state.ready.value = INITIAL_READY;
-  };
+  markReady() {
+    this.ready = true;
+  }
+
+  reset() {
+    this.ready = INITIAL_READY;
+  }
 }
 
 const appReadyStore = new AppReadyStore();

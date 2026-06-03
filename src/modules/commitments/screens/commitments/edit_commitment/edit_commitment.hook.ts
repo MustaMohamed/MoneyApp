@@ -1,6 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -21,23 +20,17 @@ export function useEditCommitment() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
-  const commitments = useCommitmentStore.useState.commitments();
-  const updateCommitment = useCommitmentStore.getState().updateCommitment;
-  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
-  const { saving, deactivateDialogVisible } = useEditCommitmentState(
-    useShallow((s) => ({
-      saving: s.saving,
-      deactivateDialogVisible: s.deactivateDialogVisible,
-    })),
-  );
-  const setSaving = useEditCommitmentState.getState().setSaving;
-  const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
-  const reset = useEditCommitmentState.getState().reset;
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+  const commitmentStore = useCommitmentStore();
+  const commitments = commitmentStore.commitments;
+  const { updateCommitment, deactivateCommitment } = commitmentStore;
+  const editState = useEditCommitmentState();
+  const saving = editState.state.saving.value;
+  const deactivateDialogVisible = editState.state.deactivateDialogVisible.value;
+  const { setSaving, setDeactivateDialogVisible, reset } = editState;
 
   const commitment = useMemo(() => commitments.find((c) => c.id === id), [commitments, id]);
 

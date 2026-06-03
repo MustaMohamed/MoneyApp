@@ -1,14 +1,13 @@
-import { create } from 'zustand';
+import { batch, signal } from '@preact/signals-react';
 
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface EditTransactionStoreShape {
-  editingTx: Transaction | null;
-  amountStr: string;
+interface EditTransactionStoreState {
+  editingTx: typeof editingTx;
+  amountStr: typeof amountStr;
 }
 
-type EditTransactionStore = EditTransactionStoreShape & {
+interface EditTransactionStoreActions {
   loadFromTx: (tx: Transaction) => void;
   /**
    * Direct amount setter for the editable AmountHero TextInput (system
@@ -18,45 +17,63 @@ type EditTransactionStore = EditTransactionStoreShape & {
   setAmountStr: (value: string) => void;
   handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
   reset: () => void;
-};
+}
 
-const INITIAL_STATE: EditTransactionStoreShape = {
-  editingTx: null,
-  amountStr: '0',
-};
+const editingTx = signal<Transaction | null>(null);
+const amountStr = signal('0');
 
-export const useEditTransactionStore = createMoneyAppSelectors(
-  create<EditTransactionStore>((set) => ({
-    ...INITIAL_STATE,
+function loadFromTx(tx: Transaction): void {
+  batch(() => {
+    editingTx.value = tx;
+    amountStr.value = String(tx.amount);
+  });
+}
 
-    loadFromTx: (tx) =>
-      set({
-        editingTx: tx,
-        amountStr: String(tx.amount),
-      }),
+function setAmountStr(value: string): void {
+  amountStr.value = value;
+}
 
-    setAmountStr: (value) => set((s) => ({ ...s, amountStr: value })),
+function handleNumpad(action: 'digit' | 'decimal' | 'backspace', value?: string): void {
+  const prev = amountStr.value;
+  if (action === 'backspace') {
+    amountStr.value = prev.length <= 1 ? '0' : prev.slice(0, -1);
+    return;
+  }
+  if (action === 'decimal') {
+    amountStr.value = prev.includes('.') ? prev : `${prev}.`;
+    return;
+  }
 
-    handleNumpad: (action, value) =>
-      set((s) => {
-        const prev = s.amountStr;
-        if (action === 'backspace') {
-          return { ...s, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
-        }
-        if (action === 'decimal') {
-          return { ...s, amountStr: prev.includes('.') ? prev : prev + '.' };
-        }
-        const digit = value ?? '';
-        if (prev === '0') {
-          return { ...s, amountStr: digit === '0' ? '0' : digit };
-        }
-        if (prev.includes('.')) {
-          const parts = prev.split('.');
-          if (parts[1].length >= 2) return {};
-        }
-        return { ...s, amountStr: prev + digit };
-      }),
+  const digit = value ?? '';
+  if (prev === '0') {
+    amountStr.value = digit === '0' ? '0' : digit;
+    return;
+  }
+  if (prev.includes('.')) {
+    const parts = prev.split('.');
+    if (parts[1].length >= 2) return;
+  }
+  amountStr.value = prev + digit;
+}
 
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+function reset(): void {
+  batch(() => {
+    editingTx.value = null;
+    amountStr.value = '0';
+  });
+}
+
+export function useEditTransactionStore(): {
+  state: EditTransactionStoreState;
+} & EditTransactionStoreActions {
+  return {
+    state: {
+      editingTx,
+      amountStr,
+    },
+    loadFromTx,
+    setAmountStr,
+    handleNumpad,
+    reset,
+  };
+}

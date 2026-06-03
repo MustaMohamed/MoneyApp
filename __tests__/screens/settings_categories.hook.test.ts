@@ -1,45 +1,18 @@
 import { renderHook } from '@testing-library/react-native';
 
+import { CategoryType } from '@/constants/enums';
 import { useCategories } from '@/modules/categories/screens/settings/categories/categories.hook';
-import { useCategoriesScreenState } from '@/modules/categories/screens/settings/categories/categories.state';
-import { useCategoriesScreenStore } from '@/modules/categories/screens/settings/categories/categories.store';
-import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { type CategoryStore, useCategoryStore } from '@/modules/categories/store/category.store';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
 }));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/modules/categories/screens/settings/categories/categories.state', () => ({
-  useCategoriesScreenState: jest.fn(),
-}));
-jest.mock('@/modules/categories/screens/settings/categories/categories.store', () => ({
-  useCategoriesScreenStore: jest.fn(),
-}));
 
-function setup() {
-  attachMockSelectorStore(useCategoriesScreenState as unknown as jest.Mock, () => ({
-    activeTab: 'expense',
-    showAddSheet: false,
-    showDeleteConfirm: false,
-    showReassignSheet: false,
-    isDeleting: false,
-    setActiveTab: jest.fn(),
-    setShowAddSheet: jest.fn(),
-    setShowDeleteConfirm: jest.fn(),
-    setShowReassignSheet: jest.fn(),
-    setIsDeleting: jest.fn(),
-  }));
-  attachMockSelectorStore(useCategoriesScreenStore as unknown as jest.Mock, () => ({
-    editingCategory: null,
-    categoryToDelete: null,
-    linkedCount: 0,
-    setEditingCategory: jest.fn(),
-    setCategoryToDelete: jest.fn(),
-    setLinkedCount: jest.fn(),
-  }));
-  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+const mockedUseCategoryStore = useCategoryStore as jest.MockedFunction<typeof useCategoryStore>;
+
+function setup(overrides: Partial<CategoryStore> = {}) {
+  const store = {
     categories: [],
     hasLoaded: false,
     addCategory: jest.fn().mockResolvedValue(undefined),
@@ -47,11 +20,18 @@ function setup() {
     deleteCategory: jest.fn().mockResolvedValue(undefined),
     reassignAndDelete: jest.fn().mockResolvedValue(undefined),
     getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
-  }));
+    ...overrides,
+  } as unknown as CategoryStore;
+
+  mockedUseCategoryStore.mockReturnValue(store);
+  return store;
 }
 
 describe('useCategories', () => {
-  beforeEach(setup);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setup();
+  });
 
   it('renders without throwing', () => {
     expect(() => renderHook(() => useCategories())).not.toThrow();
@@ -59,11 +39,19 @@ describe('useCategories', () => {
 
   it('customCategories defaults to empty array', () => {
     const { result } = renderHook(() => useCategories());
+
     expect(result.current.state.customCategories).toEqual([]);
   });
 
   it('exposes whether category data has loaded', () => {
     const { result } = renderHook(() => useCategories());
+
     expect(result.current.state.hasLoaded).toBe(false);
+  });
+
+  it('starts on the expense tab', () => {
+    const { result } = renderHook(() => useCategories());
+
+    expect(result.current.state.activeTab.value).toBe(CategoryType.Expense);
   });
 });

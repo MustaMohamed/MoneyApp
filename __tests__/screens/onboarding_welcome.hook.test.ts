@@ -15,9 +15,7 @@ const mockPush = jest.fn();
 function setup(baseCurrency: Currency = Currency.EGP) {
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
   (useOnboardingStore as jest.Mock).mockReturnValue({
-    state: {
-      baseCurrency: { value: baseCurrency },
-    },
+    baseCurrency,
     setBaseCurrency: mockSetBaseCurrency,
     setStep: mockSetStep,
   });

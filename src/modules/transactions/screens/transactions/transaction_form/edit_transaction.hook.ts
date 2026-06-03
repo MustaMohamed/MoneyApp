@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -39,33 +38,27 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
-  const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      rateUpdatedAt: s.rate_updated_at,
-    })),
-  );
-  const updateTransaction = useTransactionStore.getState().updateTransaction;
-  const amountStr = useEditTransactionStore.useState.amountStr();
-  const setAmountStr = useEditTransactionStore.getState().setAmountStr;
-  const handleNumpad = useEditTransactionStore.getState().handleNumpad;
-  const { visible, saving, showCategoryPicker, rateOverride } = useEditTransactionState(
-    useShallow((s) => ({
-      visible: s.visible,
-      saving: s.saving,
-      showCategoryPicker: s.showCategoryPicker,
-      rateOverride: s.rateOverride,
-    })),
-  );
-  const setSaving = useEditTransactionState.getState().setSaving;
-  const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
-  const setRateOverride = useEditTransactionState.getState().setRateOverride;
+  const accountStore = useAccountStore();
+  const { init } = accountStore;
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+  const currencyStore = useCurrencyStore();
+  const rate = currencyStore.rate;
+  const rateUpdatedAt = currencyStore.rate_updated_at;
+  const transactionStore = useTransactionStore();
+  const updateTransaction = transactionStore.updateTransaction;
+
+  const editStore = useEditTransactionStore();
+  const amountStr = editStore.state.amountStr.value;
+  const { setAmountStr, handleNumpad } = editStore;
+
+  const editState = useEditTransactionState();
+  const visible = editState.state.visible.value;
+  const saving = editState.state.saving.value;
+  const showCategoryPicker = editState.state.showCategoryPicker.value;
+  const rateOverride = editState.state.rateOverride.value;
+  const { setSaving, setShowCategoryPicker, setRateOverride } = editState;
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;

@@ -1,15 +1,14 @@
-import { create } from 'zustand';
+import { batch, signal, type Signal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type PaySheetState = {
+  visible: Signal<boolean>;
+  saving: Signal<boolean>;
+  accountPickerVisible: Signal<boolean>;
+  rateOverride: Signal<boolean>;
+};
 
-interface PaySheetStateShape {
-  visible: boolean;
-  saving: boolean;
-  accountPickerVisible: boolean;
-  rateOverride: boolean;
-}
-
-type PaySheetState = PaySheetStateShape & {
+type PaySheetActions = {
   setVisible: (v: boolean) => void;
   setSaving: (v: boolean) => void;
   setAccountPickerVisible: (v: boolean) => void;
@@ -17,20 +16,66 @@ type PaySheetState = PaySheetStateShape & {
   reset: () => void;
 };
 
-const INITIAL_STATE: PaySheetStateShape = {
-  visible: false,
-  saving: false,
-  accountPickerVisible: false,
-  rateOverride: false,
+const sharedPaySheetState: PaySheetState = {
+  visible: signal(false),
+  saving: signal(false),
+  accountPickerVisible: signal(false),
+  rateOverride: signal(false),
 };
 
-export const usePaySheetState = createMoneyAppSelectors(
-  create<PaySheetState>((set) => ({
-    ...INITIAL_STATE,
-    setVisible: (v) => set((s) => ({ ...s, visible: v })),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setAccountPickerVisible: (v) => set((s) => ({ ...s, accountPickerVisible: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function usePaySheetState(): {
+  state: PaySheetState;
+} & PaySheetActions {
+  const { visible, saving, accountPickerVisible, rateOverride } = sharedPaySheetState;
+
+  const setVisible = useCallback(
+    (v: boolean) => {
+      visible.value = v;
+    },
+    [visible],
+  );
+
+  const setSaving = useCallback(
+    (v: boolean) => {
+      saving.value = v;
+    },
+    [saving],
+  );
+
+  const setAccountPickerVisible = useCallback(
+    (v: boolean) => {
+      accountPickerVisible.value = v;
+    },
+    [accountPickerVisible],
+  );
+
+  const setRateOverride = useCallback(
+    (v: boolean) => {
+      rateOverride.value = v;
+    },
+    [rateOverride],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      visible.value = false;
+      saving.value = false;
+      accountPickerVisible.value = false;
+      rateOverride.value = false;
+    });
+  }, [accountPickerVisible, rateOverride, saving, visible]);
+
+  return {
+    state: {
+      visible,
+      saving,
+      accountPickerVisible,
+      rateOverride,
+    },
+    setVisible,
+    setSaving,
+    setAccountPickerVisible,
+    setRateOverride,
+    reset,
+  };
+}

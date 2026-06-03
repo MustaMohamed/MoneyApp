@@ -2,33 +2,17 @@
  * commitments_detail.hook.test.ts
  *
  * Background: detail.hook.ts calls setViewState inside a useEffect on mount.
- * In the React test renderer, this fires synchronously within renderHook's
- * act(). Any real Zustand store + useShallow:(sel)=>sel passthrough produces
- * a new object reference every call → useSyncExternalStore "unstable snapshot"
- * → "Maximum update depth exceeded".
- *
- * Fix 1 relocated useCommitmentDetailScreenData to detail.state.ts (exported).
- * That store's behavior is verified in commitments_detail_screen_data.state.test.ts.
- *
- * This file tests the hook's public API surface with both detail.state stores
- * mocked to stable values, exercising the hook's real logic (useMemo derivations,
- * action callbacks shapes).
+ * This file tests the hook's public API surface with direct MobX-like store
+ * mocks and real Signals local state hooks.
  */
 
 import { renderHook } from '@testing-library/react-native';
 
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/detail/detail.hook';
-import {
-  useCommitmentDetailScreenData,
-  useCommitmentDetailState,
-} from '@/modules/commitments/screens/commitments/detail/detail.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ id: 'pay-1' }),
   router: { push: jest.fn(), back: jest.fn() },
@@ -44,44 +28,19 @@ jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentsByCommitment: jest.fn().mockResolvedValue([]) },
 }));
-jest.mock('@/modules/commitments/screens/commitments/detail/detail.state', () => ({
-  useCommitmentDetailScreenData: jest.fn(),
-  useCommitmentDetailState: jest.fn(),
-}));
-jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
-  usePaySheetState: jest.fn(),
-}));
 
 function setup() {
-  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+  jest.mocked(useCommitmentStore).mockReturnValue({
     commitments: [],
     payments: [],
     skipPayment: jest.fn().mockResolvedValue(undefined),
-  }));
-  jest
-    .mocked(useAccountStore)
-    .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
-      typeof useAccountStore
-    >);
-  attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+  } as unknown as ReturnType<typeof useCommitmentStore>);
+  jest.mocked(useAccountStore).mockReturnValue({
+    accounts: [],
+  } as unknown as ReturnType<typeof useAccountStore>);
+  jest.mocked(useCategoryStore).mockReturnValue({
     categories: [],
-  }));
-  attachMockSelectorStore(useCommitmentDetailScreenData as unknown as jest.Mock, () => ({
-    viewState: 'loading' as const,
-    allPayments: [],
-    setAllPayments: jest.fn(),
-    setViewState: jest.fn(),
-    reset: jest.fn(),
-  }));
-  attachMockSelectorStore(useCommitmentDetailState as unknown as jest.Mock, () => ({
-    skipConfirmVisible: false,
-    setSkipConfirmVisible: jest.fn(),
-    reset: jest.fn(),
-  }));
-  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => ({
-    visible: false,
-    setVisible: jest.fn(),
-  }));
+  } as unknown as ReturnType<typeof useCategoryStore>);
 }
 
 describe('useCommitmentDetail', () => {
@@ -101,9 +60,9 @@ describe('useCommitmentDetail', () => {
     expect(result.current.state.allPayments).toEqual([]);
   });
 
-  it('viewState is loading (from mocked store initial state)', () => {
+  it('viewState is notFound when store has no matching commitment', () => {
     const { result } = renderHook(() => useCommitmentDetail());
-    expect(result.current.state.viewState).toBe('loading');
+    expect(result.current.state.viewState).toBe('notFound');
   });
 
   it('skipConfirmVisible starts as false', () => {

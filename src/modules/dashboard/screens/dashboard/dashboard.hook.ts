@@ -1,6 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -27,41 +26,29 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const { rate, isManualOverride } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      isManualOverride: s.isManualOverride,
-    })),
-  );
+  const accountStore = useAccountStore();
+  const currencyStore = useCurrencyStore();
+  const dashboardState = useDashboardState();
+  const dashboardStore = useDashboardStore();
+
+  const accounts = accountStore.accounts;
+  const init = accountStore.init;
+  const rate = currencyStore.rate;
+  const isManualOverride = currencyStore.isManualOverride;
   const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
-  const { isBreakdownVisible, refreshing, selectedSegment } = useDashboardState(
-    useShallow((s) => ({
-      isBreakdownVisible: s.isBreakdownVisible,
-      refreshing: s.refreshing,
-      selectedSegment: s.selectedSegment,
-    })),
-  );
-  const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
-  const setRefreshing = useDashboardState.getState().setRefreshing;
-  const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
-  const { statsMap, currentMonthCommitmentPayments, currentMonthSpend, previousMonthSpend } =
-    useDashboardStore(
-      useShallow((s) => ({
-        statsMap: s.statsMap,
-        currentMonthCommitmentPayments: s.currentMonthCommitmentPayments,
-        currentMonthSpend: s.currentMonthSpend,
-        previousMonthSpend: s.previousMonthSpend,
-      })),
-    );
-  const setStatsMap = useDashboardStore.getState().setStatsMap;
-  const setCurrentMonthCommitmentPayments =
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments;
-  const setMonthSpendStats = useDashboardStore.getState().setMonthSpendStats;
+  const isBreakdownVisible = dashboardState.state.isBreakdownVisible.value;
+  const refreshing = dashboardState.state.refreshing.value;
+  const selectedSegment = dashboardState.state.selectedSegment.value;
+  const setBreakdownVisible = dashboardState.setBreakdownVisible;
+  const setRefreshing = dashboardState.setRefreshing;
+  const setSelectedSegment = dashboardState.setSelectedSegment;
+  const statsMap = dashboardStore.statsMap;
+  const currentMonthCommitmentPayments = dashboardStore.currentMonthCommitmentPayments;
+  const currentMonthSpend = dashboardStore.currentMonthSpend;
+  const previousMonthSpend = dashboardStore.previousMonthSpend;
+  const setStatsMap = dashboardStore.setStatsMap;
+  const setCurrentMonthCommitmentPayments = dashboardStore.setCurrentMonthCommitmentPayments;
+  const setMonthSpendStats = dashboardStore.setMonthSpendStats;
 
   const previousYearMonth = useMemo(() => {
     const [y, m] = currentYearMonth.split('-').map(Number);

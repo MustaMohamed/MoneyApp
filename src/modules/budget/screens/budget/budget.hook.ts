@@ -1,6 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
 import { getDb } from '@/database/client';
@@ -31,26 +30,23 @@ export function useBudget() {
   const [month, setMonth] = useState(currentYearMonth);
   const [suggestion, setSuggestion] = useState<number | null>(null);
 
-  const { categories, categoriesLoaded } = useCategoryStore(
-    useShallow((s) => ({
-      categories: s.categories,
-      categoriesLoaded: s.hasLoaded,
-    })),
-  );
-  const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth, budgetLoaded, expectedIncome } = useBudgetStore(
-    useShallow((s) => ({
-      budgetRows: s.rows,
-      spendByMonth: s.spendByMonth,
-      budgetLoaded: s.loaded,
-      expectedIncome: s.expectedIncome,
-    })),
-  );
-  const load = useBudgetStore.getState().load;
-  const openAdd = useBudgetState.getState().openAdd;
-  const openEdit = useBudgetState.getState().openEdit;
-  const lensTab = useBudgetState.useState.lensTab();
-  const setLensTab = useBudgetState.getState().setLensTab;
+  const categoryStore = useCategoryStore();
+  const budgetStore = useBudgetStore();
+  const budgetState = useBudgetState();
+
+  const categories = categoryStore.categories;
+  const categoriesLoaded = categoryStore.hasLoaded;
+  const loadCategories = categoryStore.loadCategories;
+  const budgetRows = budgetStore.rows;
+  const spendByMonth = budgetStore.spendByMonth;
+  const budgetLoaded = budgetStore.loaded;
+  const expectedIncome = budgetStore.expectedIncome;
+  const load = budgetStore.load;
+  const openAdd = budgetState.openAdd;
+  const openEdit = budgetState.openEdit;
+  const lensTab = budgetState.state.lensTab.value;
+  const targetCategoryId = budgetState.state.targetCategoryId.value;
+  const setLensTab = budgetState.setLensTab;
 
   useFocusEffect(
     useCallback(() => {
@@ -126,8 +122,10 @@ export function useBudget() {
       buckets,
       suggestion,
       lensTab,
+      targetCategoryId,
       hasLoaded: Boolean(categoriesLoaded && budgetLoaded),
     },
+    budgetState,
     openAdd,
     openEdit,
     setLensTab,

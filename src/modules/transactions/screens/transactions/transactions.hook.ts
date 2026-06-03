@@ -1,6 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
@@ -25,42 +24,41 @@ export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export function useTransactions() {
   const router = useRouter();
 
-  const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
-    useShallow((s) => ({
-      searchQuery: s.searchQuery,
-      activeFilter: s.activeFilter,
-      period: s.period,
-      appliedFilters: s.appliedFilters,
-    })),
-  );
-  const setSearchQuery = useTransactionsScreenStore.getState().setSearchQuery;
-  const setActiveFilter = useTransactionsScreenStore.getState().setActiveFilter;
-  const setPeriod = useTransactionsScreenStore.getState().setPeriod;
-  const clearSearch = useTransactionsScreenStore.getState().clearSearch;
-  const { transactions, hasMore, loading, hasLoaded, mutationVersion } = useTransactionStore(
-    useShallow((s) => ({
-      transactions: s.transactions,
-      hasMore: s.hasMore,
-      loading: s.loading,
-      hasLoaded: s.hasLoaded,
-      mutationVersion: s.mutationVersion,
-    })),
-  );
-  const setQuery = useTransactionStore.getState().setQuery;
-  const loadMore = useTransactionStore.getState().loadMore;
-  const refresh = useTransactionStore.getState().refresh;
-
+  const transactionsScreenStore = useTransactionsScreenStore();
   const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+    setSearchQuery,
+    setActiveFilter,
+    setPeriod,
+    clearSearch,
+    reset: resetTransactionsScreen,
+  } = transactionsScreenStore;
+  const searchQuery = transactionsScreenStore.state.searchQuery.value;
+  const activeFilter = transactionsScreenStore.state.activeFilter.value;
+  const period = transactionsScreenStore.state.period.value;
+  const appliedFilters = transactionsScreenStore.state.appliedFilters.value;
 
-  const openFilter = useFilterState.getState().open;
-  const setDraft = useFilterStore.getState().setDraft;
+  const transactionStore = useTransactionStore();
+  const { transactions, hasMore, loading, hasLoaded, mutationVersion } = transactionStore;
+  const { setQuery, loadMore, refresh } = transactionStore;
 
-  const refreshing = useTransactionsState.useState.refreshing();
-  const setRefreshing = useTransactionsState.getState().setRefreshing;
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+
+  const filterState = useFilterState();
+  const openFilter = filterState.open;
+  const filterStore = useFilterStore();
+  const setDraft = filterStore.setDraft;
+
+  const transactionsState = useTransactionsState();
+  const refreshing = transactionsState.state.refreshing.value;
+  const { setRefreshing, reset: resetTransactionsState } = transactionsState;
+
+  const editTransactionStore = useEditTransactionStore();
+  const { loadFromTx } = editTransactionStore;
+  const editTransactionState = useEditTransactionState();
+  const openEditTransaction = editTransactionState.open;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
 
@@ -121,13 +119,19 @@ export function useTransactions() {
   useFocusEffect(
     useCallback(() => {
       return () => {
-        useTransactionsScreenStore.getState().reset();
-        useTransactionsState.getState().reset();
-        useFilterState.getState().reset();
-        useFilterStore.getState().resetDraft();
-        useTransactionStore.getState().reset();
+        resetTransactionsScreen();
+        resetTransactionsState();
+        filterState.reset();
+        filterStore.resetDraft();
+        transactionStore.reset();
       };
-    }, []),
+    }, [
+      filterState.reset,
+      filterStore.resetDraft,
+      resetTransactionsScreen,
+      resetTransactionsState,
+      transactionStore.reset,
+    ]),
   );
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
@@ -151,8 +155,8 @@ export function useTransactions() {
   }, [appliedFilters, openFilter, setDraft]);
 
   const resetFilters = useCallback(() => {
-    useTransactionsScreenStore.getState().reset();
-  }, []);
+    resetTransactionsScreen();
+  }, [resetTransactionsScreen]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -186,10 +190,10 @@ export function useTransactions() {
         console.warn('[goToEdit] tx not in loaded window:', id);
         return;
       }
-      useEditTransactionStore.getState().loadFromTx(tx);
-      useEditTransactionState.getState().open(tx);
+      loadFromTx(tx);
+      openEditTransaction();
     },
-    [transactions],
+    [loadFromTx, openEditTransaction, transactions],
   );
 
   return {

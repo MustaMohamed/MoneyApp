@@ -11,9 +11,7 @@ const STEP_HREF: Record<OnboardingStep, Href> = {
 };
 
 export default function Index() {
-  const {
-    state: { complete, currentStep },
-  } = useOnboardingStore();
-  if (complete.value) return <Redirect href="/dashboard" />;
-  return <Redirect href={STEP_HREF[currentStep.value]} />;
+  const { complete, currentStep } = useOnboardingStore();
+  if (complete) return <Redirect href="/dashboard" />;
+  return <Redirect href={STEP_HREF[currentStep]} />;
 }

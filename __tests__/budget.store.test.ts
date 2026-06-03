@@ -1,7 +1,6 @@
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import { createBudgetStore, useBudgetStore } from '@/modules/budget/store/budget.store';
-
-beforeEach(() => useBudgetStore.getState().reset());
+import { BudgetStore } from '@/modules/budget/store/budget.store';
+import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const r: Budget = {
@@ -13,31 +12,43 @@ const r: Budget = {
   updated_at: NOW,
 };
 
-describe('useBudgetStore', () => {
+function makeRepo(): IAppSettingsRepository {
+  return {
+    get: jest.fn(async () => null),
+    set: jest.fn(async () => undefined),
+  };
+}
+
+describe('BudgetStore', () => {
   it('starts empty and not loaded', () => {
-    const s = useBudgetStore.getState();
-    expect(s.rows).toEqual([]);
-    expect(s.spendByMonth).toEqual({});
-    expect(s.loaded).toBe(false);
-    expect(s.expectedIncome).toBeNull();
+    const store = new BudgetStore(makeRepo());
+
+    expect(store.rows).toEqual([]);
+    expect(store.spendByMonth).toEqual({});
+    expect(store.loaded).toBe(false);
+    expect(store.expectedIncome).toBeNull();
   });
 
-  it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
-    const s = useBudgetStore.getState();
-    expect(s.rows).toEqual([r]);
-    expect(s.spendByMonth.a['2026-05']).toBe(2400);
-    expect(s.loaded).toBe(true);
+  it('setData stores rows, spend, expected income and flips loaded', () => {
+    const store = new BudgetStore(makeRepo());
+
+    store.setData([r], { a: { '2026-05': 2400 } }, 12000);
+
+    expect(store.rows).toEqual([r]);
+    expect(store.spendByMonth.a['2026-05']).toBe(2400);
+    expect(store.expectedIncome).toBe(12000);
+    expect(store.loaded).toBe(true);
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
-    useBudgetStore.getState().reset();
-    expect(useBudgetStore.getState().loaded).toBe(false);
-  });
+    const store = new BudgetStore(makeRepo());
 
-  it('removeBudget exists and is a function on the store', () => {
-    const { removeBudget } = useBudgetStore.getState();
-    expect(typeof removeBudget).toBe('function');
+    store.setData([r], { a: { '2026-05': 2400 } }, 12000);
+    store.reset();
+
+    expect(store.rows).toEqual([]);
+    expect(store.spendByMonth).toEqual({});
+    expect(store.loaded).toBe(false);
+    expect(store.expectedIncome).toBeNull();
   });
 });

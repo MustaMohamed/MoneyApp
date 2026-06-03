@@ -58,12 +58,12 @@ export default function CurrencyScreen() {
             onPress={() => {
               void handleFetchRate();
             }}
-            isDisabled={isFetching}
-            isLoading={isFetching}
+            isDisabled={isFetching.value}
+            isLoading={isFetching.value}
           />
         </View>
 
-        <FormErrorText message={fetchError} className="mx-4 mt-2" />
+        <FormErrorText message={fetchError.value} className="mx-4 mt-2" />
 
         {/* Manual override — HeroUI Accordion */}
         <View className="mx-4 mt-2">
@@ -106,8 +106,8 @@ export default function CurrencyScreen() {
                     onPress={() => {
                       void handleSaveManualRate();
                     }}
-                    isDisabled={isSaving}
-                    isLoading={isSaving}
+                    isDisabled={isSaving.value}
+                    isLoading={isSaving.value}
                   />
                 </View>
               </Accordion.Content>

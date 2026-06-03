@@ -48,9 +48,7 @@ function setup() {
   });
   jest.mocked(useOnboardingStore).mockReturnValue(store);
   jest.mocked(useAccountStore).mockReturnValue({
-    state: {
-      accounts: { value: fakeAccounts },
-    },
+    accounts: fakeAccounts,
     init: mockInitAccounts,
   } as unknown as ReturnType<typeof useAccountStore>);
 }

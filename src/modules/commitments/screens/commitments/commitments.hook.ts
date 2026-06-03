@@ -1,6 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
 import { useMemo, useCallback, useRef } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -17,32 +16,27 @@ export type CommitmentsSection = {
 };
 
 export function useCommitments() {
-  const { commitments, payments, selectedMonth, commitmentsLoaded, paymentsLoaded } =
-    useCommitmentStore(
-      useShallow((s) => ({
-        commitments: s.commitments,
-        payments: s.payments,
-        selectedMonth: s.selectedMonth,
-        commitmentsLoaded: s.commitmentsLoaded,
-        paymentsLoaded: s.paymentsLoaded,
-      })),
-    );
-  const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
-  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
-  const loadCommitments = useCommitmentStore.getState().loadCommitments;
-  const generatePayments = useCommitmentStore.getState().generatePayments;
-  const skipPayment = useCommitmentStore.getState().skipPayment;
-  const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
+  const commitmentStore = useCommitmentStore();
+  const commitments = commitmentStore.commitments;
+  const payments = commitmentStore.payments;
+  const selectedMonth = commitmentStore.selectedMonth;
+  const commitmentsLoaded = commitmentStore.commitmentsLoaded;
+  const paymentsLoaded = commitmentStore.paymentsLoaded;
+  const {
+    setSelectedMonth,
+    loadPaymentsForMonth,
+    loadCommitments,
+    generatePayments,
+    skipPayment,
+    deactivateCommitment,
+  } = commitmentStore;
 
-  const categories = useCategoryStore.useState.categories();
-  const { refreshing, statusFilter } = useCommitmentsScreenState(
-    useShallow((s) => ({
-      refreshing: s.refreshing,
-      statusFilter: s.statusFilter,
-    })),
-  );
-  const setRefreshing = useCommitmentsScreenState.getState().setRefreshing;
-  const setStatusFilter = useCommitmentsScreenState.getState().setStatusFilter;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+  const screenState = useCommitmentsScreenState();
+  const refreshing = screenState.state.refreshing.value;
+  const statusFilter = screenState.state.statusFilter.value;
+  const { setRefreshing, setStatusFilter } = screenState;
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 

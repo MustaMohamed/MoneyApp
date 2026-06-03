@@ -7,11 +7,8 @@ import { useAppReadyStore } from '@/store/ready.store';
 import { useInit } from '@/utils/use_init.hook';
 
 export function useAppInit() {
-  const {
-    state: { ready },
-    markReady,
-    reset,
-  } = useAppReadyStore();
+  const appReadyStore = useAppReadyStore();
+  const { markReady, reset } = appReadyStore;
   const { init: initAccounts } = useAccountStore();
   const { init: initOnboarding } = useOnboardingStore();
 
@@ -38,7 +35,7 @@ export function useAppInit() {
         queueMicrotask(() => {
           void (async () => {
             try {
-              const store = useCommitmentStore.getState();
+              const store = useCommitmentStore();
               await store.generatePayments();
               await store.checkAndDeactivateExpired();
             } catch (err) {
@@ -55,7 +52,7 @@ export function useAppInit() {
   });
 
   return {
-    state: { ready },
+    state: { ready: appReadyStore.ready },
     reset,
     markReady,
   } as const;

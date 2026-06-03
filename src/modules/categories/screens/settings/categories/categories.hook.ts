@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import type {
   Category,
@@ -14,46 +13,34 @@ import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
   const router = useRouter();
-  const { categories, hasLoaded } = useCategoryStore(
-    useShallow((s) => ({
-      categories: s.categories,
-      hasLoaded: s.hasLoaded,
-    })),
-  );
-  const addCategory = useCategoryStore.getState().addCategory;
-  const updateCategory = useCategoryStore.getState().updateCategory;
-  const deleteCategory = useCategoryStore.getState().deleteCategory;
-  const reassignAndDelete = useCategoryStore.getState().reassignAndDelete;
-  const getCategoryTransactionCount = useCategoryStore.getState().getCategoryTransactionCount;
-  const { editingCategory, categoryToDelete, linkedCount } = useCategoriesScreenStore(
-    useShallow((s) => ({
-      editingCategory: s.editingCategory,
-      categoryToDelete: s.categoryToDelete,
-      linkedCount: s.linkedCount,
-    })),
-  );
-  const setEditingCategory = useCategoriesScreenStore.getState().setEditingCategory;
-  const setCategoryToDelete = useCategoriesScreenStore.getState().setCategoryToDelete;
-  const setLinkedCount = useCategoriesScreenStore.getState().setLinkedCount;
-  const { activeTab, showAddSheet, showDeleteConfirm, showReassignSheet, isDeleting } =
-    useCategoriesScreenState(
-      useShallow((s) => ({
-        activeTab: s.activeTab,
-        showAddSheet: s.showAddSheet,
-        showDeleteConfirm: s.showDeleteConfirm,
-        showReassignSheet: s.showReassignSheet,
-        isDeleting: s.isDeleting,
-      })),
-    );
-  const setActiveTab = useCategoriesScreenState.getState().setActiveTab;
-  const setShowAddSheet = useCategoriesScreenState.getState().setShowAddSheet;
-  const setShowDeleteConfirm = useCategoriesScreenState.getState().setShowDeleteConfirm;
-  const setShowReassignSheet = useCategoriesScreenState.getState().setShowReassignSheet;
-  const setIsDeleting = useCategoriesScreenState.getState().setIsDeleting;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+  const hasLoaded = categoryStore.hasLoaded;
+  const addCategory = categoryStore.addCategory;
+  const updateCategory = categoryStore.updateCategory;
+  const deleteCategory = categoryStore.deleteCategory;
+  const reassignAndDelete = categoryStore.reassignAndDelete;
+  const getCategoryTransactionCount = categoryStore.getCategoryTransactionCount;
+  const {
+    state: screenStoreState,
+    setEditingCategory,
+    setCategoryToDelete,
+    setLinkedCount,
+  } = useCategoriesScreenStore();
+  const {
+    state: screenState,
+    setActiveTab,
+    setShowAddSheet,
+    setShowDeleteConfirm,
+    setShowReassignSheet,
+    setIsDeleting,
+  } = useCategoriesScreenState();
+  const activeTabValue = screenState.activeTab.value;
+  const categoryToDeleteValue = screenStoreState.categoryToDelete.value;
 
   const displayedCategories = useMemo(
-    () => categories.filter((c) => c.type === activeTab),
-    [activeTab, categories],
+    () => categories.filter((c) => c.type === activeTabValue),
+    [activeTabValue, categories],
   );
   const defaultCategories = useMemo(
     () => displayedCategories.filter((c) => c.is_default === 1),
@@ -112,8 +99,9 @@ export function useCategories() {
 
   const handleSave = useCallback(
     async (data: NewCategoryInput | UpdateCategoryInput) => {
-      if (editingCategory) {
-        await updateCategory(editingCategory.id, data as UpdateCategoryInput);
+      const category = screenStoreState.editingCategory.value;
+      if (category) {
+        await updateCategory(category.id, data as UpdateCategoryInput);
       } else {
         // addCategory throws 'already exists' on name+type collision — caller catches
         // and surfaces as categoriesErrNameDuplicate form error (TC-06)
@@ -122,7 +110,7 @@ export function useCategories() {
       }
       closeSheet();
     },
-    [addCategory, closeSheet, editingCategory, updateCategory],
+    [addCategory, closeSheet, screenStoreState.editingCategory, updateCategory],
   );
 
   /**
@@ -164,10 +152,11 @@ export function useCategories() {
   );
 
   const handleDeleteConfirm = useCallback(async () => {
-    if (!categoryToDelete) return;
-    await deleteCategory(categoryToDelete.id);
+    const category = screenStoreState.categoryToDelete.value;
+    if (!category) return;
+    await deleteCategory(category.id);
     closeDeleteFlow();
-  }, [categoryToDelete, closeDeleteFlow, deleteCategory]);
+  }, [closeDeleteFlow, deleteCategory, screenStoreState.categoryToDelete]);
 
   /**
    * Called from ReassignCategorySheet on confirm.
@@ -178,11 +167,12 @@ export function useCategories() {
    */
   const handleReassignConfirm = useCallback(
     async (toId: string) => {
-      if (!categoryToDelete) return;
-      await reassignAndDelete(categoryToDelete.id, toId);
+      const category = screenStoreState.categoryToDelete.value;
+      if (!category) return;
+      await reassignAndDelete(category.id, toId);
       closeDeleteFlow();
     },
-    [categoryToDelete, closeDeleteFlow, reassignAndDelete],
+    [closeDeleteFlow, reassignAndDelete, screenStoreState.categoryToDelete],
   );
 
   /**
@@ -199,11 +189,11 @@ export function useCategories() {
       categories.filter(
         (c) =>
           // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
-          c.type === categoryToDelete?.type &&
+          c.type === categoryToDeleteValue?.type &&
           // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
-          c.id !== categoryToDelete?.id,
+          c.id !== categoryToDeleteValue?.id,
       ),
-    [categories, categoryToDelete],
+    [categories, categoryToDeleteValue],
   );
 
   const goBack = useCallback(() => router.back(), [router]);
@@ -214,15 +204,15 @@ export function useCategories() {
       customCategories,
       isAtLimit,
       hasLoaded,
-      activeTab,
-      showAddSheet,
-      editingCategory,
-      categoryToDelete,
-      showDeleteConfirm,
-      showReassignSheet,
+      activeTab: screenState.activeTab,
+      showAddSheet: screenState.showAddSheet,
+      editingCategory: screenStoreState.editingCategory,
+      categoryToDelete: screenStoreState.categoryToDelete,
+      showDeleteConfirm: screenState.showDeleteConfirm,
+      showReassignSheet: screenState.showReassignSheet,
       reassignOptions,
-      linkedCount,
-      isDeleting,
+      linkedCount: screenStoreState.linkedCount,
+      isDeleting: screenState.isDeleting,
     },
     setActiveTab,
     openAddSheet,

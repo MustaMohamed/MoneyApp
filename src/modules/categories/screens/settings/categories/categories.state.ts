@@ -1,17 +1,17 @@
-import { create } from 'zustand';
+import { batch, type Signal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
 import { CategoryType } from '@/constants/enums';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface CategoriesScreenStateShape {
-  activeTab: CategoryType;
-  showAddSheet: boolean;
-  showDeleteConfirm: boolean;
-  showReassignSheet: boolean;
-  isDeleting: boolean;
-}
+type CategoriesScreenState = {
+  activeTab: Signal<CategoryType>;
+  showAddSheet: Signal<boolean>;
+  showDeleteConfirm: Signal<boolean>;
+  showReassignSheet: Signal<boolean>;
+  isDeleting: Signal<boolean>;
+};
 
-type CategoriesScreenState = CategoriesScreenStateShape & {
+type CategoriesScreenActions = {
   setActiveTab: (tab: CategoryType) => void;
   setShowAddSheet: (v: boolean) => void;
   setShowDeleteConfirm: (v: boolean) => void;
@@ -20,22 +20,73 @@ type CategoriesScreenState = CategoriesScreenStateShape & {
   reset: () => void;
 };
 
-const INITIAL_STATE: CategoriesScreenStateShape = {
-  activeTab: CategoryType.Expense,
-  showAddSheet: false,
-  showDeleteConfirm: false,
-  showReassignSheet: false,
-  isDeleting: false,
-};
+export function useCategoriesScreenState(): {
+  state: CategoriesScreenState;
+} & CategoriesScreenActions {
+  const activeTab = useSignal(CategoryType.Expense);
+  const showAddSheet = useSignal(false);
+  const showDeleteConfirm = useSignal(false);
+  const showReassignSheet = useSignal(false);
+  const isDeleting = useSignal(false);
 
-export const useCategoriesScreenState = createMoneyAppSelectors(
-  create<CategoriesScreenState>((set) => ({
-    ...INITIAL_STATE,
-    setActiveTab: (tab) => set((s) => ({ ...s, activeTab: tab })),
-    setShowAddSheet: (v) => set((s) => ({ ...s, showAddSheet: v })),
-    setShowDeleteConfirm: (v) => set((s) => ({ ...s, showDeleteConfirm: v })),
-    setShowReassignSheet: (v) => set((s) => ({ ...s, showReassignSheet: v })),
-    setIsDeleting: (v) => set((s) => ({ ...s, isDeleting: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+  const setActiveTab = useCallback(
+    (tab: CategoryType) => {
+      activeTab.value = tab;
+    },
+    [activeTab],
+  );
+
+  const setShowAddSheet = useCallback(
+    (v: boolean) => {
+      showAddSheet.value = v;
+    },
+    [showAddSheet],
+  );
+
+  const setShowDeleteConfirm = useCallback(
+    (v: boolean) => {
+      showDeleteConfirm.value = v;
+    },
+    [showDeleteConfirm],
+  );
+
+  const setShowReassignSheet = useCallback(
+    (v: boolean) => {
+      showReassignSheet.value = v;
+    },
+    [showReassignSheet],
+  );
+
+  const setIsDeleting = useCallback(
+    (v: boolean) => {
+      isDeleting.value = v;
+    },
+    [isDeleting],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      activeTab.value = CategoryType.Expense;
+      showAddSheet.value = false;
+      showDeleteConfirm.value = false;
+      showReassignSheet.value = false;
+      isDeleting.value = false;
+    });
+  }, [activeTab, isDeleting, showAddSheet, showDeleteConfirm, showReassignSheet]);
+
+  return {
+    state: {
+      activeTab,
+      showAddSheet,
+      showDeleteConfirm,
+      showReassignSheet,
+      isDeleting,
+    },
+    setActiveTab,
+    setShowAddSheet,
+    setShowDeleteConfirm,
+    setShowReassignSheet,
+    setIsDeleting,
+    reset,
+  };
+}

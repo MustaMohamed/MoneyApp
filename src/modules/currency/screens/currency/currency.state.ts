@@ -1,36 +1,64 @@
-import { create } from 'zustand';
+import { batch, type Signal, useSignal } from '@preact/signals-react';
+import { useCallback } from 'react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+type CurrencyScreenState = {
+  isFetching: Signal<boolean>;
+  isSaving: Signal<boolean>;
+  fetchError: Signal<string>;
+};
 
-interface CurrencyScreenStateShape {
-  isFetching: boolean;
-  isSaving: boolean;
-  fetchError: string;
-}
-
-type CurrencyScreenState = CurrencyScreenStateShape & {
+type CurrencyScreenActions = {
   setFetching: (v: boolean) => void;
   setSaving: (v: boolean) => void;
   setFetchError: (msg: string) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: CurrencyScreenStateShape = {
-  isFetching: false,
-  isSaving: false,
-  fetchError: '',
-};
+export function useCurrencyScreenState(): {
+  state: CurrencyScreenState;
+} & CurrencyScreenActions {
+  const isFetching = useSignal(false);
+  const isSaving = useSignal(false);
+  const fetchError = useSignal('');
 
-export function createCurrencyScreenState() {
-  return createMoneyAppSelectors(
-    create<CurrencyScreenState>((set) => ({
-      ...INITIAL_STATE,
-      setFetching: (v) => set((s) => ({ ...s, isFetching: v })),
-      setSaving: (v) => set((s) => ({ ...s, isSaving: v })),
-      setFetchError: (msg) => set((s) => ({ ...s, fetchError: msg })),
-      reset: () => set(INITIAL_STATE),
-    })),
+  const setFetching = useCallback(
+    (v: boolean) => {
+      isFetching.value = v;
+    },
+    [isFetching],
   );
-}
 
-export const useCurrencyScreenState = createCurrencyScreenState();
+  const setSaving = useCallback(
+    (v: boolean) => {
+      isSaving.value = v;
+    },
+    [isSaving],
+  );
+
+  const setFetchError = useCallback(
+    (msg: string) => {
+      fetchError.value = msg;
+    },
+    [fetchError],
+  );
+
+  const reset = useCallback(() => {
+    batch(() => {
+      isFetching.value = false;
+      isSaving.value = false;
+      fetchError.value = '';
+    });
+  }, [fetchError, isFetching, isSaving]);
+
+  return {
+    state: {
+      isFetching,
+      isSaving,
+      fetchError,
+    },
+    setFetching,
+    setSaving,
+    setFetchError,
+    reset,
+  };
+}

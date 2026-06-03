@@ -33,16 +33,10 @@ export const ACCOUNT_COLORS = [
 export function useAddAccount() {
   const router = useRouter();
   const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const {
-    state: { accounts: accountsSignal },
-    addAccount,
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const {
-    state: { baseCurrency },
-    setStep,
-  } = useOnboardingStore();
+  const accountStore = useAccountStore();
+  const { addAccount, init } = accountStore;
+  const accounts = accountStore.accounts;
+  const { baseCurrency, setStep } = useOnboardingStore();
 
   useInit(init);
 
@@ -56,7 +50,7 @@ export function useAddAccount() {
       balance: '',
       selected_type: AccountType.Bank,
       selected_color: AcctTokens.midnight.rich,
-      currency: baseCurrency.value,
+      currency: baseCurrency,
       interest_tracking: false,
       credit_limit: '',
       apr: '',

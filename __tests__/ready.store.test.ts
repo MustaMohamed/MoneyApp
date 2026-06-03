@@ -13,7 +13,7 @@ describe('useAppReadyStore', () => {
 
   it('initialises with ready = false', () => {
     const { result } = renderHook(() => useAppReadyStore());
-    expect(result.current.state.ready.value).toBe(false);
+    expect(result.current.ready).toBe(false);
   });
 
   it('markReady sets state.ready to true', () => {
@@ -21,7 +21,7 @@ describe('useAppReadyStore', () => {
     act(() => {
       result.current.markReady();
     });
-    expect(result.current.state.ready.value).toBe(true);
+    expect(result.current.ready).toBe(true);
   });
 
   it('reset sets state.ready to false', () => {
@@ -30,6 +30,6 @@ describe('useAppReadyStore', () => {
       result.current.markReady();
       result.current.reset();
     });
-    expect(result.current.state.ready.value).toBe(false);
+    expect(result.current.ready).toBe(false);
   });
 });

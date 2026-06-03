@@ -1,6 +1,5 @@
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AmountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -40,36 +39,28 @@ export function usePaySheet(
   commitment: Commitment | undefined,
   payment: CommitmentPayment | undefined,
 ) {
-  const { visible, saving, accountPickerVisible, rateOverride } = usePaySheetState(
-    useShallow((s) => ({
-      visible: s.visible,
-      saving: s.saving,
-      accountPickerVisible: s.accountPickerVisible,
-      rateOverride: s.rateOverride,
-    })),
-  );
-  const setVisible = usePaySheetState.getState().setVisible;
-  const setSaving = usePaySheetState.getState().setSaving;
-  const setAccountPickerVisible = usePaySheetState.getState().setAccountPickerVisible;
-  const setRateOverride = usePaySheetState.getState().setRateOverride;
-  const reset = usePaySheetState.getState().reset;
+  const paySheetState = usePaySheetState();
+  const visible = paySheetState.state.visible.value;
+  const saving = paySheetState.state.saving.value;
+  const accountPickerVisible = paySheetState.state.accountPickerVisible.value;
+  const rateOverride = paySheetState.state.rateOverride.value;
+  const { setVisible, setSaving, setAccountPickerVisible, setRateOverride, reset } = paySheetState;
 
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const initAccounts = accountStore.init;
   // Currency store gives the timestamp of the last stored exchange-rate
   // update — ExchangeRateRow (V2) reads this to render the "Rate may be
   // stale" warning when the stored rate is older than the staleness
   // window. §7 promoted the V2 ExchangeRateRow to a required-prop API;
   // pay_sheet now plumbs the timestamp through so the warning surfaces
   // here too (commitments was on V1 ExchangeRateRow until §7 cleanup).
-  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
+  const currencyStore = useCurrencyStore();
+  const rateUpdatedAt = currencyStore.rate_updated_at;
 
-  const selectedMonth = useCommitmentStore.useState.selectedMonth();
-  const markAsPaid = useCommitmentStore.getState().markAsPaid;
-  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
+  const commitmentStore = useCommitmentStore();
+  const selectedMonth = commitmentStore.selectedMonth;
+  const { markAsPaid, loadPaymentsForMonth } = commitmentStore;
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -160,7 +151,7 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      await init();
+      await initAccounts();
       await loadPaymentsForMonth(selectedMonth);
       setVisible(false);
       reset();

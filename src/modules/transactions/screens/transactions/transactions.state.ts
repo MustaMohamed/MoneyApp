@@ -1,24 +1,21 @@
-import { create } from 'zustand';
+import { signal } from '@preact/signals-react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+const refreshing = signal(false);
 
-interface TransactionsStateShape {
-  refreshing: boolean;
+function setRefreshing(v: boolean): void {
+  refreshing.value = v;
 }
 
-type TransactionsState = TransactionsStateShape & {
-  setRefreshing: (v: boolean) => void;
-  reset: () => void;
-};
+function reset(): void {
+  refreshing.value = false;
+}
 
-const INITIAL_STATE: TransactionsStateShape = {
-  refreshing: false,
-};
-
-export const useTransactionsState = createMoneyAppSelectors(
-  create<TransactionsState>((set) => ({
-    ...INITIAL_STATE,
-    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useTransactionsState() {
+  return {
+    state: {
+      refreshing,
+    },
+    setRefreshing,
+    reset,
+  };
+}

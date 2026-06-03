@@ -3,9 +3,8 @@
  *
  * Tests the pay-sheet hook's prefill, rateOverride flag, and the ISO paid_date
  * setter introduced in §8 (date-picker upgrade, OQ-2). Mirrors the mocking
- * style of commitments_detail.hook.test.ts: all external stores are mocked,
- * usePaySheetState is mocked with a stateful in-memory object so state
- * transitions can be tracked across act() calls.
+ * style of commitments_detail.hook.test.ts: external MobX stores are mocked
+ * with direct store objects and the pay-sheet Signals state hook stays real.
  */
 
 import { act, renderHook } from '@testing-library/react-native';
@@ -25,9 +24,7 @@ import { usePaySheet } from '@/modules/commitments/screens/commitments/detail/co
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
 }));
@@ -43,53 +40,6 @@ jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
     getLastPaidPayment: jest.fn().mockResolvedValue(null),
     getPaymentsByCommitment: jest.fn().mockResolvedValue([]),
   },
-}));
-
-// Stateful mock for usePaySheetState — holds the state in a mutable object
-// so act()-wrapped setters actually update what the hook reads.
-let paySheetStateInner = {
-  visible: false,
-  saving: false,
-  accountPickerVisible: false,
-  rateOverride: false,
-};
-const mockPaySheetState = {
-  get visible() {
-    return paySheetStateInner.visible;
-  },
-  get saving() {
-    return paySheetStateInner.saving;
-  },
-  get accountPickerVisible() {
-    return paySheetStateInner.accountPickerVisible;
-  },
-  get rateOverride() {
-    return paySheetStateInner.rateOverride;
-  },
-  setVisible: jest.fn((v: boolean) => {
-    paySheetStateInner = { ...paySheetStateInner, visible: v };
-  }),
-  setSaving: jest.fn((v: boolean) => {
-    paySheetStateInner = { ...paySheetStateInner, saving: v };
-  }),
-  setAccountPickerVisible: jest.fn((v: boolean) => {
-    paySheetStateInner = { ...paySheetStateInner, accountPickerVisible: v };
-  }),
-  setRateOverride: jest.fn((v: boolean) => {
-    paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
-  }),
-  reset: jest.fn(() => {
-    paySheetStateInner = {
-      visible: false,
-      saving: false,
-      accountPickerVisible: false,
-      rateOverride: false,
-    };
-  }),
-};
-
-jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet.state', () => ({
-  usePaySheetState: jest.fn(),
 }));
 
 const fixedCommitment: Commitment = {
@@ -134,70 +84,56 @@ const duePayment: CommitmentPayment = {
 // and an injectable accounts list so requiresRate (currency mismatch) can be exercised.
 const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
+const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
+const mockInitAccounts = jest.fn().mockResolvedValue(undefined);
 
 function setupStoreMocks() {
-  attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
+  jest.mocked(useCommitmentStore).mockReturnValue({
     commitments: [],
     payments: [],
     selectedMonth: '2026-05',
     markAsPaid: mockMarkAsPaid,
-    loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
-  }));
+    loadPaymentsForMonth: mockLoadPaymentsForMonth,
+  } as unknown as ReturnType<typeof useCommitmentStore>);
   jest.mocked(useAccountStore).mockReturnValue({
-    state: {
-      accounts: {
-        get value() {
-          return mockAccounts;
-        },
-      },
+    get accounts() {
+      return mockAccounts;
     },
-    init: jest.fn().mockResolvedValue(undefined),
+    init: mockInitAccounts,
   } as unknown as ReturnType<typeof useAccountStore>);
-  attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+  jest.mocked(useCurrencyStore).mockReturnValue({
     rate: 55,
     isManualOverride: false,
     rate_updated_at: null,
-  }));
-  attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => mockPaySheetState);
+  } as unknown as ReturnType<typeof useCurrencyStore>);
+}
+
+function resetPaySheetState() {
+  const { result, unmount } = renderHook(() => usePaySheetState());
+  act(() => result.current.reset());
+  unmount();
 }
 
 describe('usePaySheet', () => {
   beforeEach(() => {
-    setupStoreMocks();
-    mockPaySheetState.reset();
     jest.clearAllMocks();
-    // Re-wire setters after clearAllMocks
-    mockPaySheetState.setVisible.mockImplementation((v: boolean) => {
-      paySheetStateInner = { ...paySheetStateInner, visible: v };
-    });
-    mockPaySheetState.setSaving.mockImplementation((v: boolean) => {
-      paySheetStateInner = { ...paySheetStateInner, saving: v };
-    });
-    mockPaySheetState.setAccountPickerVisible.mockImplementation((v: boolean) => {
-      paySheetStateInner = { ...paySheetStateInner, accountPickerVisible: v };
-    });
-    mockPaySheetState.setRateOverride.mockImplementation((v: boolean) => {
-      paySheetStateInner = { ...paySheetStateInner, rateOverride: v };
-    });
-    mockPaySheetState.reset.mockImplementation(() => {
-      paySheetStateInner = {
-        visible: false,
-        saving: false,
-        accountPickerVisible: false,
-        rateOverride: false,
-      };
-    });
-    // Reset the capturable store mocks
+    resetPaySheetState();
     mockAccounts = [];
     mockMarkAsPaid.mockClear();
     mockMarkAsPaid.mockResolvedValue(undefined);
-    // Re-setup store mocks after clearAllMocks
+    mockLoadPaymentsForMonth.mockClear();
+    mockLoadPaymentsForMonth.mockResolvedValue(undefined);
+    mockInitAccounts.mockClear();
+    mockInitAccounts.mockResolvedValue(undefined);
     setupStoreMocks();
   });
 
   it('prefills the fixed amount from amount_due when the sheet is visible on mount', async () => {
     // Start with visible=true so the prefill useEffect fires on first render
-    paySheetStateInner = { ...paySheetStateInner, visible: true };
+    const opener = renderHook(() => usePaySheetState());
+    act(() => opener.result.current.setVisible(true));
+    opener.unmount();
+
     const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // prefill runs in a useEffect; flush microtasks
     await act(async () => {});
@@ -215,9 +151,10 @@ describe('usePaySheet', () => {
     const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // Initial state: rateOverride = false
     expect(result.current.state.rateOverride).toBe(false);
-    // Toggle: calls setRateOverride(!false) = setRateOverride(true)
+
     act(() => result.current.toggleRateOverride());
-    expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(true);
+
+    expect(result.current.state.rateOverride).toBe(true);
   });
 
   it('setPaidDate writes an ISO string into the form (date-picker upgrade)', async () => {

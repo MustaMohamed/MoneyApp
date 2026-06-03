@@ -1,41 +1,58 @@
-import { useReassignCategorySheetState } from '@/modules/categories/screens/settings/categories/components/reassign_category_sheet.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => useReassignCategorySheetState.getState().reset());
+import { useReassignCategorySheetState } from '@/modules/categories/screens/settings/categories/components/reassign_category_sheet.state';
 
 describe('useReassignCategorySheetState initial state', () => {
   it('starts with default values', () => {
-    const s = useReassignCategorySheetState.getState();
-    expect(s.selectedId).toBeNull();
-    expect(s.isLoading).toBe(false);
+    const { result } = renderHook(() => useReassignCategorySheetState());
+
+    expect(result.current.state.selectedId.value).toBeNull();
+    expect(result.current.state.isLoading.value).toBe(false);
   });
 });
 
 describe('useReassignCategorySheetState setters', () => {
   it('setSelectedId updates selected id with a string', () => {
-    useReassignCategorySheetState.getState().setSelectedId('cat-123');
-    expect(useReassignCategorySheetState.getState().selectedId).toBe('cat-123');
+    const { result } = renderHook(() => useReassignCategorySheetState());
+
+    act(() => result.current.setSelectedId('cat-123'));
+
+    expect(result.current.state.selectedId.value).toBe('cat-123');
   });
 
   it('setSelectedId accepts null to clear selection', () => {
-    useReassignCategorySheetState.getState().setSelectedId('cat-123');
-    useReassignCategorySheetState.getState().setSelectedId(null);
-    expect(useReassignCategorySheetState.getState().selectedId).toBeNull();
+    const { result } = renderHook(() => useReassignCategorySheetState());
+
+    act(() => {
+      result.current.setSelectedId('cat-123');
+      result.current.setSelectedId(null);
+    });
+
+    expect(result.current.state.selectedId.value).toBeNull();
   });
 
   it('setIsLoading toggles loading flag', () => {
-    useReassignCategorySheetState.getState().setIsLoading(true);
-    expect(useReassignCategorySheetState.getState().isLoading).toBe(true);
-    useReassignCategorySheetState.getState().setIsLoading(false);
-    expect(useReassignCategorySheetState.getState().isLoading).toBe(false);
+    const { result } = renderHook(() => useReassignCategorySheetState());
+
+    act(() => result.current.setIsLoading(true));
+    expect(result.current.state.isLoading.value).toBe(true);
+
+    act(() => result.current.setIsLoading(false));
+    expect(result.current.state.isLoading.value).toBe(false);
   });
 });
 
 describe('useReassignCategorySheetState reset', () => {
   it('returns to defaults', () => {
-    useReassignCategorySheetState.setState({ selectedId: 'cat-456', isLoading: true });
-    useReassignCategorySheetState.getState().reset();
-    const s = useReassignCategorySheetState.getState();
-    expect(s.selectedId).toBeNull();
-    expect(s.isLoading).toBe(false);
+    const { result } = renderHook(() => useReassignCategorySheetState());
+
+    act(() => {
+      result.current.setSelectedId('cat-456');
+      result.current.setIsLoading(true);
+      result.current.reset();
+    });
+
+    expect(result.current.state.selectedId.value).toBeNull();
+    expect(result.current.state.isLoading.value).toBe(false);
   });
 });

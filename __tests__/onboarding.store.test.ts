@@ -28,7 +28,7 @@ describe('onboardingStore.setStep — TC-03', () => {
   it('persists through the onboarding repository then updates state', async () => {
     await store.setStep(OnboardingStep.N2);
     expect(repo.setStep.mock.calls).toEqual([[OnboardingStep.N2]]);
-    expect(store.state.currentStep.value).toBe(OnboardingStep.N2);
+    expect(store.currentStep).toBe(OnboardingStep.N2);
   });
 });
 
@@ -36,7 +36,7 @@ describe('onboardingStore.setBaseCurrency — TC-05', () => {
   it('persists through the onboarding repository then updates state', async () => {
     await store.setBaseCurrency(Currency.USD);
     expect(repo.setBaseCurrency.mock.calls).toEqual([[Currency.USD]]);
-    expect(store.state.baseCurrency.value).toBe(Currency.USD);
+    expect(store.baseCurrency).toBe(Currency.USD);
   });
 
   it('persists EGP on the same path', async () => {
@@ -49,7 +49,7 @@ describe('onboardingStore.completeOnboarding — TC-13', () => {
   it('persists through the onboarding repository then sets complete=true', async () => {
     await store.completeOnboarding();
     expect(repo.complete.mock.calls).toHaveLength(1);
-    expect(store.state.complete.value).toBe(true);
+    expect(store.complete).toBe(true);
   });
 });
 
@@ -79,11 +79,10 @@ describe('onboardingStore — error branches', () => {
 describe('onboardingStore.init — TC-02 / TC-03 resume', () => {
   it('returns defaults when SecureStore is empty (fresh install)', async () => {
     const result = await store.init();
-    const { state } = store;
     expect(result).toEqual({ complete: false, step: OnboardingStep.N1 });
-    expect(state.complete.value).toBe(false);
-    expect(state.currentStep.value).toBe(OnboardingStep.N1);
-    expect(state.baseCurrency.value).toBe(Currency.EGP);
+    expect(store.complete).toBe(false);
+    expect(store.currentStep).toBe(OnboardingStep.N1);
+    expect(store.baseCurrency).toBe(Currency.EGP);
   });
 
   it('rehydrates state when SecureStore has values', async () => {
@@ -94,11 +93,10 @@ describe('onboardingStore.init — TC-02 / TC-03 resume', () => {
     });
 
     const result = await store.init();
-    const { state } = store;
     expect(result).toEqual({ complete: false, step: OnboardingStep.N2 });
-    expect(state.complete.value).toBe(false);
-    expect(state.currentStep.value).toBe(OnboardingStep.N2);
-    expect(state.baseCurrency.value).toBe(Currency.USD);
+    expect(store.complete).toBe(false);
+    expect(store.currentStep).toBe(OnboardingStep.N2);
+    expect(store.baseCurrency).toBe(Currency.USD);
   });
 
   it('returns complete:true when onboarding_complete=true', async () => {
@@ -113,10 +111,9 @@ describe('onboardingStore.init — TC-02 / TC-03 resume', () => {
 
   it('applies the repository-loaded fallback values', async () => {
     const result = await store.init();
-    const { state } = store;
     expect(result.step).toBe(OnboardingStep.N1);
-    expect(state.currentStep.value).toBe(OnboardingStep.N1);
-    expect(state.baseCurrency.value).toBe(Currency.EGP);
+    expect(store.currentStep).toBe(OnboardingStep.N1);
+    expect(store.baseCurrency).toBe(Currency.EGP);
   });
 });
 

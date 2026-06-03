@@ -1,60 +1,75 @@
-import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
+import { act, renderHook } from '@testing-library/react-native';
 
-beforeEach(() => {
-  useCommitmentFormBodyState.getState().reset();
-});
+import { useCommitmentFormBodyState } from '@/modules/commitments/screens/commitments/components/commitment_form_body.state';
 
 describe('useCommitmentFormBodyState initial state', () => {
   it('starts with every picker and date picker hidden', () => {
-    const s = useCommitmentFormBodyState.getState();
-    expect(s.categoryPickerVisible).toBe(false);
-    expect(s.accountPickerVisible).toBe(false);
-    expect(s.showStartDatePicker).toBe(false);
-    expect(s.showEndDatePicker).toBe(false);
+    const { result } = renderHook(() => useCommitmentFormBodyState());
+
+    expect(result.current.state.categoryPickerVisible.value).toBe(false);
+    expect(result.current.state.accountPickerVisible.value).toBe(false);
+    expect(result.current.state.showStartDatePicker.value).toBe(false);
+    expect(result.current.state.showEndDatePicker.value).toBe(false);
   });
 });
 
 describe('useCommitmentFormBodyState setters', () => {
   it('setCategoryPickerVisible toggles the category picker', () => {
-    useCommitmentFormBodyState.getState().setCategoryPickerVisible(true);
-    expect(useCommitmentFormBodyState.getState().categoryPickerVisible).toBe(true);
-    useCommitmentFormBodyState.getState().setCategoryPickerVisible(false);
-    expect(useCommitmentFormBodyState.getState().categoryPickerVisible).toBe(false);
+    const { result } = renderHook(() => useCommitmentFormBodyState());
+
+    act(() => result.current.setCategoryPickerVisible(true));
+    expect(result.current.state.categoryPickerVisible.value).toBe(true);
+
+    act(() => result.current.setCategoryPickerVisible(false));
+    expect(result.current.state.categoryPickerVisible.value).toBe(false);
   });
 
   it('setAccountPickerVisible toggles the account picker', () => {
-    useCommitmentFormBodyState.getState().setAccountPickerVisible(true);
-    expect(useCommitmentFormBodyState.getState().accountPickerVisible).toBe(true);
-    useCommitmentFormBodyState.getState().setAccountPickerVisible(false);
-    expect(useCommitmentFormBodyState.getState().accountPickerVisible).toBe(false);
+    const { result } = renderHook(() => useCommitmentFormBodyState());
+
+    act(() => result.current.setAccountPickerVisible(true));
+    expect(result.current.state.accountPickerVisible.value).toBe(true);
+
+    act(() => result.current.setAccountPickerVisible(false));
+    expect(result.current.state.accountPickerVisible.value).toBe(false);
   });
 
   it('setShowStartDatePicker toggles the start-date picker', () => {
-    useCommitmentFormBodyState.getState().setShowStartDatePicker(true);
-    expect(useCommitmentFormBodyState.getState().showStartDatePicker).toBe(true);
-    useCommitmentFormBodyState.getState().setShowStartDatePicker(false);
-    expect(useCommitmentFormBodyState.getState().showStartDatePicker).toBe(false);
+    const { result } = renderHook(() => useCommitmentFormBodyState());
+
+    act(() => result.current.setShowStartDatePicker(true));
+    expect(result.current.state.showStartDatePicker.value).toBe(true);
+
+    act(() => result.current.setShowStartDatePicker(false));
+    expect(result.current.state.showStartDatePicker.value).toBe(false);
   });
 
   it('setShowEndDatePicker toggles the end-date picker', () => {
-    useCommitmentFormBodyState.getState().setShowEndDatePicker(true);
-    expect(useCommitmentFormBodyState.getState().showEndDatePicker).toBe(true);
-    useCommitmentFormBodyState.getState().setShowEndDatePicker(false);
-    expect(useCommitmentFormBodyState.getState().showEndDatePicker).toBe(false);
+    const { result } = renderHook(() => useCommitmentFormBodyState());
+
+    act(() => result.current.setShowEndDatePicker(true));
+    expect(result.current.state.showEndDatePicker.value).toBe(true);
+
+    act(() => result.current.setShowEndDatePicker(false));
+    expect(result.current.state.showEndDatePicker.value).toBe(false);
   });
 });
 
 describe('useCommitmentFormBodyState reset', () => {
   it('returns every field to its initial value', () => {
-    useCommitmentFormBodyState.getState().setCategoryPickerVisible(true);
-    useCommitmentFormBodyState.getState().setAccountPickerVisible(true);
-    useCommitmentFormBodyState.getState().setShowStartDatePicker(true);
-    useCommitmentFormBodyState.getState().setShowEndDatePicker(true);
-    useCommitmentFormBodyState.getState().reset();
-    const s = useCommitmentFormBodyState.getState();
-    expect(s.categoryPickerVisible).toBe(false);
-    expect(s.accountPickerVisible).toBe(false);
-    expect(s.showStartDatePicker).toBe(false);
-    expect(s.showEndDatePicker).toBe(false);
+    const { result } = renderHook(() => useCommitmentFormBodyState());
+
+    act(() => {
+      result.current.setCategoryPickerVisible(true);
+      result.current.setAccountPickerVisible(true);
+      result.current.setShowStartDatePicker(true);
+      result.current.setShowEndDatePicker(true);
+      result.current.reset();
+    });
+
+    expect(result.current.state.categoryPickerVisible.value).toBe(false);
+    expect(result.current.state.accountPickerVisible.value).toBe(false);
+    expect(result.current.state.showStartDatePicker.value).toBe(false);
+    expect(result.current.state.showEndDatePicker.value).toBe(false);
   });
 });

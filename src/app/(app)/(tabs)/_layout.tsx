@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FAB } from '@/components/ui/fab';
 import { Colors, Size } from '@/constants/theme';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
-import { useAnySheetOpen } from '@/store/sheet_visibility.store';
+import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -25,9 +25,10 @@ function tabIcon(name: MCIName, color: string) {
  */
 function useFABActions() {
   const router = useRouter();
+  const addTransactionState = useAddTransactionState();
   return {
     handleAddTransaction: () => {
-      useAddTransactionState.getState().requestOpen();
+      addTransactionState.requestOpen();
       router.navigate('/transactions');
     },
     handleAddAccount: () => {
@@ -42,6 +43,7 @@ function useFABActions() {
 export function FABOverlay() {
   const { handleAddTransaction, handleAddAccount, handleAddCommitment } = useFABActions();
   const pathname = usePathname();
+  const sheetVisibility = useSheetVisibilityStore();
   // useBottomTabBarHeight() throws when called outside <Tabs> context.
   // Use safe-area insets + a fixed tab-bar estimate instead.
   const insets = useSafeAreaInsets();
@@ -53,7 +55,7 @@ export function FABOverlay() {
   // collides with their bottom Save/Pay CTAs. Hide it on any /commitments/ sub-route
   // — the FAB is a list-level "add" affordance, not a form/detail one.
   const isCommitmentSubRoute = pathname.startsWith('/commitments/');
-  const anySheetOpen = useAnySheetOpen();
+  const anySheetOpen = sheetVisibility.anyOpen;
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">

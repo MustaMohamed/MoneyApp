@@ -1,46 +1,63 @@
-import { create } from 'zustand';
+import { batch, signal } from '@preact/signals-react';
 
 import { TransactionType } from '@/constants/enums';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import { EMPTY_FILTERS_V2, type AdvancedFilters } from './filter/filter.store';
 import { currentYearMonth, type CarouselSelection } from './transactions.helpers';
 
 export type TransactionFilter = TransactionType | 'all';
 
-interface StateShape {
-  searchQuery: string;
-  activeFilter: TransactionFilter;
-  period: CarouselSelection;
-  appliedFilters: AdvancedFilters;
+function initialPeriod(): CarouselSelection {
+  return { type: 'month', yearMonth: currentYearMonth() };
 }
 
-type TransactionsScreenStore = StateShape & {
-  setSearchQuery: (q: string) => void;
-  setActiveFilter: (f: TransactionFilter) => void;
-  setPeriod: (p: CarouselSelection) => void;
-  setAppliedFilters: (f: AdvancedFilters) => void;
-  clearSearch: () => void;
-  reset: () => void;
-};
+const searchQuery = signal('');
+const activeFilter = signal<TransactionFilter>('all');
+const period = signal<CarouselSelection>(initialPeriod());
+const appliedFilters = signal<AdvancedFilters>(EMPTY_FILTERS_V2);
 
-function initialState(): StateShape {
+function setSearchQuery(q: string): void {
+  searchQuery.value = q;
+}
+
+function setActiveFilter(f: TransactionFilter): void {
+  activeFilter.value = f;
+}
+
+function setPeriod(p: CarouselSelection): void {
+  period.value = p;
+}
+
+function setAppliedFilters(f: AdvancedFilters): void {
+  appliedFilters.value = f;
+}
+
+function clearSearch(): void {
+  searchQuery.value = '';
+}
+
+function reset(): void {
+  batch(() => {
+    searchQuery.value = '';
+    activeFilter.value = 'all';
+    period.value = initialPeriod();
+    appliedFilters.value = EMPTY_FILTERS_V2;
+  });
+}
+
+export function useTransactionsScreenStore() {
   return {
-    searchQuery: '',
-    activeFilter: 'all',
-    period: { type: 'month', yearMonth: currentYearMonth() },
-    appliedFilters: EMPTY_FILTERS_V2,
+    state: {
+      searchQuery,
+      activeFilter,
+      period,
+      appliedFilters,
+    },
+    setSearchQuery,
+    setActiveFilter,
+    setPeriod,
+    setAppliedFilters,
+    clearSearch,
+    reset,
   };
 }
-
-export const useTransactionsScreenStore = createMoneyAppSelectors(
-  create<TransactionsScreenStore>((set) => ({
-    ...initialState(),
-    setSearchQuery: (q) => set((s) => ({ ...s, searchQuery: q })),
-    setActiveFilter: (f) => set((s) => ({ ...s, activeFilter: f })),
-    setPeriod: (p) => set((s) => ({ ...s, period: p })),
-    setAppliedFilters: (f) => set((s) => ({ ...s, appliedFilters: f })),
-    clearSearch: () => set((s) => ({ ...s, searchQuery: '' })),
-    reset: () => set(initialState()),
-  })),
-);

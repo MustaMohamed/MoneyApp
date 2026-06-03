@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { makeAutoObservable, observable, runInAction } from 'mobx';
 
 import type { Category } from '@/modules/categories/entities/category.entity';
 import {
@@ -7,82 +7,94 @@ import {
   type NewCategoryInput,
   type UpdateCategoryInput,
 } from '@/modules/categories/repositories/category.repository';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type { Category, NewCategoryInput, UpdateCategoryInput };
 
-const INITIAL_STATE = { categories: [] as Category[], hasLoaded: false };
+export class CategoryStore {
+  categories: Category[] = [];
 
-type CategoryStore = typeof INITIAL_STATE & {
-  loadCategories: () => Promise<void>;
-  addCategory: (data: NewCategoryInput) => Promise<void>;
-  updateCategory: (id: string, data: UpdateCategoryInput) => Promise<void>;
-  deleteCategory: (id: string) => Promise<void>;
-  reassignAndDelete: (fromId: string, toId: string) => Promise<void>;
-  getCategoryTransactionCount: (id: string) => Promise<number>;
-  reset: () => void;
-};
+  hasLoaded = false;
 
-export function createCategoryStore(repo: ICategoryRepository) {
-  return createMoneyAppSelectors(
-    create<CategoryStore>((set, get) => ({
-      ...INITIAL_STATE,
-
-      loadCategories: async () => {
-        try {
-          const categories = await repo.getAll();
-          set((s) => ({ ...s, categories, hasLoaded: true }));
-        } catch (err) {
-          console.error('[categoryStore] loadCategories failed:', err);
-          throw err;
-        }
+  constructor(private readonly repository: ICategoryRepository = new CategoryRepository()) {
+    makeAutoObservable<CategoryStore, 'repository'>(
+      this,
+      {
+        categories: observable.ref,
+        repository: false,
       },
+      { autoBind: true },
+    );
+  }
 
-      addCategory: async (data) => {
-        try {
-          await repo.add(data);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] addCategory failed:', err);
-          throw err;
-        }
-      },
+  async loadCategories(): Promise<void> {
+    try {
+      const categories = await this.repository.getAll();
+      runInAction(() => {
+        this.categories = categories;
+        this.hasLoaded = true;
+      });
+    } catch (err) {
+      console.error('[categoryStore] loadCategories failed:', err);
+      throw err;
+    }
+  }
 
-      updateCategory: async (id, data) => {
-        try {
-          await repo.update(id, data);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] updateCategory failed:', err);
-          throw err;
-        }
-      },
+  async addCategory(data: NewCategoryInput): Promise<void> {
+    try {
+      await this.repository.add(data);
+      await this.loadCategories();
+    } catch (err) {
+      console.error('[categoryStore] addCategory failed:', err);
+      throw err;
+    }
+  }
 
-      deleteCategory: async (id) => {
-        try {
-          await repo.delete(id);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] deleteCategory failed:', err);
-          throw err;
-        }
-      },
+  async updateCategory(id: string, data: UpdateCategoryInput): Promise<void> {
+    try {
+      await this.repository.update(id, data);
+      await this.loadCategories();
+    } catch (err) {
+      console.error('[categoryStore] updateCategory failed:', err);
+      throw err;
+    }
+  }
 
-      reassignAndDelete: async (fromId, toId) => {
-        try {
-          await repo.reassignAndDelete(fromId, toId);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] reassignAndDelete failed:', err);
-          throw err;
-        }
-      },
+  async deleteCategory(id: string): Promise<void> {
+    try {
+      await this.repository.delete(id);
+      await this.loadCategories();
+    } catch (err) {
+      console.error('[categoryStore] deleteCategory failed:', err);
+      throw err;
+    }
+  }
 
-      getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
+  async reassignAndDelete(fromId: string, toId: string): Promise<void> {
+    try {
+      await this.repository.reassignAndDelete(fromId, toId);
+      await this.loadCategories();
+    } catch (err) {
+      console.error('[categoryStore] reassignAndDelete failed:', err);
+      throw err;
+    }
+  }
 
-      reset: () => set(INITIAL_STATE),
-    })),
-  );
+  getCategoryTransactionCount(id: string): Promise<number> {
+    return this.repository.getTransactionCount(id);
+  }
+
+  reset(): void {
+    this.categories = [];
+    this.hasLoaded = false;
+  }
 }
 
-export const useCategoryStore = createCategoryStore(new CategoryRepository());
+export function createCategoryStore(repo: ICategoryRepository): CategoryStore {
+  return new CategoryStore(repo);
+}
+
+export const categoryStore = new CategoryStore(new CategoryRepository());
+
+export function useCategoryStore(): CategoryStore {
+  return categoryStore;
+}

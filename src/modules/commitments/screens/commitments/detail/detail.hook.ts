@@ -1,6 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus, DurationType, RecurrencePeriod } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -63,31 +62,24 @@ function findCurrentPayment(payments: CommitmentPayment[]): CommitmentPayment | 
 export function useCommitmentDetail() {
   const { id: paymentId } = useLocalSearchParams<{ id: string }>();
 
-  const { payments, commitments } = useCommitmentStore(
-    useShallow((s) => ({
-      payments: s.payments,
-      commitments: s.commitments,
-    })),
-  );
-  const storeSkipPayment = useCommitmentStore.getState().skipPayment;
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const commitmentStore = useCommitmentStore();
+  const payments = commitmentStore.payments;
+  const commitments = commitmentStore.commitments;
+  const storeSkipPayment = commitmentStore.skipPayment;
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
 
-  const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();
-  const setSkipConfirmVisible = useCommitmentDetailState.getState().setSkipConfirmVisible;
-  const resetUi = useCommitmentDetailState.getState().reset;
+  const detailState = useCommitmentDetailState();
+  const skipConfirmVisible = detailState.state.skipConfirmVisible.value;
+  const { setSkipConfirmVisible, reset: resetUi } = detailState;
 
-  const { allPayments, screenViewState } = useCommitmentDetailScreenData(
-    useShallow((s) => ({
-      allPayments: s.allPayments,
-      screenViewState: s.viewState,
-    })),
-  );
-  const setAllPayments = useCommitmentDetailScreenData.getState().setAllPayments;
-  const setViewState = useCommitmentDetailScreenData.getState().setViewState;
+  const detailScreenData = useCommitmentDetailScreenData();
+  const allPayments = detailScreenData.state.allPayments.value;
+  const screenViewState = detailScreenData.state.viewState.value;
+  const { setAllPayments, setViewState, reset: resetScreenData } = detailScreenData;
+  const paySheetState = usePaySheetState();
 
   // Find payment from store's monthly payments
   const payment = useMemo(() => payments.find((p) => p.id === paymentId), [payments, paymentId]);
@@ -135,9 +127,9 @@ export function useCommitmentDetail() {
   useEffect(() => {
     return () => {
       resetUi();
-      useCommitmentDetailScreenData.getState().reset();
+      resetScreenData();
     };
-  }, [resetUi]);
+  }, [resetScreenData, resetUi]);
 
   const category = useMemo(
     () => (commitment ? categories.find((c) => c.id === commitment.category_id) : undefined),
@@ -163,8 +155,8 @@ export function useCommitmentDetail() {
   );
 
   const openPaySheet = useCallback(() => {
-    usePaySheetState.getState().setVisible(true);
-  }, []);
+    paySheetState.setVisible(true);
+  }, [paySheetState]);
 
   const skipPayment = useCallback(async () => {
     if (!payment) return;

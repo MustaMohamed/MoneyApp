@@ -1,9 +1,7 @@
-import { create } from 'zustand';
+import { batch, signal } from '@preact/signals-react';
 
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-interface AddTransactionStateShape {
-  visible: boolean;
+interface AddTransactionState {
+  visible: typeof visible;
   /**
    * Cross-tab open request. The global FAB (mounted outside the transactions
    * tab) sets this and navigates here; the transactions screen consumes it once
@@ -11,15 +9,15 @@ interface AddTransactionStateShape {
    * FAB can't set `visible` directly: the sheet would mount already-true and
    * skip the open animation while still hiding the FAB.)
    */
-  pendingOpen: boolean;
-  saving: boolean;
-  showAccountPicker: boolean;
-  showToPicker: boolean;
-  showCategoryPicker: boolean;
-  rateOverride: boolean;
+  pendingOpen: typeof pendingOpen;
+  saving: typeof saving;
+  showAccountPicker: typeof showAccountPicker;
+  showToPicker: typeof showToPicker;
+  showCategoryPicker: typeof showCategoryPicker;
+  rateOverride: typeof rateOverride;
 }
 
-type AddTransactionState = AddTransactionStateShape & {
+interface AddTransactionActions {
   open: () => void;
   requestOpen: () => void;
   close: () => void;
@@ -29,30 +27,78 @@ type AddTransactionState = AddTransactionStateShape & {
   setShowCategoryPicker: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
-};
+}
 
-const INITIAL_STATE: AddTransactionStateShape = {
-  visible: false,
-  pendingOpen: false,
-  saving: false,
-  showAccountPicker: false,
-  showToPicker: false,
-  showCategoryPicker: false,
-  rateOverride: false,
-};
+const visible = signal(false);
+const pendingOpen = signal(false);
+const saving = signal(false);
+const showAccountPicker = signal(false);
+const showToPicker = signal(false);
+const showCategoryPicker = signal(false);
+const rateOverride = signal(false);
 
-export const useAddTransactionState = createMoneyAppSelectors(
-  create<AddTransactionState>((set) => ({
-    ...INITIAL_STATE,
+function reset(): void {
+  batch(() => {
+    visible.value = false;
+    pendingOpen.value = false;
+    saving.value = false;
+    showAccountPicker.value = false;
+    showToPicker.value = false;
+    showCategoryPicker.value = false;
+    rateOverride.value = false;
+  });
+}
 
-    open: () => set((s) => ({ ...s, visible: true, pendingOpen: false })),
-    requestOpen: () => set((s) => ({ ...s, pendingOpen: true })),
-    close: () => set(INITIAL_STATE),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setShowAccountPicker: (v) => set((s) => ({ ...s, showAccountPicker: v })),
-    setShowToPicker: (v) => set((s) => ({ ...s, showToPicker: v })),
-    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+function open(): void {
+  batch(() => {
+    visible.value = true;
+    pendingOpen.value = false;
+  });
+}
+
+function requestOpen(): void {
+  pendingOpen.value = true;
+}
+
+function setSaving(v: boolean): void {
+  saving.value = v;
+}
+
+function setShowAccountPicker(v: boolean): void {
+  showAccountPicker.value = v;
+}
+
+function setShowToPicker(v: boolean): void {
+  showToPicker.value = v;
+}
+
+function setShowCategoryPicker(v: boolean): void {
+  showCategoryPicker.value = v;
+}
+
+function setRateOverride(v: boolean): void {
+  rateOverride.value = v;
+}
+
+export function useAddTransactionState(): { state: AddTransactionState } & AddTransactionActions {
+  return {
+    state: {
+      visible,
+      pendingOpen,
+      saving,
+      showAccountPicker,
+      showToPicker,
+      showCategoryPicker,
+      rateOverride,
+    },
+    open,
+    requestOpen,
+    close: reset,
+    setSaving,
+    setShowAccountPicker,
+    setShowToPicker,
+    setShowCategoryPicker,
+    setRateOverride,
+    reset,
+  };
+}

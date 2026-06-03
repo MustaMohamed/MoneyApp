@@ -1,6 +1,8 @@
 // Backward-compat stub — the canonical implementation lives in modules/transactions/.
 export {
+  TransactionStore,
   createTransactionStore,
+  transactionStore,
   useTransactionStore,
   PAGE_SIZE,
 } from '@/modules/transactions/store/transaction.store';

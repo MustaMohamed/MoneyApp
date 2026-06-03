@@ -49,12 +49,12 @@ export default function RootLayout() {
   } = useAppInit();
 
   useEffect(() => {
-    if (fontsLoaded && ready.value) {
+    if (fontsLoaded && ready) {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, ready.value]);
+  }, [fontsLoaded, ready]);
 
-  if (!fontsLoaded || !ready.value) return null;
+  if (!fontsLoaded || !ready) return null;
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>

@@ -1,47 +1,57 @@
-import { create } from 'zustand';
-
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import { batch, type Signal, signal } from '@preact/signals-react';
 
 interface IncomeSheetStateShape {
-  isOpen: boolean;
-  amountText: string;
-  suggestion: number | null;
+  isOpen: Signal<boolean>;
+  amountText: Signal<string>;
+  suggestion: Signal<number | null>;
 }
 
-type IncomeSheetState = IncomeSheetStateShape & {
+type IncomeSheetStateActions = {
   open: (suggestion: number | null, currentIncome: number | null) => void;
   close: () => void;
   setAmountText: (text: string) => void;
   reset: () => void;
 };
 
-const INITIAL_STATE: IncomeSheetStateShape = {
-  isOpen: false,
-  amountText: '',
-  suggestion: null,
+type IncomeSheetStateController = { state: IncomeSheetStateShape } & IncomeSheetStateActions;
+
+const isOpen = signal(false);
+const amountText = signal('');
+const suggestion = signal<number | null>(null);
+
+const incomeSheetState: IncomeSheetStateController = {
+  state: {
+    isOpen,
+    amountText,
+    suggestion,
+  },
+  open: (nextSuggestion, currentIncome) => {
+    batch(() => {
+      isOpen.value = true;
+      suggestion.value = nextSuggestion;
+      amountText.value =
+        currentIncome !== null
+          ? String(currentIncome)
+          : nextSuggestion !== null
+            ? String(nextSuggestion)
+            : '';
+    });
+  },
+  close: () => {
+    isOpen.value = false;
+  },
+  setAmountText: (text) => {
+    amountText.value = text;
+  },
+  reset: () => {
+    batch(() => {
+      isOpen.value = false;
+      amountText.value = '';
+      suggestion.value = null;
+    });
+  },
 };
 
-export const useIncomeSheetState = createMoneyAppSelectors(
-  create<IncomeSheetState>((set) => ({
-    ...INITIAL_STATE,
-
-    open: (suggestion, currentIncome) =>
-      set((s) => ({
-        ...s,
-        isOpen: true,
-        suggestion,
-        amountText:
-          currentIncome !== null
-            ? String(currentIncome)
-            : suggestion !== null
-              ? String(suggestion)
-              : '',
-      })),
-
-    close: () => set((s) => ({ ...s, isOpen: false })),
-
-    setAmountText: (text) => set((s) => ({ ...s, amountText: text })),
-
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useIncomeSheetState(): IncomeSheetStateController {
+  return incomeSheetState;
+}

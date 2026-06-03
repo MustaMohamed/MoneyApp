@@ -69,7 +69,7 @@ describe('accountStore.init', () => {
     const repo = makeRepo();
     const store = new AccountStore(repo);
 
-    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
+    expect(store.accounts).toBe(EMPTY_ACCOUNTS);
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
@@ -77,13 +77,17 @@ describe('accountStore.init', () => {
     const store = new AccountStore(repo);
     await store.init();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.state.accounts.value).toEqual([mockAccount]);
+    expect(store.accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.getAll', async () => {
-    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db error')) });
+    const error = new Error('db error');
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(error) });
     const store = new AccountStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.init()).rejects.toThrow('db error');
+    expect(consoleSpy).toHaveBeenCalledWith('[accountStore] init failed:', error);
+    consoleSpy.mockRestore();
   });
 
   it('does not let an older load overwrite a newer load result', async () => {
@@ -103,13 +107,13 @@ describe('accountStore.init', () => {
     const newerAccount = { ...mockAccount, id: 'newer' };
     secondLoad.resolve([newerAccount]);
     await secondRequest;
-    expect(store.state.accounts.value).toEqual([newerAccount]);
+    expect(store.accounts).toEqual([newerAccount]);
 
     const olderAccount = { ...mockAccount, id: 'older' };
     firstLoad.resolve([olderAccount]);
     await firstRequest;
 
-    expect(store.state.accounts.value).toEqual([newerAccount]);
+    expect(store.accounts).toEqual([newerAccount]);
   });
 });
 
@@ -127,13 +131,17 @@ describe('accountStore.addAccount', () => {
     const store = new AccountStore(repo);
     await store.addAccount(baseInput);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.state.accounts.value).toEqual([mockAccount]);
+    expect(store.accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors thrown by repo.add', async () => {
-    const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('insert failed')) });
+    const error = new Error('insert failed');
+    const repo = makeRepo({ add: jest.fn().mockRejectedValue(error) });
     const store = new AccountStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.addAccount(baseInput)).rejects.toThrow('insert failed');
+    expect(consoleSpy).toHaveBeenCalledWith('[accountStore] addAccount failed:', error);
+    consoleSpy.mockRestore();
   });
 });
 
@@ -150,15 +158,19 @@ describe('accountStore.updateAccount', () => {
     const store = new AccountStore(repo);
     await store.updateAccount('test-id', { name: 'New Name', color: null });
     expect(repo.getAll).toHaveBeenCalledTimes(1);
-    expect(store.state.accounts.value).toEqual([mockAccount]);
+    expect(store.accounts).toEqual([mockAccount]);
   });
 
   it('propagates errors from repo.update', async () => {
-    const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update failed')) });
+    const error = new Error('update failed');
+    const repo = makeRepo({ update: jest.fn().mockRejectedValue(error) });
     const store = new AccountStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.updateAccount('test-id', { name: 'x', color: null })).rejects.toThrow(
       'update failed',
     );
+    expect(consoleSpy).toHaveBeenCalledWith('[accountStore] updateAccount failed:', error);
+    consoleSpy.mockRestore();
   });
 });
 
@@ -178,9 +190,13 @@ describe('accountStore.archiveAccount', () => {
   });
 
   it('propagates errors from repo.archive', async () => {
-    const repo = makeRepo({ archive: jest.fn().mockRejectedValue(new Error('archive failed')) });
+    const error = new Error('archive failed');
+    const repo = makeRepo({ archive: jest.fn().mockRejectedValue(error) });
     const store = new AccountStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.archiveAccount('test-id')).rejects.toThrow('archive failed');
+    expect(consoleSpy).toHaveBeenCalledWith('[accountStore] archiveAccount failed:', error);
+    consoleSpy.mockRestore();
   });
 });
 
@@ -200,11 +216,15 @@ describe('accountStore.adjustBalance', () => {
   });
 
   it('propagates errors from repo.adjustBalance', async () => {
+    const error = new Error('db error');
     const repo = makeRepo({
-      adjustBalance: jest.fn().mockRejectedValue(new Error('db error')),
+      adjustBalance: jest.fn().mockRejectedValue(error),
     });
     const store = new AccountStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.adjustBalance('test-id', 0)).rejects.toThrow('db error');
+    expect(consoleSpy).toHaveBeenCalledWith('[accountStore] adjustBalance failed:', error);
+    consoleSpy.mockRestore();
   });
 });
 
@@ -215,11 +235,11 @@ describe('accountStore.reset', () => {
     });
     const store = new AccountStore(repo);
     await store.init();
-    expect(store.state.accounts.value).toHaveLength(1);
+    expect(store.accounts).toHaveLength(1);
 
     store.reset();
 
-    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
+    expect(store.accounts).toBe(EMPTY_ACCOUNTS);
   });
 
   it('prevents pending loads from writing after reset', async () => {
@@ -233,7 +253,7 @@ describe('accountStore.reset', () => {
     load.resolve([mockAccount]);
     await request;
 
-    expect(store.state.accounts.value).toBe(EMPTY_ACCOUNTS);
+    expect(store.accounts).toBe(EMPTY_ACCOUNTS);
   });
 });
 

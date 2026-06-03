@@ -1,6 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { useShallow } from 'zustand/react/shallow';
 
 import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
@@ -20,16 +19,16 @@ export function useCategoryDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [month, setMonth] = useState(currentYearMonth);
 
-  const categories = useCategoryStore.useState.categories();
-  const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth } = useBudgetStore(
-    useShallow((s) => ({
-      budgetRows: s.rows,
-      spendByMonth: s.spendByMonth,
-    })),
-  );
-  const load = useBudgetStore.getState().load;
-  const openEdit = useBudgetState.getState().openEdit;
+  const categoryStore = useCategoryStore();
+  const budgetStore = useBudgetStore();
+  const budgetState = useBudgetState();
+
+  const categories = categoryStore.categories;
+  const loadCategories = categoryStore.loadCategories;
+  const budgetRows = budgetStore.rows;
+  const spendByMonth = budgetStore.spendByMonth;
+  const load = budgetStore.load;
+  const openEdit = budgetState.openEdit;
 
   useFocusEffect(
     useCallback(() => {

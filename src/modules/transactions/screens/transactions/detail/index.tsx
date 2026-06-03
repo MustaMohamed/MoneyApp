@@ -27,29 +27,35 @@ export default function TransactionDetailScreen(): React.ReactElement {
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
     useTransactionDetail(id);
 
-  const editTxVisible = useEditTransactionState.useState.visible();
+  const editTransactionState = useEditTransactionState();
+  const editTxVisibleRef = editTransactionState.state.visible;
+  const editTxVisible = editTxVisibleRef.value;
+  const closeEditTx = editTransactionState.close;
+  const editTransactionStore = useEditTransactionStore();
+  const resetEditTx = editTransactionStore.reset;
+  const loadEditTx = editTransactionStore.loadFromTx;
 
   useEffect(() => {
     return () => {
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      resetEditTx();
+      closeEditTx();
     };
-  }, []);
+  }, [closeEditTx, resetEditTx]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useEditTransactionState.getState().visible) return;
+      if (!editTxVisibleRef.value) return;
       e.preventDefault();
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      resetEditTx();
+      closeEditTx();
     });
     return unsubscribe;
-  }, [navigation]);
+  }, [closeEditTx, editTxVisibleRef, navigation, resetEditTx]);
 
   function handleEdit() {
     if (state.tx) {
-      useEditTransactionStore.getState().loadFromTx(state.tx);
-      useEditTransactionState.getState().open(state.tx);
+      loadEditTx(state.tx);
+      editTransactionState.open();
     }
   }
 
@@ -173,12 +179,12 @@ export default function TransactionDetailScreen(): React.ReactElement {
           <EditTransactionSheet
             visible={editTxVisible}
             onClose={() => {
-              useEditTransactionStore.getState().reset();
-              useEditTransactionState.getState().close();
+              resetEditTx();
+              closeEditTx();
             }}
             onSaved={() => {
-              useEditTransactionStore.getState().reset();
-              useEditTransactionState.getState().close();
+              resetEditTx();
+              closeEditTx();
               reload();
             }}
             tx={state.tx}

@@ -6,14 +6,14 @@ import { useCurrencyStore } from '@/store/currency.store';
 import { useInit } from '@/utils/use_init.hook';
 
 export default function AppLayout() {
-  const loadCategories = useCategoryStore.getState().loadCategories;
-  const loadRate = useCurrencyStore.getState().loadRate;
-  const fetchRate = useCurrencyStore.getState().fetchRate;
+  const categoryStore = useCategoryStore();
+  const currencyStore = useCurrencyStore();
 
   useInit(() => {
-    loadCategories().catch(() => {});
-    loadRate()
-      .then(() => fetchRate())
+    categoryStore.loadCategories().catch(() => {});
+    currencyStore
+      .loadRate()
+      .then(() => currencyStore.fetchRate())
       .catch(() => {});
   });
 

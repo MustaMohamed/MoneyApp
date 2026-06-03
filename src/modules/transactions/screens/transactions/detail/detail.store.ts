@@ -1,25 +1,23 @@
-import { create } from 'zustand';
+import { signal } from '@preact/signals-react';
 
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface TxDetailStoreShape {
-  tx: Transaction | null | undefined;
+const tx = signal<Transaction | null | undefined>(undefined);
+
+function setTx(next: Transaction | null | undefined): void {
+  tx.value = next;
 }
 
-type TxDetailStore = TxDetailStoreShape & {
-  setTx: (tx: Transaction | null | undefined) => void;
-  reset: () => void;
-};
+function reset(): void {
+  tx.value = undefined;
+}
 
-const INITIAL_STATE: TxDetailStoreShape = {
-  tx: undefined,
-};
-
-export const useTxDetailStore = createMoneyAppSelectors(
-  create<TxDetailStore>((set) => ({
-    ...INITIAL_STATE,
-    setTx: (tx) => set((s) => ({ ...s, tx })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useTxDetailStore() {
+  return {
+    state: {
+      tx,
+    },
+    setTx,
+    reset,
+  };
+}

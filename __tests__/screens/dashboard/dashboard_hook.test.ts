@@ -3,11 +3,9 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { AccountType, Currency } from '@/constants/enums';
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 
-// All stores are mocked so no real Zustand stores are instantiated.
-// useDashboardState is mocked but backed by a simple object so tests
-// can inspect and mutate selectedSegment directly.
-
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+// All stores are mocked so no real repository-backed stores are instantiated.
+// useDashboardState is mocked with signal-shaped refs so tests can inspect and
+// mutate selectedSegment directly.
 
 let capturedFocusCallback: (() => void) | null = null;
 
@@ -99,39 +97,36 @@ const BASE_ACCOUNTS = [
 ];
 
 // Shared mutable state for the V2 UI state mock — lets tests observe and
-// manipulate selectedSegment without a real Zustand store.
+// manipulate selectedSegment without a real screen state hook.
 let uiState = {
-  isBreakdownVisible: false,
-  refreshing: false,
-  selectedSegment: 'overview' as 'overview' | 'accounts',
+  isBreakdownVisible: { value: false },
+  refreshing: { value: false },
+  selectedSegment: { value: 'overview' as 'overview' | 'accounts' },
 };
 const setBreakdownVisible = jest.fn((v: boolean) => {
-  uiState.isBreakdownVisible = v;
+  uiState.isBreakdownVisible.value = v;
 });
 const setRefreshing = jest.fn((v: boolean) => {
-  uiState.refreshing = v;
+  uiState.refreshing.value = v;
 });
 const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
-  uiState.selectedSegment = s;
+  uiState.selectedSegment.value = s;
 });
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
-  const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
   (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: accounts },
-    },
+    accounts,
     init: jest.fn(),
   });
-  attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
+  (useCurrencyStore as jest.Mock).mockReturnValue({
     rate: 48.85,
     isManualOverride: false,
-  }));
-  attachMockSelectorStore(useCommitmentStore as jest.Mock, () => ({
+  });
+  (useCommitmentStore as jest.Mock).mockReturnValue({
     commitments: [],
     payments: [],
-  }));
-  attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
+  });
+  (useDashboardStore as jest.Mock).mockReturnValue({
     statsMap: {},
     currentMonthCommitmentPayments: [],
     currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
@@ -139,18 +134,22 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
     setStatsMap: jest.fn(),
     setCurrentMonthCommitmentPayments: jest.fn(),
     setMonthSpendStats: jest.fn(),
-  }));
-  attachMockSelectorStore(useDashboardState as jest.Mock, () => ({
-    ...uiState,
+  });
+  (useDashboardState as jest.Mock).mockReturnValue({
+    state: uiState,
     setBreakdownVisible,
     setRefreshing,
     setSelectedSegment,
-  }));
+  });
 }
 
 beforeEach(() => {
   capturedFocusCallback = null;
-  uiState = { isBreakdownVisible: false, refreshing: false, selectedSegment: 'overview' };
+  uiState = {
+    isBreakdownVisible: { value: false },
+    refreshing: { value: false },
+    selectedSegment: { value: 'overview' },
+  };
   setBreakdownVisible.mockClear();
   setRefreshing.mockClear();
   setSelectedSegment.mockClear();
@@ -166,9 +165,7 @@ describe('useDashboard', () => {
 
   it('does not expose a store-loaded sentinel', () => {
     (useAccountStore as jest.Mock).mockReturnValue({
-      state: {
-        accounts: { value: [] },
-      },
+      accounts: [],
       init: jest.fn(),
     });
 
@@ -198,7 +195,7 @@ describe('useDashboard', () => {
   });
 
   it('useFocusEffect resets segment to overview', () => {
-    uiState.selectedSegment = 'accounts';
+    uiState.selectedSegment.value = 'accounts';
     renderHook(() => useDashboard());
     act(() => {
       capturedFocusCallback?.();

@@ -19,16 +19,15 @@ export type { CommitmentFormValues };
 export function useAddCommitment() {
   const router = useRouter();
 
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
-  const addCommitment = useCommitmentStore.getState().addCommitment;
-  const generatePayments = useCommitmentStore.getState().generatePayments;
-  const saving = useAddCommitmentState.useState.saving();
-  const setSaving = useAddCommitmentState.getState().setSaving;
-  const reset = useAddCommitmentState.getState().reset;
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+  const commitmentStore = useCommitmentStore();
+  const { addCommitment, generatePayments } = commitmentStore;
+  const addState = useAddCommitmentState();
+  const saving = addState.state.saving.value;
+  const { setSaving, reset } = addState;
 
   const form = useZodForm(COMMITMENT_SCHEMA, {
     mode: 'onSubmit',

@@ -49,6 +49,9 @@
     "expo-system-ui": "~55.0.18",
     "expo-web-browser": "~55.0.16",
     "heroui-native": "^1.0.3",
+    "mobx": "^6.16.0",
+    "mobx-react-lite": "^4.1.1",
+    "mobx-react-observer": "^1.1.0",
     "react": "19.2.0",
     "react-compiler-runtime": "^1.0.0",
     "react-dom": "19.2.0",
@@ -67,8 +70,7 @@
     "tailwind-variants": "^3.2.2",
     "tailwindcss": "^4.3.0",
     "uniwind": "^1.6.4",
-    "zod": "^4.4.1",
-    "zustand": "^5.0.12"
+    "zod": "^4.4.1"
   },
   "devDependencies": {
     "@preact/signals-react-transform": "^0.8.1",

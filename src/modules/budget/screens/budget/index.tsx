@@ -11,7 +11,6 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { BudgetDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/budget_delete_confirm_sheet';
 import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/category_budget_row';
 import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
@@ -27,11 +26,10 @@ const LENS_SEGMENTS = [
 ];
 
 export default function BudgetScreen() {
-  const { state, openAdd, openEdit, setLensTab, goToCategory } = useBudget();
-  const editingTargetId = useBudgetState.useState.targetCategoryId();
-  const editingRow = state.rows.find((r) => r.categoryId === editingTargetId);
+  const { state, budgetState, openAdd, openEdit, setLensTab, goToCategory } = useBudget();
+  const editingRow = state.rows.find((r) => r.categoryId === state.targetCategoryId);
 
-  const removeBudget = useBudgetStore.getState().removeBudget;
+  const removeBudget = useBudgetStore().removeBudget;
 
   // Payload carries both id and name so the confirm sheet can display the category name
   const {
@@ -99,7 +97,11 @@ export default function BudgetScreen() {
         </ScreenScroll>
       )}
 
-      <SetBudgetSheet budgetableCategories={state.budgetableCategories} editingRow={editingRow} />
+      <SetBudgetSheet
+        budgetState={budgetState}
+        budgetableCategories={state.budgetableCategories}
+        editingRow={editingRow}
+      />
 
       <BudgetDeleteConfirmSheet
         isOpen={pendingDelete !== null}

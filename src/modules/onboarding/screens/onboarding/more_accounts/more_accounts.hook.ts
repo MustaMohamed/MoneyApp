@@ -7,11 +7,9 @@ import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store'
 
 export function useMoreAccounts() {
   const router = useRouter();
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accountStore = useAccountStore();
+  const { init } = accountStore;
+  const accounts = accountStore.accounts;
   const { setStep } = useOnboardingStore();
 
   const initialCountRef = useRef<number>(accounts.length);

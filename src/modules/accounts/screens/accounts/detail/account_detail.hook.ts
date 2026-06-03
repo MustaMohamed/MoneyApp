@@ -14,13 +14,9 @@ export function useAccountDetail() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const {
-    state: { accounts: accountsSignal },
-    updateAccount,
-    archiveAccount,
-    adjustBalance,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const { updateAccount, archiveAccount, adjustBalance } = accountStore;
   const {
     state: { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving },
     setEditing,

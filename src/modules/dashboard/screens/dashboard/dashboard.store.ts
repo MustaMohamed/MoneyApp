@@ -1,8 +1,7 @@
-import { create } from 'zustand';
+import { makeAutoObservable } from 'mobx';
 
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface MonthSpendStats {
   totalEgp: number;
@@ -17,13 +16,6 @@ interface DashboardStoreShape {
   previousMonthSpend: MonthSpendStats;
 }
 
-type DashboardStore = DashboardStoreShape & {
-  setStatsMap: (m: Record<string, AccountStats>) => void;
-  setCurrentMonthCommitmentPayments: (p: CommitmentPayment[]) => void;
-  setMonthSpendStats: (current: MonthSpendStats, previous: MonthSpendStats) => void;
-  reset: () => void;
-};
-
 const EMPTY_SPEND: MonthSpendStats = { totalEgp: 0, usdNative: 0, count: 0 };
 
 const INITIAL_STATE: DashboardStoreShape = {
@@ -33,18 +25,40 @@ const INITIAL_STATE: DashboardStoreShape = {
   previousMonthSpend: EMPTY_SPEND,
 };
 
-export const useDashboardStore = createMoneyAppSelectors(
-  create<DashboardStore>((set) => ({
-    ...INITIAL_STATE,
-    setStatsMap: (m) => set((s) => ({ ...s, statsMap: m })),
-    setCurrentMonthCommitmentPayments: (p) =>
-      set((s) => ({ ...s, currentMonthCommitmentPayments: p })),
-    setMonthSpendStats: (current, previous) =>
-      set((s) => ({
-        ...s,
-        currentMonthSpend: current,
-        previousMonthSpend: previous,
-      })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export class DashboardStore {
+  statsMap: Record<string, AccountStats> = INITIAL_STATE.statsMap;
+  currentMonthCommitmentPayments: CommitmentPayment[] =
+    INITIAL_STATE.currentMonthCommitmentPayments;
+  currentMonthSpend: MonthSpendStats = INITIAL_STATE.currentMonthSpend;
+  previousMonthSpend: MonthSpendStats = INITIAL_STATE.previousMonthSpend;
+
+  constructor() {
+    makeAutoObservable(this, {}, { autoBind: true });
+  }
+
+  setStatsMap(m: Record<string, AccountStats>) {
+    this.statsMap = m;
+  }
+
+  setCurrentMonthCommitmentPayments(p: CommitmentPayment[]) {
+    this.currentMonthCommitmentPayments = p;
+  }
+
+  setMonthSpendStats(current: MonthSpendStats, previous: MonthSpendStats) {
+    this.currentMonthSpend = current;
+    this.previousMonthSpend = previous;
+  }
+
+  reset() {
+    this.statsMap = INITIAL_STATE.statsMap;
+    this.currentMonthCommitmentPayments = INITIAL_STATE.currentMonthCommitmentPayments;
+    this.currentMonthSpend = INITIAL_STATE.currentMonthSpend;
+    this.previousMonthSpend = INITIAL_STATE.previousMonthSpend;
+  }
+}
+
+export const dashboardStore = new DashboardStore();
+
+export function useDashboardStore(): DashboardStore {
+  return dashboardStore;
+}

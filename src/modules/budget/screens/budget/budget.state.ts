@@ -1,18 +1,16 @@
-import { create } from 'zustand';
-
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
+import { batch, type Signal, signal } from '@preact/signals-react';
 
 export type BudgetSheetMode = 'add' | 'edit';
 export type LensTab = 'categories' | 'fiftythirty';
 
 interface BudgetStateShape {
-  sheetVisible: boolean;
-  mode: BudgetSheetMode;
-  targetCategoryId: string | undefined;
-  lensTab: LensTab;
+  sheetVisible: Signal<boolean>;
+  mode: Signal<BudgetSheetMode>;
+  targetCategoryId: Signal<string | undefined>;
+  lensTab: Signal<LensTab>;
 }
 
-type BudgetState = BudgetStateShape & {
+type BudgetStateActions = {
   openAdd: () => void;
   openEdit: (categoryId: string) => void;
   close: () => void;
@@ -20,32 +18,50 @@ type BudgetState = BudgetStateShape & {
   reset: () => void;
 };
 
-const INITIAL_STATE: BudgetStateShape = {
-  sheetVisible: false,
-  mode: 'add',
-  targetCategoryId: undefined,
-  lensTab: 'categories',
+export type BudgetStateController = { state: BudgetStateShape } & BudgetStateActions;
+
+const sheetVisible = signal(false);
+const mode = signal<BudgetSheetMode>('add');
+const targetCategoryId = signal<string | undefined>(undefined);
+const lensTab = signal<LensTab>('categories');
+
+const budgetState: BudgetStateController = {
+  state: {
+    sheetVisible,
+    mode,
+    targetCategoryId,
+    lensTab,
+  },
+  openAdd: () => {
+    batch(() => {
+      sheetVisible.value = true;
+      mode.value = 'add';
+      targetCategoryId.value = undefined;
+    });
+  },
+  openEdit: (categoryId) => {
+    batch(() => {
+      sheetVisible.value = true;
+      mode.value = 'edit';
+      targetCategoryId.value = categoryId;
+    });
+  },
+  close: () => {
+    sheetVisible.value = false;
+  },
+  setLensTab: (tab) => {
+    lensTab.value = tab;
+  },
+  reset: () => {
+    batch(() => {
+      sheetVisible.value = false;
+      mode.value = 'add';
+      targetCategoryId.value = undefined;
+      lensTab.value = 'categories';
+    });
+  },
 };
 
-export const useBudgetState = createMoneyAppSelectors(
-  create<BudgetState>((set) => ({
-    ...INITIAL_STATE,
-    openAdd: () =>
-      set((s) => ({
-        ...s,
-        sheetVisible: true,
-        mode: 'add',
-        targetCategoryId: undefined,
-      })),
-    openEdit: (categoryId) =>
-      set((s) => ({
-        ...s,
-        sheetVisible: true,
-        mode: 'edit',
-        targetCategoryId: categoryId,
-      })),
-    close: () => set((s) => ({ ...s, sheetVisible: false })),
-    setLensTab: (tab) => set((s) => ({ ...s, lensTab: tab })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function useBudgetState(): BudgetStateController {
+  return budgetState;
+}

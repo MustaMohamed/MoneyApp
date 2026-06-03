@@ -1,3 +1,5 @@
+import { act, renderHook } from '@testing-library/react-native';
+
 import { Currency } from '@/constants/enums';
 import {
   EMPTY_FILTERS_V2,
@@ -5,18 +7,23 @@ import {
   type AdvancedFilters,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 
-beforeEach(() => {
-  useFilterStore.getState().resetDraft();
-});
+function setup() {
+  const hook = renderHook(() => useFilterStore());
+  act(() => hook.result.current.resetDraft());
+  return hook;
+}
 
 describe('useFilterStore initial state', () => {
   it('starts with the empty-filters draft', () => {
-    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS_V2);
+    const { result } = setup();
+
+    expect(result.current.state.draft.value).toEqual(EMPTY_FILTERS_V2);
   });
 });
 
 describe('useFilterStore setDraft / resetDraft', () => {
   it('setDraft replaces the entire draft', () => {
+    const { result } = setup();
     const next: AdvancedFilters = {
       accountIds: ['a1'],
       categoryIds: ['c1'],
@@ -24,60 +31,84 @@ describe('useFilterStore setDraft / resetDraft', () => {
       amountMin: 10,
       amountMax: 50,
     };
-    useFilterStore.getState().setDraft(next);
-    expect(useFilterStore.getState().draft).toEqual(next);
+
+    act(() => result.current.setDraft(next));
+
+    expect(result.current.state.draft.value).toEqual(next);
   });
 
   it('resetDraft restores the empty-filters draft', () => {
-    useFilterStore.getState().setDraft({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] });
-    useFilterStore.getState().resetDraft();
-    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS_V2);
+    const { result } = setup();
+
+    act(() => result.current.setDraft({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] }));
+    act(() => result.current.resetDraft());
+
+    expect(result.current.state.draft.value).toEqual(EMPTY_FILTERS_V2);
   });
 });
 
 describe('useFilterStore toggleAccountId', () => {
   it('adds an id that is not yet selected', () => {
-    useFilterStore.getState().toggleAccountId('a1');
-    expect(useFilterStore.getState().draft.accountIds).toEqual(['a1']);
+    const { result } = setup();
+
+    act(() => result.current.toggleAccountId('a1'));
+
+    expect(result.current.state.draft.value.accountIds).toEqual(['a1']);
   });
 
   it('removes an id that is already selected', () => {
-    useFilterStore.getState().toggleAccountId('a1');
-    useFilterStore.getState().toggleAccountId('a1');
-    expect(useFilterStore.getState().draft.accountIds).toEqual([]);
+    const { result } = setup();
+
+    act(() => result.current.toggleAccountId('a1'));
+    act(() => result.current.toggleAccountId('a1'));
+
+    expect(result.current.state.draft.value.accountIds).toEqual([]);
   });
 });
 
 describe('useFilterStore toggleCategoryId', () => {
   it('adds an id that is not yet selected', () => {
-    useFilterStore.getState().toggleCategoryId('c1');
-    expect(useFilterStore.getState().draft.categoryIds).toEqual(['c1']);
+    const { result } = setup();
+
+    act(() => result.current.toggleCategoryId('c1'));
+
+    expect(result.current.state.draft.value.categoryIds).toEqual(['c1']);
   });
 
   it('removes an id that is already selected', () => {
-    useFilterStore.getState().toggleCategoryId('c1');
-    useFilterStore.getState().toggleCategoryId('c1');
-    expect(useFilterStore.getState().draft.categoryIds).toEqual([]);
+    const { result } = setup();
+
+    act(() => result.current.toggleCategoryId('c1'));
+    act(() => result.current.toggleCategoryId('c1'));
+
+    expect(result.current.state.draft.value.categoryIds).toEqual([]);
   });
 });
 
 describe('useFilterStore amount setters', () => {
   it('setAmountMin sets and clears the minimum', () => {
-    useFilterStore.getState().setAmountMin(25);
-    expect(useFilterStore.getState().draft.amountMin).toBe(25);
-    useFilterStore.getState().setAmountMin(undefined);
-    expect(useFilterStore.getState().draft.amountMin).toBeUndefined();
+    const { result } = setup();
+
+    act(() => result.current.setAmountMin(25));
+    expect(result.current.state.draft.value.amountMin).toBe(25);
+    act(() => result.current.setAmountMin(undefined));
+    expect(result.current.state.draft.value.amountMin).toBeUndefined();
   });
 
   it('setAmountMax sets and clears the maximum', () => {
-    useFilterStore.getState().setAmountMax(100);
-    expect(useFilterStore.getState().draft.amountMax).toBe(100);
-    useFilterStore.getState().setAmountMax(undefined);
-    expect(useFilterStore.getState().draft.amountMax).toBeUndefined();
+    const { result } = setup();
+
+    act(() => result.current.setAmountMax(100));
+    expect(result.current.state.draft.value.amountMax).toBe(100);
+    act(() => result.current.setAmountMax(undefined));
+    expect(result.current.state.draft.value.amountMax).toBeUndefined();
   });
 
   it('setAmountCurrency switches the currency', () => {
-    useFilterStore.getState().setAmountCurrency(Currency.USD);
-    expect(useFilterStore.getState().draft.amountCurrency).toBe(Currency.USD);
+    const { result } = setup();
+
+    act(() => result.current.setAmountCurrency(Currency.USD));
+
+    expect(result.current.state.draft.value.amountCurrency).toBe(Currency.USD);
   });
 });

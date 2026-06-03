@@ -1,7 +1,24 @@
 import { CategoryType } from '@/constants/enums';
 import type { Category } from '@/modules/categories/entities/category.entity';
-import type { ICategoryRepository } from '@/modules/categories/repositories/category.repository';
-import { createCategoryStore } from '@/modules/categories/store/category.store';
+import type {
+  ICategoryRepository,
+  NewCategoryInput,
+  UpdateCategoryInput,
+} from '@/modules/categories/repositories/category.repository';
+import { CategoryStore } from '@/modules/categories/store/category.store';
+
+const categoryInput: NewCategoryInput = {
+  name: 'X',
+  type: CategoryType.Expense,
+  icon: 'star',
+  color: '#fff',
+};
+
+const categoryUpdate: UpdateCategoryInput = {
+  name: 'Y',
+  icon: 'heart',
+  color: '#aaa',
+};
 
 const mockCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'cat-1',
@@ -30,192 +47,223 @@ function makeRepo(overrides: Partial<ICategoryRepository> = {}): ICategoryReposi
   };
 }
 
-describe('categoryStore.loadCategories', () => {
+beforeEach(() => {
+  jest.clearAllMocks();
+});
+
+describe('CategoryStore.loadCategories', () => {
   it('starts unloaded so screens do not show empty states before category data settles', () => {
-    const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
+    const store = new CategoryStore(makeRepo());
 
-    expect(useStore.getState().hasLoaded).toBe(false);
+    expect(store.categories).toEqual([]);
+    expect(store.hasLoaded).toBe(false);
   });
 
-  it('marks categories loaded after repo data settles', async () => {
-    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([]) });
-    const useStore = createCategoryStore(repo);
+  it('loads repo categories and marks the store loaded', async () => {
+    const categories = [mockCategory()];
+    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue(categories) });
+    const store = new CategoryStore(repo);
 
-    await useStore.getState().loadCategories();
-
-    expect(useStore.getState().hasLoaded).toBe(true);
-  });
-
-  it('populates categories from repo', async () => {
-    const repo = makeRepo();
-    const store = createCategoryStore(repo).getState();
     await store.loadCategories();
-    expect(createCategoryStore(repo).getState().categories).toHaveLength(0); // fresh store
-  });
 
-  it('calls repo.getAll()', async () => {
-    const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().loadCategories();
     expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(store.categories).toEqual(categories);
+    expect(store.hasLoaded).toBe(true);
   });
 
-  it('sets categories in state', async () => {
-    const cat = mockCategory();
-    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([cat]) });
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().loadCategories();
-    expect(useStore.getState().categories).toEqual([cat]);
+  it('logs and rethrows repo errors without marking loaded', async () => {
+    const error = new Error('db fail');
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(error) });
+    const store = new CategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.loadCategories()).rejects.toThrow('db fail');
+
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] loadCategories failed:', error);
+    expect(store.categories).toEqual([]);
+    expect(store.hasLoaded).toBe(false);
+    consoleSpy.mockRestore();
   });
 });
 
-describe('categoryStore.addCategory', () => {
+describe('CategoryStore.addCategory', () => {
   it('calls repo.add with the input', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore
-      .getState()
-      .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' });
-    expect(repo.add).toHaveBeenCalledWith({
-      name: 'X',
-      type: CategoryType.Expense,
-      icon: 'star',
-      color: '#fff',
-    });
+    const store = new CategoryStore(repo);
+
+    await store.addCategory(categoryInput);
+
+    expect(repo.add).toHaveBeenCalledWith(categoryInput);
   });
 
   it('reloads categories after add', async () => {
-    const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore
-      .getState()
-      .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' });
-    expect(repo.getAll).toHaveBeenCalled();
+    const categories = [mockCategory({ id: 'cat-after-add' })];
+    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue(categories) });
+    const store = new CategoryStore(repo);
+
+    await store.addCategory(categoryInput);
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(store.categories).toEqual(categories);
+    expect(store.hasLoaded).toBe(true);
+  });
+
+  it('logs and rethrows add errors without reloading', async () => {
+    const error = new Error('add fail');
+    const repo = makeRepo({ add: jest.fn().mockRejectedValue(error) });
+    const store = new CategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.addCategory(categoryInput)).rejects.toThrow('add fail');
+
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] addCategory failed:', error);
+    expect(repo.getAll).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
+
+  it('rethrows reload errors after add', async () => {
+    const error = new Error('reload fail');
+    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(error) });
+    const store = new CategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.addCategory(categoryInput)).rejects.toThrow('reload fail');
+
+    expect(repo.add).toHaveBeenCalledWith(categoryInput);
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] loadCategories failed:', error);
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] addCategory failed:', error);
+    consoleSpy.mockRestore();
   });
 });
 
-describe('categoryStore.updateCategory', () => {
+describe('CategoryStore.updateCategory', () => {
   it('calls repo.update with id and data', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' });
-    expect(repo.update).toHaveBeenCalledWith('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' });
+    const store = new CategoryStore(repo);
+
+    await store.updateCategory('cat-1', categoryUpdate);
+
+    expect(repo.update).toHaveBeenCalledWith('cat-1', categoryUpdate);
   });
 
   it('reloads categories after update', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' });
-    expect(repo.getAll).toHaveBeenCalled();
+    const store = new CategoryStore(repo);
+
+    await store.updateCategory('cat-1', categoryUpdate);
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs and rethrows update errors', async () => {
+    const error = new Error('update fail');
+    const repo = makeRepo({ update: jest.fn().mockRejectedValue(error) });
+    const store = new CategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.updateCategory('cat-1', categoryUpdate)).rejects.toThrow('update fail');
+
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] updateCategory failed:', error);
+    expect(repo.getAll).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
 
-describe('categoryStore.deleteCategory', () => {
+describe('CategoryStore.deleteCategory', () => {
   it('calls repo.delete with id', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().deleteCategory('cat-1');
+    const store = new CategoryStore(repo);
+
+    await store.deleteCategory('cat-1');
+
     expect(repo.delete).toHaveBeenCalledWith('cat-1');
   });
 
   it('reloads categories after delete', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().deleteCategory('cat-1');
-    expect(repo.getAll).toHaveBeenCalled();
+    const store = new CategoryStore(repo);
+
+    await store.deleteCategory('cat-1');
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs and rethrows delete errors', async () => {
+    const error = new Error('delete fail');
+    const repo = makeRepo({ delete: jest.fn().mockRejectedValue(error) });
+    const store = new CategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.deleteCategory('cat-1')).rejects.toThrow('delete fail');
+
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] deleteCategory failed:', error);
+    expect(repo.getAll).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
 
-describe('categoryStore.reassignAndDelete', () => {
+describe('CategoryStore.reassignAndDelete', () => {
   it('calls repo.reassignAndDelete with fromId and toId', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
+    const store = new CategoryStore(repo);
+
+    await store.reassignAndDelete('cat-1', 'cat_other_expense');
+
     expect(repo.reassignAndDelete).toHaveBeenCalledWith('cat-1', 'cat_other_expense');
   });
 
   it('reloads categories after reassignAndDelete', async () => {
     const repo = makeRepo();
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense');
-    expect(repo.getAll).toHaveBeenCalled();
-  });
-});
+    const store = new CategoryStore(repo);
 
-describe('categoryStore — error branches', () => {
-  it('loadCategories propagates repo errors', async () => {
-    const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db fail')) });
-    const useStore = createCategoryStore(repo);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().loadCategories()).rejects.toThrow('db fail');
-    consoleSpy.mockRestore();
+    await store.reassignAndDelete('cat-1', 'cat_other_expense');
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
 
-  it('addCategory propagates errors', async () => {
-    const repo = makeRepo({ add: jest.fn().mockRejectedValue(new Error('add fail')) });
-    const useStore = createCategoryStore(repo);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(
-      useStore
-        .getState()
-        .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' }),
-    ).rejects.toThrow('add fail');
-    consoleSpy.mockRestore();
-  });
-
-  it('updateCategory propagates errors', async () => {
-    const repo = makeRepo({ update: jest.fn().mockRejectedValue(new Error('update fail')) });
-    const useStore = createCategoryStore(repo);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(
-      useStore.getState().updateCategory('cat-1', { name: 'Y', icon: 'heart', color: '#aaa' }),
-    ).rejects.toThrow('update fail');
-    consoleSpy.mockRestore();
-  });
-
-  it('deleteCategory propagates errors', async () => {
-    const repo = makeRepo({ delete: jest.fn().mockRejectedValue(new Error('delete fail')) });
-    const useStore = createCategoryStore(repo);
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(useStore.getState().deleteCategory('cat-1')).rejects.toThrow('delete fail');
-    consoleSpy.mockRestore();
-  });
-
-  it('reassignAndDelete propagates errors', async () => {
+  it('logs and rethrows reassign errors', async () => {
+    const error = new Error('reassign fail');
     const repo = makeRepo({
-      reassignAndDelete: jest.fn().mockRejectedValue(new Error('reassign fail')),
+      reassignAndDelete: jest.fn().mockRejectedValue(error),
     });
-    const useStore = createCategoryStore(repo);
+    const store = new CategoryStore(repo);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    await expect(
-      useStore.getState().reassignAndDelete('cat-1', 'cat_other_expense'),
-    ).rejects.toThrow('reassign fail');
+
+    await expect(store.reassignAndDelete('cat-1', 'cat_other_expense')).rejects.toThrow(
+      'reassign fail',
+    );
+
+    expect(consoleSpy).toHaveBeenCalledWith('[categoryStore] reassignAndDelete failed:', error);
+    expect(repo.getAll).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 });
 
-describe('categoryStore.getCategoryTransactionCount', () => {
+describe('CategoryStore.getCategoryTransactionCount', () => {
   it('delegates to repo.getTransactionCount and returns the count', async () => {
     const repo = makeRepo({ getTransactionCount: jest.fn().mockResolvedValue(7) });
-    const useStore = createCategoryStore(repo);
-    const count = await useStore.getState().getCategoryTransactionCount('cat-1');
+    const store = new CategoryStore(repo);
+
+    const count = await store.getCategoryTransactionCount('cat-1');
+
     expect(repo.getTransactionCount).toHaveBeenCalledWith('cat-1');
     expect(count).toBe(7);
   });
 });
 
-describe('categoryStore.reset', () => {
-  it('restores INITIAL_STATE', async () => {
+describe('CategoryStore.reset', () => {
+  it('restores initial state', async () => {
     const repo = makeRepo({
       getAll: jest.fn().mockResolvedValue([{ id: 'c1' } as Category]),
     });
-    const useStore = createCategoryStore(repo);
-    await useStore.getState().loadCategories();
-    expect(useStore.getState().categories).toHaveLength(1);
+    const store = new CategoryStore(repo);
+    await store.loadCategories();
+    expect(store.categories).toHaveLength(1);
 
-    useStore.getState().reset();
+    store.reset();
 
-    expect(useStore.getState()).toMatchObject({ categories: [], hasLoaded: false });
+    expect(store.categories).toEqual([]);
+    expect(store.hasLoaded).toBe(false);
   });
 });

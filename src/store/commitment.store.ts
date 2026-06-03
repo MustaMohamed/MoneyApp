@@ -1,6 +1,8 @@
 // Backward-compat stub — canonical in modules/commitments/
 export {
+  CommitmentStore,
   createCommitmentStore,
+  commitmentStore,
   useCommitmentStore,
 } from '@/modules/commitments/store/commitment.store';
 export type {

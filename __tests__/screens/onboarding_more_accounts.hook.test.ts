@@ -43,9 +43,7 @@ function setup(accounts = fakeAccounts) {
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
   (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: accounts },
-    },
+    accounts,
     init: jest.fn().mockResolvedValue(undefined),
   });
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');

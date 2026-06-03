@@ -1,7 +1,6 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -63,29 +62,24 @@ function signedAmount(tx: Transaction): string {
 }
 
 export function useTransactionDetail(id: string) {
-  const tx = useTxDetailStore.useState.tx();
-  const setTx = useTxDetailStore.getState().setTx;
-  const resetData = useTxDetailStore.getState().reset;
-  const { confirmVisible, deleting, reloadKey } = useTxDetailState(
-    useShallow((s) => ({
-      confirmVisible: s.confirmVisible,
-      deleting: s.deleting,
-      reloadKey: s.reloadKey,
-    })),
-  );
-  const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
-  const setDeleting = useTxDetailState.getState().setDeleting;
-  const bumpReload = useTxDetailState.getState().bumpReload;
-  const resetUi = useTxDetailState.getState().reset;
+  const detailStore = useTxDetailStore();
+  const tx = detailStore.state.tx.value;
+  const { setTx, reset: resetData } = detailStore;
 
-  const getById = useTransactionStore.getState().getById;
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
+  const detailState = useTxDetailState();
+  const confirmVisible = detailState.state.confirmVisible.value;
+  const deleting = detailState.state.deleting.value;
+  const reloadKey = detailState.state.reloadKey.value;
+  const { setConfirmVisible, setDeleting, bumpReload, reset: resetUi } = detailState;
 
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
+  const transactionStore = useTransactionStore();
+  const getById = transactionStore.getById;
+  const deleteTransaction = transactionStore.deleteTransaction;
+
+  const accountStore = useAccountStore();
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
 
   useEffect(() => {
     let cancelled = false;

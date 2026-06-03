@@ -1,40 +1,66 @@
-import { create } from 'zustand';
+import { batch, signal } from '@preact/signals-react';
 
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-interface EditTransactionStateShape {
-  visible: boolean;
-  saving: boolean;
-  showCategoryPicker: boolean;
-  rateOverride: boolean;
+interface EditTransactionState {
+  visible: typeof visible;
+  saving: typeof saving;
+  showCategoryPicker: typeof showCategoryPicker;
+  rateOverride: typeof rateOverride;
 }
 
-type EditTransactionState = EditTransactionStateShape & {
-  open: (tx: Transaction) => void;
+interface EditTransactionActions {
+  open: () => void;
   close: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
-};
+}
 
-const INITIAL_STATE: EditTransactionStateShape = {
-  visible: false,
-  saving: false,
-  showCategoryPicker: false,
-  rateOverride: false,
-};
+const visible = signal(false);
+const saving = signal(false);
+const showCategoryPicker = signal(false);
+const rateOverride = signal(false);
 
-export const useEditTransactionState = createMoneyAppSelectors(
-  create<EditTransactionState>((set) => ({
-    ...INITIAL_STATE,
+function open(): void {
+  visible.value = true;
+}
 
-    open: () => set((s) => ({ ...s, visible: true })),
-    close: () => set(INITIAL_STATE),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+function reset(): void {
+  batch(() => {
+    visible.value = false;
+    saving.value = false;
+    showCategoryPicker.value = false;
+    rateOverride.value = false;
+  });
+}
+
+function setSaving(v: boolean): void {
+  saving.value = v;
+}
+
+function setShowCategoryPicker(v: boolean): void {
+  showCategoryPicker.value = v;
+}
+
+function setRateOverride(v: boolean): void {
+  rateOverride.value = v;
+}
+
+export function useEditTransactionState(): {
+  state: EditTransactionState;
+} & EditTransactionActions {
+  return {
+    state: {
+      visible,
+      saving,
+      showCategoryPicker,
+      rateOverride,
+    },
+    open,
+    close: reset,
+    setSaving,
+    setShowCategoryPicker,
+    setRateOverride,
+    reset,
+  };
+}

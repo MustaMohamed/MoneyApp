@@ -1,59 +1,76 @@
+import { act, renderHook } from '@testing-library/react-native';
+
 import { CategoryType } from '@/constants/enums';
 import { useCategoriesScreenState } from '@/modules/categories/screens/settings/categories/categories.state';
 
-beforeEach(() => useCategoriesScreenState.getState().reset());
-
 describe('useCategoriesScreenState', () => {
   it('starts with activeTab=expense and all sheets hidden', () => {
-    const s = useCategoriesScreenState.getState();
-    expect(s.activeTab).toBe(CategoryType.Expense);
-    expect(s.showAddSheet).toBe(false);
-    expect(s.showDeleteConfirm).toBe(false);
-    expect(s.showReassignSheet).toBe(false);
+    const { result } = renderHook(() => useCategoriesScreenState());
+    const { state } = result.current;
+
+    expect(state.activeTab.value).toBe(CategoryType.Expense);
+    expect(state.showAddSheet.value).toBe(false);
+    expect(state.showDeleteConfirm.value).toBe(false);
+    expect(state.showReassignSheet.value).toBe(false);
   });
 
   it('setActiveTab switches between expense and income', () => {
-    useCategoriesScreenState.getState().setActiveTab(CategoryType.Income);
-    expect(useCategoriesScreenState.getState().activeTab).toBe(CategoryType.Income);
-    useCategoriesScreenState.getState().setActiveTab(CategoryType.Expense);
-    expect(useCategoriesScreenState.getState().activeTab).toBe(CategoryType.Expense);
+    const { result } = renderHook(() => useCategoriesScreenState());
+
+    act(() => result.current.setActiveTab(CategoryType.Income));
+    expect(result.current.state.activeTab.value).toBe(CategoryType.Income);
+
+    act(() => result.current.setActiveTab(CategoryType.Expense));
+    expect(result.current.state.activeTab.value).toBe(CategoryType.Expense);
   });
 
   it('setShowAddSheet toggles', () => {
-    useCategoriesScreenState.getState().setShowAddSheet(true);
-    expect(useCategoriesScreenState.getState().showAddSheet).toBe(true);
-    useCategoriesScreenState.getState().setShowAddSheet(false);
-    expect(useCategoriesScreenState.getState().showAddSheet).toBe(false);
+    const { result } = renderHook(() => useCategoriesScreenState());
+
+    act(() => result.current.setShowAddSheet(true));
+    expect(result.current.state.showAddSheet.value).toBe(true);
+
+    act(() => result.current.setShowAddSheet(false));
+    expect(result.current.state.showAddSheet.value).toBe(false);
   });
 
   it('setShowDeleteConfirm toggles', () => {
-    useCategoriesScreenState.getState().setShowDeleteConfirm(true);
-    expect(useCategoriesScreenState.getState().showDeleteConfirm).toBe(true);
-    useCategoriesScreenState.getState().setShowDeleteConfirm(false);
-    expect(useCategoriesScreenState.getState().showDeleteConfirm).toBe(false);
+    const { result } = renderHook(() => useCategoriesScreenState());
+
+    act(() => result.current.setShowDeleteConfirm(true));
+    expect(result.current.state.showDeleteConfirm.value).toBe(true);
+
+    act(() => result.current.setShowDeleteConfirm(false));
+    expect(result.current.state.showDeleteConfirm.value).toBe(false);
   });
 
   it('setShowReassignSheet toggles', () => {
-    useCategoriesScreenState.getState().setShowReassignSheet(true);
-    expect(useCategoriesScreenState.getState().showReassignSheet).toBe(true);
-    useCategoriesScreenState.getState().setShowReassignSheet(false);
-    expect(useCategoriesScreenState.getState().showReassignSheet).toBe(false);
+    const { result } = renderHook(() => useCategoriesScreenState());
+
+    act(() => result.current.setShowReassignSheet(true));
+    expect(result.current.state.showReassignSheet.value).toBe(true);
+
+    act(() => result.current.setShowReassignSheet(false));
+    expect(result.current.state.showReassignSheet.value).toBe(false);
   });
 
   it('reset returns to defaults', () => {
-    useCategoriesScreenState.setState({
-      activeTab: CategoryType.Income,
-      showAddSheet: true,
-      showDeleteConfirm: true,
-      showReassignSheet: true,
-      isDeleting: true,
+    const { result } = renderHook(() => useCategoriesScreenState());
+
+    act(() => {
+      result.current.setActiveTab(CategoryType.Income);
+      result.current.setShowAddSheet(true);
+      result.current.setShowDeleteConfirm(true);
+      result.current.setShowReassignSheet(true);
+      result.current.setIsDeleting(true);
+      result.current.reset();
     });
-    useCategoriesScreenState.getState().reset();
-    const s = useCategoriesScreenState.getState();
-    expect(s.activeTab).toBe(CategoryType.Expense);
-    expect(s.showAddSheet).toBe(false);
-    expect(s.showDeleteConfirm).toBe(false);
-    expect(s.showReassignSheet).toBe(false);
-    expect(s.isDeleting).toBe(false);
+
+    const { state } = result.current;
+    expect(state.activeTab.value).toBe(CategoryType.Expense);
+    expect(state.showAddSheet.value).toBe(false);
+    expect(state.showDeleteConfirm.value).toBe(false);
+    expect(state.showReassignSheet.value).toBe(false);
+    expect(state.isDeleting.value).toBe(false);
   });
 });

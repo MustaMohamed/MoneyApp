@@ -7,10 +7,13 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
-import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { useTransactionStore } from '@/store/transaction.store';
+import {
+  useTransactionStore,
+  type NewTransactionInput,
+} from '@/modules/transactions/store/transaction.store';
 
 const mockAccountEGP: Account = {
   id: 'a1',
@@ -70,26 +73,77 @@ const mockCategoryIncome = {
   updated_at: 'now',
 };
 
+type AccountRepositoryForTest = {
+  repository: {
+    getAll: () => Promise<Account[]>;
+  };
+};
+
+type TransactionRepositoryForTest = {
+  repository: {
+    add: (data: NewTransactionInput) => Promise<Transaction>;
+    getAll: () => Promise<Transaction[]>;
+  };
+};
+
+function getTransactionRepository() {
+  return (useTransactionStore() as unknown as TransactionRepositoryForTest).repository;
+}
+
+function mockSavedTransaction(input: NewTransactionInput): Transaction {
+  return {
+    id: 'saved-tx',
+    type: input.type,
+    amount: input.amount,
+    currency: input.currency,
+    egp_amount: input.egp_amount,
+    exchange_rate: input.exchange_rate ?? null,
+    to_amount: input.to_amount ?? null,
+    minimum_payment_snapshot: null,
+    account_id: input.account_id,
+    to_account_id: input.to_account_id ?? null,
+    category_id: input.category_id ?? null,
+    note: input.note ?? null,
+    transaction_date: input.transaction_date ?? '2026-05-01',
+    transaction_time: input.transaction_time ?? '12:00:00',
+    commitment_payment_id: null,
+    installment_id: null,
+    created_at: 'now',
+    updated_at: 'now',
+  };
+}
+
+function mockAddTransaction() {
+  const repo = getTransactionRepository();
+  const addTx = jest.fn(async (input: NewTransactionInput) => mockSavedTransaction(input));
+  jest.spyOn(repo, 'add').mockImplementation(addTx);
+  jest.spyOn(repo, 'getAll').mockResolvedValue([]);
+  return addTx;
+}
+
 beforeEach(() => {
+  jest.restoreAllMocks();
   const accountsStore = useAccountStore();
   accountsStore.reset();
-  accountsStore.state.accounts.value = [
-    mockAccountEGP,
-    mockAccountUSD,
-    mockAccountCC,
-    mockAccountCC2,
-  ];
-  useCategoryStore.setState({
-    categories: [mockCategoryExpense, mockCategoryIncome],
-    loading: false,
-    error: undefined,
-  } as any);
-  useCurrencyStore.setState({
-    rate: 50,
-    rate_updated_at: new Date().toISOString(),
-  } as any);
-  useAddTransactionState.getState().reset();
-  useAddTransactionStore.getState().reset();
+  accountsStore.accounts = [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2];
+  jest
+    .spyOn((accountsStore as unknown as AccountRepositoryForTest).repository, 'getAll')
+    .mockResolvedValue(accountsStore.accounts);
+
+  const categoryStore = useCategoryStore();
+  categoryStore.reset();
+  categoryStore.categories = [mockCategoryExpense, mockCategoryIncome];
+  categoryStore.hasLoaded = true;
+
+  const currencyStore = useCurrencyStore();
+  currencyStore.reset();
+  currencyStore.rate = 50;
+  currencyStore.rate_updated_at = new Date().toISOString();
+
+  useTransactionStore().reset();
+
+  const addStore = renderHook(() => useAddTransactionStore());
+  act(() => addStore.result.current.reset());
 });
 
 describe('useAddTransaction — validation', () => {
@@ -177,8 +231,7 @@ describe('useAddTransaction — validation', () => {
 
 describe('useAddTransaction — cross-currency math', () => {
   it('non-transfer USD source: egp_amount = amount × rate (rounded)', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = mockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.handleNumpad('digit', '1'));
     act(() => result.current.handleNumpad('digit', '0'));
@@ -198,8 +251,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('transfer EGP → USD: to_amount = amount / rate (rounded)', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = mockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.handleNumpad('digit', '1'));
@@ -221,8 +273,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('transfer USD → EGP: to_amount = egp_amount = amount × rate', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = mockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.handleNumpad('digit', '5'));
@@ -244,9 +295,8 @@ describe('useAddTransaction — cross-currency math', () => {
   it('transfer USD → USD: rate required (for egp_amount); to_amount = amount', async () => {
     const mockAccountUSD2 = { ...mockAccountUSD, id: 'a5', name: 'USD Wallet' };
     const accountsStore = useAccountStore();
-    accountsStore.state.accounts.value = [...accountsStore.state.accounts.value, mockAccountUSD2];
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    accountsStore.accounts = [...accountsStore.accounts, mockAccountUSD2];
+    const addTx = mockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.handleNumpad('digit', '5'));
@@ -266,8 +316,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('cc_payment: to_amount = egp_amount (CC debt always EGP-denominated)', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = mockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
     act(() => result.current.handleNumpad('digit', '2'));
@@ -296,12 +345,10 @@ describe('useAddTransaction — rounding', () => {
     //   1 × 30.005 = 30.005 → scaled=3000.5, truncated=3000 (even).
     //   Banker's rounding: stays at 3000 → 30.00.
     //   Regular Math.round(3000.5) = 3001 → 30.01 (would fail without roundMoney).
-    useCurrencyStore.setState({
-      rate: 30.005,
-      rate_updated_at: null,
-    } as any);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const currencyStore = useCurrencyStore();
+    currencyStore.rate = 30.005;
+    currencyStore.rate_updated_at = null;
+    const addTx = mockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.handleNumpad('digit', '1'));
     act(() => result.current.selectAccount(mockAccountUSD));
@@ -320,8 +367,7 @@ describe('useAddTransaction — rounding', () => {
 
 describe('useAddTransaction — auto-now time', () => {
   it('sets transaction_time to the current device clock and never exposes a setter', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = mockAddTransaction();
     const before = new Date().toTimeString().slice(0, 8);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.handleNumpad('digit', '5'));
@@ -333,8 +379,10 @@ describe('useAddTransaction — auto-now time', () => {
     const after = new Date().toTimeString().slice(0, 8);
     expect(addTx).toHaveBeenCalled();
     const arg = addTx.mock.calls[0][0];
-    expect(arg.transaction_time >= before).toBe(true);
-    expect(arg.transaction_time <= after).toBe(true);
+    const transactionTime = arg.transaction_time;
+    if (transactionTime === undefined) throw new Error('transaction_time was not submitted');
+    expect(transactionTime >= before).toBe(true);
+    expect(transactionTime <= after).toBe(true);
     // No setTime exposed
     expect((result.current as any).setTime).toBeUndefined();
   });

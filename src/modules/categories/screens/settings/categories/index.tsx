@@ -51,6 +51,14 @@ export default function CategoriesScreen() {
   } = useCategories();
 
   const isEmpty = state.defaultCategories.length === 0 && state.customCategories.length === 0;
+  const activeTab = state.activeTab.value;
+  const showAddSheet = state.showAddSheet.value;
+  const editingCategory = state.editingCategory.value;
+  const categoryToDelete = state.categoryToDelete.value;
+  const showDeleteConfirm = state.showDeleteConfirm.value;
+  const showReassignSheet = state.showReassignSheet.value;
+  const linkedCount = state.linkedCount.value;
+  const isDeleting = state.isDeleting.value;
   const listData = useMemo(
     () => buildListEntries(state.defaultCategories, state.customCategories),
     [state.customCategories, state.defaultCategories],
@@ -69,11 +77,11 @@ export default function CategoriesScreen() {
           category={item.category}
           onEdit={openEditSheet}
           onDelete={handleDeletePress}
-          isDeleteDisabled={state.isDeleting}
+          isDeleteDisabled={isDeleting}
           isLast={index === listData.length - 1 || listData[index + 1]?.type === 'header'}
         />
       ),
-    [handleDeletePress, listData, openEditSheet, state.isDeleting],
+    [handleDeletePress, isDeleting, listData, openEditSheet],
   );
 
   return (
@@ -85,7 +93,7 @@ export default function CategoriesScreen() {
             { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
             { value: CategoryType.Income, label: Strings.categoriesTabIncome },
           ]}
-          value={state.activeTab}
+          value={activeTab}
           onValueChange={setActiveTab}
           variant="solid-gold"
           listClassName="w-full"
@@ -129,9 +137,9 @@ export default function CategoriesScreen() {
 
       {/* Sheets and dialogs */}
       <AddEditCategorySheet
-        isOpen={state.showAddSheet}
-        editingCategory={state.editingCategory}
-        activeTab={state.activeTab}
+        isOpen={showAddSheet}
+        editingCategory={editingCategory}
+        activeTab={activeTab}
         onOpenChange={(open) => {
           if (!open) closeSheet();
         }}
@@ -139,8 +147,8 @@ export default function CategoriesScreen() {
       />
 
       <DeleteConfirmationDialog
-        visible={state.showDeleteConfirm}
-        categoryName={state.categoryToDelete?.name ?? ''}
+        visible={showDeleteConfirm}
+        categoryName={categoryToDelete?.name ?? ''}
         onConfirm={() => {
           void handleDeleteConfirm();
         }}
@@ -148,9 +156,9 @@ export default function CategoriesScreen() {
       />
 
       <ReassignCategorySheet
-        isOpen={state.showReassignSheet}
-        categoryName={state.categoryToDelete?.name ?? ''}
-        linkedCount={state.linkedCount}
+        isOpen={showReassignSheet}
+        categoryName={categoryToDelete?.name ?? ''}
+        linkedCount={linkedCount}
         options={state.reassignOptions}
         onConfirm={handleReassignConfirm}
         onOpenChange={(open) => {

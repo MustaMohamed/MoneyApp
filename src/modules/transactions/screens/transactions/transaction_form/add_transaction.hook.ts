@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
-import { useShallow } from 'zustand/react/shallow';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -135,44 +134,36 @@ function nowTimeISO(): string {
 }
 
 export function useAddTransaction(onClose: () => void) {
+  const accountStore = useAccountStore();
+  const { init } = accountStore;
+  const accounts = accountStore.accounts;
+  const categoryStore = useCategoryStore();
+  const categories = categoryStore.categories;
+  const currencyStore = useCurrencyStore();
+  const rate = currencyStore.rate;
+  const rateUpdatedAt = currencyStore.rate_updated_at;
+  const transactionStore = useTransactionStore();
+  const addTransaction = transactionStore.addTransaction;
+
+  const addStore = useAddTransactionStore();
+  const type = addStore.state.type.value;
+  const amountStr = addStore.state.amountStr.value;
+  const { setType, setAmountStr, handleNumpad } = addStore;
+
+  const addState = useAddTransactionState();
+  const visible = addState.state.visible.value;
+  const saving = addState.state.saving.value;
+  const showAccountPicker = addState.state.showAccountPicker.value;
+  const showToPicker = addState.state.showToPicker.value;
+  const showCategoryPicker = addState.state.showCategoryPicker.value;
+  const rateOverride = addState.state.rateOverride.value;
   const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const categories = useCategoryStore.useState.categories();
-  const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      rateUpdatedAt: s.rate_updated_at,
-    })),
-  );
-  const addTransaction = useTransactionStore.getState().addTransaction;
-  const { type, amountStr } = useAddTransactionStore(
-    useShallow((s) => ({
-      type: s.type,
-      amountStr: s.amountStr,
-    })),
-  );
-  const setType = useAddTransactionStore.getState().setType;
-  const setAmountStr = useAddTransactionStore.getState().setAmountStr;
-  const handleNumpad = useAddTransactionStore.getState().handleNumpad;
-  const { visible, saving, showAccountPicker, showToPicker, showCategoryPicker, rateOverride } =
-    useAddTransactionState(
-      useShallow((s) => ({
-        visible: s.visible,
-        saving: s.saving,
-        showAccountPicker: s.showAccountPicker,
-        showToPicker: s.showToPicker,
-        showCategoryPicker: s.showCategoryPicker,
-        rateOverride: s.rateOverride,
-      })),
-    );
-  const setSaving = useAddTransactionState.getState().setSaving;
-  const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
-  const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
-  const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
-  const setRateOverride = useAddTransactionState.getState().setRateOverride;
+    setSaving,
+    setShowAccountPicker,
+    setShowToPicker,
+    setShowCategoryPicker,
+    setRateOverride,
+  } = addState;
 
   // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
   const openedTimeRef = useRef<string>(nowTimeISO());

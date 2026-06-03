@@ -1,30 +1,54 @@
-import { create } from 'zustand';
+import { batch, signal } from '@preact/signals-react';
 
-interface TransactionFormBodyStateShape {
-  keyboardVisible: boolean;
-  showIosDatePicker: boolean;
-  showAndroidDatePicker: boolean;
+interface TransactionFormBodyState {
+  keyboardVisible: typeof keyboardVisible;
+  showIosDatePicker: typeof showIosDatePicker;
+  showAndroidDatePicker: typeof showAndroidDatePicker;
 }
 
-type TransactionFormBodyState = TransactionFormBodyStateShape & {
+interface TransactionFormBodyActions {
   setKeyboardVisible: (v: boolean) => void;
   setShowIosDatePicker: (v: boolean) => void;
   setShowAndroidDatePicker: (v: boolean) => void;
   reset: () => void;
-};
+}
 
-const INITIAL_STATE: TransactionFormBodyStateShape = {
-  keyboardVisible: false,
-  showIosDatePicker: false,
-  showAndroidDatePicker: false,
-};
+const keyboardVisible = signal(false);
+const showIosDatePicker = signal(false);
+const showAndroidDatePicker = signal(false);
 
-export const useTransactionFormBodyState = create<TransactionFormBodyState>((set) => ({
-  ...INITIAL_STATE,
+function setKeyboardVisible(v: boolean): void {
+  keyboardVisible.value = v;
+}
 
-  setKeyboardVisible: (v) => set((s) => ({ ...s, keyboardVisible: v })),
-  setShowIosDatePicker: (v) => set((s) => ({ ...s, showIosDatePicker: v })),
-  setShowAndroidDatePicker: (v) => set((s) => ({ ...s, showAndroidDatePicker: v })),
+function setShowIosDatePicker(v: boolean): void {
+  showIosDatePicker.value = v;
+}
 
-  reset: () => set(INITIAL_STATE),
-}));
+function setShowAndroidDatePicker(v: boolean): void {
+  showAndroidDatePicker.value = v;
+}
+
+function reset(): void {
+  batch(() => {
+    keyboardVisible.value = false;
+    showIosDatePicker.value = false;
+    showAndroidDatePicker.value = false;
+  });
+}
+
+export function useTransactionFormBodyState(): {
+  state: TransactionFormBodyState;
+} & TransactionFormBodyActions {
+  return {
+    state: {
+      keyboardVisible,
+      showIosDatePicker,
+      showAndroidDatePicker,
+    },
+    setKeyboardVisible,
+    setShowIosDatePicker,
+    setShowAndroidDatePicker,
+    reset,
+  };
+}

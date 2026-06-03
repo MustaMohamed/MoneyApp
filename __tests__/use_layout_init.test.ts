@@ -27,18 +27,16 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
   }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: {
-    getState: () => ({
-      generatePayments: mockGeneratePayments,
-      checkAndDeactivateExpired: mockCheckAndDeactivateExpired,
-    }),
-  },
+  useCommitmentStore: () => ({
+    generatePayments: mockGeneratePayments,
+    checkAndDeactivateExpired: mockCheckAndDeactivateExpired,
+  }),
 }));
 jest.mock('@/utils/zod_config', () => {});
 
 function readReady() {
   const { result, unmount } = renderHook(() => useAppReadyStore());
-  const value = result.current.state.ready.value;
+  const value = result.current.ready;
   unmount();
   return value;
 }
@@ -94,7 +92,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
     mockGeneratePayments.mockResolvedValue(undefined);
   });
 
-  it('marks app readiness through the Signals app-ready API', async () => {
+  it('marks app readiness through the MobX app-ready API', async () => {
     expect(readReady()).toBe(false);
 
     renderHook(() => useAppInit());

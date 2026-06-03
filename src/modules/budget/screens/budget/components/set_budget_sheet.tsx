@@ -4,7 +4,6 @@ import { Input, PressableFeedback, RadioGroup } from 'heroui-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
@@ -14,7 +13,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { getDb } from '@/database/client';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget.hook';
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import type { BudgetStateController } from '@/modules/budget/screens/budget/budget.state';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
@@ -26,6 +25,7 @@ import { budgetFormSchema, parseLimit, type BudgetFormValues } from '@/utils/sch
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 export interface SetBudgetSheetProps {
+  budgetState: BudgetStateController;
   // expense categories without an active budget (add-mode picker source)
   budgetableCategories: Category[];
   // the row currently being edited (edit mode), or undefined in add mode
@@ -43,27 +43,24 @@ function isBudgetGroup(value: string): value is BudgetGroup {
   return BUDGET_GROUP_VALUES.includes(value);
 }
 
-export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
-  const { sheetVisible, mode, targetCategoryId } = useBudgetState(
-    useShallow((s) => ({
-      sheetVisible: s.sheetVisible,
-      mode: s.mode,
-      targetCategoryId: s.targetCategoryId,
-    })),
-  );
-  const close = useBudgetState.getState().close;
-  const setLimit = useBudgetStore.getState().setLimit;
-  const { selectedCategoryId, pickerExpanded } = useSetBudgetSheetState(
-    useShallow((s) => ({
-      selectedCategoryId: s.selectedCategoryId,
-      pickerExpanded: s.pickerExpanded,
-    })),
-  );
-  const initAddMode = useSetBudgetSheetState.getState().initAddMode;
-  const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
-  const togglePicker = useSetBudgetSheetState.getState().togglePicker;
-  const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
-  const reset = useSetBudgetSheetState.getState().reset;
+export function SetBudgetSheet({
+  budgetState,
+  budgetableCategories,
+  editingRow,
+}: SetBudgetSheetProps) {
+  const sheetVisible = budgetState.state.sheetVisible.value;
+  const mode = budgetState.state.mode.value;
+  const targetCategoryId = budgetState.state.targetCategoryId.value;
+  const close = budgetState.close;
+  const setLimit = useBudgetStore().setLimit;
+  const setBudgetSheetState = useSetBudgetSheetState();
+  const selectedCategoryId = setBudgetSheetState.state.selectedCategoryId.value;
+  const pickerExpanded = setBudgetSheetState.state.pickerExpanded.value;
+  const initAddMode = setBudgetSheetState.initAddMode;
+  const setSelectedCategoryId = setBudgetSheetState.setSelectedCategoryId;
+  const togglePicker = setBudgetSheetState.togglePicker;
+  const collapsePicker = setBudgetSheetState.collapsePicker;
+  const reset = setBudgetSheetState.reset;
 
   const isEdit = mode === 'edit';
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
