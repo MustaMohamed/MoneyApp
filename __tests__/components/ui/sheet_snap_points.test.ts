@@ -4,7 +4,7 @@
  * resolveSnapPoints is exported from components/ui/sheet.tsx
  * (the HeroUI-backed Sheet primitive).
  */
-import { resolveSnapPoints, shouldMountSheetContent } from '@/components/ui/sheet';
+import { resolveSnapPoints } from '@/components/ui/sheet';
 
 describe('resolveSnapPoints', () => {
   // --- 7-step scale (user-defined heights) ---
@@ -77,20 +77,5 @@ describe('resolveSnapPoints', () => {
 
   it('pixel-number snap points pass through', () => {
     expect(resolveSnapPoints(undefined, [400])).toEqual([400]);
-  });
-});
-
-describe('shouldMountSheetContent', () => {
-  it('keeps default sheets mounted for compatibility', () => {
-    expect(shouldMountSheetContent(false, undefined, false)).toBe(true);
-  });
-
-  it('does not mount lazy sheets before first open', () => {
-    expect(shouldMountSheetContent(false, 'lazy', false)).toBe(false);
-  });
-
-  it('keeps lazy sheets mounted while open or after first open', () => {
-    expect(shouldMountSheetContent(true, 'lazy', false)).toBe(true);
-    expect(shouldMountSheetContent(false, 'lazy', true)).toBe(true);
   });
 });

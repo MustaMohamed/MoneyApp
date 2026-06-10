@@ -36,13 +36,23 @@ const ADD_TRANSACTION_CLOSE_UNMOUNT_DELAY_MS = 350;
 
 export function AddTransactionSheet({ visible, onClose }: AddProps): React.ReactElement | null {
   const [shouldRenderBody, setShouldRenderBody] = useState(visible);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     if (visible) {
       setShouldRenderBody(true);
-      return undefined;
+      setSheetOpen(false);
+
+      const timeout = setTimeout(() => {
+        setSheetOpen(true);
+      }, 0);
+
+      return () => {
+        clearTimeout(timeout);
+      };
     }
 
+    setSheetOpen(false);
     const timeout = setTimeout(() => {
       setShouldRenderBody(false);
     }, ADD_TRANSACTION_CLOSE_UNMOUNT_DELAY_MS);
@@ -54,7 +64,7 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
 
   if (!shouldRenderAddTransactionSheetBody(visible, shouldRenderBody)) return null;
 
-  return <AddTransactionSheetInner visible={visible} onClose={onClose} />;
+  return <AddTransactionSheetInner visible={sheetOpen} onClose={onClose} />;
 }
 
 function AddTransactionSheetInner({ visible, onClose }: AddProps): React.ReactElement {
@@ -76,7 +86,6 @@ function AddTransactionSheetInner({ visible, onClose }: AddProps): React.ReactEl
         title={Strings.addTxTitle}
         size="lg"
         scrollable
-        mountMode="lazy"
         footer={
           hook.state.hasAccounts ? (
             <Button
