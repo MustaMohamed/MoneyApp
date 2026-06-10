@@ -19,6 +19,7 @@ import {
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 export interface CategoryBudgetRowVM extends CategoryBudgetVM {
   name: string;
@@ -52,18 +53,22 @@ export function useBudget() {
 
   useFocusEffect(
     useCallback(() => {
-      setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
-      void loadCategories();
-      void load();
-      void (async () => {
+      const focusedMonth = currentYearMonth();
+      setMonth(focusedMonth); // refresh in case the month rolled over while mounted
+
+      const reload = runAfterInteractions(async () => {
+        void loadCategories();
+        void load();
         try {
           const db = await getDb();
-          const s = await getTrailingIncomeSuggestion(db, currentYearMonth());
+          const s = await getTrailingIncomeSuggestion(db, focusedMonth);
           setSuggestion(s);
         } catch {
           setSuggestion(null);
         }
-      })();
+      });
+
+      return reload.cancel;
     }, [loadCategories, load]),
   );
 

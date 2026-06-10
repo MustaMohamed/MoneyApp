@@ -10,6 +10,7 @@ import { commitmentRepository } from '@/modules/commitments/repositories/commitm
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { getMonthExpenseStats } from '@/modules/transactions/database/transactions';
 import { toLocalDateString } from '@/utils/format_date';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 import {
   computeLiabilitiesBreakdown,
@@ -83,9 +84,12 @@ export function useDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadCurrentMonthCommitmentPayments();
-      void loadMonthSpend();
       setSelectedSegment('overview');
+      const reload = runAfterInteractions(() => {
+        void loadCurrentMonthCommitmentPayments();
+        void loadMonthSpend();
+      });
+      return reload.cancel;
     }, [loadCurrentMonthCommitmentPayments, loadMonthSpend, setSelectedSegment]),
   );
 

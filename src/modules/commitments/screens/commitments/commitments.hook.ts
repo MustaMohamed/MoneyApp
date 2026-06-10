@@ -5,6 +5,7 @@ import { useMemo, useCallback, useRef } from 'react';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
@@ -138,8 +139,11 @@ export function useCommitments() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadCommitments();
-      void loadPaymentsForMonth(selectedMonthRef.current);
+      const reload = runAfterInteractions(() => {
+        void loadCommitments();
+        void loadPaymentsForMonth(selectedMonthRef.current);
+      });
+      return reload.cancel;
     }, [loadCommitments, loadPaymentsForMonth]),
   );
 

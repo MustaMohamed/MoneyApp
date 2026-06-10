@@ -17,12 +17,14 @@ import { PortalHost } from 'heroui-native/portal';
 import { HeroUINativeProviderRaw } from 'heroui-native/provider-raw';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { enableFreeze } from 'react-native-screens';
 
 import { Colors } from '@/constants/theme';
 import { useAppInit } from '@/utils/use_layout_init.hook';
 
 void SplashScreen.preventAutoHideAsync();
 void SystemUI.setBackgroundColorAsync(Colors.dark.bg);
+enableFreeze(true);
 
 const AppTheme = {
   ...DarkTheme,
@@ -66,6 +68,7 @@ export default function RootLayout() {
           <Stack
             screenOptions={{
               headerShown: false,
+              freezeOnBlur: true,
               contentStyle: { backgroundColor: Colors.dark.bg },
             }}
           />

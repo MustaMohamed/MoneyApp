@@ -58,7 +58,7 @@
  */
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -127,6 +127,16 @@ export function resolveSnapPoints(
   return [SIZE_PCT[size ?? 'lg']];
 }
 
+type SheetMountMode = 'always' | 'lazy';
+
+export function shouldMountSheetContent(
+  isOpen: boolean,
+  mountMode: SheetMountMode | undefined,
+  hasOpened: boolean,
+): boolean {
+  return mountMode !== 'lazy' || isOpen || hasOpened;
+}
+
 export interface SheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -179,6 +189,12 @@ export interface SheetProps {
    * scrollable contentContainerStyle.
    */
   footer?: React.ReactNode;
+  /**
+   * Mount strategy for the native sheet subtree. Default `always` preserves the
+   * historical contract. `lazy` skips the BottomSheet portal/content until the
+   * first open, which avoids hidden sheet hook/render cost on initial screen load.
+   */
+  mountMode?: SheetMountMode;
   children: React.ReactNode;
 }
 
@@ -191,14 +207,17 @@ export function Sheet({
   scrollable = false,
   fitContent = false,
   footer,
+  mountMode = 'always',
   children,
 }: SheetProps) {
   const sheetVisibility = useSheetVisibilityStore();
   const insets = useSafeAreaInsets();
+  const [hasOpened, setHasOpened] = useState(isOpen);
 
   // FAB-hide: increment on open, decrement on close or unmount-while-open.
   useEffect(() => {
     if (isOpen) {
+      setHasOpened(true);
       sheetVisibility.increment();
       return () => {
         sheetVisibility.decrement();
@@ -258,6 +277,8 @@ export function Sheet({
             }
           : {}),
       };
+
+  if (!shouldMountSheetContent(isOpen, mountMode, hasOpened)) return null;
 
   return (
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>

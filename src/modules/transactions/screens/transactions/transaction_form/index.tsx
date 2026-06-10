@@ -11,7 +11,7 @@
  * the root cause of the "sheet won't open" symptom caught in Wave 1 QA.
  */
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
@@ -22,6 +22,7 @@ import { CategoryPickerSheet } from '@/modules/categories/components/category_pi
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 import { useAddTransaction } from './add_transaction.hook';
+import { shouldRenderAddTransactionSheetBody } from './add_transaction_sheet.helpers';
 import { NoAccountsEmpty } from './components/no_accounts_empty';
 import { useEditTransaction } from './edit_transaction.hook';
 import { TransactionFormBody } from './transaction_form_body';
@@ -31,7 +32,32 @@ interface AddProps {
   onClose: () => void;
 }
 
+const ADD_TRANSACTION_CLOSE_UNMOUNT_DELAY_MS = 350;
+
 export function AddTransactionSheet({ visible, onClose }: AddProps): React.ReactElement | null {
+  const [shouldRenderBody, setShouldRenderBody] = useState(visible);
+
+  useEffect(() => {
+    if (visible) {
+      setShouldRenderBody(true);
+      return undefined;
+    }
+
+    const timeout = setTimeout(() => {
+      setShouldRenderBody(false);
+    }, ADD_TRANSACTION_CLOSE_UNMOUNT_DELAY_MS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [visible]);
+
+  if (!shouldRenderAddTransactionSheetBody(visible, shouldRenderBody)) return null;
+
+  return <AddTransactionSheetInner visible={visible} onClose={onClose} />;
+}
+
+function AddTransactionSheetInner({ visible, onClose }: AddProps): React.ReactElement {
   const hook = useAddTransaction(onClose);
 
   const handleAddAccount = useCallback(() => {
@@ -50,6 +76,7 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
         title={Strings.addTxTitle}
         size="lg"
         scrollable
+        mountMode="lazy"
         footer={
           hook.state.hasAccounts ? (
             <Button
