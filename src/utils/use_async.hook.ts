@@ -16,7 +16,7 @@ export function useAsync<T extends AnyFn>(fn: T): AsyncFn<T> {
   const [isError, setIsError] = useState(false);
   const pendingCalls = useRef(0);
 
-  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- TS cannot prove an async wrapper plus attached status booleans matches AsyncFn<T>
+  // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- callback gains status booleans.
   const asyncFn = useCallback(
     async (...args: Parameters<T>) => {
       pendingCalls.current += 1;
@@ -25,7 +25,7 @@ export function useAsync<T extends AnyFn>(fn: T): AsyncFn<T> {
 
       let result: ReturnType<T>;
       try {
-        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- generic wrapper preserves T's declared return type while normalizing sync/async execution
+        // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- preserves T while normalizing sync/async.
         result = fn(...args) as ReturnType<T>;
       } catch (e: unknown) {
         setIsError(true);

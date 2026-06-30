@@ -14,7 +14,7 @@ export function runAfterInteractions(
   callback: () => void | Promise<void>,
 ): RunAfterInteractionsTask {
   let cancelled = false;
-  // oxlint-disable-next-line typescript/no-deprecated -- keeps focus reloads behind active navigation interactions.
+  // oxlint-disable-next-line typescript/no-deprecated -- defer until navigation interactions finish.
   const task = InteractionManager.runAfterInteractions(() => {
     if (cancelled) return;
     try {
