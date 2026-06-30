@@ -9,7 +9,7 @@ import { useInit } from '@/utils/use_init.hook';
 export function useAppInit() {
   const ready = useAppReadyStore.useState.ready();
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const { init: initOnboarding } = useOnboardingStore();
+  const initOnboarding = useOnboardingStore.getState().init;
 
   useInit(() => {
     const markReady = useAppReadyStore.getState().markReady;

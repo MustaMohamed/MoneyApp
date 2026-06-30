@@ -229,10 +229,12 @@ npm test -- --ci __tests__/utils/run_after_interactions.test.ts __tests__/screen
 - [x] Run expo-doctor.
 - [x] Run Android prebuild dry-run.
 - [x] Confirm the repository is free of Preact Signals imports/usages outside lockfile history.
-- [ ] Commit once verification is green.
-- [ ] Push only after explicit user request or as part of the user's already requested PR creation step.
-- [ ] Create PR.
-- [ ] Run a full code review of the PR and fix valid findings.
+- [x] Commit once verification is green.
+- [x] Push only after explicit user request or as part of the user's already requested PR creation step.
+- [x] Create PR.
+- [x] Run a full code review of the PR and fix valid findings.
+
+**Dependency Alignment Note:** The final pre-push CI parity run initially failed at `expo-doctor` because the existing Expo SDK 55 packages on `main` were one patch behind the versions Expo currently requires. `npx expo install --fix` updated only existing Expo/Jest-Expo SDK 55 packages; it did not introduce a new dependency. The full CI parity chain was rerun from the top after this alignment and passed, including `expo-doctor` and Android prebuild dry-run.
 
 ## Verification Commands
 

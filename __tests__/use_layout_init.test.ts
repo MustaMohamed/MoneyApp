@@ -17,9 +17,16 @@ jest.mock('@/database/client', () => ({
   runMigrations: (db: unknown) => mockRunMigrations(db),
 }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
-  useOnboardingStore: () => ({
-    init: () => mockLoadOnboardingState(),
-  }),
+  useOnboardingStore: Object.assign(
+    jest.fn(() => {
+      throw new Error('useAppInit should read onboarding actions without subscribing');
+    }),
+    {
+      getState: jest.fn(() => ({
+        init: () => mockLoadOnboardingState(),
+      })),
+    },
+  ),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   useAccountStore: {
@@ -49,6 +56,11 @@ function resetReady() {
   act(() => {
     useAppReadyStore.getState().reset();
   });
+}
+
+function getMockUseOnboardingStore() {
+  return jest.requireMock('@/modules/onboarding/store/onboarding.store')
+    .useOnboardingStore as jest.Mock;
 }
 
 describe('useAppInit - splash gate does not await commitment calls', () => {
@@ -103,6 +115,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
+    expect(getMockUseOnboardingStore()).not.toHaveBeenCalled();
     expect(readReady()).toBe(true);
   });
 
