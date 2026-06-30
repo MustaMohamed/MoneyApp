@@ -22,10 +22,9 @@ const INITIAL_STATE: AdjustBalanceSheetStateShape = {
 export const useAdjustBalanceSheetState = createMoneyAppSelectors(
   create<AdjustBalanceSheetState>((set) => ({
     ...INITIAL_STATE,
-    setInput: (v) => set((s) => ({ ...s, input: v })),
-    setError: (v) => set((s) => ({ ...s, error: v })),
-    initialize: (currentBalance) =>
-      set((s) => ({ ...s, input: String(currentBalance), error: '' })),
+    setInput: (v) => set({ input: v }),
+    setError: (v) => set({ error: v }),
+    initialize: (currentBalance) => set({ input: String(currentBalance), error: '' }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -37,12 +37,11 @@ export const useFilterStore = createMoneyAppSelectors(
   create<FilterStore>((set) => ({
     ...INITIAL_STATE,
 
-    setDraft: (next) => set((s) => ({ ...s, draft: next })),
-    resetDraft: () => set((s) => ({ ...s, draft: EMPTY_FILTERS_V2 })),
+    setDraft: (next) => set({ draft: next }),
+    resetDraft: () => set({ draft: EMPTY_FILTERS_V2 }),
 
     toggleAccountId: (id) =>
       set((s) => ({
-        ...s,
         draft: {
           ...s.draft,
           accountIds: s.draft.accountIds.includes(id)
@@ -53,7 +52,6 @@ export const useFilterStore = createMoneyAppSelectors(
 
     toggleCategoryId: (id) =>
       set((s) => ({
-        ...s,
         draft: {
           ...s.draft,
           categoryIds: s.draft.categoryIds.includes(id)
@@ -62,8 +60,8 @@ export const useFilterStore = createMoneyAppSelectors(
         },
       })),
 
-    setAmountMin: (v) => set((s) => ({ ...s, draft: { ...s.draft, amountMin: v } })),
-    setAmountMax: (v) => set((s) => ({ ...s, draft: { ...s.draft, amountMax: v } })),
-    setAmountCurrency: (c) => set((s) => ({ ...s, draft: { ...s.draft, amountCurrency: c } })),
+    setAmountMin: (v) => set((s) => ({ draft: { ...s.draft, amountMin: v } })),
+    setAmountMax: (v) => set((s) => ({ draft: { ...s.draft, amountMax: v } })),
+    setAmountCurrency: (c) => set((s) => ({ draft: { ...s.draft, amountCurrency: c } })),
   })),
 );

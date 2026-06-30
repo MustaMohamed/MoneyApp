@@ -21,8 +21,8 @@ const INITIAL_STATE: ReassignCategorySheetStateShape = {
 export const useReassignCategorySheetState = createMoneyAppSelectors(
   create<ReassignCategorySheetState>((set) => ({
     ...INITIAL_STATE,
-    setSelectedId: (id) => set((s) => ({ ...s, selectedId: id })),
-    setIsLoading: (v) => set((s) => ({ ...s, isLoading: v })),
+    setSelectedId: (id) => set({ selectedId: id }),
+    setIsLoading: (v) => set({ isLoading: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

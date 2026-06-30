@@ -10,7 +10,7 @@ type SheetVisibilityStore = { count: number } & {
 
 export const useSheetVisibilityStore = create<SheetVisibilityStore>((set) => ({
   ...INITIAL_STATE,
-  increment: () => set((s) => ({ ...s, count: s.count + 1 })),
+  increment: () => set((s) => ({ count: s.count + 1 })),
   decrement: () =>
     set((s) => {
       // Floor at 0 so a leaked decrement (Sheet unmounted-twice, double-cleanup,
@@ -24,7 +24,7 @@ export const useSheetVisibilityStore = create<SheetVisibilityStore>((set) => ({
             'Investigate the Sheet whose visible just flipped.',
         );
       }
-      return { ...s, count: Math.max(0, s.count - 1) };
+      return { count: Math.max(0, s.count - 1) };
     }),
   reset: () => set(INITIAL_STATE),
 }));

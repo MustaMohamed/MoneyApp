@@ -35,14 +35,13 @@ const INITIAL_STATE: FilterStateShape = {
 export const useFilterState = createMoneyAppSelectors(
   create<FilterState>((set) => ({
     ...INITIAL_STATE,
-    open: () => set((s) => ({ ...s, visible: true })),
-    close: () => set((s) => ({ ...s, visible: false, openSection: null })),
+    open: () => set({ visible: true }),
+    close: () => set({ visible: false, openSection: null }),
     toggleSection: (target) =>
       set((s) => ({
-        ...s,
         openSection: s.openSection === target ? null : target,
       })),
-    setDateRangeSheetVisible: (v) => set((s) => ({ ...s, dateRangeSheetVisible: v })),
+    setDateRangeSheetVisible: (v) => set({ dateRangeSheetVisible: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

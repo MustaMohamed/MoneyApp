@@ -45,14 +45,14 @@ export const useAddTransactionState = createMoneyAppSelectors(
   create<AddTransactionState>((set) => ({
     ...INITIAL_STATE,
 
-    open: () => set((s) => ({ ...s, visible: true, pendingOpen: false })),
-    requestOpen: () => set((s) => ({ ...s, pendingOpen: true })),
+    open: () => set({ visible: true, pendingOpen: false }),
+    requestOpen: () => set({ pendingOpen: true }),
     close: () => set(INITIAL_STATE),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setShowAccountPicker: (v) => set((s) => ({ ...s, showAccountPicker: v })),
-    setShowToPicker: (v) => set((s) => ({ ...s, showToPicker: v })),
-    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
+    setSaving: (v) => set({ saving: v }),
+    setShowAccountPicker: (v) => set({ showAccountPicker: v }),
+    setShowToPicker: (v) => set({ showToPicker: v }),
+    setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
+    setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

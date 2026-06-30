@@ -34,12 +34,12 @@ export function createAccountDetailState() {
   return createMoneyAppSelectors(
     create<AccountDetailState>((set) => ({
       ...INITIAL_STATE,
-      setEditing: (v) => set((s) => ({ ...s, isEditing: v })),
-      setAdjustVisible: (v) => set((s) => ({ ...s, isAdjustVisible: v })),
-      setArchiveVisible: (v) => set((s) => ({ ...s, isArchiveVisible: v })),
-      setSaving: (v) => set((s) => ({ ...s, isSaving: v })),
-      setAdjusting: (v) => set((s) => ({ ...s, isAdjusting: v })),
-      setArchiving: (v) => set((s) => ({ ...s, isArchiving: v })),
+      setEditing: (v) => set({ isEditing: v }),
+      setAdjustVisible: (v) => set({ isAdjustVisible: v }),
+      setArchiveVisible: (v) => set({ isArchiveVisible: v }),
+      setSaving: (v) => set({ isSaving: v }),
+      setAdjusting: (v) => set({ isAdjusting: v }),
+      setArchiving: (v) => set({ isArchiving: v }),
       reset: () => set(INITIAL_STATE),
     })),
   );

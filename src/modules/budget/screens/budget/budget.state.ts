@@ -31,21 +31,19 @@ export const useBudgetState = createMoneyAppSelectors(
   create<BudgetState>((set) => ({
     ...INITIAL_STATE,
     openAdd: () =>
-      set((s) => ({
-        ...s,
+      set({
         sheetVisible: true,
         mode: 'add',
         targetCategoryId: undefined,
-      })),
+      }),
     openEdit: (categoryId) =>
-      set((s) => ({
-        ...s,
+      set({
         sheetVisible: true,
         mode: 'edit',
         targetCategoryId: categoryId,
-      })),
-    close: () => set((s) => ({ ...s, sheetVisible: false })),
-    setLensTab: (tab) => set((s) => ({ ...s, lensTab: tab })),
+      }),
+    close: () => set({ sheetVisible: false }),
+    setLensTab: (tab) => set({ lensTab: tab }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -31,7 +31,7 @@ export function createCategoryStore(repo: ICategoryRepository) {
       loadCategories: async () => {
         try {
           const categories = await repo.getAll();
-          set((s) => ({ ...s, categories, hasLoaded: true }));
+          set({ categories, hasLoaded: true });
         } catch (err) {
           console.error('[categoryStore] loadCategories failed:', err);
           throw err;

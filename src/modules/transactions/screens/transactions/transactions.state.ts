@@ -18,7 +18,7 @@ const INITIAL_STATE: TransactionsStateShape = {
 export const useTransactionsState = createMoneyAppSelectors(
   create<TransactionsState>((set) => ({
     ...INITIAL_STATE,
-    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
+    setRefreshing: (v) => set({ refreshing: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

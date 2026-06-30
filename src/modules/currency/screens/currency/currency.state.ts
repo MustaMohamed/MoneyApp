@@ -25,9 +25,9 @@ export function createCurrencyScreenState() {
   return createMoneyAppSelectors(
     create<CurrencyScreenState>((set) => ({
       ...INITIAL_STATE,
-      setFetching: (v) => set((s) => ({ ...s, isFetching: v })),
-      setSaving: (v) => set((s) => ({ ...s, isSaving: v })),
-      setFetchError: (msg) => set((s) => ({ ...s, fetchError: msg })),
+      setFetching: (v) => set({ isFetching: v }),
+      setSaving: (v) => set({ isSaving: v }),
+      setFetchError: (msg) => set({ fetchError: msg }),
       reset: () => set(INITIAL_STATE),
     })),
   );

@@ -42,7 +42,7 @@ export function createAccountStore(repo: IAccountRepository) {
         try {
           const accounts = await repo.getAll();
           if (requestId === loadRequestId) {
-            set((s) => ({ ...s, accounts, hasLoaded: true }));
+            set({ accounts, hasLoaded: true });
           }
         } catch (err) {
           console.error('[accountStore] loadAccounts failed:', err);

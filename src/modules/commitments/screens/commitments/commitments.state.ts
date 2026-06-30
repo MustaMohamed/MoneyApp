@@ -24,8 +24,8 @@ const INITIAL_STATE: CommitmentsScreenStateShape = {
 export const useCommitmentsScreenState = createMoneyAppSelectors(
   create<CommitmentsScreenState>((set) => ({
     ...INITIAL_STATE,
-    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
-    setStatusFilter: (f) => set((s) => ({ ...s, statusFilter: f })),
+    setRefreshing: (v) => set({ refreshing: v }),
+    setStatusFilter: (f) => set({ statusFilter: f }),
     reset: () => set(INITIAL_STATE),
   })),
 );

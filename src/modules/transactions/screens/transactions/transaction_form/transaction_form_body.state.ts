@@ -22,9 +22,9 @@ const INITIAL_STATE: TransactionFormBodyStateShape = {
 export const useTransactionFormBodyState = create<TransactionFormBodyState>((set) => ({
   ...INITIAL_STATE,
 
-  setKeyboardVisible: (v) => set((s) => ({ ...s, keyboardVisible: v })),
-  setShowIosDatePicker: (v) => set((s) => ({ ...s, showIosDatePicker: v })),
-  setShowAndroidDatePicker: (v) => set((s) => ({ ...s, showAndroidDatePicker: v })),
+  setKeyboardVisible: (v) => set({ keyboardVisible: v }),
+  setShowIosDatePicker: (v) => set({ showIosDatePicker: v }),
+  setShowAndroidDatePicker: (v) => set({ showAndroidDatePicker: v }),
 
   reset: () => set(INITIAL_STATE),
 }));

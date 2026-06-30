@@ -30,11 +30,11 @@ export const useEditTransactionState = createMoneyAppSelectors(
   create<EditTransactionState>((set) => ({
     ...INITIAL_STATE,
 
-    open: () => set((s) => ({ ...s, visible: true })),
+    open: () => set({ visible: true }),
     close: () => set(INITIAL_STATE),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setShowCategoryPicker: (v) => set((s) => ({ ...s, showCategoryPicker: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
+    setSaving: (v) => set({ saving: v }),
+    setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
+    setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -61,30 +61,28 @@ export function createTransactionStore(repo: ITransactionRepository) {
         mode: 'replace' | 'append',
       ) {
         const myId = ++requestId;
-        set((s) => ({ ...s, loading: true }));
+        set({ loading: true });
         try {
           const rows = await repo.getAll({ ...filters, limit: PAGE_SIZE, offset });
           if (myId !== requestId) return;
           const hasMore = rows.length === PAGE_SIZE;
           if (mode === 'replace') {
-            set((s) => ({
-              ...s,
+            set({
               transactions: rows,
               hasMore,
               loading: false,
               hasLoaded: true,
               query: filters,
-            }));
+            });
           } else {
             set((s) => ({
-              ...s,
               transactions: [...s.transactions, ...rows],
               hasMore,
               loading: false,
             }));
           }
         } catch (err) {
-          if (myId === requestId) set((s) => ({ ...s, loading: false }));
+          if (myId === requestId) set({ loading: false });
           console.error('[transactionStore] fetch failed:', err);
           throw err;
         }
@@ -92,7 +90,6 @@ export function createTransactionStore(repo: ITransactionRepository) {
 
       function bumpMutationVersion() {
         set((s) => ({
-          ...s,
           mutationVersion: s.mutationVersion + 1,
         }));
       }

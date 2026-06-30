@@ -27,10 +27,10 @@ const INITIAL_STATE: CommitmentFormBodyStateShape = {
 export const useCommitmentFormBodyState = createMoneyAppSelectors(
   create<CommitmentFormBodyState>((set) => ({
     ...INITIAL_STATE,
-    setCategoryPickerVisible: (v) => set((s) => ({ ...s, categoryPickerVisible: v })),
-    setAccountPickerVisible: (v) => set((s) => ({ ...s, accountPickerVisible: v })),
-    setShowStartDatePicker: (v) => set((s) => ({ ...s, showStartDatePicker: v })),
-    setShowEndDatePicker: (v) => set((s) => ({ ...s, showEndDatePicker: v })),
+    setCategoryPickerVisible: (v) => set({ categoryPickerVisible: v }),
+    setAccountPickerVisible: (v) => set({ accountPickerVisible: v }),
+    setShowStartDatePicker: (v) => set({ showStartDatePicker: v }),
+    setShowEndDatePicker: (v) => set({ showEndDatePicker: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

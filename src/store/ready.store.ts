@@ -12,7 +12,7 @@ type AppReadyStore = typeof INITIAL_STATE & {
 export const useAppReadyStore = createMoneyAppSelectors(
   create<AppReadyStore>((set) => ({
     ...INITIAL_STATE,
-    markReady: () => set((s) => ({ ...s, ready: true })),
+    markReady: () => set({ ready: true }),
     reset: () => set(INITIAL_STATE),
   })),
 );

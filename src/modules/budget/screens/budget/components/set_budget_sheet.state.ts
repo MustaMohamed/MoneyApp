@@ -28,10 +28,9 @@ export const useSetBudgetSheetState = createMoneyAppSelectors(
         ...INITIAL_STATE,
         selectedCategoryId: firstCategoryId,
       }),
-    setSelectedCategoryId: (id) =>
-      set((s) => ({ ...s, selectedCategoryId: id, pickerExpanded: false })),
-    togglePicker: () => set((s) => ({ ...s, pickerExpanded: !s.pickerExpanded })),
-    collapsePicker: () => set((s) => ({ ...s, pickerExpanded: false })),
+    setSelectedCategoryId: (id) => set({ selectedCategoryId: id, pickerExpanded: false }),
+    togglePicker: () => set((s) => ({ pickerExpanded: !s.pickerExpanded })),
+    collapsePicker: () => set({ pickerExpanded: false }),
     reset: () => set(INITIAL_STATE),
   })),
 );

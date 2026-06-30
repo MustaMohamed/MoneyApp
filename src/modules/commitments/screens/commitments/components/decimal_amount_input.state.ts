@@ -9,8 +9,8 @@ type DecimalInputState = { text: string } & {
 function createStore(initialText: string) {
   return create<DecimalInputState>((set) => ({
     text: initialText,
-    setText: (text) => set((s) => ({ ...s, text })),
-    syncToValue: (text) => set((s) => ({ ...s, text })),
+    setText: (text) => set({ text }),
+    syncToValue: (text) => set({ text }),
   }));
 }
 

@@ -36,11 +36,11 @@ function initialState(): StateShape {
 export const useTransactionsScreenStore = createMoneyAppSelectors(
   create<TransactionsScreenStore>((set) => ({
     ...initialState(),
-    setSearchQuery: (q) => set((s) => ({ ...s, searchQuery: q })),
-    setActiveFilter: (f) => set((s) => ({ ...s, activeFilter: f })),
-    setPeriod: (p) => set((s) => ({ ...s, period: p })),
-    setAppliedFilters: (f) => set((s) => ({ ...s, appliedFilters: f })),
-    clearSearch: () => set((s) => ({ ...s, searchQuery: '' })),
+    setSearchQuery: (q) => set({ searchQuery: q }),
+    setActiveFilter: (f) => set({ activeFilter: f }),
+    setPeriod: (p) => set({ period: p }),
+    setAppliedFilters: (f) => set({ appliedFilters: f }),
+    clearSearch: () => set({ searchQuery: '' }),
     reset: () => set(initialState()),
   })),
 );

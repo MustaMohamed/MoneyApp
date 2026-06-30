@@ -133,7 +133,7 @@ Sub-screens (non-route drawers like `transactions/filter/`) follow the same anat
 
 Files: `snake_case`. TS identifiers: `camelCase`.
 
-**Legacy Zustand store/state shape:** Existing `.store.ts` and `.state.ts` Zustand stores expose reactive values as top-level fields; actions stay as top-level functions. Setters spread the previous store: `set((s) => ({ ...s, x: v }))`. `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Consumers group reactive reads with `useStore(useShallow((s) => ({ x: s.x, y: s.y })))` and read actions outside render with `useStore.getState().action`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`; screen consumers destructure `state` and read fields via `state.x`.
+**Legacy Zustand store/state shape:** Existing `.store.ts` and `.state.ts` Zustand stores expose reactive values as top-level fields; actions stay as top-level functions. Use `set({ x: v })` for top-level partial updates; use functional `set((s) => ({ x: s.x + 1 }))` only when the next value reads current state. Spread nested objects only when updating nested fields, for example `set((s) => ({ draft: { ...s.draft, x: v } }))`. `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Consumers group reactive reads with `useStore(useShallow((s) => ({ x: s.x, y: s.y })))` and read actions outside render with `useStore.getState().action`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`; screen consumers destructure `state` and read fields via `state.x`.
 
 **Signals rollback:** `@preact/signals-react` and its Babel transform are not installed. Reintroducing Signals requires a new approved plan, dependency change, and migration guidance update.
 

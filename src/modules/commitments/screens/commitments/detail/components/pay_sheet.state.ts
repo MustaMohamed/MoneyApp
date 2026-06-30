@@ -27,10 +27,10 @@ const INITIAL_STATE: PaySheetStateShape = {
 export const usePaySheetState = createMoneyAppSelectors(
   create<PaySheetState>((set) => ({
     ...INITIAL_STATE,
-    setVisible: (v) => set((s) => ({ ...s, visible: v })),
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
-    setAccountPickerVisible: (v) => set((s) => ({ ...s, accountPickerVisible: v })),
-    setRateOverride: (v) => set((s) => ({ ...s, rateOverride: v })),
+    setVisible: (v) => set({ visible: v }),
+    setSaving: (v) => set({ saving: v }),
+    setAccountPickerVisible: (v) => set({ accountPickerVisible: v }),
+    setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -36,15 +36,13 @@ const INITIAL_STATE: DashboardStoreShape = {
 export const useDashboardStore = createMoneyAppSelectors(
   create<DashboardStore>((set) => ({
     ...INITIAL_STATE,
-    setStatsMap: (m) => set((s) => ({ ...s, statsMap: m })),
-    setCurrentMonthCommitmentPayments: (p) =>
-      set((s) => ({ ...s, currentMonthCommitmentPayments: p })),
+    setStatsMap: (m) => set({ statsMap: m }),
+    setCurrentMonthCommitmentPayments: (p) => set({ currentMonthCommitmentPayments: p }),
     setMonthSpendStats: (current, previous) =>
-      set((s) => ({
-        ...s,
+      set({
         currentMonthSpend: current,
         previousMonthSpend: previous,
-      })),
+      }),
     reset: () => set(INITIAL_STATE),
   })),
 );

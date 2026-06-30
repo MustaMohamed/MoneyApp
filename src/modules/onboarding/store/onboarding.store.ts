@@ -34,7 +34,7 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
       setStep: async (step) => {
         try {
           await repository.setStep(step);
-          set((s) => ({ ...s, currentStep: step }));
+          set({ currentStep: step });
         } catch (err) {
           console.error('[onboardingStore] setStep failed:', err);
           throw err;
@@ -44,7 +44,7 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
       setBaseCurrency: async (currency) => {
         try {
           await repository.setBaseCurrency(currency);
-          set((s) => ({ ...s, baseCurrency: currency }));
+          set({ baseCurrency: currency });
         } catch (err) {
           console.error('[onboardingStore] setBaseCurrency failed:', err);
           throw err;
@@ -54,7 +54,7 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
       completeOnboarding: async () => {
         try {
           await repository.complete();
-          set((s) => ({ ...s, complete: true }));
+          set({ complete: true });
         } catch (err) {
           console.error('[onboardingStore] completeOnboarding failed:', err);
           throw err;
@@ -63,12 +63,11 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
 
       init: async (): Promise<OnboardingInitResult> => {
         const nextState = await repository.load();
-        set((s) => ({
-          ...s,
+        set({
           complete: nextState.complete,
           currentStep: nextState.step,
           baseCurrency: nextState.baseCurrency,
-        }));
+        });
 
         return { complete: nextState.complete, step: nextState.step };
       },

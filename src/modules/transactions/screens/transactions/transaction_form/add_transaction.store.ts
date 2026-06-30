@@ -31,28 +31,28 @@ export const useAddTransactionStore = createMoneyAppSelectors(
   create<AddTransactionStore>((set) => ({
     ...INITIAL_STATE,
 
-    setType: (type) => set((s) => ({ ...s, type, amountStr: '0' })),
+    setType: (type) => set({ type, amountStr: '0' }),
 
-    setAmountStr: (value) => set((s) => ({ ...s, amountStr: value })),
+    setAmountStr: (value) => set({ amountStr: value }),
 
     handleNumpad: (action, value) =>
       set((s) => {
         const prev = s.amountStr;
         if (action === 'backspace') {
-          return { ...s, amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
+          return { amountStr: prev.length <= 1 ? '0' : prev.slice(0, -1) };
         }
         if (action === 'decimal') {
-          return { ...s, amountStr: prev.includes('.') ? prev : prev + '.' };
+          return { amountStr: prev.includes('.') ? prev : prev + '.' };
         }
         const digit = value ?? '';
         if (prev === '0') {
-          return { ...s, amountStr: digit === '0' ? '0' : digit };
+          return { amountStr: digit === '0' ? '0' : digit };
         }
         if (prev.includes('.')) {
           const parts = prev.split('.');
           if (parts[1].length >= 2) return {};
         }
-        return { ...s, amountStr: prev + digit };
+        return { amountStr: prev + digit };
       }),
 
     reset: () => set(INITIAL_STATE),

@@ -52,7 +52,7 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
       ...INITIAL_STATE,
 
       setData: (rows, spendByMonth, expectedIncome) =>
-        set((s) => ({ ...s, rows, spendByMonth, expectedIncome, loaded: true })),
+        set({ rows, spendByMonth, expectedIncome, loaded: true }),
 
       load: async () => {
         const months = lastMonths(currentYearMonth(), HISTORY_MONTHS);
@@ -80,7 +80,7 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         await get().load();
       },
 
-      setExpectedIncomeLocal: (amount) => set((s) => ({ ...s, expectedIncome: amount })),
+      setExpectedIncomeLocal: (amount) => set({ expectedIncome: amount }),
 
       reset: () => set(INITIAL_STATE),
     })),
