@@ -11,10 +11,8 @@ export type OnboardingStackParams = {
 };
 
 export default function OnboardingLayout() {
-  const {
-    state: { complete },
-  } = useOnboardingStore();
-  if (complete.value) return <Redirect href="/dashboard" />;
+  const complete = useOnboardingStore((s) => s.complete);
+  if (complete) return <Redirect href="/dashboard" />;
 
   return (
     <Stack

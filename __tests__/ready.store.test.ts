@@ -4,32 +4,35 @@ import { useAppReadyStore } from '@/store/ready.store';
 
 describe('useAppReadyStore', () => {
   beforeEach(() => {
-    const { result, unmount } = renderHook(() => useAppReadyStore());
     act(() => {
-      result.current.reset();
+      useAppReadyStore.getState().reset();
     });
-    unmount();
   });
 
   it('initialises with ready = false', () => {
-    const { result } = renderHook(() => useAppReadyStore());
-    expect(result.current.state.ready.value).toBe(false);
+    const { result } = renderHook(() => useAppReadyStore.useState.ready());
+
+    expect(result.current).toBe(false);
   });
 
   it('markReady sets state.ready to true', () => {
-    const { result } = renderHook(() => useAppReadyStore());
+    const { result } = renderHook(() => useAppReadyStore((s) => s.ready));
+
     act(() => {
-      result.current.markReady();
+      useAppReadyStore.getState().markReady();
     });
-    expect(result.current.state.ready.value).toBe(true);
+
+    expect(result.current).toBe(true);
   });
 
   it('reset sets state.ready to false', () => {
-    const { result } = renderHook(() => useAppReadyStore());
+    const { result } = renderHook(() => useAppReadyStore.useState.ready());
+
     act(() => {
-      result.current.markReady();
-      result.current.reset();
+      useAppReadyStore.getState().markReady();
+      useAppReadyStore.getState().reset();
     });
-    expect(result.current.state.ready.value).toBe(false);
+
+    expect(result.current).toBe(false);
   });
 });

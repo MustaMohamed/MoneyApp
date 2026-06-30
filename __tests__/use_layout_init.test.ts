@@ -8,7 +8,7 @@ const mockRunMigrations = jest.fn<Promise<void>, [unknown]>().mockResolvedValue(
 const mockLoadOnboardingState = jest
   .fn<Promise<{ complete: boolean; step: string }>, []>()
   .mockResolvedValue({ complete: false, step: 'N1' });
-const mockInitAccounts = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+const mockLoadAccounts = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
 const mockGeneratePayments = jest.fn().mockResolvedValue(undefined);
 const mockCheckAndDeactivateExpired = jest.fn().mockResolvedValue(undefined);
 
@@ -17,14 +17,23 @@ jest.mock('@/database/client', () => ({
   runMigrations: (db: unknown) => mockRunMigrations(db),
 }));
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({
-  useOnboardingStore: () => ({
-    init: () => mockLoadOnboardingState(),
-  }),
+  useOnboardingStore: Object.assign(
+    jest.fn(() => {
+      throw new Error('useAppInit should read onboarding actions without subscribing');
+    }),
+    {
+      getState: jest.fn(() => ({
+        init: () => mockLoadOnboardingState(),
+      })),
+    },
+  ),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
-  useAccountStore: () => ({
-    init: () => mockInitAccounts(),
-  }),
+  useAccountStore: {
+    getState: () => ({
+      loadAccounts: () => mockLoadAccounts(),
+    }),
+  },
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: {
@@ -37,18 +46,21 @@ jest.mock('@/modules/commitments/store/commitment.store', () => ({
 jest.mock('@/utils/zod_config', () => {});
 
 function readReady() {
-  const { result, unmount } = renderHook(() => useAppReadyStore());
-  const value = result.current.state.ready.value;
+  const { result, unmount } = renderHook(() => useAppReadyStore((s) => s.ready));
+  const value = result.current;
   unmount();
   return value;
 }
 
 function resetReady() {
-  const { result, unmount } = renderHook(() => useAppReadyStore());
   act(() => {
-    result.current.reset();
+    useAppReadyStore.getState().reset();
   });
-  unmount();
+}
+
+function getMockUseOnboardingStore() {
+  return jest.requireMock('@/modules/onboarding/store/onboarding.store')
+    .useOnboardingStore as jest.Mock;
 }
 
 describe('useAppInit - splash gate does not await commitment calls', () => {
@@ -59,7 +71,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
     resetReady();
     mockLoadOnboardingState.mockResolvedValue({ complete: false, step: 'N1' });
-    mockInitAccounts.mockResolvedValue(undefined);
+    mockLoadAccounts.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -94,7 +106,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
     mockGeneratePayments.mockResolvedValue(undefined);
   });
 
-  it('marks app readiness through the Signals app-ready API', async () => {
+  it('marks app readiness through the Zustand app-ready API', async () => {
     expect(readReady()).toBe(false);
 
     renderHook(() => useAppInit());
@@ -103,6 +115,7 @@ describe('useAppInit - splash gate does not await commitment calls', () => {
       await new Promise((r) => setTimeout(r, 0));
     });
 
+    expect(getMockUseOnboardingStore()).not.toHaveBeenCalled();
     expect(readReady()).toBe(true);
   });
 

@@ -5,7 +5,11 @@ import { Colors } from '@/constants/theme';
 export default function BudgetLayout() {
   return (
     <Stack
-      screenOptions={{ headerShown: false, contentStyle: { backgroundColor: Colors.dark.bg } }}
+      screenOptions={{
+        headerShown: false,
+        freezeOnBlur: true,
+        contentStyle: { backgroundColor: Colors.dark.bg },
+      }}
     />
   );
 }

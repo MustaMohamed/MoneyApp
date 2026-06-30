@@ -69,7 +69,7 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 
 ## Tech Stack
 
-Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 (migrating slice-by-slice to `@preact/signals-react`) · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 (HeroUI `BottomSheet` engine) · **HeroUI Native v1.0.3 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
+Expo (bare workflow via expo-dev-client) · TypeScript strict · Expo Router v3 · expo-sqlite · Zustand v5 · RHF v7 + Zod v4 · expo-secure-store · react-native-reanimated v4 + react-native-worklets · @gorhom/bottom-sheet@^5.2.14 (HeroUI `BottomSheet` engine) · **HeroUI Native v1.0.3 + Unistyles 3 (via Uniwind)** · tailwindcss v4 (CSS-first, no `tailwind.config.js`) · tailwind-variants · Sora + Inter (`@expo-google-fonts`) · MaterialCommunityIcons · `react-native-uuid` · patch-package · oxlint v1 (sole linter, `eslint-plugin-expo` bridged via JS Plugin Alpha) · oxfmt beta (sole formatter, Tailwind class sort + import sort built-in) · oxlint-tsgolint (strict type-aware linting enabled)
 
 ## Commands
 
@@ -133,18 +133,11 @@ Sub-screens (non-route drawers like `transactions/filter/`) follow the same anat
 
 Files: `snake_case`. TS identifiers: `camelCase`.
 
-**Legacy Zustand store/state shape:** Existing `.store.ts` and `.state.ts` Zustand stores expose reactive values as top-level fields; actions stay as top-level functions. Setters spread the previous store: `set((s) => ({ ...s, x: v }))`. `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Consumers group reactive reads with `useStore(useShallow((s) => ({ x: s.x, y: s.y })))` and read actions outside render with `useStore.getState().action`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`; screen consumers destructure `state` and read fields via `state.x`.
+**Legacy Zustand store/state shape:** Existing `.store.ts` and `.state.ts` Zustand stores expose reactive values as top-level fields; actions stay as top-level functions. Use `set({ x: v })` for top-level partial updates; use functional `set((s) => ({ x: s.x + 1 }))` only when the next value reads current state. Spread nested objects only when updating nested fields, for example `set((s) => ({ draft: { ...s.draft, x: v } }))`. `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Consumers group reactive reads with `useStore(useShallow((s) => ({ x: s.x, y: s.y })))` and read actions outside render with `useStore.getState().action`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`; screen consumers destructure `state` and read fields via `state.x`.
 
-**Signals migration store/state shape:** New or migrated store/state code uses `@preact/signals-react`, not a Zustand compatibility adapter. Shared/global domain stores use small class-based stores named for the domain, such as `AccountStore`, `OnboardingStore`, or `AppReadyStore`; export one singleton through a `useXStore()` facade, such as `useAccountStore()`, `useOnboardingStore()`, or `useAppReadyStore()`. Internal screen/component state uses hook-based stores with `useSignal(...)` inside the hook and responsibility names like `useReadyScreenState()` or `useClustersSetup()` only when "setup" is part of the feature language. Migrate small part by small part: helper hooks first, then one leaf UI state store, then one small screen state store, then one shared store. Do not sweep unrelated stores in the same change. Keep writable signals private to the store/hook boundary; consumers read `.value` and mutate through returned flat actions. The Babel `@preact/signals-react-transform` plugin is installed, so do not add empty `useSignals()` calls just to enable render tracking. Use explicit Signals runtime helpers only for a specific behavior, such as `useSignalEffect`, `untracked`, `computed`, or `batch`. The hook owns `init` when initialization belongs to that state boundary and uses `useAsync(...)` plus `useInit(...)` for async operation state. Prefer `useAsync` loading/error refs over custom shared `isLoading`/`isError` store signals unless operation state must be global across multiple mounted consumers. Return signal refs under `state` and actions as flat functions. Consumers destructure directly:
+**Signals rollback:** `@preact/signals-react` and its Babel transform are not installed. Reintroducing Signals requires a new approved plan, dependency change, and migration guidance update.
 
-```tsx
-const { state, init, upsertClusters, deleteCluster, addClusterInput, setInputField } =
-  useClustersSetup();
-
-if (init.isLoading.value) return <Spinner />;
-```
-
-Read signal values intentionally with `.value`. Avoid `Promise.try()` in helpers until Hermes support is verified. For sync/async wrapping that must invoke the function immediately, use explicit `try`/`catch` around `fn(...args)` and then normalize the returned value with `Promise.resolve(result)`.
+Avoid `Promise.try()` in helpers until Hermes support is verified. For sync/async wrapping that must invoke the function immediately, use explicit `try`/`catch` around `fn(...args)` and then normalize the returned value with `Promise.resolve(result)`.
 
 ## Expo Dev Client (critical)
 

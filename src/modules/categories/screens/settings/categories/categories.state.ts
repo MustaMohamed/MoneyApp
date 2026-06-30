@@ -31,11 +31,11 @@ const INITIAL_STATE: CategoriesScreenStateShape = {
 export const useCategoriesScreenState = createMoneyAppSelectors(
   create<CategoriesScreenState>((set) => ({
     ...INITIAL_STATE,
-    setActiveTab: (tab) => set((s) => ({ ...s, activeTab: tab })),
-    setShowAddSheet: (v) => set((s) => ({ ...s, showAddSheet: v })),
-    setShowDeleteConfirm: (v) => set((s) => ({ ...s, showDeleteConfirm: v })),
-    setShowReassignSheet: (v) => set((s) => ({ ...s, showReassignSheet: v })),
-    setIsDeleting: (v) => set((s) => ({ ...s, isDeleting: v })),
+    setActiveTab: (tab) => set({ activeTab: tab }),
+    setShowAddSheet: (v) => set({ showAddSheet: v }),
+    setShowDeleteConfirm: (v) => set({ showDeleteConfirm: v }),
+    setShowReassignSheet: (v) => set({ showReassignSheet: v }),
+    setIsDeleting: (v) => set({ isDeleting: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -16,7 +16,7 @@ const INITIAL_STATE: AddCommitmentStateShape = { saving: false };
 export const useAddCommitmentState = createMoneyAppSelectors(
   create<AddCommitmentState>((set) => ({
     ...INITIAL_STATE,
-    setSaving: (v) => set((s) => ({ ...s, saving: v })),
+    setSaving: (v) => set({ saving: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

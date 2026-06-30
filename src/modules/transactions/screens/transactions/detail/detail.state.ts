@@ -24,9 +24,9 @@ const INITIAL_STATE: TxDetailStateShape = {
 export const useTxDetailState = createMoneyAppSelectors(
   create<TxDetailState>((set) => ({
     ...INITIAL_STATE,
-    setConfirmVisible: (v) => set((s) => ({ ...s, confirmVisible: v })),
-    setDeleting: (v) => set((s) => ({ ...s, deleting: v })),
-    bumpReload: () => set((s) => ({ ...s, reloadKey: s.reloadKey + 1 })),
+    setConfirmVisible: (v) => set({ confirmVisible: v }),
+    setDeleting: (v) => set({ deleting: v }),
+    bumpReload: () => set((s) => ({ reloadKey: s.reloadKey + 1 })),
     reset: () => set(INITIAL_STATE),
   })),
 );

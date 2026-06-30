@@ -107,7 +107,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
       loadCommitments: async () => {
         try {
           const commitments = await repo.getAll();
-          set((s) => ({ ...s, commitments, commitmentsLoaded: true }));
+          set({ commitments, commitmentsLoaded: true });
         } catch (err) {
           console.error('[commitmentStore] loadCommitments failed:', err);
           throw err;
@@ -117,7 +117,6 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
       loadPaymentsForMonth: async (yearMonth) => {
         const requestId = ++paymentRequestId;
         set((s) => ({
-          ...s,
           payments: yearMonth === s.selectedMonth ? s.payments : [],
           paymentsLoaded: false,
         }));
@@ -125,7 +124,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         try {
           const payments = await repo.getPaymentsForMonth(yearMonth);
           if (requestId !== paymentRequestId) return;
-          set((s) => ({ ...s, payments, paymentsLoaded: true }));
+          set({ payments, paymentsLoaded: true });
         } catch (err) {
           if (requestId !== paymentRequestId) return;
           console.error('[commitmentStore] loadPaymentsForMonth failed:', err);
@@ -135,7 +134,6 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
       setSelectedMonth: async (yearMonth) => {
         set((s) => ({
-          ...s,
           selectedMonth: yearMonth,
           payments: yearMonth === s.selectedMonth ? s.payments : [],
           paymentsLoaded: false,

@@ -24,7 +24,7 @@ const INITIAL_STATE: DetailStateShape = {
 export const useCommitmentDetailState = createMoneyAppSelectors(
   create<CommitmentDetailState>((set) => ({
     ...INITIAL_STATE,
-    setSkipConfirmVisible: (v) => set((s) => ({ ...s, skipConfirmVisible: v })),
+    setSkipConfirmVisible: (v) => set({ skipConfirmVisible: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );
@@ -52,8 +52,8 @@ const INITIAL_SCREEN_DATA: DetailScreenDataShape = {
 export const useCommitmentDetailScreenData = createMoneyAppSelectors(
   create<CommitmentDetailScreenDataStore>((set) => ({
     ...INITIAL_SCREEN_DATA,
-    setAllPayments: (payments) => set((s) => ({ ...s, allPayments: payments })),
-    setViewState: (vs) => set((s) => ({ ...s, viewState: vs })),
+    setAllPayments: (payments) => set({ allPayments: payments }),
+    setViewState: (vs) => set({ viewState: vs }),
     reset: () => set(INITIAL_SCREEN_DATA),
   })),
 );

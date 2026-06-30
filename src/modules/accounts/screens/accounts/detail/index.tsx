@@ -58,13 +58,13 @@ export default function AccountDetailScreen() {
           title={account.name}
           onBack={onBack}
           right={
-            isEditing.value ? (
+            isEditing ? (
               <PressableFeedback
                 onPress={() => {
                   triggerEditToggle();
                   void handleSave();
                 }}
-                isDisabled={isSaving.value}
+                isDisabled={isSaving}
                 hitSlop={hitSlop}
                 className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
               >
@@ -96,7 +96,7 @@ export default function AccountDetailScreen() {
       >
         <BalanceHero account={account} />
 
-        {isEditing.value && (
+        {isEditing && (
           <Animated.View entering={fieldEntering} exiting={fieldExiting} className="mx-4 mt-4">
             <FormSectionLabel>{Strings.o4SectionName}</FormSectionLabel>
             <Controller
@@ -125,7 +125,7 @@ export default function AccountDetailScreen() {
           </Animated.View>
         )}
 
-        {!isEditing.value && (
+        {!isEditing && (
           <Box className="mx-4 mt-5">
             <ListGroup>
               <ListGroup.Item onPress={() => setAdjustVisible(true)}>
@@ -159,7 +159,7 @@ export default function AccountDetailScreen() {
       </ScreenScroll>
 
       <AdjustBalanceSheet
-        isOpen={isAdjustVisible.value}
+        isOpen={isAdjustVisible}
         currentBalance={account.current_balance}
         currency={account.currency}
         onOpenChange={(open) => {
@@ -168,17 +168,17 @@ export default function AccountDetailScreen() {
         onSave={(newBalance: number) => {
           void handleAdjustBalance(newBalance);
         }}
-        isLoading={isAdjusting.value}
+        isLoading={isAdjusting}
       />
 
       <ArchiveConfirmationDialog
-        visible={isArchiveVisible.value}
+        visible={isArchiveVisible}
         account={account}
         onClose={() => setArchiveVisible(false)}
         onConfirm={() => {
           void handleArchive();
         }}
-        isLoading={isArchiving.value}
+        isLoading={isArchiving}
       />
     </Screen>
   );

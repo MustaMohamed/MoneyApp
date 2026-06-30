@@ -25,9 +25,9 @@ const INITIAL_STATE: CategoriesScreenStoreShape = {
 export const useCategoriesScreenStore = createMoneyAppSelectors(
   create<CategoriesScreenStore>((set) => ({
     ...INITIAL_STATE,
-    setEditingCategory: (c) => set((s) => ({ ...s, editingCategory: c })),
-    setCategoryToDelete: (c) => set((s) => ({ ...s, categoryToDelete: c })),
-    setLinkedCount: (count) => set((s) => ({ ...s, linkedCount: count })),
+    setEditingCategory: (c) => set({ editingCategory: c }),
+    setCategoryToDelete: (c) => set({ categoryToDelete: c }),
+    setLinkedCount: (count) => set({ linkedCount: count }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -78,9 +78,8 @@ const mockCategoryShop = {
 };
 
 beforeEach(() => {
-  const accountsStore = useAccountStore();
-  accountsStore.reset();
-  accountsStore.state.accounts.value = [mockAccountEGP];
+  useAccountStore.getState().reset();
+  useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
   useCategoryStore.setState({
     categories: [mockCategoryFood, mockCategoryShop],
     loading: false,

@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react-native';
 import { OnboardingStep } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useMoreAccounts } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ push: jest.fn() })),
@@ -42,16 +43,19 @@ function setup(accounts = fakeAccounts) {
   const { useRouter } = require('expo-router');
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
 
-  (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: accounts },
-    },
-    init: jest.fn().mockResolvedValue(undefined),
-  });
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts,
+    loadAccounts: jest.fn().mockResolvedValue(undefined),
+  }));
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
-  (useOnboardingStore as jest.Mock).mockReturnValue({
+  const storeState = {
     setStep: mockSetStep,
-  });
+  };
+  (useOnboardingStore as jest.Mock).mockImplementation(
+    (selector?: (state: typeof storeState) => unknown) =>
+      selector ? selector(storeState) : storeState,
+  );
+  (useOnboardingStore as jest.Mock & { getState: jest.Mock }).getState = jest.fn(() => storeState);
 }
 
 describe('useMoreAccounts', () => {

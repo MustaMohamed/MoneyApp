@@ -143,16 +143,12 @@ function setupStoreMocks() {
     markAsPaid: mockMarkAsPaid,
     loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
   }));
-  jest.mocked(useAccountStore).mockReturnValue({
-    state: {
-      accounts: {
-        get value() {
-          return mockAccounts;
-        },
-      },
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    get accounts() {
+      return mockAccounts;
     },
-    init: jest.fn().mockResolvedValue(undefined),
-  } as unknown as ReturnType<typeof useAccountStore>);
+    loadAccounts: jest.fn().mockResolvedValue(undefined),
+  }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
     rate: 55,
     isManualOverride: false,

@@ -39,11 +39,8 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
@@ -167,7 +164,7 @@ export function useEditTransaction(
         transaction_time: initialTx.transaction_time, // preserved — no time UI
       };
       await updateTransaction(initialTx.id, update);
-      await init();
+      await loadAccounts();
       if (onSaved) {
         onSaved();
       } else {

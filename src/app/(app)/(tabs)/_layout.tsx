@@ -75,6 +75,7 @@ export default function TabsLayout() {
         initialRouteName="dashboard"
         screenOptions={{
           headerShown: false,
+          freezeOnBlur: true,
           tabBarActiveTintColor: Colors.shared.cairoGold,
           tabBarInactiveTintColor: Colors.dark.text2,
           tabBarStyle: {

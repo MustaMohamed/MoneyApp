@@ -7,14 +7,32 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
-let capturedFocusCallback: (() => void) | null = null;
+let capturedFocusCallback: (() => void | (() => void)) | null = null;
+const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
   useLocalSearchParams: () => ({ id: 'cat-1' }),
-  useFocusEffect: (cb: () => void) => {
+  useFocusEffect: (cb: () => void | (() => void)) => {
     capturedFocusCallback = cb;
   },
+}));
+
+jest.mock('@/utils/run_after_interactions', () => ({
+  runAfterInteractions: jest.fn((callback: () => void) => {
+    let cancelled = false;
+    const cancel = jest.fn(() => {
+      cancelled = true;
+    });
+    const task = {
+      callback: () => {
+        if (!cancelled) callback();
+      },
+      cancel,
+    };
+    mockInteractionTasks.push(task);
+    return { cancel: task.cancel };
+  }),
 }));
 
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
@@ -28,22 +46,29 @@ jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }
 const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
 const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
 const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
+const { getTrailingIncomeSuggestion } = jest.requireMock('@/modules/budget/database/budget_stats');
+const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
+
+let loadCategoriesMock: jest.Mock;
+let loadBudgetMock: jest.Mock;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
 function setupStores() {
+  loadCategoriesMock = jest.fn();
+  loadBudgetMock = jest.fn();
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories: [],
     hasLoaded: false,
-    loadCategories: jest.fn(),
+    loadCategories: loadCategoriesMock,
   }));
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: [],
     spendByMonth: {},
     loaded: false,
     expectedIncome: null,
-    load: jest.fn(),
+    load: loadBudgetMock,
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
     lensTab: 'categories',
@@ -55,7 +80,10 @@ function setupStores() {
 
 beforeEach(() => {
   capturedFocusCallback = null;
+  mockInteractionTasks.length = 0;
   jest.useFakeTimers();
+  getTrailingIncomeSuggestion.mockClear();
+  runAfterInteractions.mockClear();
   setupStores();
 });
 
@@ -83,6 +111,38 @@ describe('useBudget — month rollover', () => {
     });
 
     expect(result.current.state.month).toBe('2026-06');
+  });
+
+  it('cancels pending focus reload work on cleanup while keeping month rollover synchronous', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    const { result } = renderHook(() => useBudget());
+    expect(result.current.state.month).toBe('2026-05');
+
+    loadCategoriesMock.mockClear();
+    loadBudgetMock.mockClear();
+    getTrailingIncomeSuggestion.mockClear();
+
+    jest.setSystemTime(new Date('2026-06-15T12:00:00'));
+    let cleanup: void | (() => void);
+    act(() => {
+      cleanup = capturedFocusCallback?.();
+    });
+
+    expect(result.current.state.month).toBe('2026-06');
+    expect(runAfterInteractions).toHaveBeenCalledTimes(1);
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
+    expect(loadBudgetMock).not.toHaveBeenCalled();
+    expect(getTrailingIncomeSuggestion).not.toHaveBeenCalled();
+
+    act(() => {
+      cleanup?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
+    expect(loadBudgetMock).not.toHaveBeenCalled();
+    expect(getTrailingIncomeSuggestion).not.toHaveBeenCalled();
   });
 });
 

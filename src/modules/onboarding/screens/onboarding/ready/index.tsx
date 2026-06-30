@@ -79,7 +79,7 @@ export default function ReadyScreen() {
             onPress={() => {
               void handleComplete();
             }}
-            isDisabled={completing.value}
+            isDisabled={completing}
           />
         </Animated.View>
       </Box>

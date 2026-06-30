@@ -19,7 +19,7 @@ const INITIAL_STATE: TxDetailStoreShape = {
 export const useTxDetailStore = createMoneyAppSelectors(
   create<TxDetailStore>((set) => ({
     ...INITIAL_STATE,
-    setTx: (tx) => set((s) => ({ ...s, tx })),
+    setTx: (tx) => set({ tx }),
     reset: () => set(INITIAL_STATE),
   })),
 );

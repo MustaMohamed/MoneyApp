@@ -37,11 +37,11 @@ const INITIAL_STATE: AddEditCategorySheetStateShape = {
 export const useAddEditCategorySheetState = createMoneyAppSelectors(
   create<AddEditCategorySheetState>((set) => ({
     ...INITIAL_STATE,
-    setType: (t) => set((s) => ({ ...s, type: t })),
-    setSelectedIcon: (icon) => set((s) => ({ ...s, selectedIcon: icon })),
-    setSelectedColor: (c) => set((s) => ({ ...s, selectedColor: c })),
-    setIconError: (msg) => set((s) => ({ ...s, iconError: msg })),
-    setIsLoading: (v) => set((s) => ({ ...s, isLoading: v })),
+    setType: (t) => set({ type: t }),
+    setSelectedIcon: (icon) => set({ selectedIcon: icon }),
+    setSelectedColor: (c) => set({ selectedColor: c }),
+    setIconError: (msg) => set({ iconError: msg }),
+    setIsLoading: (v) => set({ isLoading: v }),
     initialize: ({ type, icon, color }) =>
       set({
         type,

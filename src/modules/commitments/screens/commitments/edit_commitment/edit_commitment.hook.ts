@@ -21,10 +21,7 @@ export function useEditCommitment() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const commitments = useCommitmentStore.useState.commitments();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;

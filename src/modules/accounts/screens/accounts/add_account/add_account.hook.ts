@@ -28,14 +28,11 @@ export const ACCOUNT_COLORS = [
 
 export function useAddAccountApp() {
   const router = useRouter();
-  const {
-    state: { accounts: accountsSignal },
-    addAccount,
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
+  const addAccount = useAccountStore.getState().addAccount;
+  const loadAccounts = useAccountStore.getState().loadAccounts;
 
-  useInit(init);
+  useInit(loadAccounts);
 
   const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
 

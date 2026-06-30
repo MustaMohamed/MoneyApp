@@ -27,10 +27,7 @@ export function useFilterSheet() {
   const setAmountMin = useFilterStore.getState().setAmountMin;
   const setAmountMax = useFilterStore.getState().setAmountMax;
   const setAmountCurrency = useFilterStore.getState().setAmountCurrency;
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const appliedFilters = useTransactionsScreenStore.useState.appliedFilters();
   const setAppliedFilters = useTransactionsScreenStore.getState().setAppliedFilters;

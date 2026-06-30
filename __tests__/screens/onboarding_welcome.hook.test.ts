@@ -14,13 +14,16 @@ const mockPush = jest.fn();
 
 function setup(baseCurrency: Currency = Currency.EGP) {
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
-  (useOnboardingStore as jest.Mock).mockReturnValue({
-    state: {
-      baseCurrency: { value: baseCurrency },
-    },
+  const storeState = {
+    baseCurrency,
     setBaseCurrency: mockSetBaseCurrency,
     setStep: mockSetStep,
-  });
+  };
+  (useOnboardingStore as jest.Mock).mockImplementation(
+    (selector?: (state: typeof storeState) => unknown) =>
+      selector ? selector(storeState) : storeState,
+  );
+  (useOnboardingStore as jest.Mock & { getState: jest.Mock }).getState = jest.fn(() => storeState);
   jest.spyOn(require('expo-router'), 'useRouter').mockReturnValue({ push: mockPush });
 }
 
@@ -32,13 +35,13 @@ describe('useWelcome', () => {
 
   it('defaults selected to onboarding store baseCurrency (EGP)', () => {
     const { result } = renderHook(() => useWelcome());
-    expect(result.current.state.selected.value).toBe(Currency.EGP);
+    expect(result.current.state.selected).toBe(Currency.EGP);
   });
 
   it('defaults selected to USD if store baseCurrency is USD', () => {
     setup(Currency.USD);
     const { result } = renderHook(() => useWelcome());
-    expect(result.current.state.selected.value).toBe(Currency.USD);
+    expect(result.current.state.selected).toBe(Currency.USD);
   });
 
   it('setSelected updates the selected currency', () => {
@@ -46,7 +49,7 @@ describe('useWelcome', () => {
     act(() => {
       result.current.setSelected(Currency.USD);
     });
-    expect(result.current.state.selected.value).toBe(Currency.USD);
+    expect(result.current.state.selected).toBe(Currency.USD);
   });
 
   it('onContinue calls setBaseCurrency with selected currency', async () => {

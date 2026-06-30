@@ -9,18 +9,13 @@ import { computeTotalBalance } from './ready.helpers';
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
-  const {
-    state: { baseCurrency },
-    completeOnboarding,
-  } = useOnboardingStore();
+  const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
+  const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
   const complete = useAsync(completeOnboarding);
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
+  const loadAccounts = useAccountStore.getState().loadAccounts;
 
-  useInit(init);
+  useInit(loadAccounts);
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -29,7 +24,7 @@ export function useReady() {
   const rows: SummaryRow[] = [
     {
       label: Strings.o6Currency,
-      value: baseCurrency.value,
+      value: baseCurrency,
       gold: true,
     },
     {
@@ -39,13 +34,13 @@ export function useReady() {
     },
     {
       label: Strings.o6TotalBalance,
-      value: `${formattedTotal} ${baseCurrency.value}`,
+      value: `${formattedTotal} ${baseCurrency}`,
       gold: true,
     },
   ];
 
   const handleComplete = async () => {
-    if (complete.isLoading.value) return;
+    if (complete.isLoading) return;
     await complete();
   };
 

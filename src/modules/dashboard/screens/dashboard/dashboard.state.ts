@@ -28,9 +28,9 @@ const INITIAL_STATE: DashboardStateShape = {
 export const useDashboardState = createMoneyAppSelectors(
   create<DashboardState>((set) => ({
     ...INITIAL_STATE,
-    setBreakdownVisible: (v) => set((s) => ({ ...s, isBreakdownVisible: v })),
-    setRefreshing: (v) => set((s) => ({ ...s, refreshing: v })),
-    setSelectedSegment: (s) => set((prev) => ({ ...prev, selectedSegment: s })),
+    setBreakdownVisible: (v) => set({ isBreakdownVisible: v }),
+    setRefreshing: (v) => set({ refreshing: v }),
+    setSelectedSegment: (s) => set({ selectedSegment: s }),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -1,7 +1,12 @@
 // Public API — store, UI components, shared types only.
 // AccountRepository and database helpers are internal; access account data through the store.
-export { AccountStore, EMPTY_ACCOUNTS, useAccountStore } from './store/account.store';
-export type { Account, NewAccountInput, UpdateAccountInput } from './store/account.store';
+export { createAccountStore, EMPTY_ACCOUNTS, useAccountStore } from './store/account.store';
+export type {
+  Account,
+  AccountStore,
+  NewAccountInput,
+  UpdateAccountInput,
+} from './store/account.store';
 export { getAccountsStats } from './database/account_stats';
 export type { AccountStats } from './database/account_stats';
 export { TypePill, TYPE_OPTIONS } from './components/account_type_pill';

@@ -70,10 +70,7 @@ export function useCommitmentDetail() {
     })),
   );
   const storeSkipPayment = useCommitmentStore.getState().skipPayment;
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
 
   const skipConfirmVisible = useCommitmentDetailState.useState.skipConfirmVisible();

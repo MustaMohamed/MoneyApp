@@ -24,16 +24,16 @@ describe('useAsync', () => {
     });
 
     expect(fn).toHaveBeenCalledWith(2);
-    expect(result.current.isLoading.value).toBe(true);
-    expect(result.current.isError.value).toBe(false);
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isError).toBe(false);
 
     await act(async () => {
       pending.resolve(40);
       await expect(call).resolves.toBe(42);
     });
 
-    expect(result.current.isLoading.value).toBe(false);
-    expect(result.current.isError.value).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(false);
   });
 
   it('sets error after async rejection and rethrows the original error', async () => {
@@ -47,8 +47,8 @@ describe('useAsync', () => {
       await expect(result.current()).rejects.toBe(error);
     });
 
-    expect(result.current.isLoading.value).toBe(false);
-    expect(result.current.isError.value).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(true);
   });
 
   it('handles synchronous throws as async rejections', async () => {
@@ -62,8 +62,8 @@ describe('useAsync', () => {
       await expect(result.current()).rejects.toBe(error);
     });
 
-    expect(result.current.isLoading.value).toBe(false);
-    expect(result.current.isError.value).toBe(true);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(true);
   });
 
   it('wraps synchronous return values in a promise', async () => {
@@ -75,7 +75,9 @@ describe('useAsync', () => {
       call = result.current(41);
     });
 
-    await expect(call).resolves.toBe(42);
+    await act(async () => {
+      await expect(call).resolves.toBe(42);
+    });
   });
 
   it('keeps loading true until all concurrent calls settle', async () => {
@@ -94,21 +96,21 @@ describe('useAsync', () => {
       secondCall = result.current();
     });
 
-    expect(result.current.isLoading.value).toBe(true);
+    expect(result.current.isLoading).toBe(true);
 
     await act(async () => {
       first.resolve('first');
       await expect(firstCall).resolves.toBe('first');
     });
 
-    expect(result.current.isLoading.value).toBe(true);
+    expect(result.current.isLoading).toBe(true);
 
     await act(async () => {
       second.resolve('second');
       await expect(secondCall).resolves.toBe('second');
     });
 
-    expect(result.current.isLoading.value).toBe(false);
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('resets error before the next call', async () => {
@@ -121,13 +123,13 @@ describe('useAsync', () => {
     await act(async () => {
       await expect(result.current()).rejects.toThrow('first failed');
     });
-    expect(result.current.isError.value).toBe(true);
+    expect(result.current.isError).toBe(true);
 
     await act(async () => {
       await expect(result.current()).resolves.toBe('ok');
     });
 
-    expect(result.current.isLoading.value).toBe(false);
-    expect(result.current.isError.value).toBe(false);
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(false);
   });
 });

@@ -1,9 +1,10 @@
 import { renderHook, act } from '@testing-library/react-native';
 
-import { AccountType } from '@/constants/enums';
+import { AccountType, Currency } from '@/constants/enums';
 import { AcctTokens } from '@/constants/theme_tokens';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useAddAccount } from '@/modules/onboarding/screens/onboarding/add_account/add_account.hook';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({})),
@@ -27,20 +28,21 @@ function setup(isAddingMore = false) {
   (useRouter as jest.Mock).mockReturnValue({ push: mockPush, back: jest.fn(), replace: jest.fn() });
   (require('@/utils/onboarding_nav').backOrReplace as jest.Mock) = mockBackOrReplace;
 
-  (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: [] },
-    },
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: [],
     addAccount: mockAddAccount,
-    init: jest.fn().mockResolvedValue(undefined),
-  });
+    loadAccounts: jest.fn().mockResolvedValue(undefined),
+  }));
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
-  (useOnboardingStore as jest.Mock).mockReturnValue({
-    state: {
-      baseCurrency: { value: 'EGP' },
-    },
+  const storeState = {
+    baseCurrency: Currency.EGP,
     setStep: mockSetStep,
-  });
+  };
+  (useOnboardingStore as jest.Mock).mockImplementation(
+    (selector?: (state: typeof storeState) => unknown) =>
+      selector ? selector(storeState) : storeState,
+  );
+  (useOnboardingStore as jest.Mock & { getState: jest.Mock }).getState = jest.fn(() => storeState);
 }
 
 describe('useAddAccount', () => {

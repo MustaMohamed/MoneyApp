@@ -41,13 +41,12 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             repo.get(RATE_UPDATED_AT_KEY),
           ]);
           if (rateStr !== null) {
-            set((s) => ({
-              ...s,
+            set({
               rate: parseFloat(rateStr),
               lastFetched: fetchedAt,
               isManualOverride: manualStr === 'true',
               rate_updated_at: rateUpdatedAt,
-            }));
+            });
           }
         } catch (err) {
           console.error('[currencyStore] loadRate failed:', err);
@@ -69,13 +68,12 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             repo.set(MANUAL_KEY, 'false'),
             repo.set(RATE_UPDATED_AT_KEY, now),
           ]);
-          set((s) => ({
-            ...s,
+          set({
             rate,
             lastFetched: now,
             isManualOverride: false,
             rate_updated_at: now,
-          }));
+          });
         } catch (err) {
           console.error('[currencyStore] fetchRate failed:', err);
           throw err;
@@ -90,12 +88,11 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             repo.set(MANUAL_KEY, 'true'),
             repo.set(RATE_UPDATED_AT_KEY, now),
           ]);
-          set((s) => ({
-            ...s,
+          set({
             rate,
             isManualOverride: true,
             rate_updated_at: now,
-          }));
+          });
         } catch (err) {
           console.error('[currencyStore] setManualRate failed:', err);
           throw err;

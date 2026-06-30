@@ -10,6 +10,7 @@ import { commitmentRepository } from '@/modules/commitments/repositories/commitm
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { getMonthExpenseStats } from '@/modules/transactions/database/transactions';
 import { toLocalDateString } from '@/utils/format_date';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 import {
   computeLiabilitiesBreakdown,
@@ -27,11 +28,8 @@ function getCurrentYearMonth(): string {
 export function useDashboard() {
   const router = useRouter();
 
-  const {
-    state: { accounts: accountsSignal },
-    init,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   const { rate, isManualOverride } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -94,9 +92,12 @@ export function useDashboard() {
 
   useFocusEffect(
     useCallback(() => {
-      void loadCurrentMonthCommitmentPayments();
-      void loadMonthSpend();
       setSelectedSegment('overview');
+      const task = runAfterInteractions(() => {
+        void loadCurrentMonthCommitmentPayments();
+        void loadMonthSpend();
+      });
+      return () => task.cancel();
     }, [loadCurrentMonthCommitmentPayments, loadMonthSpend, setSelectedSegment]),
   );
 
@@ -128,11 +129,11 @@ export function useDashboard() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([init(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
+      await Promise.all([loadAccounts(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
     } finally {
       setRefreshing(false);
     }
-  }, [init, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
+  }, [loadAccounts, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
 
   const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);

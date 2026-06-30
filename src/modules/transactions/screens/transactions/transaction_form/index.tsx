@@ -11,7 +11,7 @@
  * the root cause of the "sheet won't open" symptom caught in Wave 1 QA.
  */
 import { router } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
@@ -31,8 +31,70 @@ interface AddProps {
   onClose: () => void;
 }
 
+const ADD_TRANSACTION_CLOSE_UNMOUNT_DELAY_MS = 350;
+
 export function AddTransactionSheet({ visible, onClose }: AddProps): React.ReactElement | null {
+  const [readyToOpen, setReadyToOpen] = useState(false);
+  const [shouldRenderInner, setShouldRenderInner] = useState(false);
+  const [footer, setFooter] = useState<React.ReactNode | undefined>(undefined);
+
+  useEffect(() => {
+    if (!visible) {
+      setReadyToOpen(false);
+      const timer = setTimeout(() => {
+        setShouldRenderInner(false);
+      }, ADD_TRANSACTION_CLOSE_UNMOUNT_DELAY_MS);
+      return () => clearTimeout(timer);
+    }
+
+    setReadyToOpen(false);
+    const timer = setTimeout(() => {
+      setShouldRenderInner(true);
+      setReadyToOpen(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [visible]);
+
+  useEffect(() => {
+    if (!shouldRenderInner) setFooter(undefined);
+  }, [shouldRenderInner]);
+
+  if (!visible && !readyToOpen && !shouldRenderInner) return null;
+
+  return (
+    <Sheet
+      isOpen={visible && readyToOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+      title={Strings.addTxTitle}
+      size="lg"
+      scrollable
+      footer={footer}
+    >
+      {shouldRenderInner ? (
+        <AddTransactionSheetInner
+          visible={visible && readyToOpen}
+          onClose={onClose}
+          setFooter={setFooter}
+        />
+      ) : null}
+    </Sheet>
+  );
+}
+
+type AddTransactionSheetInnerProps = AddProps & {
+  setFooter: (footer: React.ReactNode | undefined) => void;
+};
+
+function AddTransactionSheetInner({
+  visible,
+  onClose,
+  setFooter,
+}: AddTransactionSheetInnerProps): React.ReactElement {
   const hook = useAddTransaction(onClose);
+  const handleSaveRef = useRef(hook.handleSave);
+  handleSaveRef.current = hook.handleSave;
 
   const handleAddAccount = useCallback(() => {
     onClose();
@@ -40,62 +102,55 @@ export function AddTransactionSheet({ visible, onClose }: AddProps): React.React
     router.push('/accounts/add' as unknown as Parameters<typeof router.push>[0]);
   }, [onClose]);
 
+  useLayoutEffect(() => {
+    setFooter(
+      hook.state.hasAccounts ? (
+        <Button
+          variant="primary"
+          label={Strings.addTxSaveCta}
+          isLoading={hook.state.saving}
+          onPress={() => void handleSaveRef.current()}
+        />
+      ) : undefined,
+    );
+  }, [hook.state.hasAccounts, hook.state.saving, setFooter]);
+
   return (
     <>
-      <Sheet
-        isOpen={visible}
-        onOpenChange={(open) => {
-          if (!open) onClose();
-        }}
-        title={Strings.addTxTitle}
-        size="lg"
-        scrollable
-        footer={
-          hook.state.hasAccounts ? (
-            <Button
-              variant="primary"
-              label={Strings.addTxSaveCta}
-              isLoading={hook.state.saving}
-              onPress={() => void hook.handleSave()}
-            />
-          ) : undefined
-        }
-      >
-        {hook.state.hasAccounts ? (
-          <TransactionFormBody
-            visible={visible}
-            locked={false}
-            type={hook.state.type}
-            onSelectType={hook.setType}
-            amountStr={hook.state.amountStr}
-            setAmountStr={hook.setAmountStr}
-            amountError={hook.state.errors.amount}
-            selectedAccount={hook.state.selectedAccount}
-            onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
-            accountError={hook.state.errors.account}
-            selectedToAccount={hook.state.selectedToAccount}
-            onOpenToPicker={() => hook.setShowToPicker(true)}
-            toAccountError={hook.state.errors.toAccount}
-            selectedCategory={hook.state.selectedCategory}
-            onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
-            categoryError={hook.state.errors.category}
-            isUSD={hook.state.isUSD}
-            exchangeRate={hook.state.exchangeRate}
-            setExchangeRate={hook.setExchangeRate}
-            rateOverride={hook.state.rateOverride}
-            toggleRateOverride={hook.toggleRateOverride}
-            rateUpdatedAt={hook.state.rateUpdatedAt}
-            rateError={hook.state.errors.rate}
-            date={hook.state.date}
-            setDate={hook.setDate}
-            note={hook.state.note}
-            setNote={hook.setNote}
-            currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
-          />
-        ) : (
-          <NoAccountsEmpty onAddAccount={handleAddAccount} />
-        )}
-      </Sheet>
+      {hook.state.hasAccounts ? (
+        <TransactionFormBody
+          visible={visible}
+          locked={false}
+          type={hook.state.type}
+          onSelectType={hook.setType}
+          amountStr={hook.state.amountStr}
+          setAmountStr={hook.setAmountStr}
+          amountError={hook.state.errors.amount}
+          selectedAccount={hook.state.selectedAccount}
+          onOpenAccountPicker={() => hook.setShowAccountPicker(true)}
+          accountError={hook.state.errors.account}
+          selectedToAccount={hook.state.selectedToAccount}
+          onOpenToPicker={() => hook.setShowToPicker(true)}
+          toAccountError={hook.state.errors.toAccount}
+          selectedCategory={hook.state.selectedCategory}
+          onOpenCategoryPicker={() => hook.setShowCategoryPicker(true)}
+          categoryError={hook.state.errors.category}
+          isUSD={hook.state.isUSD}
+          exchangeRate={hook.state.exchangeRate}
+          setExchangeRate={hook.setExchangeRate}
+          rateOverride={hook.state.rateOverride}
+          toggleRateOverride={hook.toggleRateOverride}
+          rateUpdatedAt={hook.state.rateUpdatedAt}
+          rateError={hook.state.errors.rate}
+          date={hook.state.date}
+          setDate={hook.setDate}
+          note={hook.state.note}
+          setNote={hook.setNote}
+          currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
+        />
+      ) : (
+        <NoAccountsEmpty onAddAccount={handleAddAccount} />
+      )}
 
       <AccountPickerSheet
         isOpen={hook.state.showAccountPicker}

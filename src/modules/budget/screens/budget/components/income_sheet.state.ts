@@ -26,8 +26,7 @@ export const useIncomeSheetState = createMoneyAppSelectors(
     ...INITIAL_STATE,
 
     open: (suggestion, currentIncome) =>
-      set((s) => ({
-        ...s,
+      set({
         isOpen: true,
         suggestion,
         amountText:
@@ -36,11 +35,11 @@ export const useIncomeSheetState = createMoneyAppSelectors(
             : suggestion !== null
               ? String(suggestion)
               : '',
-      })),
+      }),
 
-    close: () => set((s) => ({ ...s, isOpen: false })),
+    close: () => set({ isOpen: false }),
 
-    setAmountText: (text) => set((s) => ({ ...s, amountText: text })),
+    setAmountText: (text) => set({ amountText: text }),
 
     reset: () => set(INITIAL_STATE),
   })),
