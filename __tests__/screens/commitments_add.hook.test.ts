@@ -30,11 +30,9 @@ function setup() {
     addCommitment: jest.fn().mockResolvedValue(undefined),
     generatePayments: jest.fn().mockResolvedValue(undefined),
   }));
-  jest
-    .mocked(useAccountStore)
-    .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
-      typeof useAccountStore
-    >);
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: [],
+  }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
   }));

@@ -1,11 +1,11 @@
-import { batch, signal, type Signal } from '@preact/signals-react';
+import { create } from 'zustand';
 
 import { Currency, OnboardingStep } from '@/constants/enums';
 import {
   onboardingRepository,
   type IOnboardingRepository,
-  type LoadedOnboardingState,
 } from '@/modules/onboarding/repositories/onboarding.repository';
+import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 const INITIAL_STATE = {
   complete: false,
@@ -13,80 +13,69 @@ const INITIAL_STATE = {
   baseCurrency: Currency.EGP,
 };
 
-type OnboardingSignalState = {
-  complete: Signal<boolean>;
-  currentStep: Signal<OnboardingStep>;
-  baseCurrency: Signal<Currency>;
+export type OnboardingInitResult = {
+  complete: boolean;
+  step: OnboardingStep;
 };
 
-export class OnboardingStore {
-  readonly state: OnboardingSignalState = {
-    complete: signal(INITIAL_STATE.complete),
-    currentStep: signal(INITIAL_STATE.currentStep),
-    baseCurrency: signal(INITIAL_STATE.baseCurrency),
-  };
+export type OnboardingStoreState = typeof INITIAL_STATE & {
+  setStep: (step: OnboardingStep) => Promise<void>;
+  setBaseCurrency: (currency: Currency) => Promise<void>;
+  completeOnboarding: () => Promise<void>;
+  init: () => Promise<OnboardingInitResult>;
+  reset: () => void;
+};
 
-  constructor(private readonly repository: IOnboardingRepository = onboardingRepository) {}
+export function createOnboardingStore(repository: IOnboardingRepository = onboardingRepository) {
+  return createMoneyAppSelectors(
+    create<OnboardingStoreState>((set) => ({
+      ...INITIAL_STATE,
 
-  setStep = async (step: OnboardingStep): Promise<void> => {
-    try {
-      await this.repository.setStep(step);
-      this.state.currentStep.value = step;
-    } catch (err) {
-      console.error('[onboardingStore] setStep failed:', err);
-      throw err;
-    }
-  };
+      setStep: async (step) => {
+        try {
+          await repository.setStep(step);
+          set((s) => ({ ...s, currentStep: step }));
+        } catch (err) {
+          console.error('[onboardingStore] setStep failed:', err);
+          throw err;
+        }
+      },
 
-  setBaseCurrency = async (currency: Currency): Promise<void> => {
-    try {
-      await this.repository.setBaseCurrency(currency);
-      this.state.baseCurrency.value = currency;
-    } catch (err) {
-      console.error('[onboardingStore] setBaseCurrency failed:', err);
-      throw err;
-    }
-  };
+      setBaseCurrency: async (currency) => {
+        try {
+          await repository.setBaseCurrency(currency);
+          set((s) => ({ ...s, baseCurrency: currency }));
+        } catch (err) {
+          console.error('[onboardingStore] setBaseCurrency failed:', err);
+          throw err;
+        }
+      },
 
-  completeOnboarding = async (): Promise<void> => {
-    try {
-      await this.repository.complete();
-      this.state.complete.value = true;
-    } catch (err) {
-      console.error('[onboardingStore] completeOnboarding failed:', err);
-      throw err;
-    }
-  };
+      completeOnboarding: async () => {
+        try {
+          await repository.complete();
+          set((s) => ({ ...s, complete: true }));
+        } catch (err) {
+          console.error('[onboardingStore] completeOnboarding failed:', err);
+          throw err;
+        }
+      },
 
-  init = async (): Promise<{
-    complete: boolean;
-    step: OnboardingStep;
-  }> => {
-    const nextState = await this.repository.load();
-    this.setLoadedState(nextState);
+      init: async (): Promise<OnboardingInitResult> => {
+        const nextState = await repository.load();
+        set((s) => ({
+          ...s,
+          complete: nextState.complete,
+          currentStep: nextState.step,
+          baseCurrency: nextState.baseCurrency,
+        }));
 
-    return { complete: nextState.complete, step: nextState.step };
-  };
+        return { complete: nextState.complete, step: nextState.step };
+      },
 
-  reset = () => {
-    batch(() => {
-      this.state.complete.value = INITIAL_STATE.complete;
-      this.state.currentStep.value = INITIAL_STATE.currentStep;
-      this.state.baseCurrency.value = INITIAL_STATE.baseCurrency;
-    });
-  };
-
-  private setLoadedState(nextState: LoadedOnboardingState) {
-    batch(() => {
-      this.state.complete.value = nextState.complete;
-      this.state.currentStep.value = nextState.step;
-      this.state.baseCurrency.value = nextState.baseCurrency;
-    });
-  }
+      reset: () => set(INITIAL_STATE),
+    })),
+  );
 }
 
-const onboardingStore = new OnboardingStore(onboardingRepository);
-
-export function useOnboardingStore(): OnboardingStore {
-  return onboardingStore;
-}
+export const useOnboardingStore = createOnboardingStore(onboardingRepository);

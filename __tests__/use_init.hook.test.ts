@@ -1,4 +1,3 @@
-import { signal } from '@preact/signals-react';
 import { act, renderHook } from '@testing-library/react-native';
 
 import { useInit } from '@/utils/use_init.hook';
@@ -22,22 +21,25 @@ describe('useInit', () => {
     expect(init).toHaveBeenCalledTimes(1);
   });
 
-  it('does not re-run when a signal read inside init changes', () => {
-    const value = signal(0);
-    const init = jest.fn(() => {
-      const currentValue = value.value;
-      if (currentValue < 0) throw new Error('unexpected negative value');
-    });
+  it('does not re-run when the hook rerenders', () => {
+    const init = jest.fn();
 
     const { rerender } = renderHook(() => useInit(init));
     expect(init).toHaveBeenCalledTimes(1);
 
-    act(() => {
-      value.value = 1;
-    });
     rerender({});
 
     expect(init).toHaveBeenCalledTimes(1);
+  });
+
+  it('runs init once per mounted hook instance', () => {
+    const init = jest.fn();
+
+    const first = renderHook(() => useInit(init));
+    first.unmount();
+    renderHook(() => useInit(init));
+
+    expect(init).toHaveBeenCalledTimes(2);
   });
 
   it('logs async init rejection', async () => {

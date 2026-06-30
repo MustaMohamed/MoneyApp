@@ -9,13 +9,31 @@ import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.ho
 
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
-let capturedFocusCallback: (() => void) | null = null;
+let capturedFocusCallback: (() => void | (() => void)) | null = null;
+const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
-  useFocusEffect: (cb: () => void) => {
+  useFocusEffect: (cb: () => void | (() => void)) => {
     capturedFocusCallback = cb;
   },
+}));
+
+jest.mock('@/utils/run_after_interactions', () => ({
+  runAfterInteractions: jest.fn((callback: () => void) => {
+    let cancelled = false;
+    const cancel = jest.fn(() => {
+      cancelled = true;
+    });
+    const task = {
+      callback: () => {
+        if (!cancelled) callback();
+      },
+      cancel,
+    };
+    mockInteractionTasks.push(task);
+    return { cancel: task.cancel };
+  }),
 }));
 
 jest.mock('@/database/client', () => ({
@@ -55,12 +73,14 @@ const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/com
 const { commitmentRepository } = jest.requireMock(
   '@/modules/commitments/repositories/commitment.repository',
 );
+const { getMonthExpenseStats } = jest.requireMock('@/modules/transactions/database/transactions');
 const { useDashboardStore } = jest.requireMock(
   '@/modules/dashboard/screens/dashboard/dashboard.store',
 );
 const { useDashboardState } = jest.requireMock(
   '@/modules/dashboard/screens/dashboard/dashboard.state',
 );
+const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
 const BASE_ACCOUNTS = [
   {
@@ -114,15 +134,15 @@ const setRefreshing = jest.fn((v: boolean) => {
 const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
   uiState.selectedSegment = s;
 });
+let loadAccountsMock: jest.Mock;
 
 function setupMocks(accounts = BASE_ACCOUNTS) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-  (useAccountStore as jest.Mock).mockReturnValue({
-    state: {
-      accounts: { value: accounts },
-    },
-    init: jest.fn(),
-  });
+  loadAccountsMock = jest.fn().mockResolvedValue(undefined);
+  attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
+    accounts,
+    loadAccounts: loadAccountsMock,
+  }));
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
     rate: 48.85,
     isManualOverride: false,
@@ -150,11 +170,14 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
 
 beforeEach(() => {
   capturedFocusCallback = null;
+  mockInteractionTasks.length = 0;
   uiState = { isBreakdownVisible: false, refreshing: false, selectedSegment: 'overview' };
   setBreakdownVisible.mockClear();
   setRefreshing.mockClear();
   setSelectedSegment.mockClear();
   commitmentRepository.getPaymentsForMonth.mockClear();
+  getMonthExpenseStats.mockClear();
+  runAfterInteractions.mockClear();
   setupMocks();
 });
 
@@ -165,12 +188,11 @@ describe('useDashboard', () => {
   });
 
   it('does not expose a store-loaded sentinel', () => {
-    (useAccountStore as jest.Mock).mockReturnValue({
-      state: {
-        accounts: { value: [] },
-      },
-      init: jest.fn(),
-    });
+    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
+    attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
+      accounts: [],
+      loadAccounts: jest.fn().mockResolvedValue(undefined),
+    }));
 
     const { result } = renderHook(() => useDashboard());
 
@@ -211,11 +233,56 @@ describe('useDashboard', () => {
 
     act(() => {
       capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
     });
 
     expect(useCommitmentStore).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('cancels pending focus reload work on cleanup', () => {
+    renderHook(() => useDashboard());
+    commitmentRepository.getPaymentsForMonth.mockClear();
+    getMonthExpenseStats.mockClear();
+
+    let cleanup: void | (() => void);
+    act(() => {
+      cleanup = capturedFocusCallback?.();
+    });
+
+    expect(setSelectedSegment).toHaveBeenCalledWith('overview');
+    expect(runAfterInteractions).toHaveBeenCalledTimes(1);
+    expect(commitmentRepository.getPaymentsForMonth).not.toHaveBeenCalled();
+    expect(getMonthExpenseStats).not.toHaveBeenCalled();
+
+    act(() => {
+      cleanup?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
+    expect(commitmentRepository.getPaymentsForMonth).not.toHaveBeenCalled();
+    expect(getMonthExpenseStats).not.toHaveBeenCalled();
+  });
+
+  it('refresh reloads immediately without waiting for interactions', async () => {
+    const { result } = renderHook(() => useDashboard());
+    await act(async () => {
+      await Promise.resolve();
+    });
+    commitmentRepository.getPaymentsForMonth.mockClear();
+    getMonthExpenseStats.mockClear();
+    runAfterInteractions.mockClear();
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(runAfterInteractions).not.toHaveBeenCalled();
+    expect(loadAccountsMock).toHaveBeenCalledTimes(1);
+    expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
+    expect(getMonthExpenseStats).toHaveBeenCalledTimes(2);
   });
 });

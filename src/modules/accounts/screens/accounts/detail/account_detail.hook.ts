@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
+import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { AccountColors } from '@/constants/theme';
@@ -14,33 +15,39 @@ export function useAccountDetail() {
   const router = useRouter();
   const navigation = useNavigation();
 
-  const {
-    state: { accounts: accountsSignal },
-    updateAccount,
-    archiveAccount,
-    adjustBalance,
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
-  const {
-    state: { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving },
-    setEditing,
-    setAdjustVisible,
-    setArchiveVisible,
-    setSaving,
-    setAdjusting,
-    setArchiving,
-    reset,
-  } = useAccountDetailState();
+  const accounts = useAccountStore((s) => s.accounts);
+  const updateAccount = useAccountStore.getState().updateAccount;
+  const archiveAccount = useAccountStore.getState().archiveAccount;
+  const adjustBalance = useAccountStore.getState().adjustBalance;
+  const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
+    useAccountDetailState(
+      useShallow((s) => ({
+        isEditing: s.isEditing,
+        isAdjustVisible: s.isAdjustVisible,
+        isArchiveVisible: s.isArchiveVisible,
+        isSaving: s.isSaving,
+        isAdjusting: s.isAdjusting,
+        isArchiving: s.isArchiving,
+      })),
+    );
+  const setEditing = useAccountDetailState.getState().setEditing;
+  const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
+  const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
+  const setSaving = useAccountDetailState.getState().setSaving;
+  const setAdjusting = useAccountDetailState.getState().setAdjusting;
+  const setArchiving = useAccountDetailState.getState().setArchiving;
+  const reset = useAccountDetailState.getState().reset;
   useEffect(() => () => reset(), [reset]);
 
   useEffect(() => {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!isEditing.value) return;
+      const currentState = useAccountDetailState.getState();
+      if (!currentState.isEditing) return;
       e.preventDefault();
-      setEditing(false);
+      currentState.setEditing(false);
     });
     return unsubscribe;
-  }, [isEditing, navigation, setEditing]);
+  }, [navigation]);
 
   const account = accounts.find((a) => a.id === id);
 
@@ -111,7 +118,7 @@ export function useAccountDetail() {
   };
 
   const onBack = () => {
-    if (isEditing.value) {
+    if (isEditing) {
       setEditing(false);
     } else {
       router.back();

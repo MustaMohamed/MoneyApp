@@ -1,4 +1,5 @@
 import { type Href, Redirect } from 'expo-router';
+import { useShallow } from 'zustand/react/shallow';
 
 import { type OnboardingStep } from '@/constants/enums';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
@@ -11,9 +12,9 @@ const STEP_HREF: Record<OnboardingStep, Href> = {
 };
 
 export default function Index() {
-  const {
-    state: { complete, currentStep },
-  } = useOnboardingStore();
-  if (complete.value) return <Redirect href="/dashboard" />;
-  return <Redirect href={STEP_HREF[currentStep.value]} />;
+  const { complete, currentStep } = useOnboardingStore(
+    useShallow((s) => ({ complete: s.complete, currentStep: s.currentStep })),
+  );
+  if (complete) return <Redirect href="/dashboard" />;
+  return <Redirect href={STEP_HREF[currentStep]} />;
 }

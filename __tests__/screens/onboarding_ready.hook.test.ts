@@ -4,7 +4,11 @@ import { Currency, OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useReady } from '@/modules/onboarding/screens/onboarding/ready/ready.hook';
-import { OnboardingStore, useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
+import {
+  createOnboardingStore,
+  useOnboardingStore,
+} from '@/modules/onboarding/store/onboarding.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('@/modules/onboarding/store/onboarding.store', () => {
   // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-return -- Jest requireActual is typed as any; this preserves the real class export while mocking the hook facade.
@@ -18,7 +22,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 }));
 
 const mockCompleteOnboarding = jest.fn().mockResolvedValue(undefined);
-const mockInitAccounts = jest.fn().mockResolvedValue(undefined);
+const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 
 const fakeAccounts = [
   { id: '1', current_balance: 5000, type: 'bank', opening_balance: 5000 },
@@ -36,7 +40,7 @@ function deferred<T>() {
 }
 
 function setup() {
-  const store = new OnboardingStore({
+  const store = createOnboardingStore({
     setStep: jest.fn().mockResolvedValue(undefined),
     setBaseCurrency: jest.fn().mockResolvedValue(undefined),
     complete: mockCompleteOnboarding,
@@ -46,13 +50,19 @@ function setup() {
       baseCurrency: Currency.EGP,
     }),
   });
-  jest.mocked(useOnboardingStore).mockReturnValue(store);
-  jest.mocked(useAccountStore).mockReturnValue({
-    state: {
-      accounts: { value: fakeAccounts },
-    },
-    init: mockInitAccounts,
-  } as unknown as ReturnType<typeof useAccountStore>);
+  const mockedOnboardingStore = jest.mocked(useOnboardingStore);
+  mockedOnboardingStore.mockImplementation(((
+    selector?: (state: ReturnType<typeof store.getState>) => unknown,
+  ) => (selector ? store(selector) : store())) as typeof useOnboardingStore);
+  (
+    mockedOnboardingStore as typeof useOnboardingStore & {
+      getState: typeof store.getState;
+    }
+  ).getState = store.getState;
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: fakeAccounts,
+    loadAccounts: mockLoadAccounts,
+  }));
 }
 
 describe('useReady', () => {
@@ -85,15 +95,15 @@ describe('useReady', () => {
     expect(balanceRow?.value).toContain('5,200');
   });
 
-  it('initializes accounts for restart directly on the ready step', () => {
+  it('loads accounts for restart directly on the ready step', () => {
     renderHook(() => useReady());
 
-    expect(mockInitAccounts).toHaveBeenCalledTimes(1);
+    expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
   });
 
   it('completing defaults to false', () => {
     const { result } = renderHook(() => useReady());
-    expect(result.current.state.completing.value).toBe(false);
+    expect(result.current.state.completing).toBe(false);
   });
 
   it('handleComplete calls completeOnboarding', async () => {
@@ -114,7 +124,7 @@ describe('useReady', () => {
       firstCall = result.current.handleComplete();
     });
 
-    expect(result.current.state.completing.value).toBe(true);
+    expect(result.current.state.completing).toBe(true);
 
     await act(async () => {
       await result.current.handleComplete();

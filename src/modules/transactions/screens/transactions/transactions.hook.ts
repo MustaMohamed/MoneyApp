@@ -50,10 +50,7 @@ export function useTransactions() {
   const loadMore = useTransactionStore.getState().loadMore;
   const refresh = useTransactionStore.getState().refresh;
 
-  const {
-    state: { accounts: accountsSignal },
-  } = useAccountStore();
-  const accounts = accountsSignal.value;
+  const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
 
   const openFilter = useFilterState.getState().open;

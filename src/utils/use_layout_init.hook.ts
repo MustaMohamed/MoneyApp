@@ -7,22 +7,19 @@ import { useAppReadyStore } from '@/store/ready.store';
 import { useInit } from '@/utils/use_init.hook';
 
 export function useAppInit() {
-  const {
-    state: { ready },
-    markReady,
-    reset,
-  } = useAppReadyStore();
-  const { init: initAccounts } = useAccountStore();
+  const ready = useAppReadyStore.useState.ready();
+  const loadAccounts = useAccountStore.getState().loadAccounts;
   const { init: initOnboarding } = useOnboardingStore();
 
   useInit(() => {
+    const markReady = useAppReadyStore.getState().markReady;
     let onboardingComplete = false;
 
     return (async () => {
       try {
         const db = await getDb();
         await runMigrations(db);
-        const [onboarding] = await Promise.all([initOnboarding(), initAccounts()]);
+        const [onboarding] = await Promise.all([initOnboarding(), loadAccounts()]);
         onboardingComplete = onboarding.complete;
         markReady();
       } catch (err) {
@@ -56,8 +53,8 @@ export function useAppInit() {
 
   return {
     state: { ready },
-    reset,
-    markReady,
+    reset: () => useAppReadyStore.getState().reset(),
+    markReady: () => useAppReadyStore.getState().markReady(),
   } as const;
 }
 

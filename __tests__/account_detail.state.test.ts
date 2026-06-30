@@ -1,88 +1,94 @@
-import { act, renderHook } from '@testing-library/react-native';
-
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
 
 describe('accountDetailState initial state', () => {
+  beforeEach(() => {
+    useAccountDetailState.getState().reset();
+  });
+
   it('starts with all booleans false', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    const { state } = result.current;
-    expect(state.isEditing.value).toBe(false);
-    expect(state.isAdjustVisible.value).toBe(false);
-    expect(state.isArchiveVisible.value).toBe(false);
-    expect(state.isSaving.value).toBe(false);
-    expect(state.isAdjusting.value).toBe(false);
-    expect(state.isArchiving.value).toBe(false);
+    const state = useAccountDetailState.getState();
+
+    expect(state.isEditing).toBe(false);
+    expect(state.isAdjustVisible).toBe(false);
+    expect(state.isArchiveVisible).toBe(false);
+    expect(state.isSaving).toBe(false);
+    expect(state.isAdjusting).toBe(false);
+    expect(state.isArchiving).toBe(false);
   });
 });
 
 describe('accountDetailState setters', () => {
+  beforeEach(() => {
+    useAccountDetailState.getState().reset();
+  });
+
   it('setEditing toggles', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => result.current.setEditing(true));
-    expect(result.current.state.isEditing.value).toBe(true);
-    act(() => result.current.setEditing(false));
-    expect(result.current.state.isEditing.value).toBe(false);
+    useAccountDetailState.getState().setEditing(true);
+    expect(useAccountDetailState.getState().isEditing).toBe(true);
+
+    useAccountDetailState.getState().setEditing(false);
+    expect(useAccountDetailState.getState().isEditing).toBe(false);
   });
 
   it('setAdjustVisible toggles', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => result.current.setAdjustVisible(true));
-    expect(result.current.state.isAdjustVisible.value).toBe(true);
-    act(() => result.current.setAdjustVisible(false));
-    expect(result.current.state.isAdjustVisible.value).toBe(false);
+    useAccountDetailState.getState().setAdjustVisible(true);
+    expect(useAccountDetailState.getState().isAdjustVisible).toBe(true);
+
+    useAccountDetailState.getState().setAdjustVisible(false);
+    expect(useAccountDetailState.getState().isAdjustVisible).toBe(false);
   });
 
   it('setArchiveVisible toggles', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => result.current.setArchiveVisible(true));
-    expect(result.current.state.isArchiveVisible.value).toBe(true);
+    useAccountDetailState.getState().setArchiveVisible(true);
+    expect(useAccountDetailState.getState().isArchiveVisible).toBe(true);
   });
 
   it('setSaving toggles', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => result.current.setSaving(true));
-    expect(result.current.state.isSaving.value).toBe(true);
-    act(() => result.current.setSaving(false));
-    expect(result.current.state.isSaving.value).toBe(false);
+    useAccountDetailState.getState().setSaving(true);
+    expect(useAccountDetailState.getState().isSaving).toBe(true);
+
+    useAccountDetailState.getState().setSaving(false);
+    expect(useAccountDetailState.getState().isSaving).toBe(false);
   });
 
   it('setAdjusting toggles', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => result.current.setAdjusting(true));
-    expect(result.current.state.isAdjusting.value).toBe(true);
-    act(() => result.current.setAdjusting(false));
-    expect(result.current.state.isAdjusting.value).toBe(false);
+    useAccountDetailState.getState().setAdjusting(true);
+    expect(useAccountDetailState.getState().isAdjusting).toBe(true);
+
+    useAccountDetailState.getState().setAdjusting(false);
+    expect(useAccountDetailState.getState().isAdjusting).toBe(false);
   });
 
   it('setArchiving toggles', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => result.current.setArchiving(true));
-    expect(result.current.state.isArchiving.value).toBe(true);
-    act(() => result.current.setArchiving(false));
-    expect(result.current.state.isArchiving.value).toBe(false);
+    useAccountDetailState.getState().setArchiving(true);
+    expect(useAccountDetailState.getState().isArchiving).toBe(true);
+
+    useAccountDetailState.getState().setArchiving(false);
+    expect(useAccountDetailState.getState().isArchiving).toBe(false);
   });
 });
 
 describe('accountDetailState reset', () => {
+  beforeEach(() => {
+    useAccountDetailState.getState().reset();
+  });
+
   it('resets every flag to false', () => {
-    const { result } = renderHook(() => useAccountDetailState());
-    act(() => {
-      result.current.setEditing(true);
-      result.current.setAdjustVisible(true);
-      result.current.setArchiveVisible(true);
-      result.current.setSaving(true);
-      result.current.setAdjusting(true);
-      result.current.setArchiving(true);
-    });
+    useAccountDetailState.getState().setEditing(true);
+    useAccountDetailState.getState().setAdjustVisible(true);
+    useAccountDetailState.getState().setArchiveVisible(true);
+    useAccountDetailState.getState().setSaving(true);
+    useAccountDetailState.getState().setAdjusting(true);
+    useAccountDetailState.getState().setArchiving(true);
 
-    act(() => result.current.reset());
+    useAccountDetailState.getState().reset();
 
-    const { state } = result.current;
-    expect(state.isEditing.value).toBe(false);
-    expect(state.isAdjustVisible.value).toBe(false);
-    expect(state.isArchiveVisible.value).toBe(false);
-    expect(state.isSaving.value).toBe(false);
-    expect(state.isAdjusting.value).toBe(false);
-    expect(state.isArchiving.value).toBe(false);
+    const state = useAccountDetailState.getState();
+    expect(state.isEditing).toBe(false);
+    expect(state.isAdjustVisible).toBe(false);
+    expect(state.isArchiveVisible).toBe(false);
+    expect(state.isSaving).toBe(false);
+    expect(state.isAdjusting).toBe(false);
+    expect(state.isArchiving).toBe(false);
   });
 });

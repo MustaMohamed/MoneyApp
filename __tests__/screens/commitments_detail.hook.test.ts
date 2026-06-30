@@ -58,11 +58,9 @@ function setup() {
     payments: [],
     skipPayment: jest.fn().mockResolvedValue(undefined),
   }));
-  jest
-    .mocked(useAccountStore)
-    .mockReturnValue({ state: { accounts: { value: [] } } } as unknown as ReturnType<
-      typeof useAccountStore
-    >);
+  attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
+    accounts: [],
+  }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
   }));

@@ -71,14 +71,11 @@ const mockCategoryIncome = {
 };
 
 beforeEach(() => {
-  const accountsStore = useAccountStore();
-  accountsStore.reset();
-  accountsStore.state.accounts.value = [
-    mockAccountEGP,
-    mockAccountUSD,
-    mockAccountCC,
-    mockAccountCC2,
-  ];
+  useAccountStore.getState().reset();
+  useAccountStore.setState({
+    accounts: [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2],
+    hasLoaded: true,
+  });
   useCategoryStore.setState({
     categories: [mockCategoryExpense, mockCategoryIncome],
     loading: false,
@@ -243,8 +240,9 @@ describe('useAddTransaction — cross-currency math', () => {
 
   it('transfer USD → USD: rate required (for egp_amount); to_amount = amount', async () => {
     const mockAccountUSD2 = { ...mockAccountUSD, id: 'a5', name: 'USD Wallet' };
-    const accountsStore = useAccountStore();
-    accountsStore.state.accounts.value = [...accountsStore.state.accounts.value, mockAccountUSD2];
+    useAccountStore.setState({
+      accounts: [...useAccountStore.getState().accounts, mockAccountUSD2],
+    });
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));

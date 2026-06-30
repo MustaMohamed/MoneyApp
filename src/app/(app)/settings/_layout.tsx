@@ -25,6 +25,7 @@ export default function SettingsLayout() {
     <Stack
       screenOptions={{
         headerShown: true,
+        freezeOnBlur: true,
         headerStyle: { backgroundColor: Colors.dark.bg },
         headerTintColor: Colors.dark.text1,
         headerTitleStyle: { fontFamily: FontFamily.soraSemi, fontSize: Type.subhead },
