@@ -97,6 +97,35 @@ function deferred<T>() {
 }
 
 // ---------------------------------------------------------------------------
+// initial state
+// ---------------------------------------------------------------------------
+
+describe('commitmentStore initial state', () => {
+  it('seeds selectedMonth from the local current month', () => {
+    const isoSpy = jest
+      .spyOn(Date.prototype, 'toISOString')
+      .mockReturnValue('2026-06-30T21:30:00.000Z');
+    const yearSpy = jest.spyOn(Date.prototype, 'getFullYear').mockReturnValue(2026);
+    const monthSpy = jest.spyOn(Date.prototype, 'getMonth').mockReturnValue(6);
+
+    try {
+      jest.isolateModules(() => {
+        const { createCommitmentStore: createIsolatedCommitmentStore } = jest.requireActual<
+          typeof import('@/modules/commitments/store/commitment.store')
+        >('@/modules/commitments/store/commitment.store');
+        const useStore = createIsolatedCommitmentStore(makeRepo());
+
+        expect(useStore.getState().selectedMonth).toBe('2026-07');
+      });
+    } finally {
+      isoSpy.mockRestore();
+      yearSpy.mockRestore();
+      monthSpy.mockRestore();
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // loadCommitments
 // ---------------------------------------------------------------------------
 

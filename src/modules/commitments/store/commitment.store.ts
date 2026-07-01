@@ -3,6 +3,7 @@ import { create } from 'zustand';
 
 import { CommitmentPaymentStatus, DurationType } from '@/constants/enums';
 import { computeDueDates } from '@/utils/compute_due_dates';
+import { currentYearMonth } from '@/utils/year_month';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { Commitment } from '../entities/commitment.entity';
@@ -24,7 +25,6 @@ export type {
 };
 
 const today = () => new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-const currentMonth = () => new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
 function makePayments(commitment: Commitment, dueDates: string[]): CommitmentPayment[] {
   const now = new Date().toISOString();
@@ -89,20 +89,22 @@ type CommitmentStore = CommitmentStoreState & {
   reset(): void;
 };
 
-const INITIAL_STATE: CommitmentStoreState = {
-  commitments: [],
-  payments: [],
-  selectedMonth: currentMonth(),
-  commitmentsLoaded: false,
-  paymentsLoaded: false,
-};
+function initialState(): CommitmentStoreState {
+  return {
+    commitments: [],
+    payments: [],
+    selectedMonth: currentYearMonth(),
+    commitmentsLoaded: false,
+    paymentsLoaded: false,
+  };
+}
 
 export function createCommitmentStore(repo: ICommitmentRepository) {
   let paymentRequestId = 0;
 
   return createMoneyAppSelectors(
     create<CommitmentStore>((set, get) => ({
-      ...INITIAL_STATE,
+      ...initialState(),
 
       loadCommitments: async () => {
         try {
@@ -305,7 +307,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         }, 0);
       },
 
-      reset: () => set(INITIAL_STATE),
+      reset: () => set(initialState()),
     })),
   );
 }
