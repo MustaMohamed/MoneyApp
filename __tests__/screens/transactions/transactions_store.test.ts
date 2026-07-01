@@ -20,7 +20,6 @@ describe('useTransactionsScreenStore initial state', () => {
 
   it('seeds the period with the current year-month string', () => {
     const s = useTransactionsScreenStore.getState();
-    if (s.period.type !== 'month') throw new Error('expected month period');
     expect(s.period.yearMonth).toMatch(/^\d{4}-\d{2}$/);
   });
 });
@@ -36,9 +35,12 @@ describe('useTransactionsScreenStore setters', () => {
     expect(useTransactionsScreenStore.getState().activeFilter).toBe(TransactionType.Expense);
   });
 
-  it('setPeriod replaces the period selection', () => {
-    useTransactionsScreenStore.getState().setPeriod({ type: 'all' });
-    expect(useTransactionsScreenStore.getState().period).toEqual({ type: 'all' });
+  it('setSelectedMonth replaces the period with the selected month', () => {
+    useTransactionsScreenStore.getState().setSelectedMonth('2026-08');
+    expect(useTransactionsScreenStore.getState().period).toEqual({
+      type: 'month',
+      yearMonth: '2026-08',
+    });
   });
 
   it('setAppliedFilters replaces the applied filters', () => {
@@ -60,7 +62,7 @@ describe('useTransactionsScreenStore reset', () => {
   it('returns every field to its initial value', () => {
     useTransactionsScreenStore.getState().setSearchQuery('x');
     useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
-    useTransactionsScreenStore.getState().setPeriod({ type: 'all' });
+    useTransactionsScreenStore.getState().setSelectedMonth('2026-08');
     useTransactionsScreenStore
       .getState()
       .setAppliedFilters({ ...EMPTY_FILTERS_V2, accountIds: ['a'] });

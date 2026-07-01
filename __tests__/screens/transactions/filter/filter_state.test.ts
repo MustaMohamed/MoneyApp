@@ -5,11 +5,10 @@ beforeEach(() => {
 });
 
 describe('useFilterState initial state', () => {
-  it('starts hidden with no open section and date-range sheet closed', () => {
+  it('starts hidden with no open section', () => {
     const s = useFilterState.getState();
     expect(s.visible).toBe(false);
     expect(s.openSection).toBeNull();
-    expect(s.dateRangeSheetVisible).toBe(false);
   });
 });
 
@@ -48,24 +47,13 @@ describe('useFilterState toggleSection', () => {
   });
 });
 
-describe('useFilterState setDateRangeSheetVisible', () => {
-  it('toggles the date-range sheet', () => {
-    useFilterState.getState().setDateRangeSheetVisible(true);
-    expect(useFilterState.getState().dateRangeSheetVisible).toBe(true);
-    useFilterState.getState().setDateRangeSheetVisible(false);
-    expect(useFilterState.getState().dateRangeSheetVisible).toBe(false);
-  });
-});
-
 describe('useFilterState reset', () => {
   it('returns every field to its initial value', () => {
     useFilterState.getState().open();
     useFilterState.getState().toggleSection('accounts');
-    useFilterState.getState().setDateRangeSheetVisible(true);
     useFilterState.getState().reset();
     const s = useFilterState.getState();
     expect(s.visible).toBe(false);
     expect(s.openSection).toBeNull();
-    expect(s.dateRangeSheetVisible).toBe(false);
   });
 });

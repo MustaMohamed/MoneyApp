@@ -4,21 +4,21 @@ import { TransactionType } from '@/constants/enums';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import { EMPTY_FILTERS_V2, type AdvancedFilters } from './filter/filter.store';
-import { currentYearMonth, type CarouselSelection } from './transactions.helpers';
+import { currentYearMonth, type TransactionPeriod } from './transactions.helpers';
 
 export type TransactionFilter = TransactionType | 'all';
 
 interface StateShape {
   searchQuery: string;
   activeFilter: TransactionFilter;
-  period: CarouselSelection;
+  period: TransactionPeriod;
   appliedFilters: AdvancedFilters;
 }
 
 type TransactionsScreenStore = StateShape & {
   setSearchQuery: (q: string) => void;
   setActiveFilter: (f: TransactionFilter) => void;
-  setPeriod: (p: CarouselSelection) => void;
+  setSelectedMonth: (yearMonth: string) => void;
   setAppliedFilters: (f: AdvancedFilters) => void;
   clearSearch: () => void;
   reset: () => void;
@@ -38,7 +38,7 @@ export const useTransactionsScreenStore = createMoneyAppSelectors(
     ...initialState(),
     setSearchQuery: (q) => set({ searchQuery: q }),
     setActiveFilter: (f) => set({ activeFilter: f }),
-    setPeriod: (p) => set({ period: p }),
+    setSelectedMonth: (yearMonth) => set({ period: { type: 'month', yearMonth } }),
     setAppliedFilters: (f) => set({ appliedFilters: f }),
     clearSearch: () => set({ searchQuery: '' }),
     reset: () => set(initialState()),

@@ -43,15 +43,16 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 const loadPaymentsForMonthMock = jest.fn().mockResolvedValue(undefined);
 const loadCommitmentsMock = jest.fn().mockResolvedValue(undefined);
 const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
+const setSelectedMonthMock = jest.fn();
 const setRefreshingMock = jest.fn();
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
-function setup() {
+function setup({ selectedMonth = '2026-05' }: { selectedMonth?: string } = {}) {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: [],
     payments: [],
-    selectedMonth: '2026-05',
-    setSelectedMonth: jest.fn(),
+    selectedMonth,
+    setSelectedMonth: setSelectedMonthMock,
     loadPaymentsForMonth: loadPaymentsForMonthMock,
     loadCommitments: loadCommitmentsMock,
     generatePayments: generatePaymentsMock,
@@ -74,6 +75,7 @@ describe('useCommitments', () => {
     loadPaymentsForMonthMock.mockClear();
     loadCommitmentsMock.mockClear();
     generatePaymentsMock.mockClear();
+    setSelectedMonthMock.mockClear();
     setRefreshingMock.mockClear();
     runAfterInteractions.mockClear();
     setup();
@@ -124,5 +126,37 @@ describe('useCommitments', () => {
     expect(generatePaymentsMock).toHaveBeenCalledTimes(1);
     expect(loadPaymentsForMonthMock).toHaveBeenCalledWith('2026-05');
     expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('selectMonth delegates to the commitment store selected month', () => {
+    const { result } = renderHook(() => useCommitments());
+
+    act(() => {
+      result.current.selectMonth('2026-08');
+    });
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-08');
+  });
+
+  it('navigateMonth moves January to previous December', () => {
+    setup({ selectedMonth: '2026-01' });
+    const { result } = renderHook(() => useCommitments());
+
+    act(() => {
+      result.current.navigateMonth('prev');
+    });
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2025-12');
+  });
+
+  it('navigateMonth moves December to next January', () => {
+    setup({ selectedMonth: '2026-12' });
+    const { result } = renderHook(() => useCommitments());
+
+    act(() => {
+      result.current.navigateMonth('next');
+    });
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2027-01');
   });
 });

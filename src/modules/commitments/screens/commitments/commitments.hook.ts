@@ -6,6 +6,7 @@ import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
+import { shiftYearMonth } from '@/utils/year_month';
 
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
@@ -124,21 +125,16 @@ export function useCommitments() {
 
   const navigateMonth = useCallback(
     (direction: 'prev' | 'next') => {
-      const [year, month] = selectedMonth.split('-').map(Number);
-      let newYear = year;
-      let newMonth = month + (direction === 'next' ? 1 : -1);
-      if (newMonth > 12) {
-        newMonth = 1;
-        newYear++;
-      }
-      if (newMonth < 1) {
-        newMonth = 12;
-        newYear--;
-      }
-      const newYearMonth = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-      void setSelectedMonth(newYearMonth);
+      void setSelectedMonth(shiftYearMonth(selectedMonth, direction === 'next' ? 1 : -1));
     },
     [selectedMonth, setSelectedMonth],
+  );
+
+  const selectMonth = useCallback(
+    (yearMonth: string) => {
+      void setSelectedMonth(yearMonth);
+    },
+    [setSelectedMonth],
   );
 
   useFocusEffect(
@@ -197,6 +193,7 @@ export function useCommitments() {
       commitmentsById,
     },
     navigateMonth,
+    selectMonth,
     onRefresh,
     goToDetail,
     goToAdd,

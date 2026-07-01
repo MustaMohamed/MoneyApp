@@ -1,6 +1,5 @@
 import {
   currentYearMonth,
-  computeCarouselPills,
   resolvePeriod,
   previousPeriod,
   computeDeltaPct,
@@ -22,40 +21,7 @@ describe('currentYearMonth', () => {
   });
 });
 
-describe('computeCarouselPills', () => {
-  it('defaults to today when called with no arguments', () => {
-    const pills = computeCarouselPills();
-    expect(pills).toHaveLength(8);
-    expect(pills[0]).toEqual({ kind: 'all' });
-    expect(pills[7]).toEqual({ kind: 'custom' });
-  });
-
-  it('produces [All] + last 6 months + [Custom] in chronological order', () => {
-    const pills = computeCarouselPills(new Date('2026-05-17T10:00:00Z'));
-    expect(pills).toEqual([
-      { kind: 'all' },
-      { kind: 'month', yearMonth: '2025-12' },
-      { kind: 'month', yearMonth: '2026-01' },
-      { kind: 'month', yearMonth: '2026-02' },
-      { kind: 'month', yearMonth: '2026-03' },
-      { kind: 'month', yearMonth: '2026-04' },
-      { kind: 'month', yearMonth: '2026-05' },
-      { kind: 'custom' },
-    ]);
-  });
-
-  it('handles year boundary correctly', () => {
-    const pills = computeCarouselPills(new Date('2026-02-15T10:00:00Z'));
-    expect(pills[1]).toEqual({ kind: 'month', yearMonth: '2025-09' });
-    expect(pills[6]).toEqual({ kind: 'month', yearMonth: '2026-02' });
-  });
-});
-
 describe('resolvePeriod', () => {
-  it('all → undefined bounds', () => {
-    expect(resolvePeriod({ type: 'all' })).toEqual({ from: undefined, to: undefined });
-  });
-
   it('month → first and last day of that month', () => {
     expect(resolvePeriod({ type: 'month', yearMonth: '2026-05' })).toEqual({
       from: '2026-05-01',
@@ -76,24 +42,9 @@ describe('resolvePeriod', () => {
       to: '2024-02-29',
     });
   });
-
-  it('custom → passthrough', () => {
-    expect(resolvePeriod({ type: 'custom', from: '2026-05-01', to: '2026-05-15' })).toEqual({
-      from: '2026-05-01',
-      to: '2026-05-15',
-    });
-  });
 });
 
 describe('previousPeriod', () => {
-  it('all → null', () => {
-    expect(previousPeriod({ type: 'all' })).toBeNull();
-  });
-
-  it('custom → null', () => {
-    expect(previousPeriod({ type: 'custom', from: 'a', to: 'b' })).toBeNull();
-  });
-
   it('month → prior month', () => {
     expect(previousPeriod({ type: 'month', yearMonth: '2026-05' })).toEqual({
       type: 'month',

@@ -6,6 +6,7 @@ import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
+import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { Text } from '@/components/ui/text';
@@ -16,8 +17,6 @@ import { useTransactionStore } from '@/modules/transactions/store/transaction.st
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { DateHeader } from './components/date_header';
-import { DateRangeSheet } from './components/date_range_sheet';
-import { MonthCarousel } from './components/month_carousel';
 import { SearchRow } from './components/search_row';
 import { TotalsStrip } from './components/totals_strip';
 import { TransactionRow } from './components/transaction_row';
@@ -38,7 +37,7 @@ export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
   const {
     state,
-    setPeriod,
+    setSelectedMonth,
     setSearchQuery,
     clearSearch,
     openFilter,
@@ -48,7 +47,6 @@ export default function TransactionsScreen(): React.ReactElement {
     resetFilters,
     onRefresh,
     onEndReached,
-    setCustomRange,
   } = t;
   const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
     useShallow((s) => ({
@@ -85,9 +83,6 @@ export default function TransactionsScreen(): React.ReactElement {
     return () => clearTimeout(timer);
   }, [addTxPendingOpen, openAddTx]);
 
-  const dateRangeSheetVisible = useFilterState.useState.dateRangeSheetVisible();
-  const setDateRangeSheetVisible = useFilterState.getState().setDateRangeSheetVisible;
-
   useFocusEffect(
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -98,10 +93,6 @@ export default function TransactionsScreen(): React.ReactElement {
         }
         if (useFilterState.getState().visible) {
           useFilterState.getState().close();
-          return true;
-        }
-        if (useFilterState.getState().dateRangeSheetVisible) {
-          useFilterState.getState().setDateRangeSheetVisible(false);
           return true;
         }
         return false;
@@ -163,16 +154,9 @@ export default function TransactionsScreen(): React.ReactElement {
         </Text>
       </View>
 
-      <View className="mt-3">
-        <MonthCarousel
-          selection={state.period}
-          customRange={state.customRange}
-          onSelect={setPeriod}
-          onOpenCustom={() => setDateRangeSheetVisible(true)}
-        />
-      </View>
+      <MonthFilter yearMonth={state.selectedMonth} onChange={setSelectedMonth} />
 
-      {state.period.type !== 'all' && state.totals ? (
+      {state.totals ? (
         <TotalsStrip
           current={state.totals.current}
           previous={state.totals.previous}
@@ -239,24 +223,6 @@ export default function TransactionsScreen(): React.ReactElement {
         }}
       />
       <FilterSheet />
-      <DateRangeSheet
-        isOpen={dateRangeSheetVisible}
-        initialFrom={state.customRange?.from}
-        initialTo={state.customRange?.to}
-        onOpenChange={(open) => {
-          if (!open) setDateRangeSheetVisible(false);
-        }}
-        onConfirm={(from, to) => {
-          setCustomRange({ from, to });
-          setPeriod({ type: 'custom', from, to });
-          setDateRangeSheetVisible(false);
-        }}
-        onReset={() => {
-          setCustomRange(null);
-          setPeriod({ type: 'all' });
-          setDateRangeSheetVisible(false);
-        }}
-      />
     </Screen>
   );
 }

@@ -4,6 +4,7 @@ import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
+import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { Strings } from '@/constants/strings';
@@ -17,7 +18,6 @@ import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_con
 import { CommitmentHeader } from './components/commitment_header';
 import { CommitmentRow } from './components/commitment_row';
 import { CommitmentsEmptyState } from './components/empty_state';
-import { MonthNavigator } from './components/month_navigator';
 import { StatusFilterChips } from './components/status_filter_chips';
 import { SummaryHeader } from './components/summary_header';
 import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
@@ -28,7 +28,7 @@ export default function CommitmentsScreen() {
   const t = useCommitments();
   const {
     state,
-    navigateMonth,
+    selectMonth,
     onRefresh,
     goToDetail,
     goToAdd,
@@ -99,23 +99,11 @@ export default function CommitmentsScreen() {
   const listHeaderComponent = useMemo(
     () => (
       <>
-        <MonthNavigator
-          yearMonth={state.selectedMonth}
-          onPrev={() => navigateMonth('prev')}
-          onNext={() => navigateMonth('next')}
-        />
         <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />
         <StatusFilterChips active={state.statusFilter} onChange={setStatusFilter} />
       </>
     ),
-    [
-      navigateMonth,
-      setStatusFilter,
-      state.counts,
-      state.selectedMonth,
-      state.statusFilter,
-      state.totalsByCurrency,
-    ],
+    [setStatusFilter, state.counts, state.statusFilter, state.totalsByCurrency],
   );
 
   const listEmptyComponent = useMemo(
@@ -145,24 +133,27 @@ export default function CommitmentsScreen() {
       ) : !state.hasCommitments ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
-        <SectionList
-          sections={state.sections}
-          keyExtractor={(item) => item.id}
-          stickySectionHeadersEnabled
-          onScrollBeginDrag={closeAllRows}
-          renderSectionHeader={renderSectionHeader}
-          renderItem={renderItem}
-          ListHeaderComponent={listHeaderComponent}
-          refreshControl={
-            <RefreshControl
-              refreshing={state.refreshing}
-              onRefresh={handleRefresh}
-              tintColor={GoldTokens[500]}
-            />
-          }
-          ListEmptyComponent={listEmptyComponent}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
-        />
+        <>
+          <MonthFilter yearMonth={state.selectedMonth} onChange={selectMonth} />
+          <SectionList
+            sections={state.sections}
+            keyExtractor={(item) => item.id}
+            stickySectionHeadersEnabled
+            onScrollBeginDrag={closeAllRows}
+            renderSectionHeader={renderSectionHeader}
+            renderItem={renderItem}
+            ListHeaderComponent={listHeaderComponent}
+            refreshControl={
+              <RefreshControl
+                refreshing={state.refreshing}
+                onRefresh={handleRefresh}
+                tintColor={GoldTokens[500]}
+              />
+            }
+            ListEmptyComponent={listEmptyComponent}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+          />
+        </>
       )}
 
       <CommitmentDeleteConfirmSheet
