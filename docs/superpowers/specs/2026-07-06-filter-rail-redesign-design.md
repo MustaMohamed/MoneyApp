@@ -19,8 +19,9 @@ and places all screen filters in one horizontally scrollable segmented row.
 
 ## Component API
 
-Create a shared `FilterRail<T extends string>` component in
-`src/components/ui/filter_rail.tsx`.
+Create standalone `MonthFilter` and `SegmentFilter<T extends string>`
+components, then compose them in a shared `FilterRail<T extends string>`
+component in `src/components/ui/filter_rail.tsx`.
 
 ```tsx
 <FilterRail
@@ -72,14 +73,14 @@ summary/list state below the rail.
 `FilterRail` composes existing app/HeroUI primitives:
 
 - `Surface` or a bordered layout view for the rail container.
-- `PressableFeedback` for previous, selected month, and next month controls.
-- existing `Sheet` behavior for month picking.
+- standalone `MonthFilter` for month stepping and picker behavior.
+- standalone `SegmentFilter` for the filter options row.
 - existing `SegmentedTabs` with `layout="scrollable"` and `variant="solid-gold"`
   for the filter row.
 
-The current `MonthFilter` should be replaced by `FilterRail` in the two target
-screens and removed if no callers remain. The old transaction and commitment
-chip components should also be removed once no callers remain.
+MonthFilter and SegmentFilter keep their state/mapping logic in component hook
+files. The old transaction and commitment chip components should be removed
+once no callers remain.
 
 ## Testing
 

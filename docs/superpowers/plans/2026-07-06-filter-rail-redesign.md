@@ -4,7 +4,7 @@
 
 **Goal:** Replace separate month and chip controls on Transactions and Commitments with one shared compact month + scrollable segmented filter rail.
 
-**Architecture:** Create `FilterRail<T>` in `src/components/ui/filter_rail.tsx` by composing the existing month picker logic and HeroUI-backed `SegmentedTabs`. Transactions and Commitments pass dynamic `filters` arrays and controlled month/filter props. Remove old screen-specific chip components after integration.
+**Architecture:** Keep `MonthFilter` and `SegmentFilter<T>` standalone, with their logic in component hooks. Create `FilterRail<T>` in `src/components/ui/filter_rail.tsx` as the compact surface that composes both pieces. Transactions and Commitments pass dynamic `filters` arrays and controlled month/filter props. Remove old screen-specific chip components after integration.
 
 **Tech Stack:** Expo React Native, TypeScript, HeroUI Native, existing `Sheet`, existing `SegmentedTabs`, Jest + React Native Testing Library.
 
@@ -12,16 +12,22 @@
 
 ## File Map
 
-- Create: `src/components/ui/filter_rail.tsx` — shared rail component and exported `FilterRailOption<T>` type.
-- Create: `__tests__/components/ui/filter_rail.test.tsx` — component behavior tests.
+- Create: `src/components/ui/filter_rail.tsx` — composed rail wrapper and exported `FilterRailOption<T>` type.
+- Create: `src/components/ui/month_filter.tsx` — standalone month filter shell.
+- Create: `src/components/ui/month_filter.hook.ts` — month picker state and date logic.
+- Create: `src/components/ui/segment_filter.tsx` — standalone segmented filter shell.
+- Create: `src/components/ui/segment_filter.hook.ts` — segment mapping logic.
+- Create: `__tests__/components/ui/filter_rail.test.tsx` — composed behavior tests.
+- Create: `__tests__/components/ui/month_filter.test.tsx` — standalone month behavior tests.
+- Create: `__tests__/components/ui/segment_filter.test.tsx` — dynamic segment behavior tests.
 - Modify: `src/modules/transactions/screens/transactions/index.tsx` — use `FilterRail`.
 - Modify: `src/modules/commitments/screens/commitments/index.tsx` — use `FilterRail`.
 - Modify: `__tests__/screens/commitments.screen.test.tsx` — update shared rail mock.
 - Create: `__tests__/screens/filter_rail_usage.test.ts` — static screen contract for full option lists.
 - Delete: `src/modules/transactions/screens/transactions/components/type_chips.tsx`.
 - Delete: `src/modules/commitments/screens/commitments/components/status_filter_chips.tsx`.
-- Delete: `src/components/ui/month_filter.tsx` and its old component test after
-  both target screens use `FilterRail`.
+- Keep: `src/components/ui/month_filter.tsx` as a standalone component composed
+  by `FilterRail`.
 
 ## Task 1: Shared FilterRail Tests
 
@@ -152,14 +158,17 @@ Run: `npm test -- --runTestsByPath __tests__/components/ui/filter_rail.test.tsx`
 
 Expected: FAIL because `@/components/ui/filter_rail` does not exist.
 
-## Task 2: Implement FilterRail
+## Task 2: Implement Standalone Filters And FilterRail
 
 **Files:**
 - Create: `src/components/ui/filter_rail.tsx`
 
 - [ ] **Step 1: Add the shared component**
 
-Implement the exported API exactly:
+Implement standalone `MonthFilter`, standalone `SegmentFilter`, and compose them
+inside `FilterRail`. Keep state/effects/memoization in `.hook.ts` files.
+
+Implement the exported rail option API exactly:
 
 ```ts
 export interface FilterRailOption<T extends string = string> {
@@ -174,7 +183,7 @@ Behavior:
 - Render selected month using `formatMonthYear(selectedMonth)`.
 - Shift month with `shiftYearMonth(selectedMonth, -1 | 1)`.
 - Open the same month picker sheet and use `toYearMonth(pickerYear, monthNumber)`.
-- Render filters with `SegmentedTabs` using `layout="scrollable"`,
+- Render filters through `SegmentFilter` with `SegmentedTabs` using `layout="scrollable"`,
   `variant="solid-gold"`, and `scrollAlign="start"`.
 - Use prop names from the spec:
   `selectedMonth`, `onSelectedMonthChange`, `selectedFilter`,
