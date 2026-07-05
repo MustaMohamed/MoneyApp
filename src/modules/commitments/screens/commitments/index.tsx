@@ -4,9 +4,10 @@ import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
 import { EmptyState } from '@/components/ui/empty_state';
-import { MonthFilter } from '@/components/ui/month_filter';
+import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
+import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
@@ -15,14 +16,23 @@ import { DateHeader } from '@/modules/transactions/screens/transactions/componen
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { useCommitments } from './commitments.hook';
+import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
 import { CommitmentsEmptyState } from './components/empty_state';
-import { StatusFilterChips } from './components/status_filter_chips';
 import { SummaryHeader } from './components/summary_header';
 import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
 
 type CommitmentSection = { title: string; data: CommitmentPayment[] };
+
+const COMMITMENT_FILTERS: FilterRailOption<CommitmentStatusFilter>[] = [
+  { value: 'all', label: Strings.filterAll },
+  { value: CommitmentPaymentStatus.Overdue, label: Strings.commitmentsStatusOverdue },
+  { value: CommitmentPaymentStatus.Due, label: Strings.commitmentsStatusDue },
+  { value: CommitmentPaymentStatus.Upcoming, label: Strings.commitmentsStatusUpcoming },
+  { value: CommitmentPaymentStatus.Paid, label: Strings.commitmentsStatusPaid },
+  { value: CommitmentPaymentStatus.Skipped, label: Strings.commitmentsStatusSkipped },
+];
 
 export default function CommitmentsScreen() {
   const t = useCommitments();
@@ -95,13 +105,8 @@ export default function CommitmentsScreen() {
   );
 
   const listHeaderComponent = useMemo(
-    () => (
-      <>
-        <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />
-        <StatusFilterChips active={state.statusFilter} onChange={setStatusFilter} />
-      </>
-    ),
-    [setStatusFilter, state.counts, state.statusFilter, state.totalsByCurrency],
+    () => <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />,
+    [state.counts, state.totalsByCurrency],
   );
 
   const listEmptyComponent = useMemo(
@@ -130,7 +135,14 @@ export default function CommitmentsScreen() {
         </View>
       </Surface>
       <Separator />
-      <MonthFilter yearMonth={state.selectedMonth} onChange={selectMonth} />
+      <FilterRail
+        selectedMonth={state.selectedMonth}
+        onSelectedMonthChange={selectMonth}
+        selectedFilter={state.statusFilter}
+        onSelectedFilterChange={setStatusFilter}
+        filters={COMMITMENT_FILTERS}
+        filterAccessibilityLabel="Commitment status filter"
+      />
 
       {!state.commitmentsLoaded ? (
         <View className="items-center justify-center py-12">

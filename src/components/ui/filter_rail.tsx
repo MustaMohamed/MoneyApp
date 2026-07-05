@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
+import { PressableFeedback, Surface } from 'heroui-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 
@@ -15,11 +15,22 @@ import {
 } from '@/utils/year_month';
 
 import { Sheet } from './sheet';
+import { SegmentedTabs } from './tabs';
 import { Text } from './text';
 
-interface MonthFilterProps {
-  yearMonth: string;
-  onChange: (yearMonth: string) => void;
+export interface FilterRailOption<T extends string = string> {
+  value: T;
+  label: string;
+  accessibilityLabel?: string;
+}
+
+interface FilterRailProps<T extends string = string> {
+  selectedMonth: string;
+  onSelectedMonthChange: (month: string) => void;
+  selectedFilter: T;
+  onSelectedFilterChange: (filter: T) => void;
+  filters: ReadonlyArray<FilterRailOption<T>>;
+  filterAccessibilityLabel: string;
 }
 
 interface IconButtonProps {
@@ -42,10 +53,17 @@ function IconButton({ icon, accessibilityLabel, onPress }: IconButtonProps) {
   );
 }
 
-export function MonthFilter({ yearMonth, onChange }: MonthFilterProps) {
-  const selectedLabel = formatMonthYear(yearMonth);
-  const selectedYear = yearFromYearMonth(yearMonth);
-  const selectedMonth = monthNumberFromYearMonth(yearMonth);
+export function FilterRail<T extends string>({
+  selectedMonth,
+  onSelectedMonthChange,
+  selectedFilter,
+  onSelectedFilterChange,
+  filters,
+  filterAccessibilityLabel,
+}: FilterRailProps<T>) {
+  const selectedLabel = formatMonthYear(selectedMonth);
+  const selectedYear = yearFromYearMonth(selectedMonth);
+  const selectedMonthNumber = monthNumberFromYearMonth(selectedMonth);
   const [isPickerOpen, setPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(selectedYear);
 
@@ -58,56 +76,82 @@ export function MonthFilter({ yearMonth, onChange }: MonthFilterProps) {
     [],
   );
 
+  const filterSegments = useMemo(
+    () =>
+      filters.map((filter) => ({
+        value: filter.value,
+        label: filter.label,
+        accessibilityLabel: filter.accessibilityLabel,
+      })),
+    [filters],
+  );
+
   const stepMonth = useCallback(
     (delta: number) => {
-      onChange(shiftYearMonth(yearMonth, delta));
+      onSelectedMonthChange(shiftYearMonth(selectedMonth, delta));
     },
-    [onChange, yearMonth],
+    [onSelectedMonthChange, selectedMonth],
   );
 
   const selectMonth = useCallback(
     (monthNumber: number) => {
-      onChange(toYearMonth(pickerYear, monthNumber));
+      onSelectedMonthChange(toYearMonth(pickerYear, monthNumber));
       setPickerOpen(false);
     },
-    [onChange, pickerYear],
+    [onSelectedMonthChange, pickerYear],
   );
 
   return (
     <>
       <View className="px-4 pt-1 pb-2">
-        <View
-          style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
-          className="bg-default/40 border-border rounded-2xl border p-1.5"
+        <Surface
+          variant="transparent"
+          className="bg-default/40 border-border rounded-2xl border p-1.5 shadow-none"
         >
-          <IconButton
-            icon="chevron-left"
-            accessibilityLabel={Strings.monthFilterPreviousA11y}
-            onPress={() => stepMonth(-1)}
-          />
-          <PressableFeedback
-            onPress={() => setPickerOpen(true)}
-            accessibilityRole="button"
-            accessibilityLabel={Strings.monthFilterOpenA11y(selectedLabel)}
-            className="bg-accent h-10 flex-1 items-center justify-center rounded-full px-4"
+          <View
+            style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
+            className="mb-1.5"
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
-              <Text className="font-sora text-accent-foreground text-[13px] font-bold">
-                {selectedLabel}
-              </Text>
-              <MaterialCommunityIcons
-                name="chevron-down"
-                size={18}
-                color={Colors.shared.midnightBlue}
-              />
-            </View>
-          </PressableFeedback>
-          <IconButton
-            icon="chevron-right"
-            accessibilityLabel={Strings.monthFilterNextA11y}
-            onPress={() => stepMonth(1)}
+            <IconButton
+              icon="chevron-left"
+              accessibilityLabel={Strings.monthFilterPreviousA11y}
+              onPress={() => stepMonth(-1)}
+            />
+            <PressableFeedback
+              onPress={() => setPickerOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={Strings.monthFilterOpenA11y(selectedLabel)}
+              className="bg-accent h-10 flex-1 items-center justify-center rounded-full px-4"
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
+                <Text className="font-sora text-accent-foreground text-[13px] font-bold">
+                  {selectedLabel}
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={18}
+                  color={Colors.shared.midnightBlue}
+                />
+              </View>
+            </PressableFeedback>
+            <IconButton
+              icon="chevron-right"
+              accessibilityLabel={Strings.monthFilterNextA11y}
+              onPress={() => stepMonth(1)}
+            />
+          </View>
+
+          <SegmentedTabs
+            segments={filterSegments}
+            value={selectedFilter}
+            onValueChange={onSelectedFilterChange}
+            variant="solid-gold"
+            layout="scrollable"
+            scrollAlign="start"
+            listClassName="self-stretch bg-default/60"
+            accessibilityLabel={filterAccessibilityLabel}
           />
-        </View>
+        </Surface>
       </View>
 
       <Sheet
@@ -140,7 +184,7 @@ export function MonthFilter({ yearMonth, onChange }: MonthFilterProps) {
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
             {months.map(({ label, monthNumber }) => {
-              const selected = pickerYear === selectedYear && monthNumber === selectedMonth;
+              const selected = pickerYear === selectedYear && monthNumber === selectedMonthNumber;
               return (
                 <PressableFeedback
                   key={label}

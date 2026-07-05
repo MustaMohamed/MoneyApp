@@ -13,12 +13,12 @@ jest.mock('@/components/ui/screen', () => ({
     return <View>{children}</View>;
   },
 }));
-jest.mock('@/components/ui/month_filter', () => ({
-  MonthFilter: ({ yearMonth }: { yearMonth: string }) => {
+jest.mock('@/components/ui/filter_rail', () => ({
+  FilterRail: ({ selectedMonth }: { selectedMonth: string }) => {
     const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
     return (
-      <View testID="commitments-month-filter">
-        <Text>{yearMonth}</Text>
+      <View testID="commitments-filter-rail">
+        <Text>{selectedMonth}</Text>
       </View>
     );
   },
@@ -49,12 +49,6 @@ jest.mock('@/modules/commitments/screens/commitments/components/summary_header',
   SummaryHeader: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text>Summary</Text>;
-  },
-}));
-jest.mock('@/modules/commitments/screens/commitments/components/status_filter_chips', () => ({
-  StatusFilterChips: () => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>Status filters</Text>;
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/components/commitment_row', () => ({
@@ -113,10 +107,10 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments();
   });
 
-  it('keeps the shared month filter mounted when the commitments list is empty', () => {
+  it('keeps the shared filter rail mounted when the commitments list is empty', () => {
     const { getByTestId, getByText } = render(<CommitmentsScreen />);
 
-    expect(getByTestId('commitments-month-filter')).toBeTruthy();
+    expect(getByTestId('commitments-filter-rail')).toBeTruthy();
     expect(getByText('2026-08')).toBeTruthy();
   });
 });

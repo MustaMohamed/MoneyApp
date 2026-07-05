@@ -78,8 +78,8 @@ summary/list state below the rail.
   for the filter row.
 
 The current `MonthFilter` should be replaced by `FilterRail` in the two target
-screens. The old transaction and commitment chip components should be removed
-once no callers remain.
+screens and removed if no callers remain. The old transaction and commitment
+chip components should also be removed once no callers remain.
 
 ## Testing
 

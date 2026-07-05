@@ -20,6 +20,8 @@
 - Create: `__tests__/screens/filter_rail_usage.test.ts` — static screen contract for full option lists.
 - Delete: `src/modules/transactions/screens/transactions/components/type_chips.tsx`.
 - Delete: `src/modules/commitments/screens/commitments/components/status_filter_chips.tsx`.
+- Delete: `src/components/ui/month_filter.tsx` and its old component test after
+  both target screens use `FilterRail`.
 
 ## Task 1: Shared FilterRail Tests
 
@@ -293,6 +295,8 @@ Delete `src/modules/commitments/screens/commitments/components/status_filter_chi
 
 **Files:**
 - Create: `__tests__/screens/filter_rail_usage.test.ts`
+- Delete: `src/components/ui/month_filter.tsx`
+- Delete: `__tests__/components/ui/month_filter.test.tsx`
 
 - [ ] **Step 1: Write static usage tests**
 
@@ -309,6 +313,12 @@ Add a static test that reads both screen files and verifies:
 Run: `npm test -- --runTestsByPath __tests__/screens/filter_rail_usage.test.ts`
 
 Expected: PASS after Tasks 3 and 4.
+
+- [ ] **Step 3: Remove the old month-only component**
+
+Delete `src/components/ui/month_filter.tsx` and
+`__tests__/components/ui/month_filter.test.tsx` once `rg "MonthFilter|month_filter" src __tests__`
+shows no screen or test consumer except the old component test.
 
 ## Task 6: Verification
 
