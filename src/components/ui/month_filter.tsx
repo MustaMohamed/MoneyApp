@@ -43,12 +43,12 @@ export function MonthFilter(props: MonthFilterProps) {
         <PressableFeedback
           onPress={monthFilter.onOpenPicker}
           accessibilityRole="button"
-          accessibilityLabel={monthFilter.openPickerAccessibilityLabel}
+          accessibilityLabel={monthFilter.state.openPickerAccessibilityLabel}
           className="bg-accent h-10 flex-1 items-center justify-center rounded-full px-4"
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
             <Text className="font-sora text-accent-foreground text-[13px] font-bold">
-              {monthFilter.selectedLabel}
+              {monthFilter.state.selectedLabel}
             </Text>
             <MaterialCommunityIcons
               name="chevron-down"
@@ -65,7 +65,7 @@ export function MonthFilter(props: MonthFilterProps) {
       </View>
 
       <Sheet
-        isOpen={monthFilter.isPickerOpen}
+        isOpen={monthFilter.state.isPickerOpen}
         onOpenChange={monthFilter.onPickerOpenChange}
         title={Strings.monthPickerTitle}
         fitContent
@@ -85,7 +85,7 @@ export function MonthFilter(props: MonthFilterProps) {
               onPress={monthFilter.onPreviousPickerYear}
             />
             <Text className="font-sora text-foreground text-[17px] font-bold">
-              {monthFilter.pickerYear}
+              {monthFilter.state.pickerYear}
             </Text>
             <IconButton
               icon="chevron-right"
@@ -95,7 +95,7 @@ export function MonthFilter(props: MonthFilterProps) {
           </View>
 
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.xs }}>
-            {monthFilter.pickerMonths.map((month) => (
+            {monthFilter.state.pickerMonths.map((month) => (
               <PressableFeedback
                 key={month.key}
                 onPress={month.onPress}

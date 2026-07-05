@@ -78,9 +78,9 @@ summary/list state below the rail.
 - existing `SegmentedTabs` with `layout="scrollable"` and `variant="solid-gold"`
   for the filter row.
 
-MonthFilter and SegmentFilter keep their state/mapping logic in component hook
-files. The old transaction and commitment chip components should be removed
-once no callers remain.
+MonthFilter keeps picker visibility/year in a sibling `.state.ts`; hooks expose
+derived values/actions to TSX shells. The old transaction and commitment chip
+components should be removed once no callers remain.
 
 ## Testing
 

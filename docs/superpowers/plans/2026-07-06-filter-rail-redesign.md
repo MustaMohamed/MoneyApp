@@ -4,7 +4,7 @@
 
 **Goal:** Replace separate month and chip controls on Transactions and Commitments with one shared compact month + scrollable segmented filter rail.
 
-**Architecture:** Keep `MonthFilter` and `SegmentFilter<T>` standalone, with their logic in component hooks. Create `FilterRail<T>` in `src/components/ui/filter_rail.tsx` as the compact surface that composes both pieces. Transactions and Commitments pass dynamic `filters` arrays and controlled month/filter props. Remove old screen-specific chip components after integration.
+**Architecture:** Keep `MonthFilter` and `SegmentFilter<T>` standalone. Put MonthFilter picker UI state in `month_filter.state.ts`, component logic in hooks, and keep `FilterRail<T>` as the compact surface that composes both pieces. Transactions and Commitments pass dynamic `filters` arrays and controlled month/filter props. Remove old screen-specific chip components after integration.
 
 **Tech Stack:** Expo React Native, TypeScript, HeroUI Native, existing `Sheet`, existing `SegmentedTabs`, Jest + React Native Testing Library.
 
@@ -14,6 +14,7 @@
 
 - Create: `src/components/ui/filter_rail.tsx` — composed rail wrapper and exported `FilterRailOption<T>` type.
 - Create: `src/components/ui/month_filter.tsx` — standalone month filter shell.
+- Create: `src/components/ui/month_filter.state.ts` — month picker visibility/year state.
 - Create: `src/components/ui/month_filter.hook.ts` — month picker state and date logic.
 - Create: `src/components/ui/segment_filter.tsx` — standalone segmented filter shell.
 - Create: `src/components/ui/segment_filter.hook.ts` — segment mapping logic.
@@ -166,7 +167,7 @@ Expected: FAIL because `@/components/ui/filter_rail` does not exist.
 - [ ] **Step 1: Add the shared component**
 
 Implement standalone `MonthFilter`, standalone `SegmentFilter`, and compose them
-inside `FilterRail`. Keep state/effects/memoization in `.hook.ts` files.
+inside `FilterRail`. Keep UI state in `.state.ts` and derived/actions in hooks.
 
 Implement the exported rail option API exactly:
 

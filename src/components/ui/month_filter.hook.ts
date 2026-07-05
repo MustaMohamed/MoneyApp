@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { Strings } from '@/constants/strings';
 import { formatMonthYear } from '@/utils/format_date';
@@ -9,6 +9,8 @@ import {
   toYearMonth,
   yearFromYearMonth,
 } from '@/utils/year_month';
+
+import { useMonthFilterState } from './month_filter.state';
 
 export interface MonthFilterProps {
   selectedMonth: string;
@@ -34,12 +36,16 @@ export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFi
   const selectedLabel = formatMonthYear(selectedMonth);
   const selectedYear = yearFromYearMonth(selectedMonth);
   const selectedMonthNumber = monthNumberFromYearMonth(selectedMonth);
-  const [isPickerOpen, setPickerOpen] = useState(false);
-  const [pickerYear, setPickerYear] = useState(selectedYear);
+  const {
+    state: monthFilterState,
+    setPickerOpen,
+    setPickerYear,
+    shiftPickerYear,
+  } = useMonthFilterState(selectedYear);
 
   useEffect(() => {
-    if (isPickerOpen) setPickerYear(selectedYear);
-  }, [isPickerOpen, selectedYear]);
+    if (monthFilterState.isPickerOpen) setPickerYear(selectedYear);
+  }, [monthFilterState.isPickerOpen, selectedYear, setPickerYear]);
 
   const onPreviousMonth = useCallback(() => {
     onSelectedMonthChange(shiftYearMonth(selectedMonth, -1));
@@ -50,55 +56,59 @@ export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFi
   }, [onSelectedMonthChange, selectedMonth]);
 
   const onOpenPicker = useCallback(() => {
+    setPickerYear(selectedYear);
     setPickerOpen(true);
-  }, []);
+  }, [selectedYear, setPickerOpen, setPickerYear]);
 
   const onPreviousPickerYear = useCallback(() => {
-    setPickerYear((year) => year - 1);
-  }, []);
+    shiftPickerYear(-1);
+  }, [shiftPickerYear]);
 
   const onNextPickerYear = useCallback(() => {
-    setPickerYear((year) => year + 1);
-  }, []);
+    shiftPickerYear(1);
+  }, [shiftPickerYear]);
 
   const selectMonth = useCallback(
     (monthNumber: number) => {
-      onSelectedMonthChange(toYearMonth(pickerYear, monthNumber));
+      onSelectedMonthChange(toYearMonth(monthFilterState.pickerYear, monthNumber));
       setPickerOpen(false);
     },
-    [onSelectedMonthChange, pickerYear],
+    [monthFilterState.pickerYear, onSelectedMonthChange, setPickerOpen],
   );
 
   const pickerMonths = useMemo<PickerMonth[]>(
     () =>
       MONTHS_SHORT.map((label, index) => {
         const monthNumber = index + 1;
-        const selected = pickerYear === selectedYear && monthNumber === selectedMonthNumber;
+        const selected =
+          monthFilterState.pickerYear === selectedYear && monthNumber === selectedMonthNumber;
 
         return {
           key: label,
           label,
-          accessibilityLabel: `${label} ${pickerYear}`,
+          accessibilityLabel: `${label} ${monthFilterState.pickerYear}`,
           accessibilityState: { selected },
           buttonClassName: selected ? selectedMonthClassName : unselectedMonthClassName,
           labelClassName: selected ? selectedLabelClassName : unselectedLabelClassName,
           onPress: () => selectMonth(monthNumber),
         };
       }),
-    [pickerYear, selectMonth, selectedMonthNumber, selectedYear],
+    [monthFilterState.pickerYear, selectMonth, selectedMonthNumber, selectedYear],
   );
 
   return {
-    selectedLabel,
-    openPickerAccessibilityLabel: Strings.monthFilterOpenA11y(selectedLabel),
-    isPickerOpen,
+    state: {
+      selectedLabel,
+      openPickerAccessibilityLabel: Strings.monthFilterOpenA11y(selectedLabel),
+      isPickerOpen: monthFilterState.isPickerOpen,
+      pickerYear: monthFilterState.pickerYear,
+      pickerMonths,
+    },
     onPickerOpenChange: setPickerOpen,
     onOpenPicker,
     onPreviousMonth,
     onNextMonth,
-    pickerYear,
     onPreviousPickerYear,
     onNextPickerYear,
-    pickerMonths,
   };
 }

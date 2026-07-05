@@ -20,13 +20,17 @@ describe('feature screen filter rail usage', () => {
     expect(rail).not.toContain('SegmentedTabs');
     expect(exists('src/components/ui/month_filter.tsx')).toBe(true);
     expect(exists('src/components/ui/month_filter.hook.ts')).toBe(true);
+    expect(exists('src/components/ui/month_filter.state.ts')).toBe(true);
     expect(exists('src/components/ui/segment_filter.tsx')).toBe(true);
     expect(exists('src/components/ui/segment_filter.hook.ts')).toBe(true);
 
     const month = source('src/components/ui/month_filter.tsx');
+    const monthHook = source('src/components/ui/month_filter.hook.ts');
     const segment = source('src/components/ui/segment_filter.tsx');
 
     expect(month).toContain('useMonthFilter');
+    expect(monthHook).toContain('useMonthFilterState');
+    expect(monthHook).not.toMatch(/\buseState\b/);
     expect(segment).toContain('useSegmentFilter');
     expect(month).not.toMatch(/\buse(?:Callback|Effect|Memo|Reducer|State)\b/);
     expect(segment).not.toMatch(/\buse(?:Callback|Effect|Memo|Reducer|State)\b/);
