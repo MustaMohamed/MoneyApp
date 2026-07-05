@@ -43,15 +43,16 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
 const loadPaymentsForMonthMock = jest.fn().mockResolvedValue(undefined);
 const loadCommitmentsMock = jest.fn().mockResolvedValue(undefined);
 const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
+const setSelectedMonthMock = jest.fn();
 const setRefreshingMock = jest.fn();
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
-function setup() {
+function setup({ selectedMonth = '2026-05' }: { selectedMonth?: string } = {}) {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: [],
     payments: [],
-    selectedMonth: '2026-05',
-    setSelectedMonth: jest.fn(),
+    selectedMonth,
+    setSelectedMonth: setSelectedMonthMock,
     loadPaymentsForMonth: loadPaymentsForMonthMock,
     loadCommitments: loadCommitmentsMock,
     generatePayments: generatePaymentsMock,
@@ -71,9 +72,10 @@ describe('useCommitments', () => {
   beforeEach(() => {
     capturedFocusCallback = null;
     mockInteractionTasks.length = 0;
-    loadPaymentsForMonthMock.mockClear();
-    loadCommitmentsMock.mockClear();
-    generatePaymentsMock.mockClear();
+    loadPaymentsForMonthMock.mockReset().mockResolvedValue(undefined);
+    loadCommitmentsMock.mockReset().mockResolvedValue(undefined);
+    generatePaymentsMock.mockReset().mockResolvedValue(undefined);
+    setSelectedMonthMock.mockClear();
     setRefreshingMock.mockClear();
     runAfterInteractions.mockClear();
     setup();
@@ -110,6 +112,31 @@ describe('useCommitments', () => {
     expect(loadPaymentsForMonthMock).not.toHaveBeenCalled();
   });
 
+  it('focus reload regenerates payments before loading the selected month', async () => {
+    const calls: string[] = [];
+    loadCommitmentsMock.mockImplementation(async () => {
+      calls.push('loadCommitments');
+    });
+    generatePaymentsMock.mockImplementation(async () => {
+      calls.push('generatePayments');
+    });
+    loadPaymentsForMonthMock.mockImplementation(async (yearMonth: string) => {
+      calls.push(`loadPaymentsForMonth:${yearMonth}`);
+    });
+    renderHook(() => useCommitments());
+
+    act(() => {
+      capturedFocusCallback?.();
+    });
+    await act(async () => {
+      mockInteractionTasks[0]?.callback();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(calls).toEqual(['loadCommitments', 'generatePayments', 'loadPaymentsForMonth:2026-05']);
+  });
+
   it('pull-to-refresh reloads immediately without waiting for interactions', async () => {
     const { result } = renderHook(() => useCommitments());
     runAfterInteractions.mockClear();
@@ -124,5 +151,37 @@ describe('useCommitments', () => {
     expect(generatePaymentsMock).toHaveBeenCalledTimes(1);
     expect(loadPaymentsForMonthMock).toHaveBeenCalledWith('2026-05');
     expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('selectMonth delegates to the commitment store selected month', () => {
+    const { result } = renderHook(() => useCommitments());
+
+    act(() => {
+      result.current.selectMonth('2026-08');
+    });
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-08');
+  });
+
+  it('navigateMonth moves January to previous December', () => {
+    setup({ selectedMonth: '2026-01' });
+    const { result } = renderHook(() => useCommitments());
+
+    act(() => {
+      result.current.navigateMonth('prev');
+    });
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2025-12');
+  });
+
+  it('navigateMonth moves December to next January', () => {
+    setup({ selectedMonth: '2026-12' });
+    const { result } = renderHook(() => useCommitments());
+
+    act(() => {
+      result.current.navigateMonth('next');
+    });
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2027-01');
   });
 });

@@ -7,7 +7,6 @@ type AccordionSection = 'accounts' | 'categories' | 'amount' | null;
 interface FilterStateShape {
   visible: boolean;
   openSection: AccordionSection;
-  dateRangeSheetVisible: boolean;
 }
 
 type FilterState = FilterStateShape & {
@@ -22,14 +21,12 @@ type FilterState = FilterStateShape & {
    * no plain `setOpenSection` setter to invite the bug back.
    */
   toggleSection: (target: AccordionSection) => void;
-  setDateRangeSheetVisible: (v: boolean) => void;
   reset: () => void;
 };
 
 const INITIAL_STATE: FilterStateShape = {
   visible: false,
   openSection: null,
-  dateRangeSheetVisible: false,
 };
 
 export const useFilterState = createMoneyAppSelectors(
@@ -41,7 +38,6 @@ export const useFilterState = createMoneyAppSelectors(
       set((s) => ({
         openSection: s.openSection === target ? null : target,
       })),
-    setDateRangeSheetVisible: (v) => set({ dateRangeSheetVisible: v }),
     reset: () => set(INITIAL_STATE),
   })),
 );

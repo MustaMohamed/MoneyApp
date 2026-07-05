@@ -70,6 +70,10 @@ jest.mock('heroui-native', () => {
   const Input = passThrough(TextInput);
   const Surface = passThrough(View);
   const Text = passThrough(RNText);
+  Text.Heading = passThrough(RNText);
+  Text.Paragraph = passThrough(RNText);
+  Text.Code = passThrough(RNText);
+  const PressableFeedback = passThrough(View);
 
   const Button = passThrough(View);
   Button.Label = passThrough(RNText);
@@ -106,6 +110,7 @@ jest.mock('heroui-native', () => {
     Label,
     Description,
     FieldError,
+    PressableFeedback,
     Separator,
     Surface,
     Text,

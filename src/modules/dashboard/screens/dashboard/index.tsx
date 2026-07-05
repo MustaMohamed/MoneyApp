@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Tabs } from 'heroui-native';
+import { Button, Separator, Surface, Tabs, Text as HeroText } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -8,10 +8,9 @@ import { scheduleOnRN } from 'react-native-worklets';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { Text } from '@/components/ui/text';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Size, Spacing } from '@/constants/theme';
 
 import { AccountCarousel } from './components/account_carousel';
 import { CommitmentsCard } from './components/commitments_card';
@@ -68,11 +67,8 @@ export default function DashboardScreen() {
     [setSelectedSegment],
   );
 
-  // Swipe left → Accounts; swipe right → Overview.
-  // activeOffsetX gates activation on clear horizontal intent so the carousel's
-  // own horizontal scroll wins inside the Accounts segment. setSelectedSegment
-  // is a no-op when called with the already-active segment, so we don't gate
-  // by current value on the worklet side.
+  // Horizontal swipes switch dashboard tabs after clear side intent.
+  // That lets account carousel scrolling win until the gesture is decisive.
   const SWIPE_THRESHOLD = 50;
   const swipeGesture = useMemo(
     () =>
@@ -92,26 +88,34 @@ export default function DashboardScreen() {
 
   return (
     <Screen edges={['top']}>
-      <View
-        className="flex-row items-center justify-between px-4"
-        style={{ flexDirection: 'row', height: Size.headerHeight }}
-      >
-        <Text
-          className="font-bold"
-          style={{ fontFamily: FontFamily.soraBold, fontSize: Type.title }}
+      <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
+        <View
+          style={{
+            minHeight: Size.headerHeight,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: Spacing.sm,
+          }}
         >
-          MoneyApp
-        </Text>
-        <PressableFeedback
-          onPress={goToSettings}
-          accessibilityRole="button"
-          accessibilityLabel="Settings"
-          className="bg-surface border-border items-center justify-center rounded-lg border"
-          style={{ width: Size.backBtn, height: Size.backBtn }}
-        >
-          <MaterialCommunityIcons name="cog" size={Size.iconMd} color={Colors.dark.text2} />
-        </PressableFeedback>
-      </View>
+          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+            MoneyApp
+          </HeroText.Heading>
+          <Button
+            variant="ghost"
+            size="sm"
+            isIconOnly
+            className="bg-surface border-border rounded-lg border"
+            style={{ width: Size.backBtn, height: Size.backBtn }}
+            onPress={goToSettings}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <MaterialCommunityIcons name="cog" size={Size.iconMd} color={Colors.dark.text2} />
+          </Button>
+        </View>
+      </Surface>
+      <Separator />
 
       {!hasAccounts ? (
         <EmptyState variant="accounts" onAction={goToAddAccount} />

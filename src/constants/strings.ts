@@ -190,6 +190,7 @@ export const Strings = {
   emptyBillsSub: 'Bills will appear here.',
   emptyGoalsTitle: 'No goals set',
   emptyGoalsSub: 'Goals will appear here.',
+  goalsTitle: 'Goals',
   // Budget
   emptyBudgetTitle: 'No budgets yet',
   emptyBudgetSub: 'Set a monthly limit on a category to start tracking your spending.',
@@ -577,28 +578,14 @@ export const Strings = {
   emptyStateCategoriesHeadline: 'No categories yet',
   emptyStateCategoriesDescription: 'Your categories will appear here.',
 
-  // §6 Transactions — Month carousel
-  carouselAllLabel: 'All',
-  carouselCustomLabel: 'Custom',
-  carouselCustomActiveLabel: (from: string, to: string) => `${from} → ${to}`,
-  carouselMonthShort: (yearMonth: string) => {
-    const [y, m] = yearMonth.split('-').map(Number);
-    const labels = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return `${labels[m - 1]} ${y}`;
-  },
+  // Shared month filter
+  monthFilterLabel: 'Month filter',
+  monthFilterPreviousA11y: 'Previous month',
+  monthFilterNextA11y: 'Next month',
+  monthFilterOpenA11y: (month: string) => `${month}, open month picker`,
+  monthPickerTitle: 'Select month',
+  monthPickerPreviousYearA11y: 'Previous year',
+  monthPickerNextYearA11y: 'Next year',
 
   // §6 Transactions — Totals strip
   totalsIncome: 'Income',
@@ -619,13 +606,6 @@ export const Strings = {
   filterSummaryAmountFrom: 'From',
   filterAmountMinLabel: 'Min',
   filterAmountMaxLabel: 'Max',
-
-  // §6 Transactions — Date range picker sheet (carousel Custom pill)
-  dateRangePickerTitle: 'Custom range',
-  dateRangePickerFromLabel: 'From',
-  dateRangePickerToLabel: 'To',
-  dateRangePickerConfirm: 'Apply',
-  dateRangePickerCancel: 'Cancel',
 
   // §6 Transactions — Detail flow (TransferFlowCard labels)
   detailFlowFromLabel: 'From',
