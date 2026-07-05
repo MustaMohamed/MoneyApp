@@ -137,26 +137,32 @@ export function useCommitments() {
     [setSelectedMonth],
   );
 
+  const reloadSelectedMonth = useCallback(
+    async (yearMonth: string) => {
+      await loadCommitments();
+      await generatePayments();
+      await loadPaymentsForMonth(yearMonth);
+    },
+    [generatePayments, loadCommitments, loadPaymentsForMonth],
+  );
+
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(() => {
-        void loadCommitments();
-        void loadPaymentsForMonth(selectedMonthRef.current);
+        return reloadSelectedMonth(selectedMonthRef.current);
       });
       return () => task.cancel();
-    }, [loadCommitments, loadPaymentsForMonth]),
+    }, [reloadSelectedMonth]),
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await loadCommitments();
-      await generatePayments();
-      await loadPaymentsForMonth(selectedMonth);
+      await reloadSelectedMonth(selectedMonth);
     } finally {
       setRefreshing(false);
     }
-  }, [setRefreshing, loadCommitments, generatePayments, loadPaymentsForMonth, selectedMonth]);
+  }, [setRefreshing, reloadSelectedMonth, selectedMonth]);
 
   const goToDetail = useCallback((paymentId: string) => {
     router.push(`/commitments/${paymentId}` as Parameters<typeof router.push>[0]);

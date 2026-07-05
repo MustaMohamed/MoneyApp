@@ -1,5 +1,6 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from 'expo-router';
-import { Spinner } from 'heroui-native';
+import { Button, Separator, Spinner, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -7,9 +8,8 @@ import { EmptyState } from '@/components/ui/empty_state';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { SegmentedTabs } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { BudgetDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/budget_delete_confirm_sheet';
@@ -51,16 +51,28 @@ export default function BudgetScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text style={styles.title}>{Strings.budgetTitle}</Text>
-        {state.lensTab === 'categories' &&
-          state.hasBudgets &&
-          state.budgetableCategories.length > 0 && (
-            <Text style={styles.addBtn} onPress={openAdd} accessibilityRole="button">
-              {`+ ${Strings.budgetAddCategory}`}
-            </Text>
-          )}
-      </View>
+      <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
+        <View style={styles.header}>
+          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+            {Strings.budgetTitle}
+          </HeroText.Heading>
+          {state.lensTab === 'categories' &&
+            state.hasBudgets &&
+            state.budgetableCategories.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onPress={openAdd}
+                accessibilityRole="button"
+                accessibilityLabel={Strings.budgetAddCategory}
+              >
+                <MaterialCommunityIcons name="plus" size={Size.iconSm} color={Colors.dark.gold} />
+                <Button.Label className="text-accent">{Strings.budgetAddCategory}</Button.Label>
+              </Button>
+            )}
+        </View>
+      </Surface>
+      <Separator />
 
       <SegmentedTabs
         segments={LENS_SEGMENTS}
@@ -79,7 +91,7 @@ export default function BudgetScreen() {
             <View style={styles.inset}>
               <SummaryCard overall={state.overall} daysLeft={state.daysLeft} />
             </View>
-            <Text style={styles.section}>{Strings.budgetDetailCategories}</Text>
+            <HeroText style={styles.section}>{Strings.budgetDetailCategories}</HeroText>
             {state.rows.map((row) => (
               <CategoryBudgetRow
                 key={row.categoryId}
@@ -116,15 +128,12 @@ export default function BudgetScreen() {
 
 const styles = StyleSheet.create({
   header: {
+    minHeight: Size.headerHeight,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.sm,
+    gap: Spacing.sm,
   },
-  title: { fontFamily: FontFamily.soraBold, fontSize: Type.title, color: Colors.dark.text1 },
-  addBtn: { fontFamily: FontFamily.interMedium, fontSize: Type.body, color: Colors.dark.gold },
   content: { paddingBottom: ms(96) },
   // Non-row children (summary card, section label) re-inset; rows stay full-bleed
   // so their hairline dividers span the full width (spec D7).

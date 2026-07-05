@@ -76,9 +76,6 @@ export function MonthFilter({ yearMonth, onChange }: MonthFilterProps) {
   return (
     <>
       <View className="px-4 pt-1 pb-2">
-        <Text className="font-inter text-muted mb-1 text-[10px] font-bold uppercase">
-          {Strings.monthFilterLabel}
-        </Text>
         <View
           style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}
           className="bg-default/40 border-border rounded-2xl border p-1.5"

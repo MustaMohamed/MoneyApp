@@ -1,4 +1,4 @@
-import '../global.css';
+import '../../global.css';
 import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
 import {
   Sora_400Regular,
@@ -16,6 +16,7 @@ import { PortalHost } from 'heroui-native/portal';
 import { HeroUINativeProviderRaw } from 'heroui-native/provider-raw';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableFreeze } from 'react-native-screens';
 
 import { Colors } from '@/constants/theme';
@@ -60,21 +61,23 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>
-      <HeroUINativeProviderRaw>
-        <ThemeProvider value={AppTheme}>
-          <StatusBar style="light" />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              freezeOnBlur: true,
-              contentStyle: { backgroundColor: Colors.dark.bg },
-            }}
-          />
-        </ThemeProvider>
-        {/* HeroUINativeProviderRaw omits the PortalHost; HeroUI BottomSheet
-            (and any portal-based overlay) renders into this host. */}
-        <PortalHost />
-      </HeroUINativeProviderRaw>
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+        <HeroUINativeProviderRaw>
+          <ThemeProvider value={AppTheme}>
+            <StatusBar style="light" />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                freezeOnBlur: true,
+                contentStyle: { backgroundColor: Colors.dark.bg },
+              }}
+            />
+          </ThemeProvider>
+          {/* HeroUINativeProviderRaw omits the PortalHost; HeroUI BottomSheet
+              (and any portal-based overlay) renders into this host. */}
+          <PortalHost />
+        </HeroUINativeProviderRaw>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

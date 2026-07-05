@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { Spinner } from 'heroui-native';
+import { Separator, Spinner, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -9,8 +9,8 @@ import { EmptyState } from '@/components/ui/empty_state';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -56,11 +56,9 @@ export default function TransactionsScreen(): React.ReactElement {
   );
   const openAddTx = useAddTransactionState.getState().open;
 
-  // Edit sheet state — opened imperatively from goToEdit in the hook
   const editTxVisible = useEditTransactionState.useState.visible();
   const editingTx = useEditTransactionStore.useState.editingTx();
 
-  // Delete confirm gate for list-swipe delete
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
   const {
     pendingPayload: pendingDeleteId,
@@ -70,13 +68,8 @@ export default function TransactionsScreen(): React.ReactElement {
     cancel: cancelDelete,
   } = useConfirmAction<string>((id) => deleteTransaction(id));
 
-  // Consume an open request from the global FAB. React to `pendingOpen`
-  // directly (NOT useFocusEffect): a FAB tap while ALREADY on the Transactions
-  // tab is a no-op navigation that fires no focus change, so a focus-gated
-  // effect would never run and the sheet wouldn't open. The 250ms defers the
-  // open until the tab-slide transition settles for the CROSS-tab case, so the
-  // HeroUI sheet presents instead of only mounting its children (the "keyboard
-  // opens but sheet doesn't" symptom). Harmless quarter-second on same-tab.
+  // Global FAB taps set pendingOpen; same-tab taps do not fire focus.
+  // Delay keeps cross-tab sheet presentation after the tab transition settles.
   useEffect(() => {
     if (!addTxPendingOpen) return undefined;
     const timer = setTimeout(() => openAddTx(), 250);
@@ -148,11 +141,14 @@ export default function TransactionsScreen(): React.ReactElement {
 
   return (
     <Screen edges={['top']}>
-      <View className="px-4 pt-3 pb-1">
-        <Text className="font-sora text-foreground text-[19px] font-bold">
-          {Strings.transactions}
-        </Text>
-      </View>
+      <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
+        <View style={{ minHeight: Size.headerHeight, justifyContent: 'center' }}>
+          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+            {Strings.transactions}
+          </HeroText.Heading>
+        </View>
+      </Surface>
+      <Separator />
 
       <MonthFilter yearMonth={state.selectedMonth} onChange={setSelectedMonth} />
 

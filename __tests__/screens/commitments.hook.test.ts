@@ -72,9 +72,9 @@ describe('useCommitments', () => {
   beforeEach(() => {
     capturedFocusCallback = null;
     mockInteractionTasks.length = 0;
-    loadPaymentsForMonthMock.mockClear();
-    loadCommitmentsMock.mockClear();
-    generatePaymentsMock.mockClear();
+    loadPaymentsForMonthMock.mockReset().mockResolvedValue(undefined);
+    loadCommitmentsMock.mockReset().mockResolvedValue(undefined);
+    generatePaymentsMock.mockReset().mockResolvedValue(undefined);
     setSelectedMonthMock.mockClear();
     setRefreshingMock.mockClear();
     runAfterInteractions.mockClear();
@@ -110,6 +110,31 @@ describe('useCommitments', () => {
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
     expect(loadCommitmentsMock).not.toHaveBeenCalled();
     expect(loadPaymentsForMonthMock).not.toHaveBeenCalled();
+  });
+
+  it('focus reload regenerates payments before loading the selected month', async () => {
+    const calls: string[] = [];
+    loadCommitmentsMock.mockImplementation(async () => {
+      calls.push('loadCommitments');
+    });
+    generatePaymentsMock.mockImplementation(async () => {
+      calls.push('generatePayments');
+    });
+    loadPaymentsForMonthMock.mockImplementation(async (yearMonth: string) => {
+      calls.push(`loadPaymentsForMonth:${yearMonth}`);
+    });
+    renderHook(() => useCommitments());
+
+    act(() => {
+      capturedFocusCallback?.();
+    });
+    await act(async () => {
+      mockInteractionTasks[0]?.callback();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(calls).toEqual(['loadCommitments', 'generatePayments', 'loadPaymentsForMonth:2026-05']);
   });
 
   it('pull-to-refresh reloads immediately without waiting for interactions', async () => {

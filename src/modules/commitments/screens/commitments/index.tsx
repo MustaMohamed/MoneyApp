@@ -1,4 +1,4 @@
-import { Spinner } from 'heroui-native';
+import { Separator, Spinner, Surface, Text as HeroText } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -8,6 +8,7 @@ import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { Strings } from '@/constants/strings';
+import { Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { DateHeader } from '@/modules/transactions/screens/transactions/components/date_header';
@@ -15,7 +16,6 @@ import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { useCommitments } from './commitments.hook';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
-import { CommitmentHeader } from './components/commitment_header';
 import { CommitmentRow } from './components/commitment_row';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { StatusFilterChips } from './components/status_filter_chips';
@@ -38,7 +38,6 @@ export default function CommitmentsScreen() {
     setStatusFilter,
   } = t;
 
-  // Delete (deactivate) gate — payload is commitment id (soft-delete, history preserved)
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
@@ -47,7 +46,6 @@ export default function CommitmentsScreen() {
     cancel: cancelDelete,
   } = useConfirmAction<string>((id) => deactivateCommitment(id));
 
-  // Skip gate — payload is payment id
   const {
     pendingPayload: pendingSkipId,
     busy: _skipBusy,
@@ -124,7 +122,15 @@ export default function CommitmentsScreen() {
 
   return (
     <Screen edges={['top']}>
-      <CommitmentHeader title={Strings.commitmentsTitle} />
+      <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
+        <View style={{ minHeight: Size.headerHeight, justifyContent: 'center' }}>
+          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+            {Strings.commitmentsTitle}
+          </HeroText.Heading>
+        </View>
+      </Surface>
+      <Separator />
+      <MonthFilter yearMonth={state.selectedMonth} onChange={selectMonth} />
 
       {!state.commitmentsLoaded ? (
         <View className="items-center justify-center py-12">
@@ -134,7 +140,6 @@ export default function CommitmentsScreen() {
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
         <>
-          <MonthFilter yearMonth={state.selectedMonth} onChange={selectMonth} />
           <SectionList
             sections={state.sections}
             keyExtractor={(item) => item.id}

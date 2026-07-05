@@ -190,6 +190,7 @@ export const Strings = {
   emptyBillsSub: 'Bills will appear here.',
   emptyGoalsTitle: 'No goals set',
   emptyGoalsSub: 'Goals will appear here.',
+  goalsTitle: 'Goals',
   // Budget
   emptyBudgetTitle: 'No budgets yet',
   emptyBudgetSub: 'Set a monthly limit on a category to start tracking your spending.',
