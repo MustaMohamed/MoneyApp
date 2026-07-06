@@ -161,6 +161,9 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
     previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
     currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
     previousTransactionTotals: null,
+    commitmentPaymentsLoaded: false,
+    monthSpendLoaded: false,
+    transactionTotalsLoaded: false,
     setStatsMap: jest.fn(),
     setCurrentMonthCommitmentPayments: jest.fn(),
     setMonthSpendStats: jest.fn(),
@@ -194,17 +197,37 @@ describe('useDashboard', () => {
     expect(result.current.state.selectedSegment).toBe('overview');
   });
 
-  it('does not expose a store-loaded sentinel', () => {
+  it('exposes dashboard summary loading flags before async sections load', () => {
+    const { result } = renderHook(() => useDashboard());
+
+    expect(result.current.state.monthSpend.loading).toBe(true);
+    expect(result.current.state.transactions.loading).toBe(true);
+    expect(result.current.state.commitments.loading).toBe(true);
+  });
+
+  it('exposes loaded dashboard summary flags from the store', () => {
     const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-      accounts: [],
-      loadAccounts: jest.fn().mockResolvedValue(undefined),
+    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
+      statsMap: {},
+      currentMonthCommitmentPayments: [],
+      currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+      previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+      currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+      previousTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+      commitmentPaymentsLoaded: true,
+      monthSpendLoaded: true,
+      transactionTotalsLoaded: true,
+      setStatsMap: jest.fn(),
+      setCurrentMonthCommitmentPayments: jest.fn(),
+      setMonthSpendStats: jest.fn(),
+      setTransactionTotals: jest.fn(),
     }));
 
     const { result } = renderHook(() => useDashboard());
 
-    expect(result.current.state.accounts).toEqual([]);
-    expect('accountsLoaded' in result.current.state).toBe(false);
+    expect(result.current.state.monthSpend.loading).toBe(false);
+    expect(result.current.state.transactions.loading).toBe(false);
+    expect(result.current.state.commitments.loading).toBe(false);
   });
 
   it('setSelectedSegment updates state', () => {
@@ -312,6 +335,9 @@ describe('useDashboard', () => {
       previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
       currentTransactionTotals: currentTotals,
       previousTransactionTotals: previousTotals,
+      commitmentPaymentsLoaded: true,
+      monthSpendLoaded: true,
+      transactionTotalsLoaded: true,
       setStatsMap: jest.fn(),
       setCurrentMonthCommitmentPayments: jest.fn(),
       setMonthSpendStats: jest.fn(),

@@ -68,6 +68,9 @@ export function useDashboard() {
     previousMonthSpend,
     currentTransactionTotals,
     previousTransactionTotals,
+    commitmentPaymentsLoaded,
+    monthSpendLoaded,
+    transactionTotalsLoaded,
   } = useDashboardStore(
     useShallow((s) => ({
       statsMap: s.statsMap,
@@ -76,6 +79,9 @@ export function useDashboard() {
       previousMonthSpend: s.previousMonthSpend,
       currentTransactionTotals: s.currentTransactionTotals,
       previousTransactionTotals: s.previousTransactionTotals,
+      commitmentPaymentsLoaded: s.commitmentPaymentsLoaded,
+      monthSpendLoaded: s.monthSpendLoaded,
+      transactionTotalsLoaded: s.transactionTotalsLoaded,
     })),
   );
   const setStatsMap = useDashboardStore.getState().setStatsMap;
@@ -278,18 +284,21 @@ export function useDashboard() {
         previousEgp: previousMonthSpend.totalEgp,
         deltaPct: spendDeltaPct,
         yearMonth: currentYearMonth,
+        loading: !monthSpendLoaded,
       },
       accountCounts,
       commitments: {
         counts: commitmentCounts,
         totalsByCurrency: commitmentTotalsByCurrency,
         yearMonth: currentYearMonth,
+        loading: !commitmentPaymentsLoaded,
       },
       transactions: {
         current: currentTransactionTotals,
         previous: previousTransactionTotals,
         previousLabel: formatMonthYear(previousYearMonth),
         yearMonth: currentYearMonth,
+        loading: !transactionTotalsLoaded,
       },
     },
     setBreakdownVisible,

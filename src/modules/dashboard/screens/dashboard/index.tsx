@@ -174,6 +174,7 @@ export default function DashboardScreen() {
                         monthSpendDeltaPct={state.monthSpend.deltaPct}
                         monthSpendCount={state.monthSpend.currentCount}
                         spendYearMonth={state.monthSpend.yearMonth}
+                        monthSpendLoading={state.monthSpend.loading}
                       />
                     </Animated.View>
 
@@ -182,6 +183,7 @@ export default function DashboardScreen() {
                       previous={state.transactions.previous}
                       previousLabel={state.transactions.previousLabel}
                       yearMonth={state.transactions.yearMonth}
+                      isLoading={state.transactions.loading}
                       onPress={goToTransactions}
                     />
 
@@ -189,6 +191,7 @@ export default function DashboardScreen() {
                       counts={state.commitments.counts}
                       totalsByCurrency={state.commitments.totalsByCurrency}
                       yearMonth={state.commitments.yearMonth}
+                      isLoading={state.commitments.loading}
                       onPress={goToCommitments}
                     />
 
