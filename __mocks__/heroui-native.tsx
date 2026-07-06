@@ -10,6 +10,43 @@ export function useBottomSheetAwareHandlers() {
   return { onFocus: jest.fn(), onBlur: jest.fn() };
 }
 
+function SkeletonGroupRoot({
+  children,
+  isLoading = true,
+  isSkeletonOnly,
+  ...props
+}: {
+  children?: React.ReactNode;
+  isLoading?: boolean;
+  isSkeletonOnly?: boolean;
+}) {
+  if (!isLoading && isSkeletonOnly) return null;
+  return (
+    <View accessibilityState={{ busy: isLoading }} {...props}>
+      {children}
+    </View>
+  );
+}
+
+function SkeletonGroupItem({
+  children,
+  isLoading,
+  ...props
+}: {
+  children?: React.ReactNode;
+  isLoading?: boolean;
+}) {
+  return (
+    <View testID="skeleton-item" accessibilityState={{ busy: isLoading }} {...props}>
+      {isLoading ? null : children}
+    </View>
+  );
+}
+
+export const SkeletonGroup = Object.assign(SkeletonGroupRoot, {
+  Item: SkeletonGroupItem,
+});
+
 function BottomSheetRoot({
   children,
   isOpen,
