@@ -1,18 +1,18 @@
 // modules/transactions/screens/transactions/filter/index.tsx
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { PressableFeedback } from 'heroui-native';
 import React from 'react';
-import { View } from 'react-native';
 
+import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 
 import { AccountAccordion } from './components/account_accordion';
 import { AmountAccordion } from './components/amount_accordion';
 import { CategoryAccordion } from './components/category_accordion';
 import { useFilterSheet } from './filter.hook';
+
+export const FILTER_SHEET_ACTION_STYLE = { flex: 1 } as const;
 
 export function FilterSheet(): React.ReactElement {
   const f = useFilterSheet();
@@ -27,37 +27,30 @@ export function FilterSheet(): React.ReactElement {
       scrollable
       title={Strings.filterTitle}
       footer={
-        <Button
-          variant="primary"
-          label={
-            f.state.draftCount > 0
-              ? Strings.filterApplyWithCount(f.state.draftCount)
-              : Strings.filterApply
-          }
-          onPress={f.applyDraft}
-          isDisabled={f.state.draftCount === 0}
-        />
+        <Box style={{ flexDirection: 'row' }} className="gap-2">
+          <Box testID="filter-reset-action" style={FILTER_SHEET_ACTION_STYLE}>
+            <Button
+              variant="secondary"
+              label={Strings.filterReset}
+              onPress={f.resetDraft}
+              isDisabled={f.state.draftCount === 0}
+            />
+          </Box>
+          <Box testID="filter-apply-action" style={FILTER_SHEET_ACTION_STYLE}>
+            <Button
+              variant="primary"
+              label={
+                f.state.draftCount > 0
+                  ? Strings.filterApplyWithCount(f.state.draftCount)
+                  : Strings.filterApply
+              }
+              onPress={f.applyDraft}
+              isDisabled={!f.state.canApply}
+            />
+          </Box>
+        </Box>
       }
     >
-      <View
-        style={{
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
-          paddingHorizontal: 16,
-          paddingBottom: 8,
-        }}
-      >
-        <PressableFeedback
-          onPress={f.resetDraft}
-          accessibilityRole="button"
-          accessibilityLabel="Reset filters"
-        >
-          <Text className="font-inter text-accent text-[12px] font-semibold">
-            {Strings.filterReset}
-          </Text>
-        </PressableFeedback>
-      </View>
-
       <BottomSheetScrollView
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: SHEET_FOOTER_CLEARANCE }}
       >
