@@ -1,11 +1,11 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { getPeriodTotals, type PeriodTotals } from '@/modules/transactions/database/transactions';
+import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -60,15 +60,17 @@ export function useTransactions() {
   const openFilter = useFilterState.getState().open;
   const setDraft = useFilterStore.getState().setDraft;
 
-  const refreshing = useTransactionsState.useState.refreshing();
+  const { refreshing, totals } = useTransactionsState(
+    useShallow((s) => ({
+      refreshing: s.refreshing,
+      totals: s.totals,
+    })),
+  );
   const setRefreshing = useTransactionsState.getState().setRefreshing;
+  const setTotals = useTransactionsState.getState().setTotals;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
 
-  const [totals, setTotals] = useState<{
-    current: PeriodTotals;
-    previous: PeriodTotals | null;
-  } | null>(null);
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
     const periodRange = resolvePeriod(period);
@@ -106,7 +108,7 @@ export function useTransactions() {
     return () => {
       cancelled = true;
     };
-  }, [mutationVersion, transactionQuery, period]);
+  }, [mutationVersion, period, setTotals, transactionQuery]);
 
   useFocusEffect(
     useCallback(() => {
