@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion } from 'heroui-native';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import { Input } from '@/components/ui/input';
@@ -10,37 +10,31 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { formatCommitmentAmountSummary, parseCommitmentAmountInput } from '../filter.helpers';
-import type { CommitmentAdvancedFilters } from '../filter.store';
-
 interface Props {
-  draft: CommitmentAdvancedFilters;
+  amountCurrency: Currency;
+  minValue: string;
+  maxValue: string;
+  summary: string;
+  active: boolean;
   expanded: boolean;
   onToggleSection: () => void;
   onChangeCurrency: (currency: Currency) => void;
-  onChangeMin: (value?: number) => void;
-  onChangeMax: (value?: number) => void;
+  onChangeMinText: (value: string) => void;
+  onChangeMaxText: (value: string) => void;
 }
 
 export function CommitmentAmountAccordion({
-  draft,
+  amountCurrency,
+  minValue,
+  maxValue,
+  summary,
+  active,
   expanded,
   onToggleSection,
   onChangeCurrency,
-  onChangeMin,
-  onChangeMax,
+  onChangeMinText,
+  onChangeMaxText,
 }: Props): React.ReactElement {
-  const [minStr, setMinStr] = useState(draft.amountMin?.toString() ?? '');
-  const [maxStr, setMaxStr] = useState(draft.amountMax?.toString() ?? '');
-
-  useEffect(() => {
-    setMinStr(draft.amountMin?.toString() ?? '');
-    setMaxStr(draft.amountMax?.toString() ?? '');
-  }, [draft.amountMax, draft.amountMin]);
-
-  const summary = formatCommitmentAmountSummary(draft);
-  const active = draft.amountMin !== undefined || draft.amountMax !== undefined;
-
   return (
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
@@ -82,7 +76,7 @@ export function CommitmentAmountAccordion({
                   { value: Currency.EGP, label: Currency.EGP },
                   { value: Currency.USD, label: Currency.USD },
                 ]}
-                value={draft.amountCurrency}
+                value={amountCurrency}
                 onValueChange={onChangeCurrency}
                 variant="solid-gold"
                 listClassName="w-full mb-3"
@@ -94,11 +88,8 @@ export function CommitmentAmountAccordion({
                     {Strings.filterAmountMinLabel}
                   </Text>
                   <Input
-                    value={minStr}
-                    onChangeText={(value) => {
-                      setMinStr(value);
-                      onChangeMin(parseCommitmentAmountInput(value));
-                    }}
+                    value={minValue}
+                    onChangeText={onChangeMinText}
                     keyboardType="decimal-pad"
                     placeholder="0"
                   />
@@ -108,11 +99,8 @@ export function CommitmentAmountAccordion({
                     {Strings.filterAmountMaxLabel}
                   </Text>
                   <Input
-                    value={maxStr}
-                    onChangeText={(value) => {
-                      setMaxStr(value);
-                      onChangeMax(parseCommitmentAmountInput(value));
-                    }}
+                    value={maxValue}
+                    onChangeText={onChangeMaxText}
                     keyboardType="decimal-pad"
                     placeholder="∞"
                   />

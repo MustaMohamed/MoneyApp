@@ -10,33 +10,12 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
-import { formatCommitmentSelectionSummary } from '../filter.helpers';
-
-const RECURRENCE_OPTIONS = [
-  {
-    value: RecurrencePreset.Monthly,
-    label: Strings.commitmentsRecurrenceUnitMonths,
-    icon: 'calendar-month-outline' as const,
-  },
-  {
-    value: RecurrencePreset.Weekly,
-    label: Strings.commitmentsRecurrenceUnitWeeks,
-    icon: 'calendar-week-outline' as const,
-  },
-  {
-    value: RecurrencePreset.Annually,
-    label: Strings.commitmentsRecurrenceUnitYears,
-    icon: 'calendar-star' as const,
-  },
-  {
-    value: RecurrencePreset.Custom,
-    label: Strings.commitmentsRecurrenceCustom,
-    icon: 'calendar-sync-outline' as const,
-  },
-];
+import { COMMITMENT_RECURRENCE_OPTIONS } from '../filter_options';
 
 interface Props {
   selectedPresets: RecurrencePreset[];
+  selectedCount: number;
+  summary: string;
   expanded: boolean;
   onToggleSection: () => void;
   onTogglePreset: (preset: RecurrencePreset) => void;
@@ -44,15 +23,12 @@ interface Props {
 
 export function CommitmentRecurrenceAccordion({
   selectedPresets,
+  selectedCount,
+  summary,
   expanded,
   onToggleSection,
   onTogglePreset,
 }: Props): React.ReactElement {
-  const selectedLabels = RECURRENCE_OPTIONS.filter((option) =>
-    selectedPresets.includes(option.value),
-  ).map((option) => option.label);
-  const summary = formatCommitmentSelectionSummary(selectedLabels, Strings.filterAllRecurrences);
-
   return (
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
@@ -67,10 +43,10 @@ export function CommitmentRecurrenceAccordion({
                 <Text className="font-inter text-[13px] font-semibold">
                   {Strings.filterSectionRecurrence}
                 </Text>
-                {selectedPresets.length > 0 ? (
+                {selectedCount > 0 ? (
                   <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
                     <Text className="font-inter text-accent text-[10px] font-bold">
-                      {selectedPresets.length}
+                      {selectedCount}
                     </Text>
                   </View>
                 ) : null}
@@ -91,7 +67,7 @@ export function CommitmentRecurrenceAccordion({
           </Accordion.Trigger>
           <Accordion.Content className="px-0 pb-0" style={{ padding: 0 }}>
             <View className="mt-3 flex-row flex-wrap gap-1.5">
-              {RECURRENCE_OPTIONS.map((option) => (
+              {COMMITMENT_RECURRENCE_OPTIONS.map((option) => (
                 <SelectablePill
                   key={option.value}
                   label={option.label}

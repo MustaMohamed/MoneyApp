@@ -11,11 +11,11 @@ import type { Category } from '@/database/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
-import { formatSelectionSummary } from '../filter.helpers';
-
 interface Props {
   categories: Category[];
   selectedIds: string[];
+  selectedCount: number;
+  summary: string;
   expanded: boolean;
   onToggleSection: () => void;
   onToggleId: (id: string) => void;
@@ -24,13 +24,12 @@ interface Props {
 export function CategoryAccordion({
   categories,
   selectedIds,
+  selectedCount,
+  summary,
   expanded,
   onToggleSection,
   onToggleId,
 }: Props): React.ReactElement {
-  const selectedNames = categories.filter((c) => selectedIds.includes(c.id)).map((c) => c.name);
-  const summary = formatSelectionSummary(selectedNames, Strings.filterSummaryCategoriesEmpty);
-
   return (
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
@@ -45,10 +44,10 @@ export function CategoryAccordion({
                 <Text className="font-inter text-[13px] font-semibold">
                   {Strings.filterSectionCategories}
                 </Text>
-                {selectedIds.length > 0 ? (
+                {selectedCount > 0 ? (
                   <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
                     <Text className="font-inter text-accent text-[10px] font-bold">
-                      {selectedIds.length}
+                      {selectedCount}
                     </Text>
                   </View>
                 ) : null}

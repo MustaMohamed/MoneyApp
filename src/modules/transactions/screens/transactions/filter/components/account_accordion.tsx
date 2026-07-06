@@ -11,11 +11,11 @@ import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import { ms } from '@/utils/responsive';
 
-import { formatSelectionSummary } from '../filter.helpers';
-
 interface Props {
   accounts: Account[];
   selectedIds: string[];
+  selectedCount: number;
+  summary: string;
   expanded: boolean;
   onToggleSection: () => void;
   onToggleId: (id: string) => void;
@@ -24,13 +24,12 @@ interface Props {
 export function AccountAccordion({
   accounts,
   selectedIds,
+  selectedCount,
+  summary,
   expanded,
   onToggleSection,
   onToggleId,
 }: Props): React.ReactElement {
-  const selectedNames = accounts.filter((a) => selectedIds.includes(a.id)).map((a) => a.name);
-  const summary = formatSelectionSummary(selectedNames, Strings.filterSummaryAccountsEmpty);
-
   return (
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
@@ -45,10 +44,10 @@ export function AccountAccordion({
                 <Text className="font-inter text-[13px] font-semibold">
                   {Strings.filterSectionAccounts}
                 </Text>
-                {selectedIds.length > 0 ? (
+                {selectedCount > 0 ? (
                   <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
                     <Text className="font-inter text-accent text-[10px] font-bold">
-                      {selectedIds.length}
+                      {selectedCount}
                     </Text>
                   </View>
                 ) : null}
