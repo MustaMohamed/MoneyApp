@@ -1,6 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
+import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 
@@ -134,6 +136,27 @@ const clearSearchMock = jest.fn();
 const openFilterMock = jest.fn();
 const resetFiltersMock = jest.fn();
 
+function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
+  return {
+    id: 'payment-1',
+    commitment_id: 'commitment-1',
+    due_date: '2026-08-05',
+    paid_date: null,
+    skipped_date: null,
+    amount_due: 5000,
+    amount_paid: null,
+    currency: Currency.EGP,
+    exchange_rate_snapshot: null,
+    account_id: null,
+    transaction_id: null,
+    status: CommitmentPaymentStatus.Due,
+    notes: null,
+    created_at: '2026-08-01T00:00:00.000Z',
+    updated_at: '2026-08-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
   mockedUseCommitments.mockReturnValue({
     state: { ...baseCommitmentsState, ...state },
@@ -186,7 +209,7 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
-      sections: [{ title: 'Due', data: [{ id: 'payment-1', commitment_id: 'commitment-1' }] }],
+      sections: [{ title: 'Due', data: [makePayment()] }],
     });
 
     const { getByText } = render(<CommitmentsScreen />);
