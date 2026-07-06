@@ -31,7 +31,7 @@ export function AccountAccordion({
     id: account.id,
     label: account.name,
     selected: selectedIds.includes(account.id),
-    accessibilityLabel: `${account.name}, account filter`,
+    accessibilityLabel: Strings.filterAccountAccessibility(account.name),
     startIcon: (
       <MaterialCommunityIcons
         name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}

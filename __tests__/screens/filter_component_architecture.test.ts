@@ -8,6 +8,8 @@ function source(path: string): string {
 const FILTER_COMPONENTS = [
   'src/components/ui/search_filter_row.tsx',
   'src/components/ui/filter_accordion.tsx',
+  'src/modules/transactions/screens/transactions/components/search_row.tsx',
+  'src/modules/commitments/screens/commitments/components/search_row.tsx',
   'src/modules/transactions/screens/transactions/filter/components/account_accordion.tsx',
   'src/modules/transactions/screens/transactions/filter/components/category_accordion.tsx',
   'src/modules/transactions/screens/transactions/filter/components/amount_accordion.tsx',
@@ -26,6 +28,21 @@ const FORBIDDEN_DOMAIN_IMPORTS = [
   '@/modules/commitments/screens/commitments/filter/filter.helpers',
 ];
 
+const FORBIDDEN_INLINE_FILTER_COPY = [
+  "'Clear search'",
+  "'Filter'",
+  '"Amount currency"',
+  '"Commitment amount currency"',
+  ', account filter',
+  ', category filter',
+  ', commitment account filter',
+  ', commitment category filter',
+  ', commitment amount type filter',
+  ', commitment recurrence filter',
+  'placeholder="0"',
+  'placeholder="∞"',
+];
+
 describe('filter component architecture', () => {
   it('keeps filter components presentational without local React state or helper logic', () => {
     for (const path of FILTER_COMPONENTS) {
@@ -34,6 +51,17 @@ describe('filter component architecture', () => {
       expect(text).not.toMatch(/\buse(?:Callback|Effect|Memo|Reducer|State)\b/);
       for (const forbiddenImport of FORBIDDEN_DOMAIN_IMPORTS) {
         expect(text).not.toContain(forbiddenImport);
+      }
+    }
+  });
+
+  it('keeps filter presentation copy and icon colors on shared constants', () => {
+    for (const path of FILTER_COMPONENTS) {
+      const text = source(path);
+
+      expect(text).not.toContain('Colors.dark');
+      for (const inlineCopy of FORBIDDEN_INLINE_FILTER_COPY) {
+        expect(text).not.toContain(inlineCopy);
       }
     }
   });

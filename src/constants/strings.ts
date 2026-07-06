@@ -372,6 +372,9 @@ export const Strings = {
   filterReset: 'Reset',
   filterApply: 'Apply',
   filterApplyWithCount: (n: number) => `Apply (${n})`,
+  filterSearchClearAccessibility: 'Clear search',
+  filterSearchButtonAccessibility: 'Filter',
+  filterAccessibilityWithActiveCount: (label: string, n: number) => `${label}, ${n} active`,
 
   filterSectionAccounts: 'Accounts',
   filterSectionCategories: 'Categories',
@@ -403,6 +406,9 @@ export const Strings = {
 
   filterAmountFromPlaceholder: 'Min',
   filterAmountToPlaceholder: 'Max',
+  filterAmountMinPlaceholder: '0',
+  filterAmountMaxPlaceholder: '∞',
+  filterAmountCurrencyAccessibility: 'Amount currency',
 
   filterCategoryTypeExpense: 'Expense',
   filterCategoryTypeIncome: 'Income',
@@ -612,6 +618,15 @@ export const Strings = {
   filterSummaryAmountFrom: 'From',
   filterAmountMinLabel: 'Min',
   filterAmountMaxLabel: 'Max',
+  filterAccountAccessibility: (name: string) => `${name}, account filter`,
+  filterCategoryAccessibility: (name: string) => `${name}, category filter`,
+  commitmentFilterAccountAccessibility: (name: string) => `${name}, commitment account filter`,
+  commitmentFilterCategoryAccessibility: (name: string) => `${name}, commitment category filter`,
+  commitmentFilterAmountTypeAccessibility: (label: string) =>
+    `${label}, commitment amount type filter`,
+  commitmentFilterRecurrenceAccessibility: (label: string) =>
+    `${label}, commitment recurrence filter`,
+  commitmentFilterAmountCurrencyAccessibility: 'Commitment amount currency',
 
   // §6 Transactions — Detail flow (TransferFlowCard labels)
   detailFlowFromLabel: 'From',

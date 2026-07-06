@@ -145,7 +145,7 @@ export function AmountRangeFilterContent({
             value={minValue}
             onChangeText={onChangeMinText}
             keyboardType="decimal-pad"
-            placeholder="0"
+            placeholder={Strings.filterAmountMinPlaceholder}
           />
         </View>
         <View className="flex-1">
@@ -156,7 +156,7 @@ export function AmountRangeFilterContent({
             value={maxValue}
             onChangeText={onChangeMaxText}
             keyboardType="decimal-pad"
-            placeholder="∞"
+            placeholder={Strings.filterAmountMaxPlaceholder}
           />
         </View>
       </View>

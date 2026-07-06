@@ -31,7 +31,7 @@ export function CommitmentAccountAccordion({
     id: account.id,
     label: account.name,
     selected: selectedIds.includes(account.id),
-    accessibilityLabel: `${account.name}, commitment account filter`,
+    accessibilityLabel: Strings.commitmentFilterAccountAccessibility(account.name),
     startIcon: (
       <MaterialCommunityIcons
         name={TYPE_OPTIONS.find((option) => option.type === account.type)?.icon ?? 'bank'}

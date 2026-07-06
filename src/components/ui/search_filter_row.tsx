@@ -3,7 +3,9 @@ import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Colors, Radius } from '@/constants/theme';
+import { Strings } from '@/constants/strings';
+import { Radius } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
 import { Input } from './input';
@@ -66,12 +68,14 @@ export function SearchFilterRow({
   onOpenFilter,
   activeFilterCount,
   filterBadgeTestID,
-  clearAccessibilityLabel = 'Clear search',
-  filterAccessibilityLabel = 'Filter',
+  clearAccessibilityLabel = Strings.filterSearchClearAccessibility,
+  filterAccessibilityLabel = Strings.filterSearchButtonAccessibility,
 }: SearchFilterRowProps): React.ReactElement {
   const hasValue = value.length > 0;
   const hasFilters = activeFilterCount > 0;
-  const filterLabel = `${filterAccessibilityLabel}${hasFilters ? `, ${activeFilterCount} active` : ''}`;
+  const filterLabel = hasFilters
+    ? Strings.filterAccessibilityWithActiveCount(filterAccessibilityLabel, activeFilterCount)
+    : filterAccessibilityLabel;
 
   return (
     <View className="mb-2 flex-row items-center gap-2 px-4">
@@ -92,7 +96,7 @@ export function SearchFilterRow({
             accessibilityLabel={clearAccessibilityLabel}
             className="absolute top-1.5 right-2 h-7 w-7 items-center justify-center"
           >
-            <MaterialCommunityIcons name="close-circle" size={16} color={Colors.dark.text2} />
+            <MaterialCommunityIcons name="close-circle" size={16} color={CoreTokens.text2} />
           </PressableFeedback>
         ) : null}
       </View>
@@ -104,7 +108,7 @@ export function SearchFilterRow({
         className="bg-default/40 relative items-center justify-center"
         style={FILTER_BUTTON_COMPACT_STYLE}
       >
-        <MaterialCommunityIcons name="tune-variant" size={18} color={Colors.dark.text1} />
+        <MaterialCommunityIcons name="tune-variant" size={18} color={CoreTokens.text1} />
         {hasFilters ? (
           <View
             testID={filterBadgeTestID}

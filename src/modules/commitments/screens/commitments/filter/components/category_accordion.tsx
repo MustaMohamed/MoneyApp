@@ -30,7 +30,7 @@ export function CommitmentCategoryAccordion({
     id: category.id,
     label: category.name,
     selected: selectedIds.includes(category.id),
-    accessibilityLabel: `${category.name}, commitment category filter`,
+    accessibilityLabel: Strings.commitmentFilterCategoryAccessibility(category.name),
     startIcon: (
       <MaterialCommunityIcons
         name={toIconName(category.icon, 'tag')}

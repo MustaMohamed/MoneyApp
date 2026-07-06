@@ -30,7 +30,7 @@ export function CommitmentRecurrenceAccordion({
     id: option.value,
     label: option.label,
     selected: selectedPresets.includes(option.value),
-    accessibilityLabel: `${option.label}, commitment recurrence filter`,
+    accessibilityLabel: Strings.commitmentFilterRecurrenceAccessibility(option.label),
     startIcon: <MaterialCommunityIcons name={option.icon} size={ms(13)} color={CoreTokens.text2} />,
   }));
 

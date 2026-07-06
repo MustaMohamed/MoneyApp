@@ -44,7 +44,7 @@ export function AmountAccordion({
         onChangeCurrency={onChangeCurrency}
         onChangeMinText={onChangeMinText}
         onChangeMaxText={onChangeMaxText}
-        accessibilityLabel="Amount currency"
+        accessibilityLabel={Strings.filterAmountCurrencyAccessibility}
       />
     </FilterAccordionShell>
   );

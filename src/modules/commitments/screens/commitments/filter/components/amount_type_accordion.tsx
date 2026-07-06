@@ -30,7 +30,7 @@ export function CommitmentAmountTypeAccordion({
     id: option.value,
     label: option.label,
     selected: selectedTypes.includes(option.value),
-    accessibilityLabel: `${option.label}, commitment amount type filter`,
+    accessibilityLabel: Strings.commitmentFilterAmountTypeAccessibility(option.label),
     startIcon: <MaterialCommunityIcons name={option.icon} size={ms(13)} color={CoreTokens.text2} />,
   }));
 
