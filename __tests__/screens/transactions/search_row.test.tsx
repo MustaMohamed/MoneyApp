@@ -1,5 +1,6 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import type { PressableProps } from 'react-native';
 
 import {
   FILTER_BUTTON_COMPACT_STYLE,
@@ -11,16 +12,9 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('heroui-native', () => {
   const { Pressable } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    PressableFeedback: ({
-      children,
-      ...props
-    }: {
-      children?: ReactNode;
-      onPress?: () => void;
-      accessibilityLabel?: string;
-      accessibilityRole?: string;
-      style?: object;
-    }) => <Pressable {...props}>{children}</Pressable>,
+    PressableFeedback: ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
+      <Pressable {...props}>{children}</Pressable>
+    ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
