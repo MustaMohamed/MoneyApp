@@ -405,6 +405,7 @@ export const Strings = {
 
   // Commitments — C1 List
   commitmentsTitle: 'Commitments',
+  searchCommitmentsPlaceholder: 'Search commitments…',
   commitmentsPaidSummary: 'Paid this month',
   commitmentsTotalCommitted: 'Total committed',
   commitmentsOverdue: 'Overdue',
