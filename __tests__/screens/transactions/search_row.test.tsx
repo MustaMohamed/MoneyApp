@@ -3,8 +3,10 @@ import type { ReactNode } from 'react';
 import type { PressableProps } from 'react-native';
 
 import {
+  FILTER_BADGE_STYLE,
   FILTER_BUTTON_COMPACT_STYLE,
   SEARCH_INPUT_COMPACT_STYLE,
+  SEARCH_INPUT_WITH_CLEAR_STYLE,
   SearchRow,
 } from '@/modules/transactions/screens/transactions/components/search_row';
 
@@ -39,13 +41,17 @@ describe('SearchRow', () => {
     );
 
     expect(SEARCH_INPUT_COMPACT_STYLE).toMatchObject({ height: expect.any(Number) });
+    expect(SEARCH_INPUT_COMPACT_STYLE).toMatchObject({
+      height: FILTER_BUTTON_COMPACT_STYLE.height,
+      minHeight: FILTER_BUTTON_COMPACT_STYLE.height,
+    });
     expect(FILTER_BUTTON_COMPACT_STYLE).toMatchObject({
       height: expect.any(Number),
       width: expect.any(Number),
       borderRadius: expect.any(Number),
     });
-    expect(getByLabelText('Search transactions…').props.style).toEqual(SEARCH_INPUT_COMPACT_STYLE);
-    expect(getByLabelText('Filter').props.style).toEqual(FILTER_BUTTON_COMPACT_STYLE);
+    expect(getByLabelText('Search transactions…')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
+    expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
   });
 
   it('shows the active-filter badge only when advanced filters are applied', () => {
@@ -70,7 +76,30 @@ describe('SearchRow', () => {
       />,
     );
     expect(active.getByText('2')).toBeTruthy();
+    expect(FILTER_BADGE_STYLE.top).toBeGreaterThanOrEqual(0);
+    expect(FILTER_BADGE_STYLE.right).toBeGreaterThanOrEqual(0);
+    expect(active.getByTestId('filter-badge')).toBeTruthy();
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
+  });
+
+  it('reserves input space for the clear action when search has text', () => {
+    const active = render(
+      <SearchRow
+        value="coffee"
+        onChange={jest.fn()}
+        onClear={jest.fn()}
+        onOpenFilter={jest.fn()}
+        activeFilterCount={0}
+      />,
+    );
+
+    expect(SEARCH_INPUT_COMPACT_STYLE.paddingRight).toBeLessThan(
+      SEARCH_INPUT_WITH_CLEAR_STYLE.paddingRight,
+    );
+    expect(active.getByLabelText('Search transactions…')).toHaveProp(
+      'style',
+      SEARCH_INPUT_WITH_CLEAR_STYLE,
+    );
   });
 
   it('calls search, clear, and open-filter handlers', () => {
