@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, PressableFeedback } from 'heroui-native';
+import { Card, PressableFeedback, SkeletonGroup } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -21,6 +21,7 @@ interface Props {
   };
   totalsByCurrency: Map<string, number>;
   yearMonth: string;
+  isLoading: boolean;
   onPress: () => void;
 }
 
@@ -28,7 +29,13 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
-export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }: Props) {
+export function CommitmentsCard({
+  counts,
+  totalsByCurrency,
+  yearMonth,
+  isLoading,
+  onPress,
+}: Props) {
   const monthLabel = formatMonthYear(yearMonth);
   const progress = counts.total === 0 ? 0 : counts.paid / counts.total;
   const progressPct = Math.round(progress * 100);
@@ -73,51 +80,69 @@ export function CommitmentsCard({ counts, totalsByCurrency, yearMonth, onPress }
           </Text>
         </View>
 
-        <View
-          className="flex-row items-center justify-between"
-          style={{ flexDirection: 'row', gap: ms(8) }}
-        >
-          <View className="flex-1" style={{ flex: 1 }}>
-            <Text variant="hint" className="text-muted text-xs uppercase">
-              {Strings.commitmentsTotalCommitted}
-            </Text>
-            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-              {totalsLine}
-            </Text>
-          </View>
+        <SkeletonGroup isLoading={isLoading} style={{ gap: ms(8) }}>
           <View
-            className="rounded-full"
-            style={{
-              paddingHorizontal: ms(12),
-              paddingVertical: ms(3),
-              backgroundColor: Colors.shared.cairoGold + '22',
-            }}
+            className="flex-row items-center justify-between"
+            style={{ flexDirection: 'row', gap: ms(8) }}
           >
-            <Text className="text-base font-bold" style={{ color: Colors.shared.cairoGold }}>
-              {progressPct}%
-            </Text>
+            <View className="flex-1" style={{ flex: 1 }}>
+              <Text variant="hint" className="text-muted text-xs uppercase">
+                {Strings.commitmentsTotalCommitted}
+              </Text>
+              <SkeletonGroup.Item isLoading={isLoading} className="h-6 w-32 rounded-md">
+                <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+                  {totalsLine}
+                </Text>
+              </SkeletonGroup.Item>
+            </View>
+            <SkeletonGroup.Item isLoading={isLoading} className="h-7 w-14 rounded-full">
+              <View
+                className="rounded-full"
+                style={{
+                  paddingHorizontal: ms(12),
+                  paddingVertical: ms(3),
+                  backgroundColor: Colors.shared.cairoGold + '22',
+                }}
+              >
+                <Text className="text-base font-bold" style={{ color: Colors.shared.cairoGold }}>
+                  {progressPct}%
+                </Text>
+              </View>
+            </SkeletonGroup.Item>
           </View>
-        </View>
 
-        <View
-          className="overflow-hidden rounded"
-          style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
-        >
-          <LinearGradient
-            colors={[Colors.shared.cairoGold, Colors.dark.gold]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
-          />
-        </View>
+          <SkeletonGroup.Item isLoading={isLoading} className="h-[3px] w-full rounded-[2px]">
+            <View
+              className="overflow-hidden rounded"
+              style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+            >
+              <LinearGradient
+                colors={[Colors.shared.cairoGold, Colors.dark.gold]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
+              />
+            </View>
+          </SkeletonGroup.Item>
 
-        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-          <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-          <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
-          <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-          <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
-          <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
-        </View>
+          <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
+              <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
+            </SkeletonGroup.Item>
+            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
+              <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
+            </SkeletonGroup.Item>
+            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
+              <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
+            </SkeletonGroup.Item>
+            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
+              <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
+            </SkeletonGroup.Item>
+            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
+              <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
+            </SkeletonGroup.Item>
+          </View>
+        </SkeletonGroup>
       </Card>
     </PressableFeedback>
   );

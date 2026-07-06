@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, PressableFeedback } from 'heroui-native';
+import { Card, PressableFeedback, SkeletonGroup } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -25,6 +25,7 @@ interface Props {
   previous: PeriodTotals | null;
   previousLabel: string | null;
   yearMonth: string;
+  isLoading: boolean;
   onPress: () => void;
 }
 
@@ -136,6 +137,7 @@ export function TransactionsCard({
   previous,
   previousLabel,
   yearMonth,
+  isLoading,
   onPress,
 }: Props): React.ReactElement {
   const monthLabel = formatMonthYear(yearMonth);
@@ -183,49 +185,71 @@ export function TransactionsCard({
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-          {METRICS.map((metric) => (
-            <MetricValue
-              key={metric.key}
-              value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
-              label={metric.label}
-              align={metric.align}
-              className={metric.valueClass}
-            />
-          ))}
-        </View>
-
-        <View
-          className="overflow-hidden rounded"
-          style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
-          accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
-        >
-          <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
-        </View>
-
-        {deltas ? (
-          <>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-              className="gap-2"
-              accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
-            >
-              {METRICS.map((metric) => (
-                <DeltaValue
-                  key={metric.key}
-                  metric={metric.key}
-                  deltaPct={deltas[metric.key]}
+        <SkeletonGroup isLoading={isLoading} style={{ gap: ms(8) }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+            {METRICS.map((metric) => (
+              <SkeletonGroup.Item
+                key={metric.key}
+                isLoading={isLoading}
+                className="h-5 flex-1 rounded-md"
+                style={{ flex: 1 }}
+              >
+                <MetricValue
+                  value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
+                  label={metric.label}
                   align={metric.align}
+                  className={metric.valueClass}
                 />
-              ))}
+              </SkeletonGroup.Item>
+            ))}
+          </View>
+          <SkeletonGroup.Item isLoading={isLoading} className="h-[3px] w-full rounded-[2px]">
+            <View
+              className="overflow-hidden rounded"
+              style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+              accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+            >
+              <View
+                className="bg-danger h-full rounded-[2px]"
+                style={{ width: `${expensePct}%` }}
+              />
             </View>
-            {previousLabel ? (
-              <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
-                {Strings.totalsVsPrev(previousLabel)}
-              </Text>
-            ) : null}
-          </>
-        ) : null}
+          </SkeletonGroup.Item>
+
+          {isLoading || deltas ? (
+            <>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                className="gap-2"
+                accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
+              >
+                {METRICS.map((metric) => (
+                  <SkeletonGroup.Item
+                    key={metric.key}
+                    isLoading={isLoading}
+                    className="h-4 flex-1 rounded-md"
+                    style={{ flex: 1 }}
+                  >
+                    {deltas ? (
+                      <DeltaValue
+                        metric={metric.key}
+                        deltaPct={deltas[metric.key]}
+                        align={metric.align}
+                      />
+                    ) : null}
+                  </SkeletonGroup.Item>
+                ))}
+              </View>
+              {previousLabel ? (
+                <SkeletonGroup.Item isLoading={isLoading} className="mx-auto h-3 w-24 rounded-md">
+                  <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
+                    {Strings.totalsVsPrev(previousLabel)}
+                  </Text>
+                </SkeletonGroup.Item>
+              ) : null}
+            </>
+          ) : null}
+        </SkeletonGroup>
       </Card>
     </PressableFeedback>
   );

@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { SkeletonGroup } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -36,6 +37,7 @@ interface StatCardsProps {
   monthSpendDeltaPct: number | null;
   monthSpendCount: number;
   spendYearMonth: string;
+  monthSpendLoading: boolean;
 }
 
 export function StatCards({
@@ -49,6 +51,7 @@ export function StatCards({
   monthSpendDeltaPct,
   monthSpendCount,
   spendYearMonth,
+  monthSpendLoading,
 }: StatCardsProps) {
   const netNegative = netWorthEgp < 0;
   const netColor = netNegative ? Colors.dark.negative : Colors.dark.positive;
@@ -157,41 +160,50 @@ export function StatCards({
             {monthLabel}
           </Text>
         </View>
-        <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-          {formatAmount(monthSpentEgp)} <Text className="text-muted text-xs font-medium">EGP</Text>
-        </Text>
-        <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-          {formatAmount(monthSpentUsd, 0)}{' '}
-          <Text className="text-muted text-xs font-medium">USD</Text>
-        </Text>
-        <View
-          className="flex-row items-center justify-between"
-          style={{ flexDirection: 'row', gap: ms(8) }}
-        >
-          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
+        <SkeletonGroup isLoading={monthSpendLoading} style={{ gap: ms(6) }}>
+          <SkeletonGroup.Item isLoading={monthSpendLoading} className="h-6 w-28 rounded-md">
+            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+              {formatAmount(monthSpentEgp)}{' '}
+              <Text className="text-muted text-xs font-medium">EGP</Text>
+            </Text>
+          </SkeletonGroup.Item>
+          <SkeletonGroup.Item isLoading={monthSpendLoading} className="h-6 w-24 rounded-md">
+            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+              {formatAmount(monthSpentUsd, 0)}{' '}
+              <Text className="text-muted text-xs font-medium">USD</Text>
+            </Text>
+          </SkeletonGroup.Item>
+          <SkeletonGroup.Item isLoading={monthSpendLoading} className="h-5 w-full rounded-md">
             <View
-              className="flex-row items-center rounded-full"
-              style={{
-                flexDirection: 'row',
-                gap: ms(3),
-                paddingHorizontal: ms(8),
-                paddingVertical: ms(2),
-                backgroundColor: deltaColor + '22',
-              }}
+              className="flex-row items-center justify-between"
+              style={{ flexDirection: 'row', gap: ms(8) }}
             >
-              <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
-              <Text className="text-xs font-semibold" style={{ color: deltaColor }}>
-                {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
+              <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
+                <View
+                  className="flex-row items-center rounded-full"
+                  style={{
+                    flexDirection: 'row',
+                    gap: ms(3),
+                    paddingHorizontal: ms(8),
+                    paddingVertical: ms(2),
+                    backgroundColor: deltaColor + '22',
+                  }}
+                >
+                  <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
+                  <Text className="text-xs font-semibold" style={{ color: deltaColor }}>
+                    {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
+                  </Text>
+                </View>
+                <Text variant="hint" className="text-muted text-xs">
+                  vs {prevMonthLabel}
+                </Text>
+              </View>
+              <Text variant="hint" className="text-muted text-xs">
+                {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
               </Text>
             </View>
-            <Text variant="hint" className="text-muted text-xs">
-              vs {prevMonthLabel}
-            </Text>
-          </View>
-          <Text variant="hint" className="text-muted text-xs">
-            {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
-          </Text>
-        </View>
+          </SkeletonGroup.Item>
+        </SkeletonGroup>
       </View>
     </View>
   );

@@ -21,6 +21,14 @@ jest.mock('heroui-native', () => {
       onPress: () => void;
       accessibilityLabel?: string;
     }) => React.createElement(Pressable, { onPress, accessibilityLabel }, children),
+    SkeletonGroup: Object.assign(
+      ({ children }: { children?: ReactNode }) =>
+        React.createElement(View, { testID: 'skeleton-group' }, children),
+      {
+        Item: ({ children, isLoading }: { children?: ReactNode; isLoading?: boolean }) =>
+          React.createElement(View, { testID: 'skeleton-item' }, isLoading ? null : children),
+      },
+    ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
@@ -34,6 +42,7 @@ describe('TransactionsCard', () => {
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
         previousLabel="June 2026"
         yearMonth="2026-07"
+        isLoading={false}
         onPress={onPress}
       />,
     );
@@ -46,5 +55,23 @@ describe('TransactionsCard', () => {
 
     fireEvent.press(getByLabelText(Strings.transactions));
     expect(onPress).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows skeleton slots instead of totals while loading', () => {
+    const { queryByText, getAllByTestId } = render(
+      <TransactionsCard
+        current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
+        previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(queryByText('+25,000')).toBeNull();
+    expect(queryByText('-13,000')).toBeNull();
+    expect(queryByText('+12,000')).toBeNull();
+    expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 });
