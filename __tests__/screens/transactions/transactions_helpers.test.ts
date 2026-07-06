@@ -4,6 +4,9 @@ import {
   previousPeriod,
   computeDeltaPct,
   polarityColor,
+  formatSignedAmount,
+  expenseSharePct,
+  deltaDisplay,
 } from '@/modules/transactions/screens/transactions/transactions.helpers';
 
 describe('currentYearMonth', () => {
@@ -117,5 +120,39 @@ describe('polarityColor', () => {
     expect(polarityColor('income', 0)).toBe('neutral');
     expect(polarityColor('expense', 0)).toBe('neutral');
     expect(polarityColor('net', 0)).toBe('neutral');
+  });
+});
+
+describe('transactions summary presentation helpers', () => {
+  it('formats signed current-period amounts by metric', () => {
+    expect(formatSignedAmount(25000, 'income')).toBe('+25,000');
+    expect(formatSignedAmount(13000, 'expense')).toBe('-13,000');
+    expect(formatSignedAmount(12000, 'net')).toBe('+12,000');
+    expect(formatSignedAmount(-1200, 'net')).toBe('-1,200');
+  });
+
+  it('calculates expense share as a clamped percent of income', () => {
+    expect(expenseSharePct({ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 })).toBe(52);
+    expect(expenseSharePct({ incomeEgp: 0, expenseEgp: 13000, netEgp: -13000 })).toBe(0);
+    expect(expenseSharePct({ incomeEgp: 1000, expenseEgp: 1250, netEgp: -250 })).toBe(100);
+  });
+
+  it('returns unsigned percentage labels with polarity-aware directions', () => {
+    expect(deltaDisplay('income', 10)).toEqual({
+      direction: 'up',
+      label: '10%',
+      polarity: 'good',
+    });
+    expect(deltaDisplay('expense', 15)).toEqual({
+      direction: 'up',
+      label: '15%',
+      polarity: 'bad',
+    });
+    expect(deltaDisplay('net', -17)).toEqual({
+      direction: 'down',
+      label: '17%',
+      polarity: 'bad',
+    });
+    expect(deltaDisplay('net', null)).toBeNull();
   });
 });

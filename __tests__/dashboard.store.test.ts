@@ -1,5 +1,6 @@
 import type { AccountStats } from '@/database/account_stats';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 
 beforeEach(() => useDashboardStore.getState().reset());
 
@@ -44,5 +45,15 @@ describe('useDashboardStore', () => {
     useDashboardStore.getState().setMonthSpendStats(current, previous);
     expect(useDashboardStore.getState().currentMonthSpend).toEqual(current);
     expect(useDashboardStore.getState().previousMonthSpend).toEqual(previous);
+  });
+
+  it('setTransactionTotals updates current and previous transaction totals', () => {
+    const current: PeriodTotals = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
+    const previous: PeriodTotals = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
+
+    useDashboardStore.getState().setTransactionTotals(current, previous);
+
+    expect(useDashboardStore.getState().currentTransactionTotals).toEqual(current);
+    expect(useDashboardStore.getState().previousTransactionTotals).toEqual(previous);
   });
 });

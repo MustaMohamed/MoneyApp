@@ -1,13 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card } from 'heroui-native';
+import { Card, PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
+import { Colors } from '@/constants/theme';
+import { SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
-
 import {
   computeDeltaPct,
   deltaDisplay,
@@ -16,12 +16,16 @@ import {
   type DeltaDirection,
   type PolaritySignal,
   type TotalsMetric,
-} from '../transactions.helpers';
+} from '@/modules/transactions/screens/transactions/transactions.helpers';
+import { formatMonthYear } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
 
 interface Props {
   current: PeriodTotals;
   previous: PeriodTotals | null;
   previousLabel: string | null;
+  yearMonth: string;
+  onPress: () => void;
 }
 
 type Align = 'left' | 'center' | 'right';
@@ -38,12 +42,6 @@ const METRICS: Array<{
   { key: 'net', label: Strings.totalsNet, align: 'right', valueClass: 'text-info' },
 ];
 
-export const TRANSACTIONS_TOTALS_CARD_CLASS_NAME =
-  'bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-4 py-2';
-
-export const TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME =
-  'bg-default h-[3px] overflow-hidden rounded-[2px]';
-
 function currentValue(current: PeriodTotals, metric: TotalsMetric): number {
   if (metric === 'income') return current.incomeEgp;
   if (metric === 'expense') return current.expenseEgp;
@@ -57,9 +55,9 @@ function polarityClass(polarity: PolaritySignal): string {
 }
 
 function polarityColor(polarity: PolaritySignal): string {
-  if (polarity === 'good') return SemanticTokens.positive;
-  if (polarity === 'bad') return SemanticTokens.negative;
-  return CoreTokens.text2;
+  if (polarity === 'good') return Colors.dark.positive;
+  if (polarity === 'bad') return Colors.dark.negative;
+  return Colors.dark.text2;
 }
 
 function directionIcon(direction: DeltaDirection): IconName {
@@ -123,7 +121,7 @@ function DeltaValue({
     <View style={{ flex: 1, flexDirection: 'row', justifyContent, alignItems: 'center' }}>
       <MaterialCommunityIcons
         name={directionIcon(delta.direction)}
-        size={12}
+        size={ms(12)}
         color={polarityColor(delta.polarity)}
       />
       <Text className={`font-sora ml-0.5 text-[11px] font-bold ${polarityClass(delta.polarity)}`}>
@@ -133,7 +131,14 @@ function DeltaValue({
   );
 }
 
-export function TotalsStrip({ current, previous, previousLabel }: Props): React.ReactElement {
+export function TransactionsCard({
+  current,
+  previous,
+  previousLabel,
+  yearMonth,
+  onPress,
+}: Props): React.ReactElement {
+  const monthLabel = formatMonthYear(yearMonth);
   const expensePct = expenseSharePct(current);
   const deltas = previous
     ? {
@@ -144,49 +149,84 @@ export function TotalsStrip({ current, previous, previousLabel }: Props): React.
     : null;
 
   return (
-    <Card className={TRANSACTIONS_TOTALS_CARD_CLASS_NAME}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-        {METRICS.map((metric) => (
-          <MetricValue
-            key={metric.key}
-            value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
-            label={metric.label}
-            align={metric.align}
-            className={metric.valueClass}
-          />
-        ))}
-      </View>
-
-      <View
-        className={TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME}
-        accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+    <PressableFeedback
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={Strings.transactions}
+    >
+      <Card
+        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-4 py-3"
+        style={{ gap: ms(8), elevation: 0, shadowOpacity: 0 }}
       >
-        <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
-      </View>
-
-      {deltas ? (
-        <>
-          <View
-            style={{ flexDirection: 'row', alignItems: 'center' }}
-            className="gap-2"
-            accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
-          >
-            {METRICS.map((metric) => (
-              <DeltaValue
-                key={metric.key}
-                metric={metric.key}
-                deltaPct={deltas[metric.key]}
-                align={metric.align}
+        <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
+          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+            <View
+              className="items-center justify-center rounded-full"
+              style={{
+                width: ms(22),
+                height: ms(22),
+                backgroundColor: SemanticTokens.info + '22',
+              }}
+            >
+              <MaterialCommunityIcons
+                name="swap-horizontal"
+                size={ms(13)}
+                color={SemanticTokens.info}
               />
-            ))}
-          </View>
-          {previousLabel ? (
-            <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
-              {Strings.totalsVsPrev(previousLabel)}
+            </View>
+            <Text variant="caption" className="text-foreground font-semibold">
+              {Strings.transactions}
             </Text>
-          ) : null}
-        </>
-      ) : null}
-    </Card>
+          </View>
+          <Text variant="caption" className="text-muted">
+            {monthLabel}
+          </Text>
+        </View>
+
+        <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+          {METRICS.map((metric) => (
+            <MetricValue
+              key={metric.key}
+              value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
+              label={metric.label}
+              align={metric.align}
+              className={metric.valueClass}
+            />
+          ))}
+        </View>
+
+        <View
+          className="overflow-hidden rounded"
+          style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+          accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+        >
+          <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
+        </View>
+
+        {deltas ? (
+          <>
+            <View
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+              className="gap-2"
+              accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
+            >
+              {METRICS.map((metric) => (
+                <DeltaValue
+                  key={metric.key}
+                  metric={metric.key}
+                  deltaPct={deltas[metric.key]}
+                  align={metric.align}
+                />
+              ))}
+            </View>
+            {previousLabel ? (
+              <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
+                {Strings.totalsVsPrev(previousLabel)}
+              </Text>
+            ) : null}
+          </>
+        ) : null}
+      </Card>
+    </PressableFeedback>
   );
 }

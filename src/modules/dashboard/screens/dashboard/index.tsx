@@ -19,6 +19,7 @@ import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
 import { SectionHeader } from './components/section_header';
 import { StatCards } from './components/stat_cards';
 import { TotalBalanceStrip } from './components/total_balance_strip';
+import { TransactionsCard } from './components/transactions_card';
 import { useDashboardAnim } from './dashboard.anim';
 import { useDashboard } from './dashboard.hook';
 import type { DashboardSegment } from './types';
@@ -48,6 +49,7 @@ export default function DashboardScreen() {
     goToAccount,
     goToAddAccount,
     goToSettings,
+    goToTransactions,
     goToCommitments,
   } = useDashboard();
   const { heroStyle, startEntrance, statsEntering, sectionEntering } = useDashboardAnim();
@@ -174,6 +176,14 @@ export default function DashboardScreen() {
                         spendYearMonth={state.monthSpend.yearMonth}
                       />
                     </Animated.View>
+
+                    <TransactionsCard
+                      current={state.transactions.current}
+                      previous={state.transactions.previous}
+                      previousLabel={state.transactions.previousLabel}
+                      yearMonth={state.transactions.yearMonth}
+                      onPress={goToTransactions}
+                    />
 
                     <CommitmentsCard
                       counts={state.commitments.counts}
