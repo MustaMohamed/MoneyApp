@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { Currency } from '@/constants/enums';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { parseAmountInput } from './filter.helpers';
+
 export interface AdvancedFilters {
   accountIds: string[];
   categoryIds: string[];
@@ -19,6 +21,8 @@ export const EMPTY_FILTERS_V2: AdvancedFilters = {
 
 interface DraftShape {
   draft: AdvancedFilters;
+  amountMinText: string;
+  amountMaxText: string;
 }
 
 type FilterStore = DraftShape & {
@@ -28,17 +32,32 @@ type FilterStore = DraftShape & {
   toggleCategoryId: (id: string) => void;
   setAmountMin: (v?: number) => void;
   setAmountMax: (v?: number) => void;
+  setAmountMinText: (value: string) => void;
+  setAmountMaxText: (value: string) => void;
   setAmountCurrency: (c: Currency) => void;
 };
 
-const INITIAL_STATE: DraftShape = { draft: EMPTY_FILTERS_V2 };
+function amountText(value?: number): string {
+  return value?.toString() ?? '';
+}
+
+const INITIAL_STATE: DraftShape = {
+  draft: EMPTY_FILTERS_V2,
+  amountMinText: '',
+  amountMaxText: '',
+};
 
 export const useFilterStore = createMoneyAppSelectors(
   create<FilterStore>((set) => ({
     ...INITIAL_STATE,
 
-    setDraft: (next) => set({ draft: next }),
-    resetDraft: () => set({ draft: EMPTY_FILTERS_V2 }),
+    setDraft: (next) =>
+      set({
+        draft: next,
+        amountMinText: amountText(next.amountMin),
+        amountMaxText: amountText(next.amountMax),
+      }),
+    resetDraft: () => set(INITIAL_STATE),
 
     toggleAccountId: (id) =>
       set((s) => ({
@@ -60,8 +79,20 @@ export const useFilterStore = createMoneyAppSelectors(
         },
       })),
 
-    setAmountMin: (v) => set((s) => ({ draft: { ...s.draft, amountMin: v } })),
-    setAmountMax: (v) => set((s) => ({ draft: { ...s.draft, amountMax: v } })),
+    setAmountMin: (v) =>
+      set((s) => ({ draft: { ...s.draft, amountMin: v }, amountMinText: amountText(v) })),
+    setAmountMax: (v) =>
+      set((s) => ({ draft: { ...s.draft, amountMax: v }, amountMaxText: amountText(v) })),
+    setAmountMinText: (value) =>
+      set((s) => ({
+        amountMinText: value,
+        draft: { ...s.draft, amountMin: parseAmountInput(value) },
+      })),
+    setAmountMaxText: (value) =>
+      set((s) => ({
+        amountMaxText: value,
+        draft: { ...s.draft, amountMax: parseAmountInput(value) },
+      })),
     setAmountCurrency: (c) => set((s) => ({ draft: { ...s.draft, amountCurrency: c } })),
   })),
 );

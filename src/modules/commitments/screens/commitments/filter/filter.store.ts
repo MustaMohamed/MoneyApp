@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { AmountType, Currency, RecurrencePreset } from '@/constants/enums';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { parseCommitmentAmountInput } from './filter.helpers';
+
 export interface CommitmentAdvancedFilters {
   accountIds: string[];
   categoryIds: string[];
@@ -23,6 +25,8 @@ export const EMPTY_COMMITMENT_FILTERS: CommitmentAdvancedFilters = {
 
 interface DraftShape {
   draft: CommitmentAdvancedFilters;
+  amountMinText: string;
+  amountMaxText: string;
 }
 
 type CommitmentFilterStore = DraftShape & {
@@ -34,10 +38,20 @@ type CommitmentFilterStore = DraftShape & {
   toggleRecurrencePreset: (preset: RecurrencePreset) => void;
   setAmountMin: (value?: number) => void;
   setAmountMax: (value?: number) => void;
+  setAmountMinText: (value: string) => void;
+  setAmountMaxText: (value: string) => void;
   setAmountCurrency: (currency: Currency) => void;
 };
 
-const INITIAL_STATE: DraftShape = { draft: EMPTY_COMMITMENT_FILTERS };
+function amountText(value?: number): string {
+  return value?.toString() ?? '';
+}
+
+const INITIAL_STATE: DraftShape = {
+  draft: EMPTY_COMMITMENT_FILTERS,
+  amountMinText: '',
+  amountMaxText: '',
+};
 
 function toggleValue<T>(values: T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -46,8 +60,13 @@ function toggleValue<T>(values: T[], value: T): T[] {
 export const useCommitmentFilterStore = createMoneyAppSelectors(
   create<CommitmentFilterStore>((set) => ({
     ...INITIAL_STATE,
-    setDraft: (next) => set({ draft: next }),
-    resetDraft: () => set({ draft: EMPTY_COMMITMENT_FILTERS }),
+    setDraft: (next) =>
+      set({
+        draft: next,
+        amountMinText: amountText(next.amountMin),
+        amountMaxText: amountText(next.amountMax),
+      }),
+    resetDraft: () => set(INITIAL_STATE),
     toggleAccountId: (id) =>
       set((state) => ({
         draft: { ...state.draft, accountIds: toggleValue(state.draft.accountIds, id) },
@@ -67,8 +86,26 @@ export const useCommitmentFilterStore = createMoneyAppSelectors(
           recurrencePresets: toggleValue(state.draft.recurrencePresets, preset),
         },
       })),
-    setAmountMin: (value) => set((state) => ({ draft: { ...state.draft, amountMin: value } })),
-    setAmountMax: (value) => set((state) => ({ draft: { ...state.draft, amountMax: value } })),
+    setAmountMin: (value) =>
+      set((state) => ({
+        draft: { ...state.draft, amountMin: value },
+        amountMinText: amountText(value),
+      })),
+    setAmountMax: (value) =>
+      set((state) => ({
+        draft: { ...state.draft, amountMax: value },
+        amountMaxText: amountText(value),
+      })),
+    setAmountMinText: (value) =>
+      set((state) => ({
+        amountMinText: value,
+        draft: { ...state.draft, amountMin: parseCommitmentAmountInput(value) },
+      })),
+    setAmountMaxText: (value) =>
+      set((state) => ({
+        amountMaxText: value,
+        draft: { ...state.draft, amountMax: parseCommitmentAmountInput(value) },
+      })),
     setAmountCurrency: (currency) =>
       set((state) => ({ draft: { ...state.draft, amountCurrency: currency } })),
   })),

@@ -57,6 +57,8 @@ export function FilterSheet(): React.ReactElement {
         <AccountAccordion
           accounts={f.state.accounts}
           selectedIds={f.state.draft.accountIds}
+          selectedCount={f.state.draft.accountIds.length}
+          summary={f.state.accountSummary}
           expanded={f.state.openSection === 'accounts'}
           onToggleSection={() => f.toggleSection('accounts')}
           onToggleId={f.toggleAccountId}
@@ -64,17 +66,23 @@ export function FilterSheet(): React.ReactElement {
         <CategoryAccordion
           categories={f.state.categories}
           selectedIds={f.state.draft.categoryIds}
+          selectedCount={f.state.draft.categoryIds.length}
+          summary={f.state.categorySummary}
           expanded={f.state.openSection === 'categories'}
           onToggleSection={() => f.toggleSection('categories')}
           onToggleId={f.toggleCategoryId}
         />
         <AmountAccordion
-          draft={f.state.draft}
+          amountCurrency={f.state.draft.amountCurrency}
+          minValue={f.state.amountMinText}
+          maxValue={f.state.amountMaxText}
+          summary={f.state.amountSummary}
+          active={f.state.amountActive}
           expanded={f.state.openSection === 'amount'}
           onToggleSection={() => f.toggleSection('amount')}
           onChangeCurrency={f.setAmountCurrency}
-          onChangeMin={f.setAmountMin}
-          onChangeMax={f.setAmountMax}
+          onChangeMinText={f.setAmountMinText}
+          onChangeMaxText={f.setAmountMaxText}
         />
       </BottomSheetScrollView>
     </Sheet>

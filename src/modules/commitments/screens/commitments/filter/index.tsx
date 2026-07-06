@@ -58,6 +58,8 @@ export function CommitmentFilterSheet(): React.ReactElement {
         <CommitmentAccountAccordion
           accounts={filter.state.accounts}
           selectedIds={filter.state.draft.accountIds}
+          selectedCount={filter.state.draft.accountIds.length}
+          summary={filter.state.accountSummary}
           expanded={filter.state.openSection === 'accounts'}
           onToggleSection={() => filter.toggleSection('accounts')}
           onToggleId={filter.toggleAccountId}
@@ -65,26 +67,36 @@ export function CommitmentFilterSheet(): React.ReactElement {
         <CommitmentCategoryAccordion
           categories={filter.state.categories}
           selectedIds={filter.state.draft.categoryIds}
+          selectedCount={filter.state.draft.categoryIds.length}
+          summary={filter.state.categorySummary}
           expanded={filter.state.openSection === 'categories'}
           onToggleSection={() => filter.toggleSection('categories')}
           onToggleId={filter.toggleCategoryId}
         />
         <CommitmentAmountAccordion
-          draft={filter.state.draft}
+          amountCurrency={filter.state.draft.amountCurrency}
+          minValue={filter.state.amountMinText}
+          maxValue={filter.state.amountMaxText}
+          summary={filter.state.amountSummary}
+          active={filter.state.amountActive}
           expanded={filter.state.openSection === 'amount'}
           onToggleSection={() => filter.toggleSection('amount')}
           onChangeCurrency={filter.setAmountCurrency}
-          onChangeMin={filter.setAmountMin}
-          onChangeMax={filter.setAmountMax}
+          onChangeMinText={filter.setAmountMinText}
+          onChangeMaxText={filter.setAmountMaxText}
         />
         <CommitmentAmountTypeAccordion
           selectedTypes={filter.state.draft.amountTypes}
+          selectedCount={filter.state.draft.amountTypes.length}
+          summary={filter.state.amountTypeSummary}
           expanded={filter.state.openSection === 'amountType'}
           onToggleSection={() => filter.toggleSection('amountType')}
           onToggleType={filter.toggleAmountType}
         />
         <CommitmentRecurrenceAccordion
           selectedPresets={filter.state.draft.recurrencePresets}
+          selectedCount={filter.state.draft.recurrencePresets.length}
+          summary={filter.state.recurrenceSummary}
           expanded={filter.state.openSection === 'recurrence'}
           onToggleSection={() => filter.toggleSection('recurrence')}
           onTogglePreset={filter.toggleRecurrencePreset}

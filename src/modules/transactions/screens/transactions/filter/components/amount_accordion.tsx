@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Accordion } from 'heroui-native';
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View } from 'react-native';
 
 import { Input } from '@/components/ui/input';
@@ -10,37 +10,31 @@ import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { formatAmountSummary, parseAmountInput } from '../filter.helpers';
-import type { AdvancedFilters } from '../filter.store';
-
 interface Props {
-  draft: AdvancedFilters;
+  amountCurrency: Currency;
+  minValue: string;
+  maxValue: string;
+  summary: string;
+  active: boolean;
   expanded: boolean;
   onToggleSection: () => void;
   onChangeCurrency: (c: Currency) => void;
-  onChangeMin: (v?: number) => void;
-  onChangeMax: (v?: number) => void;
+  onChangeMinText: (value: string) => void;
+  onChangeMaxText: (value: string) => void;
 }
 
 export function AmountAccordion({
-  draft,
+  amountCurrency,
+  minValue,
+  maxValue,
+  summary,
+  active,
   expanded,
   onToggleSection,
   onChangeCurrency,
-  onChangeMin,
-  onChangeMax,
+  onChangeMinText,
+  onChangeMaxText,
 }: Props): React.ReactElement {
-  const [minStr, setMinStr] = useState(draft.amountMin?.toString() ?? '');
-  const [maxStr, setMaxStr] = useState(draft.amountMax?.toString() ?? '');
-
-  useEffect(() => {
-    setMinStr(draft.amountMin?.toString() ?? '');
-    setMaxStr(draft.amountMax?.toString() ?? '');
-  }, [draft.amountMin, draft.amountMax]);
-
-  const summary = formatAmountSummary(draft);
-  const active = draft.amountMin !== undefined || draft.amountMax !== undefined;
-
   return (
     <View className="border-separator bg-surface mb-2 rounded-xl border p-3.5">
       <Accordion
@@ -82,7 +76,7 @@ export function AmountAccordion({
                   { value: Currency.EGP, label: Currency.EGP },
                   { value: Currency.USD, label: Currency.USD },
                 ]}
-                value={draft.amountCurrency}
+                value={amountCurrency}
                 onValueChange={onChangeCurrency}
                 variant="solid-gold"
                 listClassName="w-full mb-3"
@@ -94,11 +88,8 @@ export function AmountAccordion({
                     {Strings.filterAmountMinLabel}
                   </Text>
                   <Input
-                    value={minStr}
-                    onChangeText={(s) => {
-                      setMinStr(s);
-                      onChangeMin(parseAmountInput(s));
-                    }}
+                    value={minValue}
+                    onChangeText={onChangeMinText}
                     keyboardType="decimal-pad"
                     placeholder="0"
                   />
@@ -108,11 +99,8 @@ export function AmountAccordion({
                     {Strings.filterAmountMaxLabel}
                   </Text>
                   <Input
-                    value={maxStr}
-                    onChangeText={(s) => {
-                      setMaxStr(s);
-                      onChangeMax(parseAmountInput(s));
-                    }}
+                    value={maxValue}
+                    onChangeText={onChangeMaxText}
                     keyboardType="decimal-pad"
                     placeholder="∞"
                   />
