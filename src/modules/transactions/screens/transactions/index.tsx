@@ -6,12 +6,13 @@ import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
-import { MonthFilter } from '@/components/ui/month_filter';
+import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
 import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
+import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { Colors, Size } from '@/constants/theme';
+import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
@@ -21,7 +22,6 @@ import { SearchRow } from './components/search_row';
 import { TotalsStrip } from './components/totals_strip';
 import { TransactionRow } from './components/transaction_row';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
-import { TypeChips } from './components/type_chips';
 import { FilterSheet } from './filter';
 import { useFilterState } from './filter/filter.state';
 import { AddTransactionSheet, EditTransactionSheet } from './transaction_form';
@@ -30,8 +30,37 @@ import { useAddTransactionStore } from './transaction_form/add_transaction.store
 import { useEditTransactionState } from './transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from './transaction_form/edit_transaction.store';
 import { useTransactions } from './transactions.hook';
+import type { TransactionFilter } from './transactions.store';
 
 type TransactionSection = { key: string; data: Transaction[] };
+
+const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
+  {
+    value: 'all',
+    label: Strings.filterAll,
+    icon: { name: 'view-grid', color: Colors.dark.text2 },
+  },
+  {
+    value: TransactionType.Income,
+    label: Strings.addTxTypeIncome,
+    icon: { name: 'arrow-down-circle-outline', color: SemanticTokens.positive },
+  },
+  {
+    value: TransactionType.Expense,
+    label: Strings.addTxTypeExpense,
+    icon: { name: 'arrow-up-circle-outline', color: SemanticTokens.negative },
+  },
+  {
+    value: TransactionType.Transfer,
+    label: Strings.addTxTypeTransfer,
+    icon: { name: 'swap-horizontal', color: InfoTokens[500] },
+  },
+  {
+    value: TransactionType.CCPayment,
+    label: Strings.filterCcPayment,
+    icon: { name: 'credit-card-refund', color: AccentCCTokens[500] },
+  },
+];
 
 export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
@@ -150,7 +179,14 @@ export default function TransactionsScreen(): React.ReactElement {
       </Surface>
       <Separator />
 
-      <MonthFilter yearMonth={state.selectedMonth} onChange={setSelectedMonth} />
+      <FilterRail
+        selectedMonth={state.selectedMonth}
+        onSelectedMonthChange={setSelectedMonth}
+        selectedFilter={state.activeFilter}
+        onSelectedFilterChange={setActiveFilter}
+        filters={TRANSACTION_FILTERS}
+        filterAccessibilityLabel="Transaction type filter"
+      />
 
       {state.totals ? (
         <TotalsStrip
@@ -167,8 +203,6 @@ export default function TransactionsScreen(): React.ReactElement {
         onOpenFilter={openFilter}
         activeFilterCount={state.activeFilterCount}
       />
-
-      <TypeChips value={state.activeFilter} onChange={setActiveFilter} />
 
       <SectionList
         sections={state.sections}

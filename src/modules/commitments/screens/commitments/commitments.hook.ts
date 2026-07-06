@@ -1,5 +1,5 @@
 import { router, useFocusEffect } from 'expo-router';
-import { useMemo, useCallback, useRef } from 'react';
+import { useCallback, useDeferredValue, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
@@ -45,6 +45,7 @@ export function useCommitments() {
   );
   const setRefreshing = useCommitmentsScreenState.getState().setRefreshing;
   const setStatusFilter = useCommitmentsScreenState.getState().setStatusFilter;
+  const deferredStatusFilter = useDeferredValue(statusFilter);
 
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -54,7 +55,7 @@ export function useCommitments() {
   );
 
   const sections: CommitmentsSection[] = useMemo(() => {
-    const filter = statusFilter;
+    const filter = deferredStatusFilter;
     const allPayments = filter === 'all' ? payments : payments.filter((p) => p.status === filter);
     const result: CommitmentsSection[] = [];
     const overdue = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
@@ -68,7 +69,7 @@ export function useCommitments() {
     if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
     if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
     return result;
-  }, [payments, statusFilter]);
+  }, [payments, deferredStatusFilter]);
 
   const counts = useMemo(() => {
     let paid = 0;
