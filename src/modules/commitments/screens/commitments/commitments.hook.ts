@@ -4,14 +4,23 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
+import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 import { shiftYearMonth } from '@/utils/year_month';
 
 import type { Commitment } from '../../entities/commitment.entity';
 import type { CommitmentPayment } from '../../entities/commitment_payment.entity';
 import { useCommitmentStore } from '../../store/commitment.store';
 import { useCommitmentsScreenState } from './commitments.state';
+import {
+  commitmentMatchesAdvancedFilters,
+  commitmentMatchesSearch,
+  countActiveCommitmentFilters,
+} from './filter/filter.helpers';
+import { useCommitmentFilterState } from './filter/filter.state';
+import { EMPTY_COMMITMENT_FILTERS, useCommitmentFilterStore } from './filter/filter.store';
 
 export type CommitmentsSection = {
   title: string;
@@ -36,17 +45,27 @@ export function useCommitments() {
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
+  const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
-  const { refreshing, statusFilter } = useCommitmentsScreenState(
+  const { refreshing, statusFilter, searchQuery, appliedFilters } = useCommitmentsScreenState(
     useShallow((s) => ({
       refreshing: s.refreshing,
       statusFilter: s.statusFilter,
+      searchQuery: s.searchQuery,
+      appliedFilters: s.appliedFilters,
     })),
   );
   const setRefreshing = useCommitmentsScreenState.getState().setRefreshing;
   const setStatusFilter = useCommitmentsScreenState.getState().setStatusFilter;
+  const setSearchQuery = useCommitmentsScreenState.getState().setSearchQuery;
+  const clearSearch = useCommitmentsScreenState.getState().clearSearch;
+  const setAppliedFilters = useCommitmentsScreenState.getState().setAppliedFilters;
   const deferredStatusFilter = useDeferredValue(statusFilter);
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const openFilter = useCommitmentFilterState.getState().open;
+  const setFilterDraft = useCommitmentFilterStore.getState().setDraft;
 
+  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const commitmentsById = useMemo(
@@ -57,19 +76,41 @@ export function useCommitments() {
   const sections: CommitmentsSection[] = useMemo(() => {
     const filter = deferredStatusFilter;
     const allPayments = filter === 'all' ? payments : payments.filter((p) => p.status === filter);
+    const filteredPayments = allPayments.filter((payment) => {
+      const commitment = commitmentsById.get(payment.commitment_id);
+      const accountId = payment.account_id ?? commitment?.account_id;
+      const candidate = {
+        payment,
+        commitment,
+        accountName: accountId ? accountsById.get(accountId)?.name : undefined,
+        categoryName: commitment ? categoriesById.get(commitment.category_id)?.name : undefined,
+      };
+      return (
+        commitmentMatchesSearch(candidate, debouncedSearch) &&
+        commitmentMatchesAdvancedFilters(candidate, appliedFilters)
+      );
+    });
     const result: CommitmentsSection[] = [];
-    const overdue = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
-    const dueToday = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Due);
-    const upcoming = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Upcoming);
-    const paid = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Paid);
-    const skipped = allPayments.filter((p) => p.status === CommitmentPaymentStatus.Skipped);
+    const overdue = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Overdue);
+    const dueToday = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Due);
+    const upcoming = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Upcoming);
+    const paid = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Paid);
+    const skipped = filteredPayments.filter((p) => p.status === CommitmentPaymentStatus.Skipped);
     if (overdue.length > 0) result.push({ title: Strings.commitmentsOverdue, data: overdue });
     if (dueToday.length > 0) result.push({ title: Strings.commitmentsDueToday, data: dueToday });
     if (upcoming.length > 0) result.push({ title: Strings.commitmentsUpcoming, data: upcoming });
     if (paid.length > 0) result.push({ title: Strings.commitmentsPaid, data: paid });
     if (skipped.length > 0) result.push({ title: Strings.commitmentsSkipped, data: skipped });
     return result;
-  }, [payments, deferredStatusFilter]);
+  }, [
+    accountsById,
+    appliedFilters,
+    categoriesById,
+    commitmentsById,
+    debouncedSearch,
+    deferredStatusFilter,
+    payments,
+  ]);
 
   const counts = useMemo(() => {
     let paid = 0;
@@ -106,6 +147,12 @@ export function useCommitments() {
     };
   }, [payments]);
   const isEmpty = useMemo(() => payments.length === 0, [payments]);
+  const activeFilterCount = useMemo(
+    () => countActiveCommitmentFilters(appliedFilters),
+    [appliedFilters],
+  );
+  const hasListFilters =
+    statusFilter !== 'all' || searchQuery.trim().length > 0 || activeFilterCount > 0;
 
   // Group totals by currency. For paid: actual paid amount; for variable+unpaid with no
   // estimate: skipped (excluded). Skipped payments excluded entirely.
@@ -181,6 +228,17 @@ export function useCommitments() {
     router.push(`/commitments/${commitmentId}/edit` as Parameters<typeof router.push>[0]);
   }, []);
 
+  const handleOpenFilter = useCallback(() => {
+    setFilterDraft(appliedFilters);
+    openFilter();
+  }, [appliedFilters, openFilter, setFilterDraft]);
+
+  const resetFilters = useCallback(() => {
+    setStatusFilter('all');
+    clearSearch();
+    setAppliedFilters(EMPTY_COMMITMENT_FILTERS);
+  }, [clearSearch, setAppliedFilters, setStatusFilter]);
+
   return {
     state: {
       sections,
@@ -196,6 +254,10 @@ export function useCommitments() {
       // are no commitments at all; an empty *month* keeps the nav/filters mounted.
       hasCommitments: commitments.length > 0,
       statusFilter,
+      searchQuery,
+      activeFilterCount,
+      hasListFilters,
+      accountsById,
       categoriesById,
       commitmentsById,
     },
@@ -208,5 +270,9 @@ export function useCommitments() {
     skipPayment,
     deactivateCommitment,
     setStatusFilter,
+    setSearchQuery,
+    clearSearch,
+    openFilter: handleOpenFilter,
+    resetFilters,
   };
 }

@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
@@ -51,6 +51,39 @@ jest.mock('@/modules/commitments/screens/commitments/components/summary_header',
     return <Text>Summary</Text>;
   },
 }));
+jest.mock('@/modules/commitments/screens/commitments/components/search_row', () => ({
+  CommitmentSearchRow: ({
+    value,
+    activeFilterCount,
+    onChange,
+    onClear,
+    onOpenFilter,
+  }: {
+    value: string;
+    activeFilterCount: number;
+    onChange: (value: string) => void;
+    onClear: () => void;
+    onOpenFilter: () => void;
+  }) => {
+    const { Pressable, Text, View } =
+      jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <View testID="commitment-search-row">
+        <Text>{`search:${value}`}</Text>
+        <Text>{`filters:${activeFilterCount}`}</Text>
+        <Pressable accessibilityRole="button" onPress={() => onChange('rent')}>
+          <Text>change search</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onClear}>
+          <Text>clear search</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={onOpenFilter}>
+          <Text>open filters</Text>
+        </Pressable>
+      </View>
+    );
+  },
+}));
 jest.mock('@/modules/commitments/screens/commitments/components/commitment_row', () => ({
   CommitmentRow: () => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -65,6 +98,12 @@ jest.mock(
 );
 jest.mock('@/modules/commitments/screens/commitments/detail/components/skip_confirm_sheet', () => ({
   SkipConfirmSheet: () => null,
+}));
+jest.mock('@/modules/commitments/screens/commitments/filter', () => ({
+  CommitmentFilterSheet: () => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <Text>Commitment filter sheet</Text>;
+  },
 }));
 
 type CommitmentsScreenHook = ReturnType<typeof useCommitments>;
@@ -81,11 +120,19 @@ const baseCommitmentsState: CommitmentsScreenState = {
   paymentsLoaded: true,
   hasCommitments: false,
   statusFilter: 'all',
+  searchQuery: '',
+  activeFilterCount: 0,
+  hasListFilters: false,
   categoriesById: new Map(),
+  accountsById: new Map(),
   commitmentsById: new Map(),
 };
 
 const mockedUseCommitments = jest.mocked(useCommitments);
+const setSearchQueryMock = jest.fn();
+const clearSearchMock = jest.fn();
+const openFilterMock = jest.fn();
+const resetFiltersMock = jest.fn();
 
 function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
   mockedUseCommitments.mockReturnValue({
@@ -99,11 +146,16 @@ function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
     skipPayment: jest.fn(),
     deactivateCommitment: jest.fn(),
     setStatusFilter: jest.fn(),
+    setSearchQuery: setSearchQueryMock,
+    clearSearch: clearSearchMock,
+    openFilter: openFilterMock,
+    resetFilters: resetFiltersMock,
   });
 }
 
 describe('CommitmentsScreen', () => {
   beforeEach(() => {
+    jest.clearAllMocks();
     mockUseCommitments();
   });
 
@@ -112,5 +164,48 @@ describe('CommitmentsScreen', () => {
 
     expect(getByTestId('commitments-filter-rail')).toBeTruthy();
     expect(getByText('2026-08')).toBeTruthy();
+  });
+
+  it('renders the compact search row and advanced filter sheet when commitments exist', () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      isEmpty: true,
+      searchQuery: 'rent',
+      activeFilterCount: 2,
+    });
+
+    const { getByTestId, getByText } = render(<CommitmentsScreen />);
+
+    expect(getByTestId('commitment-search-row')).toBeTruthy();
+    expect(getByText('search:rent')).toBeTruthy();
+    expect(getByText('filters:2')).toBeTruthy();
+    expect(getByText('Commitment filter sheet')).toBeTruthy();
+  });
+
+  it('wires search, clear, and open filter actions from the search row', () => {
+    mockUseCommitments({ hasCommitments: true, isEmpty: true });
+
+    const { getByText } = render(<CommitmentsScreen />);
+
+    fireEvent.press(getByText('change search'));
+    fireEvent.press(getByText('clear search'));
+    fireEvent.press(getByText('open filters'));
+
+    expect(setSearchQueryMock).toHaveBeenCalledWith('rent');
+    expect(clearSearchMock).toHaveBeenCalledTimes(1);
+    expect(openFilterMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows filtered empty state when search or advanced filters are active', () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      isEmpty: true,
+      statusFilter: 'all',
+      hasListFilters: true,
+    });
+
+    const { getByText } = render(<CommitmentsScreen />);
+
+    expect(getByText('filtered')).toBeTruthy();
   });
 });
