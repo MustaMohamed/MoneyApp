@@ -18,6 +18,9 @@ interface DashboardStoreShape {
   previousMonthSpend: MonthSpendStats;
   currentTransactionTotals: PeriodTotals;
   previousTransactionTotals: PeriodTotals | null;
+  commitmentPaymentsLoaded: boolean;
+  monthSpendLoaded: boolean;
+  transactionTotalsLoaded: boolean;
 }
 
 type DashboardStore = DashboardStoreShape & {
@@ -38,22 +41,28 @@ const INITIAL_STATE: DashboardStoreShape = {
   previousMonthSpend: EMPTY_SPEND,
   currentTransactionTotals: EMPTY_TOTALS,
   previousTransactionTotals: null,
+  commitmentPaymentsLoaded: false,
+  monthSpendLoaded: false,
+  transactionTotalsLoaded: false,
 };
 
 export const useDashboardStore = createMoneyAppSelectors(
   create<DashboardStore>((set) => ({
     ...INITIAL_STATE,
     setStatsMap: (m) => set({ statsMap: m }),
-    setCurrentMonthCommitmentPayments: (p) => set({ currentMonthCommitmentPayments: p }),
+    setCurrentMonthCommitmentPayments: (p) =>
+      set({ currentMonthCommitmentPayments: p, commitmentPaymentsLoaded: true }),
     setMonthSpendStats: (current, previous) =>
       set({
         currentMonthSpend: current,
         previousMonthSpend: previous,
+        monthSpendLoaded: true,
       }),
     setTransactionTotals: (current, previous) =>
       set({
         currentTransactionTotals: current,
         previousTransactionTotals: previous,
+        transactionTotalsLoaded: true,
       }),
     reset: () => set(INITIAL_STATE),
   })),
