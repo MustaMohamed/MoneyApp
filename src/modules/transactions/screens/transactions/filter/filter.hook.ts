@@ -6,7 +6,7 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
 import { useTransactionsScreenStore } from '../transactions.store';
-import { countActiveFilters } from './filter.helpers';
+import { advancedFiltersEqual, countActiveFilters } from './filter.helpers';
 import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
 
@@ -45,6 +45,7 @@ export function useFilterSheet() {
   }, [draft, setAppliedFilters, close]);
 
   const draftCount = countActiveFilters(draft);
+  const canApply = !advancedFiltersEqual(draft, appliedFilters);
 
   return {
     state: {
@@ -52,6 +53,7 @@ export function useFilterSheet() {
       openSection,
       draft,
       draftCount,
+      canApply,
       accounts,
       categories,
     },

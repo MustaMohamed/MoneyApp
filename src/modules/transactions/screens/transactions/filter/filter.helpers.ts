@@ -48,3 +48,47 @@ export function formatAmountSummary(f: AdvancedFilters): string {
   if (f.amountMax !== undefined) return `${Strings.filterSummaryAmountUpTo} ${f.amountMax} ${cur}`;
   return `${Strings.filterSummaryAmountFrom} ${f.amountMin} ${cur}`;
 }
+
+type NamedEntity = { name: string };
+
+function sameStringSet(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false;
+  const left = [...a].sort();
+  const right = [...b].sort();
+  return left.every((id, index) => id === right[index]);
+}
+
+function hasAmountFilter(f: AdvancedFilters): boolean {
+  return f.amountMin !== undefined || f.amountMax !== undefined;
+}
+
+export function advancedFiltersEqual(a: AdvancedFilters, b: AdvancedFilters): boolean {
+  const amountActive = hasAmountFilter(a) || hasAmountFilter(b);
+  return (
+    sameStringSet(a.accountIds, b.accountIds) &&
+    sameStringSet(a.categoryIds, b.categoryIds) &&
+    a.amountMin === b.amountMin &&
+    a.amountMax === b.amountMax &&
+    (!amountActive || a.amountCurrency === b.amountCurrency)
+  );
+}
+
+function selectedNames(ids: string[], source: ReadonlyMap<string, NamedEntity>): string[] {
+  return ids.map((id) => source.get(id)?.name).filter((name): name is string => name !== undefined);
+}
+
+export function formatAppliedFilterSummary(
+  f: AdvancedFilters,
+  accountsById: ReadonlyMap<string, NamedEntity>,
+  categoriesById: ReadonlyMap<string, NamedEntity>,
+): string | null {
+  const parts: string[] = [];
+  const accountNames = selectedNames(f.accountIds, accountsById);
+  const categoryNames = selectedNames(f.categoryIds, categoriesById);
+
+  if (accountNames.length > 0) parts.push(formatSelectionSummary(accountNames, ''));
+  if (categoryNames.length > 0) parts.push(formatSelectionSummary(categoryNames, ''));
+  if (hasAmountFilter(f)) parts.push(formatAmountSummary(f));
+
+  return parts.length > 0 ? parts.join(' + ') : null;
+}

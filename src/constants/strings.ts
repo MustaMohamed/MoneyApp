@@ -377,9 +377,13 @@ export const Strings = {
   filterSectionCategories: 'Categories',
   filterSectionDate: 'Date',
   filterSectionAmount: 'Amount',
+  filterSectionAmountType: 'Amount type',
+  filterSectionRecurrence: 'Recurrence',
 
   filterAllAccounts: 'All accounts',
   filterAllCategories: 'All categories',
+  filterAllAmountTypes: 'All types',
+  filterAllRecurrences: 'All recurrences',
 
   datePresetToday: 'Today',
   datePresetThisWeek: 'This week',
@@ -405,6 +409,7 @@ export const Strings = {
 
   // Commitments — C1 List
   commitmentsTitle: 'Commitments',
+  searchCommitmentsPlaceholder: 'Search commitments…',
   commitmentsPaidSummary: 'Paid this month',
   commitmentsTotalCommitted: 'Total committed',
   commitmentsOverdue: 'Overdue',

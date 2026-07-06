@@ -21,8 +21,10 @@ import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
 import { CommitmentsEmptyState } from './components/empty_state';
+import { CommitmentSearchRow } from './components/search_row';
 import { SummaryHeader } from './components/summary_header';
 import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
+import { CommitmentFilterSheet } from './filter';
 
 type CommitmentSection = { title: string; data: CommitmentPayment[] };
 
@@ -86,6 +88,10 @@ export default function CommitmentsScreen() {
     skipPayment,
     deactivateCommitment,
     setStatusFilter,
+    setSearchQuery,
+    clearSearch,
+    openFilter,
+    resetFilters,
   } = t;
 
   const {
@@ -145,8 +151,27 @@ export default function CommitmentsScreen() {
   );
 
   const listHeaderComponent = useMemo(
-    () => <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />,
-    [state.counts, state.totalsByCurrency],
+    () => (
+      <>
+        <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />
+        <CommitmentSearchRow
+          value={state.searchQuery}
+          onChange={setSearchQuery}
+          onClear={clearSearch}
+          onOpenFilter={openFilter}
+          activeFilterCount={state.activeFilterCount}
+        />
+      </>
+    ),
+    [
+      clearSearch,
+      openFilter,
+      setSearchQuery,
+      state.activeFilterCount,
+      state.counts,
+      state.searchQuery,
+      state.totalsByCurrency,
+    ],
   );
 
   const listEmptyComponent = useMemo(
@@ -155,12 +180,12 @@ export default function CommitmentsScreen() {
         <View className="items-center justify-center py-12">
           <Spinner />
         </View>
-      ) : state.statusFilter === 'all' ? (
+      ) : !state.hasListFilters ? (
         <EmptyState variant="commitmentsMonth" />
       ) : (
-        <EmptyState variant="filtered" onAction={() => setStatusFilter('all')} />
+        <EmptyState variant="filtered" onAction={resetFilters} />
       ),
-    [setStatusFilter, state.paymentsLoaded, state.statusFilter],
+    [resetFilters, state.hasListFilters, state.paymentsLoaded],
   );
 
   const handleRefresh = useCallback(() => void onRefresh(), [onRefresh]);
@@ -229,6 +254,7 @@ export default function CommitmentsScreen() {
           void confirmSkip();
         }}
       />
+      <CommitmentFilterSheet />
     </Screen>
   );
 }

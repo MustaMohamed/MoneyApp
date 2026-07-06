@@ -125,9 +125,9 @@ export default function TransactionsScreen(): React.ReactElement {
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<Transaction, TransactionSection> }) => (
-      <DateHeader label={section.key} />
+      <DateHeader label={section.key} contextLabel={state.appliedFilterSummary} />
     ),
-    [],
+    [state.appliedFilterSummary],
   );
 
   const renderItem = useCallback(
