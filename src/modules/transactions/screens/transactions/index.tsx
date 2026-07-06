@@ -188,13 +188,12 @@ export default function TransactionsScreen(): React.ReactElement {
         filterAccessibilityLabel="Transaction type filter"
       />
 
-      {state.totals ? (
-        <TotalsStrip
-          current={state.totals.current}
-          previous={state.totals.previous}
-          previousLabel={state.previousLabel}
-        />
-      ) : null}
+      <TotalsStrip
+        current={state.totals?.current ?? null}
+        previous={state.totals?.previous ?? null}
+        previousLabel={state.previousLabel}
+        isLoading={!state.totals}
+      />
 
       <SearchRow
         value={state.searchQuery}

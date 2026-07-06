@@ -16,6 +16,14 @@ jest.mock('heroui-native', () => {
   return {
     Card: ({ children, ...props }: { children?: ReactNode; className?: string }) =>
       React.createElement(View, props, children),
+    SkeletonGroup: Object.assign(
+      ({ children }: { children?: ReactNode }) =>
+        React.createElement(View, { testID: 'skeleton-group' }, children),
+      {
+        Item: ({ children, isLoading }: { children?: ReactNode; isLoading?: boolean }) =>
+          React.createElement(View, { testID: 'skeleton-item' }, isLoading ? null : children),
+      },
+    ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
