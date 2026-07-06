@@ -46,9 +46,9 @@ jest.mock('@/modules/commitments/screens/commitments/components/empty_state', ()
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/components/summary_header', () => ({
-  SummaryHeader: () => {
+  SummaryHeader: ({ isLoading }: { isLoading?: boolean }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>Summary</Text>;
+    return <Text>{`Summary loading:${String(isLoading)}`}</Text>;
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/components/search_row', () => ({
@@ -180,6 +180,18 @@ describe('CommitmentsScreen', () => {
     expect(getByText('search:rent')).toBeTruthy();
     expect(getByText('filters:2')).toBeTruthy();
     expect(getByText('Commitment filter sheet')).toBeTruthy();
+  });
+
+  it('passes payments loading state to the summary header', () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      paymentsLoaded: false,
+      sections: [{ title: 'Due', data: [{ id: 'payment-1', commitment_id: 'commitment-1' }] }],
+    });
+
+    const { getByText } = render(<CommitmentsScreen />);
+
+    expect(getByText('Summary loading:true')).toBeTruthy();
   });
 
   it('wires search, clear, and open filter actions from the search row', () => {

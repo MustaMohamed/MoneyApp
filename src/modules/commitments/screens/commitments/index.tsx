@@ -153,7 +153,11 @@ export default function CommitmentsScreen() {
   const listHeaderComponent = useMemo(
     () => (
       <>
-        <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />
+        <SummaryHeader
+          counts={state.counts}
+          totalsByCurrency={state.totalsByCurrency}
+          isLoading={!state.paymentsLoaded}
+        />
         <CommitmentSearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
@@ -169,6 +173,7 @@ export default function CommitmentsScreen() {
       setSearchQuery,
       state.activeFilterCount,
       state.counts,
+      state.paymentsLoaded,
       state.searchQuery,
       state.totalsByCurrency,
     ],
