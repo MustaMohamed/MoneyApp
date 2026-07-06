@@ -16,9 +16,9 @@
   - Add pure summary helpers for amount labels, comparison deltas, and expense/income rail percent.
 - Modify `src/modules/transactions/screens/transactions/components/totals_strip.tsx`
   - Replace the three standalone cells with one HeroUI `Card`.
-  - Render aligned Income / Expense / Net columns.
-  - Render a red expense-share rail.
-  - Render unsigned direction-icon comparison percentages.
+  - Render compact aligned Income / Expense / Net values.
+  - Render a thin red expense-share rail.
+  - Render unsigned direction-icon comparison percentages with the visible previous-period caption.
 - Modify `__tests__/screens/transactions/transactions_helpers.test.ts`
   - Add failing tests for the new pure helper behavior.
 
@@ -111,7 +111,7 @@ Use HeroUI `Card` and existing app `Text`.
 
 - [ ] **Step 2: Render the aligned metric columns**
 
-Use a three-column row for labels and current values:
+Use a compact three-column row for current values:
 
 ```tsx
 <MetricRow>
@@ -126,7 +126,7 @@ Use a three-column row for labels and current values:
 Use a red fill width from `expenseSharePct(current)`:
 
 ```tsx
-<View className="bg-default mt-2 h-[5px] overflow-hidden rounded-full">
+<View className="bg-default h-[3px] overflow-hidden rounded-[2px]">
   <View className="bg-danger h-full rounded-full" style={{ width: `${expensePct}%` }} />
 </View>
 ```
@@ -174,6 +174,25 @@ npm run lint
 - Spec coverage: all approved visual requirements map to Task 1 and Task 2.
 - Placeholder scan: no TBD/TODO placeholders.
 - Type consistency: helper names and component responsibilities are consistent across tasks.
+
+## Follow-up Compactness Pass
+
+The approved card was tightened to match the commitments summary card density:
+
+- Outer card uses compact vertical padding and row gaps.
+- The outer card uses the same margin/sizing class as the commitments summary card.
+- The visible metric-label/header rows are removed.
+- The `vs {previousLabel}` caption is visible below the comparison row.
+- The progress rail uses the same 3px visual weight as the commitments summary card.
+
+## Follow-up Dashboard Placement
+
+The approved transactions summary was also added to the dashboard overview:
+
+- Dashboard store now keeps current and previous transaction period totals.
+- Dashboard hook loads those totals with `getPeriodTotals` for the current and previous month.
+- Dashboard overview renders a `TransactionsCard` above `CommitmentsCard`.
+- The dashboard card follows the commitments dashboard card shell and opens the transactions tab on press.
 
 ## Execution Choice
 

@@ -8,11 +8,9 @@ The transactions screen currently shows three separate compare boxes for Income,
 
 Use a single compact HeroUI-style summary card in the transactions screen.
 
-The card contains:
+The compact card contains:
 
-- A quiet header label: `Monthly movement`.
-- Three aligned columns: Income, Expense, Net.
-- Current month numbers in the top value row:
+- A top value row with three aligned current month numbers:
   - Income uses success green and a `+` prefix.
   - Expense uses danger red and a `-` prefix.
   - Net uses info blue and a signed prefix based on value.
@@ -28,7 +26,8 @@ The card contains:
     - Income up is green, income down is red.
     - Expense up is red, expense down is green.
     - Net up is green, net down is red.
-  - The row caption remains `vs {previousLabel}` when `previousLabel` exists.
+  - The visible `vs {previousLabel}` caption appears under the comparison row when `previousLabel` exists.
+- No visible header or metric-label row. The card should match the commitments summary card outer sizing and margin: `mx-4 mb-2`, tight vertical padding, low row gaps, and a thin 3px rail.
 
 ## Non-Goals
 
@@ -46,3 +45,10 @@ The card contains:
 - Comparison percentages show direction icons and unsigned absolute percentages.
 - Expense increases render red even though the direction icon points up.
 - Existing period and polarity helper tests continue passing.
+- The compact card uses commitments-card density: matching outer sizing/margins, tight padding/gaps, and a 3px progress rail.
+
+## Dashboard Placement
+
+- Dashboard overview includes a `Transactions` card near the existing commitments dashboard card.
+- The dashboard card follows the commitments dashboard card shell: icon/title/month header, full-width HeroUI `Card`, same outer spacing, and tap-to-open behavior.
+- Dashboard transaction data uses current and previous month `getPeriodTotals` values so the card can show income, expense, net, the expense-vs-income rail, and `vs {previousLabel}` comparison context.

@@ -8,8 +8,11 @@ import { getAccountsStats } from '@/modules/accounts/database/account_stats';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import { getMonthExpenseStats } from '@/modules/transactions/database/transactions';
-import { toLocalDateString } from '@/utils/format_date';
+import {
+  getMonthExpenseStats,
+  getPeriodTotals,
+} from '@/modules/transactions/database/transactions';
+import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 import {
@@ -23,6 +26,17 @@ import { useDashboardStore } from './dashboard.store';
 
 function getCurrentYearMonth(): string {
   return toLocalDateString(new Date()).slice(0, 7);
+}
+
+function resolveMonthRange(yearMonth: string): { from: string; to: string } {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const lastDay = new Date(year, month, 0);
+  return {
+    from: `${yearMonth}-01`,
+    to: `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(
+      lastDay.getDate(),
+    ).padStart(2, '0')}`,
+  };
 }
 
 export function useDashboard() {
@@ -47,19 +61,28 @@ export function useDashboard() {
   const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
   const setRefreshing = useDashboardState.getState().setRefreshing;
   const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
-  const { statsMap, currentMonthCommitmentPayments, currentMonthSpend, previousMonthSpend } =
-    useDashboardStore(
-      useShallow((s) => ({
-        statsMap: s.statsMap,
-        currentMonthCommitmentPayments: s.currentMonthCommitmentPayments,
-        currentMonthSpend: s.currentMonthSpend,
-        previousMonthSpend: s.previousMonthSpend,
-      })),
-    );
+  const {
+    statsMap,
+    currentMonthCommitmentPayments,
+    currentMonthSpend,
+    previousMonthSpend,
+    currentTransactionTotals,
+    previousTransactionTotals,
+  } = useDashboardStore(
+    useShallow((s) => ({
+      statsMap: s.statsMap,
+      currentMonthCommitmentPayments: s.currentMonthCommitmentPayments,
+      currentMonthSpend: s.currentMonthSpend,
+      previousMonthSpend: s.previousMonthSpend,
+      currentTransactionTotals: s.currentTransactionTotals,
+      previousTransactionTotals: s.previousTransactionTotals,
+    })),
+  );
   const setStatsMap = useDashboardStore.getState().setStatsMap;
   const setCurrentMonthCommitmentPayments =
     useDashboardStore.getState().setCurrentMonthCommitmentPayments;
   const setMonthSpendStats = useDashboardStore.getState().setMonthSpendStats;
+  const setTransactionTotals = useDashboardStore.getState().setTransactionTotals;
 
   const previousYearMonth = useMemo(() => {
     const [y, m] = currentYearMonth.split('-').map(Number);
@@ -81,6 +104,19 @@ export function useDashboard() {
     }
   }, [currentYearMonth, previousYearMonth, setMonthSpendStats]);
 
+  const loadTransactionTotals = useCallback(async () => {
+    try {
+      const db = await getDb();
+      const [current, previous] = await Promise.all([
+        getPeriodTotals(db, resolveMonthRange(currentYearMonth)),
+        getPeriodTotals(db, resolveMonthRange(previousYearMonth)),
+      ]);
+      setTransactionTotals(current, previous);
+    } catch (err) {
+      console.error('[dashboard] loadTransactionTotals failed:', err);
+    }
+  }, [currentYearMonth, previousYearMonth, setTransactionTotals]);
+
   const loadCurrentMonthCommitmentPayments = useCallback(async () => {
     try {
       const payments = await commitmentRepository.getPaymentsForMonth(currentYearMonth);
@@ -96,14 +132,21 @@ export function useDashboard() {
       const task = runAfterInteractions(() => {
         void loadCurrentMonthCommitmentPayments();
         void loadMonthSpend();
+        void loadTransactionTotals();
       });
       return () => task.cancel();
-    }, [loadCurrentMonthCommitmentPayments, loadMonthSpend, setSelectedSegment]),
+    }, [
+      loadCurrentMonthCommitmentPayments,
+      loadMonthSpend,
+      loadTransactionTotals,
+      setSelectedSegment,
+    ]),
   );
 
   useEffect(() => {
     void loadMonthSpend();
-  }, [loadMonthSpend, accounts]);
+    void loadTransactionTotals();
+  }, [loadMonthSpend, loadTransactionTotals, accounts]);
 
   const loadStats = useCallback(
     async (ids: string[]) => {
@@ -129,11 +172,22 @@ export function useDashboard() {
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([loadAccounts(), loadCurrentMonthCommitmentPayments(), loadMonthSpend()]);
+      await Promise.all([
+        loadAccounts(),
+        loadCurrentMonthCommitmentPayments(),
+        loadMonthSpend(),
+        loadTransactionTotals(),
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, [loadAccounts, loadCurrentMonthCommitmentPayments, loadMonthSpend, setRefreshing]);
+  }, [
+    loadAccounts,
+    loadCurrentMonthCommitmentPayments,
+    loadMonthSpend,
+    loadTransactionTotals,
+    setRefreshing,
+  ]);
 
   const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
@@ -201,6 +255,7 @@ export function useDashboard() {
   const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
   const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
   const goToSettings = useCallback(() => router.push('/settings'), [router]);
+  const goToTransactions = useCallback(() => router.push('/(app)/(tabs)/transactions'), [router]);
   const goToCommitments = useCallback(() => router.push('/(app)/(tabs)/commitments'), [router]);
 
   return {
@@ -230,6 +285,12 @@ export function useDashboard() {
         totalsByCurrency: commitmentTotalsByCurrency,
         yearMonth: currentYearMonth,
       },
+      transactions: {
+        current: currentTransactionTotals,
+        previous: previousTransactionTotals,
+        previousLabel: formatMonthYear(previousYearMonth),
+        yearMonth: currentYearMonth,
+      },
     },
     setBreakdownVisible,
     setSelectedSegment,
@@ -237,6 +298,7 @@ export function useDashboard() {
     goToAccount,
     goToAddAccount,
     goToSettings,
+    goToTransactions,
     goToCommitments,
   };
 }
