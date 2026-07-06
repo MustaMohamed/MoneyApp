@@ -588,6 +588,8 @@ export const Strings = {
   monthPickerNextYearA11y: 'Next year',
 
   // §6 Transactions — Totals strip
+  totalsMonthlyMovement: 'Monthly movement',
+  totalsExpenseShareA11y: (pct: number) => `Expenses are ${pct}% of income`,
   totalsIncome: 'Income',
   totalsExpense: 'Expense',
   totalsNet: 'Net',
