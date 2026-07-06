@@ -1,4 +1,5 @@
 import { CommitmentPaymentStatus } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
@@ -33,6 +34,25 @@ export function countActiveCommitmentFilters(filters: CommitmentAdvancedFilters)
   if (filters.amountTypes.length > 0) count++;
   if (filters.recurrencePresets.length > 0) count++;
   return count;
+}
+
+export function parseCommitmentAmountInput(value: string): number | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = Number.parseFloat(trimmed.replace(/,/g, ''));
+  if (!Number.isFinite(parsed) || parsed < 0) return undefined;
+  return parsed;
+}
+
+export function formatCommitmentAmountSummary(filters: CommitmentAdvancedFilters): string {
+  if (!hasAmountFilter(filters)) return Strings.filterSummaryAmountEmpty;
+  if (filters.amountMin !== undefined && filters.amountMax !== undefined) {
+    return `${filters.amountMin}-${filters.amountMax} ${filters.amountCurrency}`;
+  }
+  if (filters.amountMax !== undefined) {
+    return `${Strings.filterSummaryAmountUpTo} ${filters.amountMax} ${filters.amountCurrency}`;
+  }
+  return `${Strings.filterSummaryAmountFrom} ${filters.amountMin} ${filters.amountCurrency}`;
 }
 
 export function commitmentFiltersEqual(
