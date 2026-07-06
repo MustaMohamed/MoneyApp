@@ -13,7 +13,11 @@ import { formatMonthYear } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
-import { countActiveFilters, toQueryFilters } from './filter/filter.helpers';
+import {
+  countActiveFilters,
+  formatAppliedFilterSummary,
+  toQueryFilters,
+} from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
 import { useFilterStore } from './filter/filter.store';
 import { previousPeriod, resolvePeriod } from './transactions.helpers';
@@ -120,6 +124,10 @@ export function useTransactions() {
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
   const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
+  const appliedFilterSummary = useMemo(
+    () => formatAppliedFilterSummary(appliedFilters, accountsById, categoriesById),
+    [accountsById, appliedFilters, categoriesById],
+  );
   const hasAdvancedFilters = activeFilterCount > 0;
 
   const emptyVariant: EmptyVariant =
@@ -192,6 +200,7 @@ export function useTransactions() {
       accountsById,
       categoriesById,
       activeFilterCount,
+      appliedFilterSummary,
       totals,
       previousLabel,
     },
