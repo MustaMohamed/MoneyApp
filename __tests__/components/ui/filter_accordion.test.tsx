@@ -81,7 +81,7 @@ jest.mock('@/components/ui/tabs', () => ({
       <View accessibilityLabel={accessibilityLabel}>
         {segments.map((segment) => (
           <Pressable key={segment.value} onPress={() => onValueChange(segment.value)}>
-            <Text>{segment.label === value ? `${segment.label} selected` : segment.label}</Text>
+            <Text>{segment.value === value ? `${segment.label} selected` : segment.label}</Text>
           </Pressable>
         ))}
       </View>
