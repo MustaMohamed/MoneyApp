@@ -1,7 +1,15 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, cn } from 'heroui-native';
 import React from 'react';
 
-import { Colors } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
+
+import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
+
+export interface TabSegmentIcon {
+  name: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+  color: string;
+}
 
 /**
  * Descriptor for a single segment in a `SegmentedTabs` control.
@@ -17,6 +25,8 @@ export interface TabSegment<T extends string = string> {
   label: string;
   /** Accessibility label for this trigger; defaults to `label`. */
   accessibilityLabel?: string;
+  /** Optional leading icon for compact filters. */
+  icon?: TabSegmentIcon;
 }
 
 /**
@@ -29,6 +39,7 @@ export interface TabSegment<T extends string = string> {
  *                    category switcher and EGP/USD currency pickers.
  */
 export type SegmentedTabsVariant = 'default' | 'solid-gold';
+export type SegmentedTabsDensity = 'default' | 'compact';
 
 export interface SegmentedTabsProps<T extends string = string> {
   /**
@@ -56,10 +67,11 @@ export interface SegmentedTabsProps<T extends string = string> {
    */
   layout?: 'fixed' | 'scrollable';
   /**
-   * Scroll-alignment for `'scrollable'` layout — forwarded to `Tabs.ScrollView`.
+   * Scroll-alignment for `'scrollable'` layout. `'visible'` keeps the selected
+   * fixed-width segment fully visible with the smallest needed scroll.
    * @default 'center'
    */
-  scrollAlign?: 'start' | 'center' | 'end' | 'none';
+  scrollAlign?: SegmentedTabsScrollAlign;
   /**
    * Extra className forwarded to `Tabs.List` (e.g. margin, width overrides).
    * Appended after the default list classes — Tailwind specificity rules apply.
@@ -77,6 +89,16 @@ export interface SegmentedTabsProps<T extends string = string> {
    * Provide when the surrounding UI does not make the control's purpose obvious.
    */
   accessibilityLabel?: string;
+  /**
+   * Fixed width for each segment. Useful in scrollable rails where every item
+   * should occupy the same visual space.
+   */
+  segmentWidth?: number;
+  /**
+   * Visual density for segment triggers.
+   * @default 'default'
+   */
+  density?: SegmentedTabsDensity;
   /**
    * When true, all triggers are non-interactive — used for locked form fields.
    * Selected indicator still shows.
@@ -119,33 +141,63 @@ export function SegmentedTabs<T extends string>({
   listClassName,
   animation,
   accessibilityLabel,
+  segmentWidth,
+  density = 'default',
   isDisabled,
 }: SegmentedTabsProps<T>): React.ReactElement {
   const isSolidGold = variant === 'solid-gold';
   const isScrollable = layout === 'scrollable';
+  const isCompact = density === 'compact';
+  const scrollBehavior = useSegmentedTabsScroll({
+    scrollAlign,
+    value,
+    segments,
+    segmentWidth,
+  });
 
   const triggers = segments.map((seg) => (
     <Tabs.Trigger
       key={seg.value}
       value={seg.value}
-      // 'fixed' layout: each trigger takes an equal share of the list width.
-      // 'scrollable' layout: triggers use intrinsic width — no flex-1.
-      className={isScrollable ? undefined : 'flex-1'}
+      // Fixed tabs share width; scrollable tabs use either segmentWidth or
+      // intrinsic width. Avoid flex-1 inside ScrollView content.
+      className={cn(isScrollable ? undefined : 'flex-1', isCompact ? 'gap-1 px-2' : undefined)}
+      style={segmentWidth ? { width: segmentWidth } : undefined}
       accessibilityLabel={seg.accessibilityLabel ?? seg.label}
       isDisabled={isDisabled}
     >
+      {seg.icon ? (
+        <MaterialCommunityIcons
+          name={seg.icon.name}
+          size={Size.iconXs}
+          color={isSolidGold && value === seg.value ? Colors.shared.midnightBlue : seg.icon.color}
+        />
+      ) : null}
       <Tabs.Label
         // solid-gold: override selected label to midnight-blue.
         // HeroUI's tv() applies text-segment-foreground/text-muted via
         // TriggerContext.isSelected — the style prop wins over className in RN.
-        style={
-          isSolidGold && value === seg.value ? { color: Colors.shared.midnightBlue } : undefined
-        }
+        numberOfLines={1}
+        adjustsFontSizeToFit={segmentWidth != null}
+        minimumFontScale={0.85}
+        className={isCompact && value === seg.value ? 'font-bold' : undefined}
+        style={[
+          segmentWidth != null ? { flexShrink: 1 } : undefined,
+          isSolidGold && value === seg.value ? { color: Colors.shared.midnightBlue } : undefined,
+        ]}
       >
         {seg.label}
       </Tabs.Label>
     </Tabs.Trigger>
   ));
+
+  const indicator = (
+    <Tabs.Indicator
+      // solid-gold: override bg-segment → cairoGold.
+      // backgroundColor is not animated, so this style override is safe.
+      style={isSolidGold ? { backgroundColor: Colors.shared.cairoGold } : undefined}
+    />
+  );
 
   return (
     <Tabs
@@ -156,16 +208,22 @@ export function SegmentedTabs<T extends string>({
       animation={animation}
     >
       <Tabs.List className={cn(listClassName)} accessibilityLabel={accessibilityLabel}>
-        <Tabs.Indicator
-          // solid-gold: override bg-segment → cairoGold.
-          // backgroundColor is NOT in the Reanimated-animated property set —
-          // this style override is safe (see JSDoc above).
-          style={isSolidGold ? { backgroundColor: Colors.shared.cairoGold } : undefined}
-        />
         {isScrollable ? (
-          <Tabs.ScrollView scrollAlign={scrollAlign}>{triggers}</Tabs.ScrollView>
+          <Tabs.ScrollView
+            ref={scrollBehavior.scrollViewRef}
+            scrollAlign={scrollBehavior.heroUiScrollAlign}
+            onScroll={scrollBehavior.onScroll}
+            onLayout={scrollBehavior.onLayout}
+            scrollEventThrottle={scrollBehavior.scrollEventThrottle}
+          >
+            {indicator}
+            {triggers}
+          </Tabs.ScrollView>
         ) : (
-          triggers
+          <>
+            {indicator}
+            {triggers}
+          </>
         )}
       </Tabs.List>
     </Tabs>

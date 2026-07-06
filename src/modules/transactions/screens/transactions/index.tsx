@@ -11,8 +11,8 @@ import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { Colors, Size } from '@/constants/theme';
+import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
@@ -35,11 +35,31 @@ import type { TransactionFilter } from './transactions.store';
 type TransactionSection = { key: string; data: Transaction[] };
 
 const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
-  { value: 'all', label: Strings.filterAll },
-  { value: TransactionType.Income, label: Strings.addTxTypeIncome },
-  { value: TransactionType.Expense, label: Strings.addTxTypeExpense },
-  { value: TransactionType.Transfer, label: Strings.addTxTypeTransfer },
-  { value: TransactionType.CCPayment, label: Strings.addTxTypeCCPayment },
+  {
+    value: 'all',
+    label: Strings.filterAll,
+    icon: { name: 'view-grid', color: Colors.dark.text2 },
+  },
+  {
+    value: TransactionType.Income,
+    label: Strings.addTxTypeIncome,
+    icon: { name: 'arrow-down-circle-outline', color: SemanticTokens.positive },
+  },
+  {
+    value: TransactionType.Expense,
+    label: Strings.addTxTypeExpense,
+    icon: { name: 'arrow-up-circle-outline', color: SemanticTokens.negative },
+  },
+  {
+    value: TransactionType.Transfer,
+    label: Strings.addTxTypeTransfer,
+    icon: { name: 'swap-horizontal', color: InfoTokens[500] },
+  },
+  {
+    value: TransactionType.CCPayment,
+    label: Strings.filterCcPayment,
+    icon: { name: 'credit-card-refund', color: AccentCCTokens[500] },
+  },
 ];
 
 export default function TransactionsScreen(): React.ReactElement {

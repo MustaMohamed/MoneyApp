@@ -1,11 +1,23 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
+import type { CommitmentStatusFilter } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentsScreenState } from '@/modules/commitments/screens/commitments/commitments.state';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
+const mockUseDeferredValue = jest.fn((value: unknown) => value);
+
+jest.mock('react', () => {
+  const actual = jest.requireActual<typeof import('react')>('react');
+  return {
+    ...actual,
+    useDeferredValue: (value: unknown) => mockUseDeferredValue(value),
+  };
+});
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 let capturedFocusCallback: (() => void | (() => void)) | null = null;
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
@@ -47,10 +59,38 @@ const setSelectedMonthMock = jest.fn();
 const setRefreshingMock = jest.fn();
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
-function setup({ selectedMonth = '2026-05' }: { selectedMonth?: string } = {}) {
+function makePayment(id: string, status: CommitmentPaymentStatus): CommitmentPayment {
+  return {
+    id,
+    commitment_id: `commitment-${id}`,
+    due_date: '2026-05-01',
+    paid_date: null,
+    skipped_date: null,
+    amount_due: 100,
+    amount_paid: null,
+    currency: Currency.EGP,
+    exchange_rate_snapshot: null,
+    account_id: null,
+    transaction_id: null,
+    status,
+    notes: null,
+    created_at: '2026-05-01T00:00:00.000Z',
+    updated_at: '2026-05-01T00:00:00.000Z',
+  };
+}
+
+function setup({
+  selectedMonth = '2026-05',
+  payments = [],
+  statusFilter = 'all',
+}: {
+  selectedMonth?: string;
+  payments?: CommitmentPayment[];
+  statusFilter?: CommitmentStatusFilter;
+} = {}) {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: [],
-    payments: [],
+    payments,
     selectedMonth,
     setSelectedMonth: setSelectedMonthMock,
     loadPaymentsForMonth: loadPaymentsForMonthMock,
@@ -62,7 +102,7 @@ function setup({ selectedMonth = '2026-05' }: { selectedMonth?: string } = {}) {
   }));
   attachMockSelectorStore(useCommitmentsScreenState as unknown as jest.Mock, () => ({
     refreshing: false,
-    statusFilter: 'all',
+    statusFilter,
     setRefreshing: setRefreshingMock,
     setStatusFilter: jest.fn(),
   }));
@@ -77,6 +117,7 @@ describe('useCommitments', () => {
     generatePaymentsMock.mockReset().mockResolvedValue(undefined);
     setSelectedMonthMock.mockClear();
     setRefreshingMock.mockClear();
+    mockUseDeferredValue.mockReset().mockImplementation((value: unknown) => value);
     runAfterInteractions.mockClear();
     setup();
   });
@@ -161,6 +202,27 @@ describe('useCommitments', () => {
     });
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-08');
+  });
+
+  it('keeps selected status immediate while deferring section regrouping', () => {
+    mockUseDeferredValue.mockImplementation((value) =>
+      value === CommitmentPaymentStatus.Paid ? 'all' : value,
+    );
+    setup({
+      statusFilter: CommitmentPaymentStatus.Paid,
+      payments: [
+        makePayment('overdue-payment', CommitmentPaymentStatus.Overdue),
+        makePayment('paid-payment', CommitmentPaymentStatus.Paid),
+      ],
+    });
+
+    const { result } = renderHook(() => useCommitments());
+
+    expect(mockUseDeferredValue).toHaveBeenCalledWith(CommitmentPaymentStatus.Paid);
+    expect(result.current.state.statusFilter).toBe(CommitmentPaymentStatus.Paid);
+    expect(
+      result.current.state.sections.flatMap((section) => section.data.map((p) => p.id)),
+    ).toEqual(['overdue-payment', 'paid-payment']);
   });
 
   it('navigateMonth moves January to previous December', () => {

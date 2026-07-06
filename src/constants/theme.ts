@@ -129,6 +129,7 @@ export const Size = {
   iconMd: ms(22),
   iconLg: ms(26),
   iconHero: ms(64),
+  filterSegmentWidth: ms(96),
   typeIconBox: ms(36),
   securityIconBox: ms(40),
   flagBox: ms(36),

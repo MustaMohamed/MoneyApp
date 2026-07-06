@@ -9,12 +9,13 @@ import { Screen } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { CommitmentPaymentStatus } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import { GoldTokens } from '@/constants/theme_tokens';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { DateHeader } from '@/modules/transactions/screens/transactions/components/date_header';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
+import { STATUS_COLORS, STATUS_ICONS, STATUS_LABELS } from './commitment_status';
 import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
@@ -26,12 +27,51 @@ import { SkipConfirmSheet } from './detail/components/skip_confirm_sheet';
 type CommitmentSection = { title: string; data: CommitmentPayment[] };
 
 const COMMITMENT_FILTERS: FilterRailOption<CommitmentStatusFilter>[] = [
-  { value: 'all', label: Strings.filterAll },
-  { value: CommitmentPaymentStatus.Overdue, label: Strings.commitmentsStatusOverdue },
-  { value: CommitmentPaymentStatus.Due, label: Strings.commitmentsStatusDue },
-  { value: CommitmentPaymentStatus.Upcoming, label: Strings.commitmentsStatusUpcoming },
-  { value: CommitmentPaymentStatus.Paid, label: Strings.commitmentsStatusPaid },
-  { value: CommitmentPaymentStatus.Skipped, label: Strings.commitmentsStatusSkipped },
+  {
+    value: 'all',
+    label: Strings.filterAll,
+    icon: { name: 'view-grid', color: Colors.dark.text2 },
+  },
+  {
+    value: CommitmentPaymentStatus.Overdue,
+    label: STATUS_LABELS[CommitmentPaymentStatus.Overdue],
+    icon: {
+      name: STATUS_ICONS[CommitmentPaymentStatus.Overdue],
+      color: STATUS_COLORS[CommitmentPaymentStatus.Overdue],
+    },
+  },
+  {
+    value: CommitmentPaymentStatus.Due,
+    label: STATUS_LABELS[CommitmentPaymentStatus.Due],
+    icon: {
+      name: STATUS_ICONS[CommitmentPaymentStatus.Due],
+      color: STATUS_COLORS[CommitmentPaymentStatus.Due],
+    },
+  },
+  {
+    value: CommitmentPaymentStatus.Upcoming,
+    label: STATUS_LABELS[CommitmentPaymentStatus.Upcoming],
+    icon: {
+      name: STATUS_ICONS[CommitmentPaymentStatus.Upcoming],
+      color: STATUS_COLORS[CommitmentPaymentStatus.Upcoming],
+    },
+  },
+  {
+    value: CommitmentPaymentStatus.Paid,
+    label: STATUS_LABELS[CommitmentPaymentStatus.Paid],
+    icon: {
+      name: STATUS_ICONS[CommitmentPaymentStatus.Paid],
+      color: STATUS_COLORS[CommitmentPaymentStatus.Paid],
+    },
+  },
+  {
+    value: CommitmentPaymentStatus.Skipped,
+    label: STATUS_LABELS[CommitmentPaymentStatus.Skipped],
+    icon: {
+      name: STATUS_ICONS[CommitmentPaymentStatus.Skipped],
+      color: STATUS_COLORS[CommitmentPaymentStatus.Skipped],
+    },
+  },
 ];
 
 export default function CommitmentsScreen() {

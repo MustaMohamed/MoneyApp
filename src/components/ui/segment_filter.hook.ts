@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 
-import type { TabSegment } from './tabs';
+import type { TabSegment, TabSegmentIcon } from './tabs';
 
 export interface SegmentFilterOption<T extends string = string> {
   value: T;
   label: string;
   accessibilityLabel?: string;
+  icon?: TabSegmentIcon;
 }
 
 export interface SegmentFilterProps<T extends string = string> {
@@ -22,6 +23,7 @@ export function useSegmentFilter<T extends string>({ filters }: SegmentFilterPro
         value: filter.value,
         label: filter.label,
         accessibilityLabel: filter.accessibilityLabel,
+        icon: filter.icon,
       })),
     [filters],
   );

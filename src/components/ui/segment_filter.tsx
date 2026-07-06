@@ -1,3 +1,5 @@
+import { Size } from '@/constants/theme';
+
 import { type SegmentFilterProps, useSegmentFilter } from './segment_filter.hook';
 import { SegmentedTabs } from './tabs';
 
@@ -11,8 +13,10 @@ export function SegmentFilter<T extends string>(props: SegmentFilterProps<T>) {
       onValueChange={props.onSelectedFilterChange}
       variant="solid-gold"
       layout="scrollable"
-      scrollAlign="start"
+      scrollAlign="visible"
       listClassName="self-stretch bg-default/60"
+      segmentWidth={Size.filterSegmentWidth}
+      density="compact"
       accessibilityLabel={props.accessibilityLabel}
     />
   );

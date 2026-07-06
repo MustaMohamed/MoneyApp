@@ -45,11 +45,19 @@ describe('feature screen filter rail usage', () => {
     expect(text).toContain('TransactionType.Expense');
     expect(text).toContain('TransactionType.Transfer');
     expect(text).toContain('TransactionType.CCPayment');
+    expect(text).toContain('view-grid');
+    expect(text).toContain('arrow-down-circle-outline');
+    expect(text).toContain('arrow-up-circle-outline');
+    expect(text).toContain('swap-horizontal');
+    expect(text).toContain('credit-card-refund');
+    expect(text).not.toContain('select-all');
+    expect(text).not.toContain('view-list-outline');
     expect(text).not.toContain('TypeChips');
   });
 
   it('commitments uses FilterRail with every status filter', () => {
     const text = source('src/modules/commitments/screens/commitments/index.tsx');
+    const statusText = source('src/modules/commitments/screens/commitments/commitment_status.ts');
 
     expect(text).toContain('FilterRail');
     expect(text).toContain('COMMITMENT_FILTERS');
@@ -58,6 +66,15 @@ describe('feature screen filter rail usage', () => {
     expect(text).toContain('CommitmentPaymentStatus.Upcoming');
     expect(text).toContain('CommitmentPaymentStatus.Paid');
     expect(text).toContain('CommitmentPaymentStatus.Skipped');
+    expect(text).toContain('STATUS_COLORS');
+    expect(text).toContain('STATUS_ICONS');
+    expect(text).toContain('view-grid');
+    expect(text).not.toContain('select-all');
+    expect(statusText).toContain('alert-circle');
+    expect(statusText).toContain('clock-outline');
+    expect(statusText).toContain('calendar-clock');
+    expect(statusText).toContain('check-circle');
+    expect(statusText).toContain('minus-circle');
     expect(text).not.toContain('StatusFilterChips');
   });
 });
