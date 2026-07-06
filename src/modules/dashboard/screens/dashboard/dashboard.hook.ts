@@ -39,6 +39,9 @@ function resolveMonthRange(yearMonth: string): { from: string; to: string } {
   };
 }
 
+const EMPTY_MONTH_SPEND = { totalEgp: 0, usdNative: 0, count: 0 };
+const EMPTY_TRANSACTION_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+
 export function useDashboard() {
   const router = useRouter();
 
@@ -107,6 +110,7 @@ export function useDashboard() {
       setMonthSpendStats(current, previous);
     } catch (err) {
       console.error('[dashboard] loadMonthSpend failed:', err);
+      setMonthSpendStats(EMPTY_MONTH_SPEND, EMPTY_MONTH_SPEND);
     }
   }, [currentYearMonth, previousYearMonth, setMonthSpendStats]);
 
@@ -120,6 +124,7 @@ export function useDashboard() {
       setTransactionTotals(current, previous);
     } catch (err) {
       console.error('[dashboard] loadTransactionTotals failed:', err);
+      setTransactionTotals(EMPTY_TRANSACTION_TOTALS, EMPTY_TRANSACTION_TOTALS);
     }
   }, [currentYearMonth, previousYearMonth, setTransactionTotals]);
 
@@ -129,6 +134,7 @@ export function useDashboard() {
       setCurrentMonthCommitmentPayments(payments);
     } catch (err) {
       console.error('[dashboard] loadCurrentMonthCommitmentPayments failed:', err);
+      setCurrentMonthCommitmentPayments([]);
     }
   }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
 

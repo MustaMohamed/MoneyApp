@@ -230,6 +230,53 @@ describe('useDashboard', () => {
     expect(result.current.state.commitments.loading).toBe(false);
   });
 
+  it('settles dashboard summary sections with empty fallbacks when initial loaders fail', async () => {
+    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
+    const setCurrentMonthCommitmentPayments = jest.fn();
+    const setMonthSpendStats = jest.fn();
+    const setTransactionTotals = jest.fn();
+    const emptySpend = { totalEgp: 0, usdNative: 0, count: 0 };
+    const emptyTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    getMonthExpenseStats.mockRejectedValueOnce(new Error('spend down'));
+    getPeriodTotals.mockRejectedValueOnce(new Error('totals down'));
+    commitmentRepository.getPaymentsForMonth.mockRejectedValueOnce(new Error('payments down'));
+    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
+      statsMap: {},
+      currentMonthCommitmentPayments: [],
+      currentMonthSpend: emptySpend,
+      previousMonthSpend: emptySpend,
+      currentTransactionTotals: emptyTotals,
+      previousTransactionTotals: null,
+      commitmentPaymentsLoaded: false,
+      monthSpendLoaded: false,
+      transactionTotalsLoaded: false,
+      setStatsMap: jest.fn(),
+      setCurrentMonthCommitmentPayments,
+      setMonthSpendStats,
+      setTransactionTotals,
+    }));
+
+    renderHook(() => useDashboard());
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    await waitFor(() => {
+      expect(setCurrentMonthCommitmentPayments).toHaveBeenCalledWith([]);
+      expect(setMonthSpendStats).toHaveBeenCalledWith(emptySpend, emptySpend);
+      expect(setTransactionTotals).toHaveBeenCalledWith(emptyTotals, emptyTotals);
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    consoleSpy.mockRestore();
+  });
+
   it('setSelectedSegment updates state', () => {
     const { result } = renderHook(() => useDashboard());
     act(() => result.current.setSelectedSegment('accounts'));

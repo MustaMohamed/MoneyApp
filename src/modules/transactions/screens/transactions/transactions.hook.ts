@@ -5,7 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { getPeriodTotals } from '@/modules/transactions/database/transactions';
+import { getPeriodTotals, type PeriodTotals } from '@/modules/transactions/database/transactions';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
@@ -25,6 +25,8 @@ import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
+
+const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
 
 export function useTransactions() {
   const router = useRouter();
@@ -70,10 +72,11 @@ export function useTransactions() {
   const setTotals = useTransactionsState.getState().setTotals;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const periodRange = useMemo(() => resolvePeriod(period), [period]);
+  const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
 
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
-    const periodRange = resolvePeriod(period);
     return {
       search: trimmed || undefined,
       type: activeFilter === 'all' ? undefined : activeFilter,
@@ -81,7 +84,7 @@ export function useTransactions() {
       dateTo: periodRange.to,
       ...toQueryFilters(appliedFilters),
     };
-  }, [activeFilter, appliedFilters, debouncedSearch, period]);
+  }, [activeFilter, appliedFilters, debouncedSearch, periodRange]);
 
   useEffect(() => {
     setQuery(transactionQuery).catch(() => {});
@@ -89,26 +92,24 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
+    setTotals(null);
     void (async () => {
       try {
         const db = await getDb();
-        const current = await getPeriodTotals(db, {
-          from: transactionQuery.dateFrom,
-          to: transactionQuery.dateTo,
-        });
-        const prev = previousPeriod(period);
-        const r = resolvePeriod(prev);
-        const previous = await getPeriodTotals(db, { from: r.from, to: r.to });
+        const current = await getPeriodTotals(db, periodRange);
+        const previous = await getPeriodTotals(db, previousPeriodRange);
         // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
         if (!cancelled) setTotals({ current, previous });
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
+        // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
+        if (!cancelled) setTotals({ current: EMPTY_TOTALS, previous: null });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [mutationVersion, period, setTotals, transactionQuery]);
+  }, [mutationVersion, periodRange, previousPeriodRange, setTotals]);
 
   useFocusEffect(
     useCallback(() => {
