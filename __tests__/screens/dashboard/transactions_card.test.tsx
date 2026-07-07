@@ -24,8 +24,8 @@ jest.mock('heroui-native', () => {
       accessibilityLabel?: string;
     }) => React.createElement(Pressable, { onPress, accessibilityLabel }, children),
     SkeletonGroup: Object.assign(
-      ({ children }: { children?: ReactNode }) =>
-        React.createElement(View, { testID: 'skeleton-group' }, children),
+      ({ children, style }: { children?: ReactNode; style?: StyleProp<ViewStyle> }) =>
+        React.createElement(View, { testID: 'skeleton-group', style }, children),
       {
         Item: ({
           children,
@@ -45,6 +45,22 @@ jest.mock('heroui-native', () => {
           ),
       },
     ),
+    Skeleton: ({
+      children,
+      isLoading,
+      style,
+      testID,
+    }: {
+      children?: ReactNode;
+      isLoading?: boolean;
+      style?: StyleProp<ViewStyle>;
+      testID?: string;
+    }) =>
+      React.createElement(
+        View,
+        { testID: testID ?? 'skeleton-item', style },
+        isLoading ? null : children,
+      ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
@@ -75,7 +91,7 @@ describe('TransactionsCard', () => {
   });
 
   it('shows skeleton slots instead of totals while loading', () => {
-    const { queryByText, getAllByTestId } = render(
+    const { queryByText, getAllByTestId, queryByTestId } = render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
@@ -89,10 +105,11 @@ describe('TransactionsCard', () => {
     expect(queryByText('+25,000')).toBeNull();
     expect(queryByText('-13,000')).toBeNull();
     expect(queryByText('+12,000')).toBeNull();
+    expect(queryByTestId('skeleton-group')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 
-  it('keeps the same card frame size while loading', () => {
+  it('preserves the natural card frame while loading', () => {
     const loading = render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
@@ -114,12 +131,10 @@ describe('TransactionsCard', () => {
       />,
     );
 
-    expect(loading.getByTestId('dashboard-transactions-card')).toHaveStyle({
-      minHeight: ms(128),
+    expect(loading.getByTestId('dashboard-transactions-card')).not.toHaveStyle({
+      height: ms(128),
     });
-    expect(loaded.getByTestId('dashboard-transactions-card')).toHaveStyle({
-      minHeight: ms(128),
-    });
+    expect(loaded.getByTestId('dashboard-transactions-card')).not.toHaveStyle({ height: ms(128) });
   });
 
   it('matches the loaded transactions row geometry while loading', () => {

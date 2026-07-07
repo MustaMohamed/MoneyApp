@@ -9,8 +9,13 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('heroui-native', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const SkeletonGroupRoot = ({ children }: { children?: ReactNode }) =>
-    React.createElement(View, { testID: 'skeleton-group' }, children);
+  const SkeletonGroupRoot = ({
+    children,
+    style,
+  }: {
+    children?: ReactNode;
+    style?: StyleProp<ViewStyle>;
+  }) => React.createElement(View, { testID: 'skeleton-group', style }, children);
   const SkeletonGroupItem = ({
     children,
     isLoading,
@@ -31,17 +36,34 @@ jest.mock('heroui-native', () => {
     Card: ({ children, ...props }: { children?: ReactNode }) =>
       React.createElement(View, props, children),
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    Skeleton: ({
+      children,
+      isLoading,
+      style,
+      testID,
+    }: {
+      children?: ReactNode;
+      isLoading?: boolean;
+      style?: StyleProp<ViewStyle>;
+      testID?: string;
+    }) =>
+      React.createElement(
+        View,
+        { testID: testID ?? 'skeleton-item', style },
+        isLoading ? null : children,
+      ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
 
 describe('TotalsStrip skeleton loading', () => {
   it('keeps the totals card footprint while totals are loading', () => {
-    const { queryByText, getAllByTestId } = render(
+    const { queryByText, getAllByTestId, queryByTestId } = render(
       <TotalsStrip current={null} previous={null} previousLabel="June 2026" isLoading />,
     );
 
     expect(queryByText('+0')).toBeNull();
+    expect(queryByTestId('skeleton-group')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 

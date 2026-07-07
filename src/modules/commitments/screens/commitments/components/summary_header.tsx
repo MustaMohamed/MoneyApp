@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, SkeletonGroup } from 'heroui-native';
+import { Card, Skeleton } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
@@ -30,7 +30,7 @@ const SUMMARY_STATS_ROW_HEIGHT = ms(14);
 
 function SummarySkeleton(): React.ReactElement {
   return (
-    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(4) }}>
+    <>
       <View
         testID="commitments-summary-skeleton-summary-row"
         style={{
@@ -42,12 +42,12 @@ function SummarySkeleton(): React.ReactElement {
         }}
       >
         <View style={{ flex: 1 }}>
-          <SkeletonGroup.Item className="w-28 rounded-md" style={{ height: ms(12) }} />
-          <SkeletonGroup.Item className="w-32 rounded-md" style={{ height: ms(19) }} />
+          <Skeleton className="w-28 rounded-md" style={{ height: ms(12) }} />
+          <Skeleton className="w-32 rounded-md" style={{ height: ms(19) }} />
         </View>
-        <SkeletonGroup.Item className="w-12 rounded-full" style={{ height: ms(19) }} />
+        <Skeleton className="w-12 rounded-full" style={{ height: ms(19) }} />
       </View>
-      <SkeletonGroup.Item
+      <Skeleton
         testID="commitments-summary-skeleton-progress"
         className="w-full rounded-[2px]"
         style={{ height: SUMMARY_PROGRESS_HEIGHT }}
@@ -67,15 +67,12 @@ function SummarySkeleton(): React.ReactElement {
             testID="commitments-summary-skeleton-stat"
             style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}
           >
-            <SkeletonGroup.Item
-              className="rounded-full"
-              style={{ width: ms(13), height: ms(13) }}
-            />
-            <SkeletonGroup.Item className="rounded-md" style={{ width: ms(10), height: ms(11) }} />
+            <Skeleton className="rounded-full" style={{ width: ms(13), height: ms(13) }} />
+            <Skeleton className="rounded-md" style={{ width: ms(10), height: ms(11) }} />
           </View>
         ))}
       </View>
-    </SkeletonGroup>
+    </>
   );
 }
 

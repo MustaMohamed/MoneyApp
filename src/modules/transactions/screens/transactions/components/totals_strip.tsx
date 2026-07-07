@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, SkeletonGroup } from 'heroui-native';
+import { Card, Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -143,7 +143,7 @@ function DeltaValue({
 
 function TotalsSkeleton({ previousLabel }: { previousLabel: string | null }): React.ReactElement {
   return (
-    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(4) }}>
+    <>
       <View
         testID="transactions-totals-skeleton-values-row"
         style={{
@@ -154,14 +154,14 @@ function TotalsSkeleton({ previousLabel }: { previousLabel: string | null }): Re
         }}
       >
         {METRICS.map((metric) => (
-          <SkeletonGroup.Item
+          <Skeleton
             key={metric.key}
             className="rounded-md"
             style={{ flex: 1, height: TOTALS_VALUE_ROW_HEIGHT }}
           />
         ))}
       </View>
-      <SkeletonGroup.Item
+      <Skeleton
         testID="transactions-totals-skeleton-progress"
         className="w-full rounded-[2px]"
         style={{ height: TOTALS_PROGRESS_HEIGHT }}
@@ -192,22 +192,19 @@ function TotalsSkeleton({ previousLabel }: { previousLabel: string | null }): Re
               gap: ms(2),
             }}
           >
-            <SkeletonGroup.Item
-              className="rounded-full"
-              style={{ width: ms(12), height: ms(12) }}
-            />
-            <SkeletonGroup.Item className="rounded-md" style={{ width: ms(28), height: ms(11) }} />
+            <Skeleton className="rounded-full" style={{ width: ms(12), height: ms(12) }} />
+            <Skeleton className="rounded-md" style={{ width: ms(28), height: ms(11) }} />
           </View>
         ))}
       </View>
       {previousLabel ? (
-        <SkeletonGroup.Item
+        <Skeleton
           testID="transactions-totals-skeleton-previous-label"
           className="mx-auto w-24 rounded-md"
           style={{ height: TOTALS_PREVIOUS_LABEL_HEIGHT }}
         />
       ) : null}
-    </SkeletonGroup>
+    </>
   );
 }
 

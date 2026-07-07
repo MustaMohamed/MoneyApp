@@ -16,13 +16,15 @@ jest.mock('heroui-native', () => {
   const SkeletonGroupRoot = ({
     children,
     isSkeletonOnly,
+    style,
   }: {
     children?: ReactNode;
     isSkeletonOnly?: boolean;
+    style?: StyleProp<ViewStyle>;
   }) =>
     React.createElement(
       View,
-      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group' },
+      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group', style },
       children,
     );
   const SkeletonGroupItem = ({
@@ -45,13 +47,29 @@ jest.mock('heroui-native', () => {
     Card: ({ children, ...props }: { children?: ReactNode }) =>
       React.createElement(View, props, children),
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    Skeleton: ({
+      children,
+      isLoading,
+      style,
+      testID,
+    }: {
+      children?: ReactNode;
+      isLoading?: boolean;
+      style?: StyleProp<ViewStyle>;
+      testID?: string;
+    }) =>
+      React.createElement(
+        View,
+        { testID: testID ?? 'skeleton-item', style },
+        isLoading ? null : children,
+      ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
 
 describe('SummaryHeader skeleton loading', () => {
   it('does not render final-looking empty values while payments load', () => {
-    const { queryByText, getAllByTestId } = render(
+    const { queryByText, getAllByTestId, queryByTestId } = render(
       <SummaryHeader
         counts={{ paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 }}
         totalsByCurrency={new Map()}
@@ -61,7 +79,7 @@ describe('SummaryHeader skeleton loading', () => {
 
     expect(queryByText('—')).toBeNull();
     expect(queryByText('0%')).toBeNull();
-    expect(getAllByTestId('skeleton-group-only')).toHaveLength(1);
+    expect(queryByTestId('skeleton-group-only')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(5);
   });
 

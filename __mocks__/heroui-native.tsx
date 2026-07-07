@@ -10,6 +10,21 @@ export function useBottomSheetAwareHandlers() {
   return { onFocus: jest.fn(), onBlur: jest.fn() };
 }
 
+export function Skeleton({
+  children,
+  isLoading = true,
+  ...props
+}: {
+  children?: React.ReactNode;
+  isLoading?: boolean;
+}) {
+  return (
+    <View testID="skeleton-item" accessibilityState={{ busy: isLoading }} {...props}>
+      {isLoading ? null : children}
+    </View>
+  );
+}
+
 function SkeletonGroupRoot({
   children,
   isLoading = true,

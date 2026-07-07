@@ -29,13 +29,15 @@ jest.mock('heroui-native', () => {
   const SkeletonGroupRoot = ({
     children,
     isSkeletonOnly,
+    style,
   }: {
     children?: ReactNode;
     isSkeletonOnly?: boolean;
+    style?: StyleProp<ViewStyle>;
   }) =>
     React.createElement(
       View,
-      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group' },
+      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group', style },
       children,
     );
   const SkeletonGroupItem = ({
@@ -49,6 +51,24 @@ jest.mock('heroui-native', () => {
   }) => React.createElement(View, { testID: testID ?? 'skeleton-item', style }, children);
   return {
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    Skeleton: ({
+      animation,
+      children,
+      style,
+      testID,
+    }: {
+      animation?: unknown;
+      children?: ReactNode;
+      style?: StyleProp<ViewStyle>;
+      testID?: string;
+    }) => {
+      const viewProps: React.ComponentProps<typeof View> & { animation?: unknown } = {
+        animation,
+        style,
+        testID: testID ?? 'skeleton-item',
+      };
+      return React.createElement(View, viewProps, children);
+    },
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
@@ -65,7 +85,7 @@ const baseProps = {
 
 describe('HeroCard skeleton loading', () => {
   it('skeletonizes balance and metadata while account totals load', () => {
-    const { getAllByTestId, getByText, queryByText } = render(
+    const { getAllByTestId, getByTestId, getByText, queryByTestId, queryByText } = render(
       <HeroCard {...baseProps} isLoading />,
     );
 
@@ -74,24 +94,30 @@ describe('HeroCard skeleton loading', () => {
     expect(queryByText(/176 USD/)).toBeNull();
     expect(queryByText(/1 USD = 49.06 EGP/)).toBeNull();
     expect(queryByText(`1 ${Strings.o6AccountsUnit}`)).toBeNull();
-    expect(getAllByTestId('skeleton-group-only')).toHaveLength(1);
+    expect(queryByTestId('skeleton-group-only')).toBeNull();
+    expect(getByTestId('dashboard-hero-skeleton-amount').props.animation).toEqual({
+      entering: 'disabled',
+      exiting: 'disabled',
+    });
     expect(getAllByTestId('dashboard-hero-skeleton-pill')).toHaveLength(3);
   });
 
-  it('keeps the same card frame size while loading', () => {
+  it('preserves the natural card frame while loading', () => {
     const loading = render(<HeroCard {...baseProps} isLoading />);
     const loaded = render(<HeroCard {...baseProps} isLoading={false} />);
 
-    expect(loading.getByTestId('dashboard-hero-card')).toHaveStyle({ minHeight: ms(148) });
-    expect(loaded.getByTestId('dashboard-hero-card')).toHaveStyle({ minHeight: ms(148) });
+    expect(loading.getByTestId('dashboard-hero-card')).not.toHaveStyle({ height: ms(178) });
+    expect(loaded.getByTestId('dashboard-hero-card')).not.toHaveStyle({ height: ms(178) });
+    expect(loading.getByTestId('dashboard-hero-card')).not.toHaveStyle({ minHeight: ms(148) });
+    expect(loaded.getByTestId('dashboard-hero-card')).not.toHaveStyle({ minHeight: ms(148) });
   });
 
   it('matches the loaded amount and pill row geometry while loading', () => {
     const { getAllByTestId, getByTestId } = render(<HeroCard {...baseProps} isLoading />);
 
-    expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({ height: ms(40) });
+    expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({ height: ms(36) });
     expect(getByTestId('dashboard-hero-skeleton-pills-row')).toHaveStyle({
-      minHeight: ms(24),
+      minHeight: ms(20),
     });
     expect(getAllByTestId('dashboard-hero-skeleton-pill')).toHaveLength(3);
   });

@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Card, PressableFeedback, SkeletonGroup } from 'heroui-native';
+import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -9,6 +9,8 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
+
+import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
 
 interface Props {
   counts: {
@@ -27,7 +29,6 @@ interface Props {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const DASHBOARD_COMMITMENTS_CARD_MIN_HEIGHT = ms(128);
 const DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT = ms(34);
 const DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT = ms(3);
 const DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT = ms(14);
@@ -36,7 +37,7 @@ const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
 function CommitmentsCardSkeleton(): React.ReactElement {
   return (
-    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(8) }}>
+    <>
       <View
         testID="dashboard-commitments-skeleton-summary-row"
         style={{
@@ -47,13 +48,26 @@ function CommitmentsCardSkeleton(): React.ReactElement {
         }}
       >
         <View style={{ flex: 1 }}>
-          <SkeletonGroup.Item className="w-28 rounded-md" style={{ height: ms(12) }} />
-          <SkeletonGroup.Item className="w-32 rounded-md" style={{ height: ms(22) }} />
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-28 rounded-md"
+            style={{ height: ms(12) }}
+          />
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-32 rounded-md"
+            style={{ height: ms(22) }}
+          />
         </View>
-        <SkeletonGroup.Item className="w-14 rounded-full" style={{ height: ms(25) }} />
+        <Skeleton
+          animation={DASHBOARD_SKELETON_ANIMATION}
+          className="w-14 rounded-full"
+          style={{ height: ms(25) }}
+        />
       </View>
-      <SkeletonGroup.Item
+      <Skeleton
         testID="dashboard-commitments-skeleton-progress"
+        animation={DASHBOARD_SKELETON_ANIMATION}
         className="w-full rounded-[2px]"
         style={{ height: DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT }}
       />
@@ -72,15 +86,20 @@ function CommitmentsCardSkeleton(): React.ReactElement {
             testID="dashboard-commitments-skeleton-stat"
             style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}
           >
-            <SkeletonGroup.Item
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-full"
               style={{ width: ms(13), height: ms(13) }}
             />
-            <SkeletonGroup.Item className="rounded-md" style={{ width: ms(10), height: ms(11) }} />
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
+              className="rounded-md"
+              style={{ width: ms(10), height: ms(11) }}
+            />
           </View>
         ))}
       </View>
-    </SkeletonGroup>
+    </>
   );
 }
 
@@ -113,7 +132,6 @@ export function CommitmentsCard({
           gap: ms(8),
           elevation: 0,
           shadowOpacity: 0,
-          minHeight: DASHBOARD_COMMITMENTS_CARD_MIN_HEIGHT,
         }}
       >
         <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>

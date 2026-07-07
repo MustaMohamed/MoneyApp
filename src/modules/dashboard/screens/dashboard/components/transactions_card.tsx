@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, PressableFeedback, SkeletonGroup } from 'heroui-native';
+import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -20,6 +20,8 @@ import {
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
+
 interface Props {
   current: PeriodTotals;
   previous: PeriodTotals | null;
@@ -32,7 +34,6 @@ interface Props {
 type Align = 'left' | 'center' | 'right';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const DASHBOARD_TRANSACTIONS_CARD_MIN_HEIGHT = ms(128);
 const DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT = ms(17);
 const DASHBOARD_TRANSACTIONS_PROGRESS_HEIGHT = ms(3);
 const DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT = ms(14);
@@ -140,7 +141,7 @@ function DeltaValue({
 
 function TransactionsCardSkeleton(): React.ReactElement {
   return (
-    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(8) }}>
+    <>
       <View
         testID="dashboard-transactions-skeleton-values-row"
         style={{
@@ -151,15 +152,17 @@ function TransactionsCardSkeleton(): React.ReactElement {
         }}
       >
         {METRICS.map((metric) => (
-          <SkeletonGroup.Item
+          <Skeleton
             key={metric.key}
+            animation={DASHBOARD_SKELETON_ANIMATION}
             className="rounded-md"
             style={{ flex: 1, height: DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT }}
           />
         ))}
       </View>
-      <SkeletonGroup.Item
+      <Skeleton
         testID="dashboard-transactions-skeleton-progress"
+        animation={DASHBOARD_SKELETON_ANIMATION}
         className="w-full rounded-[2px]"
         style={{ height: DASHBOARD_TRANSACTIONS_PROGRESS_HEIGHT }}
       />
@@ -189,20 +192,26 @@ function TransactionsCardSkeleton(): React.ReactElement {
               gap: ms(2),
             }}
           >
-            <SkeletonGroup.Item
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-full"
               style={{ width: ms(12), height: ms(12) }}
             />
-            <SkeletonGroup.Item className="rounded-md" style={{ width: ms(28), height: ms(11) }} />
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
+              className="rounded-md"
+              style={{ width: ms(28), height: ms(11) }}
+            />
           </View>
         ))}
       </View>
-      <SkeletonGroup.Item
+      <Skeleton
         testID="dashboard-transactions-skeleton-previous-label"
+        animation={DASHBOARD_SKELETON_ANIMATION}
         className="mx-auto w-24 rounded-md"
         style={{ height: DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT }}
       />
-    </SkeletonGroup>
+    </>
   );
 }
 
@@ -237,7 +246,6 @@ export function TransactionsCard({
           gap: ms(8),
           elevation: 0,
           shadowOpacity: 0,
-          minHeight: DASHBOARD_TRANSACTIONS_CARD_MIN_HEIGHT,
         }}
       >
         <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>

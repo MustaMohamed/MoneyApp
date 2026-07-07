@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { SkeletonGroup } from 'heroui-native';
+import { Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -9,14 +9,15 @@ import { Colors } from '@/constants/theme';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
+
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const DASHBOARD_STAT_CARD_MIN_HEIGHT = ms(132);
-const DASHBOARD_NET_WORTH_VALUE_HEIGHT = ms(24);
-const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(4);
-const DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT = ms(12);
-const DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT = ms(14);
-const DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT = ms(20);
+const DASHBOARD_NET_WORTH_VALUE_HEIGHT = ms(22);
+const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(5);
+const DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT = ms(10);
+const DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT = ms(12);
+const DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT = ms(16);
 
 const SHORT_MONTHS = [
   'Jan',
@@ -50,39 +51,45 @@ interface StatCardsProps {
 
 function NetWorthSkeleton(): React.ReactElement {
   return (
-    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(6) }}>
-      <SkeletonGroup.Item
+    <>
+      <Skeleton
+        animation={DASHBOARD_SKELETON_ANIMATION}
         className="w-28 rounded-md"
         style={{ height: DASHBOARD_NET_WORTH_VALUE_HEIGHT }}
       />
-      <SkeletonGroup.Item
+      <Skeleton
         testID="dashboard-net-worth-skeleton-progress"
+        animation={DASHBOARD_SKELETON_ANIMATION}
         className="w-full rounded"
         style={{ height: DASHBOARD_NET_WORTH_PROGRESS_HEIGHT }}
       />
-      <View style={{ flexDirection: 'row', gap: ms(8) }}>
+      <View className="mt-1" style={{ flexDirection: 'row', gap: ms(8) }}>
         <View style={{ flex: 1, gap: ms(4) }}>
-          <SkeletonGroup.Item
-            className="w-20 rounded-md"
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-18 rounded-md"
             style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
           />
-          <SkeletonGroup.Item
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-16 rounded-md"
             style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
           />
         </View>
         <View style={{ flex: 1, gap: ms(4) }}>
-          <SkeletonGroup.Item
-            className="w-24 rounded-md"
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-18 rounded-md"
             style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
           />
-          <SkeletonGroup.Item
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-16 rounded-md"
             style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
           />
         </View>
       </View>
-    </SkeletonGroup>
+    </>
   );
 }
 
@@ -99,21 +106,24 @@ function MonthSpendFooterSkeleton(): React.ReactElement {
       }}
     >
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(5) }}>
-        <SkeletonGroup.Item
+        <Skeleton
           testID="dashboard-month-spend-skeleton-footer-item"
+          animation={DASHBOARD_SKELETON_ANIMATION}
           className="rounded-full"
-          style={{ width: ms(58), height: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT }}
+          style={{ width: ms(48), height: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT }}
         />
-        <SkeletonGroup.Item
+        <Skeleton
           testID="dashboard-month-spend-skeleton-footer-item"
+          animation={DASHBOARD_SKELETON_ANIMATION}
           className="rounded-md"
-          style={{ width: ms(42), height: ms(12) }}
+          style={{ width: ms(32), height: ms(10) }}
         />
       </View>
-      <SkeletonGroup.Item
+      <Skeleton
         testID="dashboard-month-spend-skeleton-footer-item"
+        animation={DASHBOARD_SKELETON_ANIMATION}
         className="rounded-md"
-        style={{ width: ms(34), height: ms(12) }}
+        style={{ width: ms(30), height: ms(10) }}
       />
     </View>
   );
@@ -159,7 +169,7 @@ export function StatCards({
       <View
         testID="dashboard-net-worth-card"
         className="bg-surface border-border flex-1 rounded-2xl border p-3"
-        style={{ flex: 1, gap: ms(6), minHeight: DASHBOARD_STAT_CARD_MIN_HEIGHT }}
+        style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
           <View
@@ -187,8 +197,8 @@ export function StatCards({
               <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
               <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
             </View>
-            <View className="flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
-              <View className="flex-1" style={{ flex: 1 }}>
+            <View className="mt-1 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
+              <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
                 <View
                   className="flex-row items-center"
                   style={{ flexDirection: 'row', gap: ms(4) }}
@@ -209,7 +219,7 @@ export function StatCards({
                   {formatAmount(assetsEgp)}
                 </Text>
               </View>
-              <View className="flex-1" style={{ flex: 1 }}>
+              <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
                 <View
                   className="flex-row items-center"
                   style={{ flexDirection: 'row', gap: ms(4) }}
@@ -239,7 +249,7 @@ export function StatCards({
       <View
         testID="dashboard-month-spend-card"
         className="bg-surface border-border flex-1 rounded-2xl border p-3"
-        style={{ flex: 1, gap: ms(6), minHeight: DASHBOARD_STAT_CARD_MIN_HEIGHT }}
+        style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
           <View
@@ -255,22 +265,25 @@ export function StatCards({
             {monthLabel}
           </Text>
         </View>
-        <SkeletonGroup isLoading={monthSpendLoading} style={{ gap: ms(6) }}>
-          <SkeletonGroup.Item isLoading={monthSpendLoading} className="h-6 w-28 rounded-md">
+        {monthSpendLoading ? (
+          <>
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
+              className="mb-1 h-5 w-28 rounded-md"
+            />
+            <Skeleton animation={DASHBOARD_SKELETON_ANIMATION} className="h-5 w-24 rounded-md" />
+            <MonthSpendFooterSkeleton />
+          </>
+        ) : (
+          <>
             <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
               {formatAmount(monthSpentEgp)}{' '}
               <Text className="text-muted text-xs font-medium">EGP</Text>
             </Text>
-          </SkeletonGroup.Item>
-          <SkeletonGroup.Item isLoading={monthSpendLoading} className="h-6 w-24 rounded-md">
             <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
               {formatAmount(monthSpentUsd, 0)}{' '}
               <Text className="text-muted text-xs font-medium">USD</Text>
             </Text>
-          </SkeletonGroup.Item>
-          {monthSpendLoading ? (
-            <MonthSpendFooterSkeleton />
-          ) : (
             <View
               className="flex-row items-center justify-between"
               style={{ flexDirection: 'row', gap: ms(8) }}
@@ -299,8 +312,8 @@ export function StatCards({
                 {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
               </Text>
             </View>
-          )}
-        </SkeletonGroup>
+          </>
+        )}
       </View>
     </View>
   );

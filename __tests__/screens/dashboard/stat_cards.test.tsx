@@ -12,13 +12,15 @@ jest.mock('heroui-native', () => {
   const SkeletonGroupRoot = ({
     children,
     isSkeletonOnly,
+    style,
   }: {
     children?: ReactNode;
     isSkeletonOnly?: boolean;
+    style?: StyleProp<ViewStyle>;
   }) =>
     React.createElement(
       View,
-      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group' },
+      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group', style },
       children,
     );
   const SkeletonGroupItem = ({
@@ -39,6 +41,22 @@ jest.mock('heroui-native', () => {
     );
   return {
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    Skeleton: ({
+      children,
+      isLoading,
+      style,
+      testID,
+    }: {
+      children?: ReactNode;
+      isLoading?: boolean;
+      style?: StyleProp<ViewStyle>;
+      testID?: string;
+    }) =>
+      React.createElement(
+        View,
+        { testID: testID ?? 'skeleton-item', style },
+        isLoading ? null : children,
+      ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
@@ -70,7 +88,7 @@ describe('StatCards skeleton loading', () => {
   });
 
   it('skeletonizes net-worth numbers while loading without hiding month-spend numbers', () => {
-    const { queryByText, getByText, getAllByTestId } = render(
+    const { queryByTestId, queryByText, getByText, getAllByTestId } = render(
       <StatCards {...baseProps} netWorthLoading monthSpendLoading={false} />,
     );
 
@@ -79,20 +97,22 @@ describe('StatCards skeleton loading', () => {
     expect(queryByText(/-200/)).toBeNull();
     expect(getByText(/3,000/)).toBeTruthy();
     expect(getByText(/20/)).toBeTruthy();
-    expect(getAllByTestId('skeleton-group-only')).toHaveLength(1);
+    expect(queryByTestId('skeleton-group-only')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 
-  it('keeps both stat card frames the same size while loading', () => {
+  it('preserves both stat card natural frames while loading', () => {
     const loading = render(<StatCards {...baseProps} netWorthLoading monthSpendLoading />);
     const loaded = render(
       <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading={false} />,
     );
 
-    expect(loading.getByTestId('dashboard-net-worth-card')).toHaveStyle({ minHeight: ms(132) });
-    expect(loaded.getByTestId('dashboard-net-worth-card')).toHaveStyle({ minHeight: ms(132) });
-    expect(loading.getByTestId('dashboard-month-spend-card')).toHaveStyle({ minHeight: ms(132) });
-    expect(loaded.getByTestId('dashboard-month-spend-card')).toHaveStyle({ minHeight: ms(132) });
+    expect(loading.getByTestId('dashboard-net-worth-card')).not.toHaveStyle({ height: ms(132) });
+    expect(loaded.getByTestId('dashboard-net-worth-card')).not.toHaveStyle({ height: ms(132) });
+    expect(loading.getByTestId('dashboard-month-spend-card')).not.toHaveStyle({
+      height: ms(132),
+    });
+    expect(loaded.getByTestId('dashboard-month-spend-card')).not.toHaveStyle({ height: ms(132) });
   });
 
   it('uses loaded-row heights for dashboard stat skeletons', () => {

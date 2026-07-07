@@ -17,13 +17,15 @@ jest.mock('heroui-native', () => {
   const SkeletonGroupRoot = ({
     children,
     isSkeletonOnly,
+    style,
   }: {
     children?: ReactNode;
     isSkeletonOnly?: boolean;
+    style?: StyleProp<ViewStyle>;
   }) =>
     React.createElement(
       View,
-      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group' },
+      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group', style },
       children,
     );
   const SkeletonGroupItem = ({
@@ -55,13 +57,29 @@ jest.mock('heroui-native', () => {
       accessibilityLabel?: string;
     }) => React.createElement(Pressable, { onPress, accessibilityLabel }, children),
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    Skeleton: ({
+      children,
+      isLoading,
+      style,
+      testID,
+    }: {
+      children?: ReactNode;
+      isLoading?: boolean;
+      style?: StyleProp<ViewStyle>;
+      testID?: string;
+    }) =>
+      React.createElement(
+        View,
+        { testID: testID ?? 'skeleton-item', style },
+        isLoading ? null : children,
+      ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
 
 describe('CommitmentsCard skeleton loading', () => {
   it('shows skeleton slots instead of committed totals while loading', () => {
-    const { queryByText, getAllByTestId } = render(
+    const { queryByText, getAllByTestId, queryByTestId } = render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
         totalsByCurrency={new Map([['EGP', 5000]])}
@@ -74,12 +92,12 @@ describe('CommitmentsCard skeleton loading', () => {
     expect(queryByText('5,000 EGP')).toBeNull();
     expect(queryByText('10%')).toBeNull();
     expect(queryByText('1')).toBeNull();
-    expect(getAllByTestId('skeleton-group-only')).toHaveLength(1);
+    expect(queryByTestId('skeleton-group-only')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(5);
     expect(queryByText(Strings.dashboardCommitmentsTitle)).toBeTruthy();
   });
 
-  it('keeps the same card frame size while loading', () => {
+  it('preserves the natural card frame while loading', () => {
     const loading = render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
@@ -99,12 +117,10 @@ describe('CommitmentsCard skeleton loading', () => {
       />,
     );
 
-    expect(loading.getByTestId('dashboard-commitments-card')).toHaveStyle({
-      minHeight: ms(128),
+    expect(loading.getByTestId('dashboard-commitments-card')).not.toHaveStyle({
+      height: ms(128),
     });
-    expect(loaded.getByTestId('dashboard-commitments-card')).toHaveStyle({
-      minHeight: ms(128),
-    });
+    expect(loaded.getByTestId('dashboard-commitments-card')).not.toHaveStyle({ height: ms(128) });
   });
 
   it('matches the loaded commitments row geometry while loading', () => {
