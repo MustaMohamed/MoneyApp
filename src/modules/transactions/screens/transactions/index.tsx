@@ -146,9 +146,13 @@ export default function TransactionsScreen(): React.ReactElement {
     [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
   );
 
+  const showRowsSkeleton =
+    state.refreshing || (state.emptyVariant === 'none' && state.sections.length === 0);
+  const listSections = showRowsSkeleton ? [] : state.sections;
+
   const listEmptyComponent = useMemo(
     () =>
-      state.emptyVariant === 'none' ? (
+      showRowsSkeleton ? (
         <TransactionRowsSkeleton />
       ) : (
         <EmptyState
@@ -156,7 +160,7 @@ export default function TransactionsScreen(): React.ReactElement {
           onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}
         />
       ),
-    [openAddTx, resetFilters, state.emptyVariant],
+    [openAddTx, resetFilters, showRowsSkeleton, state.emptyVariant],
   );
 
   const handleRefresh = useCallback(() => {
@@ -191,7 +195,7 @@ export default function TransactionsScreen(): React.ReactElement {
         current={state.totals?.current ?? null}
         previous={state.totals?.previous ?? null}
         previousLabel={state.previousLabel}
-        isLoading={!state.totals}
+        isLoading={!state.totals || state.refreshing}
       />
 
       <SearchRow
@@ -203,7 +207,7 @@ export default function TransactionsScreen(): React.ReactElement {
       />
 
       <SectionList
-        sections={state.sections}
+        sections={listSections}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled
         renderSectionHeader={renderSectionHeader}

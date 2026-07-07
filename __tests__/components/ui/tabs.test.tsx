@@ -2,7 +2,7 @@ import { render, within } from '@testing-library/react-native';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { SegmentedTabs } from '@/components/ui/tabs';
-import { Colors } from '@/constants/theme';
+import { Colors, Radius } from '@/constants/theme';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -196,5 +196,23 @@ describe('SegmentedTabs', () => {
     expect(getByTestId('tab-icon-view-grid')).toHaveProp('style', {
       color: Colors.shared.midnightBlue,
     });
+  });
+
+  it('paints the selected solid-gold trigger immediately while the indicator settles', () => {
+    const { getByTestId } = render(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="scrollable"
+        variant="solid-gold"
+      />,
+    );
+
+    expect(getByTestId('tabs-trigger-all')).toHaveProp('style', {
+      backgroundColor: Colors.shared.cairoGold,
+      borderRadius: Radius.pill,
+    });
+    expect(getByTestId('tabs-trigger-overdue')).not.toHaveProp('style');
   });
 });

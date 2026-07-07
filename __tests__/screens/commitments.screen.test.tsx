@@ -251,6 +251,38 @@ describe('CommitmentsScreen', () => {
     expect(queryByText('spinner')).toBeNull();
   });
 
+  it('keeps the summary and search row mounted during the first commitments load', () => {
+    mockUseCommitments({
+      commitmentsLoaded: false,
+      paymentsLoaded: false,
+      hasCommitments: false,
+      sections: [],
+    });
+
+    const { getByTestId, getByText, queryByText } = render(<CommitmentsScreen />);
+
+    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByTestId('commitment-search-row')).toBeTruthy();
+    expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
+    expect(queryByText('No commitments')).toBeNull();
+  });
+
+  it('shows summary and row skeletons while manually refreshing loaded commitments', () => {
+    mockUseCommitments({
+      commitmentsLoaded: true,
+      paymentsLoaded: true,
+      refreshing: true,
+      hasCommitments: true,
+      sections: [{ title: 'Due', data: [makePayment()] }],
+    });
+
+    const { getByTestId, getByText, queryByText } = render(<CommitmentsScreen />);
+
+    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
+    expect(queryByText('Commitment row')).toBeNull();
+  });
+
   it('wires search, clear, and open filter actions from the search row', () => {
     mockUseCommitments({ hasCommitments: true, isEmpty: true });
 

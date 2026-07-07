@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import { ms } from '@/utils/responsive';
 
 import {
   computeDeltaPct,
@@ -46,6 +47,10 @@ export const TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME =
   'bg-default h-[3px] overflow-hidden rounded-[2px]';
 
 const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+const TOTALS_VALUE_ROW_HEIGHT = ms(17);
+const TOTALS_PROGRESS_HEIGHT = ms(3);
+const TOTALS_DELTA_ROW_HEIGHT = ms(14);
+const TOTALS_PREVIOUS_LABEL_HEIGHT = ms(11);
 
 function currentValue(current: PeriodTotals, metric: TotalsMetric): number {
   if (metric === 'income') return current.incomeEgp;
@@ -138,19 +143,70 @@ function DeltaValue({
 
 function TotalsSkeleton({ previousLabel }: { previousLabel: string | null }): React.ReactElement {
   return (
-    <SkeletonGroup isLoading isSkeletonOnly className="gap-1">
-      <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(4) }}>
+      <View
+        testID="transactions-totals-skeleton-values-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(8),
+          minHeight: TOTALS_VALUE_ROW_HEIGHT,
+        }}
+      >
         {METRICS.map((metric) => (
-          <SkeletonGroup.Item key={metric.key} className="h-5 rounded-md" style={{ flex: 1 }} />
+          <SkeletonGroup.Item
+            key={metric.key}
+            className="rounded-md"
+            style={{ flex: 1, height: TOTALS_VALUE_ROW_HEIGHT }}
+          />
         ))}
       </View>
-      <SkeletonGroup.Item className="h-[3px] w-full rounded-[2px]" />
-      <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+      <SkeletonGroup.Item
+        testID="transactions-totals-skeleton-progress"
+        className="w-full rounded-[2px]"
+        style={{ height: TOTALS_PROGRESS_HEIGHT }}
+      />
+      <View
+        testID="transactions-totals-skeleton-deltas-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(8),
+          minHeight: TOTALS_DELTA_ROW_HEIGHT,
+        }}
+      >
         {METRICS.map((metric) => (
-          <SkeletonGroup.Item key={metric.key} className="h-4 rounded-md" style={{ flex: 1 }} />
+          <View
+            key={metric.key}
+            testID="transactions-totals-skeleton-delta-pill"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              justifyContent:
+                metric.align === 'left'
+                  ? 'flex-start'
+                  : metric.align === 'right'
+                    ? 'flex-end'
+                    : 'center',
+              alignItems: 'center',
+              gap: ms(2),
+            }}
+          >
+            <SkeletonGroup.Item
+              className="rounded-full"
+              style={{ width: ms(12), height: ms(12) }}
+            />
+            <SkeletonGroup.Item className="rounded-md" style={{ width: ms(28), height: ms(11) }} />
+          </View>
         ))}
       </View>
-      {previousLabel ? <SkeletonGroup.Item className="mx-auto h-3 w-24 rounded-md" /> : null}
+      {previousLabel ? (
+        <SkeletonGroup.Item
+          testID="transactions-totals-skeleton-previous-label"
+          className="mx-auto w-24 rounded-md"
+          style={{ height: TOTALS_PREVIOUS_LABEL_HEIGHT }}
+        />
+      ) : null}
     </SkeletonGroup>
   );
 }

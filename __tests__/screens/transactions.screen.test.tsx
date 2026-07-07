@@ -240,4 +240,50 @@ describe('TransactionsScreen', () => {
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
+
+  it('shows summary and row skeletons while manually refreshing loaded transactions', () => {
+    mockUseTransactions({
+      emptyVariant: 'none',
+      loading: false,
+      hasLoaded: true,
+      refreshing: true,
+      totals: {
+        current: { incomeEgp: 1000, expenseEgp: 500, netEgp: 500 },
+        previous: { incomeEgp: 900, expenseEgp: 400, netEgp: 500 },
+      },
+      sections: [
+        {
+          key: 'TODAY',
+          data: [
+            {
+              id: 'tx-1',
+              type: TransactionType.Income,
+              amount: 100,
+              currency: Currency.EGP,
+              egp_amount: 100,
+              to_amount: null,
+              minimum_payment_snapshot: null,
+              account_id: 'acc-1',
+              to_account_id: null,
+              category_id: null,
+              note: null,
+              transaction_date: '2026-08-01',
+              transaction_time: '2026-08-01T12:00:00.000Z',
+              exchange_rate: null,
+              commitment_payment_id: null,
+              installment_id: null,
+              created_at: '2026-08-01T12:00:00.000Z',
+              updated_at: '2026-08-01T12:00:00.000Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    const { getByTestId, getByText, queryByText } = render(<TransactionsScreen />);
+
+    expect(getByText('Totals loading:true')).toBeTruthy();
+    expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
+    expect(queryByText('Transaction row')).toBeNull();
+  });
 });

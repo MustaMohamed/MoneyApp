@@ -27,7 +27,62 @@ interface Props {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
+const DASHBOARD_COMMITMENTS_CARD_MIN_HEIGHT = ms(128);
+const DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT = ms(34);
+const DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT = ms(3);
+const DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT = ms(14);
+
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
+
+function CommitmentsCardSkeleton(): React.ReactElement {
+  return (
+    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(8) }}>
+      <View
+        testID="dashboard-commitments-skeleton-summary-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(8),
+          minHeight: DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT,
+        }}
+      >
+        <View style={{ flex: 1 }}>
+          <SkeletonGroup.Item className="w-28 rounded-md" style={{ height: ms(12) }} />
+          <SkeletonGroup.Item className="w-32 rounded-md" style={{ height: ms(22) }} />
+        </View>
+        <SkeletonGroup.Item className="w-14 rounded-full" style={{ height: ms(25) }} />
+      </View>
+      <SkeletonGroup.Item
+        testID="dashboard-commitments-skeleton-progress"
+        className="w-full rounded-[2px]"
+        style={{ height: DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT }}
+      />
+      <View
+        testID="dashboard-commitments-skeleton-stats-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          minHeight: DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT,
+        }}
+      >
+        {[0, 1, 2, 3, 4].map((stat) => (
+          <View
+            key={stat}
+            testID="dashboard-commitments-skeleton-stat"
+            style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}
+          >
+            <SkeletonGroup.Item
+              className="rounded-full"
+              style={{ width: ms(13), height: ms(13) }}
+            />
+            <SkeletonGroup.Item className="rounded-md" style={{ width: ms(10), height: ms(11) }} />
+          </View>
+        ))}
+      </View>
+    </SkeletonGroup>
+  );
+}
 
 export function CommitmentsCard({
   counts,
@@ -52,8 +107,14 @@ export function CommitmentsCard({
       accessibilityLabel={Strings.dashboardCommitmentsTitle}
     >
       <Card
+        testID="dashboard-commitments-card"
         className="border-border mx-4 mt-4 rounded-2xl border p-0 px-4 py-3"
-        style={{ gap: ms(8), elevation: 0, shadowOpacity: 0 }}
+        style={{
+          gap: ms(8),
+          elevation: 0,
+          shadowOpacity: 0,
+          minHeight: DASHBOARD_COMMITMENTS_CARD_MIN_HEIGHT,
+        }}
       >
         <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -80,22 +141,22 @@ export function CommitmentsCard({
           </Text>
         </View>
 
-        <SkeletonGroup isLoading={isLoading} style={{ gap: ms(8) }}>
-          <View
-            className="flex-row items-center justify-between"
-            style={{ flexDirection: 'row', gap: ms(8) }}
-          >
-            <View className="flex-1" style={{ flex: 1 }}>
-              <Text variant="hint" className="text-muted text-xs uppercase">
-                {Strings.commitmentsTotalCommitted}
-              </Text>
-              <SkeletonGroup.Item isLoading={isLoading} className="h-6 w-32 rounded-md">
+        {isLoading ? (
+          <CommitmentsCardSkeleton />
+        ) : (
+          <>
+            <View
+              className="flex-row items-center justify-between"
+              style={{ flexDirection: 'row', gap: ms(8) }}
+            >
+              <View className="flex-1" style={{ flex: 1 }}>
+                <Text variant="hint" className="text-muted text-xs uppercase">
+                  {Strings.commitmentsTotalCommitted}
+                </Text>
                 <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
                   {totalsLine}
                 </Text>
-              </SkeletonGroup.Item>
-            </View>
-            <SkeletonGroup.Item isLoading={isLoading} className="h-7 w-14 rounded-full">
+              </View>
               <View
                 className="rounded-full"
                 style={{
@@ -108,10 +169,8 @@ export function CommitmentsCard({
                   {progressPct}%
                 </Text>
               </View>
-            </SkeletonGroup.Item>
-          </View>
+            </View>
 
-          <SkeletonGroup.Item isLoading={isLoading} className="h-[3px] w-full rounded-[2px]">
             <View
               className="overflow-hidden rounded"
               style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
@@ -123,26 +182,19 @@ export function CommitmentsCard({
                 style={{ height: ms(3), width: `${progressPct}%`, borderRadius: ms(2) }}
               />
             </View>
-          </SkeletonGroup.Item>
 
-          <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
-            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
+            <View
+              className="flex-row items-center justify-between"
+              style={{ flexDirection: 'row' }}
+            >
               <Stat icon="check-circle" color={Colors.dark.positive} value={counts.paid} />
-            </SkeletonGroup.Item>
-            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
               <Stat icon="alert-circle" color={Colors.dark.negative} value={counts.overdue} />
-            </SkeletonGroup.Item>
-            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
               <Stat icon="clock-outline" color={Colors.dark.gold} value={counts.due} />
-            </SkeletonGroup.Item>
-            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
               <Stat icon="calendar-clock" color={Colors.dark.text2} value={counts.upcoming} />
-            </SkeletonGroup.Item>
-            <SkeletonGroup.Item isLoading={isLoading} className="h-4 w-8 rounded-md">
               <Stat icon="minus-circle" color={Colors.dark.text3} value={counts.skipped} />
-            </SkeletonGroup.Item>
-          </View>
-        </SkeletonGroup>
+            </View>
+          </>
+        )}
       </Card>
     </PressableFeedback>
   );

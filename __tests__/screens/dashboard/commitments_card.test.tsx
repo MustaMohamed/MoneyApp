@@ -1,8 +1,10 @@
 import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { CommitmentsCard } from '@/modules/dashboard/screens/dashboard/components/commitments_card';
+import { ms } from '@/utils/responsive';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('expo-linear-gradient', () => {
@@ -12,15 +14,34 @@ jest.mock('expo-linear-gradient', () => {
 jest.mock('heroui-native', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Pressable, View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const SkeletonGroupRoot = ({ children }: { children?: ReactNode }) =>
-    React.createElement(View, { testID: 'skeleton-group' }, children);
+  const SkeletonGroupRoot = ({
+    children,
+    isSkeletonOnly,
+  }: {
+    children?: ReactNode;
+    isSkeletonOnly?: boolean;
+  }) =>
+    React.createElement(
+      View,
+      { testID: isSkeletonOnly ? 'skeleton-group-only' : 'skeleton-group' },
+      children,
+    );
   const SkeletonGroupItem = ({
     children,
     isLoading,
+    style,
+    testID,
   }: {
     children?: ReactNode;
     isLoading?: boolean;
-  }) => React.createElement(View, { testID: 'skeleton-item' }, isLoading ? null : children);
+    style?: StyleProp<ViewStyle>;
+    testID?: string;
+  }) =>
+    React.createElement(
+      View,
+      { testID: testID ?? 'skeleton-item', style },
+      isLoading ? null : children,
+    );
   return {
     Card: ({ children, ...props }: { children?: ReactNode }) =>
       React.createElement(View, props, children),
@@ -53,7 +74,59 @@ describe('CommitmentsCard skeleton loading', () => {
     expect(queryByText('5,000 EGP')).toBeNull();
     expect(queryByText('10%')).toBeNull();
     expect(queryByText('1')).toBeNull();
+    expect(getAllByTestId('skeleton-group-only')).toHaveLength(1);
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(5);
     expect(queryByText(Strings.dashboardCommitmentsTitle)).toBeTruthy();
+  });
+
+  it('keeps the same card frame size while loading', () => {
+    const loading = render(
+      <CommitmentsCard
+        counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
+        totalsByCurrency={new Map([['EGP', 5000]])}
+        yearMonth="2026-07"
+        isLoading
+        onPress={jest.fn()}
+      />,
+    );
+    const loaded = render(
+      <CommitmentsCard
+        counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
+        totalsByCurrency={new Map([['EGP', 5000]])}
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(loading.getByTestId('dashboard-commitments-card')).toHaveStyle({
+      minHeight: ms(128),
+    });
+    expect(loaded.getByTestId('dashboard-commitments-card')).toHaveStyle({
+      minHeight: ms(128),
+    });
+  });
+
+  it('matches the loaded commitments row geometry while loading', () => {
+    const { getAllByTestId, getByTestId } = render(
+      <CommitmentsCard
+        counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
+        totalsByCurrency={new Map([['EGP', 5000]])}
+        yearMonth="2026-07"
+        isLoading
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(getByTestId('dashboard-commitments-skeleton-summary-row')).toHaveStyle({
+      minHeight: ms(34),
+    });
+    expect(getByTestId('dashboard-commitments-skeleton-progress')).toHaveStyle({
+      height: ms(3),
+    });
+    expect(getByTestId('dashboard-commitments-skeleton-stats-row')).toHaveStyle({
+      minHeight: ms(14),
+    });
+    expect(getAllByTestId('dashboard-commitments-skeleton-stat')).toHaveLength(5);
   });
 });

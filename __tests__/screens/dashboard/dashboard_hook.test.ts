@@ -139,11 +139,12 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 });
 let loadAccountsMock: jest.Mock;
 
-function setupMocks(accounts = BASE_ACCOUNTS) {
+function setupMocks(accounts = BASE_ACCOUNTS, accountsLoaded = true) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
   loadAccountsMock = jest.fn().mockResolvedValue(undefined);
   attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
     accounts,
+    hasLoaded: accountsLoaded,
     loadAccounts: loadAccountsMock,
   }));
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
@@ -203,6 +204,14 @@ describe('useDashboard', () => {
     expect(result.current.state.monthSpend.loading).toBe(true);
     expect(result.current.state.transactions.loading).toBe(true);
     expect(result.current.state.commitments.loading).toBe(true);
+  });
+
+  it('exposes account loading state for account-derived dashboard totals', () => {
+    setupMocks([], false);
+
+    const { result } = renderHook(() => useDashboard());
+
+    expect(result.current.state.accountsLoaded).toBe(false);
   });
 
   it('exposes loaded dashboard summary flags from the store', () => {

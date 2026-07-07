@@ -45,7 +45,9 @@ const EMPTY_TRANSACTION_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
 export function useDashboard() {
   const router = useRouter();
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountsLoaded } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, accountsLoaded: s.hasLoaded })),
+  );
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const { rate, isManualOverride } = useCurrencyStore(
     useShallow((s) => ({
@@ -273,6 +275,7 @@ export function useDashboard() {
   return {
     state: {
       accounts,
+      accountsLoaded,
       rate,
       isManualOverride,
       netWorth,

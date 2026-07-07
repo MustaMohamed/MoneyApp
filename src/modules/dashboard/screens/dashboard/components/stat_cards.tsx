@@ -11,6 +11,13 @@ import { ms } from '@/utils/responsive';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
+const DASHBOARD_STAT_CARD_MIN_HEIGHT = ms(132);
+const DASHBOARD_NET_WORTH_VALUE_HEIGHT = ms(24);
+const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(4);
+const DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT = ms(12);
+const DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT = ms(14);
+const DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT = ms(20);
+
 const SHORT_MONTHS = [
   'Jan',
   'Feb',
@@ -37,7 +44,79 @@ interface StatCardsProps {
   monthSpendDeltaPct: number | null;
   monthSpendCount: number;
   spendYearMonth: string;
+  netWorthLoading: boolean;
   monthSpendLoading: boolean;
+}
+
+function NetWorthSkeleton(): React.ReactElement {
+  return (
+    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(6) }}>
+      <SkeletonGroup.Item
+        className="w-28 rounded-md"
+        style={{ height: DASHBOARD_NET_WORTH_VALUE_HEIGHT }}
+      />
+      <SkeletonGroup.Item
+        testID="dashboard-net-worth-skeleton-progress"
+        className="w-full rounded"
+        style={{ height: DASHBOARD_NET_WORTH_PROGRESS_HEIGHT }}
+      />
+      <View style={{ flexDirection: 'row', gap: ms(8) }}>
+        <View style={{ flex: 1, gap: ms(4) }}>
+          <SkeletonGroup.Item
+            className="w-20 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
+          />
+          <SkeletonGroup.Item
+            className="w-16 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
+          />
+        </View>
+        <View style={{ flex: 1, gap: ms(4) }}>
+          <SkeletonGroup.Item
+            className="w-24 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
+          />
+          <SkeletonGroup.Item
+            className="w-16 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
+          />
+        </View>
+      </View>
+    </SkeletonGroup>
+  );
+}
+
+function MonthSpendFooterSkeleton(): React.ReactElement {
+  return (
+    <View
+      testID="dashboard-month-spend-skeleton-footer-row"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: ms(8),
+        minHeight: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(5) }}>
+        <SkeletonGroup.Item
+          testID="dashboard-month-spend-skeleton-footer-item"
+          className="rounded-full"
+          style={{ width: ms(58), height: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT }}
+        />
+        <SkeletonGroup.Item
+          testID="dashboard-month-spend-skeleton-footer-item"
+          className="rounded-md"
+          style={{ width: ms(42), height: ms(12) }}
+        />
+      </View>
+      <SkeletonGroup.Item
+        testID="dashboard-month-spend-skeleton-footer-item"
+        className="rounded-md"
+        style={{ width: ms(34), height: ms(12) }}
+      />
+    </View>
+  );
 }
 
 export function StatCards({
@@ -51,6 +130,7 @@ export function StatCards({
   monthSpendDeltaPct,
   monthSpendCount,
   spendYearMonth,
+  netWorthLoading,
   monthSpendLoading,
 }: StatCardsProps) {
   const netNegative = netWorthEgp < 0;
@@ -77,8 +157,9 @@ export function StatCards({
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
       {/* Net Worth */}
       <View
+        testID="dashboard-net-worth-card"
         className="bg-surface border-border flex-1 rounded-2xl border p-3"
-        style={{ flex: 1, gap: ms(6) }}
+        style={{ flex: 1, gap: ms(6), minHeight: DASHBOARD_STAT_CARD_MIN_HEIGHT }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
           <View
@@ -91,60 +172,74 @@ export function StatCards({
             {Strings.dashNetWorthTitle}
           </Text>
         </View>
-        <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
-          {formatAmount(netWorthEgp)} <Text className="text-muted text-xs font-medium">EGP</Text>
-        </Text>
-        <View
-          className="bg-default flex-row overflow-hidden rounded"
-          style={{ flexDirection: 'row', height: ms(4) }}
-        >
-          <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
-          <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
-        </View>
-        <View className="flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
-          <View className="flex-1" style={{ flex: 1 }}>
-            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-              <View
-                style={{
-                  width: ms(6),
-                  height: ms(6),
-                  borderRadius: ms(3),
-                  backgroundColor: Colors.dark.positive,
-                }}
-              />
-              <Text variant="hint" className="text-muted text-xs">
-                {Strings.dashAssetsLabel} ({assetsCount})
-              </Text>
-            </View>
-            <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
-              {formatAmount(assetsEgp)}
+        {netWorthLoading ? (
+          <NetWorthSkeleton />
+        ) : (
+          <>
+            <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
+              {formatAmount(netWorthEgp)}{' '}
+              <Text className="text-muted text-xs font-medium">EGP</Text>
             </Text>
-          </View>
-          <View className="flex-1" style={{ flex: 1 }}>
-            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-              <View
-                style={{
-                  width: ms(6),
-                  height: ms(6),
-                  borderRadius: ms(3),
-                  backgroundColor: Colors.dark.negative,
-                }}
-              />
-              <Text variant="hint" className="text-muted text-xs">
-                {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
-              </Text>
+            <View
+              className="bg-default flex-row overflow-hidden rounded"
+              style={{ flexDirection: 'row', height: ms(4) }}
+            >
+              <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
+              <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
             </View>
-            <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
-              {formatAmount(liabilitiesEgp)}
-            </Text>
-          </View>
-        </View>
+            <View className="flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
+              <View className="flex-1" style={{ flex: 1 }}>
+                <View
+                  className="flex-row items-center"
+                  style={{ flexDirection: 'row', gap: ms(4) }}
+                >
+                  <View
+                    style={{
+                      width: ms(6),
+                      height: ms(6),
+                      borderRadius: ms(3),
+                      backgroundColor: Colors.dark.positive,
+                    }}
+                  />
+                  <Text variant="hint" className="text-muted text-xs">
+                    {Strings.dashAssetsLabel} ({assetsCount})
+                  </Text>
+                </View>
+                <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
+                  {formatAmount(assetsEgp)}
+                </Text>
+              </View>
+              <View className="flex-1" style={{ flex: 1 }}>
+                <View
+                  className="flex-row items-center"
+                  style={{ flexDirection: 'row', gap: ms(4) }}
+                >
+                  <View
+                    style={{
+                      width: ms(6),
+                      height: ms(6),
+                      borderRadius: ms(3),
+                      backgroundColor: Colors.dark.negative,
+                    }}
+                  />
+                  <Text variant="hint" className="text-muted text-xs">
+                    {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
+                  </Text>
+                </View>
+                <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
+                  {formatAmount(liabilitiesEgp)}
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Spent This Month */}
       <View
+        testID="dashboard-month-spend-card"
         className="bg-surface border-border flex-1 rounded-2xl border p-3"
-        style={{ flex: 1, gap: ms(6) }}
+        style={{ flex: 1, gap: ms(6), minHeight: DASHBOARD_STAT_CARD_MIN_HEIGHT }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
           <View
@@ -173,7 +268,9 @@ export function StatCards({
               <Text className="text-muted text-xs font-medium">USD</Text>
             </Text>
           </SkeletonGroup.Item>
-          <SkeletonGroup.Item isLoading={monthSpendLoading} className="h-5 w-full rounded-md">
+          {monthSpendLoading ? (
+            <MonthSpendFooterSkeleton />
+          ) : (
             <View
               className="flex-row items-center justify-between"
               style={{ flexDirection: 'row', gap: ms(8) }}
@@ -202,7 +299,7 @@ export function StatCards({
                 {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
               </Text>
             </View>
-          </SkeletonGroup.Item>
+          )}
         </SkeletonGroup>
       </View>
     </View>

@@ -1,8 +1,10 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
+import type { StyleProp, ViewStyle } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { TransactionsCard } from '@/modules/dashboard/screens/dashboard/components/transactions_card';
+import { ms } from '@/utils/responsive';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('heroui-native', () => {
@@ -25,8 +27,22 @@ jest.mock('heroui-native', () => {
       ({ children }: { children?: ReactNode }) =>
         React.createElement(View, { testID: 'skeleton-group' }, children),
       {
-        Item: ({ children, isLoading }: { children?: ReactNode; isLoading?: boolean }) =>
-          React.createElement(View, { testID: 'skeleton-item' }, isLoading ? null : children),
+        Item: ({
+          children,
+          isLoading,
+          style,
+          testID,
+        }: {
+          children?: ReactNode;
+          isLoading?: boolean;
+          style?: StyleProp<ViewStyle>;
+          testID?: string;
+        }) =>
+          React.createElement(
+            View,
+            { testID: testID ?? 'skeleton-item', style },
+            isLoading ? null : children,
+          ),
       },
     ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
@@ -74,5 +90,62 @@ describe('TransactionsCard', () => {
     expect(queryByText('-13,000')).toBeNull();
     expect(queryByText('+12,000')).toBeNull();
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('keeps the same card frame size while loading', () => {
+    const loading = render(
+      <TransactionsCard
+        current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
+        previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading
+        onPress={jest.fn()}
+      />,
+    );
+    const loaded = render(
+      <TransactionsCard
+        current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
+        previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading={false}
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(loading.getByTestId('dashboard-transactions-card')).toHaveStyle({
+      minHeight: ms(128),
+    });
+    expect(loaded.getByTestId('dashboard-transactions-card')).toHaveStyle({
+      minHeight: ms(128),
+    });
+  });
+
+  it('matches the loaded transactions row geometry while loading', () => {
+    const { getAllByTestId, getByTestId } = render(
+      <TransactionsCard
+        current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
+        previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
+        previousLabel="June 2026"
+        yearMonth="2026-07"
+        isLoading
+        onPress={jest.fn()}
+      />,
+    );
+
+    expect(getByTestId('dashboard-transactions-skeleton-values-row')).toHaveStyle({
+      minHeight: ms(17),
+    });
+    expect(getByTestId('dashboard-transactions-skeleton-progress')).toHaveStyle({
+      height: ms(3),
+    });
+    expect(getByTestId('dashboard-transactions-skeleton-deltas-row')).toHaveStyle({
+      minHeight: ms(14),
+    });
+    expect(getAllByTestId('dashboard-transactions-skeleton-delta-pill')).toHaveLength(3);
+    expect(getByTestId('dashboard-transactions-skeleton-previous-label')).toHaveStyle({
+      height: ms(11),
+    });
   });
 });
