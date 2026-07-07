@@ -168,7 +168,7 @@ export function StatCards({
       {/* Net Worth */}
       <View
         testID="dashboard-net-worth-card"
-        className="bg-surface border-border flex-1 rounded-2xl border p-3"
+        className="bg-surface border-border flex-1 rounded-2xl border px-3 py-2"
         style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
@@ -248,7 +248,7 @@ export function StatCards({
       {/* Spent This Month */}
       <View
         testID="dashboard-month-spend-card"
-        className="bg-surface border-border flex-1 rounded-2xl border p-3"
+        className="bg-surface border-border flex-1 rounded-2xl border px-3 py-2"
         style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>

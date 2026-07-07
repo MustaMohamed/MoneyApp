@@ -29,7 +29,7 @@ interface Props {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT = ms(34);
+const DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT = ms(33);
 const DASHBOARD_COMMITMENTS_PROGRESS_HEIGHT = ms(3);
 const DASHBOARD_COMMITMENTS_STATS_ROW_HEIGHT = ms(14);
 
@@ -47,22 +47,22 @@ function CommitmentsCardSkeleton(): React.ReactElement {
           minHeight: DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT,
         }}
       >
-        <View style={{ flex: 1 }}>
+        <View style={{ flex: 1, gap: ms(4)}}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-28 rounded-md"
-            style={{ height: ms(12) }}
+            style={{ height: ms(10) }}
           />
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-32 rounded-md"
-            style={{ height: ms(22) }}
+            style={{ height: ms(14) }}
           />
         </View>
         <Skeleton
           animation={DASHBOARD_SKELETON_ANIMATION}
           className="w-14 rounded-full"
-          style={{ height: ms(25) }}
+          style={{ height: ms(24) }}
         />
       </View>
       <Skeleton
@@ -84,17 +84,17 @@ function CommitmentsCardSkeleton(): React.ReactElement {
           <View
             key={stat}
             testID="dashboard-commitments-skeleton-stat"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}
+            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: ms(2) }}
           >
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-full"
-              style={{ width: ms(13), height: ms(13) }}
+              style={{ width: ms(11), height: ms(11) }}
             />
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-md"
-              style={{ width: ms(10), height: ms(11) }}
+              style={{ width: ms(8), height: ms(9) }}
             />
           </View>
         ))}
@@ -127,7 +127,7 @@ export function CommitmentsCard({
     >
       <Card
         testID="dashboard-commitments-card"
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-4 py-3"
+        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
         style={{
           gap: ms(8),
           elevation: 0,

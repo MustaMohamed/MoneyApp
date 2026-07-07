@@ -34,10 +34,10 @@ interface Props {
 type Align = 'left' | 'center' | 'right';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-const DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT = ms(17);
+const DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT = ms(14);
 const DASHBOARD_TRANSACTIONS_PROGRESS_HEIGHT = ms(3);
-const DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT = ms(14);
-const DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT = ms(11);
+const DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT = ms(13);
+const DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT = ms(10);
 
 const METRICS: Array<{
   key: TotalsMetric;
@@ -147,7 +147,7 @@ function TransactionsCardSkeleton(): React.ReactElement {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          gap: ms(8),
+          gap: ms(32),
           minHeight: DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT,
         }}
       >
@@ -189,18 +189,18 @@ function TransactionsCardSkeleton(): React.ReactElement {
                     ? 'flex-end'
                     : 'center',
               alignItems: 'center',
-              gap: ms(2),
+              gap: ms(4),
             }}
           >
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-full"
-              style={{ width: ms(12), height: ms(12) }}
+              style={{ width: ms(14), height: ms(10) }}
             />
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}
               className="rounded-md"
-              style={{ width: ms(28), height: ms(11) }}
+              style={{ width: ms(32), height: ms(10) }}
             />
           </View>
         ))}
@@ -208,7 +208,7 @@ function TransactionsCardSkeleton(): React.ReactElement {
       <Skeleton
         testID="dashboard-transactions-skeleton-previous-label"
         animation={DASHBOARD_SKELETON_ANIMATION}
-        className="mx-auto w-24 rounded-md"
+        className="mx-auto w-18 rounded-md"
         style={{ height: DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT }}
       />
     </>
@@ -241,7 +241,7 @@ export function TransactionsCard({
     >
       <Card
         testID="dashboard-transactions-card"
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-4 py-3"
+        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
         style={{
           gap: ms(8),
           elevation: 0,
