@@ -1,4 +1,4 @@
-import { Separator, Spinner, Surface, Text as HeroText } from 'heroui-native';
+import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -20,6 +20,7 @@ import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
+import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { CommitmentSearchRow } from './components/search_row';
 import { SummaryHeader } from './components/summary_header';
@@ -182,9 +183,7 @@ export default function CommitmentsScreen() {
   const listEmptyComponent = useMemo(
     () =>
       !state.paymentsLoaded ? (
-        <View className="items-center justify-center py-12">
-          <Spinner />
-        </View>
+        <CommitmentRowsSkeleton />
       ) : !state.hasListFilters ? (
         <EmptyState variant="commitmentsMonth" />
       ) : (
@@ -215,9 +214,7 @@ export default function CommitmentsScreen() {
       />
 
       {!state.commitmentsLoaded ? (
-        <View className="items-center justify-center py-12">
-          <Spinner />
-        </View>
+        <CommitmentRowsSkeleton />
       ) : !state.hasCommitments ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (

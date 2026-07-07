@@ -120,7 +120,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         const requestId = ++paymentRequestId;
         set((s) => ({
           payments: yearMonth === s.selectedMonth ? s.payments : [],
-          paymentsLoaded: false,
+          paymentsLoaded: yearMonth === s.selectedMonth ? s.paymentsLoaded : false,
         }));
 
         try {

@@ -132,6 +132,25 @@ function DeltaValue({
   );
 }
 
+function TransactionsCardSkeleton(): React.ReactElement {
+  return (
+    <SkeletonGroup isLoading isSkeletonOnly style={{ gap: ms(8) }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
+        {METRICS.map((metric) => (
+          <SkeletonGroup.Item key={metric.key} className="h-5 rounded-md" style={{ flex: 1 }} />
+        ))}
+      </View>
+      <SkeletonGroup.Item className="h-[3px] w-full rounded-[2px]" />
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
+        {METRICS.map((metric) => (
+          <SkeletonGroup.Item key={metric.key} className="h-4 rounded-md" style={{ flex: 1 }} />
+        ))}
+      </View>
+      <SkeletonGroup.Item className="mx-auto h-3 w-24 rounded-md" />
+    </SkeletonGroup>
+  );
+}
+
 export function TransactionsCard({
   current,
   previous,
@@ -185,25 +204,22 @@ export function TransactionsCard({
           </Text>
         </View>
 
-        <SkeletonGroup isLoading={isLoading} style={{ gap: ms(8) }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-            {METRICS.map((metric) => (
-              <SkeletonGroup.Item
-                key={metric.key}
-                isLoading={isLoading}
-                className="h-5 flex-1 rounded-md"
-                style={{ flex: 1 }}
-              >
+        {isLoading ? (
+          <TransactionsCardSkeleton />
+        ) : (
+          <>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+              {METRICS.map((metric) => (
                 <MetricValue
+                  key={metric.key}
                   value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
                   label={metric.label}
                   align={metric.align}
                   className={metric.valueClass}
                 />
-              </SkeletonGroup.Item>
-            ))}
-          </View>
-          <SkeletonGroup.Item isLoading={isLoading} className="h-[3px] w-full rounded-[2px]">
+              ))}
+            </View>
+
             <View
               className="overflow-hidden rounded"
               style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
@@ -214,42 +230,34 @@ export function TransactionsCard({
                 style={{ width: `${expensePct}%` }}
               />
             </View>
-          </SkeletonGroup.Item>
 
-          {isLoading || deltas ? (
-            <>
-              <View
-                style={{ flexDirection: 'row', alignItems: 'center' }}
-                className="gap-2"
-                accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
-              >
-                {METRICS.map((metric) => (
-                  <SkeletonGroup.Item
-                    key={metric.key}
-                    isLoading={isLoading}
-                    className="h-4 flex-1 rounded-md"
-                    style={{ flex: 1 }}
-                  >
-                    {deltas ? (
-                      <DeltaValue
-                        metric={metric.key}
-                        deltaPct={deltas[metric.key]}
-                        align={metric.align}
-                      />
-                    ) : null}
-                  </SkeletonGroup.Item>
-                ))}
-              </View>
-              {previousLabel ? (
-                <SkeletonGroup.Item isLoading={isLoading} className="mx-auto h-3 w-24 rounded-md">
+            {deltas ? (
+              <>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                  className="gap-2"
+                  accessibilityLabel={
+                    previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined
+                  }
+                >
+                  {METRICS.map((metric) => (
+                    <DeltaValue
+                      key={metric.key}
+                      metric={metric.key}
+                      deltaPct={deltas[metric.key]}
+                      align={metric.align}
+                    />
+                  ))}
+                </View>
+                {previousLabel ? (
                   <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
                     {Strings.totalsVsPrev(previousLabel)}
                   </Text>
-                </SkeletonGroup.Item>
-              ) : null}
-            </>
-          ) : null}
-        </SkeletonGroup>
+                ) : null}
+              </>
+            ) : null}
+          </>
+        )}
       </Card>
     </PressableFeedback>
   );

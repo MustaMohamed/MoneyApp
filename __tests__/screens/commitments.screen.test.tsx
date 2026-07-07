@@ -9,6 +9,27 @@ import { useCommitments } from '@/modules/commitments/screens/commitments/commit
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
   useCommitments: jest.fn(),
 }));
+jest.mock('heroui-native', () => {
+  const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const HeroText = {
+    Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text>,
+  };
+  const SkeletonGroupRoot = ({ children }: { children?: ReactNode }) => (
+    <View testID="skeleton-group">{children}</View>
+  );
+  const SkeletonGroupItem = ({ children }: { children?: ReactNode }) => (
+    <View testID="skeleton-item">{children}</View>
+  );
+  return {
+    Separator: () => <View testID="separator" />,
+    Spinner: () => <Text>spinner</Text>,
+    Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
+    Text: HeroText,
+    SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    PressableFeedback: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
+    cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
+  };
+});
 jest.mock('@/components/ui/screen', () => ({
   Screen: ({ children }: { children: ReactNode }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -215,6 +236,19 @@ describe('CommitmentsScreen', () => {
     const { getByText } = render(<CommitmentsScreen />);
 
     expect(getByText('Summary loading:true')).toBeTruthy();
+  });
+
+  it('shows row skeletons instead of the list spinner while payments load', () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      paymentsLoaded: false,
+      sections: [],
+    });
+
+    const { getByTestId, queryByText } = render(<CommitmentsScreen />);
+
+    expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
+    expect(queryByText('spinner')).toBeNull();
   });
 
   it('wires search, clear, and open filter actions from the search row', () => {

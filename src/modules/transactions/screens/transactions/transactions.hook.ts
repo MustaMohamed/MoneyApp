@@ -62,10 +62,11 @@ export function useTransactions() {
   const openFilter = useFilterState.getState().open;
   const setDraft = useFilterStore.getState().setDraft;
 
-  const { refreshing, totals } = useTransactionsState(
+  const { refreshing, totals, totalsYearMonth } = useTransactionsState(
     useShallow((s) => ({
       refreshing: s.refreshing,
       totals: s.totals,
+      totalsYearMonth: s.totalsYearMonth,
     })),
   );
   const setRefreshing = useTransactionsState.getState().setRefreshing;
@@ -92,24 +93,27 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
-    setTotals(null);
+    const targetYearMonth = period.yearMonth;
+    if (useTransactionsState.getState().totalsYearMonth !== targetYearMonth) {
+      setTotals(targetYearMonth, null);
+    }
     void (async () => {
       try {
         const db = await getDb();
         const current = await getPeriodTotals(db, periodRange);
         const previous = await getPeriodTotals(db, previousPeriodRange);
         // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
-        if (!cancelled) setTotals({ current, previous });
+        if (!cancelled) setTotals(targetYearMonth, { current, previous });
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
         // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
-        if (!cancelled) setTotals({ current: EMPTY_TOTALS, previous: null });
+        if (!cancelled) setTotals(targetYearMonth, { current: EMPTY_TOTALS, previous: null });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [mutationVersion, periodRange, previousPeriodRange, setTotals]);
+  }, [mutationVersion, period.yearMonth, periodRange, previousPeriodRange, setTotals]);
 
   useFocusEffect(
     useCallback(() => {
@@ -166,6 +170,7 @@ export function useTransactions() {
     const prev = previousPeriod(period);
     return formatMonthYear(prev.yearMonth);
   }, [period]);
+  const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
 
   const goToDetail = useCallback(
     (id: string) => router.push(`/transactions/detail/${id}`),
@@ -204,7 +209,7 @@ export function useTransactions() {
       categoriesById,
       activeFilterCount,
       appliedFilterSummary,
-      totals,
+      totals: displayTotals,
       previousLabel,
     },
     setSearchQuery,

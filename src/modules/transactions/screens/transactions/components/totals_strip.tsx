@@ -136,6 +136,25 @@ function DeltaValue({
   );
 }
 
+function TotalsSkeleton({ previousLabel }: { previousLabel: string | null }): React.ReactElement {
+  return (
+    <SkeletonGroup isLoading isSkeletonOnly className="gap-1">
+      <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+        {METRICS.map((metric) => (
+          <SkeletonGroup.Item key={metric.key} className="h-5 rounded-md" style={{ flex: 1 }} />
+        ))}
+      </View>
+      <SkeletonGroup.Item className="h-[3px] w-full rounded-[2px]" />
+      <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+        {METRICS.map((metric) => (
+          <SkeletonGroup.Item key={metric.key} className="h-4 rounded-md" style={{ flex: 1 }} />
+        ))}
+      </View>
+      {previousLabel ? <SkeletonGroup.Item className="mx-auto h-3 w-24 rounded-md" /> : null}
+    </SkeletonGroup>
+  );
+}
+
 export function TotalsStrip({
   current,
   previous,
@@ -155,68 +174,54 @@ export function TotalsStrip({
 
   return (
     <Card className={TRANSACTIONS_TOTALS_CARD_CLASS_NAME}>
-      <SkeletonGroup isLoading={isLoading} className="gap-1">
-        <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-          {METRICS.map((metric) => (
-            <SkeletonGroup.Item
-              key={metric.key}
-              isLoading={isLoading}
-              className="h-5 flex-1 rounded-md"
-              style={{ flex: 1 }}
-            >
+      {isLoading ? (
+        <TotalsSkeleton previousLabel={previousLabel} />
+      ) : (
+        <>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+            {METRICS.map((metric) => (
               <MetricValue
+                key={metric.key}
                 value={formatSignedAmount(currentValue(displayCurrent, metric.key), metric.key)}
                 label={metric.label}
                 align={metric.align}
                 className={metric.valueClass}
               />
-            </SkeletonGroup.Item>
-          ))}
-        </View>
+            ))}
+          </View>
 
-        <SkeletonGroup.Item isLoading={isLoading} className="h-[3px] w-full rounded-[2px]">
           <View
             className={TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME}
             accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
           >
             <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
           </View>
-        </SkeletonGroup.Item>
 
-        {isLoading || deltas ? (
-          <>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-              className="gap-2"
-              accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
-            >
-              {METRICS.map((metric) => (
-                <SkeletonGroup.Item
-                  key={metric.key}
-                  isLoading={isLoading}
-                  className="h-4 flex-1 rounded-md"
-                  style={{ flex: 1 }}
-                >
-                  {deltas ? (
-                    <DeltaValue
-                      metric={metric.key}
-                      deltaPct={deltas[metric.key]}
-                      align={metric.align}
-                    />
-                  ) : null}
-                </SkeletonGroup.Item>
-              ))}
-            </View>
-            {previousLabel ? (
-              <SkeletonGroup.Item isLoading={isLoading} className="mx-auto h-3 w-24 rounded-md">
+          {deltas ? (
+            <>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                className="gap-2"
+                accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
+              >
+                {METRICS.map((metric) => (
+                  <DeltaValue
+                    key={metric.key}
+                    metric={metric.key}
+                    deltaPct={deltas[metric.key]}
+                    align={metric.align}
+                  />
+                ))}
+              </View>
+              {previousLabel ? (
                 <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
                   {Strings.totalsVsPrev(previousLabel)}
                 </Text>
-              </SkeletonGroup.Item>
-            ) : null}
-          </>
-        ) : null}
-      </SkeletonGroup>
+              ) : null}
+            </>
+          ) : null}
+        </>
+      )}
     </Card>
   );
 }

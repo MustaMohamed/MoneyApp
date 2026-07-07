@@ -36,7 +36,7 @@ jest.mock('heroui-native', () => {
 describe('TransactionsCard', () => {
   it('renders dashboard transaction summary and opens transactions on press', () => {
     const onPress = jest.fn();
-    const { getByText, getByLabelText } = render(
+    const { getByText, getByLabelText, queryAllByTestId } = render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
@@ -52,6 +52,7 @@ describe('TransactionsCard', () => {
     expect(getByText('-13,000')).toBeTruthy();
     expect(getByText('+12,000')).toBeTruthy();
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
+    expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
 
     fireEvent.press(getByLabelText(Strings.transactions));
     expect(onPress).toHaveBeenCalledTimes(1);

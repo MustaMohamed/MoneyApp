@@ -38,7 +38,7 @@ describe('TotalsStrip', () => {
   });
 
   it('shows the previous-period comparison caption', () => {
-    const { getByText } = render(
+    const { getByText, queryAllByTestId } = render(
       <TotalsStrip
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 14500 }}
@@ -47,5 +47,6 @@ describe('TotalsStrip', () => {
     );
 
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
+    expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
   });
 });

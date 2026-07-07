@@ -137,6 +137,43 @@ describe('useTransactions monthly totals', () => {
     });
   });
 
+  it('keeps same-month totals visible while revalidating after remount', async () => {
+    const initialCurrent = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
+    const initialPrevious = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
+    jest
+      .mocked(getPeriodTotals)
+      .mockResolvedValueOnce(initialCurrent)
+      .mockResolvedValueOnce(initialPrevious);
+
+    const first = renderHook(() => useTransactions());
+
+    await waitFor(() => {
+      expect(first.result.current.state.totals).toEqual({
+        current: initialCurrent,
+        previous: initialPrevious,
+      });
+    });
+
+    first.unmount();
+    jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
+
+    const second = renderHook(() => useTransactions());
+
+    expect(second.result.current.state.totals).toEqual({
+      current: initialCurrent,
+      previous: initialPrevious,
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(second.result.current.state.totals).toEqual({
+      current: initialCurrent,
+      previous: initialPrevious,
+    });
+  });
+
   it('settles totals with an empty monthly fallback when loading fails', async () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.mocked(getPeriodTotals).mockRejectedValue(new Error('db down'));
