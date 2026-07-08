@@ -47,10 +47,10 @@ export const TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME =
   'bg-default h-[3px] overflow-hidden rounded-[2px]';
 
 const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
-const TOTALS_VALUE_ROW_HEIGHT = ms(17);
+const TOTALS_VALUE_ROW_HEIGHT = ms(15);
 const TOTALS_PROGRESS_HEIGHT = ms(3);
-const TOTALS_DELTA_ROW_HEIGHT = ms(14);
-const TOTALS_PREVIOUS_LABEL_HEIGHT = ms(11);
+const TOTALS_DELTA_ROW_HEIGHT = ms(12);
+const TOTALS_PREVIOUS_LABEL_HEIGHT = ms(9);
 
 function currentValue(current: PeriodTotals, metric: TotalsMetric): number {
   if (metric === 'income') return current.incomeEgp;

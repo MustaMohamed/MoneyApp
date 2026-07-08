@@ -24,9 +24,9 @@ interface SummaryHeaderProps {
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
-const SUMMARY_ROW_HEIGHT = ms(31);
+const SUMMARY_ROW_HEIGHT = ms(27);
 const SUMMARY_PROGRESS_HEIGHT = ms(3);
-const SUMMARY_STATS_ROW_HEIGHT = ms(14);
+const SUMMARY_STATS_ROW_HEIGHT = ms(13);
 
 function SummarySkeleton(): React.ReactElement {
   return (
@@ -36,16 +36,16 @@ function SummarySkeleton(): React.ReactElement {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-start',
           gap: ms(8),
           minHeight: SUMMARY_ROW_HEIGHT,
         }}
       >
-        <View style={{ flex: 1 }}>
-          <Skeleton className="w-28 rounded-md" style={{ height: ms(12) }} />
-          <Skeleton className="w-32 rounded-md" style={{ height: ms(19) }} />
+        <View style={{ flex: 1, gap: ms(4), }}>
+          <Skeleton className="w-28 rounded-md" style={{ height: ms(6) }} />
+          <Skeleton className="w-32 rounded-md" style={{ height: ms(14) }} />
         </View>
-        <Skeleton className="w-12 rounded-full" style={{ height: ms(19) }} />
+        <Skeleton className="w-12 rounded-full" style={{ height: ms(14) }} />
       </View>
       <Skeleton
         testID="commitments-summary-skeleton-progress"
@@ -67,8 +67,8 @@ function SummarySkeleton(): React.ReactElement {
             testID="commitments-summary-skeleton-stat"
             style={{ flexDirection: 'row', alignItems: 'center', gap: ms(4) }}
           >
-            <Skeleton className="rounded-full" style={{ width: ms(13), height: ms(13) }} />
-            <Skeleton className="rounded-md" style={{ width: ms(10), height: ms(11) }} />
+            <Skeleton className="rounded-full" style={{ width: ms(11), height: ms(11) }} />
+            <Skeleton className="rounded-md" style={{ width: ms(8), height: ms(9) }} />
           </View>
         ))}
       </View>
@@ -86,7 +86,7 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
       : totalEntries.map(([cur, amt]) => `${numberFmt.format(amt)} ${cur}`).join('  ·  ');
 
   return (
-    <Card className="bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-4 py-2">
+    <Card className="bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-3 py-2">
       {isLoading ? (
         <SummarySkeleton />
       ) : (
