@@ -5,6 +5,7 @@ import {
   BUDGET_WARNING_THRESHOLD,
   buildBudgetCopyRows,
   budgetBandColor,
+  computeBudgetSummaryForMonth,
   computeCategoryHistory,
   computeCategoryRow,
   computeOverall,
@@ -48,17 +49,29 @@ describe('resolveLimitForMonth', () => {
   it('returns null before the first effective_from', () => {
     expect(resolveLimitForMonth(rows, 'a', '2026-02')).toBeNull();
   });
-  it('returns the applicable (latest <= month) limit', () => {
+  it('returns only the explicit limit for the requested month', () => {
     expect(resolveLimitForMonth(rows, 'a', '2026-03')).toBe(3000);
-    expect(resolveLimitForMonth(rows, 'a', '2026-04')).toBe(3000);
-    expect(resolveLimitForMonth(rows, 'a', '2026-06')).toBe(3500);
+    expect(resolveLimitForMonth(rows, 'a', '2026-04')).toBeNull();
+    expect(resolveLimitForMonth(rows, 'a', '2026-05')).toBe(3500);
+    expect(resolveLimitForMonth(rows, 'a', '2026-06')).toBeNull();
   });
-  it('returns null after a tombstone', () => {
+  it('returns null for an explicit tombstone month', () => {
     expect(resolveLimitForMonth(rows, 'a', '2026-07')).toBeNull();
-    expect(resolveLimitForMonth(rows, 'a', '2026-09')).toBeNull();
   });
   it('returns null for an unknown category', () => {
     expect(resolveLimitForMonth(rows, 'z', '2026-05')).toBeNull();
+  });
+});
+
+describe('computeBudgetSummaryForMonth', () => {
+  it('does not carry previous-month budgets into an empty selected month', () => {
+    const summary = computeBudgetSummaryForMonth(
+      [row('food', 5000, '2026-07'), row('housing', 700, '2026-07')],
+      {},
+      '2026-08',
+    );
+
+    expect(summary).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 });
   });
 });
 
@@ -171,6 +184,26 @@ describe('buildBudgetCopyRows', () => {
         targetMonth: '2026-07',
       }),
     ).toEqual([]);
+  });
+
+  it('copies only categories with explicit budgets in the source month', () => {
+    const vm = buildBudgetCopyRows({
+      rows,
+      categories,
+      sourceMonth: '2026-07',
+      targetMonth: '2026-08',
+    });
+
+    expect(vm).toEqual([
+      {
+        categoryId: 'food',
+        name: 'Food & Dining',
+        icon: 'food',
+        color: '#caa445',
+        amount: 4200,
+        status: 'new',
+      },
+    ]);
   });
 });
 

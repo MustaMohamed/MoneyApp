@@ -37,16 +37,20 @@ jest.mock('heroui-native', () => {
     jest.requireActual<typeof import('react-native')>('react-native');
   const Checkbox = ({
     children,
+    className,
     isSelected,
     onSelectedChange,
     accessibilityLabel,
   }: {
     children?: ReactNode;
+    className?: string;
     isSelected?: boolean;
     onSelectedChange?: (selected: boolean) => void;
     accessibilityLabel?: string;
   }) => (
     <Pressable
+      testID="checkbox-root"
+      className={className}
       accessibilityLabel={accessibilityLabel}
       accessibilityState={{ checked: Boolean(isSelected) }}
       onPress={() => onSelectedChange?.(!isSelected)}
@@ -124,6 +128,28 @@ describe('BudgetCopySheet', () => {
 
     fireEvent.press(getByText('Apply'));
     expect(onApply).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps checkbox controls compact instead of stretching them over the full row', () => {
+    const { getAllByTestId } = render(
+      <BudgetCopySheet
+        isOpen
+        sourceMonthLabel="June 2026"
+        targetMonthLabel="July 2026"
+        rows={rows}
+        selectedCategoryIds={['food', 'car']}
+        onOpenChange={jest.fn()}
+        onToggleCategory={jest.fn()}
+        onSelectAll={jest.fn()}
+        onClearSelection={jest.fn()}
+        onApply={jest.fn()}
+      />,
+    );
+
+    expect(getAllByTestId('checkbox-root').map((node) => node.props.className)).toEqual([
+      expect.not.stringContaining('w-full'),
+      expect.not.stringContaining('w-full'),
+    ]);
   });
 
   it('disables apply when nothing is selected', () => {

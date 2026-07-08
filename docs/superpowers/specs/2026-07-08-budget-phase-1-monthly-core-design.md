@@ -54,20 +54,20 @@ The Copy tool opens a bottom sheet with:
 - Destination month label: selected month.
 - A checklist of source-month budget categories.
 - Category name, icon, previous amount, and status:
-  - `New` when the selected month has no active allocation for that category.
-  - `Will replace` when the selected month already has an active allocation.
+  - `New` when the selected month has no explicit allocation for that category.
+  - `Will replace` when the selected month already has an explicit allocation.
 - Select all and clear actions.
 - Reset and apply actions at the footer using the existing themed button pattern.
 
 Default selection: all source-month categories are selected. Applying copies only selected categories into the selected month. Unselected categories in the selected month stay unchanged.
 
-If the previous month has no active category budgets, the sheet shows an empty state and disables Apply.
+If the previous month has no explicit category budgets, the sheet shows an empty state and disables Apply.
 
 ### Add/Edit/Remove Category Allocation
 
 The existing set-budget sheet remains the editing surface, but it writes to the currently selected month instead of always writing to the real current month.
 
-- Add mode shows only expense categories without an active allocation in the selected month.
+- Add mode shows only expense categories without an explicit allocation in the selected month.
 - Edit mode updates the selected category allocation for the selected month.
 - Remove writes a tombstone for the selected month, preserving older months through the existing effective-dated model.
 - The 50/30/20 budget group picker remains inside the sheet because it already powers the existing lens.
@@ -94,7 +94,8 @@ No migration is required. The existing `budgets` table already supports month-sp
 
 Rules:
 
-- Latest row with `effective_from <= selectedMonth` controls that category's active limit.
+- Exact row with `effective_from === selectedMonth` controls that category's monthly limit.
+- Older months do not carry forward automatically; users copy selected categories into the new month when desired.
 - `limit_amount = null` is a removal tombstone.
 - Same category and same month are upserted through the existing unique key.
 
@@ -141,7 +142,7 @@ The implementation must remove or avoid `useState` in Budget UI components touch
 
 ## Financial Rules
 
-- Budgeted = sum of active selected-month category limits.
+- Budgeted = sum of explicit selected-month category limits.
 - Spent = selected-month expenses for those budgeted categories only.
 - Left = Budgeted - Spent.
 - Progress = Spent / Budgeted, or 0 when Budgeted is 0.

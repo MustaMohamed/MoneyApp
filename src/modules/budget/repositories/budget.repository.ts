@@ -35,13 +35,12 @@ function resolveLimitForMonth(
   categoryId: string,
   yearMonth: string,
 ): number | null {
-  let best: Budget | null = null;
   for (const row of rows) {
     if (row.category_id !== categoryId) continue;
-    if (row.effective_from > yearMonth) continue;
-    if (best === null || row.effective_from > best.effective_from) best = row;
+    if (row.effective_from !== yearMonth) continue;
+    return row.limit_amount;
   }
-  return best ? best.limit_amount : null;
+  return null;
 }
 
 export class BudgetRepository implements IBudgetRepository {

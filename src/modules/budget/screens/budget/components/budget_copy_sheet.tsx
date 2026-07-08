@@ -102,29 +102,30 @@ export function BudgetCopySheet({
               {rows.map((row) => {
                 const selected = selectedCategoryIds.includes(row.categoryId);
                 return (
-                  <Checkbox
+                  <PressableFeedback
                     key={row.categoryId}
-                    isSelected={selected}
-                    onSelectedChange={() => onToggleCategory(row.categoryId)}
+                    accessibilityRole="checkbox"
+                    accessibilityState={{ checked: selected }}
                     accessibilityLabel={`Toggle ${row.name}`}
-                    className="w-full"
+                    onPress={() => onToggleCategory(row.categoryId)}
+                    style={styles.row}
                   >
-                    <View style={styles.row}>
-                      <Checkbox.Indicator />
-                      <View style={[styles.iconBox, { backgroundColor: `${row.color}22` }]}>
-                        <MaterialCommunityIcons
-                          name={toIconName(row.icon, 'tag-outline')}
-                          size={ms(15)}
-                          color={row.color}
-                        />
-                      </View>
-                      <View style={styles.rowCenter}>
-                        <Text style={styles.rowTitle}>{row.name}</Text>
-                        <Text style={styles.rowMeta}>{statusLabel(row.status)}</Text>
-                      </View>
-                      <Text style={styles.rowAmount}>{formatAmount(row.amount)}</Text>
+                    <View pointerEvents="none">
+                      <Checkbox isSelected={selected} />
                     </View>
-                  </Checkbox>
+                    <View style={[styles.iconBox, { backgroundColor: `${row.color}22` }]}>
+                      <MaterialCommunityIcons
+                        name={toIconName(row.icon, 'tag-outline')}
+                        size={ms(15)}
+                        color={row.color}
+                      />
+                    </View>
+                    <View style={styles.rowCenter}>
+                      <Text style={styles.rowTitle}>{row.name}</Text>
+                      <Text style={styles.rowMeta}>{statusLabel(row.status)}</Text>
+                    </View>
+                    <Text style={styles.rowAmount}>{formatAmount(row.amount)}</Text>
+                  </PressableFeedback>
                 );
               })}
             </View>

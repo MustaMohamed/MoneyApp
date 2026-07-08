@@ -56,19 +56,18 @@ export interface BudgetCopyRowVM {
   status: BudgetCopyStatus;
 }
 
-// Latest effective-dated row whose effective_from <= yearMonth. null = no/removed budget.
+// Exact monthly row. null = no budget for that month or an explicit removed budget.
 export function resolveLimitForMonth(
   rows: Budget[],
   categoryId: string,
   yearMonth: string,
 ): number | null {
-  let best: Budget | null = null;
   for (const r of rows) {
     if (r.category_id !== categoryId) continue;
-    if (r.effective_from > yearMonth) continue;
-    if (best === null || r.effective_from > best.effective_from) best = r;
+    if (r.effective_from !== yearMonth) continue;
+    return r.limit_amount;
   }
-  return best ? best.limit_amount : null;
+  return null;
 }
 
 /**
