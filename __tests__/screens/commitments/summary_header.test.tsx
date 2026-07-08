@@ -93,13 +93,13 @@ describe('SummaryHeader skeleton loading', () => {
     );
 
     expect(getByTestId('commitments-summary-skeleton-summary-row')).toHaveStyle({
-      minHeight: ms(31),
+      minHeight: ms(27),
     });
     expect(getByTestId('commitments-summary-skeleton-progress')).toHaveStyle({
       height: ms(3),
     });
     expect(getByTestId('commitments-summary-skeleton-stats-row')).toHaveStyle({
-      minHeight: ms(14),
+      minHeight: ms(13),
     });
     expect(getAllByTestId('commitments-summary-skeleton-stat')).toHaveLength(5);
   });

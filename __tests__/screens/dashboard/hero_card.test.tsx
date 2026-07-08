@@ -115,7 +115,7 @@ describe('HeroCard skeleton loading', () => {
   it('matches the loaded amount and pill row geometry while loading', () => {
     const { getAllByTestId, getByTestId } = render(<HeroCard {...baseProps} isLoading />);
 
-    expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({ height: ms(36) });
+    expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({ height: ms(35) });
     expect(getByTestId('dashboard-hero-skeleton-pills-row')).toHaveStyle({
       minHeight: ms(20),
     });

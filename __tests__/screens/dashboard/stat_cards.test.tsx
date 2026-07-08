@@ -121,10 +121,10 @@ describe('StatCards skeleton loading', () => {
     );
 
     expect(getByTestId('dashboard-net-worth-skeleton-progress')).toHaveStyle({
-      height: ms(4),
+      height: ms(5),
     });
     expect(getByTestId('dashboard-month-spend-skeleton-footer-row')).toHaveStyle({
-      minHeight: ms(20),
+      minHeight: ms(16),
     });
     expect(getAllByTestId('dashboard-month-spend-skeleton-footer-item')).toHaveLength(3);
   });

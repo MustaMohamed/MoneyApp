@@ -135,7 +135,7 @@ describe('CommitmentsCard skeleton loading', () => {
     );
 
     expect(getByTestId('dashboard-commitments-skeleton-summary-row')).toHaveStyle({
-      minHeight: ms(34),
+      minHeight: ms(33),
     });
     expect(getByTestId('dashboard-commitments-skeleton-progress')).toHaveStyle({
       height: ms(3),

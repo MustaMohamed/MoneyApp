@@ -73,17 +73,17 @@ describe('TotalsStrip skeleton loading', () => {
     );
 
     expect(getByTestId('transactions-totals-skeleton-values-row')).toHaveStyle({
-      minHeight: ms(17),
+      minHeight: ms(15),
     });
     expect(getByTestId('transactions-totals-skeleton-progress')).toHaveStyle({
       height: ms(3),
     });
     expect(getByTestId('transactions-totals-skeleton-deltas-row')).toHaveStyle({
-      minHeight: ms(14),
+      minHeight: ms(12),
     });
     expect(getAllByTestId('transactions-totals-skeleton-delta-pill')).toHaveLength(3);
     expect(getByTestId('transactions-totals-skeleton-previous-label')).toHaveStyle({
-      height: ms(11),
+      height: ms(9),
     });
   });
 });

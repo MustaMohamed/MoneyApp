@@ -150,17 +150,17 @@ describe('TransactionsCard', () => {
     );
 
     expect(getByTestId('dashboard-transactions-skeleton-values-row')).toHaveStyle({
-      minHeight: ms(17),
+      minHeight: ms(14),
     });
     expect(getByTestId('dashboard-transactions-skeleton-progress')).toHaveStyle({
       height: ms(3),
     });
     expect(getByTestId('dashboard-transactions-skeleton-deltas-row')).toHaveStyle({
-      minHeight: ms(14),
+      minHeight: ms(13),
     });
     expect(getAllByTestId('dashboard-transactions-skeleton-delta-pill')).toHaveLength(3);
     expect(getByTestId('dashboard-transactions-skeleton-previous-label')).toHaveStyle({
-      height: ms(11),
+      height: ms(10),
     });
   });
 });
