@@ -67,6 +67,9 @@ export function useBudget() {
   const resetSelectedMonthToCurrent = useBudgetState.getState().resetSelectedMonthToCurrent;
   const openCopyState = useBudgetState.getState().openCopy;
   const closeCopy = useBudgetState.getState().closeCopy;
+  const setCopySelectedCategoryIds = useBudgetState.getState().setCopySelectedCategoryIds;
+  const toggleCopyCategoryId = useBudgetState.getState().toggleCopyCategoryId;
+  const clearCopySelection = useBudgetState.getState().clearCopySelection;
   const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
 
   const loadIncomeSuggestion = useCallback(
@@ -176,6 +179,10 @@ export function useBudget() {
     [closeCopy, copyLimitsToMonth, copySelectedCategoryIds, copySourceMonth, selectedMonth],
   );
 
+  const selectAllCopyCategories = useCallback(() => {
+    setCopySelectedCategoryIds(copyRows.map((row) => row.categoryId));
+  }, [copyRows, setCopySelectedCategoryIds]);
+
   const removeBudgetForMonth = useCallback(
     async ({ id }: { id: string; name: string }) => {
       await removeBudget(id, selectedMonth);
@@ -206,6 +213,9 @@ export function useBudget() {
     setSelectedMonth,
     openCopy,
     closeCopy,
+    toggleCopyCategoryId,
+    selectAllCopyCategories,
+    clearCopySelection,
     copySelectedBudgets,
     removeBudgetForMonth,
     goToCategory,

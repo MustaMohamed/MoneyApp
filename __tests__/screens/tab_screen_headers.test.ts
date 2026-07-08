@@ -30,14 +30,16 @@ describe('tab screen headers', () => {
     expect(text).toContain('<Separator');
   });
 
-  it('dashboard and budget use HeroUI Button for header actions', () => {
-    for (const path of [
-      'src/modules/dashboard/screens/dashboard/index.tsx',
-      'src/modules/budget/screens/budget/index.tsx',
-    ]) {
-      expect(herouiImport(path)).toMatch(/\bButton\b/);
-      expect(source(path)).toContain('<Button');
-    }
+  it('dashboard uses HeroUI Button for its header action', () => {
+    const path = 'src/modules/dashboard/screens/dashboard/index.tsx';
+    expect(herouiImport(path)).toMatch(/\bButton\b/);
+    expect(source(path)).toContain('<Button');
+  });
+
+  it('budget routes actions through the monthly tool rail', () => {
+    const text = source('src/modules/budget/screens/budget/index.tsx');
+    expect(text).toContain('BudgetToolRail');
+    expect(text).not.toContain('budgetAddCategory}');
   });
 
   it('commitments top-level screen does not use the custom CommitmentHeader', () => {
