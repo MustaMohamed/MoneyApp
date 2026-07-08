@@ -100,7 +100,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
       return;
     }
     setGroupValue(isEdit ? null : (addModeSelectedCategory?.budget_group ?? null));
-  }, [sheetVisible, isEdit, addModeSelectedCategory]);
+  }, [sheetVisible, isEdit, addModeSelectedCategory, setGroupValue]);
 
   // Resolved category name for edit mode (locked display)
   const editingCategoryName = editingRow?.name;

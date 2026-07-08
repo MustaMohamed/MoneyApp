@@ -130,7 +130,7 @@ describe('useBudget — month rollover', () => {
       capturedFocusCallback?.();
       await Promise.resolve();
     });
-    rerender();
+    rerender(undefined);
 
     expect(result.current.state.month).toBe('2026-06');
   });
@@ -150,7 +150,7 @@ describe('useBudget — month rollover', () => {
     act(() => {
       cleanup = capturedFocusCallback?.();
     });
-    rerender();
+    rerender(undefined);
 
     expect(result.current.state.month).toBe('2026-06');
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
