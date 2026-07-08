@@ -76,6 +76,25 @@ export function useTransactions() {
   const periodRange = useMemo(() => resolvePeriod(period), [period]);
   const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
 
+  const loadTotals = useCallback(
+    async (shouldApply: () => boolean = () => true) => {
+      const targetYearMonth = period.yearMonth;
+      if (useTransactionsState.getState().totalsYearMonth !== targetYearMonth && shouldApply()) {
+        setTotals(targetYearMonth, null);
+      }
+      try {
+        const db = await getDb();
+        const current = await getPeriodTotals(db, periodRange);
+        const previous = await getPeriodTotals(db, previousPeriodRange);
+        if (shouldApply()) setTotals(targetYearMonth, { current, previous });
+      } catch (err) {
+        console.error('[transactions] loadTotals failed:', err);
+        if (shouldApply()) setTotals(targetYearMonth, { current: EMPTY_TOTALS, previous: null });
+      }
+    },
+    [period.yearMonth, periodRange, previousPeriodRange, setTotals],
+  );
+
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
     return {
@@ -93,27 +112,11 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
-    const targetYearMonth = period.yearMonth;
-    if (useTransactionsState.getState().totalsYearMonth !== targetYearMonth) {
-      setTotals(targetYearMonth, null);
-    }
-    void (async () => {
-      try {
-        const db = await getDb();
-        const current = await getPeriodTotals(db, periodRange);
-        const previous = await getPeriodTotals(db, previousPeriodRange);
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
-        if (!cancelled) setTotals(targetYearMonth, { current, previous });
-      } catch (err) {
-        console.error('[transactions] loadTotals failed:', err);
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
-        if (!cancelled) setTotals(targetYearMonth, { current: EMPTY_TOTALS, previous: null });
-      }
-    })();
+    void loadTotals(() => !cancelled);
     return () => {
       cancelled = true;
     };
-  }, [mutationVersion, period.yearMonth, periodRange, previousPeriodRange, setTotals]);
+  }, [loadTotals, mutationVersion]);
 
   useFocusEffect(
     useCallback(() => {
@@ -158,13 +161,13 @@ export function useTransactions() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refresh();
+      await Promise.all([refresh(), loadTotals()]);
     } catch (err) {
       console.error('[transactions] onRefresh failed:', err);
     } finally {
       setRefreshing(false);
     }
-  }, [refresh, setRefreshing]);
+  }, [loadTotals, refresh, setRefreshing]);
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(period);

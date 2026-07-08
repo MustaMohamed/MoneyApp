@@ -189,4 +189,37 @@ describe('useTransactions monthly totals', () => {
 
     consoleSpy.mockRestore();
   });
+
+  it('reloads monthly totals during manual refresh', async () => {
+    const initialCurrent = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
+    const initialPrevious = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
+    const refreshedCurrent = { incomeEgp: 26000, expenseEgp: 12000, netEgp: 14000 };
+    const refreshedPrevious = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
+    jest
+      .mocked(getPeriodTotals)
+      .mockResolvedValueOnce(initialCurrent)
+      .mockResolvedValueOnce(initialPrevious)
+      .mockResolvedValueOnce(refreshedCurrent)
+      .mockResolvedValueOnce(refreshedPrevious);
+
+    const { result } = renderHook(() => useTransactions());
+
+    await waitFor(() => {
+      expect(result.current.state.totals).toEqual({
+        current: initialCurrent,
+        previous: initialPrevious,
+      });
+    });
+    jest.mocked(getPeriodTotals).mockClear();
+
+    await act(async () => {
+      await result.current.onRefresh();
+    });
+
+    expect(getPeriodTotals).toHaveBeenCalledTimes(2);
+    expect(result.current.state.totals).toEqual({
+      current: refreshedCurrent,
+      previous: refreshedPrevious,
+    });
+  });
 });

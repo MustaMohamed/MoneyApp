@@ -328,6 +328,21 @@ describe('useDashboard', () => {
     });
   });
 
+  it('loads dashboard summary queries once on initial focus', async () => {
+    renderHook(() => useDashboard());
+
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    await waitFor(() => {
+      expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
+      expect(getMonthExpenseStats).toHaveBeenCalledTimes(2);
+      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it('cancels pending focus reload work on cleanup', () => {
     renderHook(() => useDashboard());
     commitmentRepository.getPaymentsForMonth.mockClear();
@@ -401,6 +416,10 @@ describe('useDashboard', () => {
     }));
 
     const { result } = renderHook(() => useDashboard());
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
 
     await waitFor(() => {
       expect(getPeriodTotals).toHaveBeenCalledTimes(2);

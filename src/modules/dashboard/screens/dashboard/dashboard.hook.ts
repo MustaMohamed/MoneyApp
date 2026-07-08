@@ -157,11 +157,6 @@ export function useDashboard() {
     ]),
   );
 
-  useEffect(() => {
-    void loadMonthSpend();
-    void loadTransactionTotals();
-  }, [loadMonthSpend, loadTransactionTotals, accounts]);
-
   const loadStats = useCallback(
     async (ids: string[]) => {
       if (ids.length === 0) {
