@@ -1,16 +1,20 @@
+import { CategoryType } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
   BUDGET_WARNING_THRESHOLD,
+  buildBudgetCopyRows,
   budgetBandColor,
   computeCategoryHistory,
   computeCategoryRow,
   computeOverall,
   computeStatus,
+  previousYearMonth,
   remainingLabel,
   resolveLimitForMonth,
   type MonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
+import type { Category } from '@/modules/categories/entities/category.entity';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 function row(category_id: string, limit_amount: number | null, effective_from: string): Budget {
@@ -19,6 +23,21 @@ function row(category_id: string, limit_amount: number | null, effective_from: s
     category_id,
     limit_amount,
     effective_from,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
+function category(id: string, name: string, type = CategoryType.Expense): Category {
+  return {
+    id,
+    name,
+    type,
+    icon: 'food',
+    color: '#caa445',
+    is_default: 0,
+    sort_order: 0,
+    budget_group: null,
     created_at: NOW,
     updated_at: NOW,
   };
@@ -84,6 +103,74 @@ describe('computeOverall', () => {
   });
   it('zero-safe with no rows', () => {
     expect(computeOverall([])).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0 });
+  });
+});
+
+describe('previousYearMonth', () => {
+  it('returns the previous month in the same year', () => {
+    expect(previousYearMonth('2026-07')).toBe('2026-06');
+  });
+
+  it('wraps January to previous December', () => {
+    expect(previousYearMonth('2026-01')).toBe('2025-12');
+  });
+});
+
+describe('buildBudgetCopyRows', () => {
+  const categories = [
+    category('food', 'Food & Dining'),
+    category('car', 'Car'),
+    category('salary', 'Salary', CategoryType.Income),
+    category('rent', 'Rent'),
+  ];
+
+  const rows = [
+    row('food', 3000, '2026-05'),
+    row('food', 3500, '2026-06'),
+    row('food', 4200, '2026-07'),
+    row('car', 1200, '2026-06'),
+    row('rent', 5000, '2026-05'),
+    row('rent', null, '2026-06'),
+    row('salary', 10000, '2026-06'),
+  ];
+
+  it('builds copy rows from source-month active expense budgets only', () => {
+    const vm = buildBudgetCopyRows({
+      rows,
+      categories,
+      sourceMonth: '2026-06',
+      targetMonth: '2026-07',
+    });
+
+    expect(vm).toEqual([
+      {
+        categoryId: 'food',
+        name: 'Food & Dining',
+        icon: 'food',
+        color: '#caa445',
+        amount: 3500,
+        status: 'will-replace',
+      },
+      {
+        categoryId: 'car',
+        name: 'Car',
+        icon: 'food',
+        color: '#caa445',
+        amount: 1200,
+        status: 'new',
+      },
+    ]);
+  });
+
+  it('returns an empty checklist when the source month has no active budgets', () => {
+    expect(
+      buildBudgetCopyRows({
+        rows: [row('food', null, '2026-06')],
+        categories: [category('food', 'Food & Dining')],
+        sourceMonth: '2026-06',
+        targetMonth: '2026-07',
+      }),
+    ).toEqual([]);
   });
 });
 

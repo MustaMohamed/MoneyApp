@@ -1,5 +1,7 @@
+import { CategoryType } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
 
 export const BUDGET_WARNING_THRESHOLD = 0.8;
 
@@ -37,6 +39,17 @@ export interface CategoryHistoryVM {
   hitRate: number;
   monthsUnder: number;
   monthsTotal: number;
+}
+
+export type BudgetCopyStatus = 'new' | 'will-replace';
+
+export interface BudgetCopyRowVM {
+  categoryId: string;
+  name: string;
+  icon: string;
+  color: string;
+  amount: number;
+  status: BudgetCopyStatus;
 }
 
 // Latest effective-dated row whose effective_from <= yearMonth. null = no/removed budget.
@@ -109,6 +122,50 @@ export function computeOverall(rows: CategoryBudgetVM[]): OverallVM {
     spent += r.spent;
   }
   return { budgeted, spent, left: budgeted - spent, pct: budgeted > 0 ? spent / budgeted : 0 };
+}
+
+export function previousYearMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  return `${previousYear}-${String(previousMonth).padStart(2, '0')}`;
+}
+
+export function buildBudgetCopyRows({
+  rows,
+  categories,
+  sourceMonth,
+  targetMonth,
+}: {
+  rows: Budget[];
+  categories: Category[];
+  sourceMonth: string;
+  targetMonth: string;
+}): BudgetCopyRowVM[] {
+  const out: BudgetCopyRowVM[] = [];
+
+  for (const category of categories) {
+    if (category.type !== CategoryType.Expense) continue;
+    const sourceLimit = resolveLimitForMonth(rows, category.id, sourceMonth);
+    if (sourceLimit === null) continue;
+    const hasExplicitTargetLimit = rows.some(
+      (row) =>
+        row.category_id === category.id &&
+        row.effective_from === targetMonth &&
+        row.limit_amount !== null,
+    );
+
+    out.push({
+      categoryId: category.id,
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      amount: sourceLimit,
+      status: hasExplicitTargetLimit ? 'will-replace' : 'new',
+    });
+  }
+
+  return out;
 }
 
 export function computeCategoryHistory(results: MonthResultVM[]): CategoryHistoryVM {
