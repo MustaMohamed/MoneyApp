@@ -23,6 +23,10 @@ export interface OverallVM {
   pct: number;
 }
 
+export interface BudgetDashboardSummaryVM extends OverallVM {
+  categoryCount: number;
+}
+
 export interface MonthResultVM {
   yearMonth: string;
   limit: number;
@@ -122,6 +126,33 @@ export function computeOverall(rows: CategoryBudgetVM[]): OverallVM {
     spent += r.spent;
   }
   return { budgeted, spent, left: budgeted - spent, pct: budgeted > 0 ? spent / budgeted : 0 };
+}
+
+export function computeBudgetSummaryForMonth(
+  rows: Budget[],
+  spendByMonth: Record<string, Record<string, number>>,
+  yearMonth: string,
+): BudgetDashboardSummaryVM {
+  let budgeted = 0;
+  let spent = 0;
+  let categoryCount = 0;
+  const categoryIds = Array.from(new Set(rows.map((row) => row.category_id)));
+
+  for (const categoryId of categoryIds) {
+    const limit = resolveLimitForMonth(rows, categoryId, yearMonth);
+    if (limit === null) continue;
+    budgeted += limit;
+    spent += spendByMonth[categoryId]?.[yearMonth] ?? 0;
+    categoryCount++;
+  }
+
+  return {
+    budgeted,
+    spent,
+    left: budgeted - spent,
+    pct: budgeted > 0 ? spent / budgeted : 0,
+    categoryCount,
+  };
 }
 
 export function previousYearMonth(yearMonth: string): string {

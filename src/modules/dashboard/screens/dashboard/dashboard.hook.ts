@@ -6,6 +6,11 @@ import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { getAccountsStats } from '@/modules/accounts/database/account_stats';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
+import {
+  type BudgetDashboardSummaryVM,
+  computeBudgetSummaryForMonth,
+} from '@/modules/budget/screens/budget/budget.helpers';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import {
@@ -41,6 +46,13 @@ function resolveMonthRange(yearMonth: string): { from: string; to: string } {
 
 const EMPTY_MONTH_SPEND = { totalEgp: 0, usdNative: 0, count: 0 };
 const EMPTY_TRANSACTION_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+const EMPTY_BUDGET_SUMMARY: BudgetDashboardSummaryVM = {
+  budgeted: 0,
+  spent: 0,
+  left: 0,
+  pct: 0,
+  categoryCount: 0,
+};
 
 export function useDashboard() {
   const router = useRouter();
@@ -73,9 +85,11 @@ export function useDashboard() {
     previousMonthSpend,
     currentTransactionTotals,
     previousTransactionTotals,
+    currentBudgetSummary,
     commitmentPaymentsLoaded,
     monthSpendLoaded,
     transactionTotalsLoaded,
+    budgetSummaryLoaded,
   } = useDashboardStore(
     useShallow((s) => ({
       statsMap: s.statsMap,
@@ -84,9 +98,11 @@ export function useDashboard() {
       previousMonthSpend: s.previousMonthSpend,
       currentTransactionTotals: s.currentTransactionTotals,
       previousTransactionTotals: s.previousTransactionTotals,
+      currentBudgetSummary: s.currentBudgetSummary,
       commitmentPaymentsLoaded: s.commitmentPaymentsLoaded,
       monthSpendLoaded: s.monthSpendLoaded,
       transactionTotalsLoaded: s.transactionTotalsLoaded,
+      budgetSummaryLoaded: s.budgetSummaryLoaded,
     })),
   );
   const setStatsMap = useDashboardStore.getState().setStatsMap;
@@ -94,6 +110,7 @@ export function useDashboard() {
     useDashboardStore.getState().setCurrentMonthCommitmentPayments;
   const setMonthSpendStats = useDashboardStore.getState().setMonthSpendStats;
   const setTransactionTotals = useDashboardStore.getState().setTransactionTotals;
+  const setBudgetSummary = useDashboardStore.getState().setBudgetSummary;
 
   const previousYearMonth = useMemo(() => {
     const [y, m] = currentYearMonth.split('-').map(Number);
@@ -130,6 +147,19 @@ export function useDashboard() {
     }
   }, [currentYearMonth, previousYearMonth, setTransactionTotals]);
 
+  const loadBudgetSummary = useCallback(async () => {
+    try {
+      const [rows, spendByMonth] = await Promise.all([
+        budgetRepository.getRows(),
+        budgetRepository.getSpendByMonth([currentYearMonth]),
+      ]);
+      setBudgetSummary(computeBudgetSummaryForMonth(rows, spendByMonth, currentYearMonth));
+    } catch (err) {
+      console.error('[dashboard] loadBudgetSummary failed:', err);
+      setBudgetSummary(EMPTY_BUDGET_SUMMARY);
+    }
+  }, [currentYearMonth, setBudgetSummary]);
+
   const loadCurrentMonthCommitmentPayments = useCallback(async () => {
     try {
       const payments = await commitmentRepository.getPaymentsForMonth(currentYearMonth);
@@ -147,10 +177,12 @@ export function useDashboard() {
         void loadCurrentMonthCommitmentPayments();
         void loadMonthSpend();
         void loadTransactionTotals();
+        void loadBudgetSummary();
       });
       return () => task.cancel();
     }, [
       loadCurrentMonthCommitmentPayments,
+      loadBudgetSummary,
       loadMonthSpend,
       loadTransactionTotals,
       setSelectedSegment,
@@ -184,6 +216,7 @@ export function useDashboard() {
       await Promise.all([
         loadAccounts(),
         loadCurrentMonthCommitmentPayments(),
+        loadBudgetSummary(),
         loadMonthSpend(),
         loadTransactionTotals(),
       ]);
@@ -193,6 +226,7 @@ export function useDashboard() {
   }, [
     loadAccounts,
     loadCurrentMonthCommitmentPayments,
+    loadBudgetSummary,
     loadMonthSpend,
     loadTransactionTotals,
     setRefreshing,
@@ -265,6 +299,7 @@ export function useDashboard() {
   const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
   const goToSettings = useCallback(() => router.push('/settings'), [router]);
   const goToTransactions = useCallback(() => router.push('/(app)/(tabs)/transactions'), [router]);
+  const goToBudget = useCallback(() => router.push('/(app)/(tabs)/budget'), [router]);
   const goToCommitments = useCallback(() => router.push('/(app)/(tabs)/commitments'), [router]);
 
   return {
@@ -304,6 +339,11 @@ export function useDashboard() {
         yearMonth: currentYearMonth,
         loading: !transactionTotalsLoaded,
       },
+      budget: {
+        summary: currentBudgetSummary,
+        yearMonth: currentYearMonth,
+        loading: !budgetSummaryLoaded,
+      },
     },
     setBreakdownVisible,
     setSelectedSegment,
@@ -312,6 +352,7 @@ export function useDashboard() {
     goToAddAccount,
     goToSettings,
     goToTransactions,
+    goToBudget,
     goToCommitments,
   };
 }
