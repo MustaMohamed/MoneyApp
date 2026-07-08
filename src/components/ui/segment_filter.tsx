@@ -14,8 +14,8 @@ export function SegmentFilter<T extends string>(props: SegmentFilterProps<T>) {
       variant="solid-gold"
       layout="scrollable"
       scrollAlign="visible"
-      listClassName="self-stretch bg-default/60"
-      segmentWidth={Size.filterSegmentWidth}
+      listClassName="self-stretch rounded-full bg-default/60"
+      segmentWidth={Size.filterSegmentCompactWidth}
       density="compact"
       accessibilityLabel={props.accessibilityLabel}
     />

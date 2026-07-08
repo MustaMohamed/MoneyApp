@@ -181,19 +181,20 @@ export default function CommitmentsScreen() {
     ],
   );
 
-  const isRowsLoading = state.refreshing || !state.commitmentsLoaded || !state.paymentsLoaded;
-  const listSections = isRowsLoading ? [] : state.sections;
+  const showRowsSkeleton =
+    (!state.commitmentsLoaded || !state.paymentsLoaded) && state.sections.length === 0;
+  const listSections = state.sections;
 
   const listEmptyComponent = useMemo(
     () =>
-      isRowsLoading ? (
+      showRowsSkeleton ? (
         <CommitmentRowsSkeleton />
       ) : !state.hasListFilters ? (
         <EmptyState variant="commitmentsMonth" />
       ) : (
         <EmptyState variant="filtered" onAction={resetFilters} />
       ),
-    [isRowsLoading, resetFilters, state.hasListFilters],
+    [resetFilters, showRowsSkeleton, state.hasListFilters],
   );
 
   const handleRefresh = useCallback(() => void onRefresh(), [onRefresh]);

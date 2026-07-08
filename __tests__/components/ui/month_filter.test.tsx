@@ -19,6 +19,29 @@ jest.mock('@/components/ui/sheet', () => ({
 }));
 
 describe('MonthFilter', () => {
+  it('uses compact controls inside the filter rail', () => {
+    const { getByTestId, getByText } = render(
+      <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
+    );
+
+    expect(getByTestId('month-filter-previous')).toHaveProp(
+      'className',
+      expect.stringContaining('h-8'),
+    );
+    expect(getByTestId('month-filter-open')).toHaveProp(
+      'className',
+      expect.stringContaining('h-8'),
+    );
+    expect(getByTestId('month-filter-next')).toHaveProp(
+      'className',
+      expect.stringContaining('w-8'),
+    );
+    expect(getByText('August 2026')).toHaveProp(
+      'className',
+      expect.stringContaining('text-[11px]'),
+    );
+  });
+
   it('shows the selected month without the extra label', () => {
     const { getByText, queryByText } = render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,

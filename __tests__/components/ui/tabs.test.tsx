@@ -147,13 +147,19 @@ describe('SegmentedTabs', () => {
 
     expect(getByTestId('tabs-trigger-all')).toHaveProp(
       'className',
-      expect.stringContaining('px-2'),
+      expect.stringContaining('px-1.5'),
+    );
+    expect(getByTestId('tabs-trigger-all')).toHaveProp('className', expect.stringContaining('h-7'));
+    expect(getByTestId('tabs-trigger-all')).toHaveProp(
+      'className',
+      expect.stringContaining('rounded-full'),
     );
     expect(getByTestId('tabs-trigger-all')).toHaveProp(
       'className',
-      expect.stringContaining('gap-1'),
+      expect.stringContaining('gap-0.5'),
     );
-    expect(getByText('All')).toHaveProp('className', 'font-bold');
+    expect(getByText('All')).toHaveProp('className', 'text-[11px] font-bold');
+    expect(getByText('Overdue')).toHaveProp('className', 'text-[11px]');
     expect(getByText('Overdue')).not.toHaveProp('className', 'font-bold');
   });
 
@@ -214,5 +220,44 @@ describe('SegmentedTabs', () => {
       borderRadius: Radius.pill,
     });
     expect(getByTestId('tabs-trigger-overdue')).not.toHaveProp('style');
+  });
+
+  it('keeps the solid-gold indicator rounded', () => {
+    const { getByTestId } = render(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="scrollable"
+        variant="solid-gold"
+      />,
+    );
+
+    expect(getByTestId('tabs-indicator')).toHaveProp('style', {
+      backgroundColor: Colors.shared.cairoGold,
+      borderRadius: Radius.pill,
+    });
+  });
+
+  it('uses a larger compact radius so the selected fill matches the pill border', () => {
+    const { getByTestId } = render(
+      <SegmentedTabs
+        segments={[...segments]}
+        value="all"
+        onValueChange={jest.fn()}
+        layout="scrollable"
+        variant="solid-gold"
+        density="compact"
+      />,
+    );
+
+    expect(getByTestId('tabs-trigger-all')).toHaveStyle({
+      backgroundColor: Colors.shared.cairoGold,
+      borderRadius: Radius.lg,
+    });
+    expect(getByTestId('tabs-indicator')).toHaveStyle({
+      backgroundColor: Colors.shared.cairoGold,
+      borderRadius: Radius.lg,
+    });
   });
 });

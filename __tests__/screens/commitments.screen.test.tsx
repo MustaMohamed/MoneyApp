@@ -267,7 +267,7 @@ describe('CommitmentsScreen', () => {
     expect(queryByText('No commitments')).toBeNull();
   });
 
-  it('shows summary and row skeletons while manually refreshing loaded commitments', () => {
+  it('keeps loaded commitment rows visible while manually refreshing loaded commitments', () => {
     mockUseCommitments({
       commitmentsLoaded: true,
       paymentsLoaded: true,
@@ -276,11 +276,29 @@ describe('CommitmentsScreen', () => {
       sections: [{ title: 'Due', data: [makePayment()] }],
     });
 
-    const { getByTestId, getByText, queryByText } = render(<CommitmentsScreen />);
+    const { getByText, queryByTestId } = render(<CommitmentsScreen />);
 
     expect(getByText('Summary loading:true')).toBeTruthy();
-    expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
-    expect(queryByText('Commitment row')).toBeNull();
+    expect(getByText('Commitment row')).toBeTruthy();
+    expect(queryByTestId('commitment-row-skeletons')).toBeNull();
+  });
+
+  it('does not show row skeletons behind a filtered empty state while refreshing', () => {
+    mockUseCommitments({
+      commitmentsLoaded: true,
+      paymentsLoaded: true,
+      refreshing: true,
+      hasCommitments: true,
+      isEmpty: true,
+      hasListFilters: true,
+      statusFilter: CommitmentPaymentStatus.Paid,
+      sections: [],
+    });
+
+    const { getByText, queryByTestId } = render(<CommitmentsScreen />);
+
+    expect(getByText('filtered')).toBeTruthy();
+    expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });
 
   it('wires search, clear, and open filter actions from the search row', () => {

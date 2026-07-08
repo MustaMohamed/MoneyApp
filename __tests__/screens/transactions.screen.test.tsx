@@ -241,7 +241,7 @@ describe('TransactionsScreen', () => {
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
 
-  it('shows summary and row skeletons while manually refreshing loaded transactions', () => {
+  it('keeps loaded transactions visible while manually refreshing loaded transactions', () => {
     mockUseTransactions({
       emptyVariant: 'none',
       loading: false,
@@ -280,10 +280,41 @@ describe('TransactionsScreen', () => {
       ],
     });
 
-    const { getByTestId, getByText, queryByText } = render(<TransactionsScreen />);
+    const { getByText, queryByTestId } = render(<TransactionsScreen />);
 
     expect(getByText('Totals loading:true')).toBeTruthy();
-    expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
-    expect(queryByText('Transaction row')).toBeNull();
+    expect(getByText('Transaction row')).toBeTruthy();
+    expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+  });
+
+  it('does not show row skeletons during post-load filter query transitions', () => {
+    mockUseTransactions({
+      emptyVariant: 'none',
+      loading: true,
+      hasLoaded: true,
+      activeFilter: TransactionType.Expense,
+      sections: [],
+    });
+
+    const { queryByTestId, queryByText } = render(<TransactionsScreen />);
+
+    expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+    expect(queryByText('filtered')).toBeNull();
+  });
+
+  it('does not show row skeletons behind a filtered empty state while refreshing', () => {
+    mockUseTransactions({
+      emptyVariant: 'noResults',
+      loading: false,
+      hasLoaded: true,
+      refreshing: true,
+      activeFilter: TransactionType.CCPayment,
+      sections: [],
+    });
+
+    const { getByText, queryByTestId } = render(<TransactionsScreen />);
+
+    expect(getByText('filtered')).toBeTruthy();
+    expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
 });

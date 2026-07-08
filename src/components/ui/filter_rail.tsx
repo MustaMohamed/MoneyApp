@@ -26,12 +26,13 @@ export function FilterRail<T extends string>({
   filterAccessibilityLabel,
 }: FilterRailProps<T>) {
   return (
-    <View className="px-4 pt-1 pb-2">
+    <View testID="filter-rail-container" className="px-4 pt-1 pb-1">
       <Surface
+        testID="filter-rail-surface"
         variant="transparent"
-        className="bg-default/40 border-border rounded-2xl border p-1.5 shadow-none"
+        className="bg-default/40 border-border overflow-hidden rounded-3xl border p-1 shadow-none"
       >
-        <View style={{ gap: Spacing.xs }}>
+        <View style={{ gap: Spacing.xxs }}>
           <MonthFilter
             selectedMonth={selectedMonth}
             onSelectedMonthChange={onSelectedMonthChange}

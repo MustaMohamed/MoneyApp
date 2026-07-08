@@ -146,15 +146,14 @@ export default function TransactionsScreen(): React.ReactElement {
     [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
   );
 
-  const showRowsSkeleton =
-    state.refreshing || (state.emptyVariant === 'none' && state.sections.length === 0);
-  const listSections = showRowsSkeleton ? [] : state.sections;
+  const showRowsSkeleton = !state.hasLoaded && state.sections.length === 0;
+  const listSections = state.sections;
 
   const listEmptyComponent = useMemo(
     () =>
       showRowsSkeleton ? (
         <TransactionRowsSkeleton />
-      ) : (
+      ) : state.emptyVariant === 'none' ? null : (
         <EmptyState
           variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
           onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}

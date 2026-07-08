@@ -53,6 +53,36 @@ const filters = [
 ] as const;
 
 describe('FilterRail', () => {
+  it('uses compact rounded rail spacing', () => {
+    const { getByTestId } = render(
+      <FilterRail
+        selectedMonth="2026-08"
+        onSelectedMonthChange={jest.fn()}
+        selectedFilter="all"
+        onSelectedFilterChange={jest.fn()}
+        filters={filters}
+        filterAccessibilityLabel="Transaction type filter"
+      />,
+    );
+
+    expect(getByTestId('filter-rail-container')).toHaveProp(
+      'className',
+      expect.stringContaining('pb-1'),
+    );
+    expect(getByTestId('filter-rail-surface')).toHaveProp(
+      'className',
+      expect.stringContaining('rounded-3xl'),
+    );
+    expect(getByTestId('filter-rail-surface')).toHaveProp(
+      'className',
+      expect.stringContaining('overflow-hidden'),
+    );
+    expect(getByTestId('filter-rail-surface')).toHaveProp(
+      'className',
+      expect.stringContaining('p-1'),
+    );
+  });
+
   it('renders the selected month and every dynamic filter', () => {
     const { getByText } = render(
       <FilterRail

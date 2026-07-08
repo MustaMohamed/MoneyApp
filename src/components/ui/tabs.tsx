@@ -157,9 +157,10 @@ export function SegmentedTabs<T extends string>({
 
   const triggers = segments.map((seg) => {
     const isSelected = value === seg.value;
+    const selectedRadius = isCompact ? Radius.lg : Radius.pill;
     const selectedSolidGoldStyle =
       isSolidGold && isSelected
-        ? { backgroundColor: Colors.shared.cairoGold, borderRadius: Radius.pill }
+        ? { backgroundColor: Colors.shared.cairoGold, borderRadius: selectedRadius }
         : undefined;
     const triggerStyle =
       segmentWidth && selectedSolidGoldStyle
@@ -174,7 +175,10 @@ export function SegmentedTabs<T extends string>({
         value={seg.value}
         // Fixed tabs share width; scrollable tabs use either segmentWidth or
         // intrinsic width. Avoid flex-1 inside ScrollView content.
-        className={cn(isScrollable ? undefined : 'flex-1', isCompact ? 'gap-1 px-2' : undefined)}
+        className={cn(
+          isScrollable ? undefined : 'flex-1',
+          isCompact ? 'h-7 gap-0.5 rounded-full px-1.5 py-0' : undefined,
+        )}
         style={triggerStyle}
         accessibilityLabel={seg.accessibilityLabel ?? seg.label}
         isDisabled={isDisabled}
@@ -182,7 +186,7 @@ export function SegmentedTabs<T extends string>({
         {seg.icon ? (
           <MaterialCommunityIcons
             name={seg.icon.name}
-            size={Size.iconXs}
+            size={isCompact ? Size.filterSegmentIcon : Size.iconXs}
             color={isSolidGold && isSelected ? Colors.shared.midnightBlue : seg.icon.color}
           />
         ) : null}
@@ -193,7 +197,7 @@ export function SegmentedTabs<T extends string>({
           numberOfLines={1}
           adjustsFontSizeToFit={segmentWidth != null}
           minimumFontScale={0.85}
-          className={isCompact && isSelected ? 'font-bold' : undefined}
+          className={isCompact ? (isSelected ? 'text-[11px] font-bold' : 'text-[11px]') : undefined}
           style={[
             segmentWidth != null ? { flexShrink: 1 } : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
@@ -209,7 +213,14 @@ export function SegmentedTabs<T extends string>({
     <Tabs.Indicator
       // solid-gold: override bg-segment → cairoGold.
       // backgroundColor is not animated, so this style override is safe.
-      style={isSolidGold ? { backgroundColor: Colors.shared.cairoGold } : undefined}
+      style={
+        isSolidGold
+          ? {
+              backgroundColor: Colors.shared.cairoGold,
+              borderRadius: isCompact ? Radius.lg : Radius.pill,
+            }
+          : undefined
+      }
     />
   );
 
