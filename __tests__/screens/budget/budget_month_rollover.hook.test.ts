@@ -51,13 +51,22 @@ const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interaction
 
 let loadCategoriesMock: jest.Mock;
 let loadBudgetMock: jest.Mock;
+let selectedMonthState: string;
+let resetSelectedMonthToCurrentMock: jest.Mock;
+let setIncomeSuggestionMock: jest.Mock;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
 function setupStores() {
+  selectedMonthState = '2026-05';
   loadCategoriesMock = jest.fn();
   loadBudgetMock = jest.fn();
+  resetSelectedMonthToCurrentMock = jest.fn(() => {
+    const now = new Date();
+    selectedMonthState = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
+  setIncomeSuggestionMock = jest.fn();
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories: [],
     hasLoaded: false,
@@ -71,10 +80,21 @@ function setupStores() {
     load: loadBudgetMock,
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
+    selectedMonth: selectedMonthState,
     lensTab: 'categories',
+    copySheetVisible: false,
+    copySelectedCategoryIds: [],
+    incomeSuggestion: null,
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     setLensTab: jest.fn(),
+    setSelectedMonth: jest.fn((month: string) => {
+      selectedMonthState = month;
+    }),
+    resetSelectedMonthToCurrent: resetSelectedMonthToCurrentMock,
+    openCopy: jest.fn(),
+    closeCopy: jest.fn(),
+    setIncomeSuggestion: setIncomeSuggestionMock,
   }));
 }
 
@@ -100,7 +120,8 @@ describe('useBudget — month rollover', () => {
 
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = renderHook(() => useBudget());
+    setupStores();
+    const { result, rerender } = renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     // A month boundary passes while the screen stays mounted.
@@ -109,13 +130,15 @@ describe('useBudget — month rollover', () => {
       capturedFocusCallback?.();
       await Promise.resolve();
     });
+    rerender();
 
     expect(result.current.state.month).toBe('2026-06');
   });
 
   it('cancels pending focus reload work on cleanup while keeping month rollover synchronous', () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = renderHook(() => useBudget());
+    setupStores();
+    const { result, rerender } = renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     loadCategoriesMock.mockClear();
@@ -127,6 +150,7 @@ describe('useBudget — month rollover', () => {
     act(() => {
       cleanup = capturedFocusCallback?.();
     });
+    rerender();
 
     expect(result.current.state.month).toBe('2026-06');
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);

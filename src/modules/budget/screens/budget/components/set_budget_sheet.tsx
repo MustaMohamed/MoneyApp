@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 import { Input, PressableFeedback, RadioGroup } from 'heroui-native';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Controller } from 'react-hook-form';
 import { StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -44,23 +44,26 @@ function isBudgetGroup(value: string): value is BudgetGroup {
 }
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
-  const { sheetVisible, mode, targetCategoryId } = useBudgetState(
+  const { sheetVisible, mode, targetCategoryId, selectedMonth } = useBudgetState(
     useShallow((s) => ({
       sheetVisible: s.sheetVisible,
       mode: s.mode,
       targetCategoryId: s.targetCategoryId,
+      selectedMonth: s.selectedMonth,
     })),
   );
   const close = useBudgetState.getState().close;
   const setLimit = useBudgetStore.getState().setLimit;
-  const { selectedCategoryId, pickerExpanded } = useSetBudgetSheetState(
+  const { selectedCategoryId, pickerExpanded, groupValue } = useSetBudgetSheetState(
     useShallow((s) => ({
       selectedCategoryId: s.selectedCategoryId,
       pickerExpanded: s.pickerExpanded,
+      groupValue: s.groupValue,
     })),
   );
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
   const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
+  const setGroupValue = useSetBudgetSheetState.getState().setGroupValue;
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
   const reset = useSetBudgetSheetState.getState().reset;
@@ -73,8 +76,6 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     handleSubmit,
     reset: resetForm,
   } = useZodForm<BudgetFormValues>(budgetFormSchema, { defaultValues: { limitText: '' } });
-
-  const [groupValue, setGroupValue] = useState<BudgetGroup | null>(null);
 
   const addModeSelectedCategory = useMemo(
     () => budgetableCategories.find((c) => c.id === selectedCategoryId),
@@ -108,7 +109,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
 
   const onSubmit = handleSubmit(async (values) => {
     if (!resolvedCategoryId) return;
-    await setLimit(resolvedCategoryId, parseLimit(values.limitText));
+    await setLimit(resolvedCategoryId, parseLimit(values.limitText), selectedMonth);
     if (groupValue !== null) {
       const db = await getDb();
       await setCategoryGroup(db, resolvedCategoryId, groupValue);
