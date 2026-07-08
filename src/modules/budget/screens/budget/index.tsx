@@ -41,6 +41,8 @@ export default function BudgetScreen() {
     toggleCopyCategoryId,
     selectAllCopyCategories,
     clearCopySelection,
+    goToPreviousCopySourceMonth,
+    goToNextCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
     goToCategory,
@@ -145,6 +147,9 @@ export default function BudgetScreen() {
         targetMonthLabel={formatMonthYear(state.month)}
         rows={state.copyRows}
         selectedCategoryIds={state.copySelectedCategoryIds}
+        sourceMonthNextDisabled={!state.canGoNextCopySourceMonth}
+        onPreviousSourceMonth={goToPreviousCopySourceMonth}
+        onNextSourceMonth={goToNextCopySourceMonth}
         onOpenChange={(open) => {
           if (!open) closeCopy();
         }}

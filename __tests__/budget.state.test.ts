@@ -12,6 +12,7 @@ describe('useBudgetState', () => {
     expect(s.mode).toBe('add');
     expect(s.targetCategoryId).toBeUndefined();
     expect(s.selectedMonth).toBe('2026-07');
+    expect(s.copySourceMonth).toBe('2026-06');
     expect(s.copySelectedCategoryIds).toEqual([]);
     expect(s.incomeSuggestion).toBeNull();
     jest.useRealTimers();
@@ -44,10 +45,21 @@ describe('useBudgetState', () => {
     jest.useFakeTimers().setSystemTime(new Date('2026-07-08T12:00:00'));
     useBudgetState.getState().setSelectedMonth('2026-06');
     expect(useBudgetState.getState().selectedMonth).toBe('2026-06');
+    expect(useBudgetState.getState().copySourceMonth).toBe('2026-05');
 
     useBudgetState.getState().resetSelectedMonthToCurrent();
     expect(useBudgetState.getState().selectedMonth).toBe('2026-07');
+    expect(useBudgetState.getState().copySourceMonth).toBe('2026-06');
     jest.useRealTimers();
+  });
+
+  it('stores and resets the copy source month', () => {
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().setCopySourceMonth('2026-05');
+    expect(useBudgetState.getState().copySourceMonth).toBe('2026-05');
+
+    useBudgetState.getState().closeCopy();
+    expect(useBudgetState.getState().copySourceMonth).toBe('2026-07');
   });
 
   it('opens copy sheet with selected source categories by default', () => {

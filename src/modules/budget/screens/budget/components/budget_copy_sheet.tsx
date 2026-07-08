@@ -19,6 +19,10 @@ interface BudgetCopySheetProps {
   targetMonthLabel: string;
   rows: BudgetCopyRowVM[];
   selectedCategoryIds: string[];
+  sourceMonthPreviousDisabled?: boolean;
+  sourceMonthNextDisabled?: boolean;
+  onPreviousSourceMonth?: () => void;
+  onNextSourceMonth?: () => void;
   onOpenChange: (open: boolean) => void;
   onToggleCategory: (categoryId: string) => void;
   onSelectAll: () => void;
@@ -36,6 +40,10 @@ export function BudgetCopySheet({
   targetMonthLabel,
   rows,
   selectedCategoryIds,
+  sourceMonthPreviousDisabled = false,
+  sourceMonthNextDisabled = false,
+  onPreviousSourceMonth,
+  onNextSourceMonth,
   onOpenChange,
   onToggleCategory,
   onSelectAll,
@@ -80,9 +88,48 @@ export function BudgetCopySheet({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.bodyContent}
       >
-        <Text style={styles.routeLabel}>
-          {Strings.budgetCopyRoute(sourceMonthLabel, targetMonthLabel)}
-        </Text>
+        <View style={styles.sourceBlock}>
+          <Text style={styles.sourceLabel}>{Strings.budgetCopySourceLabel}</Text>
+          <View style={styles.sourceRow}>
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={Strings.budgetCopyPreviousSourceA11y}
+              accessibilityState={{ disabled: sourceMonthPreviousDisabled }}
+              isDisabled={sourceMonthPreviousDisabled}
+              onPress={() => {
+                if (!sourceMonthPreviousDisabled) onPreviousSourceMonth?.();
+              }}
+              style={[styles.sourceButton, sourceMonthPreviousDisabled && styles.disabledSource]}
+            >
+              <MaterialCommunityIcons
+                name="chevron-left"
+                size={ms(18)}
+                color={sourceMonthPreviousDisabled ? Colors.dark.text3 : Colors.dark.text1}
+              />
+            </PressableFeedback>
+            <View style={styles.sourcePill}>
+              <Text style={styles.sourceMonth}>{sourceMonthLabel}</Text>
+            </View>
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={Strings.budgetCopyNextSourceA11y}
+              accessibilityState={{ disabled: sourceMonthNextDisabled }}
+              isDisabled={sourceMonthNextDisabled}
+              onPress={() => {
+                if (!sourceMonthNextDisabled) onNextSourceMonth?.();
+              }}
+              style={[styles.sourceButton, sourceMonthNextDisabled && styles.disabledSource]}
+            >
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={ms(18)}
+                color={sourceMonthNextDisabled ? Colors.dark.text3 : Colors.dark.text1}
+              />
+            </PressableFeedback>
+            <Text style={styles.routeArrow}>→</Text>
+            <Text style={styles.targetMonth}>{targetMonthLabel}</Text>
+          </View>
+        </View>
 
         {rows.length > 0 ? (
           <>
@@ -111,7 +158,10 @@ export function BudgetCopySheet({
                     style={styles.row}
                   >
                     <View pointerEvents="none">
-                      <Checkbox isSelected={selected} />
+                      <Checkbox
+                        isSelected={selected}
+                        className="border-accent/70 bg-surface size-5 border"
+                      />
                     </View>
                     <View style={[styles.iconBox, { backgroundColor: `${row.color}22` }]}>
                       <MaterialCommunityIcons
@@ -148,11 +198,58 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingBottom: SHEET_FOOTER_CLEARANCE,
   },
-  routeLabel: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
+  sourceBlock: {
     marginBottom: Spacing.sm,
+  },
+  sourceLabel: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.micro,
+    color: Colors.dark.gold,
+    marginBottom: Spacing.xs,
+  },
+  sourceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  sourceButton: {
+    width: ms(32),
+    height: ms(32),
+    borderRadius: Radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.surfaceEl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.border,
+  },
+  disabledSource: {
+    opacity: 0.45,
+  },
+  sourcePill: {
+    minHeight: ms(32),
+    borderRadius: Radius.sm,
+    paddingHorizontal: Spacing.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.surfaceEl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: Colors.dark.border,
+  },
+  sourceMonth: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.caption,
+    color: Colors.dark.text1,
+  },
+  routeArrow: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.body,
+    color: Colors.dark.text2,
+  },
+  targetMonth: {
+    flexShrink: 1,
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.caption,
+    color: Colors.dark.text1,
   },
   actionsRow: {
     flexDirection: 'row',

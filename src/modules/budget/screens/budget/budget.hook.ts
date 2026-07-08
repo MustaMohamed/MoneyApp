@@ -11,6 +11,7 @@ import {
   buildBudgetCopyRows,
   computeCategoryRow,
   computeOverall,
+  nextYearMonth,
   previousYearMonth,
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
@@ -52,18 +53,26 @@ export function useBudget() {
   const removeBudget = useBudgetStore.getState().removeBudget;
   const openAdd = useBudgetState.getState().openAdd;
   const openEdit = useBudgetState.getState().openEdit;
-  const { selectedMonth, lensTab, copySheetVisible, copySelectedCategoryIds, incomeSuggestion } =
-    useBudgetState(
-      useShallow((s) => ({
-        selectedMonth: s.selectedMonth,
-        lensTab: s.lensTab,
-        copySheetVisible: s.copySheetVisible,
-        copySelectedCategoryIds: s.copySelectedCategoryIds,
-        incomeSuggestion: s.incomeSuggestion,
-      })),
-    );
+  const {
+    selectedMonth,
+    copySourceMonth,
+    lensTab,
+    copySheetVisible,
+    copySelectedCategoryIds,
+    incomeSuggestion,
+  } = useBudgetState(
+    useShallow((s) => ({
+      selectedMonth: s.selectedMonth,
+      copySourceMonth: s.copySourceMonth,
+      lensTab: s.lensTab,
+      copySheetVisible: s.copySheetVisible,
+      copySelectedCategoryIds: s.copySelectedCategoryIds,
+      incomeSuggestion: s.incomeSuggestion,
+    })),
+  );
   const setLensTab = useBudgetState.getState().setLensTab;
   const setSelectedMonthState = useBudgetState.getState().setSelectedMonth;
+  const setCopySourceMonthState = useBudgetState.getState().setCopySourceMonth;
   const resetSelectedMonthToCurrent = useBudgetState.getState().resetSelectedMonthToCurrent;
   const openCopyState = useBudgetState.getState().openCopy;
   const closeCopy = useBudgetState.getState().closeCopy;
@@ -133,8 +142,6 @@ export function useBudget() {
     [budgetRows, categories, selectedMonth],
   );
 
-  const copySourceMonth = useMemo(() => previousYearMonth(selectedMonth), [selectedMonth]);
-
   const copyRows = useMemo(
     () =>
       buildBudgetCopyRows({
@@ -144,6 +151,11 @@ export function useBudget() {
         targetMonth: selectedMonth,
       }),
     [budgetRows, categories, copySourceMonth, selectedMonth],
+  );
+
+  const canGoNextCopySourceMonth = useMemo(
+    () => nextYearMonth(copySourceMonth) <= previousYearMonth(selectedMonth),
+    [copySourceMonth, selectedMonth],
   );
 
   const daysLeft = useMemo(() => {
@@ -170,6 +182,29 @@ export function useBudget() {
   const openCopy = useCallback(() => {
     openCopyState(copyRows.map((row) => row.categoryId));
   }, [copyRows, openCopyState]);
+
+  const setCopySourceMonth = useCallback(
+    (month: string) => {
+      setCopySourceMonthState(month);
+      const rowsForSource = buildBudgetCopyRows({
+        rows: budgetRows,
+        categories,
+        sourceMonth: month,
+        targetMonth: selectedMonth,
+      });
+      setCopySelectedCategoryIds(rowsForSource.map((row) => row.categoryId));
+    },
+    [budgetRows, categories, selectedMonth, setCopySelectedCategoryIds, setCopySourceMonthState],
+  );
+
+  const goToPreviousCopySourceMonth = useCallback(() => {
+    setCopySourceMonth(previousYearMonth(copySourceMonth));
+  }, [copySourceMonth, setCopySourceMonth]);
+
+  const goToNextCopySourceMonth = useCallback(() => {
+    if (!canGoNextCopySourceMonth) return;
+    setCopySourceMonth(nextYearMonth(copySourceMonth));
+  }, [canGoNextCopySourceMonth, copySourceMonth, setCopySourceMonth]);
 
   const copySelectedBudgets = useCallback(
     async (categoryIds = copySelectedCategoryIds) => {
@@ -202,6 +237,7 @@ export function useBudget() {
       suggestion: incomeSuggestion,
       lensTab,
       copySourceMonth,
+      canGoNextCopySourceMonth,
       copyRows,
       copySheetVisible,
       copySelectedCategoryIds,
@@ -216,6 +252,8 @@ export function useBudget() {
     toggleCopyCategoryId,
     selectAllCopyCategories,
     clearCopySelection,
+    goToPreviousCopySourceMonth,
+    goToNextCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
     goToCategory,

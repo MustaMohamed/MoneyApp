@@ -110,7 +110,9 @@ describe('BudgetCopySheet', () => {
       />,
     );
 
-    expect(getByText('June 2026 → July 2026')).toBeTruthy();
+    expect(getByText('Copy from')).toBeTruthy();
+    expect(getByText('June 2026')).toBeTruthy();
+    expect(getByText('July 2026')).toBeTruthy();
     expect(getByText('Food')).toBeTruthy();
     expect(getByText('3,500')).toBeTruthy();
     expect(getByText('Will replace')).toBeTruthy();
@@ -152,6 +154,57 @@ describe('BudgetCopySheet', () => {
     ]);
   });
 
+  it('keeps unchecked checkbox controls visibly bordered on the row surface', () => {
+    const { getAllByTestId } = render(
+      <BudgetCopySheet
+        isOpen
+        sourceMonthLabel="June 2026"
+        targetMonthLabel="July 2026"
+        rows={rows}
+        selectedCategoryIds={[]}
+        onOpenChange={jest.fn()}
+        onToggleCategory={jest.fn()}
+        onSelectAll={jest.fn()}
+        onClearSelection={jest.fn()}
+        onApply={jest.fn()}
+      />,
+    );
+
+    expect(getAllByTestId('checkbox-root').map((node) => node.props.className)).toEqual([
+      expect.stringContaining('border'),
+      expect.stringContaining('border'),
+    ]);
+  });
+
+  it('renders compact controls for changing the copy source month', () => {
+    const onPreviousSourceMonth = jest.fn();
+    const onNextSourceMonth = jest.fn();
+    const { getByLabelText } = render(
+      <BudgetCopySheet
+        isOpen
+        sourceMonthLabel="June 2026"
+        targetMonthLabel="July 2026"
+        rows={rows}
+        selectedCategoryIds={['food']}
+        sourceMonthPreviousDisabled={false}
+        sourceMonthNextDisabled
+        onPreviousSourceMonth={onPreviousSourceMonth}
+        onNextSourceMonth={onNextSourceMonth}
+        onOpenChange={jest.fn()}
+        onToggleCategory={jest.fn()}
+        onSelectAll={jest.fn()}
+        onClearSelection={jest.fn()}
+        onApply={jest.fn()}
+      />,
+    );
+
+    fireEvent.press(getByLabelText('Previous source month'));
+    fireEvent.press(getByLabelText('Next source month'));
+
+    expect(onPreviousSourceMonth).toHaveBeenCalledTimes(1);
+    expect(onNextSourceMonth).not.toHaveBeenCalled();
+  });
+
   it('disables apply when nothing is selected', () => {
     const onApply = jest.fn();
     const { getByText } = render(
@@ -173,7 +226,7 @@ describe('BudgetCopySheet', () => {
     expect(onApply).not.toHaveBeenCalled();
   });
 
-  it('shows an empty message when previous month has no budgets', () => {
+  it('shows an empty message when the selected source month has no budgets', () => {
     const { getByText, queryByText } = render(
       <BudgetCopySheet
         isOpen

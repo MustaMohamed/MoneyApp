@@ -161,6 +161,13 @@ export function previousYearMonth(yearMonth: string): string {
   return `${previousYear}-${String(previousMonth).padStart(2, '0')}`;
 }
 
+export function nextYearMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  return `${nextYear}-${String(nextMonth).padStart(2, '0')}`;
+}
+
 export function buildBudgetCopyRows({
   rows,
   categories,

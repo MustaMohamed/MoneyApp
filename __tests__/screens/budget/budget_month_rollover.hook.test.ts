@@ -52,19 +52,29 @@ const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interaction
 let loadCategoriesMock: jest.Mock;
 let loadBudgetMock: jest.Mock;
 let selectedMonthState: string;
+let copySourceMonthState: string;
 let resetSelectedMonthToCurrentMock: jest.Mock;
 let setIncomeSuggestionMock: jest.Mock;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
+function previousYearMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  return `${previousYear}-${String(previousMonth).padStart(2, '0')}`;
+}
+
 function setupStores() {
   selectedMonthState = '2026-05';
+  copySourceMonthState = '2026-04';
   loadCategoriesMock = jest.fn();
   loadBudgetMock = jest.fn();
   resetSelectedMonthToCurrentMock = jest.fn(() => {
     const now = new Date();
     selectedMonthState = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    copySourceMonthState = previousYearMonth(selectedMonthState);
   });
   setIncomeSuggestionMock = jest.fn();
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
@@ -81,6 +91,7 @@ function setupStores() {
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
     selectedMonth: selectedMonthState,
+    copySourceMonth: copySourceMonthState,
     lensTab: 'categories',
     copySheetVisible: false,
     copySelectedCategoryIds: [],
@@ -90,10 +101,15 @@ function setupStores() {
     setLensTab: jest.fn(),
     setSelectedMonth: jest.fn((month: string) => {
       selectedMonthState = month;
+      copySourceMonthState = previousYearMonth(month);
+    }),
+    setCopySourceMonth: jest.fn((month: string) => {
+      copySourceMonthState = month;
     }),
     resetSelectedMonthToCurrent: resetSelectedMonthToCurrentMock,
     openCopy: jest.fn(),
     closeCopy: jest.fn(),
+    setCopySelectedCategoryIds: jest.fn(),
     setIncomeSuggestion: setIncomeSuggestionMock,
   }));
 }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
+import { previousYearMonth } from '@/modules/budget/screens/budget/budget.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type BudgetSheetMode = 'add' | 'edit';
@@ -12,6 +13,7 @@ interface BudgetStateShape {
   targetCategoryId: string | undefined;
   lensTab: LensTab;
   selectedMonth: string;
+  copySourceMonth: string;
   copySheetVisible: boolean;
   copySelectedCategoryIds: string[];
   incomeSuggestion: number | null;
@@ -23,6 +25,7 @@ type BudgetState = BudgetStateShape & {
   close: () => void;
   setLensTab: (tab: LensTab) => void;
   setSelectedMonth: (month: string) => void;
+  setCopySourceMonth: (month: string) => void;
   resetSelectedMonthToCurrent: () => void;
   openCopy: (categoryIds?: string[]) => void;
   closeCopy: () => void;
@@ -34,12 +37,14 @@ type BudgetState = BudgetStateShape & {
 };
 
 function initialState(): BudgetStateShape {
+  const selectedMonth = currentYearMonth();
   return {
     sheetVisible: false,
     mode: 'add',
     targetCategoryId: undefined,
     lensTab: 'categories',
-    selectedMonth: currentYearMonth(),
+    selectedMonth,
+    copySourceMonth: previousYearMonth(selectedMonth),
     copySheetVisible: false,
     copySelectedCategoryIds: [],
     incomeSuggestion: null,
@@ -63,11 +68,21 @@ export const useBudgetState = createMoneyAppSelectors(
       }),
     close: () => set({ sheetVisible: false }),
     setLensTab: (tab) => set({ lensTab: tab }),
-    setSelectedMonth: (month) => set({ selectedMonth: month }),
-    resetSelectedMonthToCurrent: () => set({ selectedMonth: currentYearMonth() }),
+    setSelectedMonth: (month) =>
+      set({ selectedMonth: month, copySourceMonth: previousYearMonth(month) }),
+    setCopySourceMonth: (month) => set({ copySourceMonth: month }),
+    resetSelectedMonthToCurrent: () => {
+      const selectedMonth = currentYearMonth();
+      set({ selectedMonth, copySourceMonth: previousYearMonth(selectedMonth) });
+    },
     openCopy: (categoryIds = []) =>
       set({ copySheetVisible: true, copySelectedCategoryIds: categoryIds }),
-    closeCopy: () => set({ copySheetVisible: false, copySelectedCategoryIds: [] }),
+    closeCopy: () =>
+      set((state) => ({
+        copySheetVisible: false,
+        copySelectedCategoryIds: [],
+        copySourceMonth: previousYearMonth(state.selectedMonth),
+      })),
     setCopySelectedCategoryIds: (categoryIds) => set({ copySelectedCategoryIds: categoryIds }),
     toggleCopyCategoryId: (categoryId) =>
       set((state) => {

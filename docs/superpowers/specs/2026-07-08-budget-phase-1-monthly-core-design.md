@@ -2,7 +2,7 @@
 
 ## Summary
 
-Phase 1 turns the Budget tab into a monthly budget workspace. It implements the approved main-screen direction: a compact month selector, a monthly summary card, category allocation rows, an icon tool rail, copy-from-previous-month with category selection, and a matching dashboard Budget summary card.
+Phase 1 turns the Budget tab into a monthly budget workspace. It implements the approved main-screen direction: a compact month selector, a monthly summary card, category allocation rows, an icon tool rail, copy-from-month with category selection, and a matching dashboard Budget summary card.
 
 This phase intentionally does not add Spending Plans persistence, weekly/travel budgets, or a redesigned 50/30/20 workflow. Those are Phase 2 and Phase 3.
 
@@ -15,7 +15,7 @@ This phase intentionally does not add Spending Plans persistence, weekly/travel 
 - Summary card with Budgeted, Spent, and Left for the selected month.
 - Category allocation rows for the selected month.
 - Add, edit, and remove category allocations for the selected month.
-- Copy previous month with a checklist so the user can choose which categories to copy.
+- Copy from a selected source month with a checklist so the user can choose which categories to copy.
 - Loading, empty, and refresh-safe states for monthly budget data.
 - Dashboard Budget card for the current month.
 - Code-standard cleanup needed to keep Budget screen logic out of UI components.
@@ -39,7 +39,7 @@ The first screen remains the actual Budget workspace, not an explainer. The scre
 - Tabs: current category-budget surface remains the default. Existing 50/30/20 remains available and unchanged.
 - Compact monthly summary card: Budgeted / Spent / Left, progress bar, and small month status metadata.
 - Icon tool rail directly under the summary:
-  - Copy: opens the copy-from-previous-month sheet.
+  - Copy: opens the copy-from-month sheet.
   - Category: opens the add category budget sheet.
   - Plan: visible as the future Spending Plans affordance but disabled in Phase 1.
 - Category allocation list: category icon, category name, spent/limit/left, progress bar, edit/remove gestures as today.
@@ -50,7 +50,9 @@ The Plan affordance is deliberately not wired to create data in Phase 1. This pr
 
 The Copy tool opens a bottom sheet with:
 
-- Source month label: previous month relative to the selected month.
+- Source month control: defaults to the previous month relative to the selected month.
+- Compact previous/next source controls let the user choose an earlier source month.
+- Source month forward navigation stops at the month before the destination month.
 - Destination month label: selected month.
 - A checklist of source-month budget categories.
 - Category name, icon, previous amount, and status:
@@ -61,7 +63,7 @@ The Copy tool opens a bottom sheet with:
 
 Default selection: all source-month categories are selected. Applying copies only selected categories into the selected month. Unselected categories in the selected month stay unchanged.
 
-If the previous month has no explicit category budgets, the sheet shows an empty state and disables Apply.
+If the selected source month has no explicit category budgets, the sheet shows an empty state and disables Apply.
 
 ### Add/Edit/Remove Category Allocation
 
@@ -137,7 +139,7 @@ The implementation must remove or avoid `useState` in Budget UI components touch
 - First load uses skeletons sized to the final summary, rail, and row layout.
 - Refresh keeps the same layout footprint; it should not collapse into a spinner or cause card jumps.
 - Empty monthly budget state shows the existing Budget empty state with the Category tool available.
-- Copy sheet has its own empty state when the previous month has nothing to copy.
+- Copy sheet has its own empty state when the selected source month has nothing to copy.
 - Repository errors follow existing store behavior: log the error, keep the screen stable, and show safe empty values where needed.
 
 ## Financial Rules
@@ -147,7 +149,7 @@ The implementation must remove or avoid `useState` in Budget UI components touch
 - Left = Budgeted - Spent.
 - Progress = Spent / Budgeted, or 0 when Budgeted is 0.
 - Dashboard Budget card always uses the current calendar month, not a filter or selected month from the Budget tab.
-- Copying previous month copies limits only. It does not copy spending, category groups, or transactions.
+- Copying a source month copies limits only. It does not copy spending, category groups, or transactions.
 
 ## Testing Plan
 
@@ -156,7 +158,7 @@ The implementation must remove or avoid `useState` in Budget UI components touch
 - Helper tests for copy checklist view models:
   - New category.
   - Existing target category.
-  - Empty previous month.
+  - Empty source month.
   - Unselected categories remain untouched.
 - Hook tests proving add/edit/remove writes use the selected month.
 - Dashboard hook/component tests for current-month Budget summary loading and display.
@@ -167,7 +169,7 @@ The implementation must remove or avoid `useState` in Budget UI components touch
 - Budget tab opens on the current month with no loading layout shift.
 - Changing the month updates summary, rows, addable categories, and copy source month.
 - Adding/editing/removing a budget affects the selected month, not always the real current month.
-- Copy previous month lets the user select categories and applies only selected limits.
+- Copy source month lets the user choose the source month, select categories, and apply only selected limits.
 - Existing 50/30/20 tab remains usable.
 - Dashboard shows a compact Budget card for the current month and navigates to Budget on press.
 - No new dependencies, migrations, or native-code changes.

@@ -38,7 +38,7 @@ describe('BudgetToolRail', () => {
     expect(getByText('Category')).toBeTruthy();
     expect(getByText('Plan')).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Copy previous month'));
+    fireEvent.press(getByLabelText('Copy budget'));
     fireEvent.press(getByLabelText('Budget a category'));
     fireEvent.press(getByLabelText('Spending plans coming in Phase 2'));
 
@@ -47,7 +47,7 @@ describe('BudgetToolRail', () => {
     expect(onPlan).not.toHaveBeenCalled();
   });
 
-  it('can disable copy when there is no previous month budget to copy', () => {
+  it('can disable copy when there is no source month budget to copy', () => {
     const onCopy = jest.fn();
     const { getByLabelText } = render(
       <BudgetToolRail
@@ -60,7 +60,7 @@ describe('BudgetToolRail', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText('Copy previous month'));
+    fireEvent.press(getByLabelText('Copy budget'));
     expect(onCopy).not.toHaveBeenCalled();
   });
 });

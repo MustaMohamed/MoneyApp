@@ -56,6 +56,7 @@ function budget(categoryId: string, limit: number, effectiveFrom: string): Budge
 
 const categories = [category('food', 'Food'), category('car', 'Car')];
 const budgetRows = [
+  budget('car', 900, '2026-05'),
   budget('food', 3000, '2026-06'),
   budget('car', 1200, '2026-06'),
   budget('food', 3500, '2026-07'),
@@ -63,6 +64,8 @@ const budgetRows = [
 
 let loadBudgetMock: jest.Mock;
 let setSelectedMonthMock: jest.Mock;
+let setCopySourceMonthMock: jest.Mock;
+let setCopySelectedCategoryIdsMock: jest.Mock;
 let openCopyMock: jest.Mock;
 let closeCopyMock: jest.Mock;
 let copyLimitsToMonthMock: jest.Mock;
@@ -73,6 +76,8 @@ function setupStores() {
   copyLimitsToMonthMock = jest.fn().mockResolvedValue(undefined);
   removeBudgetMock = jest.fn().mockResolvedValue(undefined);
   setSelectedMonthMock = jest.fn();
+  setCopySourceMonthMock = jest.fn();
+  setCopySelectedCategoryIdsMock = jest.fn();
   openCopyMock = jest.fn();
   closeCopyMock = jest.fn();
 
@@ -92,6 +97,7 @@ function setupStores() {
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
     selectedMonth: '2026-07',
+    copySourceMonth: '2026-06',
     lensTab: 'categories',
     copySheetVisible: false,
     copySelectedCategoryIds: ['food'],
@@ -100,9 +106,11 @@ function setupStores() {
     openEdit: jest.fn(),
     setLensTab: jest.fn(),
     setSelectedMonth: setSelectedMonthMock,
+    setCopySourceMonth: setCopySourceMonthMock,
     resetSelectedMonthToCurrent: jest.fn(),
     openCopy: openCopyMock,
     closeCopy: closeCopyMock,
+    setCopySelectedCategoryIds: setCopySelectedCategoryIdsMock,
     setIncomeSuggestion: jest.fn(),
   }));
 }
@@ -138,6 +146,15 @@ describe('useBudget month actions', () => {
 
     expect(copyLimitsToMonthMock).toHaveBeenCalledWith('2026-06', '2026-07', ['food']);
     expect(closeCopyMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('changes the source month and selects all copyable rows for that source', () => {
+    const { result } = renderHook(() => useBudget());
+
+    act(() => result.current.goToPreviousCopySourceMonth());
+
+    expect(setCopySourceMonthMock).toHaveBeenCalledWith('2026-05');
+    expect(setCopySelectedCategoryIdsMock).toHaveBeenCalledWith(['car']);
   });
 
   it('removes a budget from the selected month', async () => {
