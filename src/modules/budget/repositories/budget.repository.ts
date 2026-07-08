@@ -24,9 +24,24 @@ export function lastMonths(end: string, n: number): string[] {
 
 export interface IBudgetRepository {
   getRows(): Promise<Budget[]>;
-  setLimit(categoryId: string, limit: number): Promise<void>;
-  removeBudget(categoryId: string): Promise<void>;
+  setLimit(categoryId: string, limit: number, yearMonth?: string): Promise<void>;
+  removeBudget(categoryId: string, yearMonth?: string): Promise<void>;
+  copyLimitsToMonth(sourceMonth: string, targetMonth: string, categoryIds: string[]): Promise<void>;
   getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>>;
+}
+
+function resolveLimitForMonth(
+  rows: Budget[],
+  categoryId: string,
+  yearMonth: string,
+): number | null {
+  let best: Budget | null = null;
+  for (const row of rows) {
+    if (row.category_id !== categoryId) continue;
+    if (row.effective_from > yearMonth) continue;
+    if (best === null || row.effective_from > best.effective_from) best = row;
+  }
+  return best ? best.limit_amount : null;
 }
 
 export class BudgetRepository implements IBudgetRepository {
@@ -35,30 +50,57 @@ export class BudgetRepository implements IBudgetRepository {
     return getBudgetRows(db);
   }
 
-  async setLimit(categoryId: string, limit: number): Promise<void> {
+  async setLimit(categoryId: string, limit: number, yearMonth = currentYearMonth()): Promise<void> {
     const db = await getDb();
     const now = new Date().toISOString();
     await setBudgetRow(db, {
       id: String(uuid.v4()),
       category_id: categoryId,
       limit_amount: limit,
-      effective_from: currentYearMonth(),
+      effective_from: yearMonth,
       created_at: now,
       updated_at: now,
     });
   }
 
-  async removeBudget(categoryId: string): Promise<void> {
+  async removeBudget(categoryId: string, yearMonth = currentYearMonth()): Promise<void> {
     const db = await getDb();
     const now = new Date().toISOString();
     await setBudgetRow(db, {
       id: String(uuid.v4()),
       category_id: categoryId,
       limit_amount: null,
-      effective_from: currentYearMonth(),
+      effective_from: yearMonth,
       created_at: now,
       updated_at: now,
     });
+  }
+
+  async copyLimitsToMonth(
+    sourceMonth: string,
+    targetMonth: string,
+    categoryIds: string[],
+  ): Promise<void> {
+    const db = await getDb();
+    const rows = await getBudgetRows(db);
+    const now = new Date().toISOString();
+    const uniqueCategoryIds = Array.from(new Set(categoryIds));
+
+    await Promise.all(
+      uniqueCategoryIds.map(async (categoryId) => {
+        const limit = resolveLimitForMonth(rows, categoryId, sourceMonth);
+        if (limit === null) return;
+
+        await setBudgetRow(db, {
+          id: String(uuid.v4()),
+          category_id: categoryId,
+          limit_amount: limit,
+          effective_from: targetMonth,
+          created_at: now,
+          updated_at: now,
+        });
+      }),
+    );
   }
 
   async getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>> {
