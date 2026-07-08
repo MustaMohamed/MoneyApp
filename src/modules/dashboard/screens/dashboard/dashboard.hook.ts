@@ -39,10 +39,15 @@ function resolveMonthRange(yearMonth: string): { from: string; to: string } {
   };
 }
 
+const EMPTY_MONTH_SPEND = { totalEgp: 0, usdNative: 0, count: 0 };
+const EMPTY_TRANSACTION_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+
 export function useDashboard() {
   const router = useRouter();
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountsLoaded } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, accountsLoaded: s.hasLoaded })),
+  );
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const { rate, isManualOverride } = useCurrencyStore(
     useShallow((s) => ({
@@ -68,6 +73,9 @@ export function useDashboard() {
     previousMonthSpend,
     currentTransactionTotals,
     previousTransactionTotals,
+    commitmentPaymentsLoaded,
+    monthSpendLoaded,
+    transactionTotalsLoaded,
   } = useDashboardStore(
     useShallow((s) => ({
       statsMap: s.statsMap,
@@ -76,6 +84,9 @@ export function useDashboard() {
       previousMonthSpend: s.previousMonthSpend,
       currentTransactionTotals: s.currentTransactionTotals,
       previousTransactionTotals: s.previousTransactionTotals,
+      commitmentPaymentsLoaded: s.commitmentPaymentsLoaded,
+      monthSpendLoaded: s.monthSpendLoaded,
+      transactionTotalsLoaded: s.transactionTotalsLoaded,
     })),
   );
   const setStatsMap = useDashboardStore.getState().setStatsMap;
@@ -101,6 +112,7 @@ export function useDashboard() {
       setMonthSpendStats(current, previous);
     } catch (err) {
       console.error('[dashboard] loadMonthSpend failed:', err);
+      setMonthSpendStats(EMPTY_MONTH_SPEND, EMPTY_MONTH_SPEND);
     }
   }, [currentYearMonth, previousYearMonth, setMonthSpendStats]);
 
@@ -114,6 +126,7 @@ export function useDashboard() {
       setTransactionTotals(current, previous);
     } catch (err) {
       console.error('[dashboard] loadTransactionTotals failed:', err);
+      setTransactionTotals(EMPTY_TRANSACTION_TOTALS, EMPTY_TRANSACTION_TOTALS);
     }
   }, [currentYearMonth, previousYearMonth, setTransactionTotals]);
 
@@ -123,6 +136,7 @@ export function useDashboard() {
       setCurrentMonthCommitmentPayments(payments);
     } catch (err) {
       console.error('[dashboard] loadCurrentMonthCommitmentPayments failed:', err);
+      setCurrentMonthCommitmentPayments([]);
     }
   }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
 
@@ -142,11 +156,6 @@ export function useDashboard() {
       setSelectedSegment,
     ]),
   );
-
-  useEffect(() => {
-    void loadMonthSpend();
-    void loadTransactionTotals();
-  }, [loadMonthSpend, loadTransactionTotals, accounts]);
 
   const loadStats = useCallback(
     async (ids: string[]) => {
@@ -261,6 +270,7 @@ export function useDashboard() {
   return {
     state: {
       accounts,
+      accountsLoaded,
       rate,
       isManualOverride,
       netWorth,
@@ -278,18 +288,21 @@ export function useDashboard() {
         previousEgp: previousMonthSpend.totalEgp,
         deltaPct: spendDeltaPct,
         yearMonth: currentYearMonth,
+        loading: !monthSpendLoaded,
       },
       accountCounts,
       commitments: {
         counts: commitmentCounts,
         totalsByCurrency: commitmentTotalsByCurrency,
         yearMonth: currentYearMonth,
+        loading: !commitmentPaymentsLoaded,
       },
       transactions: {
         current: currentTransactionTotals,
         previous: previousTransactionTotals,
         previousLabel: formatMonthYear(previousYearMonth),
         yearMonth: currentYearMonth,
+        loading: !transactionTotalsLoaded,
       },
     },
     setBreakdownVisible,

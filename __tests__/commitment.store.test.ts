@@ -199,6 +199,30 @@ describe('commitmentStore.loadPaymentsForMonth', () => {
     expect(useStore.getState().payments).toEqual([payment]);
   });
 
+  it('keeps loaded same-month payments visible while revalidating', async () => {
+    const junePayment = mockPayment({ id: 'p-june', due_date: '2026-06-01' });
+    const juneReload = deferred<CommitmentPayment[]>();
+    const repo = makeRepo({
+      getPaymentsForMonth: jest
+        .fn()
+        .mockResolvedValueOnce([junePayment])
+        .mockReturnValue(juneReload.promise),
+    });
+    const useStore = createCommitmentStore(repo);
+
+    await useStore.getState().setSelectedMonth('2026-06');
+    expect(useStore.getState().payments).toEqual([junePayment]);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
+
+    const reload = useStore.getState().loadPaymentsForMonth('2026-06');
+
+    expect(useStore.getState().payments).toEqual([junePayment]);
+    expect(useStore.getState().paymentsLoaded).toBe(true);
+
+    juneReload.resolve([junePayment]);
+    await reload;
+  });
+
   it('calls repo.getPaymentsForMonth with the given yearMonth', async () => {
     const repo = makeRepo();
     const useStore = createCommitmentStore(repo);

@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -9,6 +10,11 @@ import { Colors } from '@/constants/theme';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
+
+const DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT = ms(35);
+const DASHBOARD_HERO_PILL_SKELETON_HEIGHT = ms(20);
+
 interface HeroCardProps {
   assetsEgp: number;
   assetsUsd: number;
@@ -16,7 +22,49 @@ interface HeroCardProps {
   isManualOverride: boolean;
   assetsCount: number;
   liabilitiesCount: number;
+  isLoading: boolean;
   onPress: () => void;
+}
+
+function HeroCardSkeleton(): React.ReactElement {
+  return (
+    <>
+      <Skeleton
+        testID="dashboard-hero-skeleton-amount"
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="mx-5 mt-3 mb-2 w-48 rounded-md"
+        style={{ height: DASHBOARD_HERO_AMOUNT_SKELETON_HEIGHT }}
+      />
+      <View
+        testID="dashboard-hero-skeleton-pills-row"
+        className="flex-row flex-wrap px-5 pb-5"
+        style={{
+          flexDirection: 'row',
+          gap: ms(6),
+          minHeight: DASHBOARD_HERO_PILL_SKELETON_HEIGHT,
+        }}
+      >
+        <Skeleton
+          testID="dashboard-hero-skeleton-pill"
+          animation={DASHBOARD_SKELETON_ANIMATION}
+          className="w-21 rounded-full"
+          style={{ height: DASHBOARD_HERO_PILL_SKELETON_HEIGHT }}
+        />
+        <Skeleton
+          testID="dashboard-hero-skeleton-pill"
+          animation={DASHBOARD_SKELETON_ANIMATION}
+          className="w-28 rounded-full"
+          style={{ height: DASHBOARD_HERO_PILL_SKELETON_HEIGHT }}
+        />
+        <Skeleton
+          testID="dashboard-hero-skeleton-pill"
+          animation={DASHBOARD_SKELETON_ANIMATION}
+          className="w-20 rounded-full"
+          style={{ height: DASHBOARD_HERO_PILL_SKELETON_HEIGHT }}
+        />
+      </View>
+    </>
+  );
 }
 
 export function HeroCard({
@@ -26,6 +74,7 @@ export function HeroCard({
   isManualOverride,
   assetsCount,
   liabilitiesCount,
+  isLoading,
   onPress,
 }: HeroCardProps) {
   const totalAccounts = assetsCount + liabilitiesCount;
@@ -33,10 +82,10 @@ export function HeroCard({
   return (
     <HeroShell onPress={onPress} accessibilityLabel={Strings.dashAvailableToSpend}>
       <View
-        className="flex-row items-center justify-between px-5 pt-5"
+        className="flex-row items-center justify-between px-3 pt-3"
         style={{ flexDirection: 'row' }}
       >
-        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
+        <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(6) }}>
           <View
             className="items-center justify-center rounded-full"
             style={{
@@ -72,51 +121,80 @@ export function HeroCard({
                 backgroundColor: Colors.shared.cairoGold,
               }}
             />
-            <Text className="text-xs uppercase" style={{ color: Colors.shared.cairoGold }}>
+            <Text
+              variant="caption"
+              className="uppercase"
+              style={{ color: Colors.shared.cairoGold }}
+            >
               {Strings.currencyManualShort}
             </Text>
           </View>
         )}
       </View>
 
-      <Text
-        className="mt-3 mb-2 px-5 font-bold"
-        style={{ color: Colors.dark.gold, fontSize: ms(32) }}
-      >
-        {formatAmount(assetsEgp)} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
-      </Text>
+      {isLoading ? (
+        <HeroCardSkeleton />
+      ) : (
+        <>
+          <Text
+            className="mt-3 mb-2 px-3 font-bold"
+            style={{ color: Colors.dark.gold, fontSize: ms(32) }}
+          >
+            {formatAmount(assetsEgp)} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>
+          </Text>
 
-      <View className="flex-row flex-wrap px-5 pb-5" style={{ flexDirection: 'row', gap: ms(6) }}>
-        <View
-          className="flex-row items-center rounded-full px-2 py-1"
-          style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
-        >
-          <MaterialCommunityIcons
-            name="approximately-equal"
-            size={ms(11)}
-            color={Colors.dark.text1}
-          />
-          <Text className="text-foreground text-xs">
-            {rate > 0 ? `${formatAmount(assetsUsd, 0)} USD` : '— USD'}
-          </Text>
-        </View>
-        <View
-          className="flex-row items-center rounded-full px-2 py-1"
-          style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
-        >
-          <MaterialCommunityIcons name="swap-horizontal" size={ms(11)} color={Colors.dark.text1} />
-          <Text className="text-foreground text-xs">1 USD = {rate.toFixed(2)} EGP</Text>
-        </View>
-        <View
-          className="flex-row items-center rounded-full px-2 py-1"
-          style={{ flexDirection: 'row', gap: ms(4), backgroundColor: Colors.dark.overlayWhite7 }}
-        >
-          <MaterialCommunityIcons name="bank-outline" size={ms(11)} color={Colors.dark.text1} />
-          <Text className="text-foreground text-xs">
-            {totalAccounts} {Strings.o6AccountsUnit}
-          </Text>
-        </View>
-      </View>
+          <View
+            className="flex-row flex-wrap px-3 pb-5"
+            style={{ flexDirection: 'row', gap: ms(6) }}
+          >
+            <View
+              className="flex-row items-center rounded-full px-2 py-1"
+              style={{
+                flexDirection: 'row',
+                gap: ms(4),
+                backgroundColor: Colors.dark.overlayWhite7,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="approximately-equal"
+                size={ms(11)}
+                color={Colors.dark.text1}
+              />
+              <Text className="text-foreground text-xs">
+                {rate > 0 ? `${formatAmount(assetsUsd, 0)} USD` : '— USD'}
+              </Text>
+            </View>
+            <View
+              className="flex-row items-center rounded-full px-2 py-1"
+              style={{
+                flexDirection: 'row',
+                gap: ms(4),
+                backgroundColor: Colors.dark.overlayWhite7,
+              }}
+            >
+              <MaterialCommunityIcons
+                name="swap-horizontal"
+                size={ms(11)}
+                color={Colors.dark.text1}
+              />
+              <Text className="text-foreground text-xs">1 USD = {rate.toFixed(2)} EGP</Text>
+            </View>
+            <View
+              className="flex-row items-center rounded-full px-2 py-1"
+              style={{
+                flexDirection: 'row',
+                gap: ms(4),
+                backgroundColor: Colors.dark.overlayWhite7,
+              }}
+            >
+              <MaterialCommunityIcons name="bank-outline" size={ms(11)} color={Colors.dark.text1} />
+              <Text className="text-foreground text-xs">
+                {totalAccounts} {Strings.o6AccountsUnit}
+              </Text>
+            </View>
+          </View>
+        </>
+      )}
     </HeroShell>
   );
 }

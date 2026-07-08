@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card } from 'heroui-native';
+import { Card, Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -7,6 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import { ms } from '@/utils/responsive';
 
 import {
   computeDeltaPct,
@@ -19,9 +20,10 @@ import {
 } from '../transactions.helpers';
 
 interface Props {
-  current: PeriodTotals;
+  current: PeriodTotals | null;
   previous: PeriodTotals | null;
   previousLabel: string | null;
+  isLoading?: boolean;
 }
 
 type Align = 'left' | 'center' | 'right';
@@ -43,6 +45,12 @@ export const TRANSACTIONS_TOTALS_CARD_CLASS_NAME =
 
 export const TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME =
   'bg-default h-[3px] overflow-hidden rounded-[2px]';
+
+const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+const TOTALS_VALUE_ROW_HEIGHT = ms(15);
+const TOTALS_PROGRESS_HEIGHT = ms(3);
+const TOTALS_DELTA_ROW_HEIGHT = ms(12);
+const TOTALS_PREVIOUS_LABEL_HEIGHT = ms(9);
 
 function currentValue(current: PeriodTotals, metric: TotalsMetric): number {
   if (metric === 'income') return current.incomeEgp;
@@ -133,60 +141,140 @@ function DeltaValue({
   );
 }
 
-export function TotalsStrip({ current, previous, previousLabel }: Props): React.ReactElement {
-  const expensePct = expenseSharePct(current);
-  const deltas = previous
-    ? {
-        income: computeDeltaPct(current.incomeEgp, previous.incomeEgp),
-        expense: computeDeltaPct(current.expenseEgp, previous.expenseEgp),
-        net: computeDeltaPct(current.netEgp, previous.netEgp),
-      }
-    : null;
-
+function TotalsSkeleton({ previousLabel }: { previousLabel: string | null }): React.ReactElement {
   return (
-    <Card className={TRANSACTIONS_TOTALS_CARD_CLASS_NAME}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
+    <>
+      <View
+        testID="transactions-totals-skeleton-values-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(8),
+          minHeight: TOTALS_VALUE_ROW_HEIGHT,
+        }}
+      >
         {METRICS.map((metric) => (
-          <MetricValue
+          <Skeleton
             key={metric.key}
-            value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
-            label={metric.label}
-            align={metric.align}
-            className={metric.valueClass}
+            className="rounded-md"
+            style={{ flex: 1, height: TOTALS_VALUE_ROW_HEIGHT }}
           />
         ))}
       </View>
-
+      <Skeleton
+        testID="transactions-totals-skeleton-progress"
+        className="w-full rounded-[2px]"
+        style={{ height: TOTALS_PROGRESS_HEIGHT }}
+      />
       <View
-        className={TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME}
-        accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+        testID="transactions-totals-skeleton-deltas-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(8),
+          minHeight: TOTALS_DELTA_ROW_HEIGHT,
+        }}
       >
-        <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
-      </View>
-
-      {deltas ? (
-        <>
+        {METRICS.map((metric) => (
           <View
-            style={{ flexDirection: 'row', alignItems: 'center' }}
-            className="gap-2"
-            accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
+            key={metric.key}
+            testID="transactions-totals-skeleton-delta-pill"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              justifyContent:
+                metric.align === 'left'
+                  ? 'flex-start'
+                  : metric.align === 'right'
+                    ? 'flex-end'
+                    : 'center',
+              alignItems: 'center',
+              gap: ms(2),
+            }}
           >
+            <Skeleton className="rounded-full" style={{ width: ms(12), height: ms(12) }} />
+            <Skeleton className="rounded-md" style={{ width: ms(28), height: ms(11) }} />
+          </View>
+        ))}
+      </View>
+      {previousLabel ? (
+        <Skeleton
+          testID="transactions-totals-skeleton-previous-label"
+          className="mx-auto w-24 rounded-md"
+          style={{ height: TOTALS_PREVIOUS_LABEL_HEIGHT }}
+        />
+      ) : null}
+    </>
+  );
+}
+
+export function TotalsStrip({
+  current,
+  previous,
+  previousLabel,
+  isLoading = false,
+}: Props): React.ReactElement {
+  const displayCurrent = current ?? EMPTY_TOTALS;
+  const expensePct = expenseSharePct(displayCurrent);
+  const deltas =
+    previous && current
+      ? {
+          income: computeDeltaPct(current.incomeEgp, previous.incomeEgp),
+          expense: computeDeltaPct(current.expenseEgp, previous.expenseEgp),
+          net: computeDeltaPct(current.netEgp, previous.netEgp),
+        }
+      : null;
+
+  return (
+    <Card className={TRANSACTIONS_TOTALS_CARD_CLASS_NAME}>
+      {isLoading ? (
+        <TotalsSkeleton previousLabel={previousLabel} />
+      ) : (
+        <>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
             {METRICS.map((metric) => (
-              <DeltaValue
+              <MetricValue
                 key={metric.key}
-                metric={metric.key}
-                deltaPct={deltas[metric.key]}
+                value={formatSignedAmount(currentValue(displayCurrent, metric.key), metric.key)}
+                label={metric.label}
                 align={metric.align}
+                className={metric.valueClass}
               />
             ))}
           </View>
-          {previousLabel ? (
-            <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
-              {Strings.totalsVsPrev(previousLabel)}
-            </Text>
+
+          <View
+            className={TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME}
+            accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+          >
+            <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
+          </View>
+
+          {deltas ? (
+            <>
+              <View
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+                className="gap-2"
+                accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
+              >
+                {METRICS.map((metric) => (
+                  <DeltaValue
+                    key={metric.key}
+                    metric={metric.key}
+                    deltaPct={deltas[metric.key]}
+                    align={metric.align}
+                  />
+                ))}
+              </View>
+              {previousLabel ? (
+                <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
+                  {Strings.totalsVsPrev(previousLabel)}
+                </Text>
+              ) : null}
+            </>
           ) : null}
         </>
-      ) : null}
+      )}
     </Card>
   );
 }

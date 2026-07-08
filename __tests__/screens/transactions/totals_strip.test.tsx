@@ -16,6 +16,14 @@ jest.mock('heroui-native', () => {
   return {
     Card: ({ children, ...props }: { children?: ReactNode; className?: string }) =>
       React.createElement(View, props, children),
+    SkeletonGroup: Object.assign(
+      ({ children }: { children?: ReactNode }) =>
+        React.createElement(View, { testID: 'skeleton-group' }, children),
+      {
+        Item: ({ children, isLoading }: { children?: ReactNode; isLoading?: boolean }) =>
+          React.createElement(View, { testID: 'skeleton-item' }, isLoading ? null : children),
+      },
+    ),
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
@@ -30,7 +38,7 @@ describe('TotalsStrip', () => {
   });
 
   it('shows the previous-period comparison caption', () => {
-    const { getByText } = render(
+    const { getByText, queryAllByTestId } = render(
       <TotalsStrip
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 14500 }}
@@ -39,5 +47,6 @@ describe('TotalsStrip', () => {
     );
 
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
+    expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
   });
 });

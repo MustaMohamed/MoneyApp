@@ -328,6 +328,7 @@ export const Strings = {
 
   // U5 Transaction List
   transactions: 'Transactions',
+  loadingTransactionsA11y: 'Loading transactions',
   searchTransactionsPlaceholder: 'Search transactions…',
   filterAll: 'All',
   filterExpense: 'Expense',
@@ -415,6 +416,7 @@ export const Strings = {
 
   // Commitments — C1 List
   commitmentsTitle: 'Commitments',
+  loadingCommitmentsA11y: 'Loading commitments',
   searchCommitmentsPlaceholder: 'Search commitments…',
   commitmentsPaidSummary: 'Paid this month',
   commitmentsTotalCommitted: 'Total committed',

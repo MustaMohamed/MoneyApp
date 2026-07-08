@@ -59,6 +59,9 @@ export default function DashboardScreen() {
   }, [startEntrance]);
 
   const hasAccounts = state.accounts.length > 0;
+  const isRefreshing = state.refreshing;
+  const accountTotalsLoading = !state.accountsLoaded || isRefreshing;
+  const showAccountsEmptyState = state.accountsLoaded && !hasAccounts;
   const visibleTypes = TYPE_ORDER.filter((t) => state.groupedAccounts[t]?.length);
   const segment = state.selectedSegment;
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
@@ -119,7 +122,7 @@ export default function DashboardScreen() {
       </Surface>
       <Separator />
 
-      {!hasAccounts ? (
+      {showAccountsEmptyState ? (
         <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
         <>
@@ -158,6 +161,7 @@ export default function DashboardScreen() {
                         isManualOverride={state.isManualOverride}
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}
+                        isLoading={accountTotalsLoading}
                         onPress={() => setBreakdownVisible(true)}
                       />
                     </Animated.View>
@@ -174,6 +178,8 @@ export default function DashboardScreen() {
                         monthSpendDeltaPct={state.monthSpend.deltaPct}
                         monthSpendCount={state.monthSpend.currentCount}
                         spendYearMonth={state.monthSpend.yearMonth}
+                        netWorthLoading={accountTotalsLoading}
+                        monthSpendLoading={state.monthSpend.loading || isRefreshing}
                       />
                     </Animated.View>
 
@@ -182,6 +188,7 @@ export default function DashboardScreen() {
                       previous={state.transactions.previous}
                       previousLabel={state.transactions.previousLabel}
                       yearMonth={state.transactions.yearMonth}
+                      isLoading={state.transactions.loading || isRefreshing}
                       onPress={goToTransactions}
                     />
 
@@ -189,6 +196,7 @@ export default function DashboardScreen() {
                       counts={state.commitments.counts}
                       totalsByCurrency={state.commitments.totalsByCurrency}
                       yearMonth={state.commitments.yearMonth}
+                      isLoading={state.commitments.loading || isRefreshing}
                       onPress={goToCommitments}
                     />
 

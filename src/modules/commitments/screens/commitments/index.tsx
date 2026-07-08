@@ -1,4 +1,4 @@
-import { Separator, Spinner, Surface, Text as HeroText } from 'heroui-native';
+import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -20,6 +20,7 @@ import { useCommitments } from './commitments.hook';
 import type { CommitmentStatusFilter } from './commitments.state';
 import { CommitmentDeleteConfirmSheet } from './components/commitment_delete_confirm_sheet';
 import { CommitmentRow } from './components/commitment_row';
+import { CommitmentRowsSkeleton } from './components/commitment_rows_skeleton';
 import { CommitmentsEmptyState } from './components/empty_state';
 import { CommitmentSearchRow } from './components/search_row';
 import { SummaryHeader } from './components/summary_header';
@@ -153,7 +154,11 @@ export default function CommitmentsScreen() {
   const listHeaderComponent = useMemo(
     () => (
       <>
-        <SummaryHeader counts={state.counts} totalsByCurrency={state.totalsByCurrency} />
+        <SummaryHeader
+          counts={state.counts}
+          totalsByCurrency={state.totalsByCurrency}
+          isLoading={!state.paymentsLoaded || state.refreshing}
+        />
         <CommitmentSearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
@@ -169,26 +174,32 @@ export default function CommitmentsScreen() {
       setSearchQuery,
       state.activeFilterCount,
       state.counts,
+      state.paymentsLoaded,
+      state.refreshing,
       state.searchQuery,
       state.totalsByCurrency,
     ],
   );
 
+  const showRowsSkeleton =
+    (!state.commitmentsLoaded || !state.paymentsLoaded) && state.sections.length === 0;
+  const listSections = state.sections;
+
   const listEmptyComponent = useMemo(
     () =>
-      !state.paymentsLoaded ? (
-        <View className="items-center justify-center py-12">
-          <Spinner />
-        </View>
+      showRowsSkeleton ? (
+        <CommitmentRowsSkeleton />
       ) : !state.hasListFilters ? (
         <EmptyState variant="commitmentsMonth" />
       ) : (
         <EmptyState variant="filtered" onAction={resetFilters} />
       ),
-    [resetFilters, state.hasListFilters, state.paymentsLoaded],
+    [resetFilters, showRowsSkeleton, state.hasListFilters],
   );
 
   const handleRefresh = useCallback(() => void onRefresh(), [onRefresh]);
+  const showCommitmentsEmptyState =
+    state.commitmentsLoaded && !state.refreshing && !state.hasCommitments;
 
   return (
     <Screen edges={['top']}>
@@ -209,33 +220,27 @@ export default function CommitmentsScreen() {
         filterAccessibilityLabel="Commitment status filter"
       />
 
-      {!state.commitmentsLoaded ? (
-        <View className="items-center justify-center py-12">
-          <Spinner />
-        </View>
-      ) : !state.hasCommitments ? (
+      {showCommitmentsEmptyState ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
-        <>
-          <SectionList
-            sections={state.sections}
-            keyExtractor={(item) => item.id}
-            stickySectionHeadersEnabled
-            onScrollBeginDrag={closeAllRows}
-            renderSectionHeader={renderSectionHeader}
-            renderItem={renderItem}
-            ListHeaderComponent={listHeaderComponent}
-            refreshControl={
-              <RefreshControl
-                refreshing={state.refreshing}
-                onRefresh={handleRefresh}
-                tintColor={GoldTokens[500]}
-              />
-            }
-            ListEmptyComponent={listEmptyComponent}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
-          />
-        </>
+        <SectionList
+          sections={listSections}
+          keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled
+          onScrollBeginDrag={closeAllRows}
+          renderSectionHeader={renderSectionHeader}
+          renderItem={renderItem}
+          ListHeaderComponent={listHeaderComponent}
+          refreshControl={
+            <RefreshControl
+              refreshing={state.refreshing}
+              onRefresh={handleRefresh}
+              tintColor={GoldTokens[500]}
+            />
+          }
+          ListEmptyComponent={listEmptyComponent}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 24 }}
+        />
       )}
 
       <CommitmentDeleteConfirmSheet

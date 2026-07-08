@@ -2,7 +2,7 @@ import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs, cn } from 'heroui-native';
 import React from 'react';
 
-import { Colors, Size } from '@/constants/theme';
+import { Colors, Radius, Size } from '@/constants/theme';
 
 import { type SegmentedTabsScrollAlign, useSegmentedTabsScroll } from './tabs.hook';
 
@@ -155,47 +155,72 @@ export function SegmentedTabs<T extends string>({
     segmentWidth,
   });
 
-  const triggers = segments.map((seg) => (
-    <Tabs.Trigger
-      key={seg.value}
-      value={seg.value}
-      // Fixed tabs share width; scrollable tabs use either segmentWidth or
-      // intrinsic width. Avoid flex-1 inside ScrollView content.
-      className={cn(isScrollable ? undefined : 'flex-1', isCompact ? 'gap-1 px-2' : undefined)}
-      style={segmentWidth ? { width: segmentWidth } : undefined}
-      accessibilityLabel={seg.accessibilityLabel ?? seg.label}
-      isDisabled={isDisabled}
-    >
-      {seg.icon ? (
-        <MaterialCommunityIcons
-          name={seg.icon.name}
-          size={Size.iconXs}
-          color={isSolidGold && value === seg.value ? Colors.shared.midnightBlue : seg.icon.color}
-        />
-      ) : null}
-      <Tabs.Label
-        // solid-gold: override selected label to midnight-blue.
-        // HeroUI's tv() applies text-segment-foreground/text-muted via
-        // TriggerContext.isSelected — the style prop wins over className in RN.
-        numberOfLines={1}
-        adjustsFontSizeToFit={segmentWidth != null}
-        minimumFontScale={0.85}
-        className={isCompact && value === seg.value ? 'font-bold' : undefined}
-        style={[
-          segmentWidth != null ? { flexShrink: 1 } : undefined,
-          isSolidGold && value === seg.value ? { color: Colors.shared.midnightBlue } : undefined,
-        ]}
+  const triggers = segments.map((seg) => {
+    const isSelected = value === seg.value;
+    const selectedRadius = isCompact ? Radius.lg : Radius.pill;
+    const selectedSolidGoldStyle =
+      isSolidGold && isSelected
+        ? { backgroundColor: Colors.shared.cairoGold, borderRadius: selectedRadius }
+        : undefined;
+    const triggerStyle =
+      segmentWidth && selectedSolidGoldStyle
+        ? [{ width: segmentWidth }, selectedSolidGoldStyle]
+        : segmentWidth
+          ? { width: segmentWidth }
+          : selectedSolidGoldStyle;
+
+    return (
+      <Tabs.Trigger
+        key={seg.value}
+        value={seg.value}
+        // Fixed tabs share width; scrollable tabs use either segmentWidth or
+        // intrinsic width. Avoid flex-1 inside ScrollView content.
+        className={cn(
+          isScrollable ? undefined : 'flex-1',
+          isCompact ? 'h-7 gap-0.5 rounded-full px-1.5 py-0' : undefined,
+        )}
+        style={triggerStyle}
+        accessibilityLabel={seg.accessibilityLabel ?? seg.label}
+        isDisabled={isDisabled}
       >
-        {seg.label}
-      </Tabs.Label>
-    </Tabs.Trigger>
-  ));
+        {seg.icon ? (
+          <MaterialCommunityIcons
+            name={seg.icon.name}
+            size={isCompact ? Size.filterSegmentIcon : Size.iconXs}
+            color={isSolidGold && isSelected ? Colors.shared.midnightBlue : seg.icon.color}
+          />
+        ) : null}
+        <Tabs.Label
+          // solid-gold: override selected label to midnight-blue.
+          // HeroUI's tv() applies text-segment-foreground/text-muted via
+          // TriggerContext.isSelected — the style prop wins over className in RN.
+          numberOfLines={1}
+          adjustsFontSizeToFit={segmentWidth != null}
+          minimumFontScale={0.85}
+          className={isCompact ? (isSelected ? 'text-[11px] font-bold' : 'text-[11px]') : undefined}
+          style={[
+            segmentWidth != null ? { flexShrink: 1 } : undefined,
+            isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
+          ]}
+        >
+          {seg.label}
+        </Tabs.Label>
+      </Tabs.Trigger>
+    );
+  });
 
   const indicator = (
     <Tabs.Indicator
       // solid-gold: override bg-segment → cairoGold.
       // backgroundColor is not animated, so this style override is safe.
-      style={isSolidGold ? { backgroundColor: Colors.shared.cairoGold } : undefined}
+      style={
+        isSolidGold
+          ? {
+              backgroundColor: Colors.shared.cairoGold,
+              borderRadius: isCompact ? Radius.lg : Radius.pill,
+            }
+          : undefined
+      }
     />
   );
 

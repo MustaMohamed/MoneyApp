@@ -1,12 +1,35 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
+import { CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import CommitmentsScreen from '@/modules/commitments/screens/commitments';
 import { useCommitments } from '@/modules/commitments/screens/commitments/commitments.hook';
 
 jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
   useCommitments: jest.fn(),
 }));
+jest.mock('heroui-native', () => {
+  const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const HeroText = {
+    Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text>,
+  };
+  const SkeletonGroupRoot = ({ children }: { children?: ReactNode }) => (
+    <View testID="skeleton-group">{children}</View>
+  );
+  const SkeletonGroupItem = ({ children }: { children?: ReactNode }) => (
+    <View testID="skeleton-item">{children}</View>
+  );
+  return {
+    Separator: () => <View testID="separator" />,
+    Spinner: () => <Text>spinner</Text>,
+    Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
+    Text: HeroText,
+    SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
+    PressableFeedback: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
+    cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
+  };
+});
 jest.mock('@/components/ui/screen', () => ({
   Screen: ({ children }: { children: ReactNode }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -46,9 +69,9 @@ jest.mock('@/modules/commitments/screens/commitments/components/empty_state', ()
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/components/summary_header', () => ({
-  SummaryHeader: () => {
+  SummaryHeader: ({ isLoading }: { isLoading?: boolean }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>Summary</Text>;
+    return <Text>{`Summary loading:${String(isLoading)}`}</Text>;
   },
 }));
 jest.mock('@/modules/commitments/screens/commitments/components/search_row', () => ({
@@ -134,6 +157,27 @@ const clearSearchMock = jest.fn();
 const openFilterMock = jest.fn();
 const resetFiltersMock = jest.fn();
 
+function makePayment(overrides: Partial<CommitmentPayment> = {}): CommitmentPayment {
+  return {
+    id: 'payment-1',
+    commitment_id: 'commitment-1',
+    due_date: '2026-08-05',
+    paid_date: null,
+    skipped_date: null,
+    amount_due: 5000,
+    amount_paid: null,
+    currency: Currency.EGP,
+    exchange_rate_snapshot: null,
+    account_id: null,
+    transaction_id: null,
+    status: CommitmentPaymentStatus.Due,
+    notes: null,
+    created_at: '2026-08-01T00:00:00.000Z',
+    updated_at: '2026-08-01T00:00:00.000Z',
+    ...overrides,
+  };
+}
+
 function mockUseCommitments(state: Partial<CommitmentsScreenState> = {}) {
   mockedUseCommitments.mockReturnValue({
     state: { ...baseCommitmentsState, ...state },
@@ -180,6 +224,81 @@ describe('CommitmentsScreen', () => {
     expect(getByText('search:rent')).toBeTruthy();
     expect(getByText('filters:2')).toBeTruthy();
     expect(getByText('Commitment filter sheet')).toBeTruthy();
+  });
+
+  it('passes payments loading state to the summary header', () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      paymentsLoaded: false,
+      sections: [{ title: 'Due', data: [makePayment()] }],
+    });
+
+    const { getByText } = render(<CommitmentsScreen />);
+
+    expect(getByText('Summary loading:true')).toBeTruthy();
+  });
+
+  it('shows row skeletons instead of the list spinner while payments load', () => {
+    mockUseCommitments({
+      hasCommitments: true,
+      paymentsLoaded: false,
+      sections: [],
+    });
+
+    const { getByTestId, queryByText } = render(<CommitmentsScreen />);
+
+    expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
+    expect(queryByText('spinner')).toBeNull();
+  });
+
+  it('keeps the summary and search row mounted during the first commitments load', () => {
+    mockUseCommitments({
+      commitmentsLoaded: false,
+      paymentsLoaded: false,
+      hasCommitments: false,
+      sections: [],
+    });
+
+    const { getByTestId, getByText, queryByText } = render(<CommitmentsScreen />);
+
+    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByTestId('commitment-search-row')).toBeTruthy();
+    expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
+    expect(queryByText('No commitments')).toBeNull();
+  });
+
+  it('keeps loaded commitment rows visible while manually refreshing loaded commitments', () => {
+    mockUseCommitments({
+      commitmentsLoaded: true,
+      paymentsLoaded: true,
+      refreshing: true,
+      hasCommitments: true,
+      sections: [{ title: 'Due', data: [makePayment()] }],
+    });
+
+    const { getByText, queryByTestId } = render(<CommitmentsScreen />);
+
+    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByText('Commitment row')).toBeTruthy();
+    expect(queryByTestId('commitment-row-skeletons')).toBeNull();
+  });
+
+  it('does not show row skeletons behind a filtered empty state while refreshing', () => {
+    mockUseCommitments({
+      commitmentsLoaded: true,
+      paymentsLoaded: true,
+      refreshing: true,
+      hasCommitments: true,
+      isEmpty: true,
+      hasListFilters: true,
+      statusFilter: CommitmentPaymentStatus.Paid,
+      sections: [],
+    });
+
+    const { getByText, queryByTestId } = render(<CommitmentsScreen />);
+
+    expect(getByText('filtered')).toBeTruthy();
+    expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });
 
   it('wires search, clear, and open filter actions from the search row', () => {

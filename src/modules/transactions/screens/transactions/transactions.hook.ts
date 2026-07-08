@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { getDb } from '@/database/client';
@@ -25,6 +25,8 @@ import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
+
+const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
 
 export function useTransactions() {
   const router = useRouter();
@@ -60,18 +62,41 @@ export function useTransactions() {
   const openFilter = useFilterState.getState().open;
   const setDraft = useFilterStore.getState().setDraft;
 
-  const refreshing = useTransactionsState.useState.refreshing();
+  const { refreshing, totals, totalsYearMonth } = useTransactionsState(
+    useShallow((s) => ({
+      refreshing: s.refreshing,
+      totals: s.totals,
+      totalsYearMonth: s.totalsYearMonth,
+    })),
+  );
   const setRefreshing = useTransactionsState.getState().setRefreshing;
+  const setTotals = useTransactionsState.getState().setTotals;
 
   const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const periodRange = useMemo(() => resolvePeriod(period), [period]);
+  const previousPeriodRange = useMemo(() => resolvePeriod(previousPeriod(period)), [period]);
 
-  const [totals, setTotals] = useState<{
-    current: PeriodTotals;
-    previous: PeriodTotals | null;
-  } | null>(null);
+  const loadTotals = useCallback(
+    async (shouldApply: () => boolean = () => true) => {
+      const targetYearMonth = period.yearMonth;
+      if (useTransactionsState.getState().totalsYearMonth !== targetYearMonth && shouldApply()) {
+        setTotals(targetYearMonth, null);
+      }
+      try {
+        const db = await getDb();
+        const current = await getPeriodTotals(db, periodRange);
+        const previous = await getPeriodTotals(db, previousPeriodRange);
+        if (shouldApply()) setTotals(targetYearMonth, { current, previous });
+      } catch (err) {
+        console.error('[transactions] loadTotals failed:', err);
+        if (shouldApply()) setTotals(targetYearMonth, { current: EMPTY_TOTALS, previous: null });
+      }
+    },
+    [period.yearMonth, periodRange, previousPeriodRange, setTotals],
+  );
+
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
-    const periodRange = resolvePeriod(period);
     return {
       search: trimmed || undefined,
       type: activeFilter === 'all' ? undefined : activeFilter,
@@ -79,7 +104,7 @@ export function useTransactions() {
       dateTo: periodRange.to,
       ...toQueryFilters(appliedFilters),
     };
-  }, [activeFilter, appliedFilters, debouncedSearch, period]);
+  }, [activeFilter, appliedFilters, debouncedSearch, periodRange]);
 
   useEffect(() => {
     setQuery(transactionQuery).catch(() => {});
@@ -87,26 +112,11 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
-    void (async () => {
-      try {
-        const db = await getDb();
-        const current = await getPeriodTotals(db, {
-          from: transactionQuery.dateFrom,
-          to: transactionQuery.dateTo,
-        });
-        const prev = previousPeriod(period);
-        const r = resolvePeriod(prev);
-        const previous = await getPeriodTotals(db, { from: r.from, to: r.to });
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- async cancellation guard; cancelled may be true if effect re-runs
-        if (!cancelled) setTotals({ current, previous });
-      } catch (err) {
-        console.error('[transactions] loadTotals failed:', err);
-      }
-    })();
+    void loadTotals(() => !cancelled);
     return () => {
       cancelled = true;
     };
-  }, [mutationVersion, transactionQuery, period]);
+  }, [loadTotals, mutationVersion]);
 
   useFocusEffect(
     useCallback(() => {
@@ -151,18 +161,19 @@ export function useTransactions() {
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await refresh();
+      await Promise.all([refresh(), loadTotals()]);
     } catch (err) {
       console.error('[transactions] onRefresh failed:', err);
     } finally {
       setRefreshing(false);
     }
-  }, [refresh, setRefreshing]);
+  }, [loadTotals, refresh, setRefreshing]);
 
   const previousLabel = useMemo(() => {
     const prev = previousPeriod(period);
     return formatMonthYear(prev.yearMonth);
   }, [period]);
+  const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
 
   const goToDetail = useCallback(
     (id: string) => router.push(`/transactions/detail/${id}`),
@@ -201,7 +212,7 @@ export function useTransactions() {
       categoriesById,
       activeFilterCount,
       appliedFilterSummary,
-      totals,
+      totals: displayTotals,
       previousLabel,
     },
     setSearchQuery,

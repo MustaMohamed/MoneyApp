@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { Separator, Spinner, Surface, Text as HeroText } from 'heroui-native';
+import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -21,6 +21,7 @@ import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
 import { TotalsStrip } from './components/totals_strip';
 import { TransactionRow } from './components/transaction_row';
+import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { FilterSheet } from './filter';
 import { useFilterState } from './filter/filter.state';
@@ -145,19 +146,20 @@ export default function TransactionsScreen(): React.ReactElement {
     [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
   );
 
+  const showRowsSkeleton = !state.hasLoaded && state.sections.length === 0;
+  const listSections = state.sections;
+
   const listEmptyComponent = useMemo(
     () =>
-      state.emptyVariant === 'none' ? (
-        <View className="items-center justify-center py-12">
-          <Spinner />
-        </View>
-      ) : (
+      showRowsSkeleton ? (
+        <TransactionRowsSkeleton />
+      ) : state.emptyVariant === 'none' ? null : (
         <EmptyState
           variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
           onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}
         />
       ),
-    [openAddTx, resetFilters, state.emptyVariant],
+    [openAddTx, resetFilters, showRowsSkeleton, state.emptyVariant],
   );
 
   const handleRefresh = useCallback(() => {
@@ -188,13 +190,12 @@ export default function TransactionsScreen(): React.ReactElement {
         filterAccessibilityLabel="Transaction type filter"
       />
 
-      {state.totals ? (
-        <TotalsStrip
-          current={state.totals.current}
-          previous={state.totals.previous}
-          previousLabel={state.previousLabel}
-        />
-      ) : null}
+      <TotalsStrip
+        current={state.totals?.current ?? null}
+        previous={state.totals?.previous ?? null}
+        previousLabel={state.previousLabel}
+        isLoading={!state.totals || state.refreshing}
+      />
 
       <SearchRow
         value={state.searchQuery}
@@ -205,7 +206,7 @@ export default function TransactionsScreen(): React.ReactElement {
       />
 
       <SectionList
-        sections={state.sections}
+        sections={listSections}
         keyExtractor={(item) => item.id}
         stickySectionHeadersEnabled
         renderSectionHeader={renderSectionHeader}

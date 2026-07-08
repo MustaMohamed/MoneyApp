@@ -13,18 +13,20 @@ interface IconButtonProps {
   icon: 'chevron-left' | 'chevron-right';
   accessibilityLabel: string;
   onPress: () => void;
+  testID?: string;
 }
 
-function IconButton({ icon, accessibilityLabel, onPress }: IconButtonProps) {
+function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonProps) {
   return (
     <PressableFeedback
+      testID={testID}
       onPress={onPress}
       hitSlop={8}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      className="bg-default/60 h-10 w-10 items-center justify-center rounded-full"
+      className="bg-default/60 h-8 w-8 items-center justify-center rounded-full"
     >
-      <MaterialCommunityIcons name={icon} size={24} color={Colors.dark.text1} />
+      <MaterialCommunityIcons name={icon} size={20} color={Colors.dark.text1} />
     </PressableFeedback>
   );
 }
@@ -34,30 +36,33 @@ export function MonthFilter(props: MonthFilterProps) {
 
   return (
     <>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
         <IconButton
+          testID="month-filter-previous"
           icon="chevron-left"
           accessibilityLabel={Strings.monthFilterPreviousA11y}
           onPress={monthFilter.onPreviousMonth}
         />
         <PressableFeedback
+          testID="month-filter-open"
           onPress={monthFilter.onOpenPicker}
           accessibilityRole="button"
           accessibilityLabel={monthFilter.state.openPickerAccessibilityLabel}
-          className="bg-accent h-10 flex-1 items-center justify-center rounded-full px-4"
+          className="bg-accent h-8 flex-1 items-center justify-center rounded-full px-2.5"
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
-            <Text className="font-sora text-accent-foreground text-[13px] font-bold">
+            <Text className="font-sora text-accent-foreground text-[11px] font-bold">
               {monthFilter.state.selectedLabel}
             </Text>
             <MaterialCommunityIcons
               name="chevron-down"
-              size={18}
+              size={14}
               color={Colors.shared.midnightBlue}
             />
           </View>
         </PressableFeedback>
         <IconButton
+          testID="month-filter-next"
           icon="chevron-right"
           accessibilityLabel={Strings.monthFilterNextA11y}
           onPress={monthFilter.onNextMonth}

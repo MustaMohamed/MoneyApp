@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, PressableFeedback } from 'heroui-native';
+import { Card, PressableFeedback, Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -20,16 +20,24 @@ import {
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
+
 interface Props {
   current: PeriodTotals;
   previous: PeriodTotals | null;
   previousLabel: string | null;
   yearMonth: string;
+  isLoading: boolean;
   onPress: () => void;
 }
 
 type Align = 'left' | 'center' | 'right';
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT = ms(14);
+const DASHBOARD_TRANSACTIONS_PROGRESS_HEIGHT = ms(3);
+const DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT = ms(13);
+const DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT = ms(10);
 
 const METRICS: Array<{
   key: TotalsMetric;
@@ -131,11 +139,88 @@ function DeltaValue({
   );
 }
 
+function TransactionsCardSkeleton(): React.ReactElement {
+  return (
+    <>
+      <View
+        testID="dashboard-transactions-skeleton-values-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(32),
+          minHeight: DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT,
+        }}
+      >
+        {METRICS.map((metric) => (
+          <Skeleton
+            key={metric.key}
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="rounded-md"
+            style={{ flex: 1, height: DASHBOARD_TRANSACTIONS_VALUE_ROW_HEIGHT }}
+          />
+        ))}
+      </View>
+      <Skeleton
+        testID="dashboard-transactions-skeleton-progress"
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="w-full rounded-[2px]"
+        style={{ height: DASHBOARD_TRANSACTIONS_PROGRESS_HEIGHT }}
+      />
+      <View
+        testID="dashboard-transactions-skeleton-deltas-row"
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: ms(8),
+          minHeight: DASHBOARD_TRANSACTIONS_DELTA_ROW_HEIGHT,
+        }}
+      >
+        {METRICS.map((metric) => (
+          <View
+            key={metric.key}
+            testID="dashboard-transactions-skeleton-delta-pill"
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              justifyContent:
+                metric.align === 'left'
+                  ? 'flex-start'
+                  : metric.align === 'right'
+                    ? 'flex-end'
+                    : 'center',
+              alignItems: 'center',
+              gap: ms(4),
+            }}
+          >
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
+              className="rounded-full"
+              style={{ width: ms(14), height: ms(10) }}
+            />
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
+              className="rounded-md"
+              style={{ width: ms(32), height: ms(10) }}
+            />
+          </View>
+        ))}
+      </View>
+      <Skeleton
+        testID="dashboard-transactions-skeleton-previous-label"
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="mx-auto w-18 rounded-md"
+        style={{ height: DASHBOARD_TRANSACTIONS_PREVIOUS_LABEL_HEIGHT }}
+      />
+    </>
+  );
+}
+
 export function TransactionsCard({
   current,
   previous,
   previousLabel,
   yearMonth,
+  isLoading,
   onPress,
 }: Props): React.ReactElement {
   const monthLabel = formatMonthYear(yearMonth);
@@ -155,8 +240,13 @@ export function TransactionsCard({
       accessibilityLabel={Strings.transactions}
     >
       <Card
-        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-4 py-3"
-        style={{ gap: ms(8), elevation: 0, shadowOpacity: 0 }}
+        testID="dashboard-transactions-card"
+        className="border-border mx-4 mt-4 rounded-2xl border p-0 px-3 py-2"
+        style={{
+          gap: ms(8),
+          elevation: 0,
+          shadowOpacity: 0,
+        }}
       >
         <View className="flex-row items-center justify-between" style={{ flexDirection: 'row' }}>
           <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(8) }}>
@@ -183,49 +273,60 @@ export function TransactionsCard({
           </Text>
         </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
-          {METRICS.map((metric) => (
-            <MetricValue
-              key={metric.key}
-              value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
-              label={metric.label}
-              align={metric.align}
-              className={metric.valueClass}
-            />
-          ))}
-        </View>
-
-        <View
-          className="overflow-hidden rounded"
-          style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
-          accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
-        >
-          <View className="bg-danger h-full rounded-[2px]" style={{ width: `${expensePct}%` }} />
-        </View>
-
-        {deltas ? (
+        {isLoading ? (
+          <TransactionsCardSkeleton />
+        ) : (
           <>
-            <View
-              style={{ flexDirection: 'row', alignItems: 'center' }}
-              className="gap-2"
-              accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
-            >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
               {METRICS.map((metric) => (
-                <DeltaValue
+                <MetricValue
                   key={metric.key}
-                  metric={metric.key}
-                  deltaPct={deltas[metric.key]}
+                  value={formatSignedAmount(currentValue(current, metric.key), metric.key)}
+                  label={metric.label}
                   align={metric.align}
+                  className={metric.valueClass}
                 />
               ))}
             </View>
-            {previousLabel ? (
-              <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
-                {Strings.totalsVsPrev(previousLabel)}
-              </Text>
+
+            <View
+              className="overflow-hidden rounded"
+              style={{ height: ms(3), backgroundColor: Colors.dark.surfaceEl }}
+              accessibilityLabel={Strings.totalsExpenseShareA11y(expensePct)}
+            >
+              <View
+                className="bg-danger h-full rounded-[2px]"
+                style={{ width: `${expensePct}%` }}
+              />
+            </View>
+
+            {deltas ? (
+              <>
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                  className="gap-2"
+                  accessibilityLabel={
+                    previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined
+                  }
+                >
+                  {METRICS.map((metric) => (
+                    <DeltaValue
+                      key={metric.key}
+                      metric={metric.key}
+                      deltaPct={deltas[metric.key]}
+                      align={metric.align}
+                    />
+                  ))}
+                </View>
+                {previousLabel ? (
+                  <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
+                    {Strings.totalsVsPrev(previousLabel)}
+                  </Text>
+                ) : null}
+              </>
             ) : null}
           </>
-        ) : null}
+        )}
       </Card>
     </PressableFeedback>
   );

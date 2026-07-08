@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Skeleton } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -8,7 +9,15 @@ import { Colors } from '@/constants/theme';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
+import { DASHBOARD_SKELETON_ANIMATION } from './skeleton_animation';
+
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+
+const DASHBOARD_NET_WORTH_VALUE_HEIGHT = ms(22);
+const DASHBOARD_NET_WORTH_PROGRESS_HEIGHT = ms(5);
+const DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT = ms(10);
+const DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT = ms(12);
+const DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT = ms(16);
 
 const SHORT_MONTHS = [
   'Jan',
@@ -36,6 +45,88 @@ interface StatCardsProps {
   monthSpendDeltaPct: number | null;
   monthSpendCount: number;
   spendYearMonth: string;
+  netWorthLoading: boolean;
+  monthSpendLoading: boolean;
+}
+
+function NetWorthSkeleton(): React.ReactElement {
+  return (
+    <>
+      <Skeleton
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="w-28 rounded-md"
+        style={{ height: DASHBOARD_NET_WORTH_VALUE_HEIGHT }}
+      />
+      <Skeleton
+        testID="dashboard-net-worth-skeleton-progress"
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="w-full rounded"
+        style={{ height: DASHBOARD_NET_WORTH_PROGRESS_HEIGHT }}
+      />
+      <View className="mt-1" style={{ flexDirection: 'row', gap: ms(8) }}>
+        <View style={{ flex: 1, gap: ms(4) }}>
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-18 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
+          />
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-16 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
+          />
+        </View>
+        <View style={{ flex: 1, gap: ms(4) }}>
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-18 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_LABEL_HEIGHT }}
+          />
+          <Skeleton
+            animation={DASHBOARD_SKELETON_ANIMATION}
+            className="w-16 rounded-md"
+            style={{ height: DASHBOARD_NET_WORTH_DETAIL_VALUE_HEIGHT }}
+          />
+        </View>
+      </View>
+    </>
+  );
+}
+
+function MonthSpendFooterSkeleton(): React.ReactElement {
+  return (
+    <View
+      testID="dashboard-month-spend-skeleton-footer-row"
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: ms(8),
+        minHeight: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(5) }}>
+        <Skeleton
+          testID="dashboard-month-spend-skeleton-footer-item"
+          animation={DASHBOARD_SKELETON_ANIMATION}
+          className="rounded-full"
+          style={{ width: ms(48), height: DASHBOARD_MONTH_SPEND_FOOTER_HEIGHT }}
+        />
+        <Skeleton
+          testID="dashboard-month-spend-skeleton-footer-item"
+          animation={DASHBOARD_SKELETON_ANIMATION}
+          className="rounded-md"
+          style={{ width: ms(32), height: ms(10) }}
+        />
+      </View>
+      <Skeleton
+        testID="dashboard-month-spend-skeleton-footer-item"
+        animation={DASHBOARD_SKELETON_ANIMATION}
+        className="rounded-md"
+        style={{ width: ms(30), height: ms(10) }}
+      />
+    </View>
+  );
 }
 
 export function StatCards({
@@ -49,6 +140,8 @@ export function StatCards({
   monthSpendDeltaPct,
   monthSpendCount,
   spendYearMonth,
+  netWorthLoading,
+  monthSpendLoading,
 }: StatCardsProps) {
   const netNegative = netWorthEgp < 0;
   const netColor = netNegative ? Colors.dark.negative : Colors.dark.positive;
@@ -74,7 +167,8 @@ export function StatCards({
     <View className="mx-4 mt-2 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
       {/* Net Worth */}
       <View
-        className="bg-surface border-border flex-1 rounded-2xl border p-3"
+        testID="dashboard-net-worth-card"
+        className="bg-surface border-border flex-1 rounded-2xl border px-3 py-2"
         style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
@@ -88,59 +182,73 @@ export function StatCards({
             {Strings.dashNetWorthTitle}
           </Text>
         </View>
-        <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
-          {formatAmount(netWorthEgp)} <Text className="text-muted text-xs font-medium">EGP</Text>
-        </Text>
-        <View
-          className="bg-default flex-row overflow-hidden rounded"
-          style={{ flexDirection: 'row', height: ms(4) }}
-        >
-          <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
-          <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
-        </View>
-        <View className="flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
-          <View className="flex-1" style={{ flex: 1 }}>
-            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-              <View
-                style={{
-                  width: ms(6),
-                  height: ms(6),
-                  borderRadius: ms(3),
-                  backgroundColor: Colors.dark.positive,
-                }}
-              />
-              <Text variant="hint" className="text-muted text-xs">
-                {Strings.dashAssetsLabel} ({assetsCount})
-              </Text>
-            </View>
-            <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
-              {formatAmount(assetsEgp)}
+        {netWorthLoading ? (
+          <NetWorthSkeleton />
+        ) : (
+          <>
+            <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
+              {formatAmount(netWorthEgp)}{' '}
+              <Text className="text-muted text-xs font-medium">EGP</Text>
             </Text>
-          </View>
-          <View className="flex-1" style={{ flex: 1 }}>
-            <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
-              <View
-                style={{
-                  width: ms(6),
-                  height: ms(6),
-                  borderRadius: ms(3),
-                  backgroundColor: Colors.dark.negative,
-                }}
-              />
-              <Text variant="hint" className="text-muted text-xs">
-                {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
-              </Text>
+            <View
+              className="bg-default flex-row overflow-hidden rounded"
+              style={{ flexDirection: 'row', height: ms(4) }}
+            >
+              <View style={{ flex: assetsPct, backgroundColor: Colors.dark.positive }} />
+              <View style={{ flex: 1 - assetsPct, backgroundColor: Colors.dark.negative }} />
             </View>
-            <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
-              {formatAmount(liabilitiesEgp)}
-            </Text>
-          </View>
-        </View>
+            <View className="mt-1 flex-row" style={{ flexDirection: 'row', gap: ms(8) }}>
+              <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
+                <View
+                  className="flex-row items-center"
+                  style={{ flexDirection: 'row', gap: ms(4) }}
+                >
+                  <View
+                    style={{
+                      width: ms(6),
+                      height: ms(6),
+                      borderRadius: ms(3),
+                      backgroundColor: Colors.dark.positive,
+                    }}
+                  />
+                  <Text variant="hint" className="text-muted text-xs">
+                    {Strings.dashAssetsLabel} ({assetsCount})
+                  </Text>
+                </View>
+                <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
+                  {formatAmount(assetsEgp)}
+                </Text>
+              </View>
+              <View className="flex-1" style={{ flex: 1, gap: ms(4) }}>
+                <View
+                  className="flex-row items-center"
+                  style={{ flexDirection: 'row', gap: ms(4) }}
+                >
+                  <View
+                    style={{
+                      width: ms(6),
+                      height: ms(6),
+                      borderRadius: ms(3),
+                      backgroundColor: Colors.dark.negative,
+                    }}
+                  />
+                  <Text variant="hint" className="text-muted text-xs">
+                    {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
+                  </Text>
+                </View>
+                <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
+                  {formatAmount(liabilitiesEgp)}
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
       </View>
 
       {/* Spent This Month */}
       <View
-        className="bg-surface border-border flex-1 rounded-2xl border p-3"
+        testID="dashboard-month-spend-card"
+        className="bg-surface border-border flex-1 rounded-2xl border px-3 py-2"
         style={{ flex: 1, gap: ms(6) }}
       >
         <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
@@ -157,41 +265,55 @@ export function StatCards({
             {monthLabel}
           </Text>
         </View>
-        <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-          {formatAmount(monthSpentEgp)} <Text className="text-muted text-xs font-medium">EGP</Text>
-        </Text>
-        <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
-          {formatAmount(monthSpentUsd, 0)}{' '}
-          <Text className="text-muted text-xs font-medium">USD</Text>
-        </Text>
-        <View
-          className="flex-row items-center justify-between"
-          style={{ flexDirection: 'row', gap: ms(8) }}
-        >
-          <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
+        {monthSpendLoading ? (
+          <>
+            <Skeleton
+              animation={DASHBOARD_SKELETON_ANIMATION}
+              className="mb-1 h-5 w-28 rounded-md"
+            />
+            <Skeleton animation={DASHBOARD_SKELETON_ANIMATION} className="h-5 w-24 rounded-md" />
+            <MonthSpendFooterSkeleton />
+          </>
+        ) : (
+          <>
+            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+              {formatAmount(monthSpentEgp)}{' '}
+              <Text className="text-muted text-xs font-medium">EGP</Text>
+            </Text>
+            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+              {formatAmount(monthSpentUsd, 0)}{' '}
+              <Text className="text-muted text-xs font-medium">USD</Text>
+            </Text>
             <View
-              className="flex-row items-center rounded-full"
-              style={{
-                flexDirection: 'row',
-                gap: ms(3),
-                paddingHorizontal: ms(8),
-                paddingVertical: ms(2),
-                backgroundColor: deltaColor + '22',
-              }}
+              className="flex-row items-center justify-between"
+              style={{ flexDirection: 'row', gap: ms(8) }}
             >
-              <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
-              <Text className="text-xs font-semibold" style={{ color: deltaColor }}>
-                {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
+              <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(5) }}>
+                <View
+                  className="flex-row items-center rounded-full"
+                  style={{
+                    flexDirection: 'row',
+                    gap: ms(3),
+                    paddingHorizontal: ms(8),
+                    paddingVertical: ms(2),
+                    backgroundColor: deltaColor + '22',
+                  }}
+                >
+                  <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
+                  <Text className="text-xs font-semibold" style={{ color: deltaColor }}>
+                    {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
+                  </Text>
+                </View>
+                <Text variant="hint" className="text-muted text-xs">
+                  vs {prevMonthLabel}
+                </Text>
+              </View>
+              <Text variant="hint" className="text-muted text-xs">
+                {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
               </Text>
             </View>
-            <Text variant="hint" className="text-muted text-xs">
-              vs {prevMonthLabel}
-            </Text>
-          </View>
-          <Text variant="hint" className="text-muted text-xs">
-            {monthSpendCount} {Strings.dashMonthSpentTxsUnit}
-          </Text>
-        </View>
+          </>
+        )}
       </View>
     </View>
   );

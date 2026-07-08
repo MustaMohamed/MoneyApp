@@ -139,11 +139,12 @@ const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
 });
 let loadAccountsMock: jest.Mock;
 
-function setupMocks(accounts = BASE_ACCOUNTS) {
+function setupMocks(accounts = BASE_ACCOUNTS, accountsLoaded = true) {
   const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
   loadAccountsMock = jest.fn().mockResolvedValue(undefined);
   attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
     accounts,
+    hasLoaded: accountsLoaded,
     loadAccounts: loadAccountsMock,
   }));
   attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
@@ -161,6 +162,9 @@ function setupMocks(accounts = BASE_ACCOUNTS) {
     previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
     currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
     previousTransactionTotals: null,
+    commitmentPaymentsLoaded: false,
+    monthSpendLoaded: false,
+    transactionTotalsLoaded: false,
     setStatsMap: jest.fn(),
     setCurrentMonthCommitmentPayments: jest.fn(),
     setMonthSpendStats: jest.fn(),
@@ -194,17 +198,92 @@ describe('useDashboard', () => {
     expect(result.current.state.selectedSegment).toBe('overview');
   });
 
-  it('does not expose a store-loaded sentinel', () => {
+  it('exposes dashboard summary loading flags before async sections load', () => {
+    const { result } = renderHook(() => useDashboard());
+
+    expect(result.current.state.monthSpend.loading).toBe(true);
+    expect(result.current.state.transactions.loading).toBe(true);
+    expect(result.current.state.commitments.loading).toBe(true);
+  });
+
+  it('exposes account loading state for account-derived dashboard totals', () => {
+    setupMocks([], false);
+
+    const { result } = renderHook(() => useDashboard());
+
+    expect(result.current.state.accountsLoaded).toBe(false);
+  });
+
+  it('exposes loaded dashboard summary flags from the store', () => {
     const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-      accounts: [],
-      loadAccounts: jest.fn().mockResolvedValue(undefined),
+    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
+      statsMap: {},
+      currentMonthCommitmentPayments: [],
+      currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+      previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
+      currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+      previousTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+      commitmentPaymentsLoaded: true,
+      monthSpendLoaded: true,
+      transactionTotalsLoaded: true,
+      setStatsMap: jest.fn(),
+      setCurrentMonthCommitmentPayments: jest.fn(),
+      setMonthSpendStats: jest.fn(),
+      setTransactionTotals: jest.fn(),
     }));
 
     const { result } = renderHook(() => useDashboard());
 
-    expect(result.current.state.accounts).toEqual([]);
-    expect('accountsLoaded' in result.current.state).toBe(false);
+    expect(result.current.state.monthSpend.loading).toBe(false);
+    expect(result.current.state.transactions.loading).toBe(false);
+    expect(result.current.state.commitments.loading).toBe(false);
+  });
+
+  it('settles dashboard summary sections with empty fallbacks when initial loaders fail', async () => {
+    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
+    const setCurrentMonthCommitmentPayments = jest.fn();
+    const setMonthSpendStats = jest.fn();
+    const setTransactionTotals = jest.fn();
+    const emptySpend = { totalEgp: 0, usdNative: 0, count: 0 };
+    const emptyTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    getMonthExpenseStats.mockRejectedValueOnce(new Error('spend down'));
+    getPeriodTotals.mockRejectedValueOnce(new Error('totals down'));
+    commitmentRepository.getPaymentsForMonth.mockRejectedValueOnce(new Error('payments down'));
+    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
+      statsMap: {},
+      currentMonthCommitmentPayments: [],
+      currentMonthSpend: emptySpend,
+      previousMonthSpend: emptySpend,
+      currentTransactionTotals: emptyTotals,
+      previousTransactionTotals: null,
+      commitmentPaymentsLoaded: false,
+      monthSpendLoaded: false,
+      transactionTotalsLoaded: false,
+      setStatsMap: jest.fn(),
+      setCurrentMonthCommitmentPayments,
+      setMonthSpendStats,
+      setTransactionTotals,
+    }));
+
+    renderHook(() => useDashboard());
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    await waitFor(() => {
+      expect(setCurrentMonthCommitmentPayments).toHaveBeenCalledWith([]);
+      expect(setMonthSpendStats).toHaveBeenCalledWith(emptySpend, emptySpend);
+      expect(setTransactionTotals).toHaveBeenCalledWith(emptyTotals, emptyTotals);
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    consoleSpy.mockRestore();
   });
 
   it('setSelectedSegment updates state', () => {
@@ -246,6 +325,21 @@ describe('useDashboard', () => {
     expect(useCommitmentStore).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('loads dashboard summary queries once on initial focus', async () => {
+    renderHook(() => useDashboard());
+
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    await waitFor(() => {
+      expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
+      expect(getMonthExpenseStats).toHaveBeenCalledTimes(2);
+      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -312,6 +406,9 @@ describe('useDashboard', () => {
       previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
       currentTransactionTotals: currentTotals,
       previousTransactionTotals: previousTotals,
+      commitmentPaymentsLoaded: true,
+      monthSpendLoaded: true,
+      transactionTotalsLoaded: true,
       setStatsMap: jest.fn(),
       setCurrentMonthCommitmentPayments: jest.fn(),
       setMonthSpendStats: jest.fn(),
@@ -319,6 +416,10 @@ describe('useDashboard', () => {
     }));
 
     const { result } = renderHook(() => useDashboard());
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
 
     await waitFor(() => {
       expect(getPeriodTotals).toHaveBeenCalledTimes(2);
