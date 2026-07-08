@@ -47,7 +47,7 @@ function CommitmentsCardSkeleton(): React.ReactElement {
           minHeight: DASHBOARD_COMMITMENTS_SUMMARY_ROW_HEIGHT,
         }}
       >
-        <View style={{ flex: 1, gap: ms(4)}}>
+        <View style={{ flex: 1, gap: ms(4) }}>
           <Skeleton
             animation={DASHBOARD_SKELETON_ANIMATION}
             className="w-28 rounded-md"
@@ -84,7 +84,12 @@ function CommitmentsCardSkeleton(): React.ReactElement {
           <View
             key={stat}
             testID="dashboard-commitments-skeleton-stat"
-            style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: ms(2) }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: ms(2),
+            }}
           >
             <Skeleton
               animation={DASHBOARD_SKELETON_ANIMATION}

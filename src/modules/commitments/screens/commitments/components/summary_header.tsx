@@ -41,7 +41,7 @@ function SummarySkeleton(): React.ReactElement {
           minHeight: SUMMARY_ROW_HEIGHT,
         }}
       >
-        <View style={{ flex: 1, gap: ms(4), }}>
+        <View style={{ flex: 1, gap: ms(4) }}>
           <Skeleton className="w-28 rounded-md" style={{ height: ms(6) }} />
           <Skeleton className="w-32 rounded-md" style={{ height: ms(14) }} />
         </View>
