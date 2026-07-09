@@ -72,7 +72,7 @@ export function useBudget() {
     copySourceMonth,
     lensTab,
     copySheetVisible,
-    copySelectedCategoryIds,
+    copySelectedBudgetIds,
     incomeSuggestion,
   } = useBudgetState(
     useShallow((s) => ({
@@ -80,7 +80,7 @@ export function useBudget() {
       copySourceMonth: s.copySourceMonth,
       lensTab: s.lensTab,
       copySheetVisible: s.copySheetVisible,
-      copySelectedCategoryIds: s.copySelectedCategoryIds,
+      copySelectedBudgetIds: s.copySelectedBudgetIds,
       incomeSuggestion: s.incomeSuggestion,
     })),
   );
@@ -90,8 +90,8 @@ export function useBudget() {
   const resetSelectedMonthToCurrent = useBudgetState.getState().resetSelectedMonthToCurrent;
   const openCopyState = useBudgetState.getState().openCopy;
   const closeCopy = useBudgetState.getState().closeCopy;
-  const setCopySelectedCategoryIds = useBudgetState.getState().setCopySelectedCategoryIds;
-  const toggleCopyCategoryId = useBudgetState.getState().toggleCopyCategoryId;
+  const setCopySelectedBudgetIds = useBudgetState.getState().setCopySelectedBudgetIds;
+  const toggleCopyBudgetId = useBudgetState.getState().toggleCopyBudgetId;
   const clearCopySelection = useBudgetState.getState().clearCopySelection;
   const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
 
@@ -204,22 +204,22 @@ export function useBudget() {
         sourceMonth: month,
         targetMonth: selectedMonth,
       });
-      setCopySelectedCategoryIds(rowsForSource.map((row) => row.id));
+      setCopySelectedBudgetIds(rowsForSource.map((row) => row.id));
     },
-    [budgetRows, categories, selectedMonth, setCopySelectedCategoryIds, setCopySourceMonthState],
+    [budgetRows, categories, selectedMonth, setCopySelectedBudgetIds, setCopySourceMonthState],
   );
 
   const copySelectedBudgets = useCallback(
-    async (budgetIds = copySelectedCategoryIds) => {
+    async (budgetIds = copySelectedBudgetIds) => {
       await copyBudgetsToMonth(copySourceMonth, selectedMonth, budgetIds);
       closeCopy();
     },
-    [closeCopy, copyBudgetsToMonth, copySelectedCategoryIds, copySourceMonth, selectedMonth],
+    [closeCopy, copyBudgetsToMonth, copySelectedBudgetIds, copySourceMonth, selectedMonth],
   );
 
-  const selectAllCopyCategories = useCallback(() => {
-    setCopySelectedCategoryIds(copyRows.map((row) => row.id));
-  }, [copyRows, setCopySelectedCategoryIds]);
+  const selectAllCopyBudgets = useCallback(() => {
+    setCopySelectedBudgetIds(copyRows.map((row) => row.id));
+  }, [copyRows, setCopySelectedBudgetIds]);
 
   const removeBudgetForMonth = useCallback(
     async ({ id }: { id: string; name: string }) => {
@@ -242,7 +242,7 @@ export function useBudget() {
       copySourceMonth,
       copyRows,
       copySheetVisible,
-      copySelectedCategoryIds,
+      copySelectedBudgetIds,
       hasLoaded: Boolean(categoriesLoaded && budgetLoaded),
     },
     openAdd,
@@ -251,8 +251,8 @@ export function useBudget() {
     setSelectedMonth,
     openCopy,
     closeCopy,
-    toggleCopyCategoryId,
-    selectAllCopyCategories,
+    toggleCopyBudgetId,
+    selectAllCopyBudgets,
     clearCopySelection,
     setCopySourceMonth,
     copySelectedBudgets,

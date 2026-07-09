@@ -26,10 +26,6 @@ const VALUE_ROW_HEIGHT = ms(32);
 const PROGRESS_HEIGHT = ms(3);
 const META_ROW_HEIGHT = ms(13);
 
-function categoryCountLabel(count: number): string {
-  return count === 1 ? '1 category' : `${count} categories`;
-}
-
 function BudgetCardSkeleton(): React.ReactElement {
   return (
     <>
@@ -155,7 +151,7 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
               }}
             >
               <Text className="text-muted text-[11px] font-semibold">
-                {categoryCountLabel(summary.categoryCount)}
+                {Strings.budgetCategoryCountLabel(summary.categoryCount)}
               </Text>
               <Text className="text-[11px] font-bold" style={{ color: bandColor }}>
                 {`${progressPct}% ${Strings.budgetUsedSuffix}`}

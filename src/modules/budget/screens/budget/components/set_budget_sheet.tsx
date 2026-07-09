@@ -199,7 +199,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                     onFocus={onFocus}
                     onBlur={onBlur}
                     placeholder={Strings.budgetNamePlaceholder}
-                    placeholderColorClassName="text-[#888]"
+                    placeholderColorClassName="text-muted"
                     className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
                     style={styles.nameInput}
                     accessibilityLabel={Strings.budgetNameLabel}
@@ -226,7 +226,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                     onBlur={onBlur}
                     keyboardType="number-pad"
                     placeholder="0"
-                    placeholderColorClassName="text-[#888]"
+                    placeholderColorClassName="text-muted"
                     className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
                     style={styles.input}
                     accessibilityLabel={Strings.budgetMonthlyLimitLabel}

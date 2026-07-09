@@ -10,7 +10,7 @@ jest.mock('@/modules/budget/screens/budget/budget.hook', () => ({
 }));
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/modules/budget/screens/budget/budget.state', () => ({
-  useBudgetState: { useState: { targetCategoryId: jest.fn(() => undefined) } },
+  useBudgetState: { useState: { targetBudgetId: jest.fn(() => undefined) } },
 }));
 jest.mock('expo-router', () => ({
   useFocusEffect: jest.fn(),
@@ -222,7 +222,7 @@ const baseState: BudgetScreenState = {
   copySourceMonth: '2026-06',
   copyRows: [],
   copySheetVisible: false,
-  copySelectedCategoryIds: [],
+  copySelectedBudgetIds: [],
   hasLoaded: false,
 };
 
@@ -237,8 +237,8 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     setSelectedMonth: jest.fn(),
     openCopy: jest.fn(),
     closeCopy: jest.fn(),
-    toggleCopyCategoryId: jest.fn(),
-    selectAllCopyCategories: jest.fn(),
+    toggleCopyBudgetId: jest.fn(),
+    selectAllCopyBudgets: jest.fn(),
     clearCopySelection: jest.fn(),
     setCopySourceMonth: jest.fn(),
     copySelectedBudgets: jest.fn(),
@@ -408,8 +408,8 @@ describe('BudgetScreen', () => {
       setSelectedMonth: jest.fn(),
       openCopy,
       closeCopy: jest.fn(),
-      toggleCopyCategoryId: jest.fn(),
-      selectAllCopyCategories: jest.fn(),
+      toggleCopyBudgetId: jest.fn(),
+      selectAllCopyBudgets: jest.fn(),
       clearCopySelection: jest.fn(),
       setCopySourceMonth: jest.fn(),
       copySelectedBudgets: jest.fn(),
@@ -468,8 +468,8 @@ describe('BudgetScreen', () => {
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),
       closeCopy: jest.fn(),
-      toggleCopyCategoryId: jest.fn(),
-      selectAllCopyCategories: jest.fn(),
+      toggleCopyBudgetId: jest.fn(),
+      selectAllCopyBudgets: jest.fn(),
       clearCopySelection: jest.fn(),
       setCopySourceMonth,
       copySelectedBudgets: jest.fn(),

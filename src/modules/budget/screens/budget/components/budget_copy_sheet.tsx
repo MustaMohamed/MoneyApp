@@ -19,10 +19,10 @@ interface BudgetCopySheetProps {
   sourceMonth: string;
   targetMonthLabel: string;
   rows: BudgetCopyRowVM[];
-  selectedCategoryIds: string[];
+  selectedBudgetIds: string[];
   onSourceMonthChange: (month: string) => void;
   onOpenChange: (open: boolean) => void;
-  onToggleCategory: (categoryId: string) => void;
+  onToggleBudget: (budgetId: string) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
   onApply: () => void;
@@ -37,15 +37,15 @@ export function BudgetCopySheet({
   sourceMonth,
   targetMonthLabel,
   rows,
-  selectedCategoryIds,
+  selectedBudgetIds,
   onSourceMonthChange,
   onOpenChange,
-  onToggleCategory,
+  onToggleBudget,
   onSelectAll,
   onClearSelection,
   onApply,
 }: BudgetCopySheetProps) {
-  const selectedCount = selectedCategoryIds.length;
+  const selectedCount = selectedBudgetIds.length;
   const canApply = rows.length > 0 && selectedCount > 0;
 
   return (
@@ -114,14 +114,14 @@ export function BudgetCopySheet({
 
             <View style={styles.list}>
               {rows.map((row) => {
-                const selected = selectedCategoryIds.includes(row.id);
+                const selected = selectedBudgetIds.includes(row.id);
                 return (
                   <PressableFeedback
                     key={row.id}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: selected }}
-                    accessibilityLabel={`Toggle ${row.name}`}
-                    onPress={() => onToggleCategory(row.id)}
+                    accessibilityLabel={Strings.budgetCopyToggleA11y(row.name)}
+                    onPress={() => onToggleBudget(row.id)}
                     style={styles.row}
                   >
                     <View pointerEvents="none">

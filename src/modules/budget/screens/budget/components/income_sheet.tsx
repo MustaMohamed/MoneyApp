@@ -60,7 +60,7 @@ export function IncomeSheet() {
             onBlur={onBlur}
             keyboardType="number-pad"
             placeholder={Strings.incomeSheetAmountPlaceholder}
-            placeholderColorClassName="text-[#888]"
+            placeholderColorClassName="text-muted"
             className="flex-1 border-0 bg-transparent p-0"
             style={styles.input}
             accessibilityLabel={Strings.incomeSheetAmountLabel}

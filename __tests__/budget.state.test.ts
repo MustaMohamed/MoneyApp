@@ -10,29 +10,29 @@ describe('useBudgetState', () => {
     expect(s.sheetVisible).toBe(false);
     expect(s.copySheetVisible).toBe(false);
     expect(s.mode).toBe('add');
-    expect(s.targetCategoryId).toBeUndefined();
+    expect(s.targetBudgetId).toBeUndefined();
     expect(s.selectedMonth).toBe('2026-07');
     expect(s.copySourceMonth).toBe('2026-06');
-    expect(s.copySelectedCategoryIds).toEqual([]);
+    expect(s.copySelectedBudgetIds).toEqual([]);
     expect(s.incomeSuggestion).toBeNull();
     jest.useRealTimers();
   });
 
   it('openAdd opens in add mode with no target', () => {
-    useBudgetState.getState().openEdit('cat_food');
+    useBudgetState.getState().openEdit('budget-food');
     useBudgetState.getState().openAdd();
     const s = useBudgetState.getState();
     expect(s.sheetVisible).toBe(true);
     expect(s.mode).toBe('add');
-    expect(s.targetCategoryId).toBeUndefined();
+    expect(s.targetBudgetId).toBeUndefined();
   });
 
-  it('openEdit opens in edit mode targeting a category', () => {
-    useBudgetState.getState().openEdit('cat_food');
+  it('openEdit opens in edit mode targeting a budget', () => {
+    useBudgetState.getState().openEdit('budget-food');
     const s = useBudgetState.getState();
     expect(s.sheetVisible).toBe(true);
     expect(s.mode).toBe('edit');
-    expect(s.targetCategoryId).toBe('cat_food');
+    expect(s.targetBudgetId).toBe('budget-food');
   });
 
   it('close hides the sheet', () => {
@@ -62,31 +62,31 @@ describe('useBudgetState', () => {
     expect(useBudgetState.getState().copySourceMonth).toBe('2026-07');
   });
 
-  it('opens copy sheet with selected source categories by default', () => {
-    useBudgetState.getState().openCopy(['cat_food', 'cat_car']);
+  it('opens copy sheet with selected source budgets by default', () => {
+    useBudgetState.getState().openCopy(['budget-food', 'budget-car']);
     const s = useBudgetState.getState();
     expect(s.copySheetVisible).toBe(true);
-    expect(s.copySelectedCategoryIds).toEqual(['cat_food', 'cat_car']);
+    expect(s.copySelectedBudgetIds).toEqual(['budget-food', 'budget-car']);
   });
 
-  it('toggles and clears copy category selection', () => {
-    useBudgetState.getState().openCopy(['cat_food', 'cat_car']);
-    useBudgetState.getState().toggleCopyCategoryId('cat_food');
-    expect(useBudgetState.getState().copySelectedCategoryIds).toEqual(['cat_car']);
+  it('toggles and clears copy budget selection', () => {
+    useBudgetState.getState().openCopy(['budget-food', 'budget-car']);
+    useBudgetState.getState().toggleCopyBudgetId('budget-food');
+    expect(useBudgetState.getState().copySelectedBudgetIds).toEqual(['budget-car']);
 
-    useBudgetState.getState().toggleCopyCategoryId('cat_rent');
-    expect(useBudgetState.getState().copySelectedCategoryIds).toEqual(['cat_car', 'cat_rent']);
+    useBudgetState.getState().toggleCopyBudgetId('budget-rent');
+    expect(useBudgetState.getState().copySelectedBudgetIds).toEqual(['budget-car', 'budget-rent']);
 
     useBudgetState.getState().clearCopySelection();
-    expect(useBudgetState.getState().copySelectedCategoryIds).toEqual([]);
+    expect(useBudgetState.getState().copySelectedBudgetIds).toEqual([]);
   });
 
   it('closes copy sheet and clears copy selection', () => {
-    useBudgetState.getState().openCopy(['cat_food']);
+    useBudgetState.getState().openCopy(['budget-food']);
     useBudgetState.getState().closeCopy();
     const s = useBudgetState.getState();
     expect(s.copySheetVisible).toBe(false);
-    expect(s.copySelectedCategoryIds).toEqual([]);
+    expect(s.copySelectedBudgetIds).toEqual([]);
   });
 
   it('stores the trailing income suggestion for the 50/30/20 lens', () => {

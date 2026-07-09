@@ -40,15 +40,15 @@ export default function BudgetScreen() {
     setSelectedMonth,
     openCopy,
     closeCopy,
-    toggleCopyCategoryId,
-    selectAllCopyCategories,
+    toggleCopyBudgetId,
+    selectAllCopyBudgets,
     clearCopySelection,
     setCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
     goToCategory,
   } = useBudget();
-  const editingTargetId = useBudgetState.useState.targetCategoryId();
+  const editingTargetId = useBudgetState.useState.targetBudgetId();
   const editingRow = state.rows
     .flatMap((row) =>
       row.budgets.map((budget) => ({
@@ -183,13 +183,13 @@ export default function BudgetScreen() {
         sourceMonth={state.copySourceMonth}
         targetMonthLabel={formatMonthYear(state.month)}
         rows={state.copyRows}
-        selectedCategoryIds={state.copySelectedCategoryIds}
+        selectedBudgetIds={state.copySelectedBudgetIds}
         onSourceMonthChange={setCopySourceMonth}
         onOpenChange={(open) => {
           if (!open) closeCopy();
         }}
-        onToggleCategory={toggleCopyCategoryId}
-        onSelectAll={selectAllCopyCategories}
+        onToggleBudget={toggleCopyBudgetId}
+        onSelectAll={selectAllCopyBudgets}
         onClearSelection={clearCopySelection}
         onApply={() => {
           void copySelectedBudgets();

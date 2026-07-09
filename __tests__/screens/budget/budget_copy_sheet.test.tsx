@@ -95,7 +95,7 @@ const rows: BudgetCopyRowVM[] = [
 
 describe('BudgetCopySheet', () => {
   it('renders checklist rows and applies selected categories', () => {
-    const onToggleCategory = jest.fn();
+    const onToggleBudget = jest.fn();
     const onSelectAll = jest.fn();
     const onClearSelection = jest.fn();
     const onApply = jest.fn();
@@ -106,10 +106,10 @@ describe('BudgetCopySheet', () => {
         sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={['budget-food']}
+        selectedBudgetIds={['budget-food']}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
-        onToggleCategory={onToggleCategory}
+        onToggleBudget={onToggleBudget}
         onSelectAll={onSelectAll}
         onClearSelection={onClearSelection}
         onApply={onApply}
@@ -126,7 +126,7 @@ describe('BudgetCopySheet', () => {
     expect(getByText('Car / New')).toBeTruthy();
 
     fireEvent.press(getByLabelText('Toggle Fuel'));
-    expect(onToggleCategory).toHaveBeenCalledWith('budget-car');
+    expect(onToggleBudget).toHaveBeenCalledWith('budget-car');
 
     fireEvent.press(getByText('Select all'));
     expect(onSelectAll).toHaveBeenCalledTimes(1);
@@ -145,10 +145,10 @@ describe('BudgetCopySheet', () => {
         sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={['budget-food', 'budget-car']}
+        selectedBudgetIds={['budget-food', 'budget-car']}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
-        onToggleCategory={jest.fn()}
+        onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
         onApply={jest.fn()}
@@ -168,10 +168,10 @@ describe('BudgetCopySheet', () => {
         sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={[]}
+        selectedBudgetIds={[]}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
-        onToggleCategory={jest.fn()}
+        onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
         onApply={jest.fn()}
@@ -192,10 +192,10 @@ describe('BudgetCopySheet', () => {
         sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={['budget-food']}
+        selectedBudgetIds={['budget-food']}
         onSourceMonthChange={onSourceMonthChange}
         onOpenChange={jest.fn()}
-        onToggleCategory={jest.fn()}
+        onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
         onApply={jest.fn()}
@@ -219,10 +219,10 @@ describe('BudgetCopySheet', () => {
         sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={[]}
+        selectedBudgetIds={[]}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
-        onToggleCategory={jest.fn()}
+        onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
         onApply={onApply}
@@ -240,10 +240,10 @@ describe('BudgetCopySheet', () => {
         sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={[]}
-        selectedCategoryIds={[]}
+        selectedBudgetIds={[]}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
-        onToggleCategory={jest.fn()}
+        onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
         onApply={jest.fn()}

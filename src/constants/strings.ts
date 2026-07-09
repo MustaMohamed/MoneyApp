@@ -203,6 +203,7 @@ export const Strings = {
   budgetUsedSuffix: 'used',
   budgetDaysLeftSuffix: 'days left',
   budgetCountLabel: (count: number) => `${count} ${count === 1 ? 'budget' : 'budgets'}`,
+  budgetCategoryCountLabel: (count: number) => (count === 1 ? '1 category' : `${count} categories`),
   budgetOverPill: 'Over',
   budgetSetTitle: 'Set budget',
   budgetEditTitle: 'Edit budget',
@@ -241,6 +242,7 @@ export const Strings = {
   budgetCopyEmptyBody: 'Selected source month has no category budgets.',
   budgetCopyStatusNew: 'New',
   budgetCopyStatusWillReplace: 'Will replace',
+  budgetCopyToggleA11y: (name: string) => `Toggle ${name}`,
   loadingBudgetA11y: 'Loading budget',
 
   // Budget — 50/30/20 lens

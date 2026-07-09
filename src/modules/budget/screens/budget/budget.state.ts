@@ -10,27 +10,27 @@ export type LensTab = 'categories' | 'plans' | 'fiftythirty';
 interface BudgetStateShape {
   sheetVisible: boolean;
   mode: BudgetSheetMode;
-  targetCategoryId: string | undefined;
+  targetBudgetId: string | undefined;
   lensTab: LensTab;
   selectedMonth: string;
   copySourceMonth: string;
   copySheetVisible: boolean;
-  copySelectedCategoryIds: string[];
+  copySelectedBudgetIds: string[];
   incomeSuggestion: number | null;
 }
 
 type BudgetState = BudgetStateShape & {
   openAdd: () => void;
-  openEdit: (categoryId: string) => void;
+  openEdit: (budgetId: string) => void;
   close: () => void;
   setLensTab: (tab: LensTab) => void;
   setSelectedMonth: (month: string) => void;
   setCopySourceMonth: (month: string) => void;
   resetSelectedMonthToCurrent: () => void;
-  openCopy: (categoryIds?: string[]) => void;
+  openCopy: (budgetIds?: string[]) => void;
   closeCopy: () => void;
-  setCopySelectedCategoryIds: (categoryIds: string[]) => void;
-  toggleCopyCategoryId: (categoryId: string) => void;
+  setCopySelectedBudgetIds: (budgetIds: string[]) => void;
+  toggleCopyBudgetId: (budgetId: string) => void;
   clearCopySelection: () => void;
   setIncomeSuggestion: (suggestion: number | null) => void;
   reset: () => void;
@@ -41,12 +41,12 @@ function initialState(): BudgetStateShape {
   return {
     sheetVisible: false,
     mode: 'add',
-    targetCategoryId: undefined,
+    targetBudgetId: undefined,
     lensTab: 'categories',
     selectedMonth,
     copySourceMonth: previousYearMonth(selectedMonth),
     copySheetVisible: false,
-    copySelectedCategoryIds: [],
+    copySelectedBudgetIds: [],
     incomeSuggestion: null,
   };
 }
@@ -58,13 +58,13 @@ export const useBudgetState = createMoneyAppSelectors(
       set({
         sheetVisible: true,
         mode: 'add',
-        targetCategoryId: undefined,
+        targetBudgetId: undefined,
       }),
-    openEdit: (categoryId) =>
+    openEdit: (budgetId) =>
       set({
         sheetVisible: true,
         mode: 'edit',
-        targetCategoryId: categoryId,
+        targetBudgetId: budgetId,
       }),
     close: () => set({ sheetVisible: false }),
     setLensTab: (tab) => set({ lensTab: tab }),
@@ -75,25 +75,24 @@ export const useBudgetState = createMoneyAppSelectors(
       const selectedMonth = currentYearMonth();
       set({ selectedMonth, copySourceMonth: previousYearMonth(selectedMonth) });
     },
-    openCopy: (categoryIds = []) =>
-      set({ copySheetVisible: true, copySelectedCategoryIds: categoryIds }),
+    openCopy: (budgetIds = []) => set({ copySheetVisible: true, copySelectedBudgetIds: budgetIds }),
     closeCopy: () =>
       set((state) => ({
         copySheetVisible: false,
-        copySelectedCategoryIds: [],
+        copySelectedBudgetIds: [],
         copySourceMonth: previousYearMonth(state.selectedMonth),
       })),
-    setCopySelectedCategoryIds: (categoryIds) => set({ copySelectedCategoryIds: categoryIds }),
-    toggleCopyCategoryId: (categoryId) =>
+    setCopySelectedBudgetIds: (budgetIds) => set({ copySelectedBudgetIds: budgetIds }),
+    toggleCopyBudgetId: (budgetId) =>
       set((state) => {
-        const selected = state.copySelectedCategoryIds.includes(categoryId);
+        const selected = state.copySelectedBudgetIds.includes(budgetId);
         return {
-          copySelectedCategoryIds: selected
-            ? state.copySelectedCategoryIds.filter((id) => id !== categoryId)
-            : [...state.copySelectedCategoryIds, categoryId],
+          copySelectedBudgetIds: selected
+            ? state.copySelectedBudgetIds.filter((id) => id !== budgetId)
+            : [...state.copySelectedBudgetIds, budgetId],
         };
       }),
-    clearCopySelection: () => set({ copySelectedCategoryIds: [] }),
+    clearCopySelection: () => set({ copySelectedBudgetIds: [] }),
     setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
     reset: () => set(initialState()),
   })),
