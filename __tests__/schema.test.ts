@@ -38,6 +38,8 @@ describe('database schema — TC-15', () => {
       'categories',
       'commitment_payments',
       'commitments',
+      'spending_plan_categories',
+      'spending_plans',
       'transactions',
     ]);
   });

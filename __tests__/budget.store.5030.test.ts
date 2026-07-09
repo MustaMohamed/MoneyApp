@@ -6,6 +6,7 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {
     getRows: jest.fn().mockResolvedValue([]),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
+    getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
     setLimit: jest.fn().mockResolvedValue(undefined),
     removeBudget: jest.fn().mockResolvedValue(undefined),
     copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
