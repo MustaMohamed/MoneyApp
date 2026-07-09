@@ -69,12 +69,6 @@ function PlansSkeleton(): React.ReactElement {
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <View style={{ flexDirection: 'row', gap: Spacing.xs }} className="mx-4 mt-2">
-          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
-          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
-          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
-        </View>
-
         <View className="border-border bg-surface mx-4 mt-3 rounded-2xl border p-3">
           <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
             <SkeletonGroup.Item className="h-8 flex-1 rounded-md" />
@@ -82,6 +76,12 @@ function PlansSkeleton(): React.ReactElement {
             <SkeletonGroup.Item className="h-8 flex-1 rounded-md" />
           </View>
           <SkeletonGroup.Item className="mt-3 h-2.5 w-full rounded-full" />
+        </View>
+
+        <View style={{ flexDirection: 'row', gap: Spacing.xs }} className="mx-4 mt-2">
+          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
+          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
+          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
         </View>
 
         <SkeletonGroup.Item className="mx-4 mt-4 h-3 w-24 rounded-md" />

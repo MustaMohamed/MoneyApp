@@ -41,7 +41,7 @@ type BudgetStore = BudgetStoreShape & {
   setBudget: (input: SetBudgetInput) => Promise<void>;
   setLimit: (categoryId: string, limit: number, yearMonth?: string) => Promise<void>;
   removeBudget: (id: string, yearMonth?: string) => Promise<void>;
-  setSpendingPlan: (input: SetSpendingPlanInput) => Promise<void>;
+  setSpendingPlan: (input: SetSpendingPlanInput, anchorMonth?: string) => Promise<void>;
   removeSpendingPlan: (id: string, yearMonth?: string) => Promise<void>;
   copyBudgetsToMonth: (
     sourceMonth: string,
@@ -121,9 +121,9 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         await get().load(anchorMonth);
       },
 
-      setSpendingPlan: async (input) => {
+      setSpendingPlan: async (input, anchorMonth = input.startDate.slice(0, 7)) => {
         await budgetRepository.setSpendingPlan(input);
-        await get().load(input.startDate.slice(0, 7));
+        await get().load(anchorMonth);
       },
 
       removeSpendingPlan: async (id, yearMonth = currentYearMonth()) => {

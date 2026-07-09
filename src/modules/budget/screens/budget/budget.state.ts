@@ -15,12 +15,15 @@ interface BudgetStateShape {
   planSheetVisible: boolean;
   planSheetMode: SpendingPlanSheetMode;
   targetPlanId: string | undefined;
+  planDetailsVisible: boolean;
+  targetPlanDetailsId: string | undefined;
   lensTab: LensTab;
   selectedMonth: string;
   copySourceMonth: string;
   copySheetVisible: boolean;
   copySelectedBudgetIds: string[];
   incomeSuggestion: number | null;
+  refreshing: boolean;
 }
 
 type BudgetState = BudgetStateShape & {
@@ -30,6 +33,8 @@ type BudgetState = BudgetStateShape & {
   openAddPlan: () => void;
   openEditPlan: (planId: string) => void;
   closePlan: () => void;
+  openPlanDetails: (planId: string) => void;
+  closePlanDetails: () => void;
   setLensTab: (tab: LensTab) => void;
   setSelectedMonth: (month: string) => void;
   setCopySourceMonth: (month: string) => void;
@@ -40,6 +45,7 @@ type BudgetState = BudgetStateShape & {
   toggleCopyBudgetId: (budgetId: string) => void;
   clearCopySelection: () => void;
   setIncomeSuggestion: (suggestion: number | null) => void;
+  setRefreshing: (refreshing: boolean) => void;
   reset: () => void;
 };
 
@@ -52,12 +58,15 @@ function initialState(): BudgetStateShape {
     planSheetVisible: false,
     planSheetMode: 'add',
     targetPlanId: undefined,
+    planDetailsVisible: false,
+    targetPlanDetailsId: undefined,
     lensTab: 'categories',
     selectedMonth,
     copySourceMonth: previousYearMonth(selectedMonth),
     copySheetVisible: false,
     copySelectedBudgetIds: [],
     incomeSuggestion: null,
+    refreshing: false,
   };
 }
 
@@ -90,6 +99,16 @@ export const useBudgetState = createMoneyAppSelectors(
         targetPlanId: planId,
       }),
     closePlan: () => set({ planSheetVisible: false, targetPlanId: undefined }),
+    openPlanDetails: (planId) =>
+      set({
+        planDetailsVisible: true,
+        targetPlanDetailsId: planId,
+      }),
+    closePlanDetails: () =>
+      set({
+        planDetailsVisible: false,
+        targetPlanDetailsId: undefined,
+      }),
     setLensTab: (tab) => set({ lensTab: tab }),
     setSelectedMonth: (month) =>
       set({ selectedMonth: month, copySourceMonth: previousYearMonth(month) }),
@@ -117,6 +136,7 @@ export const useBudgetState = createMoneyAppSelectors(
       }),
     clearCopySelection: () => set({ copySelectedBudgetIds: [] }),
     setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
+    setRefreshing: (refreshing) => set({ refreshing }),
     reset: () => set(initialState()),
   })),
 );

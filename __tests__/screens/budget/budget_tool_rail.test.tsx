@@ -39,16 +39,37 @@ describe('BudgetToolRail', () => {
 
     expect(getByText('Copy')).toBeTruthy();
     expect(getByText('Budget')).toBeTruthy();
-    expect(getByText('Plan')).toBeTruthy();
     expect(getByTestId('icon-wallet-plus-outline')).toBeTruthy();
 
     fireEvent.press(getByLabelText('Copy budget'));
     fireEvent.press(getByLabelText('Add budget'));
-    fireEvent.press(getByLabelText('Temporary budget plans coming in Phase 2'));
 
     expect(onCopy).toHaveBeenCalledTimes(1);
     expect(onAddCategory).toHaveBeenCalledTimes(1);
     expect(onPlan).not.toHaveBeenCalled();
+  });
+
+  it('uses an add-plan icon in the plans rail', () => {
+    const onPlan = jest.fn();
+    const { getByLabelText, getByTestId, getByText, queryByText } = render(
+      <BudgetToolRail
+        variant="plans"
+        onCopy={jest.fn()}
+        onAddCategory={jest.fn()}
+        onPlan={onPlan}
+        copyDisabled={false}
+        addCategoryDisabled={false}
+        planDisabled={false}
+      />,
+    );
+
+    expect(getByText('Plan')).toBeTruthy();
+    expect(getByTestId('icon-calendar-plus-outline')).toBeTruthy();
+    expect(queryByText('Copy')).toBeNull();
+    expect(queryByText('Budget')).toBeNull();
+
+    fireEvent.press(getByLabelText('Plan'));
+    expect(onPlan).toHaveBeenCalledTimes(1);
   });
 
   it('can disable copy when there is no source month budget to copy', () => {

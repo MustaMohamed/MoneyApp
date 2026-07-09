@@ -16,95 +16,116 @@ import { ms } from '@/utils/responsive';
 
 interface SpendingPlanCardProps {
   row: SpendingPlanRowVM;
+  onOpenDetails: (id: string) => void;
   onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (plan: { id: string; name: string }) => void;
 }
 
-export function SpendingPlanCard({ row, onEdit, onDelete }: SpendingPlanCardProps) {
+export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: SpendingPlanCardProps) {
   const bandColor = row.isOver ? Colors.dark.negative : budgetBandColor(row.pct);
   const leftColor = row.left < 0 ? Colors.dark.negative : Colors.dark.positive;
+  const showBuffer = row.allocationRows.length > 0 && row.buffer > 0;
 
   return (
-    <PressableFeedback
-      accessibilityRole="button"
-      accessibilityLabel={row.name}
-      onPress={() => onEdit(row.id)}
-      style={styles.card}
-    >
-      <View style={styles.header}>
-        <View style={styles.titleWrap}>
-          <Text style={styles.title} numberOfLines={1}>
-            {row.name}
-          </Text>
-          <Text style={styles.meta}>
-            {Strings.budgetPlansDateRange(
-              formatShortDate(row.startDate),
-              formatShortDate(row.endDate),
-            )}
-            {' · '}
-            {Strings.budgetPlansCategoriesCount(row.categoryCount)}
-          </Text>
-        </View>
-        <View style={styles.amountWrap}>
-          <Text style={[styles.amount, { color: leftColor }]}>
-            {formatAmount(Math.abs(row.left))}
-          </Text>
-          <Text style={styles.amountSub}>
-            {row.left < 0 ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus}
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.chips}>
-        {row.categoryChips.slice(0, 4).map((category) => (
-          <View key={category.id} style={styles.chip}>
-            <MaterialCommunityIcons
-              name={toIconName(category.icon, 'tag')}
-              size={ms(11)}
-              color={category.color}
-            />
-            <Text style={styles.chipText}>{category.name}</Text>
-          </View>
-        ))}
-      </View>
-
-      <BudgetBar pct={row.pct} status="under" color={bandColor} height={ms(8)} />
-
-      {row.allocationRows.length > 0 ? (
-        <View style={styles.allocations}>
-          {row.allocationRows.map((allocation) => (
-            <View key={allocation.categoryId} style={styles.allocation}>
-              <View style={styles.allocationTop}>
-                <Text style={styles.allocationName}>{allocation.categoryName}</Text>
-                <Text style={[styles.allocationValue, allocation.isOver && styles.negative]}>
-                  {formatAmount(allocation.spent)} / {formatAmount(allocation.allocatedAmount)}
-                </Text>
-              </View>
-              <BudgetBar
-                pct={allocation.pct}
-                status="under"
-                color={allocation.isOver ? Colors.dark.negative : budgetBandColor(allocation.pct)}
-                height={ms(5)}
-              />
-            </View>
-          ))}
-          {row.buffer > 0 ? (
-            <Text style={styles.buffer}>
-              {Strings.budgetPlansAllocationBuffer(formatAmount(row.buffer))}
-            </Text>
-          ) : null}
-        </View>
-      ) : null}
-
+    <View style={styles.card}>
       <PressableFeedback
         accessibilityRole="button"
-        accessibilityLabel={`${Strings.budgetPlansRemoveA11y} ${row.name}`}
-        onPress={() => onDelete(row.id)}
-        style={styles.deleteButton}
+        accessibilityLabel={row.name}
+        onPress={() => onOpenDetails(row.id)}
       >
-        <MaterialCommunityIcons name="trash-can-outline" size={ms(15)} color={Colors.dark.text2} />
+        <View style={styles.header}>
+          <View style={styles.titleWrap}>
+            <Text style={styles.title} numberOfLines={1}>
+              {row.name}
+            </Text>
+            <Text style={styles.meta}>
+              {Strings.budgetPlansDateRange(
+                formatShortDate(row.startDate),
+                formatShortDate(row.endDate),
+              )}
+              {' · '}
+              {Strings.budgetPlansCategoriesCount(row.categoryCount)}
+            </Text>
+          </View>
+          <View style={styles.amountWrap}>
+            <Text style={[styles.amount, { color: leftColor }]}>
+              {formatAmount(Math.abs(row.left))}
+            </Text>
+            <Text style={styles.amountSub}>
+              {row.left < 0 ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus}
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.chips}>
+          {row.categoryChips.slice(0, 4).map((category) => (
+            <View key={category.id} style={styles.chip}>
+              <MaterialCommunityIcons
+                name={toIconName(category.icon, 'tag')}
+                size={ms(11)}
+                color={category.color}
+              />
+              <Text style={styles.chipText}>{category.name}</Text>
+            </View>
+          ))}
+        </View>
+
+        <BudgetBar pct={row.pct} status="under" color={bandColor} height={ms(8)} />
+
+        {row.allocationRows.length > 0 ? (
+          <View style={styles.allocations}>
+            {row.allocationRows.map((allocation) => (
+              <View key={allocation.categoryId} style={styles.allocation}>
+                <View style={styles.allocationTop}>
+                  <Text style={styles.allocationName}>{allocation.categoryName}</Text>
+                  <Text style={[styles.allocationValue, allocation.isOver && styles.negative]}>
+                    {formatAmount(allocation.spent)} / {formatAmount(allocation.allocatedAmount)}
+                  </Text>
+                </View>
+                <BudgetBar
+                  pct={allocation.pct}
+                  status="under"
+                  color={allocation.isOver ? Colors.dark.negative : budgetBandColor(allocation.pct)}
+                  height={ms(5)}
+                />
+              </View>
+            ))}
+          </View>
+        ) : null}
       </PressableFeedback>
-    </PressableFeedback>
+
+      <View style={styles.footer}>
+        {showBuffer ? (
+          <Text style={styles.buffer}>
+            {Strings.budgetPlansAllocationBuffer(formatAmount(row.buffer))}
+          </Text>
+        ) : (
+          <View />
+        )}
+        <View style={styles.actions}>
+          <PressableFeedback
+            accessibilityRole="button"
+            accessibilityLabel={`${Strings.budgetPlanEditTitle} ${row.name}`}
+            onPress={() => onEdit(row.id)}
+            style={styles.iconButton}
+          >
+            <MaterialCommunityIcons name="pencil-outline" size={ms(15)} color={Colors.dark.text2} />
+          </PressableFeedback>
+          <PressableFeedback
+            accessibilityRole="button"
+            accessibilityLabel={`${Strings.budgetPlansRemoveA11y} ${row.name}`}
+            onPress={() => onDelete({ id: row.id, name: row.name })}
+            style={styles.iconButton}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={ms(15)}
+              color={Colors.dark.text2}
+            />
+          </PressableFeedback>
+        </View>
+      </View>
+    </View>
   );
 }
 
@@ -195,10 +216,20 @@ const styles = StyleSheet.create({
     fontSize: Type.micro,
     color: Colors.dark.text2,
   },
-  deleteButton: {
-    position: 'absolute',
-    right: Spacing.sm,
-    bottom: Spacing.sm,
+  footer: {
+    minHeight: ms(28),
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+  },
+  iconButton: {
     width: ms(28),
     height: ms(28),
     alignItems: 'center',

@@ -239,6 +239,7 @@ export const Strings = {
   budgetPlanEndDate: 'End date',
   budgetPlanCategories: 'Categories',
   budgetPlanPickCategories: 'Pick categories',
+  budgetPlanMoreCategoriesCount: (count: number) => `+${count}`,
   budgetPlanAllocateByCategory: 'Allocate by category',
   budgetPlanAllocationHelper: (allocated: string, total: string, buffer: string) =>
     `${allocated} of ${total} allocated · ${buffer} buffer`,
@@ -249,6 +250,12 @@ export const Strings = {
   budgetPlanAmountInvalid: 'Enter a valid plan amount',
   budgetPlanDateInvalid: 'End date must be on or after start date',
   budgetPlanCategoryRequired: 'Select at least one category',
+  budgetPlanSaveError: 'Could not save plan. Try again.',
+  budgetPlanDeleteConfirmTitle: 'Remove plan?',
+  budgetPlanDeleteConfirmBody: (name: string) =>
+    `Remove ${name}? This deletes the temporary budget and its category allocations.`,
+  budgetPlanDeleteConfirmConfirm: 'Remove',
+  budgetPlanDeleteConfirmCancel: 'Cancel',
   budgetPlansEmptyTitle: 'No spending plans',
   budgetPlansEmptyBody: 'Create a short-term plan for travel, a week, or another temporary period.',
   budgetPlansCreateAction: 'Create plan',

@@ -9,8 +9,11 @@ interface SpendingPlanSheetStateShape {
   allocations: Record<string, number | undefined>;
   allocateByCategory: boolean;
   pickerExpanded: boolean;
-  datePickerTarget: 'start' | 'end' | null;
+  datePickerTarget: SpendingPlanDatePickerTarget | null;
+  submitError: string | undefined;
 }
+
+export type SpendingPlanDatePickerTarget = 'start' | 'end';
 
 type SpendingPlanSheetState = SpendingPlanSheetStateShape & {
   initAddMode: (input: { month: string; firstCategoryId?: string }) => void;
@@ -25,9 +28,10 @@ type SpendingPlanSheetState = SpendingPlanSheetStateShape & {
   toggleCategoryId: (id: string) => void;
   setAllocation: (categoryId: string, amount: number | undefined) => void;
   setAllocateByCategory: (enabled: boolean) => void;
+  setSubmitError: (error: string | undefined) => void;
   openPicker: () => void;
   closePicker: () => void;
-  openDatePicker: (target: 'start' | 'end') => void;
+  openDatePicker: (target: SpendingPlanDatePickerTarget) => void;
   closeDatePicker: () => void;
   reset: () => void;
 };
@@ -40,6 +44,7 @@ const INITIAL_STATE: SpendingPlanSheetStateShape = {
   allocateByCategory: false,
   pickerExpanded: false,
   datePickerTarget: null,
+  submitError: undefined,
 };
 
 export const useSpendingPlanSheetState = createMoneyAppSelectors(
@@ -61,8 +66,8 @@ export const useSpendingPlanSheetState = createMoneyAppSelectors(
         allocations,
         allocateByCategory: Object.values(allocations).some((amount) => amount !== undefined),
       }),
-    setStartDate: (date) => set({ startDate: date }),
-    setEndDate: (date) => set({ endDate: date }),
+    setStartDate: (date) => set({ startDate: date, submitError: undefined }),
+    setEndDate: (date) => set({ endDate: date, submitError: undefined }),
     toggleCategoryId: (id) =>
       set((state) => {
         const selected = state.selectedCategoryIds.includes(id);
@@ -71,11 +76,16 @@ export const useSpendingPlanSheetState = createMoneyAppSelectors(
           : [...state.selectedCategoryIds, id];
         const allocations = { ...state.allocations };
         if (selected) delete allocations[id];
-        return { selectedCategoryIds, allocations };
+        return { selectedCategoryIds, allocations, submitError: undefined };
       }),
     setAllocation: (categoryId, amount) =>
-      set((state) => ({ allocations: { ...state.allocations, [categoryId]: amount } })),
-    setAllocateByCategory: (enabled) => set({ allocateByCategory: enabled }),
+      set((state) => ({
+        allocations: { ...state.allocations, [categoryId]: amount },
+        submitError: undefined,
+      })),
+    setAllocateByCategory: (enabled) =>
+      set({ allocateByCategory: enabled, submitError: undefined }),
+    setSubmitError: (error) => set({ submitError: error }),
     openPicker: () => set({ pickerExpanded: true }),
     closePicker: () => set({ pickerExpanded: false }),
     openDatePicker: (target) => set({ datePickerTarget: target }),

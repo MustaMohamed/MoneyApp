@@ -1,9 +1,17 @@
-import { fireEvent, render } from '@testing-library/react-native';
-import type { ReactNode } from 'react';
+import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import type { ReactElement, ReactNode } from 'react';
 
 import { CategoryType } from '@/constants/enums';
 import BudgetScreen from '@/modules/budget/screens/budget';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
+
+interface RefreshControlTestProps {
+  refreshing: boolean;
+  onRefresh: () => void;
+}
+
+let latestRefreshControl: ReactElement<RefreshControlTestProps> | undefined;
+let mockPendingConfirmPayload: { id: string; name: string } | null = null;
 
 jest.mock('@/modules/budget/screens/budget/budget.hook', () => ({
   useBudget: jest.fn(),
@@ -14,6 +22,8 @@ jest.mock('@/modules/budget/screens/budget/budget.state', () => ({
     useState: {
       targetBudgetId: jest.fn(() => undefined),
       targetPlanId: jest.fn(() => undefined),
+      targetPlanDetailsId: jest.fn(() => undefined),
+      planDetailsVisible: jest.fn(() => false),
     },
   },
 }));
@@ -37,8 +47,15 @@ jest.mock('@/components/ui/screen', () => ({
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
     return <View>{children}</View>;
   },
-  ScreenScroll: ({ children }: { children?: ReactNode }) => {
+  ScreenScroll: ({
+    children,
+    refreshControl,
+  }: {
+    children?: ReactNode;
+    refreshControl?: ReactElement<RefreshControlTestProps>;
+  }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+    latestRefreshControl = refreshControl;
     return <View>{children}</View>;
   },
 }));
@@ -79,12 +96,19 @@ jest.mock('@/components/ui/empty_state', () => ({
 }));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
 jest.mock('@/utils/use_confirm_action.hook', () => ({
-  useConfirmAction: (action: unknown) => ({
-    pendingPayload: null,
+  useConfirmAction: (action: (payload: { id: string; name: string }) => Promise<void>) => ({
+    pendingPayload: mockPendingConfirmPayload,
     busy: false,
-    request: mockRequestDelete,
-    confirm: jest.fn(),
-    cancel: jest.fn(),
+    request: (payload: { id: string; name: string }) => {
+      mockPendingConfirmPayload = payload;
+      mockRequestDelete(payload);
+    },
+    confirm: jest.fn(() =>
+      mockPendingConfirmPayload === null ? undefined : action(mockPendingConfirmPayload),
+    ),
+    cancel: jest.fn(() => {
+      mockPendingConfirmPayload = null;
+    }),
     action,
   }),
 }));
@@ -106,6 +130,7 @@ jest.mock('@/modules/budget/screens/budget/components/summary_card', () => ({
 }));
 jest.mock('@/modules/budget/screens/budget/components/budget_tool_rail', () => ({
   BudgetToolRail: ({
+    variant = 'categories',
     onCopy,
     onAddCategory,
     onPlan,
@@ -113,6 +138,7 @@ jest.mock('@/modules/budget/screens/budget/components/budget_tool_rail', () => (
     addCategoryDisabled,
     planDisabled,
   }: {
+    variant?: 'categories' | 'plans';
     onCopy: () => void;
     onAddCategory: () => void;
     onPlan: () => void;
@@ -124,18 +150,26 @@ jest.mock('@/modules/budget/screens/budget/components/budget_tool_rail', () => (
       jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <View testID="budget-tool-rail">
-        <Text>{`copy-disabled:${String(copyDisabled)}`}</Text>
-        <Text>{`category-disabled:${String(addCategoryDisabled)}`}</Text>
-        <Text>{`plan-disabled:${String(planDisabled)}`}</Text>
-        <Pressable accessibilityLabel="copy budget" onPress={onCopy}>
-          <Text>copy</Text>
-        </Pressable>
-        <Pressable accessibilityLabel="add budget category" onPress={onAddCategory}>
-          <Text>category</Text>
-        </Pressable>
-        <Pressable accessibilityLabel="plan budget" onPress={onPlan}>
-          <Text>plan</Text>
-        </Pressable>
+        <Text>{`rail:${variant}`}</Text>
+        {variant === 'categories' ? (
+          <>
+            <Text>{`copy-disabled:${String(copyDisabled)}`}</Text>
+            <Text>{`category-disabled:${String(addCategoryDisabled)}`}</Text>
+            <Pressable accessibilityLabel="copy budget" onPress={onCopy}>
+              <Text>copy</Text>
+            </Pressable>
+            <Pressable accessibilityLabel="add budget category" onPress={onAddCategory}>
+              <Text>category</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <Text>{`plan-disabled:${String(planDisabled)}`}</Text>
+            <Pressable accessibilityLabel="plan budget" onPress={onPlan}>
+              <Text>plan</Text>
+            </Pressable>
+          </>
+        )}
       </View>
     );
   },
@@ -215,31 +249,42 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plan_sheet', () =
 jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () => ({
   SpendingPlansLens: ({
     rows,
+    summaryFooter,
+    onOpenDetails,
     onCreate,
     onEdit,
     onDelete,
   }: {
-    rows: Array<{ id: string }>;
+    rows: Array<{ id: string; name?: string }>;
+    summaryFooter?: ReactNode;
+    onOpenDetails?: (id: string) => void;
     onCreate: () => void;
     onEdit: (id: string) => void;
-    onDelete: (id: string) => void;
+    onDelete: (plan: { id: string; name: string }) => void;
   }) => {
     const { Pressable, Text, View } =
       jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <View testID="spending-plans-lens">
+        {summaryFooter}
         <Text>{`plans-lens:${rows.length}`}</Text>
         <Pressable accessibilityLabel="create spending plan" onPress={onCreate}>
           <Text>create spending plan</Text>
         </Pressable>
         {rows.map((row) => (
           <View key={row.id}>
+            <Pressable
+              accessibilityLabel={`open plan ${row.id}`}
+              onPress={() => onOpenDetails?.(row.id)}
+            >
+              <Text>{`open plan ${row.id}`}</Text>
+            </Pressable>
             <Pressable accessibilityLabel={`edit plan ${row.id}`} onPress={() => onEdit(row.id)}>
               <Text>{`edit plan ${row.id}`}</Text>
             </Pressable>
             <Pressable
               accessibilityLabel={`delete plan ${row.id}`}
-              onPress={() => onDelete(row.id)}
+              onPress={() => onDelete({ id: row.id, name: row.name ?? row.id })}
             >
               <Text>{`delete plan ${row.id}`}</Text>
             </Pressable>
@@ -251,6 +296,45 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
 }));
 jest.mock('@/modules/budget/screens/budget/components/budget_delete_confirm_sheet', () => ({
   BudgetDeleteConfirmSheet: () => null,
+}));
+jest.mock('@/modules/budget/screens/budget/components/spending_plan_detail_sheet', () => ({
+  SpendingPlanDetailSheet: ({
+    plan,
+    isOpen,
+  }: {
+    plan?: { id: string; name: string };
+    isOpen: boolean;
+  }) => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return isOpen && plan ? <Text>{`plan-detail:${plan.id}:${plan.name}`}</Text> : null;
+  },
+}));
+jest.mock('@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet', () => ({
+  SpendingPlanDeleteConfirmSheet: ({
+    isOpen,
+    planName,
+    onConfirm,
+    onCancel,
+  }: {
+    isOpen: boolean;
+    planName: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+  }) => {
+    const { Pressable, Text, View } =
+      jest.requireActual<typeof import('react-native')>('react-native');
+    return isOpen ? (
+      <View>
+        <Text>{`plan-delete:${planName}`}</Text>
+        <Pressable accessibilityLabel="confirm plan delete" onPress={onConfirm}>
+          <Text>confirm plan delete</Text>
+        </Pressable>
+        <Pressable accessibilityLabel="cancel plan delete" onPress={onCancel}>
+          <Text>cancel plan delete</Text>
+        </Pressable>
+      </View>
+    ) : null;
+  },
 }));
 jest.mock('@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens', () => ({
   FiftyThirtyTwentyLens: () => null,
@@ -265,6 +349,9 @@ const baseState: BudgetScreenState = {
   rows: [],
   overall: { budgeted: 0, spent: 0, left: 0, pct: 0 },
   spendingPlanRows: [],
+  editingRow: undefined,
+  editingPlan: undefined,
+  detailPlan: undefined,
   spendingPlansSummary: { planned: 0, spent: 0, left: 0, pct: 0 },
   month: '2026-07',
   daysLeft: 12,
@@ -279,6 +366,8 @@ const baseState: BudgetScreenState = {
   copySheetVisible: false,
   copySelectedBudgetIds: [],
   hasLoaded: false,
+  refreshing: false,
+  planDetailsVisible: false,
 };
 
 const mockedUseBudget = jest.mocked(useBudget);
@@ -290,6 +379,10 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     openEdit: jest.fn(),
     openAddPlan: jest.fn(),
     openEditPlan: jest.fn(),
+    openPlanTool: jest.fn(),
+    openPlanDetails: jest.fn(),
+    closePlanDetails: jest.fn(),
+    openPlanEditFromDetails: jest.fn(),
     setLensTab: jest.fn(),
     setSelectedMonth: jest.fn(),
     openCopy: jest.fn(),
@@ -300,8 +393,10 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     setCopySourceMonth: jest.fn(),
     copySelectedBudgets: jest.fn(),
     removeBudgetForMonth: jest.fn(),
+    removeSpendingPlanForMonth: jest.fn(),
     setSpendingPlan: jest.fn(),
     removeSpendingPlan: jest.fn(),
+    refresh: jest.fn(),
     goToCategory: jest.fn(),
   });
 }
@@ -309,6 +404,8 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
 describe('BudgetScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    latestRefreshControl = undefined;
+    mockPendingConfirmPayload = null;
     mockUseBudget();
   });
 
@@ -375,18 +472,34 @@ describe('BudgetScreen', () => {
       ],
     });
 
-    const { getByText, queryByTestId } = render(<BudgetScreen />);
+    const { getByText, queryByLabelText, queryByTestId } = render(<BudgetScreen />);
 
     expect(queryByTestId('budget-screen-skeleton')).toBeNull();
     expect(getByText('summary-card')).toBeTruthy();
     expect(getByText('copy-disabled:false')).toBeTruthy();
     expect(getByText('category-disabled:false')).toBeTruthy();
-    expect(getByText('plan-disabled:false')).toBeTruthy();
+    expect(queryByLabelText('plan budget')).toBeNull();
     expect(getByText('segment:Categories')).toBeTruthy();
     expect(getByText('segment:Plans')).toBeTruthy();
     expect(getByText('segment:50/30/20')).toBeTruthy();
     expect(getByText('category:Food:1')).toBeTruthy();
     expect(getByText('budget:Food:3000')).toBeTruthy();
+  });
+
+  it('wires pull-to-refresh to the budget hook', () => {
+    const refresh = jest.fn();
+    mockUseBudget({ hasLoaded: true, refreshing: true });
+    mockedUseBudget.mockReturnValue({
+      ...mockedUseBudget(),
+      refresh,
+    });
+
+    render(<BudgetScreen />);
+
+    expect(latestRefreshControl).toBeTruthy();
+    expect(latestRefreshControl?.props.refreshing).toBe(true);
+    latestRefreshControl?.props.onRefresh();
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('renders multiple named budgets inside one category and keeps add budget enabled', () => {
@@ -438,7 +551,6 @@ describe('BudgetScreen', () => {
   it('routes tool rail actions through the budget hook', () => {
     const openCopy = jest.fn();
     const openAdd = jest.fn();
-    const setLensTab = jest.fn();
     mockedUseBudget.mockReturnValue({
       state: {
         ...baseState,
@@ -472,7 +584,7 @@ describe('BudgetScreen', () => {
       },
       openAdd,
       openEdit: jest.fn(),
-      setLensTab,
+      setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy,
       closeCopy: jest.fn(),
@@ -482,22 +594,27 @@ describe('BudgetScreen', () => {
       setCopySourceMonth: jest.fn(),
       copySelectedBudgets: jest.fn(),
       removeBudgetForMonth: jest.fn(),
+      removeSpendingPlanForMonth: jest.fn(),
       openAddPlan: jest.fn(),
       openEditPlan: jest.fn(),
+      openPlanTool: jest.fn(),
+      openPlanDetails: jest.fn(),
+      closePlanDetails: jest.fn(),
+      openPlanEditFromDetails: jest.fn(),
       setSpendingPlan: jest.fn(),
       removeSpendingPlan: jest.fn(),
+      refresh: jest.fn(),
       goToCategory: jest.fn(),
     });
 
-    const { getByLabelText } = render(<BudgetScreen />);
+    const { getByLabelText, queryByLabelText } = render(<BudgetScreen />);
 
     fireEvent.press(getByLabelText('copy budget'));
     fireEvent.press(getByLabelText('add budget category'));
-    fireEvent.press(getByLabelText('plan budget'));
 
     expect(openCopy).toHaveBeenCalledTimes(1);
     expect(openAdd).toHaveBeenCalledTimes(1);
-    expect(setLensTab).toHaveBeenCalledWith('plans');
+    expect(queryByLabelText('plan budget')).toBeNull();
   });
 
   it('renders spending plans from the plans tab', () => {
@@ -509,17 +626,21 @@ describe('BudgetScreen', () => {
       spendingPlansSummary: { planned: 8000, spent: 1200, left: 6800, pct: 0.15 },
     });
 
-    const { getByText, queryByText, queryByTestId } = render(<BudgetScreen />);
+    const { getByText, queryByLabelText, queryByText, queryByTestId } = render(<BudgetScreen />);
 
     expect(getByText('tab:plans')).toBeTruthy();
+    expect(getByText('rail:plans')).toBeTruthy();
     expect(getByText('plans-lens:1')).toBeTruthy();
+    expect(getByText('plan-disabled:false')).toBeTruthy();
+    expect(queryByLabelText('copy budget')).toBeNull();
+    expect(queryByLabelText('add budget category')).toBeNull();
     expect(queryByTestId('budget-screen-skeleton')).toBeNull();
     expect(queryByText('summary-card')).toBeNull();
     expect(queryByText('Temporary budgets')).toBeNull();
   });
 
-  it('opens the plan sheet from the tool rail when already in the plans tab', () => {
-    const openAddPlan = jest.fn();
+  it('runs the plan tool action from the plans tab rail', () => {
+    const openPlanTool = jest.fn();
     mockedUseBudget.mockReturnValue({
       state: {
         ...baseState,
@@ -528,8 +649,12 @@ describe('BudgetScreen', () => {
       },
       openAdd: jest.fn(),
       openEdit: jest.fn(),
-      openAddPlan,
+      openAddPlan: jest.fn(),
       openEditPlan: jest.fn(),
+      openPlanTool,
+      openPlanDetails: jest.fn(),
+      closePlanDetails: jest.fn(),
+      openPlanEditFromDetails: jest.fn(),
       setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),
@@ -540,8 +665,10 @@ describe('BudgetScreen', () => {
       setCopySourceMonth: jest.fn(),
       copySelectedBudgets: jest.fn(),
       removeBudgetForMonth: jest.fn(),
+      removeSpendingPlanForMonth: jest.fn(),
       setSpendingPlan: jest.fn(),
       removeSpendingPlan: jest.fn(),
+      refresh: jest.fn(),
       goToCategory: jest.fn(),
     });
 
@@ -549,7 +676,100 @@ describe('BudgetScreen', () => {
 
     fireEvent.press(getByLabelText('plan budget'));
 
-    expect(openAddPlan).toHaveBeenCalledTimes(1);
+    expect(openPlanTool).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens plan details from the plans list', () => {
+    const openPlanDetails = jest.fn();
+    mockedUseBudget.mockReturnValue({
+      state: {
+        ...baseState,
+        hasLoaded: true,
+        lensTab: 'plans',
+        spendingPlanRows: [{ id: 'plan_trip', name: 'Alexandria weekend' } as never],
+      },
+      openAdd: jest.fn(),
+      openEdit: jest.fn(),
+      openAddPlan: jest.fn(),
+      openEditPlan: jest.fn(),
+      openPlanTool: jest.fn(),
+      openPlanDetails,
+      closePlanDetails: jest.fn(),
+      openPlanEditFromDetails: jest.fn(),
+      setLensTab: jest.fn(),
+      setSelectedMonth: jest.fn(),
+      openCopy: jest.fn(),
+      closeCopy: jest.fn(),
+      toggleCopyBudgetId: jest.fn(),
+      selectAllCopyBudgets: jest.fn(),
+      clearCopySelection: jest.fn(),
+      setCopySourceMonth: jest.fn(),
+      copySelectedBudgets: jest.fn(),
+      removeBudgetForMonth: jest.fn(),
+      removeSpendingPlanForMonth: jest.fn(),
+      setSpendingPlan: jest.fn(),
+      removeSpendingPlan: jest.fn(),
+      refresh: jest.fn(),
+      goToCategory: jest.fn(),
+    });
+
+    const { getByLabelText } = render(<BudgetScreen />);
+
+    fireEvent.press(getByLabelText('open plan plan_trip'));
+
+    expect(openPlanDetails).toHaveBeenCalledWith('plan_trip');
+  });
+
+  it('confirms before removing a spending plan', async () => {
+    const removeSpendingPlanForMonth = jest.fn().mockResolvedValue(undefined);
+    mockedUseBudget.mockReturnValue({
+      state: {
+        ...baseState,
+        hasLoaded: true,
+        lensTab: 'plans',
+        spendingPlanRows: [{ id: 'plan_trip', name: 'Alexandria weekend' } as never],
+      },
+      openAdd: jest.fn(),
+      openEdit: jest.fn(),
+      openAddPlan: jest.fn(),
+      openEditPlan: jest.fn(),
+      openPlanTool: jest.fn(),
+      openPlanDetails: jest.fn(),
+      closePlanDetails: jest.fn(),
+      openPlanEditFromDetails: jest.fn(),
+      setLensTab: jest.fn(),
+      setSelectedMonth: jest.fn(),
+      openCopy: jest.fn(),
+      closeCopy: jest.fn(),
+      toggleCopyBudgetId: jest.fn(),
+      selectAllCopyBudgets: jest.fn(),
+      clearCopySelection: jest.fn(),
+      setCopySourceMonth: jest.fn(),
+      copySelectedBudgets: jest.fn(),
+      removeBudgetForMonth: jest.fn(),
+      removeSpendingPlanForMonth,
+      setSpendingPlan: jest.fn(),
+      removeSpendingPlan: jest.fn(),
+      refresh: jest.fn(),
+      goToCategory: jest.fn(),
+    });
+
+    const { findByText, getByLabelText, rerender } = render(<BudgetScreen />);
+
+    fireEvent.press(getByLabelText('delete plan plan_trip'));
+
+    expect(removeSpendingPlanForMonth).not.toHaveBeenCalled();
+    rerender(<BudgetScreen />);
+    expect(await findByText('plan-delete:Alexandria weekend')).toBeTruthy();
+
+    fireEvent.press(getByLabelText('confirm plan delete'));
+
+    await waitFor(() =>
+      expect(removeSpendingPlanForMonth).toHaveBeenCalledWith({
+        id: 'plan_trip',
+        name: 'Alexandria weekend',
+      }),
+    );
   });
 
   it('keeps copy enabled when the default source month has no rows', () => {
@@ -577,6 +797,10 @@ describe('BudgetScreen', () => {
       openEdit: jest.fn(),
       openAddPlan: jest.fn(),
       openEditPlan: jest.fn(),
+      openPlanTool: jest.fn(),
+      openPlanDetails: jest.fn(),
+      closePlanDetails: jest.fn(),
+      openPlanEditFromDetails: jest.fn(),
       setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),
@@ -587,8 +811,10 @@ describe('BudgetScreen', () => {
       setCopySourceMonth,
       copySelectedBudgets: jest.fn(),
       removeBudgetForMonth: jest.fn(),
+      removeSpendingPlanForMonth: jest.fn(),
       setSpendingPlan: jest.fn(),
       removeSpendingPlan: jest.fn(),
+      refresh: jest.fn(),
       goToCategory: jest.fn(),
     });
 

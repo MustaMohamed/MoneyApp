@@ -52,20 +52,23 @@ describe('budget store spending plans', () => {
     expect(store.getState().spendingPlanSpendById).toEqual({ plan_trip: {} });
   });
 
-  it('saves a plan and reloads the plan start month', async () => {
+  it('saves a plan and reloads the requested visible month', async () => {
     const store = createBudgetStore(repo);
-    await store.getState().setSpendingPlan({
-      name: 'Trip',
-      startDate: '2026-08-01',
-      endDate: '2026-08-04',
-      totalAmount: 8000,
-      categories: [{ categoryId: 'cat_food' }],
-    });
+    await store.getState().setSpendingPlan(
+      {
+        name: 'Trip',
+        startDate: '2026-07-10',
+        endDate: '2026-07-13',
+        totalAmount: 8000,
+        categories: [{ categoryId: 'cat_food' }],
+      },
+      '2026-08',
+    );
 
     expect(budgetRepository.setSpendingPlan).toHaveBeenCalledWith({
       name: 'Trip',
-      startDate: '2026-08-01',
-      endDate: '2026-08-04',
+      startDate: '2026-07-10',
+      endDate: '2026-07-13',
       totalAmount: 8000,
       categories: [{ categoryId: 'cat_food' }],
     });

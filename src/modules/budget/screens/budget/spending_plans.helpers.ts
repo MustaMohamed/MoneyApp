@@ -1,4 +1,5 @@
 import { CategoryType } from '@/constants/enums';
+import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
@@ -121,7 +122,7 @@ export function buildSpendingPlanRows({
             categoryId: row.category_id,
             categoryName: category?.name ?? row.category_id,
             icon: category?.icon ?? 'tag',
-            color: category?.color ?? '#ffffff',
+            color: category?.color ?? Colors.dark.text1,
             allocatedAmount,
             spent: categorySpent,
             left: allocatedAmount - categorySpent,

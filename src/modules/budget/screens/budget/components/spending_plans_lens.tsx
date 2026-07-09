@@ -19,15 +19,19 @@ import { ms } from '@/utils/responsive';
 interface SpendingPlansLensProps {
   rows: SpendingPlanRowVM[];
   summary: SpendingPlansSummaryVM;
+  summaryFooter?: React.ReactNode;
   onCreate: () => void;
+  onOpenDetails?: (id: string) => void;
   onEdit: (id: string) => void;
-  onDelete: (id: string) => void;
+  onDelete: (plan: { id: string; name: string }) => void;
 }
 
 export function SpendingPlansLens({
   rows,
   summary,
+  summaryFooter,
   onCreate,
+  onOpenDetails,
   onEdit,
   onDelete,
 }: SpendingPlansLensProps) {
@@ -36,26 +40,38 @@ export function SpendingPlansLens({
 
   return (
     <View>
-      <View style={styles.summary}>
-        <View style={styles.figures}>
-          <Figure label={Strings.budgetPlansSummaryPlanned} value={formatAmount(summary.planned)} />
-          <View style={styles.sep} />
-          <Figure label={Strings.budgetPlansSummarySpent} value={formatAmount(summary.spent)} />
-          <View style={styles.sep} />
-          <Figure
-            label={Strings.budgetPlansSummaryLeft}
-            value={formatAmount(summary.left)}
-            color={leftColor}
-          />
+      <View style={styles.summaryCluster}>
+        <View style={styles.summary}>
+          <View style={styles.figures}>
+            <Figure
+              label={Strings.budgetPlansSummaryPlanned}
+              value={formatAmount(summary.planned)}
+            />
+            <View style={styles.sep} />
+            <Figure label={Strings.budgetPlansSummarySpent} value={formatAmount(summary.spent)} />
+            <View style={styles.sep} />
+            <Figure
+              label={Strings.budgetPlansSummaryLeft}
+              value={formatAmount(summary.left)}
+              color={leftColor}
+            />
+          </View>
+          <BudgetBar pct={summary.pct} status="under" color={bandColor} height={ms(10)} />
         </View>
-        <BudgetBar pct={summary.pct} status="under" color={bandColor} height={ms(10)} />
+        {summaryFooter}
       </View>
 
       {rows.length > 0 ? (
         <>
           <Text style={styles.section}>{Strings.budgetPlansTitle}</Text>
           {rows.map((row) => (
-            <SpendingPlanCard key={row.id} row={row} onEdit={onEdit} onDelete={onDelete} />
+            <SpendingPlanCard
+              key={row.id}
+              row={row}
+              onOpenDetails={onOpenDetails ?? onEdit}
+              onEdit={onEdit}
+              onDelete={onDelete}
+            />
           ))}
         </>
       ) : (
@@ -89,8 +105,10 @@ function Figure({ label, value, color }: { label: string; value: string; color?:
 }
 
 const styles = StyleSheet.create({
+  summaryCluster: {
+    paddingHorizontal: Spacing.md,
+  },
   summary: {
-    marginHorizontal: Spacing.md,
     borderRadius: Radius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.border,
