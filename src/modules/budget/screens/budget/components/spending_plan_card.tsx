@@ -8,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
+import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
@@ -24,7 +25,21 @@ interface SpendingPlanCardProps {
 export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: SpendingPlanCardProps) {
   const bandColor = row.isOver ? Colors.dark.negative : budgetBandColor(row.pct);
   const leftColor = row.left < 0 ? Colors.dark.negative : Colors.dark.positive;
-  const showBuffer = row.allocationRows.length > 0 && row.buffer > 0;
+  const showBuffer = row.buffer > 0;
+  const allocatedCategoryIds = new Set(
+    row.allocationRows.map((allocation) => allocation.categoryId),
+  );
+  const plainCategoryChips = row.categoryChips.filter(
+    (category) => !allocatedCategoryIds.has(category.id),
+  );
+  const visibleAllocationChips = row.allocationRows.slice(0, 3);
+  const visiblePlainChipLimit = Math.max(0, 3 - visibleAllocationChips.length);
+  const visiblePlainChips = plainCategoryChips.slice(0, visiblePlainChipLimit);
+  const visibleChipCount = visibleAllocationChips.length + visiblePlainChips.length;
+  const hiddenChipCount = Math.max(
+    0,
+    row.allocationRows.length + plainCategoryChips.length - visibleChipCount,
+  );
 
   return (
     <View style={styles.card}>
@@ -58,7 +73,10 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
         </View>
 
         <View style={styles.chips}>
-          {row.categoryChips.slice(0, 4).map((category) => (
+          {visibleAllocationChips.map((allocation) => (
+            <SpendingPlanAllocationChip key={allocation.categoryId} allocation={allocation} />
+          ))}
+          {visiblePlainChips.map((category) => (
             <View key={category.id} style={styles.chip}>
               <MaterialCommunityIcons
                 name={toIconName(category.icon, 'tag')}
@@ -68,40 +86,21 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
               <Text style={styles.chipText}>{category.name}</Text>
             </View>
           ))}
+          {hiddenChipCount > 0 ? (
+            <View style={styles.chip}>
+              <Text style={styles.chipText}>+{hiddenChipCount}</Text>
+            </View>
+          ) : null}
         </View>
 
-        <BudgetBar pct={row.pct} status="under" color={bandColor} height={ms(8)} />
-
-        {row.allocationRows.length > 0 ? (
-          <View style={styles.allocations}>
-            {row.allocationRows.map((allocation) => (
-              <View key={allocation.categoryId} style={styles.allocation}>
-                <View style={styles.allocationTop}>
-                  <Text style={styles.allocationName}>{allocation.categoryName}</Text>
-                  <Text style={[styles.allocationValue, allocation.isOver && styles.negative]}>
-                    {formatAmount(allocation.spent)} / {formatAmount(allocation.allocatedAmount)}
-                  </Text>
-                </View>
-                <BudgetBar
-                  pct={allocation.pct}
-                  status="under"
-                  color={allocation.isOver ? Colors.dark.negative : budgetBandColor(allocation.pct)}
-                  height={ms(5)}
-                />
-              </View>
-            ))}
-          </View>
-        ) : null}
+        <BudgetBar pct={row.pct} status="under" color={bandColor} height={ms(5)} />
       </PressableFeedback>
 
       <View style={styles.footer}>
-        {showBuffer ? (
-          <Text style={styles.buffer}>
-            {Strings.budgetPlansAllocationBuffer(formatAmount(row.buffer))}
-          </Text>
-        ) : (
-          <View />
-        )}
+        <Text style={styles.buffer} numberOfLines={1}>
+          {formatAmount(row.spent)} {Strings.budgetPlansSummarySpent.toLowerCase()}
+          {showBuffer ? ` · ${Strings.budgetPlansAllocationBuffer(formatAmount(row.buffer))}` : ''}
+        </Text>
         <View style={styles.actions}>
           <PressableFeedback
             accessibilityRole="button"
@@ -137,11 +136,12 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.border,
     backgroundColor: Colors.dark.surface,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   meta: {
-    marginTop: ms(3),
+    marginTop: ms(2),
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,
@@ -170,9 +170,9 @@ const styles = StyleSheet.create({
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: ms(6),
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
+    gap: ms(5),
+    marginTop: Spacing.xs,
+    marginBottom: Spacing.xs,
   },
   chip: {
     flexDirection: 'row',
@@ -181,48 +181,25 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     backgroundColor: Colors.dark.bg,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: ms(4),
+    paddingVertical: ms(3),
   },
   chipText: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.micro,
     color: Colors.dark.text1,
   },
-  allocations: {
-    marginTop: Spacing.sm,
-    gap: Spacing.xs,
-  },
-  allocation: {
-    gap: ms(4),
-  },
-  allocationTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  allocationName: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  allocationValue: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-  },
-  negative: { color: Colors.dark.negative },
   buffer: {
+    flex: 1,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,
   },
   footer: {
-    minHeight: ms(28),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
-    marginTop: Spacing.xs,
+    marginTop: ms(6),
   },
   actions: {
     flexDirection: 'row',
@@ -230,8 +207,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   iconButton: {
-    width: ms(28),
-    height: ms(28),
+    width: ms(24),
+    height: ms(24),
     alignItems: 'center',
     justifyContent: 'center',
   },

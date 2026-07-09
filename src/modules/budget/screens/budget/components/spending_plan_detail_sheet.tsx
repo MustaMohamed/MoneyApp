@@ -10,6 +10,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
+import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { formatShortDate } from '@/utils/format_date';
@@ -93,23 +94,7 @@ export function SpendingPlanDetailSheet({
               <Text style={styles.section}>{Strings.budgetPlanAllocateByCategory}</Text>
               <View style={styles.allocations}>
                 {plan.allocationRows.map((allocation) => (
-                  <View key={allocation.categoryId} style={styles.allocation}>
-                    <View style={styles.allocationTop}>
-                      <Text style={styles.allocationName}>{allocation.categoryName}</Text>
-                      <Text style={[styles.allocationValue, allocation.isOver && styles.negative]}>
-                        {formatAmount(allocation.spent)} /{' '}
-                        {formatAmount(allocation.allocatedAmount)}
-                      </Text>
-                    </View>
-                    <BudgetBar
-                      pct={allocation.pct}
-                      status="under"
-                      color={
-                        allocation.isOver ? Colors.dark.negative : budgetBandColor(allocation.pct)
-                      }
-                      height={ms(5)}
-                    />
-                  </View>
+                  <SpendingPlanAllocationChip key={allocation.categoryId} allocation={allocation} />
                 ))}
                 {plan.buffer > 0 ? (
                   <Text style={styles.buffer}>
@@ -203,27 +188,10 @@ const styles = StyleSheet.create({
     color: Colors.dark.text1,
   },
   allocations: {
-    gap: Spacing.xs,
-  },
-  allocation: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: ms(4),
   },
-  allocationTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  allocationName: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  allocationValue: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-  },
-  negative: { color: Colors.dark.negative },
   buffer: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,

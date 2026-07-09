@@ -117,6 +117,35 @@ describe('SpendingPlansLens', () => {
     expect(deleteStyle.bottom).toBeUndefined();
   });
 
+  it('keeps plan cards compact by leaving allocation totals for details', () => {
+    const { queryByText } = render(
+      <SpendingPlansLens
+        rows={[row]}
+        summary={summary}
+        onCreate={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(queryByText('1,200 / 3,000')).toBeNull();
+  });
+
+  it('renders compact allocation progress chips on plan cards', () => {
+    const { getByText } = render(
+      <SpendingPlansLens
+        rows={[row]}
+        summary={summary}
+        onCreate={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(getByText('1,200/3,000')).toBeTruthy();
+    expect(getByText('40%')).toBeTruthy();
+  });
+
   it('renders empty state and create action', () => {
     const onCreate = jest.fn();
     const { getByText } = render(
