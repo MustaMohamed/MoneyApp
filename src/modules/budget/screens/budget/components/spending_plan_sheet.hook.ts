@@ -65,6 +65,7 @@ export function useSpendingPlanSheet({
     pickerExpanded,
     datePickerTarget,
     submitError,
+    saving,
   } = useSpendingPlanSheetState(
     useShallow((s) => ({
       startDate: s.startDate,
@@ -75,6 +76,7 @@ export function useSpendingPlanSheet({
       pickerExpanded: s.pickerExpanded,
       datePickerTarget: s.datePickerTarget,
       submitError: s.submitError,
+      saving: s.saving,
     })),
   );
   const initAddMode = useSpendingPlanSheetState.getState().initAddMode;
@@ -85,6 +87,7 @@ export function useSpendingPlanSheet({
   const setAllocation = useSpendingPlanSheetState.getState().setAllocation;
   const setAllocateByCategory = useSpendingPlanSheetState.getState().setAllocateByCategory;
   const setSubmitError = useSpendingPlanSheetState.getState().setSubmitError;
+  const setSaving = useSpendingPlanSheetState.getState().setSaving;
   const openPicker = useSpendingPlanSheetState.getState().openPicker;
   const closePicker = useSpendingPlanSheetState.getState().closePicker;
   const openDatePicker = useSpendingPlanSheetState.getState().openDatePicker;
@@ -150,6 +153,7 @@ export function useSpendingPlanSheet({
   ]);
 
   const onSubmit = handleSubmit(async (values) => {
+    if (useSpendingPlanSheetState.getState().saving) return;
     setSubmitError(undefined);
     if (selectedCategoryIds.length === 0) {
       setSubmitError(Strings.budgetPlanCategoryRequired);
@@ -169,6 +173,7 @@ export function useSpendingPlanSheet({
       : startDate.slice(0, 7);
 
     try {
+      setSaving(true);
       await setSpendingPlan(
         {
           id: planSheetMode === 'edit' ? editingPlan?.id : undefined,
@@ -187,6 +192,8 @@ export function useSpendingPlanSheet({
       closePlan();
     } catch (error) {
       setSubmitError(errorMessage(error));
+    } finally {
+      setSaving(false);
     }
   });
 
@@ -220,6 +227,7 @@ export function useSpendingPlanSheet({
       onFocus,
       onBlur,
       submitError,
+      saving,
     },
     dateRange: {
       startDate,

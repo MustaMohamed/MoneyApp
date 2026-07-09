@@ -1,8 +1,8 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
@@ -81,14 +81,14 @@ export function SpendingPlansLens({
           </View>
           <Text style={styles.emptyTitle}>{Strings.budgetPlansEmptyTitle}</Text>
           <Text style={styles.emptyBody}>{Strings.budgetPlansEmptyBody}</Text>
-          <PressableFeedback
-            accessibilityRole="button"
+          <Button
+            variant="primary"
+            size="sm"
+            label={Strings.budgetPlansCreateAction}
             accessibilityLabel={Strings.budgetPlansCreateAction}
             onPress={onCreate}
-            style={styles.emptyAction}
-          >
-            <Text style={styles.emptyActionText}>{Strings.budgetPlansCreateAction}</Text>
-          </PressableFeedback>
+            className="mt-4 self-center px-4"
+          />
         </View>
       )}
     </View>
@@ -177,17 +177,5 @@ const styles = StyleSheet.create({
     lineHeight: ms(20),
     color: Colors.dark.text2,
     textAlign: 'center',
-  },
-  emptyAction: {
-    marginTop: Spacing.md,
-    borderRadius: Radius.md,
-    backgroundColor: Colors.dark.gold,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-  },
-  emptyActionText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.caption,
-    color: Colors.dark.bg,
   },
 });

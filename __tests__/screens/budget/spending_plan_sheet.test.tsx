@@ -228,6 +228,28 @@ describe('SpendingPlanSheet', () => {
     );
   });
 
+  it('submits only once while a plan save is pending', async () => {
+    let resolveSave: (() => void) | undefined;
+    mockSetSpendingPlan.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSave = resolve;
+        }),
+    );
+    useBudgetState.getState().openAddPlan();
+    const { getByLabelText, getByTestId } = render(
+      <SpendingPlanSheet budgetableCategories={categories} />,
+    );
+
+    fireEvent.changeText(getByTestId('spending-plan-name-input'), 'Alexandria weekend');
+    fireEvent.changeText(getByTestId('spending-plan-total-input'), '8000');
+    fireEvent.press(getByLabelText(Strings.budgetPlanSave));
+    fireEvent.press(getByLabelText(Strings.budgetPlanSave));
+
+    await waitFor(() => expect(mockSetSpendingPlan).toHaveBeenCalledTimes(1));
+    await act(async () => resolveSave?.());
+  });
+
   it('saves selected custom start and end dates', async () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().openAddPlan();

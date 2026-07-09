@@ -26,20 +26,6 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
   const bandColor = row.isOver ? Colors.dark.negative : budgetBandColor(row.pct);
   const leftColor = row.left < 0 ? Colors.dark.negative : Colors.dark.positive;
   const showBuffer = row.buffer > 0;
-  const allocatedCategoryIds = new Set(
-    row.allocationRows.map((allocation) => allocation.categoryId),
-  );
-  const plainCategoryChips = row.categoryChips.filter(
-    (category) => !allocatedCategoryIds.has(category.id),
-  );
-  const visibleAllocationChips = row.allocationRows.slice(0, 3);
-  const visiblePlainChipLimit = Math.max(0, 3 - visibleAllocationChips.length);
-  const visiblePlainChips = plainCategoryChips.slice(0, visiblePlainChipLimit);
-  const visibleChipCount = visibleAllocationChips.length + visiblePlainChips.length;
-  const hiddenChipCount = Math.max(
-    0,
-    row.allocationRows.length + plainCategoryChips.length - visibleChipCount,
-  );
 
   return (
     <View style={styles.card}>
@@ -73,24 +59,28 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
         </View>
 
         <View style={styles.chips}>
-          {visibleAllocationChips.map((allocation) => (
-            <SpendingPlanAllocationChip key={allocation.categoryId} allocation={allocation} />
-          ))}
-          {visiblePlainChips.map((category) => (
-            <View key={category.id} style={styles.chip}>
-              <MaterialCommunityIcons
-                name={toIconName(category.icon, 'tag')}
-                size={ms(11)}
-                color={category.color}
-              />
-              <Text style={styles.chipText}>{category.name}</Text>
-            </View>
-          ))}
-          {hiddenChipCount > 0 ? (
-            <View style={styles.chip}>
-              <Text style={styles.chipText}>+{hiddenChipCount}</Text>
-            </View>
-          ) : null}
+          {row.cardChips.map((chip) => {
+            if (chip.type === 'allocation') {
+              return <SpendingPlanAllocationChip key={chip.id} allocation={chip.allocation} />;
+            }
+            if (chip.type === 'category') {
+              return (
+                <View key={chip.id} style={styles.chip}>
+                  <MaterialCommunityIcons
+                    name={toIconName(chip.category.icon, 'tag')}
+                    size={ms(11)}
+                    color={chip.category.color}
+                  />
+                  <Text style={styles.chipText}>{chip.category.name}</Text>
+                </View>
+              );
+            }
+            return (
+              <View key={chip.id} style={styles.chip}>
+                <Text style={styles.chipText}>+{chip.count}</Text>
+              </View>
+            );
+          })}
         </View>
 
         <BudgetBar pct={row.pct} status="under" color={bandColor} height={ms(5)} />

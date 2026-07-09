@@ -61,7 +61,7 @@ export function SpendingPlanAllocations({
                   style={styles.allocationInput}
                   accessibilityLabel={`${Strings.budgetPlanAllocateByCategory} ${category.name}`}
                 />
-                <Text style={styles.suffix}>EGP</Text>
+                <Text style={styles.suffix}>{Strings.currencyEgp}</Text>
               </View>
             </View>
           ))}

@@ -98,30 +98,28 @@ export async function setSpendingPlan(
     throw new Error('Spending plan end date must be on or after start date');
   }
 
-  await db.withTransactionAsync(async () => {
+  await db.runAsync(
+    `INSERT OR REPLACE INTO spending_plans
+       (id, name, start_date, end_date, total_amount, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      plan.id,
+      plan.name,
+      plan.start_date,
+      plan.end_date,
+      plan.total_amount,
+      plan.created_at,
+      plan.updated_at,
+    ],
+  );
+  await db.runAsync('DELETE FROM spending_plan_categories WHERE plan_id = ?', [plan.id]);
+  for (const category of categories) {
     await db.runAsync(
-      `INSERT OR REPLACE INTO spending_plans
-         (id, name, start_date, end_date, total_amount, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        plan.id,
-        plan.name,
-        plan.start_date,
-        plan.end_date,
-        plan.total_amount,
-        plan.created_at,
-        plan.updated_at,
-      ],
+      `INSERT INTO spending_plan_categories (plan_id, category_id, allocated_amount)
+       VALUES (?, ?, ?)`,
+      [plan.id, category.category_id, category.allocated_amount],
     );
-    await db.runAsync('DELETE FROM spending_plan_categories WHERE plan_id = ?', [plan.id]);
-    for (const category of categories) {
-      await db.runAsync(
-        `INSERT INTO spending_plan_categories (plan_id, category_id, allocated_amount)
-         VALUES (?, ?, ?)`,
-        [plan.id, category.category_id, category.allocated_amount],
-      );
-    }
-  });
+  }
 }
 
 export async function deleteSpendingPlan(db: SQLiteDatabase, id: string): Promise<void> {

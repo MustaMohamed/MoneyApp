@@ -21,6 +21,7 @@ const plan: SpendingPlanRowVM = {
     { id: 'cat_food', name: 'Food & Dining', icon: 'food', color: '#D4A44C' },
     { id: 'cat_home', name: 'Housing', icon: 'home', color: '#17294C' },
   ],
+  cardChips: [],
   allocationRows: [
     {
       categoryId: 'cat_food',

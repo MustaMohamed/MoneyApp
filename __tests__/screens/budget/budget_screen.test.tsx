@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement, ReactNode } from 'react';
 
 import { CategoryType } from '@/constants/enums';
@@ -496,6 +496,7 @@ describe('BudgetScreen', () => {
 
     render(<BudgetScreen />);
 
+    expect(screen.getByTestId('budget-screen-skeleton')).toBeTruthy();
     expect(latestRefreshControl).toBeTruthy();
     expect(latestRefreshControl?.props.refreshing).toBe(true);
     latestRefreshControl?.props.onRefresh();

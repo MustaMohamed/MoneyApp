@@ -1,10 +1,23 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { CategoryType } from '@/constants/enums';
 import type { SpendingPlan, SpendingPlanCategory } from '@/modules/budget/entities/budget.entity';
 import { BudgetRepository } from '@/modules/budget/repositories/budget.repository';
 
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'new-plan-id') }));
-jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
+jest.mock('@/database/client', () => {
+  const mockWithExclusiveTransactionAsync = jest.fn(
+    async (task: (txn: SQLiteDatabase) => Promise<void>) => {
+      await task({} as SQLiteDatabase);
+    },
+  );
+  return {
+    getDb: jest
+      .fn()
+      .mockResolvedValue({ withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync }),
+    mockWithExclusiveTransactionAsync,
+  };
+});
 jest.mock('@/modules/budget/database/budget_stats', () => ({
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
 }));
@@ -21,11 +34,23 @@ jest.mock('@/modules/budget/database/spending_plans', () => ({
   getSpendingPlanRowsForRange: jest.fn().mockResolvedValue([]),
   setSpendingPlan: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('@/modules/categories/database/categories', () => ({
+  getCategoriesByType: jest.fn().mockResolvedValue([
+    { id: 'cat_food', type: 'expense' },
+    { id: 'cat_travel', type: 'expense' },
+  ]),
+}));
 
 interface SpendingPlanWithCategories extends SpendingPlan {
   categories: SpendingPlanCategory[];
 }
 
+const { mockWithExclusiveTransactionAsync } = jest.requireMock('@/database/client') as {
+  mockWithExclusiveTransactionAsync: jest.Mock<
+    Promise<void>,
+    [(txn: SQLiteDatabase) => Promise<void>]
+  >;
+};
 const {
   deleteSpendingPlan,
   getPlanCategorySpend,
@@ -46,6 +71,12 @@ const {
     [SQLiteDatabase, { startDate: string; endDate: string }]
   >;
   setSpendingPlan: jest.Mock<Promise<void>, [SQLiteDatabase, SpendingPlan, SpendingPlanCategory[]]>;
+};
+const { getCategoriesByType } = jest.requireMock('@/modules/categories/database/categories') as {
+  getCategoriesByType: jest.Mock<
+    Promise<Array<{ id: string; type: CategoryType }>>,
+    [SQLiteDatabase, string]
+  >;
 };
 
 const NOW = '2026-07-09T00:00:00.000Z';
@@ -76,6 +107,10 @@ function plan(
 beforeEach(() => {
   jest.clearAllMocks();
   jest.useFakeTimers().setSystemTime(new Date(NOW));
+  getCategoriesByType.mockResolvedValue([
+    { id: 'cat_food', type: CategoryType.Expense },
+    { id: 'cat_travel', type: CategoryType.Expense },
+  ]);
 });
 
 afterEach(() => jest.useRealTimers());
@@ -106,6 +141,27 @@ describe('BudgetRepository spending plans', () => {
     );
   });
 
+  it('serializes overlap validation and writes in an exclusive transaction', async () => {
+    await new BudgetRepository().setSpendingPlan({
+      name: 'Alexandria weekend',
+      startDate: '2026-07-18',
+      endDate: '2026-07-21',
+      totalAmount: 8000,
+      categories: [{ categoryId: 'cat_food' }],
+    });
+
+    expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(getSpendingPlanRowsForRange).toHaveBeenCalledWith(expect.anything(), {
+      startDate: '2026-07-18',
+      endDate: '2026-07-21',
+    });
+    expect(setSpendingPlan).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.any(Array),
+    );
+  });
+
   it('rejects allocations above the plan total', async () => {
     await expect(
       new BudgetRepository().setSpendingPlan({
@@ -119,6 +175,36 @@ describe('BudgetRepository spending plans', () => {
         ],
       }),
     ).rejects.toThrow('Allocations exceed the plan total');
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+  });
+
+  it('rejects a negative category allocation before writing', async () => {
+    await expect(
+      new BudgetRepository().setSpendingPlan({
+        name: 'Trip',
+        startDate: '2026-07-18',
+        endDate: '2026-07-21',
+        totalAmount: 5000,
+        categories: [{ categoryId: 'cat_food', allocatedAmount: -1 }],
+      }),
+    ).rejects.toThrow('Each allocation must be zero or greater');
+
+    expect(setSpendingPlan).not.toHaveBeenCalled();
+  });
+
+  it('rejects non-expense categories before writing', async () => {
+    getCategoriesByType.mockResolvedValueOnce([{ id: 'cat_food', type: CategoryType.Expense }]);
+
+    await expect(
+      new BudgetRepository().setSpendingPlan({
+        name: 'Trip',
+        startDate: '2026-07-18',
+        endDate: '2026-07-21',
+        totalAmount: 5000,
+        categories: [{ categoryId: 'cat_income' }],
+      }),
+    ).rejects.toThrow('Select expense categories only');
+
     expect(setSpendingPlan).not.toHaveBeenCalled();
   });
 

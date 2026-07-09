@@ -116,7 +116,7 @@ export default function BudgetScreen() {
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
 
-      {!state.hasLoaded ? (
+      {!state.hasLoaded || state.refreshing ? (
         <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
           <BudgetScreenSkeleton variant={state.lensTab === 'plans' ? 'plans' : 'categories'} />
         </ScreenScroll>

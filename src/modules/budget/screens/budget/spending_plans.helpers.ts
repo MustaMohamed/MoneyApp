@@ -1,4 +1,5 @@
 import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import type { Category } from '@/modules/categories/entities/category.entity';
@@ -15,6 +16,18 @@ export interface SpendingPlanAllocationRowVM {
   isOver: boolean;
 }
 
+export interface SpendingPlanCategoryChipVM {
+  id: string;
+  name: string;
+  icon: string;
+  color: string;
+}
+
+export type SpendingPlanCardChipVM =
+  | { type: 'allocation'; id: string; allocation: SpendingPlanAllocationRowVM }
+  | { type: 'category'; id: string; category: SpendingPlanCategoryChipVM }
+  | { type: 'more'; id: 'more'; count: number };
+
 export interface SpendingPlanRowVM {
   id: string;
   name: string;
@@ -26,8 +39,9 @@ export interface SpendingPlanRowVM {
   pct: number;
   isOver: boolean;
   categoryCount: number;
-  categoryChips: Array<{ id: string; name: string; icon: string; color: string }>;
+  categoryChips: SpendingPlanCategoryChipVM[];
   allocationRows: SpendingPlanAllocationRowVM[];
+  cardChips: SpendingPlanCardChipVM[];
   allocatedTotal: number;
   buffer: number;
 }
@@ -78,6 +92,45 @@ export function computeAllocationHelper(
   let allocated = 0;
   for (const amount of Object.values(allocations)) allocated += amount ?? 0;
   return { allocated, buffer: totalAmount - allocated, isOver: allocated > totalAmount };
+}
+
+export function buildSpendingPlanCardChips({
+  allocationRows,
+  categoryChips,
+}: {
+  allocationRows: SpendingPlanAllocationRowVM[];
+  categoryChips: SpendingPlanCategoryChipVM[];
+}): SpendingPlanCardChipVM[] {
+  const allocatedCategoryIds = new Set(allocationRows.map((allocation) => allocation.categoryId));
+  const plainCategoryChips = categoryChips.filter(
+    (category) => !allocatedCategoryIds.has(category.id),
+  );
+  const visibleAllocationChips = allocationRows.slice(0, 3);
+  const visiblePlainChips = plainCategoryChips.slice(
+    0,
+    Math.max(0, 3 - visibleAllocationChips.length),
+  );
+  const hiddenChipCount = Math.max(
+    0,
+    allocationRows.length +
+      plainCategoryChips.length -
+      visibleAllocationChips.length -
+      visiblePlainChips.length,
+  );
+  const chips: SpendingPlanCardChipVM[] = [
+    ...visibleAllocationChips.map((allocation) => ({
+      type: 'allocation' as const,
+      id: allocation.categoryId,
+      allocation,
+    })),
+    ...visiblePlainChips.map((category) => ({
+      type: 'category' as const,
+      id: category.id,
+      category,
+    })),
+  ];
+  if (hiddenChipCount > 0) chips.push({ type: 'more', id: 'more', count: hiddenChipCount });
+  return chips;
 }
 
 export function buildSpendingPlanRows({
@@ -134,6 +187,7 @@ export function buildSpendingPlanRows({
         (total, row) => total + (row.allocated_amount ?? 0),
         0,
       );
+      const cardChips = buildSpendingPlanCardChips({ allocationRows, categoryChips });
       return {
         id: plan.id,
         name: plan.name,
@@ -147,6 +201,7 @@ export function buildSpendingPlanRows({
         categoryCount: plan.categories.length,
         categoryChips,
         allocationRows,
+        cardChips,
         allocatedTotal,
         buffer: plan.total_amount - allocatedTotal,
       };
@@ -175,12 +230,20 @@ export function validatePlanDraft({
   allocations: Record<string, number | undefined>;
 }): PlanDraftValidationErrors {
   const errors: PlanDraftValidationErrors = {};
-  if (name.trim().length === 0) errors.name = 'Enter a plan name';
-  if (endDate < startDate) errors.dates = 'End date must be on or after start date';
-  if (!Number.isFinite(totalAmount) || totalAmount <= 0) errors.amount = 'Enter a plan amount';
-  if (categoryIds.length === 0) errors.categories = 'Select at least one category';
+  if (name.trim().length === 0) errors.name = Strings.budgetPlanNameRequired;
+  if (endDate < startDate) errors.dates = Strings.budgetPlanDateInvalid;
+  if (!Number.isFinite(totalAmount) || totalAmount <= 0)
+    errors.amount = Strings.budgetPlanAmountRequired;
+  if (categoryIds.length === 0) errors.categories = Strings.budgetPlanCategoryRequired;
+  if (
+    Object.values(allocations).some(
+      (amount) => amount !== undefined && (!Number.isFinite(amount) || amount < 0),
+    )
+  ) {
+    errors.allocations = Strings.budgetPlanAllocationInvalid;
+  }
   if (computeAllocationHelper(totalAmount, allocations).isOver) {
-    errors.allocations = 'Allocations exceed the plan total';
+    errors.allocations = Strings.budgetPlanAllocationOver;
   }
   return errors;
 }

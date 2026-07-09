@@ -11,6 +11,7 @@ interface SpendingPlanSheetStateShape {
   pickerExpanded: boolean;
   datePickerTarget: SpendingPlanDatePickerTarget | null;
   submitError: string | undefined;
+  saving: boolean;
 }
 
 export type SpendingPlanDatePickerTarget = 'start' | 'end';
@@ -29,6 +30,7 @@ type SpendingPlanSheetState = SpendingPlanSheetStateShape & {
   setAllocation: (categoryId: string, amount: number | undefined) => void;
   setAllocateByCategory: (enabled: boolean) => void;
   setSubmitError: (error: string | undefined) => void;
+  setSaving: (saving: boolean) => void;
   openPicker: () => void;
   closePicker: () => void;
   openDatePicker: (target: SpendingPlanDatePickerTarget) => void;
@@ -45,6 +47,7 @@ const INITIAL_STATE: SpendingPlanSheetStateShape = {
   pickerExpanded: false,
   datePickerTarget: null,
   submitError: undefined,
+  saving: false,
 };
 
 export const useSpendingPlanSheetState = createMoneyAppSelectors(
@@ -86,6 +89,7 @@ export const useSpendingPlanSheetState = createMoneyAppSelectors(
     setAllocateByCategory: (enabled) =>
       set({ allocateByCategory: enabled, submitError: undefined }),
     setSubmitError: (error) => set({ submitError: error }),
+    setSaving: (saving) => set({ saving }),
     openPicker: () => set({ pickerExpanded: true }),
     closePicker: () => set({ pickerExpanded: false }),
     openDatePicker: (target) => set({ datePickerTarget: target }),

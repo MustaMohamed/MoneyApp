@@ -1,5 +1,6 @@
 import { CategoryType } from '@/constants/enums';
 import {
+  buildSpendingPlanCardChips,
   buildSpendingPlanRows,
   computeAllocationHelper,
   computeSpendingPlansSummary,
@@ -112,6 +113,63 @@ describe('spending plan helpers', () => {
       buffer: -1000,
       isOver: true,
     });
+  });
+
+  it('marks negative allocations as invalid', () => {
+    expect(
+      validatePlanDraft({
+        name: 'Trip',
+        startDate: '2026-07-01',
+        endDate: '2026-07-02',
+        totalAmount: 1000,
+        categoryIds: ['cat_food'],
+        allocations: { cat_food: -1 },
+      }),
+    ).toEqual({ allocations: 'Each allocation must be zero or greater.' });
+  });
+
+  it('marks non-finite allocations as invalid', () => {
+    expect(
+      validatePlanDraft({
+        name: 'Trip',
+        startDate: '2026-07-01',
+        endDate: '2026-07-02',
+        totalAmount: 1000,
+        categoryIds: ['cat_food'],
+        allocations: { cat_food: Number.NaN },
+      }),
+    ).toEqual({ allocations: 'Each allocation must be zero or greater.' });
+  });
+
+  it('builds compact allocation, category, and overflow chips for plan cards', () => {
+    expect(
+      buildSpendingPlanCardChips({
+        allocationRows: [
+          {
+            categoryId: 'cat_food',
+            categoryName: 'Food',
+            icon: 'food',
+            color: '#caa445',
+            allocatedAmount: 1000,
+            spent: 200,
+            left: 800,
+            pct: 0.2,
+            isOver: false,
+          },
+        ],
+        categoryChips: [
+          { id: 'cat_food', name: 'Food', icon: 'food', color: '#caa445' },
+          { id: 'cat_travel', name: 'Travel', icon: 'bag', color: '#6aa9ff' },
+          { id: 'cat_hotel', name: 'Hotel', icon: 'bed', color: '#64c987' },
+          { id: 'cat_car', name: 'Car', icon: 'car', color: '#ff644e' },
+        ],
+      }),
+    ).toEqual([
+      expect.objectContaining({ type: 'allocation', id: 'cat_food' }),
+      expect.objectContaining({ type: 'category', id: 'cat_travel' }),
+      expect.objectContaining({ type: 'category', id: 'cat_hotel' }),
+      { type: 'more', id: 'more', count: 1 },
+    ]);
   });
 
   it('validates draft fields before save', () => {

@@ -244,6 +244,10 @@ export const Strings = {
   budgetPlanAllocationHelper: (allocated: string, total: string, buffer: string) =>
     `${allocated} of ${total} allocated · ${buffer} buffer`,
   budgetPlanAllocationOver: 'Allocations exceed the plan total.',
+  budgetPlanAllocationInvalid: 'Each allocation must be zero or greater.',
+  budgetPlanExpenseCategoriesOnly: 'Select expense categories only.',
+  budgetPlanOverlapError: (categoryName: string, planName: string) =>
+    `${categoryName} overlaps ${planName}`,
   budgetPlanSave: 'Save plan',
   budgetPlanNameRequired: 'Enter a plan name',
   budgetPlanAmountRequired: 'Enter a plan amount',
@@ -269,6 +273,7 @@ export const Strings = {
   budgetPlansCategoriesCount: (count: number) =>
     count === 1 ? '1 category' : `${count} categories`,
   budgetPlansAllocationBuffer: (amount: string) => `${amount} buffer`,
+  currencyEgp: 'EGP',
   budgetCopyTitle: 'Copy budget',
   budgetCopyRoute: (source: string, target: string) => `${source} → ${target}`,
   budgetCopySourceLabel: 'Copy from',

@@ -1,5 +1,7 @@
 import uuid from 'react-native-uuid';
 
+import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { getCategorySpendByMonth } from '@/modules/budget/database/budget_stats';
 import { deleteBudgetRow, getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
@@ -13,6 +15,7 @@ import {
   type SpendingPlanWithCategories,
 } from '@/modules/budget/database/spending_plans';
 import type { Budget, SpendingPlan } from '@/modules/budget/entities/budget.entity';
+import { getCategoriesByType } from '@/modules/categories/database/categories';
 
 export function currentYearMonth(now: Date = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -91,19 +94,27 @@ function rangesOverlap(
 }
 
 function validateSpendingPlanInput(input: SetSpendingPlanInput): void {
-  if (normalizePlanName(input.name).length === 0) throw new Error('Enter a plan name');
-  if (input.endDate < input.startDate) throw new Error('End date must be on or after start date');
+  if (normalizePlanName(input.name).length === 0) throw new Error(Strings.budgetPlanNameRequired);
+  if (input.endDate < input.startDate) throw new Error(Strings.budgetPlanDateInvalid);
   if (!Number.isFinite(input.totalAmount) || input.totalAmount <= 0) {
-    throw new Error('Plan total must be greater than zero');
+    throw new Error(Strings.budgetPlanAmountInvalid);
   }
   const unique = new Set(input.categories.map((category) => category.categoryId));
-  if (unique.size === 0) throw new Error('Select at least one category');
+  if (unique.size === 0) throw new Error(Strings.budgetPlanCategoryRequired);
   if (unique.size !== input.categories.length) throw new Error('Duplicate plan category');
+  for (const category of input.categories) {
+    if (
+      category.allocatedAmount !== undefined &&
+      (!Number.isFinite(category.allocatedAmount) || category.allocatedAmount < 0)
+    ) {
+      throw new Error(Strings.budgetPlanAllocationInvalid);
+    }
+  }
   const allocated = input.categories.reduce(
     (total, category) => total + (category.allocatedAmount ?? 0),
     0,
   );
-  if (allocated > input.totalAmount) throw new Error('Allocations exceed the plan total');
+  if (allocated > input.totalAmount) throw new Error(Strings.budgetPlanAllocationOver);
 }
 
 export class BudgetRepository implements IBudgetRepository {
@@ -243,46 +254,63 @@ export class BudgetRepository implements IBudgetRepository {
     validateSpendingPlanInput(input);
     const db = await getDb();
     const now = new Date().toISOString();
-    const existingPlans = await getSpendingPlanRowsForRange(db, {
-      startDate: input.startDate,
-      endDate: input.endDate,
-    });
-    const selectedCategoryIds = new Set(input.categories.map((category) => category.categoryId));
-    const conflict = existingPlans
-      .filter((plan) => plan.id !== input.id)
-      .find(
-        (plan) =>
-          rangesOverlap(
-            { startDate: input.startDate, endDate: input.endDate },
-            { startDate: plan.start_date, endDate: plan.end_date },
-          ) && plan.categories.some((category) => selectedCategoryIds.has(category.category_id)),
+    await db.withExclusiveTransactionAsync(async (tx) => {
+      const expenseCategories = await getCategoriesByType(tx, CategoryType.Expense);
+      const expenseCategoryById = new Map(
+        expenseCategories.map((category) => [category.id, category]),
       );
-    if (conflict) {
-      const category = conflict.categories.find((row) => selectedCategoryIds.has(row.category_id));
-      throw new Error(`${category?.category_id ?? 'Category'} overlaps ${conflict.name}`);
-    }
+      const invalidCategory = input.categories.find(
+        (category) => !expenseCategoryById.has(category.categoryId),
+      );
+      if (invalidCategory) throw new Error(Strings.budgetPlanExpenseCategoriesOnly);
 
-    const existing = input.id ? await getSpendingPlanById(db, input.id) : null;
-    const planId = input.id ?? String(uuid.v4());
-    const plan: SpendingPlan = {
-      id: planId,
-      name: normalizePlanName(input.name),
-      start_date: input.startDate,
-      end_date: input.endDate,
-      total_amount: input.totalAmount,
-      created_at: existing?.created_at ?? now,
-      updated_at: now,
-    };
+      const existingPlans = await getSpendingPlanRowsForRange(tx, {
+        startDate: input.startDate,
+        endDate: input.endDate,
+      });
+      const selectedCategoryIds = new Set(input.categories.map((category) => category.categoryId));
+      const conflict = existingPlans
+        .filter((plan) => plan.id !== input.id)
+        .find(
+          (plan) =>
+            rangesOverlap(
+              { startDate: input.startDate, endDate: input.endDate },
+              { startDate: plan.start_date, endDate: plan.end_date },
+            ) && plan.categories.some((category) => selectedCategoryIds.has(category.category_id)),
+        );
+      if (conflict) {
+        const conflictCategoryId = conflict.categories.find((category) =>
+          selectedCategoryIds.has(category.category_id),
+        )?.category_id;
+        const categoryName =
+          (conflictCategoryId ? expenseCategoryById.get(conflictCategoryId)?.name : undefined) ??
+          conflictCategoryId ??
+          Strings.budgetPlanCategories;
+        throw new Error(Strings.budgetPlanOverlapError(categoryName, conflict.name));
+      }
 
-    await setSpendingPlanRow(
-      db,
-      plan,
-      input.categories.map((category) => ({
-        plan_id: planId,
-        category_id: category.categoryId,
-        allocated_amount: category.allocatedAmount ?? null,
-      })),
-    );
+      const existing = input.id ? await getSpendingPlanById(tx, input.id) : null;
+      const planId = input.id ?? String(uuid.v4());
+      const plan: SpendingPlan = {
+        id: planId,
+        name: normalizePlanName(input.name),
+        start_date: input.startDate,
+        end_date: input.endDate,
+        total_amount: input.totalAmount,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      };
+
+      await setSpendingPlanRow(
+        tx,
+        plan,
+        input.categories.map((category) => ({
+          plan_id: planId,
+          category_id: category.categoryId,
+          allocated_amount: category.allocatedAmount ?? null,
+        })),
+      );
+    });
   }
 
   async removeSpendingPlan(id: string): Promise<void> {

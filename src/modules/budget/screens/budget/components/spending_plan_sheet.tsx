@@ -33,6 +33,8 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             variant="primary"
             label={Strings.budgetPlanSave}
             onPress={() => void sheet.form.onSubmit()}
+            isLoading={sheet.form.saving}
+            isDisabled={sheet.form.saving}
           />
         }
       >

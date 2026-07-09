@@ -93,7 +93,7 @@ export function SpendingPlanFormFields({ control, onFocus, onBlur }: SpendingPla
         placeholder="0"
         keyboardType="number-pad"
         variant="amount"
-        suffix="EGP"
+        suffix={Strings.currencyEgp}
         onFocus={onFocus}
         onBlur={onBlur}
       />

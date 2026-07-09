@@ -3,12 +3,28 @@ import { StyleSheet, Text } from 'react-native';
 
 import { Strings } from '@/constants/strings';
 import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
+import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
 describe('SpendingPlansLens', () => {
   const summary = { planned: 8000, spent: 1200, left: 6800, pct: 0.15 };
-  const row = {
+  const categoryChips = [
+    { id: 'cat_food', name: 'Food', icon: 'food', color: '#f90' },
+    { id: 'cat_travel', name: 'Travel', icon: 'car', color: '#09f' },
+  ];
+  const allocation = {
+    categoryId: 'cat_food',
+    categoryName: 'Food',
+    icon: 'food',
+    color: '#f90',
+    allocatedAmount: 3000,
+    spent: 1200,
+    left: 1800,
+    pct: 0.4,
+    isOver: false,
+  };
+  const row: SpendingPlanRowVM = {
     id: 'plan_trip',
     name: 'Alexandria weekend',
     startDate: '2026-07-18',
@@ -19,22 +35,11 @@ describe('SpendingPlansLens', () => {
     pct: 0.15,
     isOver: false,
     categoryCount: 2,
-    categoryChips: [
-      { id: 'cat_food', name: 'Food', icon: 'food', color: '#f90' },
-      { id: 'cat_travel', name: 'Travel', icon: 'car', color: '#09f' },
-    ],
-    allocationRows: [
-      {
-        categoryId: 'cat_food',
-        categoryName: 'Food',
-        icon: 'food',
-        color: '#f90',
-        allocatedAmount: 3000,
-        spent: 1200,
-        left: 1800,
-        pct: 0.4,
-        isOver: false,
-      },
+    categoryChips,
+    allocationRows: [allocation],
+    cardChips: [
+      { type: 'allocation', id: 'cat_food', allocation },
+      { type: 'category', id: 'cat_travel', category: categoryChips[1] },
     ],
     allocatedTotal: 3000,
     buffer: 5000,
