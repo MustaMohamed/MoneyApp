@@ -1,4 +1,3 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from 'expo-router';
 import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
@@ -20,6 +19,8 @@ import { BudgetToolRail } from '@/modules/budget/screens/budget/components/budge
 import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/category_budget_row';
 import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
+import { SpendingPlanSheet } from '@/modules/budget/screens/budget/components/spending_plan_sheet';
+import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
 import { SummaryCard } from '@/modules/budget/screens/budget/components/summary_card';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
@@ -36,6 +37,8 @@ export default function BudgetScreen() {
     state,
     openAdd,
     openEdit,
+    openAddPlan,
+    openEditPlan,
     setLensTab,
     setSelectedMonth,
     openCopy,
@@ -46,9 +49,11 @@ export default function BudgetScreen() {
     setCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
+    removeSpendingPlan,
     goToCategory,
   } = useBudget();
   const editingTargetId = useBudgetState.useState.targetBudgetId();
+  const editingPlanTargetId = useBudgetState.useState.targetPlanId();
   const editingRow = state.rows
     .flatMap((row) =>
       row.budgets.map((budget) => ({
@@ -61,7 +66,14 @@ export default function BudgetScreen() {
       })),
     )
     .find((budget) => budget.id === editingTargetId);
-  const openPlans = useCallback(() => setLensTab('plans'), [setLensTab]);
+  const editingPlan = state.spendingPlanRows.find((row) => row.id === editingPlanTargetId);
+  const openPlanTool = useCallback(() => {
+    if (state.lensTab === 'plans') {
+      openAddPlan();
+      return;
+    }
+    setLensTab('plans');
+  }, [openAddPlan, setLensTab, state.lensTab]);
 
   // Payload carries both id and name so the confirm sheet can display the category name
   const {
@@ -103,7 +115,7 @@ export default function BudgetScreen() {
 
       {!state.hasLoaded ? (
         <ScreenScroll contentContainerStyle={styles.content}>
-          <BudgetScreenSkeleton />
+          <BudgetScreenSkeleton variant={state.lensTab === 'plans' ? 'plans' : 'categories'} />
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
         <ScreenScroll contentContainerStyle={styles.content}>
@@ -112,7 +124,7 @@ export default function BudgetScreen() {
             <BudgetToolRail
               onCopy={openCopy}
               onAddCategory={openAdd}
-              onPlan={openPlans}
+              onPlan={openPlanTool}
               copyDisabled={false}
               addCategoryDisabled={state.budgetableCategories.length === 0}
               planDisabled={false}
@@ -144,23 +156,21 @@ export default function BudgetScreen() {
             <BudgetToolRail
               onCopy={openCopy}
               onAddCategory={openAdd}
-              onPlan={openPlans}
+              onPlan={openPlanTool}
               copyDisabled={false}
               addCategoryDisabled={state.budgetableCategories.length === 0}
               planDisabled={false}
             />
           </View>
-          <View style={styles.plansPlaceholder}>
-            <View style={styles.plansIcon}>
-              <MaterialCommunityIcons
-                name="calendar-star"
-                size={ms(34)}
-                color={Colors.dark.text2}
-              />
-            </View>
-            <HeroText style={styles.plansTitle}>{Strings.budgetPlansTitle}</HeroText>
-            <HeroText style={styles.plansBody}>{Strings.budgetPlansBody}</HeroText>
-          </View>
+          <SpendingPlansLens
+            rows={state.spendingPlanRows}
+            summary={state.spendingPlansSummary}
+            onCreate={openAddPlan}
+            onEdit={openEditPlan}
+            onDelete={(id) => {
+              void removeSpendingPlan(id, state.month);
+            }}
+          />
         </ScreenScroll>
       ) : (
         <ScreenScroll contentContainerStyle={styles.content}>
@@ -168,7 +178,7 @@ export default function BudgetScreen() {
             <BudgetToolRail
               onCopy={openCopy}
               onAddCategory={openAdd}
-              onPlan={openPlans}
+              onPlan={openPlanTool}
               copyDisabled={false}
               addCategoryDisabled={state.budgetableCategories.length === 0}
               planDisabled={false}
@@ -197,6 +207,10 @@ export default function BudgetScreen() {
       />
 
       <SetBudgetSheet budgetableCategories={state.budgetableCategories} editingRow={editingRow} />
+      <SpendingPlanSheet
+        budgetableCategories={state.budgetableCategories}
+        editingPlan={editingPlan}
+      />
 
       <BudgetDeleteConfirmSheet
         isOpen={pendingDelete !== null}
@@ -239,35 +253,5 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     minHeight: ms(320),
-  },
-  plansPlaceholder: {
-    minHeight: ms(320),
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  plansIcon: {
-    width: ms(72),
-    height: ms(72),
-    borderRadius: ms(36),
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.surface,
-  },
-  plansTitle: {
-    marginTop: Spacing.md,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  plansBody: {
-    marginTop: Spacing.xs,
-    maxWidth: ms(280),
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    lineHeight: ms(20),
-    color: Colors.dark.text2,
-    textAlign: 'center',
   },
 });
