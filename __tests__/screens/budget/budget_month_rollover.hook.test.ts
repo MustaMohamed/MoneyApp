@@ -98,9 +98,13 @@ function setupStores() {
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: budgetRowsState,
     spendByMonth: spendByMonthState,
+    spendingPlans: [],
+    spendingPlanSpendById: {},
     loaded: false,
     expectedIncome: null,
     load: loadBudgetMock,
+    setSpendingPlan: jest.fn(),
+    removeSpendingPlan: jest.fn(),
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
     selectedMonth: selectedMonthState,

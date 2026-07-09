@@ -167,9 +167,9 @@ export function useBudget() {
   const spendingPlanRows = useMemo(
     () =>
       buildSpendingPlanRows({
-        plans: spendingPlans ?? [],
+        plans: spendingPlans,
         categories,
-        spendByPlanId: spendingPlanSpendById ?? {},
+        spendByPlanId: spendingPlanSpendById,
         selectedMonth,
       }),
     [categories, selectedMonth, spendingPlanSpendById, spendingPlans],

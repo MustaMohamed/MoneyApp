@@ -74,7 +74,8 @@ export function computeAllocationHelper(
   totalAmount: number,
   allocations: Record<string, number | undefined>,
 ): AllocationHelperVM {
-  const allocated = Object.values(allocations).reduce((sum, amount) => sum + (amount ?? 0), 0);
+  let allocated = 0;
+  for (const amount of Object.values(allocations)) allocated += amount ?? 0;
   return { allocated, buffer: totalAmount - allocated, isOver: allocated > totalAmount };
 }
 
@@ -98,7 +99,7 @@ export function buildSpendingPlanRows({
         .map((row) => categoryById.get(row.category_id))
         .filter(
           (category): category is Category =>
-            Boolean(category) && category.type === CategoryType.Expense,
+            category !== undefined && category.type === CategoryType.Expense,
         )
         .map((category) => ({
           id: category.id,

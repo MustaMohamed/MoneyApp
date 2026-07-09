@@ -48,7 +48,7 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
 
   it('reset also resets loaded to false and clears rows/spendByMonth', () => {
     const store = createBudgetStore(makeRepo());
-    store.getState().setData([], {}, 5000);
+    store.getState().setData([], {}, 5000, [], {});
     store.getState().reset();
     const s = store.getState();
     expect(s.loaded).toBe(false);

@@ -6,8 +6,9 @@ import {
   planIntersectsMonth,
   validatePlanDraft,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { Category } from '@/modules/categories/entities/category.entity';
 
-const categories = [
+const categories: Category[] = [
   {
     id: 'cat_food',
     name: 'Food',
