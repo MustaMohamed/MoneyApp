@@ -78,7 +78,7 @@ export function BudgetToolRail({
       />
       <ToolButton
         label={Strings.budgetToolCategory}
-        icon="tag-plus-outline"
+        icon="wallet-plus-outline"
         color={Colors.dark.positive}
         accessibilityLabel={Strings.budgetAddCategory}
         isDisabled={addCategoryDisabled}

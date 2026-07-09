@@ -4,7 +4,10 @@ import type { PressableProps } from 'react-native';
 
 import { BudgetToolRail } from '@/modules/budget/screens/budget/components/budget_tool_rail';
 
-jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+  return ({ name }: { name: string }) => <View testID={`icon-${name}`} />;
+});
 jest.mock('heroui-native', () => {
   const { Pressable, Text, View } =
     jest.requireActual<typeof import('react-native')>('react-native');
@@ -23,7 +26,7 @@ describe('BudgetToolRail', () => {
     const onCopy = jest.fn();
     const onAddCategory = jest.fn();
     const onPlan = jest.fn();
-    const { getByLabelText, getByText } = render(
+    const { getByLabelText, getByTestId, getByText } = render(
       <BudgetToolRail
         onCopy={onCopy}
         onAddCategory={onAddCategory}
@@ -35,12 +38,13 @@ describe('BudgetToolRail', () => {
     );
 
     expect(getByText('Copy')).toBeTruthy();
-    expect(getByText('Category')).toBeTruthy();
+    expect(getByText('Budget')).toBeTruthy();
     expect(getByText('Plan')).toBeTruthy();
+    expect(getByTestId('icon-wallet-plus-outline')).toBeTruthy();
 
     fireEvent.press(getByLabelText('Copy budget'));
-    fireEvent.press(getByLabelText('Budget a category'));
-    fireEvent.press(getByLabelText('Spending plans coming in Phase 2'));
+    fireEvent.press(getByLabelText('Add budget'));
+    fireEvent.press(getByLabelText('Temporary budget plans coming in Phase 2'));
 
     expect(onCopy).toHaveBeenCalledTimes(1);
     expect(onAddCategory).toHaveBeenCalledTimes(1);

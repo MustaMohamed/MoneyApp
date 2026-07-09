@@ -5,7 +5,7 @@ import { previousYearMonth } from '@/modules/budget/screens/budget/budget.helper
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type BudgetSheetMode = 'add' | 'edit';
-export type LensTab = 'categories' | 'fiftythirty';
+export type LensTab = 'categories' | 'plans' | 'fiftythirty';
 
 interface BudgetStateShape {
   sheetVisible: boolean;

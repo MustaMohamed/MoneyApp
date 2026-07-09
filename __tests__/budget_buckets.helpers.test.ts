@@ -25,10 +25,16 @@ function makeCategory(
   };
 }
 
-function makeBudget(categoryId: string, limit: number, effectiveFrom = MONTH): Budget {
+function makeBudget(
+  categoryId: string,
+  limit: number,
+  effectiveFrom = MONTH,
+  name = 'Budget',
+): Budget {
   return {
-    id: `${categoryId}-${effectiveFrom}`,
+    id: `${categoryId}-${name}-${effectiveFrom}`,
     category_id: categoryId,
+    name,
     limit_amount: limit,
     effective_from: effectiveFrom,
     created_at: NOW,
@@ -80,6 +86,27 @@ describe('computeBuckets — allocated', () => {
     const want = result.buckets.find((b) => b.group === BudgetGroup.Want)!;
     expect(need.allocated).toBe(8000);
     expect(want.allocated).toBe(2000);
+  });
+
+  it('sums multiple named budgets in one category without duplicating spend', () => {
+    const result = computeBuckets(
+      20000,
+      cats,
+      [
+        makeBudget('cat_housing', 5000, MONTH, 'Rent'),
+        makeBudget('cat_housing', 800, MONTH, 'Maintenance'),
+        makeBudget('cat_groceries', 3000, MONTH, 'Monthly Groceries'),
+      ],
+      {
+        cat_housing: { [MONTH]: 1600 },
+        cat_groceries: { [MONTH]: 900 },
+      },
+      MONTH,
+    );
+    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
+
+    expect(need.allocated).toBe(8800);
+    expect(need.spent).toBe(2500);
   });
 
   it('accumulates untagged budgets into ungrouped', () => {

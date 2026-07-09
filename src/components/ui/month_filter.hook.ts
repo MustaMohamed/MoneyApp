@@ -15,6 +15,7 @@ import { useMonthFilterState } from './month_filter.state';
 export interface MonthFilterProps {
   selectedMonth: string;
   onSelectedMonthChange: (month: string) => void;
+  showStepButtons?: boolean;
 }
 
 interface PickerMonth {

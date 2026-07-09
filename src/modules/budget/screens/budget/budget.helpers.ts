@@ -48,7 +48,9 @@ export interface CategoryHistoryVM {
 export type BudgetCopyStatus = 'new' | 'will-replace';
 
 export interface BudgetCopyRowVM {
+  id: string;
   categoryId: string;
+  categoryName: string;
   name: string;
   icon: string;
   color: string;
@@ -56,18 +58,31 @@ export interface BudgetCopyRowVM {
   status: BudgetCopyStatus;
 }
 
-// Exact monthly row. null = no budget for that month or an explicit removed budget.
+export function getBudgetsForCategoryMonth(
+  rows: Budget[],
+  categoryId: string,
+  yearMonth: string,
+): Budget[] {
+  return rows.filter((r) => r.category_id === categoryId && r.effective_from === yearMonth);
+}
+
+export function sumBudgetsForCategoryMonth(
+  rows: Budget[],
+  categoryId: string,
+  yearMonth: string,
+): number | null {
+  const monthRows = getBudgetsForCategoryMonth(rows, categoryId, yearMonth);
+  if (monthRows.length === 0) return null;
+  return monthRows.reduce((total, row) => total + row.limit_amount, 0);
+}
+
+// Exact monthly total. null = no budget for that category/month.
 export function resolveLimitForMonth(
   rows: Budget[],
   categoryId: string,
   yearMonth: string,
 ): number | null {
-  for (const r of rows) {
-    if (r.category_id !== categoryId) continue;
-    if (r.effective_from !== yearMonth) continue;
-    return r.limit_amount;
-  }
-  return null;
+  return sumBudgetsForCategoryMonth(rows, categoryId, yearMonth);
 }
 
 /**
@@ -183,23 +198,29 @@ export function buildBudgetCopyRows({
 
   for (const category of categories) {
     if (category.type !== CategoryType.Expense) continue;
-    const sourceLimit = resolveLimitForMonth(rows, category.id, sourceMonth);
-    if (sourceLimit === null) continue;
-    const hasExplicitTargetLimit = rows.some(
-      (row) =>
-        row.category_id === category.id &&
-        row.effective_from === targetMonth &&
-        row.limit_amount !== null,
+    const sourceRows = rows.filter(
+      (row) => row.category_id === category.id && row.effective_from === sourceMonth,
     );
 
-    out.push({
-      categoryId: category.id,
-      name: category.name,
-      icon: category.icon,
-      color: category.color,
-      amount: sourceLimit,
-      status: hasExplicitTargetLimit ? 'will-replace' : 'new',
-    });
+    for (const sourceRow of sourceRows) {
+      const hasExplicitTargetLimit = rows.some(
+        (row) =>
+          row.category_id === category.id &&
+          row.effective_from === targetMonth &&
+          row.name.toLowerCase() === sourceRow.name.toLowerCase(),
+      );
+
+      out.push({
+        id: sourceRow.id,
+        categoryId: category.id,
+        categoryName: category.name,
+        name: sourceRow.name,
+        icon: category.icon,
+        color: category.color,
+        amount: sourceRow.limit_amount,
+        status: hasExplicitTargetLimit ? 'will-replace' : 'new',
+      });
+    }
   }
 
   return out;

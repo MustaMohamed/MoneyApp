@@ -18,10 +18,17 @@ import {
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 const NOW = '2026-05-01T00:00:00.000Z';
-function row(category_id: string, limit_amount: number | null, effective_from: string): Budget {
+function row(
+  category_id: string,
+  limit_amount: number,
+  effective_from: string,
+  name = 'Budget',
+  id = `${category_id}-${name}-${effective_from}`,
+): Budget {
   return {
-    id: `${category_id}-${effective_from}`,
+    id,
     category_id,
+    name,
     limit_amount,
     effective_from,
     created_at: NOW,
@@ -45,18 +52,19 @@ function category(id: string, name: string, type = CategoryType.Expense): Catego
 }
 
 describe('resolveLimitForMonth', () => {
-  const rows = [row('a', 3000, '2026-03'), row('a', 3500, '2026-05'), row('a', null, '2026-07')];
+  const rows = [
+    row('a', 3000, '2026-03', 'Monthly'),
+    row('a', 3500, '2026-05', 'Monthly'),
+    row('a', 1500, '2026-05', 'Trip'),
+  ];
   it('returns null before the first effective_from', () => {
     expect(resolveLimitForMonth(rows, 'a', '2026-02')).toBeNull();
   });
-  it('returns only the explicit limit for the requested month', () => {
+  it('returns only the explicit total for the requested month', () => {
     expect(resolveLimitForMonth(rows, 'a', '2026-03')).toBe(3000);
     expect(resolveLimitForMonth(rows, 'a', '2026-04')).toBeNull();
-    expect(resolveLimitForMonth(rows, 'a', '2026-05')).toBe(3500);
+    expect(resolveLimitForMonth(rows, 'a', '2026-05')).toBe(5000);
     expect(resolveLimitForMonth(rows, 'a', '2026-06')).toBeNull();
-  });
-  it('returns null for an explicit tombstone month', () => {
-    expect(resolveLimitForMonth(rows, 'a', '2026-07')).toBeNull();
   });
   it('returns null for an unknown category', () => {
     expect(resolveLimitForMonth(rows, 'z', '2026-05')).toBeNull();
@@ -72,6 +80,29 @@ describe('computeBudgetSummaryForMonth', () => {
     );
 
     expect(summary).toEqual({ budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 });
+  });
+
+  it('sums named budgets per category while counting category spend once', () => {
+    const summary = computeBudgetSummaryForMonth(
+      [
+        row('food', 5000, '2026-08', 'Monthly Food'),
+        row('food', 1500, '2026-08', 'Alexandria Trip Food'),
+        row('housing', 700, '2026-08', 'Rent'),
+      ],
+      {
+        food: { '2026-08': 2200 },
+        housing: { '2026-08': 700 },
+      },
+      '2026-08',
+    );
+
+    expect(summary).toEqual({
+      budgeted: 7200,
+      spent: 2900,
+      left: 4300,
+      pct: 2900 / 7200,
+      categoryCount: 2,
+    });
   });
 });
 
@@ -138,16 +169,16 @@ describe('buildBudgetCopyRows', () => {
   ];
 
   const rows = [
-    row('food', 3000, '2026-05'),
-    row('food', 3500, '2026-06'),
-    row('food', 4200, '2026-07'),
-    row('car', 1200, '2026-06'),
-    row('rent', 5000, '2026-05'),
-    row('rent', null, '2026-06'),
-    row('salary', 10000, '2026-06'),
+    row('food', 3000, '2026-05', 'Monthly Food', 'food-may'),
+    row('food', 3500, '2026-06', 'Monthly Food', 'food-monthly-jun'),
+    row('food', 1500, '2026-06', 'Alexandria Trip Food', 'food-trip-jun'),
+    row('food', 4200, '2026-07', 'Monthly Food', 'food-monthly-jul'),
+    row('car', 1200, '2026-06', 'Fuel', 'car-fuel-jun'),
+    row('rent', 5000, '2026-05', 'Rent', 'rent-may'),
+    row('salary', 10000, '2026-06', 'Salary', 'salary-jun'),
   ];
 
-  it('builds copy rows from source-month active expense budgets only', () => {
+  it('builds copy rows from source-month expense budgets only', () => {
     const vm = buildBudgetCopyRows({
       rows,
       categories,
@@ -157,16 +188,30 @@ describe('buildBudgetCopyRows', () => {
 
     expect(vm).toEqual([
       {
+        id: 'food-monthly-jun',
         categoryId: 'food',
-        name: 'Food & Dining',
+        categoryName: 'Food & Dining',
+        name: 'Monthly Food',
         icon: 'food',
         color: '#caa445',
         amount: 3500,
         status: 'will-replace',
       },
       {
+        id: 'food-trip-jun',
+        categoryId: 'food',
+        categoryName: 'Food & Dining',
+        name: 'Alexandria Trip Food',
+        icon: 'food',
+        color: '#caa445',
+        amount: 1500,
+        status: 'new',
+      },
+      {
+        id: 'car-fuel-jun',
         categoryId: 'car',
-        name: 'Car',
+        categoryName: 'Car',
+        name: 'Fuel',
         icon: 'food',
         color: '#caa445',
         amount: 1200,
@@ -178,7 +223,7 @@ describe('buildBudgetCopyRows', () => {
   it('returns an empty checklist when the source month has no active budgets', () => {
     expect(
       buildBudgetCopyRows({
-        rows: [row('food', null, '2026-06')],
+        rows: [row('food', 3000, '2026-05', 'Monthly Food')],
         categories: [category('food', 'Food & Dining')],
         sourceMonth: '2026-06',
         targetMonth: '2026-07',
@@ -196,8 +241,10 @@ describe('buildBudgetCopyRows', () => {
 
     expect(vm).toEqual([
       {
+        id: 'food-monthly-jul',
         categoryId: 'food',
-        name: 'Food & Dining',
+        categoryName: 'Food & Dining',
+        name: 'Monthly Food',
         icon: 'food',
         color: '#caa445',
         amount: 4200,

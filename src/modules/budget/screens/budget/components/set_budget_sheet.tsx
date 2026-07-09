@@ -13,7 +13,7 @@ import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { getDb } from '@/database/client';
-import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget.hook';
+import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
@@ -29,7 +29,7 @@ export interface SetBudgetSheetProps {
   // expense categories without an active budget (add-mode picker source)
   budgetableCategories: Category[];
   // the row currently being edited (edit mode), or undefined in add mode
-  editingRow?: CategoryBudgetRowVM;
+  editingRow?: BudgetEditTargetVM;
 }
 
 const GROUP_OPTIONS: { value: BudgetGroup; label: string }[] = [
@@ -44,16 +44,15 @@ function isBudgetGroup(value: string): value is BudgetGroup {
 }
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
-  const { sheetVisible, mode, targetCategoryId, selectedMonth } = useBudgetState(
+  const { sheetVisible, mode, selectedMonth } = useBudgetState(
     useShallow((s) => ({
       sheetVisible: s.sheetVisible,
       mode: s.mode,
-      targetCategoryId: s.targetCategoryId,
       selectedMonth: s.selectedMonth,
     })),
   );
   const close = useBudgetState.getState().close;
-  const setLimit = useBudgetStore.getState().setLimit;
+  const setBudget = useBudgetStore.getState().setBudget;
   const { selectedCategoryId, pickerExpanded, groupValue } = useSetBudgetSheetState(
     useShallow((s) => ({
       selectedCategoryId: s.selectedCategoryId,
@@ -75,7 +74,9 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     control,
     handleSubmit,
     reset: resetForm,
-  } = useZodForm<BudgetFormValues>(budgetFormSchema, { defaultValues: { limitText: '' } });
+  } = useZodForm<BudgetFormValues>(budgetFormSchema, {
+    defaultValues: { nameText: '', limitText: '' },
+  });
 
   const addModeSelectedCategory = useMemo(
     () => budgetableCategories.find((c) => c.id === selectedCategoryId),
@@ -85,7 +86,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   // Initialise / reset add-mode picker state and group whenever the sheet opens
   useEffect(() => {
     if (sheetVisible) {
-      resetForm({ limitText: isEdit && editingRow ? String(editingRow.limit) : '' });
+      resetForm({
+        nameText: isEdit && editingRow ? editingRow.name : '',
+        limitText: isEdit && editingRow ? String(editingRow.limit) : '',
+      });
       if (!isEdit) {
         initAddMode(budgetableCategories[0]?.id);
       }
@@ -103,14 +107,20 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   }, [sheetVisible, isEdit, addModeSelectedCategory, setGroupValue]);
 
   // Resolved category name for edit mode (locked display)
-  const editingCategoryName = editingRow?.name;
+  const editingCategoryName = editingRow?.categoryName;
 
-  const resolvedCategoryId = isEdit ? targetCategoryId : selectedCategoryId;
+  const resolvedCategoryId = isEdit ? editingRow?.categoryId : selectedCategoryId;
 
   const onSubmit = handleSubmit(async (values) => {
     if (!resolvedCategoryId) return;
-    await setLimit(resolvedCategoryId, parseLimit(values.limitText), selectedMonth);
-    if (groupValue !== null) {
+    await setBudget({
+      id: isEdit ? editingRow?.id : undefined,
+      categoryId: resolvedCategoryId,
+      name: values.nameText,
+      limit: parseLimit(values.limitText),
+      yearMonth: selectedMonth,
+    });
+    if (!isEdit && groupValue !== null) {
       const db = await getDb();
       await setCategoryGroup(db, resolvedCategoryId, groupValue);
     }
@@ -161,7 +171,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                   >
                     <MaterialCommunityIcons
                       name={toIconName(addModeSelectedCategory.icon, 'tag-outline')}
-                      size={ms(15)}
+                      size={ms(13)}
                       color={addModeSelectedCategory.color}
                     />
                   </View>
@@ -175,6 +185,32 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
               <Text style={styles.chev}>{'›'}</Text>
             </PressableFeedback>
           )}
+
+          <Text style={styles.label}>{Strings.budgetNameLabel}</Text>
+          <Controller
+            control={control}
+            name="nameText"
+            render={({ field: { value, onChange }, fieldState }) => (
+              <>
+                <View style={[styles.field, fieldState.error && styles.fieldError]}>
+                  <Input
+                    value={value}
+                    onChangeText={onChange}
+                    onFocus={onFocus}
+                    onBlur={onBlur}
+                    placeholder={Strings.budgetNamePlaceholder}
+                    placeholderColorClassName="text-[#888]"
+                    className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
+                    style={styles.nameInput}
+                    accessibilityLabel={Strings.budgetNameLabel}
+                  />
+                </View>
+                {fieldState.error && (
+                  <Text style={styles.errorText}>{fieldState.error.message}</Text>
+                )}
+              </>
+            )}
+          />
 
           <Text style={styles.label}>{Strings.budgetMonthlyLimitLabel}</Text>
           <Controller
@@ -191,7 +227,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                     keyboardType="number-pad"
                     placeholder="0"
                     placeholderColorClassName="text-[#888]"
-                    className="flex-1 border-0 bg-transparent p-0"
+                    className="h-7 min-h-0 flex-1 border-0 bg-transparent p-0"
                     style={styles.input}
                     accessibilityLabel={Strings.budgetMonthlyLimitLabel}
                   />
@@ -204,22 +240,26 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
             )}
           />
 
-          <Text style={[styles.label, styles.groupLabel]}>
-            {Strings.budget5030GroupPickerLabel}
-          </Text>
-          <RadioGroup
-            value={groupValue ?? undefined}
-            onValueChange={(val) => {
-              if (isBudgetGroup(val)) setGroupValue(val);
-            }}
-            accessibilityLabel={Strings.budget5030GroupPickerLabel}
-          >
-            {GROUP_OPTIONS.map((opt) => (
-              <RadioGroup.Item key={opt.value} value={opt.value}>
-                {opt.label}
-              </RadioGroup.Item>
-            ))}
-          </RadioGroup>
+          {!isEdit && (
+            <>
+              <Text style={[styles.label, styles.groupLabel]}>
+                {Strings.budget5030GroupPickerLabel}
+              </Text>
+              <RadioGroup
+                value={groupValue ?? undefined}
+                onValueChange={(val) => {
+                  if (isBudgetGroup(val)) setGroupValue(val);
+                }}
+                accessibilityLabel={Strings.budget5030GroupPickerLabel}
+              >
+                {GROUP_OPTIONS.map((opt) => (
+                  <RadioGroup.Item key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </RadioGroup.Item>
+                ))}
+              </RadioGroup>
+            </>
+          )}
         </BottomSheetScrollView>
       </Sheet>
 
@@ -254,20 +294,24 @@ const styles = StyleSheet.create({
     borderRadius: Radius.md,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: Colors.dark.border,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-    marginBottom: Spacing.md,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xs,
+    marginBottom: Spacing.sm,
   },
   pickerLocked: { opacity: 0.7 },
-  pickerContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  pickerName: { fontFamily: FontFamily.interSemi, fontSize: Type.body, color: Colors.dark.text1 },
+  pickerContent: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  pickerName: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.caption,
+    color: Colors.dark.text1,
+  },
   pickerPlaceholder: { color: Colors.dark.text2 },
-  chev: { fontFamily: FontFamily.interRegular, fontSize: Type.title, color: Colors.dark.text2 },
+  chev: { fontFamily: FontFamily.interRegular, fontSize: Type.body, color: Colors.dark.text2 },
   // matches the standard category icon (CategoryBudgetRow / detail header):
   // rounded square, tinted category-color background, icon in the category color
   categoryIcon: {
-    width: ms(32),
-    height: ms(32),
+    width: ms(28),
+    height: ms(28),
     borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
@@ -283,23 +327,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: Colors.dark.bg,
-    borderWidth: ms(1.5),
+    borderWidth: ms(1),
     borderColor: Colors.dark.gold,
-    borderRadius: Radius.md,
+    borderRadius: Radius.sm,
     paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.xs,
+    paddingVertical: Spacing.xxs,
   },
   fieldError: { borderColor: Colors.dark.negative },
   input: {
     flex: 1,
     fontFamily: FontFamily.soraBold,
-    fontSize: Type.title,
+    fontSize: Type.bodyStrong,
     color: Colors.dark.text1,
+    height: ms(28),
     padding: 0,
     includeFontPadding: false,
     textAlignVertical: 'center',
   },
-  suffix: { fontFamily: FontFamily.interSemi, fontSize: Type.body, color: Colors.dark.text2 },
+  nameInput: {
+    flex: 1,
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.body,
+    color: Colors.dark.text1,
+    height: ms(28),
+    padding: 0,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  suffix: { fontFamily: FontFamily.interSemi, fontSize: Type.caption, color: Colors.dark.text2 },
   errorText: {
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,

@@ -5,6 +5,7 @@ import {
   budgetRepository,
   currentYearMonth,
   lastMonths,
+  type SetBudgetInput,
 } from '@/modules/budget/repositories/budget.repository';
 import {
   AppSettingsRepository,
@@ -31,8 +32,14 @@ type BudgetStore = BudgetStoreShape & {
     expectedIncome: number | null,
   ) => void;
   load: (anchorMonth?: string) => Promise<void>;
+  setBudget: (input: SetBudgetInput) => Promise<void>;
   setLimit: (categoryId: string, limit: number, yearMonth?: string) => Promise<void>;
-  removeBudget: (categoryId: string, yearMonth?: string) => Promise<void>;
+  removeBudget: (id: string, yearMonth?: string) => Promise<void>;
+  copyBudgetsToMonth: (
+    sourceMonth: string,
+    targetMonth: string,
+    budgetIds: string[],
+  ) => Promise<void>;
   copyLimitsToMonth: (
     sourceMonth: string,
     targetMonth: string,
@@ -70,6 +77,12 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         get().setData(rows, spendByMonth, expectedIncome);
       },
 
+      setBudget: async (input) => {
+        const anchorMonth = input.yearMonth ?? currentYearMonth();
+        await budgetRepository.setBudget(input);
+        await get().load(anchorMonth);
+      },
+
       setLimit: async (categoryId, limit, yearMonth) => {
         const anchorMonth = yearMonth ?? currentYearMonth();
         if (yearMonth) await budgetRepository.setLimit(categoryId, limit, yearMonth);
@@ -77,11 +90,16 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         await get().load(anchorMonth);
       },
 
-      removeBudget: async (categoryId, yearMonth) => {
+      removeBudget: async (id, yearMonth) => {
         const anchorMonth = yearMonth ?? currentYearMonth();
-        if (yearMonth) await budgetRepository.removeBudget(categoryId, yearMonth);
-        else await budgetRepository.removeBudget(categoryId);
+        if (yearMonth) await budgetRepository.removeBudget(id, yearMonth);
+        else await budgetRepository.removeBudget(id);
         await get().load(anchorMonth);
+      },
+
+      copyBudgetsToMonth: async (sourceMonth, targetMonth, budgetIds) => {
+        await budgetRepository.copyBudgetsToMonth(sourceMonth, targetMonth, budgetIds);
+        await get().load(targetMonth);
       },
 
       copyLimitsToMonth: async (sourceMonth, targetMonth, categoryIds) => {

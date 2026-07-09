@@ -2,6 +2,7 @@ import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { PressableProps } from 'react-native';
 
+import { Strings } from '@/constants/strings';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
 
@@ -71,16 +72,20 @@ jest.mock('heroui-native', () => {
 
 const rows: BudgetCopyRowVM[] = [
   {
+    id: 'budget-food',
     categoryId: 'food',
-    name: 'Food',
+    categoryName: 'Food & Dining',
+    name: 'Monthly Food',
     icon: 'food',
     color: '#caa445',
     amount: 3500,
     status: 'will-replace',
   },
   {
+    id: 'budget-car',
     categoryId: 'car',
-    name: 'Car',
+    categoryName: 'Car',
+    name: 'Fuel',
     icon: 'car',
     color: '#55aaff',
     amount: 1200,
@@ -98,10 +103,11 @@ describe('BudgetCopySheet', () => {
     const { getByText, getByLabelText } = render(
       <BudgetCopySheet
         isOpen
-        sourceMonthLabel="June 2026"
+        sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={['food']}
+        selectedCategoryIds={['budget-food']}
+        onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleCategory={onToggleCategory}
         onSelectAll={onSelectAll}
@@ -113,14 +119,14 @@ describe('BudgetCopySheet', () => {
     expect(getByText('Copy from')).toBeTruthy();
     expect(getByText('June 2026')).toBeTruthy();
     expect(getByText('July 2026')).toBeTruthy();
-    expect(getByText('Food')).toBeTruthy();
+    expect(getByText('Monthly Food')).toBeTruthy();
+    expect(getByText('Food & Dining / Will replace')).toBeTruthy();
     expect(getByText('3,500')).toBeTruthy();
-    expect(getByText('Will replace')).toBeTruthy();
-    expect(getByText('Car')).toBeTruthy();
-    expect(getByText('New')).toBeTruthy();
+    expect(getByText('Fuel')).toBeTruthy();
+    expect(getByText('Car / New')).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Toggle Car'));
-    expect(onToggleCategory).toHaveBeenCalledWith('car');
+    fireEvent.press(getByLabelText('Toggle Fuel'));
+    expect(onToggleCategory).toHaveBeenCalledWith('budget-car');
 
     fireEvent.press(getByText('Select all'));
     expect(onSelectAll).toHaveBeenCalledTimes(1);
@@ -136,10 +142,11 @@ describe('BudgetCopySheet', () => {
     const { getAllByTestId } = render(
       <BudgetCopySheet
         isOpen
-        sourceMonthLabel="June 2026"
+        sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={['food', 'car']}
+        selectedCategoryIds={['budget-food', 'budget-car']}
+        onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleCategory={jest.fn()}
         onSelectAll={jest.fn()}
@@ -158,10 +165,11 @@ describe('BudgetCopySheet', () => {
     const { getAllByTestId } = render(
       <BudgetCopySheet
         isOpen
-        sourceMonthLabel="June 2026"
+        sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
         selectedCategoryIds={[]}
+        onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleCategory={jest.fn()}
         onSelectAll={jest.fn()}
@@ -176,20 +184,16 @@ describe('BudgetCopySheet', () => {
     ]);
   });
 
-  it('renders compact controls for changing the copy source month', () => {
-    const onPreviousSourceMonth = jest.fn();
-    const onNextSourceMonth = jest.fn();
-    const { getByLabelText } = render(
+  it('opens a direct month picker for changing the copy source month', () => {
+    const onSourceMonthChange = jest.fn();
+    const { getByLabelText, queryByLabelText } = render(
       <BudgetCopySheet
         isOpen
-        sourceMonthLabel="June 2026"
+        sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
-        selectedCategoryIds={['food']}
-        sourceMonthPreviousDisabled={false}
-        sourceMonthNextDisabled
-        onPreviousSourceMonth={onPreviousSourceMonth}
-        onNextSourceMonth={onNextSourceMonth}
+        selectedCategoryIds={['budget-food']}
+        onSourceMonthChange={onSourceMonthChange}
         onOpenChange={jest.fn()}
         onToggleCategory={jest.fn()}
         onSelectAll={jest.fn()}
@@ -198,11 +202,13 @@ describe('BudgetCopySheet', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText('Previous source month'));
-    fireEvent.press(getByLabelText('Next source month'));
+    expect(queryByLabelText(Strings.monthFilterPreviousA11y)).toBeNull();
+    expect(queryByLabelText(Strings.monthFilterNextA11y)).toBeNull();
 
-    expect(onPreviousSourceMonth).toHaveBeenCalledTimes(1);
-    expect(onNextSourceMonth).not.toHaveBeenCalled();
+    fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('June 2026')));
+    fireEvent.press(getByLabelText('May 2026'));
+
+    expect(onSourceMonthChange).toHaveBeenCalledWith('2026-05');
   });
 
   it('disables apply when nothing is selected', () => {
@@ -210,10 +216,11 @@ describe('BudgetCopySheet', () => {
     const { getByText } = render(
       <BudgetCopySheet
         isOpen
-        sourceMonthLabel="June 2026"
+        sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={rows}
         selectedCategoryIds={[]}
+        onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleCategory={jest.fn()}
         onSelectAll={jest.fn()}
@@ -230,10 +237,11 @@ describe('BudgetCopySheet', () => {
     const { getByText, queryByText } = render(
       <BudgetCopySheet
         isOpen
-        sourceMonthLabel="June 2026"
+        sourceMonth="2026-06"
         targetMonthLabel="July 2026"
         rows={[]}
         selectedCategoryIds={[]}
+        onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleCategory={jest.fn()}
         onSelectAll={jest.fn()}

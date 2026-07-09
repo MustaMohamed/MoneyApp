@@ -46,6 +46,7 @@ describe('budgets query file', () => {
     await setBudgetRow(db, {
       id: 'b1',
       category_id: 'cat_food',
+      name: 'Monthly Food',
       limit_amount: 3000,
       effective_from: '2026-05',
       created_at: NOW,
@@ -53,33 +54,51 @@ describe('budgets query file', () => {
     });
     const rows = await getBudgetRows(db);
     expect(rows).toHaveLength(1);
+    expect(rows[0].name).toBe('Monthly Food');
     expect(rows[0].limit_amount).toBe(3000);
   });
 
-  it('INSERT OR REPLACE collapses a same-month re-set onto one row', async () => {
+  it('allows multiple named budgets in one category month', async () => {
     const base = {
       category_id: 'cat_food',
       effective_from: '2026-05',
       created_at: NOW,
       updated_at: NOW,
     };
+    await setBudgetRow(db, { id: 'b1', name: 'Monthly Food', limit_amount: 3000, ...base });
+    await setBudgetRow(db, { id: 'b2', name: 'Trip Food', limit_amount: 1500, ...base });
+    const rows = await getBudgetRows(db);
+    expect(rows).toHaveLength(2);
+    expect(rows.map((row) => row.name)).toEqual(['Monthly Food', 'Trip Food']);
+  });
+
+  it('INSERT OR REPLACE collapses a same category/month/name re-set onto one row', async () => {
+    const base = {
+      category_id: 'cat_food',
+      name: 'Monthly Food',
+      effective_from: '2026-05',
+      created_at: NOW,
+      updated_at: NOW,
+    };
     await setBudgetRow(db, { id: 'b1', limit_amount: 3000, ...base });
-    await setBudgetRow(db, { id: 'b1', limit_amount: 3500, ...base });
+    await setBudgetRow(db, { id: 'b2', limit_amount: 3500, ...base });
     const rows = await getBudgetRows(db);
     expect(rows).toHaveLength(1);
+    expect(rows[0].id).toBe('b2');
     expect(rows[0].limit_amount).toBe(3500);
   });
 
-  it('a null limit_amount tombstone persists', async () => {
-    await setBudgetRow(db, {
-      id: 'b1',
-      category_id: 'cat_food',
-      limit_amount: null,
-      effective_from: '2026-06',
-      created_at: NOW,
-      updated_at: NOW,
-    });
-    const rows = await getBudgetRows(db);
-    expect(rows[0].limit_amount).toBeNull();
+  it('rejects null limit amounts because budgets are monthly rows now', async () => {
+    await expect(
+      setBudgetRow(db, {
+        id: 'b1',
+        category_id: 'cat_food',
+        name: 'Monthly Food',
+        limit_amount: null as unknown as number,
+        effective_from: '2026-06',
+        created_at: NOW,
+        updated_at: NOW,
+      }),
+    ).rejects.toThrow();
   });
 });

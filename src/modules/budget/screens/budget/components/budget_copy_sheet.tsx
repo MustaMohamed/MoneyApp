@@ -4,6 +4,7 @@ import { Checkbox, PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { MonthFilter } from '@/components/ui/month_filter';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -15,14 +16,11 @@ import { ms } from '@/utils/responsive';
 
 interface BudgetCopySheetProps {
   isOpen: boolean;
-  sourceMonthLabel: string;
+  sourceMonth: string;
   targetMonthLabel: string;
   rows: BudgetCopyRowVM[];
   selectedCategoryIds: string[];
-  sourceMonthPreviousDisabled?: boolean;
-  sourceMonthNextDisabled?: boolean;
-  onPreviousSourceMonth?: () => void;
-  onNextSourceMonth?: () => void;
+  onSourceMonthChange: (month: string) => void;
   onOpenChange: (open: boolean) => void;
   onToggleCategory: (categoryId: string) => void;
   onSelectAll: () => void;
@@ -36,14 +34,11 @@ function statusLabel(status: BudgetCopyRowVM['status']): string {
 
 export function BudgetCopySheet({
   isOpen,
-  sourceMonthLabel,
+  sourceMonth,
   targetMonthLabel,
   rows,
   selectedCategoryIds,
-  sourceMonthPreviousDisabled = false,
-  sourceMonthNextDisabled = false,
-  onPreviousSourceMonth,
-  onNextSourceMonth,
+  onSourceMonthChange,
   onOpenChange,
   onToggleCategory,
   onSelectAll,
@@ -91,41 +86,13 @@ export function BudgetCopySheet({
         <View style={styles.sourceBlock}>
           <Text style={styles.sourceLabel}>{Strings.budgetCopySourceLabel}</Text>
           <View style={styles.sourceRow}>
-            <PressableFeedback
-              accessibilityRole="button"
-              accessibilityLabel={Strings.budgetCopyPreviousSourceA11y}
-              accessibilityState={{ disabled: sourceMonthPreviousDisabled }}
-              isDisabled={sourceMonthPreviousDisabled}
-              onPress={() => {
-                if (!sourceMonthPreviousDisabled) onPreviousSourceMonth?.();
-              }}
-              style={[styles.sourceButton, sourceMonthPreviousDisabled && styles.disabledSource]}
-            >
-              <MaterialCommunityIcons
-                name="chevron-left"
-                size={ms(18)}
-                color={sourceMonthPreviousDisabled ? Colors.dark.text3 : Colors.dark.text1}
+            <View style={styles.sourceFilter}>
+              <MonthFilter
+                selectedMonth={sourceMonth}
+                onSelectedMonthChange={onSourceMonthChange}
+                showStepButtons={false}
               />
-            </PressableFeedback>
-            <View style={styles.sourcePill}>
-              <Text style={styles.sourceMonth}>{sourceMonthLabel}</Text>
             </View>
-            <PressableFeedback
-              accessibilityRole="button"
-              accessibilityLabel={Strings.budgetCopyNextSourceA11y}
-              accessibilityState={{ disabled: sourceMonthNextDisabled }}
-              isDisabled={sourceMonthNextDisabled}
-              onPress={() => {
-                if (!sourceMonthNextDisabled) onNextSourceMonth?.();
-              }}
-              style={[styles.sourceButton, sourceMonthNextDisabled && styles.disabledSource]}
-            >
-              <MaterialCommunityIcons
-                name="chevron-right"
-                size={ms(18)}
-                color={sourceMonthNextDisabled ? Colors.dark.text3 : Colors.dark.text1}
-              />
-            </PressableFeedback>
             <Text style={styles.routeArrow}>→</Text>
             <Text style={styles.targetMonth}>{targetMonthLabel}</Text>
           </View>
@@ -147,14 +114,14 @@ export function BudgetCopySheet({
 
             <View style={styles.list}>
               {rows.map((row) => {
-                const selected = selectedCategoryIds.includes(row.categoryId);
+                const selected = selectedCategoryIds.includes(row.id);
                 return (
                   <PressableFeedback
-                    key={row.categoryId}
+                    key={row.id}
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: selected }}
                     accessibilityLabel={`Toggle ${row.name}`}
-                    onPress={() => onToggleCategory(row.categoryId)}
+                    onPress={() => onToggleCategory(row.id)}
                     style={styles.row}
                   >
                     <View pointerEvents="none">
@@ -172,7 +139,9 @@ export function BudgetCopySheet({
                     </View>
                     <View style={styles.rowCenter}>
                       <Text style={styles.rowTitle}>{row.name}</Text>
-                      <Text style={styles.rowMeta}>{statusLabel(row.status)}</Text>
+                      <Text style={styles.rowMeta}>
+                        {`${row.categoryName} / ${statusLabel(row.status)}`}
+                      </Text>
                     </View>
                     <Text style={styles.rowAmount}>{formatAmount(row.amount)}</Text>
                   </PressableFeedback>
@@ -212,33 +181,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  sourceButton: {
-    width: ms(32),
-    height: ms(32),
-    borderRadius: Radius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-  },
-  disabledSource: {
-    opacity: 0.45,
-  },
-  sourcePill: {
-    minHeight: ms(32),
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-  },
-  sourceMonth: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
+  sourceFilter: {
+    flex: 1,
   },
   routeArrow: {
     fontFamily: FontFamily.interSemi,

@@ -1,3 +1,4 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from 'expo-router';
 import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
@@ -26,6 +27,7 @@ import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 const LENS_SEGMENTS = [
   { value: 'categories' as const, label: Strings.budget5030TabCategories },
+  { value: 'plans' as const, label: Strings.budgetPlansTab },
   { value: 'fiftythirty' as const, label: Strings.budget5030TabLens },
 ];
 
@@ -41,14 +43,25 @@ export default function BudgetScreen() {
     toggleCopyCategoryId,
     selectAllCopyCategories,
     clearCopySelection,
-    goToPreviousCopySourceMonth,
-    goToNextCopySourceMonth,
+    setCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
     goToCategory,
   } = useBudget();
   const editingTargetId = useBudgetState.useState.targetCategoryId();
-  const editingRow = state.rows.find((r) => r.categoryId === editingTargetId);
+  const editingRow = state.rows
+    .flatMap((row) =>
+      row.budgets.map((budget) => ({
+        ...budget,
+        limit: budget.amount,
+        categoryId: row.categoryId,
+        categoryName: row.name,
+        icon: row.icon,
+        color: row.color,
+      })),
+    )
+    .find((budget) => budget.id === editingTargetId);
+  const openPlans = useCallback(() => setLensTab('plans'), [setLensTab]);
 
   // Payload carries both id and name so the confirm sheet can display the category name
   const {
@@ -99,10 +112,10 @@ export default function BudgetScreen() {
             <BudgetToolRail
               onCopy={openCopy}
               onAddCategory={openAdd}
-              onPlan={() => undefined}
-              copyDisabled={state.copyRows.length === 0}
+              onPlan={openPlans}
+              copyDisabled={false}
               addCategoryDisabled={state.budgetableCategories.length === 0}
-              planDisabled
+              planDisabled={false}
             />
           </View>
 
@@ -125,16 +138,40 @@ export default function BudgetScreen() {
             </View>
           )}
         </ScreenScroll>
+      ) : state.lensTab === 'plans' ? (
+        <ScreenScroll contentContainerStyle={styles.content}>
+          <View style={styles.inset}>
+            <BudgetToolRail
+              onCopy={openCopy}
+              onAddCategory={openAdd}
+              onPlan={openPlans}
+              copyDisabled={false}
+              addCategoryDisabled={state.budgetableCategories.length === 0}
+              planDisabled={false}
+            />
+          </View>
+          <View style={styles.plansPlaceholder}>
+            <View style={styles.plansIcon}>
+              <MaterialCommunityIcons
+                name="calendar-star"
+                size={ms(34)}
+                color={Colors.dark.text2}
+              />
+            </View>
+            <HeroText style={styles.plansTitle}>{Strings.budgetPlansTitle}</HeroText>
+            <HeroText style={styles.plansBody}>{Strings.budgetPlansBody}</HeroText>
+          </View>
+        </ScreenScroll>
       ) : (
         <ScreenScroll contentContainerStyle={styles.content}>
           <View style={styles.inset}>
             <BudgetToolRail
               onCopy={openCopy}
               onAddCategory={openAdd}
-              onPlan={() => undefined}
-              copyDisabled={state.copyRows.length === 0}
+              onPlan={openPlans}
+              copyDisabled={false}
               addCategoryDisabled={state.budgetableCategories.length === 0}
-              planDisabled
+              planDisabled={false}
             />
           </View>
           <FiftyThirtyTwentyLens vm={state.buckets} suggestion={state.suggestion} />
@@ -143,13 +180,11 @@ export default function BudgetScreen() {
 
       <BudgetCopySheet
         isOpen={state.copySheetVisible}
-        sourceMonthLabel={formatMonthYear(state.copySourceMonth)}
+        sourceMonth={state.copySourceMonth}
         targetMonthLabel={formatMonthYear(state.month)}
         rows={state.copyRows}
         selectedCategoryIds={state.copySelectedCategoryIds}
-        sourceMonthNextDisabled={!state.canGoNextCopySourceMonth}
-        onPreviousSourceMonth={goToPreviousCopySourceMonth}
-        onNextSourceMonth={goToNextCopySourceMonth}
+        onSourceMonthChange={setCopySourceMonth}
         onOpenChange={(open) => {
           if (!open) closeCopy();
         }}
@@ -204,5 +239,35 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     minHeight: ms(320),
+  },
+  plansPlaceholder: {
+    minHeight: ms(320),
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: Spacing.xl,
+  },
+  plansIcon: {
+    width: ms(72),
+    height: ms(72),
+    borderRadius: ms(36),
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.surface,
+  },
+  plansTitle: {
+    marginTop: Spacing.md,
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.title,
+    color: Colors.dark.text1,
+    textAlign: 'center',
+  },
+  plansBody: {
+    marginTop: Spacing.xs,
+    maxWidth: ms(280),
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.body,
+    lineHeight: ms(20),
+    color: Colors.dark.text2,
+    textAlign: 'center',
   },
 });

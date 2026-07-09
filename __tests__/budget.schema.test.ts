@@ -8,17 +8,31 @@ describe('parseLimit', () => {
 });
 
 describe('budgetFormSchema', () => {
-  it('accepts a positive amount', () => {
-    expect(budgetFormSchema.safeParse({ limitText: '3,000' }).success).toBe(true);
+  it('accepts a name and positive amount', () => {
+    expect(
+      budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: '3,000' }).success,
+    ).toBe(true);
+  });
+  it('rejects an empty name', () => {
+    expect(budgetFormSchema.safeParse({ nameText: '', limitText: '3,000' }).success).toBe(false);
+    expect(budgetFormSchema.safeParse({ nameText: '   ', limitText: '3,000' }).success).toBe(false);
   });
   it('rejects empty', () => {
-    expect(budgetFormSchema.safeParse({ limitText: '' }).success).toBe(false);
+    expect(budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: '' }).success).toBe(
+      false,
+    );
   });
   it('rejects zero and negatives', () => {
-    expect(budgetFormSchema.safeParse({ limitText: '0' }).success).toBe(false);
-    expect(budgetFormSchema.safeParse({ limitText: '-5' }).success).toBe(false);
+    expect(budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: '0' }).success).toBe(
+      false,
+    );
+    expect(budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: '-5' }).success).toBe(
+      false,
+    );
   });
   it('rejects non-numeric', () => {
-    expect(budgetFormSchema.safeParse({ limitText: 'abc' }).success).toBe(false);
+    expect(budgetFormSchema.safeParse({ nameText: 'Monthly Food', limitText: 'abc' }).success).toBe(
+      false,
+    );
   });
 });

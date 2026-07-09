@@ -39,20 +39,19 @@ The first screen remains the actual Budget workspace, not an explainer. The scre
 - Tabs: current category-budget surface remains the default. Existing 50/30/20 remains available and unchanged.
 - Compact monthly summary card: Budgeted / Spent / Left, progress bar, and small month status metadata.
 - Icon tool rail directly under the summary:
-  - Copy: opens the copy-from-month sheet.
+  - Copy: opens the copy-from-month sheet, including future months where the default source month has no rows yet.
   - Category: opens the add category budget sheet.
   - Plan: visible as the future Spending Plans affordance but disabled in Phase 1.
 - Category allocation list: category icon, category name, spent/limit/left, progress bar, edit/remove gestures as today.
 
 The Plan affordance is deliberately not wired to create data in Phase 1. This prevents a partial Spending Plans implementation while preserving the approved direction for the main screen.
 
-### Copy Previous Month Sheet
+### Copy Budget Sheet
 
 The Copy tool opens a bottom sheet with:
 
 - Source month control: defaults to the previous month relative to the selected month.
-- Compact previous/next source controls let the user choose an earlier source month.
-- Source month forward navigation stops at the month before the destination month.
+- Direct source-month picker using the same shared month picker pattern as the main monthly filter.
 - Destination month label: selected month.
 - A checklist of source-month budget categories.
 - Category name, icon, previous amount, and status:

@@ -10,6 +10,7 @@ import { migration009 } from './009_add_other_income_category';
 import { migration010 } from './010_add_installment_id';
 import { migration011 } from './011_create_budgets';
 import { migration012 } from './012_add_budget_group';
+import { migration013 } from './013_named_monthly_budgets';
 
 export interface Migration {
   version: number;
@@ -29,4 +30,5 @@ export const MIGRATIONS: Migration[] = [
   migration010,
   migration011,
   migration012,
+  migration013,
 ];
