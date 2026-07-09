@@ -2,6 +2,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Colors } from '@/constants/theme';
 import { currentYearMonth, lastMonths } from '@/modules/budget/repositories/budget.repository';
 import {
   type MonthResultVM,
@@ -63,6 +64,11 @@ export function useCategoryDetail() {
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
   const liveMonth = useMemo(() => results.find((r) => r.yearMonth === month), [results, month]);
+  const liveMonthBudgets = useMemo(
+    () => budgetRows.filter((row) => row.category_id === id && row.effective_from === month),
+    [budgetRows, id, month],
+  );
+  const editableBudgetId = liveMonthBudgets.length === 1 ? liveMonthBudgets[0]?.id : undefined;
 
   const daysLeft = useMemo(() => {
     const [y, m] = month.split('-').map(Number);
@@ -75,17 +81,18 @@ export function useCategoryDetail() {
     state: {
       name: category?.name ?? '',
       icon: category?.icon ?? 'tag',
-      color: category?.color ?? '#888',
+      color: category?.color ?? Colors.dark.text2,
       liveMonth,
+      canEditLiveBudget: editableBudgetId !== undefined,
       history,
       daysLeft,
       month,
     },
     goBack: () => router.back(),
     editBudget: () => {
-      if (!id) return;
+      if (!editableBudgetId) return;
       router.back();
-      openEdit(id);
+      openEdit(editableBudgetId);
     },
   };
 }

@@ -1,5 +1,8 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { CategoryType } from '@/constants/enums';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 // Real `currentYearMonth` is used (reads the system clock); only the stores,
@@ -11,7 +14,7 @@ let capturedFocusCallback: (() => void | (() => void)) | null = null;
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: jest.fn(), back: mockRouterBack }),
   useLocalSearchParams: () => ({ id: 'cat-1' }),
   useFocusEffect: (cb: () => void | (() => void)) => {
     capturedFocusCallback = cb;
@@ -51,31 +54,108 @@ const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interaction
 
 let loadCategoriesMock: jest.Mock;
 let loadBudgetMock: jest.Mock;
+let selectedMonthState: string;
+let copySourceMonthState: string;
+let resetSelectedMonthToCurrentMock: jest.Mock;
+let setIncomeSuggestionMock: jest.Mock;
+let openEditMock: jest.Mock;
+let mockRouterBack: jest.Mock;
+let categoriesState: Category[];
+let budgetRowsState: Budget[];
+let spendByMonthState: Record<string, Record<string, number>>;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
 
+function previousYearMonth(yearMonth: string): string {
+  const [year, month] = yearMonth.split('-').map(Number);
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  return `${previousYear}-${String(previousMonth).padStart(2, '0')}`;
+}
+
 function setupStores() {
+  selectedMonthState = '2026-05';
+  copySourceMonthState = '2026-04';
+  categoriesState = [];
+  budgetRowsState = [];
+  spendByMonthState = {};
   loadCategoriesMock = jest.fn();
   loadBudgetMock = jest.fn();
+  openEditMock = jest.fn();
+  mockRouterBack = jest.fn();
+  resetSelectedMonthToCurrentMock = jest.fn(() => {
+    const now = new Date();
+    selectedMonthState = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    copySourceMonthState = previousYearMonth(selectedMonthState);
+  });
+  setIncomeSuggestionMock = jest.fn();
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
-    categories: [],
+    categories: categoriesState,
     hasLoaded: false,
     loadCategories: loadCategoriesMock,
   }));
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
-    rows: [],
-    spendByMonth: {},
+    rows: budgetRowsState,
+    spendByMonth: spendByMonthState,
     loaded: false,
     expectedIncome: null,
     load: loadBudgetMock,
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
+    selectedMonth: selectedMonthState,
+    copySourceMonth: copySourceMonthState,
     lensTab: 'categories',
+    copySheetVisible: false,
+    copySelectedBudgetIds: [],
+    incomeSuggestion: null,
     openAdd: jest.fn(),
-    openEdit: jest.fn(),
+    openEdit: openEditMock,
     setLensTab: jest.fn(),
+    setSelectedMonth: jest.fn((month: string) => {
+      selectedMonthState = month;
+      copySourceMonthState = previousYearMonth(month);
+    }),
+    setCopySourceMonth: jest.fn((month: string) => {
+      copySourceMonthState = month;
+    }),
+    resetSelectedMonthToCurrent: resetSelectedMonthToCurrentMock,
+    openCopy: jest.fn(),
+    closeCopy: jest.fn(),
+    setCopySelectedBudgetIds: jest.fn(),
+    toggleCopyBudgetId: jest.fn(),
+    clearCopySelection: jest.fn(),
+    setIncomeSuggestion: setIncomeSuggestionMock,
   }));
+}
+
+const NOW = '2026-05-01T00:00:00.000Z';
+
+function category(id: string): Category {
+  return {
+    id,
+    name: 'Food',
+    type: CategoryType.Expense,
+    icon: 'food',
+    color: '#caa445',
+    is_default: 0,
+    sort_order: 0,
+    budget_group: null,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
+function budget(id: string, name: string): Budget {
+  return {
+    id,
+    category_id: 'cat-1',
+    name,
+    limit_amount: 1000,
+    effective_from: '2026-05',
+    created_at: NOW,
+    updated_at: NOW,
+  };
 }
 
 beforeEach(() => {
@@ -100,7 +180,8 @@ describe('useBudget — month rollover', () => {
 
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = renderHook(() => useBudget());
+    setupStores();
+    const { result, rerender } = renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     // A month boundary passes while the screen stays mounted.
@@ -109,13 +190,15 @@ describe('useBudget — month rollover', () => {
       capturedFocusCallback?.();
       await Promise.resolve();
     });
+    rerender(undefined);
 
     expect(result.current.state.month).toBe('2026-06');
   });
 
   it('cancels pending focus reload work on cleanup while keeping month rollover synchronous', () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = renderHook(() => useBudget());
+    setupStores();
+    const { result, rerender } = renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     loadCategoriesMock.mockClear();
@@ -127,6 +210,7 @@ describe('useBudget — month rollover', () => {
     act(() => {
       cleanup = capturedFocusCallback?.();
     });
+    rerender(undefined);
 
     expect(result.current.state.month).toBe('2026-06');
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
@@ -159,5 +243,36 @@ describe('useCategoryDetail — month rollover', () => {
     });
 
     expect(result.current.state.month).toBe('2026-06');
+  });
+
+  it('opens edit with the only live-month named budget id', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [budget('budget-food-main', 'Monthly Food')];
+
+    const { result } = renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.canEditLiveBudget).toBe(true);
+    act(() => result.current.editBudget());
+
+    expect(mockRouterBack).toHaveBeenCalledTimes(1);
+    expect(openEditMock).toHaveBeenCalledWith('budget-food-main');
+  });
+
+  it('does not open aggregate edit when the live month has multiple named budgets', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [
+      budget('budget-food-main', 'Monthly Food'),
+      budget('budget-food-trip', 'Trip Food'),
+    ];
+
+    const { result } = renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.canEditLiveBudget).toBe(false);
+    act(() => result.current.editBudget());
+
+    expect(mockRouterBack).not.toHaveBeenCalled();
+    expect(openEditMock).not.toHaveBeenCalled();
   });
 });

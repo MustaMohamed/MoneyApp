@@ -8,6 +8,7 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
     getSpendByMonth: jest.fn().mockResolvedValue({}),
     setLimit: jest.fn().mockResolvedValue(undefined),
     removeBudget: jest.fn().mockResolvedValue(undefined),
+    copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
   },
   currentYearMonth: jest.fn().mockReturnValue('2026-05'),
   lastMonths: jest.fn().mockReturnValue(['2026-05']),
@@ -90,6 +91,20 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
     expect(budgetRepository.setLimit).toHaveBeenCalledWith('cat-1', 5000);
   });
 
+  it('setLimit delegates the selected month to budgetRepository then reloads that month', async () => {
+    const { budgetRepository, lastMonths } = jest.requireMock(
+      '@/modules/budget/repositories/budget.repository',
+    ) as {
+      budgetRepository: { setLimit: jest.Mock; getSpendByMonth: jest.Mock };
+      lastMonths: jest.Mock;
+    };
+    const store = createBudgetStore(makeRepo());
+    await store.getState().setLimit('cat-1', 5000, '2026-07');
+    expect(budgetRepository.setLimit).toHaveBeenCalledWith('cat-1', 5000, '2026-07');
+    expect(lastMonths).toHaveBeenCalledWith('2026-07', 12);
+    expect(budgetRepository.getSpendByMonth).toHaveBeenCalledWith(['2026-05']);
+  });
+
   it('removeBudget delegates to budgetRepository then reloads', async () => {
     const { budgetRepository } = jest.requireMock(
       '@/modules/budget/repositories/budget.repository',
@@ -99,5 +114,34 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
     const store = createBudgetStore(makeRepo());
     await store.getState().removeBudget('cat-1');
     expect(budgetRepository.removeBudget).toHaveBeenCalledWith('cat-1');
+  });
+
+  it('removeBudget delegates the selected month to budgetRepository then reloads that month', async () => {
+    const { budgetRepository, lastMonths } = jest.requireMock(
+      '@/modules/budget/repositories/budget.repository',
+    ) as {
+      budgetRepository: { removeBudget: jest.Mock };
+      lastMonths: jest.Mock;
+    };
+    const store = createBudgetStore(makeRepo());
+    await store.getState().removeBudget('cat-1', '2026-07');
+    expect(budgetRepository.removeBudget).toHaveBeenCalledWith('cat-1', '2026-07');
+    expect(lastMonths).toHaveBeenCalledWith('2026-07', 12);
+  });
+
+  it('copyLimitsToMonth delegates source, target, and selected categories then reloads target month', async () => {
+    const { budgetRepository, lastMonths } = jest.requireMock(
+      '@/modules/budget/repositories/budget.repository',
+    ) as {
+      budgetRepository: { copyLimitsToMonth: jest.Mock };
+      lastMonths: jest.Mock;
+    };
+    const store = createBudgetStore(makeRepo());
+    await store.getState().copyLimitsToMonth('2026-06', '2026-07', ['cat-1', 'cat-2']);
+    expect(budgetRepository.copyLimitsToMonth).toHaveBeenCalledWith('2026-06', '2026-07', [
+      'cat-1',
+      'cat-2',
+    ]);
+    expect(lastMonths).toHaveBeenCalledWith('2026-07', 12);
   });
 });

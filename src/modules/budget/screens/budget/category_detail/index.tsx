@@ -31,7 +31,7 @@ export default function CategoryBudgetDetailScreen() {
           />
         </View>
         <Text style={styles.title}>{state.name}</Text>
-        {state.liveMonth && (
+        {state.liveMonth && state.canEditLiveBudget && (
           <PressableFeedback
             onPress={editBudget}
             hitSlop={ms(8)}

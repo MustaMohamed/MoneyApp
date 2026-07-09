@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
@@ -18,9 +19,11 @@ interface DashboardStoreShape {
   previousMonthSpend: MonthSpendStats;
   currentTransactionTotals: PeriodTotals;
   previousTransactionTotals: PeriodTotals | null;
+  currentBudgetSummary: BudgetDashboardSummaryVM;
   commitmentPaymentsLoaded: boolean;
   monthSpendLoaded: boolean;
   transactionTotalsLoaded: boolean;
+  budgetSummaryLoaded: boolean;
 }
 
 type DashboardStore = DashboardStoreShape & {
@@ -28,11 +31,19 @@ type DashboardStore = DashboardStoreShape & {
   setCurrentMonthCommitmentPayments: (p: CommitmentPayment[]) => void;
   setMonthSpendStats: (current: MonthSpendStats, previous: MonthSpendStats) => void;
   setTransactionTotals: (current: PeriodTotals, previous: PeriodTotals) => void;
+  setBudgetSummary: (summary: BudgetDashboardSummaryVM) => void;
   reset: () => void;
 };
 
 const EMPTY_SPEND: MonthSpendStats = { totalEgp: 0, usdNative: 0, count: 0 };
 const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+const EMPTY_BUDGET_SUMMARY: BudgetDashboardSummaryVM = {
+  budgeted: 0,
+  spent: 0,
+  left: 0,
+  pct: 0,
+  categoryCount: 0,
+};
 
 const INITIAL_STATE: DashboardStoreShape = {
   statsMap: {},
@@ -41,9 +52,11 @@ const INITIAL_STATE: DashboardStoreShape = {
   previousMonthSpend: EMPTY_SPEND,
   currentTransactionTotals: EMPTY_TOTALS,
   previousTransactionTotals: null,
+  currentBudgetSummary: EMPTY_BUDGET_SUMMARY,
   commitmentPaymentsLoaded: false,
   monthSpendLoaded: false,
   transactionTotalsLoaded: false,
+  budgetSummaryLoaded: false,
 };
 
 export const useDashboardStore = createMoneyAppSelectors(
@@ -63,6 +76,11 @@ export const useDashboardStore = createMoneyAppSelectors(
         currentTransactionTotals: current,
         previousTransactionTotals: previous,
         transactionTotalsLoaded: true,
+      }),
+    setBudgetSummary: (summary) =>
+      set({
+        currentBudgetSummary: summary,
+        budgetSummaryLoaded: true,
       }),
     reset: () => set(INITIAL_STATE),
   })),

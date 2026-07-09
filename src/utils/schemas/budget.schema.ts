@@ -7,6 +7,7 @@ export function parseLimit(text: string): number {
 }
 
 export const budgetFormSchema = z.object({
+  nameText: z.string().trim().min(1, Strings.budgetNameRequired),
   limitText: z
     .string()
     .min(1, Strings.budgetAmountRequired)

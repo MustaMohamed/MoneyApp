@@ -33,16 +33,19 @@ function IconButton({ icon, accessibilityLabel, onPress, testID }: IconButtonPro
 
 export function MonthFilter(props: MonthFilterProps) {
   const monthFilter = useMonthFilter(props);
+  const showStepButtons = props.showStepButtons ?? true;
 
   return (
     <>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
-        <IconButton
-          testID="month-filter-previous"
-          icon="chevron-left"
-          accessibilityLabel={Strings.monthFilterPreviousA11y}
-          onPress={monthFilter.onPreviousMonth}
-        />
+        {showStepButtons && (
+          <IconButton
+            testID="month-filter-previous"
+            icon="chevron-left"
+            accessibilityLabel={Strings.monthFilterPreviousA11y}
+            onPress={monthFilter.onPreviousMonth}
+          />
+        )}
         <PressableFeedback
           testID="month-filter-open"
           onPress={monthFilter.onOpenPicker}
@@ -61,12 +64,14 @@ export function MonthFilter(props: MonthFilterProps) {
             />
           </View>
         </PressableFeedback>
-        <IconButton
-          testID="month-filter-next"
-          icon="chevron-right"
-          accessibilityLabel={Strings.monthFilterNextA11y}
-          onPress={monthFilter.onNextMonth}
-        />
+        {showStepButtons && (
+          <IconButton
+            testID="month-filter-next"
+            icon="chevron-right"
+            accessibilityLabel={Strings.monthFilterNextA11y}
+            onPress={monthFilter.onNextMonth}
+          />
+        )}
       </View>
 
       <Sheet

@@ -105,6 +105,12 @@ jest.mock('@/modules/dashboard/screens/dashboard/components/commitments_card', (
     return <Text>{`commitments-loading:${String(isLoading)}`}</Text>;
   },
 }));
+jest.mock('@/modules/dashboard/screens/dashboard/components/budget_card', () => ({
+  BudgetCard: ({ isLoading }: { isLoading?: boolean }) => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <Text>{`budget-loading:${String(isLoading)}`}</Text>;
+  },
+}));
 jest.mock('@/modules/dashboard/screens/dashboard/components/account_carousel', () => ({
   AccountCarousel: () => null,
 }));
@@ -170,6 +176,11 @@ const baseState: DashboardState = {
     yearMonth: '2026-07',
     loading: true,
   },
+  budget: {
+    summary: { budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 },
+    yearMonth: '2026-07',
+    loading: true,
+  },
 };
 
 const mockedUseDashboard = jest.mocked(useDashboard);
@@ -184,6 +195,7 @@ function mockUseDashboard(state: Partial<DashboardState> = {}) {
     goToAddAccount: jest.fn(),
     goToSettings: jest.fn(),
     goToTransactions: jest.fn(),
+    goToBudget: jest.fn(),
     goToCommitments: jest.fn(),
   });
 }
@@ -236,6 +248,7 @@ describe('DashboardScreen loading state', () => {
     expect(getByText('net-worth-loading:true')).toBeTruthy();
     expect(getByText('month-spend-loading:true')).toBeTruthy();
     expect(getByText('transactions-loading:true')).toBeTruthy();
+    expect(getByText('budget-loading:true')).toBeTruthy();
     expect(getByText('commitments-loading:true')).toBeTruthy();
   });
 });

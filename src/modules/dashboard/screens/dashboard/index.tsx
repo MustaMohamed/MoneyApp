@@ -13,6 +13,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size, Spacing } from '@/constants/theme';
 
 import { AccountCarousel } from './components/account_carousel';
+import { BudgetCard } from './components/budget_card';
 import { CommitmentsCard } from './components/commitments_card';
 import { HeroCard } from './components/hero_card';
 import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
@@ -50,6 +51,7 @@ export default function DashboardScreen() {
     goToAddAccount,
     goToSettings,
     goToTransactions,
+    goToBudget,
     goToCommitments,
   } = useDashboard();
   const { heroStyle, startEntrance, statsEntering, sectionEntering } = useDashboardAnim();
@@ -190,6 +192,13 @@ export default function DashboardScreen() {
                       yearMonth={state.transactions.yearMonth}
                       isLoading={state.transactions.loading || isRefreshing}
                       onPress={goToTransactions}
+                    />
+
+                    <BudgetCard
+                      summary={state.budget.summary}
+                      yearMonth={state.budget.yearMonth}
+                      isLoading={state.budget.loading || isRefreshing}
+                      onPress={goToBudget}
                     />
 
                     <CommitmentsCard
