@@ -20,19 +20,10 @@ function inClause(count: number): string {
   return Array(count).fill('?').join(',');
 }
 
-export async function getSpendingPlanRows(
+async function hydratePlans(
   db: SQLiteDatabase,
-  yearMonth: string,
+  plans: SpendingPlan[],
 ): Promise<SpendingPlanWithCategories[]> {
-  const range = monthRange(yearMonth);
-  const plans = await db.getAllAsync<SpendingPlan>(
-    `SELECT *
-       FROM spending_plans
-      WHERE start_date < ?
-        AND end_date >= ?
-      ORDER BY start_date ASC, name ASC`,
-    [range.endExclusive, range.start],
-  );
   if (plans.length === 0) return [];
 
   const ids = plans.map((plan) => plan.id);
@@ -51,6 +42,48 @@ export async function getSpendingPlanRows(
   }
 
   return plans.map((plan) => ({ ...plan, categories: byPlan.get(plan.id) ?? [] }));
+}
+
+export async function getSpendingPlanRows(
+  db: SQLiteDatabase,
+  yearMonth: string,
+): Promise<SpendingPlanWithCategories[]> {
+  const range = monthRange(yearMonth);
+  const plans = await db.getAllAsync<SpendingPlan>(
+    `SELECT *
+       FROM spending_plans
+      WHERE start_date < ?
+        AND end_date >= ?
+      ORDER BY start_date ASC, name ASC`,
+    [range.endExclusive, range.start],
+  );
+  return hydratePlans(db, plans);
+}
+
+export async function getSpendingPlanRowsForRange(
+  db: SQLiteDatabase,
+  range: { startDate: string; endDate: string },
+): Promise<SpendingPlanWithCategories[]> {
+  const plans = await db.getAllAsync<SpendingPlan>(
+    `SELECT *
+       FROM spending_plans
+      WHERE start_date <= ?
+        AND end_date >= ?
+      ORDER BY start_date ASC, name ASC`,
+    [range.endDate, range.startDate],
+  );
+  return hydratePlans(db, plans);
+}
+
+export async function getSpendingPlanById(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<SpendingPlanWithCategories | null> {
+  const plans = await db.getAllAsync<SpendingPlan>('SELECT * FROM spending_plans WHERE id = ?', [
+    id,
+  ]);
+  const hydrated = await hydratePlans(db, plans);
+  return hydrated[0] ?? null;
 }
 
 export async function setSpendingPlan(

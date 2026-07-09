@@ -7,8 +7,11 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
     copyBudgetsToMonth: jest.fn().mockResolvedValue(undefined),
     getRows: jest.fn().mockResolvedValue([]),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
+    getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
     removeBudget: jest.fn().mockResolvedValue(undefined),
+    removeSpendingPlan: jest.fn().mockResolvedValue(undefined),
     setBudget: jest.fn().mockResolvedValue(undefined),
+    setSpendingPlan: jest.fn().mockResolvedValue(undefined),
   },
   currentYearMonth: jest.fn(() => '2026-05'),
   lastMonths: jest.fn(() => ['2026-05']),
@@ -21,8 +24,11 @@ const { budgetRepository: mockBudgetRepository } = jest.requireMock(
     copyBudgetsToMonth: jest.Mock<Promise<void>, [string, string, string[]]>;
     getRows: jest.Mock<Promise<Budget[]>, []>;
     getSpendByMonth: jest.Mock<Promise<Record<string, Record<string, number>>>, [string[]]>;
+    getSpendingPlansForMonth: jest.Mock<Promise<{ plans: []; spendByPlanId: {} }>, [string]>;
     removeBudget: jest.Mock<Promise<void>, [string, string?]>;
+    removeSpendingPlan: jest.Mock<Promise<void>, [string]>;
     setBudget: jest.Mock<Promise<void>, [unknown]>;
+    setSpendingPlan: jest.Mock<Promise<void>, [unknown]>;
   };
 };
 
@@ -49,7 +55,7 @@ describe('useBudgetStore', () => {
   });
 
   it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null, [], {});
     const s = useBudgetStore.getState();
     expect(s.rows).toEqual([r]);
     expect(s.spendByMonth.a['2026-05']).toBe(2400);
@@ -57,7 +63,7 @@ describe('useBudgetStore', () => {
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null);
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null, [], {});
     useBudgetStore.getState().reset();
     expect(useBudgetStore.getState().loaded).toBe(false);
   });
