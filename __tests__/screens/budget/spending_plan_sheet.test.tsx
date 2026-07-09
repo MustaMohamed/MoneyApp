@@ -23,6 +23,31 @@ jest.mock('@gorhom/bottom-sheet', () => {
     BottomSheetScrollView: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };
 });
+jest.mock('@react-native-community/datetimepicker', () => {
+  const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    __esModule: true,
+    default: ({
+      testID,
+      onChange,
+    }: {
+      testID: string;
+      onChange: (_event: { type: string }, date?: Date) => void;
+    }) => (
+      <Pressable
+        testID={testID}
+        onPress={() =>
+          onChange(
+            { type: 'set' },
+            new Date(testID.endsWith('-end') ? '2026-08-09T12:00:00' : '2026-08-05T12:00:00'),
+          )
+        }
+      >
+        <Text>{testID}</Text>
+      </Pressable>
+    ),
+  };
+});
 jest.mock('@/components/ui/sheet', () => ({
   SHEET_FOOTER_CLEARANCE: 120,
   useBottomSheetAwareHandlers: () => ({ onFocus: jest.fn(), onBlur: jest.fn() }),
@@ -145,6 +170,31 @@ describe('SpendingPlanSheet', () => {
         totalAmount: 8000,
         categories: [{ categoryId: 'cat_food', allocatedAmount: undefined }],
       }),
+    );
+  });
+
+  it('saves selected custom start and end dates', async () => {
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    useBudgetState.getState().openAddPlan();
+    const { getByLabelText, getByTestId } = render(
+      <SpendingPlanSheet budgetableCategories={categories} />,
+    );
+
+    fireEvent.press(getByLabelText(Strings.budgetPlanStartDate));
+    fireEvent.press(getByTestId('spending-plan-date-picker-start'));
+    fireEvent.press(getByLabelText(Strings.budgetPlanEndDate));
+    fireEvent.press(getByTestId('spending-plan-date-picker-end'));
+    fireEvent.changeText(getByTestId('spending-plan-name-input'), 'Alexandria weekend');
+    fireEvent.changeText(getByTestId('spending-plan-total-input'), '8000');
+    fireEvent.press(getByLabelText(Strings.budgetPlanSave));
+
+    await waitFor(() =>
+      expect(mockSetSpendingPlan).toHaveBeenCalledWith(
+        expect.objectContaining({
+          startDate: '2026-08-05',
+          endDate: '2026-08-09',
+        }),
+      ),
     );
   });
 

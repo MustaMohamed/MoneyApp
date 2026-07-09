@@ -1,9 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Input, PressableFeedback, Switch } from 'heroui-native';
 import React, { useEffect, useMemo } from 'react';
 import { Controller } from 'react-hook-form';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from '@/components/ui/button';
@@ -19,7 +20,7 @@ import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
-import { formatShortDate } from '@/utils/format_date';
+import { formatShortDate, toLocalDateString } from '@/utils/format_date';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import {
@@ -57,6 +58,7 @@ export function SpendingPlanSheet({ budgetableCategories, editingPlan }: Spendin
     allocations,
     allocateByCategory,
     pickerExpanded,
+    datePickerTarget,
   } = useSpendingPlanSheetState(
     useShallow((s) => ({
       startDate: s.startDate,
@@ -65,15 +67,20 @@ export function SpendingPlanSheet({ budgetableCategories, editingPlan }: Spendin
       allocations: s.allocations,
       allocateByCategory: s.allocateByCategory,
       pickerExpanded: s.pickerExpanded,
+      datePickerTarget: s.datePickerTarget,
     })),
   );
   const initAddMode = useSpendingPlanSheetState.getState().initAddMode;
   const initEditMode = useSpendingPlanSheetState.getState().initEditMode;
+  const setStartDate = useSpendingPlanSheetState.getState().setStartDate;
+  const setEndDate = useSpendingPlanSheetState.getState().setEndDate;
   const toggleCategoryId = useSpendingPlanSheetState.getState().toggleCategoryId;
   const setAllocation = useSpendingPlanSheetState.getState().setAllocation;
   const setAllocateByCategory = useSpendingPlanSheetState.getState().setAllocateByCategory;
   const openPicker = useSpendingPlanSheetState.getState().openPicker;
   const closePicker = useSpendingPlanSheetState.getState().closePicker;
+  const openDatePicker = useSpendingPlanSheetState.getState().openDatePicker;
+  const closeDatePicker = useSpendingPlanSheetState.getState().closeDatePicker;
   const resetSheetState = useSpendingPlanSheetState.getState().reset;
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
@@ -153,6 +160,19 @@ export function SpendingPlanSheet({ budgetableCategories, editingPlan }: Spendin
   });
 
   const title = planSheetMode === 'edit' ? Strings.budgetPlanEditTitle : Strings.budgetPlanSetTitle;
+  const pickerDate =
+    datePickerTarget === 'end'
+      ? endDate || `${selectedMonth}-01`
+      : startDate || `${selectedMonth}-01`;
+  const pickerValue = new Date(`${pickerDate}T12:00:00`);
+  const onDateChange = (target: 'start' | 'end', event: DateTimePickerEvent, date?: Date) => {
+    if (event.type === 'set' && date) {
+      const next = toLocalDateString(date);
+      if (target === 'start') setStartDate(next);
+      if (target === 'end') setEndDate(next);
+    }
+    closeDatePicker();
+  };
 
   return (
     <>
@@ -233,15 +253,36 @@ export function SpendingPlanSheet({ budgetableCategories, editingPlan }: Spendin
           />
 
           <View style={styles.dateRow}>
-            <View style={styles.dateBox}>
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={Strings.budgetPlanStartDate}
+              onPress={() => openDatePicker('start')}
+              style={styles.dateBox}
+            >
               <Text style={styles.dateLabel}>{Strings.budgetPlanStartDate}</Text>
               <Text style={styles.dateValue}>{startDate ? formatShortDate(startDate) : '-'}</Text>
-            </View>
-            <View style={styles.dateBox}>
+            </PressableFeedback>
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={Strings.budgetPlanEndDate}
+              onPress={() => openDatePicker('end')}
+              style={styles.dateBox}
+            >
               <Text style={styles.dateLabel}>{Strings.budgetPlanEndDate}</Text>
               <Text style={styles.dateValue}>{endDate ? formatShortDate(endDate) : '-'}</Text>
-            </View>
+            </PressableFeedback>
           </View>
+
+          {datePickerTarget ? (
+            <DateTimePicker
+              testID={`spending-plan-date-picker-${datePickerTarget}`}
+              value={pickerValue}
+              mode="date"
+              display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+              themeVariant="dark"
+              onChange={(event, date) => onDateChange(datePickerTarget, event, date)}
+            />
+          ) : null}
 
           <Text style={styles.label}>{Strings.budgetPlanCategories}</Text>
           <PressableFeedback
