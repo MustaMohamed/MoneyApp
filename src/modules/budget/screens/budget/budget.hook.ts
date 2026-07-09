@@ -18,6 +18,10 @@ import {
   computeBuckets,
   type BucketsVM,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import {
+  buildSpendingPlanRows,
+  computeSpendingPlansSummary,
+} from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -54,10 +58,19 @@ export function useBudget() {
     })),
   );
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth, budgetLoaded, expectedIncome } = useBudgetStore(
+  const {
+    budgetRows,
+    spendByMonth,
+    spendingPlans,
+    spendingPlanSpendById,
+    budgetLoaded,
+    expectedIncome,
+  } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
+      spendingPlans: s.spendingPlans,
+      spendingPlanSpendById: s.spendingPlanSpendById,
       budgetLoaded: s.loaded,
       expectedIncome: s.expectedIncome,
     })),
@@ -65,8 +78,12 @@ export function useBudget() {
   const load = useBudgetStore.getState().load;
   const copyBudgetsToMonth = useBudgetStore.getState().copyBudgetsToMonth;
   const removeBudget = useBudgetStore.getState().removeBudget;
+  const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
+  const removeSpendingPlan = useBudgetStore.getState().removeSpendingPlan;
   const openAdd = useBudgetState.getState().openAdd;
   const openEdit = useBudgetState.getState().openEdit;
+  const openAddPlan = useBudgetState.getState().openAddPlan;
+  const openEditPlan = useBudgetState.getState().openEditPlan;
   const {
     selectedMonth,
     copySourceMonth,
@@ -146,6 +163,22 @@ export function useBudget() {
   }, [budgetRows, categories, selectedMonth, spendByMonth]);
 
   const overall = useMemo(() => computeOverall(rows), [rows]);
+
+  const spendingPlanRows = useMemo(
+    () =>
+      buildSpendingPlanRows({
+        plans: spendingPlans ?? [],
+        categories,
+        spendByPlanId: spendingPlanSpendById ?? {},
+        selectedMonth,
+      }),
+    [categories, selectedMonth, spendingPlanSpendById, spendingPlans],
+  );
+
+  const spendingPlansSummary = useMemo(
+    () => computeSpendingPlansSummary(spendingPlanRows),
+    [spendingPlanRows],
+  );
 
   const buckets: BucketsVM = useMemo(
     () => computeBuckets(expectedIncome ?? 0, categories, budgetRows, spendByMonth, selectedMonth),
@@ -232,9 +265,12 @@ export function useBudget() {
     state: {
       rows,
       overall,
+      spendingPlanRows,
+      spendingPlansSummary,
       month: selectedMonth,
       daysLeft,
       hasBudgets: rows.length > 0,
+      hasSpendingPlans: spendingPlanRows.length > 0,
       budgetableCategories,
       buckets,
       suggestion: incomeSuggestion,
@@ -247,6 +283,8 @@ export function useBudget() {
     },
     openAdd,
     openEdit,
+    openAddPlan,
+    openEditPlan,
     setLensTab,
     setSelectedMonth,
     openCopy,
@@ -257,6 +295,8 @@ export function useBudget() {
     setCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
+    setSpendingPlan,
+    removeSpendingPlan,
     goToCategory,
   };
 }

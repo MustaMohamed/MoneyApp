@@ -1,0 +1,127 @@
+import { renderHook } from '@testing-library/react-native';
+
+import { CategoryType } from '@/constants/enums';
+import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
+import type { Category } from '@/modules/categories/entities/category.entity';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+
+jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useFocusEffect: jest.fn(),
+}));
+
+jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
+jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
+jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
+jest.mock('@/modules/budget/database/budget_stats', () => ({
+  getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
+}));
+jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
+
+const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
+const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
+const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
+
+import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
+
+const NOW = '2026-07-01T00:00:00.000Z';
+
+function category(id: string, name: string): Category {
+  return {
+    id,
+    name,
+    type: CategoryType.Expense,
+    icon: 'tag',
+    color: '#caa445',
+    is_default: 0,
+    sort_order: 0,
+    budget_group: null,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}
+
+const spendingPlans: SpendingPlanWithCategories[] = [
+  {
+    id: 'plan_trip',
+    name: 'Alexandria weekend',
+    start_date: '2026-07-18',
+    end_date: '2026-07-21',
+    total_amount: 8000,
+    created_at: NOW,
+    updated_at: NOW,
+    categories: [{ plan_id: 'plan_trip', category_id: 'food', allocated_amount: 3000 }],
+  },
+];
+
+function setupStores() {
+  attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
+    categories: [category('food', 'Food')],
+    hasLoaded: true,
+    loadCategories: jest.fn(),
+  }));
+  attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
+    rows: [],
+    spendByMonth: {},
+    spendingPlans,
+    spendingPlanSpendById: { plan_trip: { food: 1200 } },
+    loaded: true,
+    expectedIncome: null,
+    load: jest.fn().mockResolvedValue(undefined),
+    copyBudgetsToMonth: jest.fn().mockResolvedValue(undefined),
+    removeBudget: jest.fn().mockResolvedValue(undefined),
+    removeSpendingPlan: jest.fn().mockResolvedValue(undefined),
+    setSpendingPlan: jest.fn().mockResolvedValue(undefined),
+  }));
+  attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
+    selectedMonth: '2026-07',
+    copySourceMonth: '2026-06',
+    lensTab: 'plans',
+    copySheetVisible: false,
+    copySelectedBudgetIds: [],
+    incomeSuggestion: null,
+    openAdd: jest.fn(),
+    openEdit: jest.fn(),
+    openAddPlan: jest.fn(),
+    openEditPlan: jest.fn(),
+    setLensTab: jest.fn(),
+    setSelectedMonth: jest.fn(),
+    setCopySourceMonth: jest.fn(),
+    resetSelectedMonthToCurrent: jest.fn(),
+    openCopy: jest.fn(),
+    closeCopy: jest.fn(),
+    setCopySelectedBudgetIds: jest.fn(),
+    toggleCopyBudgetId: jest.fn(),
+    clearCopySelection: jest.fn(),
+    setIncomeSuggestion: jest.fn(),
+  }));
+}
+
+beforeEach(() => {
+  setupStores();
+});
+
+describe('useBudget spending plans', () => {
+  it('derives spending plan rows and summary for the selected month', () => {
+    const { result } = renderHook(() => useBudget());
+
+    expect(result.current.state.spendingPlanRows[0]).toEqual(
+      expect.objectContaining({
+        id: 'plan_trip',
+        name: 'Alexandria weekend',
+        totalAmount: 8000,
+        spent: 1200,
+        left: 6800,
+      }),
+    );
+    expect(result.current.state.spendingPlansSummary).toEqual({
+      planned: 8000,
+      spent: 1200,
+      left: 6800,
+      pct: 0.15,
+    });
+    expect(result.current.state.hasSpendingPlans).toBe(true);
+  });
+});
