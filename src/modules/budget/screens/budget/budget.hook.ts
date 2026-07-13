@@ -24,6 +24,7 @@ import {
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 export interface CategoryBudgetRowVM extends CategoryBudgetVM {
@@ -177,6 +178,8 @@ export function useBudget() {
 
   const overall = useMemo(() => computeOverall(rows), [rows]);
 
+  const today = toLocalDateString(new Date());
+
   const spendingPlanRows = useMemo(
     () =>
       buildSpendingPlanRows({
@@ -184,8 +187,9 @@ export function useBudget() {
         categories,
         spendByPlanId: spendingPlanSpendById,
         selectedMonth,
+        today,
       }),
-    [categories, selectedMonth, spendingPlanSpendById, spendingPlans],
+    [categories, selectedMonth, spendingPlanSpendById, spendingPlans, today],
   );
 
   const spendingPlansSummary = useMemo(

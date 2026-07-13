@@ -100,7 +100,13 @@ function setupStores() {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
+  jest.setSystemTime(new Date(2026, 6, 13, 12));
   setupStores();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe('useBudget spending plans', () => {
@@ -114,6 +120,8 @@ describe('useBudget spending plans', () => {
         totalAmount: 8000,
         spent: 1200,
         left: 6800,
+        timing: expect.objectContaining({ lifecycle: 'upcoming', daysValue: 5 }),
+        status: 'upcoming',
       }),
     );
     expect(result.current.state.spendingPlansSummary).toEqual({
@@ -121,6 +129,14 @@ describe('useBudget spending plans', () => {
       spent: 1200,
       left: 6800,
       pct: 0.15,
+      itemizedAmount: 3000,
+      itemizedPct: 0.375,
+      activeCount: 0,
+      upcomingCount: 1,
+      onTrackCount: 0,
+      watchCount: 0,
+      overCount: 0,
+      needsAttentionCount: 0,
     });
     expect(result.current.state.hasSpendingPlans).toBe(true);
   });

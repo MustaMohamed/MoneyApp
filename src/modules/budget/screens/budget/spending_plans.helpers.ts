@@ -4,6 +4,34 @@ import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
+import { BUDGET_WARNING_THRESHOLD } from './budget.helpers';
+
+const DAY_MS = 86_400_000;
+
+export type SpendingPlanLifecycle = 'upcoming' | 'active' | 'completed';
+export type SpendingPlanStatus = 'upcoming' | 'onTrack' | 'watch' | 'over';
+
+export interface SpendingPlanTimingVM {
+  lifecycle: SpendingPlanLifecycle;
+  totalDays: number;
+  elapsedDays: number;
+  elapsedPct: number;
+  daysValue: number;
+}
+
+export interface SpendingPlanDetailCategoryVM {
+  categoryId: string;
+  categoryName: string;
+  icon: string;
+  color: string;
+  spent: number;
+  allocatedAmount?: number;
+  left?: number;
+  pct?: number;
+  isOver: boolean;
+  isWarning: boolean;
+}
+
 export interface SpendingPlanAllocationRowVM {
   categoryId: string;
   categoryName: string;
@@ -21,6 +49,7 @@ export interface SpendingPlanCategoryChipVM {
   name: string;
   icon: string;
   color: string;
+  spent: number;
 }
 
 export type SpendingPlanCardChipVM =
@@ -44,6 +73,11 @@ export interface SpendingPlanRowVM {
   cardChips: SpendingPlanCardChipVM[];
   allocatedTotal: number;
   buffer: number;
+  timing: SpendingPlanTimingVM;
+  status: SpendingPlanStatus;
+  paceDelta: number;
+  detailCategoryRows: SpendingPlanDetailCategoryVM[];
+  highestPressureCategory?: SpendingPlanDetailCategoryVM;
 }
 
 export interface SpendingPlansSummaryVM {
@@ -51,6 +85,14 @@ export interface SpendingPlansSummaryVM {
   spent: number;
   left: number;
   pct: number;
+  itemizedAmount: number;
+  itemizedPct: number;
+  activeCount: number;
+  upcomingCount: number;
+  onTrackCount: number;
+  watchCount: number;
+  overCount: number;
+  needsAttentionCount: number;
 }
 
 export interface AllocationHelperVM {
@@ -75,6 +117,58 @@ function monthRange(yearMonth: string): { start: string; endExclusive: string } 
     start: `${yearMonth}-01`,
     endExclusive: `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`,
   };
+}
+
+function isoDayNumber(value: string): number {
+  const [year, month, day] = value.split('-').map(Number);
+  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
+}
+
+export function computePlanTiming(
+  startDate: string,
+  endDate: string,
+  today: string,
+): SpendingPlanTimingVM {
+  const start = isoDayNumber(startDate);
+  const end = isoDayNumber(endDate);
+  const current = isoDayNumber(today);
+  const totalDays = end - start + 1;
+
+  if (current < start) {
+    return {
+      lifecycle: 'upcoming',
+      totalDays,
+      elapsedDays: 0,
+      elapsedPct: 0,
+      daysValue: start - current,
+    };
+  }
+
+  const elapsedDays = Math.min(totalDays, current - start + 1);
+  return {
+    lifecycle: current > end ? 'completed' : 'active',
+    totalDays,
+    elapsedDays,
+    elapsedPct: elapsedDays / totalDays,
+    daysValue: current > end ? current - end : end - current,
+  };
+}
+
+function derivePlanStatus({
+  lifecycle,
+  isOver,
+  paceDelta,
+  hasCategoryPressure,
+}: {
+  lifecycle: SpendingPlanLifecycle;
+  isOver: boolean;
+  paceDelta: number;
+  hasCategoryPressure: boolean;
+}): SpendingPlanStatus {
+  if (lifecycle === 'upcoming') return 'upcoming';
+  if (isOver) return 'over';
+  if (lifecycle === 'active' && (paceDelta >= 0.1 || hasCategoryPressure)) return 'watch';
+  return 'onTrack';
 }
 
 export function planIntersectsMonth(
@@ -138,11 +232,13 @@ export function buildSpendingPlanRows({
   categories,
   spendByPlanId,
   selectedMonth,
+  today,
 }: {
   plans: SpendingPlanWithCategories[];
   categories: Category[];
   spendByPlanId: Record<string, Record<string, number>>;
   selectedMonth: string;
+  today: string;
 }): SpendingPlanRowVM[] {
   const categoryById = new Map(categories.map((category) => [category.id, category]));
   return plans
@@ -160,6 +256,7 @@ export function buildSpendingPlanRows({
           name: category.name,
           icon: category.icon,
           color: category.color,
+          spent: spend[category.id] ?? 0,
         }));
       const spent = plan.categories.reduce(
         (total, row) => total + (spend[row.category_id] ?? 0),
@@ -187,6 +284,52 @@ export function buildSpendingPlanRows({
         (total, row) => total + (row.allocated_amount ?? 0),
         0,
       );
+      const detailCategoryRows: SpendingPlanDetailCategoryVM[] = plan.categories.map((row) => {
+        const category = categoryById.get(row.category_id);
+        const categorySpent = spend[row.category_id] ?? 0;
+        const shared = {
+          categoryId: row.category_id,
+          categoryName: category?.name ?? row.category_id,
+          icon: category?.icon ?? 'tag',
+          color: category?.color ?? Colors.dark.text1,
+          spent: categorySpent,
+        };
+
+        if (row.allocated_amount === null) {
+          return { ...shared, isOver: false, isWarning: false };
+        }
+
+        const pct = row.allocated_amount > 0 ? categorySpent / row.allocated_amount : 0;
+        const isOver = categorySpent > row.allocated_amount;
+        return {
+          ...shared,
+          allocatedAmount: row.allocated_amount,
+          left: row.allocated_amount - categorySpent,
+          pct,
+          isOver,
+          isWarning: !isOver && pct >= BUDGET_WARNING_THRESHOLD,
+        };
+      });
+      const allocatedDetailRows = detailCategoryRows.filter(
+        (row): row is SpendingPlanDetailCategoryVM & { allocatedAmount: number; pct: number } =>
+          row.allocatedAmount !== undefined && row.pct !== undefined,
+      );
+      const highestPressureCategory = allocatedDetailRows.reduce<
+        (SpendingPlanDetailCategoryVM & { allocatedAmount: number; pct: number }) | undefined
+      >(
+        (highest, row) => (highest === undefined || row.pct > highest.pct ? row : highest),
+        undefined,
+      );
+      const pct = plan.total_amount > 0 ? spent / plan.total_amount : 0;
+      const isOver = spent > plan.total_amount;
+      const timing = computePlanTiming(plan.start_date, plan.end_date, today);
+      const paceDelta = pct - timing.elapsedPct;
+      const status = derivePlanStatus({
+        lifecycle: timing.lifecycle,
+        isOver,
+        paceDelta,
+        hasCategoryPressure: allocatedDetailRows.some((row) => row.pct >= BUDGET_WARNING_THRESHOLD),
+      });
       const cardChips = buildSpendingPlanCardChips({ allocationRows, categoryChips });
       return {
         id: plan.id,
@@ -196,14 +339,19 @@ export function buildSpendingPlanRows({
         totalAmount: plan.total_amount,
         spent,
         left: plan.total_amount - spent,
-        pct: plan.total_amount > 0 ? spent / plan.total_amount : 0,
-        isOver: spent > plan.total_amount,
+        pct,
+        isOver,
         categoryCount: plan.categories.length,
         categoryChips,
         allocationRows,
         cardChips,
         allocatedTotal,
         buffer: plan.total_amount - allocatedTotal,
+        timing,
+        status,
+        paceDelta,
+        detailCategoryRows,
+        highestPressureCategory,
       };
     });
 }
@@ -211,7 +359,26 @@ export function buildSpendingPlanRows({
 export function computeSpendingPlansSummary(rows: SpendingPlanRowVM[]): SpendingPlansSummaryVM {
   const planned = rows.reduce((total, row) => total + row.totalAmount, 0);
   const spent = rows.reduce((total, row) => total + row.spent, 0);
-  return { planned, spent, left: planned - spent, pct: planned > 0 ? spent / planned : 0 };
+  const itemizedAmount = rows.reduce((total, row) => total + row.allocatedTotal, 0);
+  const activeCount = rows.filter((row) => row.timing.lifecycle === 'active').length;
+  const upcomingCount = rows.filter((row) => row.timing.lifecycle === 'upcoming').length;
+  const onTrackCount = rows.filter((row) => row.status === 'onTrack').length;
+  const watchCount = rows.filter((row) => row.status === 'watch').length;
+  const overCount = rows.filter((row) => row.status === 'over').length;
+  return {
+    planned,
+    spent,
+    left: planned - spent,
+    pct: planned > 0 ? spent / planned : 0,
+    itemizedAmount,
+    itemizedPct: planned > 0 ? itemizedAmount / planned : 0,
+    activeCount,
+    upcomingCount,
+    onTrackCount,
+    watchCount,
+    overCount,
+    needsAttentionCount: watchCount + overCount,
+  };
 }
 
 export function validatePlanDraft({
