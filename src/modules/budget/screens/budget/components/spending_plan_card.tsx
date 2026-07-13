@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
 import { SpendingPlanCategoryChip } from '@/modules/budget/screens/budget/components/spending_plan_category_chip';
@@ -34,12 +34,9 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
       <Card.Header pointerEvents="none" style={styles.header}>
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
-            <View style={styles.detailsCopy}>
-              <Card.Title style={styles.title} numberOfLines={1}>
-                {row.name}
-              </Card.Title>
-              <Card.Description style={styles.meta}>{row.card.dateLabel}</Card.Description>
-            </View>
+            <Card.Title style={styles.title} numberOfLines={1}>
+              {row.name}
+            </Card.Title>
             <Chip
               size="sm"
               variant="soft"
@@ -52,6 +49,9 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
               <Chip.Label style={styles.statusLabel}>{row.card.statusLabel}</Chip.Label>
             </Chip>
           </View>
+          <Card.Description style={styles.meta} numberOfLines={1}>
+            {row.card.dateLabel}
+          </Card.Description>
         </View>
         <View
           accessible
@@ -77,7 +77,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
             pct={row.pct}
             status={row.card.progressStatus}
             color={row.card.progressColor}
-            height={Spacing.xxs}
+            height={Size.spendingPlanProgressTrack}
           />
           {row.card.elapsedMarkerPercentage !== undefined &&
           row.card.elapsedMarkerColor !== undefined ? (
@@ -127,13 +127,9 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
       </Card.Body>
 
       <Card.Footer pointerEvents="box-none" style={styles.footer}>
-        {row.card.allocationFooterLabel === undefined ? (
-          <View pointerEvents="none" style={styles.footerSpacer} />
-        ) : (
-          <Text pointerEvents="none" style={styles.allocationFooter} numberOfLines={1}>
-            {row.card.allocationFooterLabel}
-          </Text>
-        )}
+        <Text pointerEvents="none" style={styles.allocationFooter} numberOfLines={1}>
+          {row.card.allocationFooterLabel}
+        </Text>
         <View style={styles.actions}>
           <PressableFeedback
             accessibilityRole="button"
@@ -168,13 +164,13 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
 const styles = StyleSheet.create({
   card: {
     marginHorizontal: Spacing.md,
-    marginTop: Spacing.sm,
-    borderRadius: Radius.lg,
+    marginTop: Spacing.xs,
+    borderRadius: Radius.sm,
     borderWidth: Size.hairline,
     borderColor: Colors.dark.border,
     backgroundColor: Colors.dark.surface,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xs,
     overflow: 'hidden',
   },
   detailsSurface: {
@@ -197,45 +193,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  detailsCopy: {
-    minHeight: TouchSize.min,
-    flex: 1,
-    flexShrink: 1,
-    justifyContent: 'center',
-  },
   title: {
+    maxWidth: '70%',
     flexShrink: 1,
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.body,
+    marginTop: -Spacing.xxxs,
     color: Colors.dark.text1,
   },
   statusChip: {
-    minHeight: Size.checkCircle,
+    minHeight: Size.spendingPlanStatusHeight,
     paddingHorizontal: Spacing.xs,
     paddingVertical: 0,
   },
   statusLabel: {
     fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
+    fontSize: Type.chipMeta,
+    textTransform: 'capitalize',
   },
   meta: {
-    marginTop: Spacing.xxxs,
+    marginTop: -Spacing.xxs,
     fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
+    fontSize: Type.chip,
     color: Colors.dark.text2,
   },
   amountWrap: { alignItems: 'flex-end' },
   amount: {
     fontFamily: FontFamily.soraBold,
-    fontSize: Type.bodyStrong,
+    fontSize: Type.body,
   },
   amountSub: {
     fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
+    fontSize: Type.chipMeta,
     color: Colors.dark.text2,
   },
   body: {
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxxs,
   },
   moneyLine: {
     flexDirection: 'row',
@@ -246,18 +239,18 @@ const styles = StyleSheet.create({
   spent: {
     flexShrink: 1,
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
+    fontSize: Type.chip,
     color: Colors.dark.text1,
   },
   percentage: {
     fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
+    fontSize: Type.chip,
     color: Colors.dark.text2,
   },
   progressWrap: {
     position: 'relative',
     justifyContent: 'center',
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxs,
   },
   elapsedMarker: {
     position: 'absolute',
@@ -268,16 +261,16 @@ const styles = StyleSheet.create({
     transform: [{ translateX: -Spacing.xxxs }],
   },
   pace: {
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxs,
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
+    fontSize: Type.chip,
     color: Colors.dark.text2,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: Spacing.xxs,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxs,
   },
   moreChip: {
     minHeight: Spacing.xl,
@@ -294,19 +287,18 @@ const styles = StyleSheet.create({
   allocationFooter: {
     flex: 1,
     fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
+    fontSize: Type.chipMeta,
     color: Colors.dark.text2,
   },
-  footerSpacer: { flex: 1 },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
-    marginTop: Spacing.xs,
+    marginTop: Spacing.xxxs,
     borderTopWidth: Size.hairline,
     borderTopColor: Colors.dark.border,
-    paddingTop: Spacing.xs,
+    paddingTop: Spacing.xxxs,
   },
   actions: {
     flexDirection: 'row',

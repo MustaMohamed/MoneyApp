@@ -90,11 +90,12 @@ export const Type = {
 
 /** Tracking values for compact labels and eyebrow copy. */
 export const LetterSpacing = {
-  eyebrow: ms(0.7),
+  eyebrow: ms(0.3),
 } as const;
 
 /** Vertical / horizontal spacing scale. */
 export const Spacing = {
+  xxxxs: ms(1),
   xxxs: ms(2),
   xxs: ms(4),
   xs: ms(8),
@@ -132,6 +133,12 @@ export const Size = {
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
   compactChipHeight: ms(28),
+  spendingPlanChipHeight: ms(25),
+  spendingPlanProgressTrack: ms(4),
+  spendingPlanStatusHeight: ms(18),
+  spendingPlanDetailRing: ms(28),
+  spendingPlanDetailRowHeight: ms(46),
+  spendingPlanFlexibleRowHeight: ms(39),
   budgetToolHeight: ms(38),
   plansEmptyMinHeight: ms(300),
   plansEmptyIcon: ms(72),

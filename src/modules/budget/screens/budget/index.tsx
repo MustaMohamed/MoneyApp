@@ -19,7 +19,6 @@ import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/ca
 import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { SpendingPlanDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet';
-import { SpendingPlanDetailSheet } from '@/modules/budget/screens/budget/components/spending_plan_detail_sheet';
 import { SpendingPlanSheet } from '@/modules/budget/screens/budget/components/spending_plan_sheet';
 import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
 import { SummaryCard } from '@/modules/budget/screens/budget/components/summary_card';
@@ -53,8 +52,6 @@ export default function BudgetScreen() {
     removeBudgetForMonth,
     removeSpendingPlanForMonth,
     openPlanDetails,
-    closePlanDetails,
-    openPlanEditFromDetails,
     refresh,
     goToCategory,
   } = useBudget();
@@ -208,15 +205,6 @@ export default function BudgetScreen() {
         budgetableCategories={state.budgetableCategories}
         editingPlan={state.editingPlan}
       />
-      <SpendingPlanDetailSheet
-        isOpen={state.planDetailsVisible}
-        plan={state.detailPlan}
-        onOpenChange={(open) => {
-          if (!open) closePlanDetails();
-        }}
-        onEdit={openPlanEditFromDetails}
-      />
-
       <BudgetDeleteConfirmSheet
         isOpen={pendingDelete !== null}
         categoryName={pendingDelete?.name ?? ''}

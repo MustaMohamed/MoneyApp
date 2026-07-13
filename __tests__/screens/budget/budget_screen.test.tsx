@@ -23,8 +23,6 @@ jest.mock('@/modules/budget/screens/budget/budget.state', () => ({
     useState: {
       targetBudgetId: jest.fn(() => undefined),
       targetPlanId: jest.fn(() => undefined),
-      targetPlanDetailsId: jest.fn(() => undefined),
-      planDetailsVisible: jest.fn(() => false),
     },
   },
 }));
@@ -301,18 +299,6 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
 jest.mock('@/modules/budget/screens/budget/components/budget_delete_confirm_sheet', () => ({
   BudgetDeleteConfirmSheet: () => null,
 }));
-jest.mock('@/modules/budget/screens/budget/components/spending_plan_detail_sheet', () => ({
-  SpendingPlanDetailSheet: ({
-    plan,
-    isOpen,
-  }: {
-    plan?: { id: string; name: string };
-    isOpen: boolean;
-  }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return isOpen && plan ? <Text>{`plan-detail:${plan.id}:${plan.name}`}</Text> : null;
-  },
-}));
 jest.mock('@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet', () => ({
   SpendingPlanDeleteConfirmSheet: ({
     isOpen,
@@ -355,7 +341,6 @@ const baseState: BudgetScreenState = {
   spendingPlanRows: [],
   editingRow: undefined,
   editingPlan: undefined,
-  detailPlan: undefined,
   spendingPlansSummary: {
     planned: 0,
     spent: 0,
@@ -396,7 +381,6 @@ const baseState: BudgetScreenState = {
   copySelectedBudgetIds: [],
   hasLoaded: false,
   refreshing: false,
-  planDetailsVisible: false,
 };
 
 const mockedUseBudget = jest.mocked(useBudget);
@@ -410,8 +394,6 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     openEditPlan: jest.fn(),
     openPlanTool: jest.fn(),
     openPlanDetails: jest.fn(),
-    closePlanDetails: jest.fn(),
-    openPlanEditFromDetails: jest.fn(),
     setLensTab: jest.fn(),
     setSelectedMonth: jest.fn(),
     openCopy: jest.fn(),
@@ -629,8 +611,6 @@ describe('BudgetScreen', () => {
       openEditPlan: jest.fn(),
       openPlanTool: jest.fn(),
       openPlanDetails: jest.fn(),
-      closePlanDetails: jest.fn(),
-      openPlanEditFromDetails: jest.fn(),
       setSpendingPlan: jest.fn(),
       removeSpendingPlan: jest.fn(),
       refresh: jest.fn(),
@@ -709,8 +689,6 @@ describe('BudgetScreen', () => {
       openEditPlan: jest.fn(),
       openPlanTool,
       openPlanDetails: jest.fn(),
-      closePlanDetails: jest.fn(),
-      openPlanEditFromDetails: jest.fn(),
       setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),
@@ -750,8 +728,6 @@ describe('BudgetScreen', () => {
       openEditPlan: jest.fn(),
       openPlanTool: jest.fn(),
       openPlanDetails,
-      closePlanDetails: jest.fn(),
-      openPlanEditFromDetails: jest.fn(),
       setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),
@@ -791,8 +767,6 @@ describe('BudgetScreen', () => {
       openEditPlan: jest.fn(),
       openPlanTool: jest.fn(),
       openPlanDetails: jest.fn(),
-      closePlanDetails: jest.fn(),
-      openPlanEditFromDetails: jest.fn(),
       setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),
@@ -855,8 +829,6 @@ describe('BudgetScreen', () => {
       openEditPlan: jest.fn(),
       openPlanTool: jest.fn(),
       openPlanDetails: jest.fn(),
-      closePlanDetails: jest.fn(),
-      openPlanEditFromDetails: jest.fn(),
       setLensTab: jest.fn(),
       setSelectedMonth: jest.fn(),
       openCopy: jest.fn(),

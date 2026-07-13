@@ -6,10 +6,12 @@ import type { SpendingPlanWithCategories } from '@/modules/budget/database/spend
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
+const mockRouterPush = jest.fn();
+
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: mockRouterPush, back: jest.fn() }),
   useFocusEffect: jest.fn(),
 }));
 
@@ -150,7 +152,7 @@ describe('useBudget spending plans', () => {
       balanceAmount: 6800,
       balanceStatus: 'left',
       balanceColor: Colors.dark.positive,
-      barColor: Colors.dark.budgetUnder,
+      barColor: Colors.dark.gold,
       barStatus: 'under',
       activeCount: 0,
       upcomingCount: 1,
@@ -186,5 +188,16 @@ describe('useBudget spending plans', () => {
       ],
     });
     expect(result.current.state.hasSpendingPlans).toBe(true);
+  });
+
+  it('routes plan cards to the full-screen plan details screen', () => {
+    const { result } = renderHook(() => useBudget());
+
+    result.current.openPlanDetails('plan_trip');
+
+    expect(mockRouterPush).toHaveBeenCalledWith({
+      pathname: '/(app)/(tabs)/budget/plans/[id]',
+      params: { id: 'plan_trip', month: '2026-07' },
+    });
   });
 });

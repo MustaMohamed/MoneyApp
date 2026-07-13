@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card } from 'heroui-native';
+import { Chip, Surface } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -14,11 +14,10 @@ interface SpendingPlanDetailSummaryProps {
 
 export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryProps) {
   return (
-    <Card className="p-0 shadow-none" style={styles.card}>
-      <Card.Body style={styles.body}>
+    <Surface variant="transparent" style={styles.surface}>
+      <View style={styles.body}>
         <View style={styles.heroRow}>
           <View style={styles.heroCopy}>
-            <Text style={styles.date}>{detail.dateLabel}</Text>
             <View
               accessible
               accessibilityRole="text"
@@ -26,14 +25,27 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             >
               <Text style={[styles.balance, { color: detail.balanceColor }]}>
                 {detail.balanceAmountLabel}
+                <Text style={styles.balanceMeta}> {detail.balanceMetaLabel}</Text>
               </Text>
-              <Text style={styles.balanceMeta}>{detail.balanceMetaLabel}</Text>
             </View>
+            <Text style={styles.date}>{detail.dateLabel}</Text>
           </View>
-          <View style={styles.usage}>
-            <Text style={styles.spent}>{detail.spentLabel}</Text>
-            <Text style={styles.percentage}>{detail.percentageLabel}</Text>
-          </View>
+          <Chip
+            size="sm"
+            variant="soft"
+            color={detail.statusTone}
+            animation="disable-all"
+            accessibilityRole="text"
+            accessibilityLabel={detail.statusLabel}
+            style={styles.statusChip}
+          >
+            <Chip.Label style={styles.statusLabel}>{detail.statusLabel}</Chip.Label>
+          </Chip>
+        </View>
+
+        <View style={styles.moneyRow}>
+          <Text style={styles.spent}>{detail.spentLabel}</Text>
+          <Text style={styles.percentage}>{detail.percentageLabel}</Text>
         </View>
 
         <View
@@ -47,7 +59,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             pct={detail.pct}
             status={detail.progressStatus}
             color={detail.progressColor}
-            height={Size.progressTrack}
+            height={Size.spendingPlanProgressTrack}
           />
           {detail.elapsedMarkerPercentage !== undefined &&
           detail.elapsedMarkerColor !== undefined ? (
@@ -71,8 +83,8 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             <React.Fragment key={metric.label}>
               {index > 0 ? <View style={styles.metricDivider} /> : null}
               <View style={styles.metric}>
-                <Text style={styles.metricValue}>{metric.value}</Text>
                 <Text style={styles.metricLabel}>{metric.label}</Text>
+                <Text style={styles.metricValue}>{metric.value}</Text>
               </View>
             </React.Fragment>
           ))}
@@ -95,18 +107,17 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             ))}
           </View>
         ) : null}
-      </Card.Body>
-    </Card>
+      </View>
+    </Surface>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.lg,
-    borderWidth: Size.hairline,
-    borderColor: Colors.dark.border,
+  surface: {
+    borderBottomWidth: Size.hairline,
+    borderBottomColor: Colors.dark.border,
   },
-  body: { padding: Spacing.md },
+  body: { paddingHorizontal: Spacing.md, paddingVertical: Spacing.sm },
   heroRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -115,9 +126,9 @@ const styles = StyleSheet.create({
   },
   heroCopy: { flex: 1 },
   date: {
-    marginBottom: Spacing.xxs,
+    marginTop: Spacing.xxxs,
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
+    fontSize: Type.chip,
     color: Colors.dark.text2,
   },
   balance: {
@@ -126,25 +137,36 @@ const styles = StyleSheet.create({
   },
   balanceMeta: {
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
+    fontSize: Type.chip,
     color: Colors.dark.text2,
   },
-  usage: { alignItems: 'flex-end', paddingTop: Spacing.xxs },
+  statusChip: {
+    minHeight: Size.spendingPlanStatusHeight,
+    paddingHorizontal: Spacing.xxs,
+    paddingVertical: 0,
+  },
+  statusLabel: { fontFamily: FontFamily.interSemi, fontSize: Type.chipMeta },
+  moneyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+    marginTop: Spacing.xs,
+  },
   spent: {
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
+    fontSize: Type.micro,
     color: Colors.dark.text1,
   },
   percentage: {
-    marginTop: Spacing.xxs,
     fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
+    fontSize: Type.micro,
     color: Colors.dark.text2,
   },
   progressWrap: {
     position: 'relative',
     justifyContent: 'center',
-    marginTop: Spacing.sm,
+    marginTop: Spacing.xxs,
   },
   elapsedMarker: {
     position: 'absolute',
@@ -157,36 +179,49 @@ const styles = StyleSheet.create({
   metrics: {
     flexDirection: 'row',
     alignItems: 'stretch',
-    marginTop: Spacing.md,
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.xs,
+    borderTopWidth: Size.hairline,
+    borderTopColor: Colors.dark.border,
   },
   metric: { flex: 1, alignItems: 'center', paddingHorizontal: Spacing.xxxs },
   metricDivider: { width: Size.hairline, backgroundColor: Colors.dark.border },
   metricValue: {
+    marginTop: Spacing.xxxs,
     fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
+    fontSize: Type.micro,
     color: Colors.dark.text1,
     textAlign: 'center',
   },
   metricLabel: {
-    marginTop: Spacing.xxxs,
     fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
+    fontSize: Type.chipMeta,
     color: Colors.dark.text2,
     textAlign: 'center',
   },
   insights: {
     flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingTop: Spacing.sm,
+    gap: Spacing.xxs,
+    marginTop: Spacing.xs,
+    paddingTop: Spacing.xs,
     borderTopWidth: Size.hairline,
     borderTopColor: Colors.dark.border,
   },
-  insight: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
+  insight: {
+    minHeight: Spacing.xxl,
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xxs,
+    borderRadius: Radius.sm,
+    backgroundColor: Colors.dark.surfaceEl,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: Spacing.xxs,
+  },
   insightLabel: {
     flex: 1,
     fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
+    fontSize: Type.chip,
     color: Colors.dark.text2,
   },
 });

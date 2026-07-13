@@ -1,4 +1,4 @@
-import { fireEvent, render } from '@testing-library/react-native';
+import { fireEvent, render, within } from '@testing-library/react-native';
 import type { ElementType, ReactNode } from 'react';
 import { Text } from 'react-native';
 
@@ -117,6 +117,11 @@ describe('SpendingPlansLens', () => {
     );
 
     expect(getByText('Alexandria weekend')).toBeTruthy();
+    expect(getByText('Lifecycle')).toBeTruthy();
+    expect(getByText('Upcoming')).toBeTruthy();
+    expect(getByText('Itemized')).toBeTruthy();
+    expect(queryByText('Temporary budgets')).toBeNull();
+    expect(queryByText('0 needs attention')).toBeNull();
     expect(queryByText('Food')).toBeNull();
   });
 
@@ -205,7 +210,7 @@ describe('SpendingPlansLens', () => {
   });
 
   it('renders compact allocation progress chips on plan cards', () => {
-    const { getByText } = render(
+    const { getByLabelText, getByTestId } = render(
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
@@ -215,8 +220,13 @@ describe('SpendingPlansLens', () => {
       />,
     );
 
-    expect(getByText('1,200/3,000')).toBeTruthy();
-    expect(getByText('40%')).toBeTruthy();
+    const allocationCopy = getByTestId('spending-plan-allocation-chip-copy:cat_food');
+    expect(allocationCopy).toHaveStyle({ flexDirection: 'column' });
+    expect(within(allocationCopy).getByText('1,200/3,000')).toBeTruthy();
+    expect(within(allocationCopy).getByText('40%')).toBeTruthy();
+
+    const unassignedChip = getByLabelText('Travel, 0 spent');
+    expect(within(unassignedChip).queryByText('0')).toBeNull();
   });
 
   it('renders empty state and create action', () => {

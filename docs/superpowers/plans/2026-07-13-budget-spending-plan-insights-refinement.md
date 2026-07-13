@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Redesign the Phase 2 Plans overview, plan cards, and plan detail sheet into the approved compact, data-rich experience with correct plan health, pace, allocation, and lifecycle insights.
+**Goal:** Redesign the Phase 2 Plans overview, plan cards, and full-screen plan detail experience into the approved compact, data-rich experience with correct plan health, pace, allocation, and lifecycle insights.
 
 **Architecture:** Keep persistence and spending aggregation unchanged. Extend `spending_plans.helpers.ts` into the single pure derivation boundary for dates, health, pace, summary counts, compact card chips, and detail category rows; pass those view models into focused presentational components. Split the summary and detail subregions into small components so screen templates remain logic-free and skeletons can mirror stable geometry.
 
@@ -21,7 +21,9 @@
 - Create `src/modules/budget/screens/budget/components/spending_plan_category_chip.tsx`: render unallocated categories without fabricating a limit or percentage.
 - Create `src/modules/budget/screens/budget/components/spending_plan_detail_summary.tsx`: render the compact detail hero, progress marker, and four metrics.
 - Create `src/modules/budget/screens/budget/components/spending_plan_detail_category_row.tsx`: render named category rows with allocated and unallocated variants.
-- Modify `src/modules/budget/screens/budget/components/spending_plan_detail_sheet.tsx`: compose summary, insights, category rows, buffer, and edit action.
+- Create `src/modules/budget/screens/budget/spending_plan_detail/`: own routed detail loading, navigation, and full-screen composition.
+- Create `src/app/(app)/(tabs)/budget/plans/[id]/index.tsx`: one-line route re-export for plan details.
+- Remove `src/modules/budget/screens/budget/components/spending_plan_detail_sheet.tsx`: retire the competing sheet-based detail flow.
 - Modify `src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx`: match the new summary and card geometry.
 - Modify `src/constants/strings.ts`: centralize all new lifecycle, status, pace, summary, and insight copy.
 - Modify `__tests__/spending_plans.helpers.test.ts`: cover financial/date derivation and view-model output.

@@ -85,8 +85,6 @@ export function useBudget() {
   const openEdit = useBudgetState.getState().openEdit;
   const openAddPlan = useBudgetState.getState().openAddPlan;
   const openEditPlan = useBudgetState.getState().openEditPlan;
-  const openPlanDetails = useBudgetState.getState().openPlanDetails;
-  const closePlanDetails = useBudgetState.getState().closePlanDetails;
   const {
     selectedMonth,
     copySourceMonth,
@@ -97,8 +95,6 @@ export function useBudget() {
     refreshing,
     targetBudgetId,
     targetPlanId,
-    targetPlanDetailsId,
-    planDetailsVisible,
   } = useBudgetState(
     useShallow((s) => ({
       selectedMonth: s.selectedMonth,
@@ -110,8 +106,6 @@ export function useBudget() {
       refreshing: s.refreshing,
       targetBudgetId: s.targetBudgetId,
       targetPlanId: s.targetPlanId,
-      targetPlanDetailsId: s.targetPlanDetailsId,
-      planDetailsVisible: s.planDetailsVisible,
     })),
   );
   const setLensTab = useBudgetState.getState().setLensTab;
@@ -217,11 +211,6 @@ export function useBudget() {
   const editingPlan = useMemo(
     () => spendingPlanRows.find((row) => row.id === targetPlanId),
     [spendingPlanRows, targetPlanId],
-  );
-
-  const detailPlan = useMemo(
-    () => spendingPlanRows.find((row) => row.id === targetPlanDetailsId),
-    [spendingPlanRows, targetPlanDetailsId],
   );
 
   const buckets: BucketsVM = useMemo(
@@ -333,12 +322,14 @@ export function useBudget() {
     setLensTab('plans');
   }, [lensTab, openAddPlan, setLensTab]);
 
-  const openPlanEditFromDetails = useCallback(
+  const openPlanDetails = useCallback(
     (planId: string) => {
-      closePlanDetails();
-      openEditPlan(planId);
+      router.push({
+        pathname: '/(app)/(tabs)/budget/plans/[id]',
+        params: { id: planId, month: selectedMonth },
+      });
     },
-    [closePlanDetails, openEditPlan],
+    [router, selectedMonth],
   );
 
   return {
@@ -348,7 +339,6 @@ export function useBudget() {
       overall,
       spendingPlanRows,
       editingPlan,
-      detailPlan,
       spendingPlansSummary,
       month: selectedMonth,
       daysLeft,
@@ -363,7 +353,6 @@ export function useBudget() {
       copySheetVisible,
       copySelectedBudgetIds,
       refreshing,
-      planDetailsVisible,
       hasLoaded: Boolean(categoriesLoaded && budgetLoaded),
     },
     openAdd,
@@ -372,8 +361,6 @@ export function useBudget() {
     openEditPlan,
     openPlanTool,
     openPlanDetails,
-    closePlanDetails,
-    openPlanEditFromDetails,
     setLensTab,
     setSelectedMonth,
     openCopy,

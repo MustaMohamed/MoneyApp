@@ -25,13 +25,13 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
         <BudgetRing
           pct={row.pct}
           color={row.progressColor}
-          size={Size.typeIconBox}
+          size={Size.spendingPlanDetailRing}
           stroke={Spacing.xxxs}
         >
           <MaterialCommunityIcons
             accessible={false}
             name={toIconName(row.icon, 'tag-outline')}
-            size={Size.iconXs}
+            size={Size.iconMicro}
             color={row.color}
           />
         </BudgetRing>
@@ -40,7 +40,7 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
           <MaterialCommunityIcons
             accessible={false}
             name={toIconName(row.icon, 'tag-outline')}
-            size={Size.iconXs}
+            size={Size.iconMicro}
             color={row.color}
           />
         </View>
@@ -87,14 +87,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.sm,
-    minHeight: Size.headerHeight,
-    paddingVertical: Spacing.xs,
+    minHeight: Size.spendingPlanDetailRowHeight,
+    paddingVertical: Spacing.xxs,
     borderBottomWidth: Size.hairline,
     borderBottomColor: Colors.dark.border,
   },
   iconBox: {
-    width: Size.typeIconBox,
-    height: Size.typeIconBox,
+    width: Size.spendingPlanDetailRing,
+    height: Size.spendingPlanDetailRing,
     borderRadius: Radius.xl,
     alignItems: 'center',
     justifyContent: 'center',
@@ -103,19 +103,19 @@ const styles = StyleSheet.create({
   copy: { flex: 1, minWidth: 0 },
   name: {
     fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
+    fontSize: Type.caption,
     color: Colors.dark.text1,
   },
   supporting: {
     marginTop: Spacing.xxxs,
     fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
+    fontSize: Type.chipMeta,
     color: Colors.dark.text2,
   },
   amountWrap: { alignItems: 'flex-end' },
   amount: {
     fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
+    fontSize: Type.micro,
     color: Colors.dark.text1,
   },
   statusRow: {
@@ -126,7 +126,7 @@ const styles = StyleSheet.create({
   },
   percentage: {
     fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
+    fontSize: Type.chipMeta,
     color: Colors.dark.text2,
   },
   statusChip: {
@@ -134,5 +134,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xxs,
     paddingVertical: 0,
   },
-  statusLabel: { fontFamily: FontFamily.interSemi, fontSize: Type.micro },
+  statusLabel: { fontFamily: FontFamily.interSemi, fontSize: Type.chipMeta },
 });

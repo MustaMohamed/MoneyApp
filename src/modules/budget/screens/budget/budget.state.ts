@@ -15,8 +15,6 @@ interface BudgetStateShape {
   planSheetVisible: boolean;
   planSheetMode: SpendingPlanSheetMode;
   targetPlanId: string | undefined;
-  planDetailsVisible: boolean;
-  targetPlanDetailsId: string | undefined;
   lensTab: LensTab;
   selectedMonth: string;
   copySourceMonth: string;
@@ -33,8 +31,6 @@ type BudgetState = BudgetStateShape & {
   openAddPlan: () => void;
   openEditPlan: (planId: string) => void;
   closePlan: () => void;
-  openPlanDetails: (planId: string) => void;
-  closePlanDetails: () => void;
   setLensTab: (tab: LensTab) => void;
   setSelectedMonth: (month: string) => void;
   setCopySourceMonth: (month: string) => void;
@@ -58,8 +54,6 @@ function initialState(): BudgetStateShape {
     planSheetVisible: false,
     planSheetMode: 'add',
     targetPlanId: undefined,
-    planDetailsVisible: false,
-    targetPlanDetailsId: undefined,
     lensTab: 'categories',
     selectedMonth,
     copySourceMonth: previousYearMonth(selectedMonth),
@@ -99,16 +93,6 @@ export const useBudgetState = createMoneyAppSelectors(
         targetPlanId: planId,
       }),
     closePlan: () => set({ planSheetVisible: false, targetPlanId: undefined }),
-    openPlanDetails: (planId) =>
-      set({
-        planDetailsVisible: true,
-        targetPlanDetailsId: planId,
-      }),
-    closePlanDetails: () =>
-      set({
-        planDetailsVisible: false,
-        targetPlanDetailsId: undefined,
-      }),
     setLensTab: (tab) => set({ lensTab: tab }),
     setSelectedMonth: (month) =>
       set({ selectedMonth: month, copySourceMonth: previousYearMonth(month) }),

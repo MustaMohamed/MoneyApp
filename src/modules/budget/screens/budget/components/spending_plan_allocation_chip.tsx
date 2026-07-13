@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip } from 'heroui-native';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
@@ -38,39 +38,45 @@ export function SpendingPlanAllocationChip({
           color={allocation.color}
         />
       </BudgetRing>
-      <Text style={[styles.value, { color: allocation.bandColor }]} numberOfLines={1}>
-        {allocation.amountLabel}
-      </Text>
-      <Text style={[styles.pct, { color: allocation.bandColor }]}>
-        {allocation.percentageLabel}
-      </Text>
+      <View
+        testID={`spending-plan-allocation-chip-copy:${allocation.categoryId}`}
+        style={styles.copy}
+      >
+        <Text style={styles.value} numberOfLines={1}>
+          {allocation.amountLabel}
+        </Text>
+        <Text style={styles.pct}>{allocation.percentageLabel}</Text>
+      </View>
     </Chip>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: Size.compactChipHeight,
+    minHeight: Size.spendingPlanChipHeight,
     maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xxs,
+    gap: Spacing.xxxs,
     borderRadius: Radius.xl,
     backgroundColor: Colors.dark.bg,
     paddingLeft: Spacing.xxxs,
     paddingRight: Spacing.xxs,
     paddingVertical: 0,
   },
+  copy: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+  },
   value: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.chip,
+    color: Colors.dark.text1,
   },
   pct: {
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.dark.surfaceEl,
-    paddingHorizontal: Spacing.xxxs,
-    paddingVertical: Size.hairline,
+    marginTop: Size.hairline,
     fontFamily: FontFamily.interSemi,
     fontSize: Type.chipMeta,
+    color: Colors.dark.text2,
   },
 });

@@ -150,7 +150,7 @@ describe('spending plan helpers', () => {
         balanceColor: Colors.dark.positive,
         spentLabel: '1,200 / 8,000 spent',
         percentageLabel: '15% used',
-        progressColor: Colors.dark.budgetUnder,
+        progressColor: Colors.dark.gold,
         progressStatus: 'under',
         elapsedMarkerPercentage: 5,
         elapsedMarkerColor: Colors.shared.transferBlue,
@@ -284,13 +284,13 @@ describe('spending plan helpers', () => {
         icon: 'bag',
         color: '#09f',
         spent: 125,
-        amountLabel: '125',
         accessibilityLabel: 'Travel, 125 spent',
       },
     });
     expect(row.card.chips[0]).not.toHaveProperty('category.allocatedAmount');
     expect(row.card.chips[0]).not.toHaveProperty('category.percentageLabel');
     expect(row.card.chips[0]).not.toHaveProperty('category.bandColor');
+    expect(row.card.allocationFooterLabel).toBe('0 assigned · 8,000 flexible');
   });
 
   it('computes plans summary from visible rows', () => {
@@ -317,7 +317,7 @@ describe('spending plan helpers', () => {
       balanceAmount: 6800,
       balanceStatus: 'left',
       balanceColor: Colors.dark.positive,
-      barColor: Colors.dark.budgetUnder,
+      barColor: Colors.dark.gold,
       barStatus: 'under',
       activeCount: 0,
       upcomingCount: 1,
@@ -732,7 +732,7 @@ describe('spending plan helpers', () => {
       balanceAmount: 2300,
       balanceStatus: 'left',
       balanceColor: Colors.dark.positive,
-      barColor: Colors.dark.budgetUnder,
+      barColor: Colors.dark.gold,
       barStatus: 'under',
       activeCount: 2,
       upcomingCount: 1,

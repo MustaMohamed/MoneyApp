@@ -41,7 +41,6 @@ export function SpendingPlansLens({
 
       {rows.length > 0 ? (
         <>
-          <Text style={styles.section}>{Strings.budgetPlansTitle}</Text>
           {rows.map((row) => (
             <SpendingPlanCard
               key={row.id}
@@ -79,16 +78,6 @@ export function SpendingPlansLens({
 
 const styles = StyleSheet.create({
   summaryCluster: {
-    paddingHorizontal: Spacing.md,
-  },
-  section: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
     paddingHorizontal: Spacing.md,
   },
   empty: {

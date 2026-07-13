@@ -3,8 +3,7 @@ import { Chip } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Radius, Size, Spacing } from '@/constants/theme';
 import type { SpendingPlanCardCategoryChipVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
 
@@ -32,16 +31,13 @@ export function SpendingPlanCategoryChip({
           color={category.color}
         />
       </View>
-      <Text style={styles.amount} numberOfLines={1}>
-        {category.amountLabel}
-      </Text>
     </Chip>
   );
 }
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: Size.compactChipHeight,
+    minHeight: Size.spendingPlanChipHeight,
     maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'center',
@@ -49,7 +45,7 @@ const styles = StyleSheet.create({
     borderRadius: Radius.xl,
     backgroundColor: Colors.dark.bg,
     paddingLeft: Spacing.xxxs,
-    paddingRight: Spacing.xs,
+    paddingRight: Spacing.xxxs,
     paddingVertical: 0,
   },
   icon: {
@@ -59,10 +55,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: Radius.xl,
     backgroundColor: Colors.dark.surfaceEl,
-  },
-  amount: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
   },
 });

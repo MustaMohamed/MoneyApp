@@ -82,7 +82,6 @@ export interface SpendingPlanCardAllocationChipVM extends SpendingPlanAllocation
 
 export interface SpendingPlanCardCategoryChipVM extends SpendingPlanCategoryChipVM {
   spent: number;
-  amountLabel: string;
   accessibilityLabel: string;
 }
 
@@ -113,7 +112,7 @@ export interface SpendingPlanCardVM {
   elapsedMarkerPercentage?: number;
   elapsedMarkerColor?: string;
   paceLabel?: string;
-  allocationFooterLabel?: string;
+  allocationFooterLabel: string;
   allocationChips: SpendingPlanCardAllocationChipVM[];
   chips: SpendingPlanCardDisplayChipVM[];
 }
@@ -166,6 +165,8 @@ export interface SpendingPlanDetailVM {
   balanceMetaLabel: string;
   balanceAccessibilityLabel: string;
   balanceColor: string;
+  statusLabel: string;
+  statusTone: SpendingPlanStatusTone;
   spentLabel: string;
   percentageLabel: string;
   progressColor: string;
@@ -374,7 +375,6 @@ function buildSpendingPlanCategoryCardChip(
   const amountLabel = formatAmount(category.spent);
   return {
     ...category,
-    amountLabel,
     accessibilityLabel: Strings.budgetPlansCategoryChipA11y(category.name, amountLabel),
   };
 }
@@ -425,7 +425,6 @@ function buildSpendingPlanCard({
   paceDelta,
   allocatedTotal,
   buffer,
-  hasAllocations,
   chips,
   allocationRows,
   categoryChips,
@@ -443,7 +442,6 @@ function buildSpendingPlanCard({
   paceDelta: number;
   allocatedTotal: number;
   buffer: number;
-  hasAllocations: boolean;
   chips: SpendingPlanCardChipVM[];
   allocationRows: SpendingPlanAllocationRowVM[];
   categoryChips: SpendingPlanCategoryChipVM[];
@@ -485,7 +483,7 @@ function buildSpendingPlanCard({
     balanceColor: isOver ? Colors.dark.negative : Colors.dark.positive,
     spentLabel: Strings.budgetPlansCardSpentOf(formatAmount(spent), formatAmount(totalAmount)),
     percentageLabel: Strings.budgetPlansSummaryUsed(percentage),
-    progressColor: isOver ? Colors.dark.negative : budgetBandColor(pct),
+    progressColor: isOver ? Colors.dark.negative : Colors.dark.gold,
     progressStatus,
     ...(timing.lifecycle === 'active'
       ? {
@@ -494,14 +492,10 @@ function buildSpendingPlanCard({
         }
       : {}),
     ...(paceLabel === undefined ? {} : { paceLabel }),
-    ...(hasAllocations
-      ? {
-          allocationFooterLabel: Strings.budgetPlansCardAllocationFooter(
-            formatAmount(allocatedTotal),
-            formatAmount(buffer),
-          ),
-        }
-      : {}),
+    allocationFooterLabel: Strings.budgetPlansCardAllocationFooter(
+      formatAmount(allocatedTotal),
+      formatAmount(buffer),
+    ),
     allocationChips,
     chips: buildSpendingPlanCardDisplayChips({
       chips,
@@ -637,6 +631,8 @@ function buildSpendingPlanDetail({
     balanceMetaLabel: card.balanceMetaLabel,
     balanceAccessibilityLabel: card.balanceAccessibilityLabel,
     balanceColor: card.balanceColor,
+    statusLabel: card.statusLabel,
+    statusTone: card.statusTone,
     spentLabel: card.spentLabel,
     percentageLabel: card.percentageLabel,
     progressColor: card.progressColor,
@@ -851,7 +847,6 @@ export function buildSpendingPlanRows({
         paceDelta,
         allocatedTotal,
         buffer,
-        hasAllocations: allocationRows.length > 0,
         chips: cardChips,
         allocationRows,
         categoryChips,
@@ -929,7 +924,7 @@ export function computeSpendingPlansSummary(
     balanceAmount: balance.magnitude,
     balanceStatus: balance.label,
     balanceColor: isOver ? Colors.dark.negative : Colors.dark.positive,
-    barColor: isOver ? Colors.dark.negative : budgetBandColor(pct),
+    barColor: isOver ? Colors.dark.negative : Colors.dark.gold,
     barStatus: isOver ? 'over' : 'under',
     activeCount,
     upcomingCount,
