@@ -140,6 +140,7 @@ describe('spending plan helpers', () => {
       pct: 0.15,
       planCount: 1,
       monthLabel: 'July 2026',
+      eyebrowLabel: '1 plan in July 2026',
       usedPercentage: 15,
       progressPercentage: 15,
       itemizedAmount: 3000,
@@ -156,6 +157,32 @@ describe('spending plan helpers', () => {
       watchCount: 0,
       overCount: 0,
       needsAttentionCount: 0,
+      statusItems: [
+        {
+          key: 'onTrack',
+          icon: 'check-circle-outline',
+          color: Colors.dark.positive,
+          label: '0 on track',
+        },
+        {
+          key: 'watch',
+          icon: 'alert-circle-outline',
+          color: Colors.dark.warning,
+          label: '0 watch',
+        },
+        {
+          key: 'over',
+          icon: 'alert-octagon-outline',
+          color: Colors.dark.negative,
+          label: '0 over',
+        },
+        {
+          key: 'upcoming',
+          icon: 'clock-outline',
+          color: Colors.shared.transferBlue,
+          label: '1 upcoming',
+        },
+      ],
     });
   });
 
@@ -414,6 +441,7 @@ describe('spending plan helpers', () => {
       pct: 0.425,
       planCount: 4,
       monthLabel: 'July 2026',
+      eyebrowLabel: '4 plans in July 2026',
       usedPercentage: 43,
       progressPercentage: 43,
       itemizedAmount: 1000,
@@ -430,6 +458,32 @@ describe('spending plan helpers', () => {
       watchCount: 1,
       overCount: 1,
       needsAttentionCount: 2,
+      statusItems: [
+        {
+          key: 'onTrack',
+          icon: 'check-circle-outline',
+          color: Colors.dark.positive,
+          label: '1 on track',
+        },
+        {
+          key: 'watch',
+          icon: 'alert-circle-outline',
+          color: Colors.dark.warning,
+          label: '1 watch',
+        },
+        {
+          key: 'over',
+          icon: 'alert-octagon-outline',
+          color: Colors.dark.negative,
+          label: '1 over',
+        },
+        {
+          key: 'upcoming',
+          icon: 'clock-outline',
+          color: Colors.shared.transferBlue,
+          label: '1 upcoming',
+        },
+      ],
     });
   });
 

@@ -363,6 +363,7 @@ const baseState: BudgetScreenState = {
     pct: 0,
     planCount: 0,
     monthLabel: 'July 2026',
+    eyebrowLabel: '0 plans in July 2026',
     usedPercentage: 0,
     progressPercentage: 0,
     itemizedAmount: 0,
@@ -379,6 +380,7 @@ const baseState: BudgetScreenState = {
     watchCount: 0,
     overCount: 0,
     needsAttentionCount: 0,
+    statusItems: [],
   },
   month: '2026-07',
   daysLeft: 12,
@@ -658,6 +660,7 @@ describe('BudgetScreen', () => {
         pct: 0.15,
         planCount: 1,
         monthLabel: 'July 2026',
+        eyebrowLabel: '1 plan in July 2026',
         usedPercentage: 15,
         progressPercentage: 15,
         itemizedAmount: 3000,
@@ -674,6 +677,7 @@ describe('BudgetScreen', () => {
         watchCount: 1,
         overCount: 0,
         needsAttentionCount: 1,
+        statusItems: [],
       },
     });
 

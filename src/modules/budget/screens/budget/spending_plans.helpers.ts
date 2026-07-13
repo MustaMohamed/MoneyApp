@@ -18,6 +18,13 @@ const PACE_WARNING_THRESHOLD = 0.1;
 export type SpendingPlanLifecycle = 'upcoming' | 'active' | 'completed';
 export type SpendingPlanStatus = 'upcoming' | 'onTrack' | 'watch' | 'over';
 
+export interface SpendingPlansSummaryStatusItemVM {
+  key: 'onTrack' | 'watch' | 'over' | 'upcoming';
+  icon: 'check-circle-outline' | 'alert-circle-outline' | 'alert-octagon-outline' | 'clock-outline';
+  color: string;
+  label: string;
+}
+
 export interface SpendingPlanTimingVM {
   lifecycle: SpendingPlanLifecycle;
   totalDays: number;
@@ -94,6 +101,7 @@ export interface SpendingPlansSummaryVM {
   pct: number;
   planCount: number;
   monthLabel: string;
+  eyebrowLabel: string;
   usedPercentage: number;
   progressPercentage: number;
   itemizedAmount: number;
@@ -110,6 +118,7 @@ export interface SpendingPlansSummaryVM {
   watchCount: number;
   overCount: number;
   needsAttentionCount: number;
+  statusItems: SpendingPlansSummaryStatusItemVM[];
 }
 
 export interface AllocationHelperVM {
@@ -402,13 +411,16 @@ export function computeSpendingPlansSummary(
   const onTrackCount = rows.filter((row) => row.status === 'onTrack').length;
   const watchCount = rows.filter((row) => row.status === 'watch').length;
   const overCount = rows.filter((row) => row.status === 'over').length;
+  const planCount = rows.length;
+  const monthLabel = formatMonthYear(selectedMonth);
   return {
     planned,
     spent,
     left,
     pct,
-    planCount: rows.length,
-    monthLabel: formatMonthYear(selectedMonth),
+    planCount,
+    monthLabel,
+    eyebrowLabel: Strings.budgetPlansSummaryEyebrow(planCount, monthLabel),
     usedPercentage,
     progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
     itemizedAmount,
@@ -425,6 +437,32 @@ export function computeSpendingPlansSummary(
     watchCount,
     overCount,
     needsAttentionCount: watchCount + overCount,
+    statusItems: [
+      {
+        key: 'onTrack',
+        icon: 'check-circle-outline',
+        color: Colors.dark.positive,
+        label: Strings.budgetPlansSummaryOnTrackCount(onTrackCount),
+      },
+      {
+        key: 'watch',
+        icon: 'alert-circle-outline',
+        color: Colors.dark.warning,
+        label: Strings.budgetPlansSummaryWatchCount(watchCount),
+      },
+      {
+        key: 'over',
+        icon: 'alert-octagon-outline',
+        color: Colors.dark.negative,
+        label: Strings.budgetPlansSummaryOverCount(overCount),
+      },
+      {
+        key: 'upcoming',
+        icon: 'clock-outline',
+        color: Colors.shared.transferBlue,
+        label: Strings.budgetPlansSummaryUpcomingCount(upcomingCount),
+      },
+    ],
   };
 }
 

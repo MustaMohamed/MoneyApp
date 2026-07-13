@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, LetterSpacing, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import type { SpendingPlansSummaryVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { formatAmount } from '@/utils/format_amount';
@@ -20,33 +20,6 @@ const BALANCE_AMOUNT_COPY = {
   over: Strings.budgetPlansSummaryOverAmount,
 } as const;
 
-const STATUS_ITEMS = [
-  {
-    countKey: 'onTrackCount',
-    icon: 'check-circle-outline',
-    color: Colors.dark.positive,
-    format: Strings.budgetPlansSummaryOnTrackCount,
-  },
-  {
-    countKey: 'watchCount',
-    icon: 'alert-circle-outline',
-    color: Colors.dark.warning,
-    format: Strings.budgetPlansSummaryWatchCount,
-  },
-  {
-    countKey: 'overCount',
-    icon: 'alert-octagon-outline',
-    color: Colors.dark.negative,
-    format: Strings.budgetPlansSummaryOverCount,
-  },
-  {
-    countKey: 'upcomingCount',
-    icon: 'clock-outline',
-    color: Colors.shared.transferBlue,
-    format: Strings.budgetPlansSummaryUpcomingCount,
-  },
-] as const;
-
 export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
   const primaryValue = BALANCE_AMOUNT_COPY[summary.balanceStatus](
     formatAmount(summary.balanceAmount),
@@ -56,9 +29,7 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
   return (
     <Card className="p-0 shadow-none" style={styles.card}>
       <Card.Body style={styles.body}>
-        <Text style={styles.eyebrow}>
-          {Strings.budgetPlansSummaryEyebrow(summary.planCount, summary.monthLabel)}
-        </Text>
+        <Text style={styles.eyebrow}>{summary.eyebrowLabel}</Text>
 
         <View style={styles.primaryRow}>
           <Text style={[styles.primaryValue, { color: summary.balanceColor }]}>{primaryValue}</Text>
@@ -100,7 +71,7 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
             pct={summary.pct}
             status={summary.barStatus}
             color={summary.barColor}
-            height={ms(8)}
+            height={Size.progressTrack}
           />
         </View>
 
@@ -119,15 +90,15 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
         </View>
 
         <View style={styles.statusRow}>
-          {STATUS_ITEMS.map((item) => (
-            <View key={item.countKey} style={styles.statusItem}>
+          {summary.statusItems.map((item) => (
+            <View key={item.key} style={styles.statusItem}>
               <MaterialCommunityIcons
                 accessible={false}
                 name={item.icon}
                 size={Size.iconXs}
                 color={item.color}
               />
-              <Text style={styles.statusLabel}>{item.format(summary[item.countKey])}</Text>
+              <Text style={styles.statusLabel}>{item.label}</Text>
             </View>
           ))}
         </View>
@@ -159,7 +130,7 @@ const styles = StyleSheet.create({
     fontSize: Type.micro,
     color: Colors.dark.text2,
     textTransform: 'uppercase',
-    letterSpacing: ms(0.7),
+    letterSpacing: LetterSpacing.eyebrow,
   },
   primaryRow: {
     flexDirection: 'row',
@@ -221,7 +192,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   metricLabel: {
-    marginTop: ms(2),
+    marginTop: Spacing.xxxs,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,

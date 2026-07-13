@@ -86,8 +86,14 @@ export const Type = {
   hero: msFont(28),
 } as const;
 
+/** Tracking values for compact labels and eyebrow copy. */
+export const LetterSpacing = {
+  eyebrow: ms(0.7),
+} as const;
+
 /** Vertical / horizontal spacing scale. */
 export const Spacing = {
+  xxxs: ms(2),
   xxs: ms(4),
   xs: ms(8),
   sm: ms(12),
@@ -137,6 +143,7 @@ export const Size = {
   flagBox: ms(36),
   shieldBox: ms(48),
   colorDot: ms(20),
+  progressTrack: ms(8),
   progressDot: ms(4),
   checkCircle: ms(20),
   illustration: ms(120),

@@ -132,6 +132,7 @@ describe('useBudget spending plans', () => {
       pct: 0.15,
       planCount: 1,
       monthLabel: 'July 2026',
+      eyebrowLabel: '1 plan in July 2026',
       usedPercentage: 15,
       progressPercentage: 15,
       itemizedAmount: 3000,
@@ -148,6 +149,32 @@ describe('useBudget spending plans', () => {
       watchCount: 0,
       overCount: 0,
       needsAttentionCount: 0,
+      statusItems: [
+        {
+          key: 'onTrack',
+          icon: 'check-circle-outline',
+          color: Colors.dark.positive,
+          label: '0 on track',
+        },
+        {
+          key: 'watch',
+          icon: 'alert-circle-outline',
+          color: Colors.dark.warning,
+          label: '0 watch',
+        },
+        {
+          key: 'over',
+          icon: 'alert-octagon-outline',
+          color: Colors.dark.negative,
+          label: '0 over',
+        },
+        {
+          key: 'upcoming',
+          icon: 'clock-outline',
+          color: Colors.shared.transferBlue,
+          label: '1 upcoming',
+        },
+      ],
     });
     expect(result.current.state.hasSpendingPlans).toBe(true);
   });

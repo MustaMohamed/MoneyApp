@@ -266,7 +266,8 @@ export const Strings = {
   budgetPlansSummaryPlanned: 'Planned',
   budgetPlansSummarySpent: 'Spent',
   budgetPlansSummaryLeft: 'Left',
-  budgetPlansSummaryEyebrow: (count: number, month: string) => `${count} plans in ${month}`,
+  budgetPlansSummaryEyebrow: (count: number, month: string) =>
+    `${count} ${count === 1 ? 'plan' : 'plans'} in ${month}`,
   budgetPlansSummaryLeftAmount: (amount: string) => `${amount} EGP left`,
   budgetPlansSummaryOverAmount: (amount: string) => `${amount} EGP over`,
   budgetPlansSummaryAttentionCount: (count: number) => `${count} needs attention`,
