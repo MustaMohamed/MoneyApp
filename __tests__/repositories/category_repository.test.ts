@@ -104,6 +104,8 @@ beforeEach(() => {
   // targets like 'cat_food' / 'cat_entertainment' remain valid.
   realDb.exec('DELETE FROM transactions');
   realDb.exec('DELETE FROM commitments');
+  realDb.exec('DELETE FROM spending_plan_categories');
+  realDb.exec('DELETE FROM spending_plans');
   realDb.exec('DELETE FROM categories WHERE is_default = 0');
 
   // Reset withTransactionAsync to its normal behaviour and clear call history.
@@ -179,6 +181,31 @@ function countCategories(id: string): number {
 // TC-01: 47 transactions reassigned, balances and amounts untouched
 // ─────────────────────────────────────────────────────────────────────────────
 describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignment)', () => {
+  it('moves spending plan assignments to the replacement category', async () => {
+    insertFromCategory('from-plan-category');
+    realDb
+      .prepare(
+        `INSERT INTO spending_plans
+         (id, name, start_date, end_date, total_amount, created_at, updated_at)
+         VALUES ('plan-category', 'Trip', '2026-01-01', '2026-01-03', 500, ?, ?)`,
+      )
+      .run(NOW, NOW);
+    realDb
+      .prepare(
+        `INSERT INTO spending_plan_categories (plan_id, category_id, allocated_amount)
+         VALUES ('plan-category', 'from-plan-category', 300)`,
+      )
+      .run();
+
+    await repo.reassignAndDelete('from-plan-category', 'cat_food');
+
+    expect(
+      realDb
+        .prepare("SELECT category_id FROM spending_plan_categories WHERE plan_id = 'plan-category'")
+        .all(),
+    ).toEqual([{ category_id: 'cat_food' }]);
+  });
+
   it('moves 47 transactions from source to target category', async () => {
     // Source: custom category (to be deleted), target: cat_food (seeded, persists)
     insertFromCategory('from-cat-01');

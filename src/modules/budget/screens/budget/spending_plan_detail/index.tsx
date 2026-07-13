@@ -9,15 +9,14 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, TouchSize, Type } from '@/constants/theme';
-import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/components/spending_plan_detail_category_row';
-import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/components/spending_plan_detail_summary';
-import { SpendingPlanSheet } from '@/modules/budget/screens/budget/components/spending_plan_sheet';
+import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
+import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
 import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook';
-import { formatAmount } from '@/utils/format_amount';
+import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 
 export default function SpendingPlanDetailScreen() {
-  const { state, goBack, editPlan } = useSpendingPlanDetail();
+  const { state, goBack, editPlan, retry } = useSpendingPlanDetail();
   const plan = state.plan;
 
   return (
@@ -64,6 +63,18 @@ export default function SpendingPlanDetailScreen() {
         </View>
       ) : null}
 
+      {state.viewState === 'error' ? (
+        <View style={styles.notFound}>
+          <Text style={styles.notFoundTitle}>{state.errorMessage}</Text>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={Strings.budgetPlansDetailRetry}
+            onPress={() => void retry()}
+          />
+        </View>
+      ) : null}
+
       {state.viewState === 'ready' && plan ? (
         <>
           <ScreenScroll contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -71,9 +82,7 @@ export default function SpendingPlanDetailScreen() {
 
             <View style={styles.sectionRow}>
               <Text style={styles.section}>{Strings.budgetPlansDetailCategories}</Text>
-              <Text style={styles.sectionAmount}>
-                {Strings.budgetPlansDetailTotalSpent(formatAmount(plan.spent))}
-              </Text>
+              <Text style={styles.sectionAmount}>{plan.detail.totalSpentLabel}</Text>
             </View>
             <View style={styles.categoryRows}>
               {plan.detail.categoryRows.map((row) => (

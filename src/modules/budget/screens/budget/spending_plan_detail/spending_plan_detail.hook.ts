@@ -3,11 +3,15 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
-import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
+import { Strings } from '@/constants/strings';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useSpendingPlanDetailState } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.state';
-import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
-import { useBudgetStore } from '@/modules/budget/store/budget.store';
+import { useSpendingPlanDetailStore } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.store';
+import {
+  buildSpendingPlanRows,
+  planIntersectsMonth,
+} from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
@@ -15,71 +19,88 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 export function useSpendingPlanDetail() {
   const router = useRouter();
   const { id, month } = useLocalSearchParams<{ id: string; month?: string }>();
-  const selectedMonth = month ?? currentYearMonth();
-
-  const { categories, categoriesLoaded } = useCategoryStore(
-    useShallow((state) => ({
-      categories: state.categories,
-      categoriesLoaded: state.hasLoaded,
-    })),
-  );
+  const categories = useCategoryStore((state) => state.categories);
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { spendingPlans, spendingPlanSpendById, budgetLoaded } = useBudgetStore(
+  const { sourcePlan, spend } = useSpendingPlanDetailStore(
+    useShallow((state) => ({ sourcePlan: state.plan, spend: state.spend })),
+  );
+  const { viewState, errorMessage } = useSpendingPlanDetailState(
     useShallow((state) => ({
-      spendingPlans: state.spendingPlans,
-      spendingPlanSpendById: state.spendingPlanSpendById,
-      budgetLoaded: state.loaded,
+      viewState: state.viewState,
+      errorMessage: state.errorMessage,
     })),
   );
-  const load = useBudgetStore.getState().load;
   const openEditPlan = useBudgetState.getState().openEditPlan;
-  const loadFinished = useSpendingPlanDetailState.useState.loadFinished();
-  const beginLoad = useSpendingPlanDetailState.getState().beginLoad;
-  const finishLoad = useSpendingPlanDetailState.getState().finishLoad;
-  const resetDetailState = useSpendingPlanDetailState.getState().reset;
+
+  const loadPlan = useCallback(async () => {
+    const beginLoad = useSpendingPlanDetailState.getState().beginLoad;
+    const finishLoad = useSpendingPlanDetailState.getState().finishLoad;
+    const failLoad = useSpendingPlanDetailState.getState().failLoad;
+    const setData = useSpendingPlanDetailStore.getState().setData;
+    const resetData = useSpendingPlanDetailStore.getState().reset;
+    beginLoad();
+    try {
+      const [, result] = await Promise.all([
+        loadCategories(),
+        budgetRepository.getSpendingPlanDetails(id),
+      ]);
+      if (!result) {
+        resetData();
+        finishLoad('notFound');
+        return;
+      }
+      setData(result.plan, result.spend);
+      finishLoad('ready');
+    } catch {
+      resetData();
+      failLoad(Strings.budgetPlansDetailLoadError);
+    }
+  }, [id, loadCategories]);
 
   useFocusEffect(
     useCallback(() => {
-      beginLoad();
       const task = runAfterInteractions(() => {
-        void Promise.all([loadCategories(), load(selectedMonth)]).finally(finishLoad);
+        void loadPlan();
       });
       return () => task.cancel();
-    }, [beginLoad, finishLoad, load, loadCategories, selectedMonth]),
+    }, [loadPlan]),
   );
 
-  useEffect(() => resetDetailState, [resetDetailState]);
+  useEffect(
+    () => () => {
+      useSpendingPlanDetailState.getState().reset();
+      useSpendingPlanDetailStore.getState().reset();
+    },
+    [],
+  );
 
-  const rows = useMemo(
+  const selectedMonth = sourcePlan
+    ? month && planIntersectsMonth(sourcePlan, month)
+      ? month
+      : sourcePlan.start_date.slice(0, 7)
+    : month;
+  const plan = useMemo(
     () =>
-      buildSpendingPlanRows({
-        plans: spendingPlans,
-        categories,
-        spendByPlanId: spendingPlanSpendById,
-        selectedMonth,
-        today: toLocalDateString(new Date()),
-      }),
-    [categories, selectedMonth, spendingPlanSpendById, spendingPlans],
+      sourcePlan && selectedMonth
+        ? buildSpendingPlanRows({
+            plans: [sourcePlan],
+            categories,
+            spendByPlanId: { [sourcePlan.id]: spend },
+            selectedMonth,
+            today: toLocalDateString(new Date()),
+          })[0]
+        : undefined,
+    [categories, selectedMonth, sourcePlan, spend],
   );
-  const plan = useMemo(() => rows.find((row) => row.id === id), [id, rows]);
   const budgetableCategories = useMemo(
     () => categories.filter((category) => category.type === CategoryType.Expense),
     [categories],
   );
-  const hasLoaded = categoriesLoaded && budgetLoaded;
-  const viewState = plan
-    ? ('ready' as const)
-    : !hasLoaded || !loadFinished
-      ? ('loading' as const)
-      : ('notFound' as const);
 
   return {
-    state: {
-      viewState,
-      plan,
-      budgetableCategories,
-    },
+    state: { viewState, errorMessage, plan, budgetableCategories },
     goBack: () => router.back(),
+    retry: loadPlan,
     editPlan: () => {
       if (plan) openEditPlan(plan.id);
     },

@@ -82,4 +82,37 @@ describe('budget store spending plans', () => {
     expect(budgetRepository.removeSpendingPlan).toHaveBeenCalledWith('plan_trip');
     expect(budgetRepository.getSpendingPlansForMonth).toHaveBeenCalledWith('2026-08');
   });
+
+  it('does not let an older month request overwrite a newer month request', async () => {
+    let resolveJuly:
+      | ((value: { plans: Array<{ id: string }>; spendByPlanId: {} }) => void)
+      | undefined;
+    let resolveAugust:
+      | ((value: { plans: Array<{ id: string }>; spendByPlanId: {} }) => void)
+      | undefined;
+    budgetRepository.getSpendingPlansForMonth
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveJuly = resolve;
+          }),
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveAugust = resolve;
+          }),
+      );
+    const store = createBudgetStore(repo);
+
+    const julyLoad = store.getState().load('2026-07');
+    const augustLoad = store.getState().load('2026-08');
+    resolveAugust?.({ plans: [{ id: 'august' }], spendByPlanId: {} });
+    await augustLoad;
+    resolveJuly?.({ plans: [{ id: 'july' }], spendByPlanId: {} });
+    await julyLoad;
+
+    expect(store.getState().loadedMonth).toBe('2026-08');
+    expect(store.getState().spendingPlans).toEqual([{ id: 'august' }]);
+  });
 });

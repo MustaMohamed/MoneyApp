@@ -4,14 +4,14 @@ import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import type { SpendingPlanDatePickerTarget } from '@/modules/budget/screens/budget/components/spending_plan_sheet.state';
-import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/components/spending_plan_sheet.styles';
+import type { SpendingPlanDatePickerTarget } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
+import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.styles';
 import { formatShortDate } from '@/utils/format_date';
 
 interface SpendingPlanDateRangeProps {
   startDate: string;
   endDate: string;
-  datePickerTarget: SpendingPlanDatePickerTarget | null;
+  datePickerTarget: SpendingPlanDatePickerTarget | undefined;
   datePickerValue: Date;
   openDatePicker: (target: SpendingPlanDatePickerTarget) => void;
   onDateChange: (

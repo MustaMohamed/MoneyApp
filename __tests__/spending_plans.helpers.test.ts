@@ -1,15 +1,14 @@
 import { CategoryType } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
-import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
+import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
 import {
   buildSpendingPlanCardChips,
   buildSpendingPlanRows,
   computeAllocationHelper,
   computePlanTiming,
-  computeSpendingPlansSummary,
   planIntersectsMonth,
-  validatePlanDraft,
 } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import type { Category } from '@/modules/categories/entities/category.entity';
 
 const categories: Category[] = [
@@ -485,7 +484,10 @@ describe('spending plan helpers', () => {
     expect(row.isOver).toBe(false);
     expect(row.paceDelta).toBeLessThan(0.1);
     expect(row.detailCategoryRows[0]).toEqual(
-      expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 0, isOver: true }),
+      expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 1, isOver: true }),
+    );
+    expect(row.detail.categoryRows[0]).toEqual(
+      expect.objectContaining({ percentageLabel: 'Over', statusLabel: 'Over' }),
     );
     expect(row.highestPressureCategory?.categoryId).toBe('cat_food');
     expect(row.status).toBe('watch');
@@ -809,32 +811,6 @@ describe('spending plan helpers', () => {
     });
   });
 
-  it('marks negative allocations as invalid', () => {
-    expect(
-      validatePlanDraft({
-        name: 'Trip',
-        startDate: '2026-07-01',
-        endDate: '2026-07-02',
-        totalAmount: 1000,
-        categoryIds: ['cat_food'],
-        allocations: { cat_food: -1 },
-      }),
-    ).toEqual({ allocations: 'Each allocation must be zero or greater.' });
-  });
-
-  it('marks non-finite allocations as invalid', () => {
-    expect(
-      validatePlanDraft({
-        name: 'Trip',
-        startDate: '2026-07-01',
-        endDate: '2026-07-02',
-        totalAmount: 1000,
-        categoryIds: ['cat_food'],
-        allocations: { cat_food: Number.NaN },
-      }),
-    ).toEqual({ allocations: 'Each allocation must be zero or greater.' });
-  });
-
   it('builds compact allocation, category, and overflow chips for plan cards', () => {
     expect(
       buildSpendingPlanCardChips({
@@ -864,23 +840,5 @@ describe('spending plan helpers', () => {
       expect.objectContaining({ type: 'category', id: 'cat_hotel' }),
       { type: 'more', id: 'more', count: 1 },
     ]);
-  });
-
-  it('validates draft fields before save', () => {
-    expect(
-      validatePlanDraft({
-        name: '',
-        startDate: '2026-07-20',
-        endDate: '2026-07-19',
-        totalAmount: 0,
-        categoryIds: [],
-        allocations: {},
-      }),
-    ).toEqual({
-      name: 'Enter a plan name',
-      dates: 'End date must be on or after start date',
-      amount: 'Enter a plan amount',
-      categories: 'Select at least one category',
-    });
   });
 });

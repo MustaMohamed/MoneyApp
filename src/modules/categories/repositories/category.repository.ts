@@ -1,6 +1,7 @@
 import uuid from 'react-native-uuid';
 
 import { getDb } from '@/database/client';
+import { reassignSpendingPlanCategoryRows } from '@/modules/budget/database/spending_plan_categories';
 import {
   addCategory,
   deleteCategory,
@@ -100,6 +101,7 @@ export class CategoryRepository implements ICategoryRepository {
         toId,
         fromId,
       ]);
+      await reassignSpendingPlanCategoryRows(db, fromId, toId);
       await db.runAsync('DELETE FROM categories WHERE id = ?', [fromId]);
     });
   }

@@ -11,7 +11,7 @@ import { SpendingPlansSummary } from '@/modules/budget/screens/budget/components
 import type {
   SpendingPlanRowVM,
   SpendingPlansSummaryVM,
-} from '@/modules/budget/screens/budget/spending_plans.helpers';
+} from '@/modules/budget/screens/budget/spending_plans.types';
 
 interface SpendingPlansLensProps {
   rows: SpendingPlanRowVM[];

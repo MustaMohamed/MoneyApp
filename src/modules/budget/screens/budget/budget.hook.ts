@@ -18,10 +18,8 @@ import {
   computeBuckets,
   type BucketsVM,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
-import {
-  buildSpendingPlanRows,
-  computeSpendingPlansSummary,
-} from '@/modules/budget/screens/budget/spending_plans.helpers';
+import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { toLocalDateString } from '@/utils/format_date';
@@ -65,6 +63,7 @@ export function useBudget() {
     spendingPlans,
     spendingPlanSpendById,
     budgetLoaded,
+    loadedMonth,
     expectedIncome,
   } = useBudgetStore(
     useShallow((s) => ({
@@ -73,6 +72,7 @@ export function useBudget() {
       spendingPlans: s.spendingPlans,
       spendingPlanSpendById: s.spendingPlanSpendById,
       budgetLoaded: s.loaded,
+      loadedMonth: s.loadedMonth,
       expectedIncome: s.expectedIncome,
     })),
   );
@@ -111,7 +111,6 @@ export function useBudget() {
   const setLensTab = useBudgetState.getState().setLensTab;
   const setSelectedMonthState = useBudgetState.getState().setSelectedMonth;
   const setCopySourceMonthState = useBudgetState.getState().setCopySourceMonth;
-  const resetSelectedMonthToCurrent = useBudgetState.getState().resetSelectedMonthToCurrent;
   const openCopyState = useBudgetState.getState().openCopy;
   const closeCopy = useBudgetState.getState().closeCopy;
   const setCopySelectedBudgetIds = useBudgetState.getState().setCopySelectedBudgetIds;
@@ -135,15 +134,13 @@ export function useBudget() {
 
   useFocusEffect(
     useCallback(() => {
-      const month = currentYearMonth(); // refresh in case the month rolled over while mounted
-      resetSelectedMonthToCurrent();
       const task = runAfterInteractions(() => {
         void loadCategories();
-        void load(month);
-        void loadIncomeSuggestion(month);
+        void load(selectedMonth);
+        void loadIncomeSuggestion(selectedMonth);
       });
       return () => task.cancel();
-    }, [loadCategories, load, loadIncomeSuggestion, resetSelectedMonthToCurrent]),
+    }, [loadCategories, load, loadIncomeSuggestion, selectedMonth]),
   );
 
   const rows: CategoryBudgetRowVM[] = useMemo(() => {
@@ -353,7 +350,11 @@ export function useBudget() {
       copySheetVisible,
       copySelectedBudgetIds,
       refreshing,
-      hasLoaded: Boolean(categoriesLoaded && budgetLoaded),
+      hasLoaded: Boolean(
+        categoriesLoaded &&
+        budgetLoaded &&
+        (loadedMonth === undefined || loadedMonth === selectedMonth),
+      ),
     },
     openAdd,
     openEdit,

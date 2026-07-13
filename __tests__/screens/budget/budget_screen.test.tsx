@@ -239,7 +239,7 @@ jest.mock('@/modules/budget/screens/budget/components/budget_copy_sheet', () => 
 jest.mock('@/modules/budget/screens/budget/components/set_budget_sheet', () => ({
   SetBudgetSheet: () => null,
 }));
-jest.mock('@/modules/budget/screens/budget/components/spending_plan_sheet', () => ({
+jest.mock('@/modules/budget/screens/budget/spending_plan_sheet', () => ({
   SpendingPlanSheet: ({ editingPlan }: { editingPlan?: { id: string } }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
     return <Text>{`plan-sheet:${editingPlan?.id ?? 'new'}`}</Text>;

@@ -1,33 +1,46 @@
-import { renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
-import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
+import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
 import { useSpendingPlanDetail } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.hook';
 import { useSpendingPlanDetailState } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.state';
+import { useSpendingPlanDetailStore } from '@/modules/budget/screens/budget/spending_plan_detail/spending_plan_detail.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockRouterBack = jest.fn();
 const mockOpenEditPlan = jest.fn();
+const mockGetDetails = jest.fn();
+const mockFocusEffect = jest.fn();
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (selector: unknown) => selector }));
 jest.mock('expo-router', () => ({
-  useFocusEffect: jest.fn(),
+  useFocusEffect: (effect: () => void | (() => void)) => mockFocusEffect(effect),
   useLocalSearchParams: () => ({ id: 'plan_trip', month: '2026-07' }),
   useRouter: () => ({ back: mockRouterBack }),
 }));
+jest.mock('@/utils/run_after_interactions', () => ({
+  runAfterInteractions: (task: () => void) => {
+    task();
+    return { cancel: jest.fn() };
+  },
+}));
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
-jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
+jest.mock('@/modules/budget/repositories/budget.repository', () => ({
+  budgetRepository: { getSpendingPlanDetails: (...args: unknown[]) => mockGetDetails(...args) },
+}));
 jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
 
-const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
-const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
-const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
+const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store') as {
+  useCategoryStore: jest.Mock;
+};
+const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state') as {
+  useBudgetState: jest.Mock;
+};
 
 const plan: SpendingPlanWithCategories = {
   id: 'plan_trip',
   name: 'Alex weekend',
-  start_date: '2026-07-18',
-  end_date: '2026-07-21',
+  start_date: '2026-08-01',
+  end_date: '2026-08-04',
   total_amount: 8000,
   created_at: '',
   updated_at: '',
@@ -36,7 +49,7 @@ const plan: SpendingPlanWithCategories = {
 
 beforeEach(() => {
   jest.useFakeTimers().setSystemTime(new Date(2026, 6, 19, 12));
-  attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
+  attachMockSelectorStore(useCategoryStore, () => ({
     categories: [
       {
         id: 'cat_food',
@@ -51,36 +64,43 @@ beforeEach(() => {
         updated_at: '',
       },
     ],
-    hasLoaded: true,
-    loadCategories: jest.fn(),
+    loadCategories: jest.fn().mockResolvedValue(undefined),
   }));
-  attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
-    spendingPlans: [plan],
-    spendingPlanSpendById: { plan_trip: { cat_food: 1200 } },
-    loaded: true,
-    load: jest.fn(),
-  }));
-  attachMockSelectorStore(useBudgetState as jest.Mock, () => ({ openEditPlan: mockOpenEditPlan }));
-  useSpendingPlanDetailState.getState().finishLoad();
+  attachMockSelectorStore(useBudgetState, () => ({ openEditPlan: mockOpenEditPlan }));
+  mockGetDetails.mockResolvedValue({ plan, spend: { cat_food: 1200 } });
 });
 
 afterEach(() => {
   jest.useRealTimers();
   jest.clearAllMocks();
   useSpendingPlanDetailState.getState().reset();
+  useSpendingPlanDetailStore.getState().reset();
 });
 
 describe('useSpendingPlanDetail', () => {
-  it('derives a routed plan and delegates edit/back actions', () => {
+  it('loads by id even when an edit moved the plan outside the route month', async () => {
     const { result } = renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
 
-    expect(result.current.state.viewState).toBe('ready');
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(mockGetDetails).toHaveBeenCalledWith('plan_trip');
     expect(result.current.state.plan?.name).toBe('Alex weekend');
+  });
 
-    result.current.editPlan();
-    result.current.goBack();
+  it('exposes an error state and retries a failed load', async () => {
+    mockGetDetails
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockResolvedValueOnce({ plan, spend: { cat_food: 1200 } });
+    const { result } = renderHook(() => useSpendingPlanDetail());
+    await act(async () => {
+      mockFocusEffect.mock.calls[0][0]();
+    });
 
-    expect(mockOpenEditPlan).toHaveBeenCalledWith('plan_trip');
-    expect(mockRouterBack).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(result.current.state.viewState).toBe('error'));
+    await act(async () => result.current.retry());
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(mockGetDetails).toHaveBeenCalledTimes(2);
   });
 });

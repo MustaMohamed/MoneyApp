@@ -14,7 +14,7 @@ export const migration014 = {
 
     CREATE TABLE IF NOT EXISTS spending_plan_categories (
       plan_id          TEXT NOT NULL REFERENCES spending_plans(id) ON DELETE CASCADE,
-      category_id      TEXT NOT NULL REFERENCES categories(id),
+      category_id      TEXT NOT NULL REFERENCES categories(id) ON DELETE CASCADE,
       allocated_amount REAL CHECK(allocated_amount IS NULL OR allocated_amount >= 0),
       PRIMARY KEY (plan_id, category_id)
     );

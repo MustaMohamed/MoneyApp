@@ -23,3 +23,7 @@ export interface SpendingPlanCategory {
   category_id: string;
   allocated_amount: number | null;
 }
+
+export interface SpendingPlanWithCategories extends SpendingPlan {
+  categories: SpendingPlanCategory[];
+}

@@ -2,13 +2,13 @@ import { renderHook } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
-import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
+import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 const mockRouterPush = jest.fn();
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
+jest.mock('zustand/react/shallow', () => ({ useShallow: (selector: unknown) => selector }));
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: mockRouterPush, back: jest.fn() }),

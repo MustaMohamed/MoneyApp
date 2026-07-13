@@ -4,7 +4,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Colors, Radius, Size, Spacing } from '@/constants/theme';
-import type { SpendingPlanCardCategoryChipVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { SpendingPlanCardCategoryChipVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
 
 interface SpendingPlanCategoryChipProps {

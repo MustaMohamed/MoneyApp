@@ -254,6 +254,8 @@ export const Strings = {
   budgetPlanDateInvalid: 'End date must be on or after start date',
   budgetPlanCategoryRequired: 'Select at least one category',
   budgetPlanSaveError: 'Could not save plan. Try again.',
+  budgetPlanDuplicateCategory: 'Select each category once.',
+  zeroAmountPlaceholder: '0',
   budgetPlanDeleteConfirmTitle: 'Remove plan?',
   budgetPlanDeleteConfirmBody: (name: string) =>
     `Remove ${name}? This deletes the temporary budget and its category allocations.`,
@@ -268,7 +270,7 @@ export const Strings = {
   budgetPlansSummaryEyebrow: (count: number, month: string) =>
     `${count} ${count === 1 ? 'plan' : 'plans'} in ${month}`,
   budgetPlansSummaryAttentionCount: (count: number) => `${count} needs attention`,
-  budgetPlansSummarySpentOf: (spent?: string, planned?: string) => `spent of`,
+  budgetPlansSummarySpentOf: () => 'spent of',
   budgetPlansSummaryUsed: (percentage: number) => `${percentage}% used`,
   budgetPlansSummaryLifecycleLabel: 'Lifecycle',
   budgetPlansSummaryUpcomingLabel: 'Upcoming',
@@ -313,6 +315,8 @@ export const Strings = {
   budgetPlansDetailFlexible: 'Flexible',
   budgetPlansDetailTitle: 'Plan details',
   budgetPlansDetailNotFound: 'This spending plan is no longer available.',
+  budgetPlansDetailLoadError: 'Could not load this spending plan.',
+  budgetPlansDetailRetry: 'Try again',
   budgetPlansDetailBack: 'Back to plans',
   budgetPlansDetailCategories: 'Category limits',
   budgetPlansDetailTotalSpent: (amount: string) => `${amount} spent`,

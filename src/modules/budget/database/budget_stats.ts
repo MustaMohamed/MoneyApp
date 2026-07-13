@@ -56,3 +56,29 @@ export async function getTrailingIncomeSuggestion(
   );
   return row?.suggestion ?? null;
 }
+
+export async function getSpendingPlanSpend(
+  db: SQLiteDatabase,
+  planIds: string[],
+): Promise<Record<string, Record<string, number>>> {
+  if (planIds.length === 0) return {};
+  const placeholders = planIds.map(() => '?').join(',');
+  const rows = await db.getAllAsync<{ plan_id: string; category_id: string; spent: number }>(
+    `SELECT plan.id AS plan_id,
+            assignment.category_id AS category_id,
+            COALESCE(SUM(transaction_row.egp_amount), 0) AS spent
+       FROM spending_plans plan
+       JOIN spending_plan_categories assignment ON assignment.plan_id = plan.id
+       LEFT JOIN transactions transaction_row
+         ON transaction_row.category_id = assignment.category_id
+        AND transaction_row.type = 'expense'
+        AND transaction_row.transaction_date >= plan.start_date
+        AND transaction_row.transaction_date <= plan.end_date
+      WHERE plan.id IN (${placeholders})
+      GROUP BY plan.id, assignment.category_id`,
+    planIds,
+  );
+  const out: Record<string, Record<string, number>> = {};
+  for (const row of rows) (out[row.plan_id] ??= {})[row.category_id] = row.spent;
+  return out;
+}

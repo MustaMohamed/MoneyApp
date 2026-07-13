@@ -1,10 +1,33 @@
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
+import { monthRange } from '@/modules/budget/database/spending_plans';
+import type { SpendingPlanWithCategories } from '@/modules/budget/entities/budget.entity';
+import {
+  computePlanTiming,
+  derivePlanStatus,
+} from '@/modules/budget/screens/budget/spending_plan_timing.helpers';
+import type {
+  AllocationHelperVM,
+  SpendingPlanAllocationRowVM,
+  SpendingPlanCardAllocationChipVM,
+  SpendingPlanCardCategoryChipVM,
+  SpendingPlanCardChipVM,
+  SpendingPlanCardDisplayChipVM,
+  SpendingPlanCardVM,
+  SpendingPlanCategoryChipVM,
+  SpendingPlanDetailCategoryRowVM,
+  SpendingPlanDetailCategoryVM,
+  SpendingPlanDetailInsightVM,
+  SpendingPlanDetailVM,
+  SpendingPlanRowVM,
+  SpendingPlanStatus,
+  SpendingPlanStatusTone,
+  SpendingPlanTimingVM,
+} from '@/modules/budget/screens/budget/spending_plans.types';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { formatAmount } from '@/utils/format_amount';
-import { formatMonthYear, formatShortDate } from '@/utils/format_date';
+import { formatShortDate } from '@/utils/format_date';
 
 import {
   BUDGET_WARNING_THRESHOLD,
@@ -13,307 +36,28 @@ import {
   type BudgetStatus,
 } from './budget.helpers';
 
-const DAY_MS = 86_400_000;
-const PACE_WARNING_THRESHOLD = 0.1;
+export type {
+  AllocationHelperVM,
+  SpendingPlanAllocationRowVM,
+  SpendingPlanCardAllocationChipVM,
+  SpendingPlanCardCategoryChipVM,
+  SpendingPlanCardChipVM,
+  SpendingPlanCardDisplayChipVM,
+  SpendingPlanCardVM,
+  SpendingPlanCategoryChipVM,
+  SpendingPlanDetailCategoryRowVM,
+  SpendingPlanDetailCategoryVM,
+  SpendingPlanDetailInsightVM,
+  SpendingPlanDetailVM,
+  SpendingPlanLifecycle,
+  SpendingPlanRowVM,
+  SpendingPlansSummaryVM,
+  SpendingPlanStatus,
+  SpendingPlanStatusTone,
+  SpendingPlanTimingVM,
+} from '@/modules/budget/screens/budget/spending_plans.types';
 
-export type SpendingPlanLifecycle = 'upcoming' | 'active' | 'completed';
-export type SpendingPlanStatus = 'upcoming' | 'onTrack' | 'watch' | 'over';
-export type SpendingPlanStatusTone = 'accent' | 'success' | 'warning' | 'danger';
-
-export interface SpendingPlansSummaryStatusItemVM {
-  key: 'onTrack' | 'watch' | 'over' | 'upcoming';
-  icon: 'check-circle-outline' | 'alert-circle-outline' | 'alert-octagon-outline' | 'clock-outline';
-  color: string;
-  label: string;
-}
-
-export interface SpendingPlanTimingVM {
-  lifecycle: SpendingPlanLifecycle;
-  totalDays: number;
-  elapsedDays: number;
-  elapsedPct: number;
-  daysValue: number;
-}
-
-export interface SpendingPlanDetailCategoryVM {
-  categoryId: string;
-  categoryName: string;
-  icon: string;
-  color: string;
-  spent: number;
-  allocatedAmount?: number;
-  left?: number;
-  pct?: number;
-  isOver: boolean;
-  isWarning: boolean;
-}
-
-export interface SpendingPlanAllocationRowVM {
-  categoryId: string;
-  categoryName: string;
-  icon: string;
-  color: string;
-  allocatedAmount: number;
-  spent: number;
-  left: number;
-  pct: number;
-  isOver: boolean;
-}
-
-export interface SpendingPlanCategoryChipVM {
-  id: string;
-  name: string;
-  icon: string;
-  color: string;
-  spent: number;
-}
-
-export type SpendingPlanCardChipVM =
-  | { type: 'allocation'; id: string; allocation: SpendingPlanAllocationRowVM }
-  | { type: 'category'; id: string; category: SpendingPlanCategoryChipVM }
-  | { type: 'more'; id: 'more'; count: number };
-
-export interface SpendingPlanCardAllocationChipVM extends SpendingPlanAllocationRowVM {
-  amountLabel: string;
-  percentageLabel: string;
-  bandColor: string;
-  accessibilityLabel: string;
-}
-
-export interface SpendingPlanCardCategoryChipVM extends SpendingPlanCategoryChipVM {
-  spent: number;
-  accessibilityLabel: string;
-}
-
-export type SpendingPlanCardDisplayChipVM =
-  | { type: 'allocation'; id: string; allocation: SpendingPlanCardAllocationChipVM }
-  | { type: 'category'; id: string; category: SpendingPlanCardCategoryChipVM }
-  | {
-      type: 'more';
-      id: 'more';
-      count: number;
-      label: string;
-      accessibilityLabel: string;
-    };
-
-export interface SpendingPlanCardVM {
-  openDetailsAccessibilityLabel: string;
-  statusLabel: string;
-  statusTone: SpendingPlanStatusTone;
-  dateLabel: string;
-  balanceAmountLabel: string;
-  balanceMetaLabel: string;
-  balanceAccessibilityLabel: string;
-  balanceColor: string;
-  spentLabel: string;
-  percentageLabel: string;
-  progressColor: string;
-  progressStatus: BudgetStatus;
-  elapsedMarkerPercentage?: number;
-  elapsedMarkerColor?: string;
-  paceLabel?: string;
-  allocationFooterLabel: string;
-  allocationChips: SpendingPlanCardAllocationChipVM[];
-  chips: SpendingPlanCardDisplayChipVM[];
-}
-
-export interface SpendingPlanDetailMetricVM {
-  label: string;
-  value: string;
-}
-
-export interface SpendingPlanDetailInsightVM {
-  key: 'pace' | 'final' | 'category';
-  icon: 'speedometer' | 'flag-checkered' | 'alert-circle-outline' | 'alert-octagon-outline';
-  color: string;
-  label: string;
-}
-
-export type SpendingPlanDetailCategoryRowVM =
-  | {
-      kind: 'allocated';
-      categoryId: string;
-      categoryName: string;
-      icon: string;
-      color: string;
-      pct: number;
-      amountLabel: string;
-      percentageLabel: string;
-      balanceLabel: string;
-      balanceColor: string;
-      statusLabel: string;
-      statusTone: SpendingPlanStatusTone;
-      progressColor: string;
-      accessibilityLabel: string;
-    }
-  | {
-      kind: 'unallocated';
-      categoryId: string;
-      categoryName: string;
-      icon: string;
-      color: string;
-      amountLabel: string;
-      supportingLabel: string;
-      accessibilityLabel: string;
-    };
-
-export interface SpendingPlanDetailVM {
-  pct: number;
-  progressPercentage: number;
-  dateLabel: string;
-  balanceAmountLabel: string;
-  balanceMetaLabel: string;
-  balanceAccessibilityLabel: string;
-  balanceColor: string;
-  statusLabel: string;
-  statusTone: SpendingPlanStatusTone;
-  spentLabel: string;
-  percentageLabel: string;
-  progressColor: string;
-  progressStatus: BudgetStatus;
-  elapsedMarkerPercentage?: number;
-  elapsedMarkerColor?: string;
-  metrics: SpendingPlanDetailMetricVM[];
-  insights: SpendingPlanDetailInsightVM[];
-  categoryRows: SpendingPlanDetailCategoryRowVM[];
-  flexibleRow?: {
-    label: string;
-    amountLabel: string;
-    supportingLabel: string;
-  };
-}
-
-export interface SpendingPlanRowVM {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  totalAmount: number;
-  spent: number;
-  left: number;
-  pct: number;
-  isOver: boolean;
-  categoryCount: number;
-  categoryChips: SpendingPlanCategoryChipVM[];
-  allocationRows: SpendingPlanAllocationRowVM[];
-  cardChips: SpendingPlanCardChipVM[];
-  allocatedTotal: number;
-  buffer: number;
-  timing: SpendingPlanTimingVM;
-  status: SpendingPlanStatus;
-  paceDelta: number;
-  detailCategoryRows: SpendingPlanDetailCategoryVM[];
-  highestPressureCategory?: SpendingPlanDetailCategoryVM;
-  card: SpendingPlanCardVM;
-  detail: SpendingPlanDetailVM;
-}
-
-export interface SpendingPlansSummaryVM {
-  planned: number;
-  spent: number;
-  left: number;
-  pct: number;
-  planCount: number;
-  monthLabel: string;
-  eyebrowLabel: string;
-  usedPercentage: number;
-  progressPercentage: number;
-  itemizedAmount: number;
-  itemizedPct: number;
-  itemizedPercentage: number;
-  balanceAmount: number;
-  balanceStatus: 'left' | 'over';
-  balanceColor: string;
-  barColor: string;
-  barStatus: BudgetStatus;
-  activeCount: number;
-  upcomingCount: number;
-  onTrackCount: number;
-  watchCount: number;
-  overCount: number;
-  needsAttentionCount: number;
-  statusItems: SpendingPlansSummaryStatusItemVM[];
-}
-
-export interface AllocationHelperVM {
-  allocated: number;
-  buffer: number;
-  isOver: boolean;
-}
-
-export interface PlanDraftValidationErrors {
-  name?: string;
-  dates?: string;
-  amount?: string;
-  categories?: string;
-  allocations?: string;
-}
-
-function monthRange(yearMonth: string): { start: string; endExclusive: string } {
-  const [year, month] = yearMonth.split('-').map(Number);
-  const nextMonth = month === 12 ? 1 : month + 1;
-  const nextYear = month === 12 ? year + 1 : year;
-  return {
-    start: `${yearMonth}-01`,
-    endExclusive: `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`,
-  };
-}
-
-function isoDayNumber(value: string): number {
-  const [year, month, day] = value.split('-').map(Number);
-  return Math.floor(Date.UTC(year, month - 1, day) / DAY_MS);
-}
-
-export function computePlanTiming(
-  startDate: string,
-  endDate: string,
-  today: string,
-): SpendingPlanTimingVM {
-  const start = isoDayNumber(startDate);
-  const end = isoDayNumber(endDate);
-  const current = isoDayNumber(today);
-  const totalDays = end - start + 1;
-
-  if (current < start) {
-    return {
-      lifecycle: 'upcoming',
-      totalDays,
-      elapsedDays: 0,
-      elapsedPct: 0,
-      daysValue: start - current,
-    };
-  }
-
-  const elapsedDays = Math.min(totalDays, current - start + 1);
-  return {
-    lifecycle: current > end ? 'completed' : 'active',
-    totalDays,
-    elapsedDays,
-    elapsedPct: elapsedDays / totalDays,
-    daysValue: current > end ? current - end : end - current,
-  };
-}
-
-function derivePlanStatus({
-  lifecycle,
-  isOver,
-  paceDelta,
-  hasCategoryPressure,
-}: {
-  lifecycle: SpendingPlanLifecycle;
-  isOver: boolean;
-  paceDelta: number;
-  hasCategoryPressure: boolean;
-}): SpendingPlanStatus {
-  if (lifecycle === 'upcoming') return 'upcoming';
-  if (isOver) return 'over';
-  if (
-    lifecycle === 'active' &&
-    (paceDelta + Number.EPSILON >= PACE_WARNING_THRESHOLD || hasCategoryPressure)
-  )
-    return 'watch';
-  return 'onTrack';
-}
+export { computePlanTiming } from '@/modules/budget/screens/budget/spending_plan_timing.helpers';
 
 const PLAN_STATUS_PRESENTATION: Record<
   SpendingPlanStatus,
@@ -355,10 +99,14 @@ function buildSpendingPlanAllocationCardChip(
   const spentLabel = formatAmount(allocation.spent);
   const allocatedLabel = formatAmount(allocation.allocatedAmount);
   const percentage = Math.round(allocation.pct * 100);
+  const percentageLabel =
+    allocation.allocatedAmount === 0 && allocation.spent > 0
+      ? PLAN_STATUS_PRESENTATION.over.label
+      : `${percentage}%`;
   return {
     ...allocation,
     amountLabel: `${spentLabel}/${allocatedLabel}`,
-    percentageLabel: `${percentage}%`,
+    percentageLabel,
     bandColor: allocation.isOver ? Colors.dark.negative : budgetBandColor(allocation.pct),
     accessibilityLabel: Strings.budgetPlansAllocationChipA11y(
       allocation.categoryName,
@@ -524,6 +272,10 @@ function buildDetailCategoryRow(
 
   const allocatedLabel = formatAmount(row.allocatedAmount);
   const percentage = Math.round(row.pct * 100);
+  const percentageLabel =
+    row.allocatedAmount === 0 && row.spent > 0
+      ? PLAN_STATUS_PRESENTATION.over.label
+      : `${percentage}%`;
   const balance = remainingLabel(row.left);
   const balanceLabel = Strings.budgetPlansDetailBalance(
     formatAmount(balance.magnitude),
@@ -542,7 +294,7 @@ function buildDetailCategoryRow(
     color: row.color,
     pct: row.pct,
     amountLabel: `${spentLabel} / ${allocatedLabel}`,
-    percentageLabel: `${percentage}%`,
+    percentageLabel,
     balanceLabel,
     balanceColor: row.isOver ? Colors.dark.negative : Colors.dark.text2,
     statusLabel: status.label,
@@ -568,6 +320,7 @@ function buildSpendingPlanDetail({
   buffer,
   detailCategoryRows,
   highestPressureCategory,
+  totalSpent,
 }: {
   card: SpendingPlanCardVM;
   pct: number;
@@ -577,6 +330,7 @@ function buildSpendingPlanDetail({
   buffer: number;
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
   highestPressureCategory?: SpendingPlanDetailCategoryVM;
+  totalSpent: number;
 }): SpendingPlanDetailVM {
   const usedPercentage = Math.round(pct * 100);
   const elapsedPercentage = Math.round(Math.min(Math.max(timing.elapsedPct, 0), 1) * 100);
@@ -598,8 +352,7 @@ function buildSpendingPlanDetail({
   }
 
   if (
-    highestPressureCategory !== undefined &&
-    highestPressureCategory.allocatedAmount !== undefined &&
+    highestPressureCategory?.allocatedAmount !== undefined &&
     highestPressureCategory.pct !== undefined &&
     (highestPressureCategory.isOver || highestPressureCategory.isWarning)
   ) {
@@ -635,6 +388,7 @@ function buildSpendingPlanDetail({
     statusTone: card.statusTone,
     spentLabel: card.spentLabel,
     percentageLabel: card.percentageLabel,
+    totalSpentLabel: Strings.budgetPlansDetailTotalSpent(formatAmount(totalSpent)),
     progressColor: card.progressColor,
     progressStatus: card.progressStatus,
     ...(card.elapsedMarkerPercentage === undefined || card.elapsedMarkerColor === undefined
@@ -760,7 +514,8 @@ export function buildSpendingPlanRows({
           const category = categoryById.get(row.category_id);
           const allocatedAmount = row.allocated_amount ?? 0;
           const categorySpent = spend[row.category_id] ?? 0;
-          const pct = allocatedAmount > 0 ? categorySpent / allocatedAmount : 0;
+          const pct =
+            allocatedAmount > 0 ? categorySpent / allocatedAmount : categorySpent > 0 ? 1 : 0;
           const isOver = categorySpent > allocatedAmount;
           return {
             categoryId: row.category_id,
@@ -793,7 +548,12 @@ export function buildSpendingPlanRows({
           return { ...shared, isOver: false, isWarning: false };
         }
 
-        const pct = row.allocated_amount > 0 ? categorySpent / row.allocated_amount : 0;
+        const pct =
+          row.allocated_amount > 0
+            ? categorySpent / row.allocated_amount
+            : categorySpent > 0
+              ? 1
+              : 0;
         const isOver = categorySpent > row.allocated_amount;
         return {
           ...shared,
@@ -860,6 +620,7 @@ export function buildSpendingPlanRows({
         buffer,
         detailCategoryRows,
         highestPressureCategory,
+        totalSpent: spent,
       });
       return {
         id: plan.id,
@@ -886,111 +647,4 @@ export function buildSpendingPlanRows({
         detail,
       };
     });
-}
-
-export function computeSpendingPlansSummary(
-  rows: SpendingPlanRowVM[],
-  selectedMonth: string,
-): SpendingPlansSummaryVM {
-  const planned = rows.reduce((total, row) => total + row.totalAmount, 0);
-  const spent = rows.reduce((total, row) => total + row.spent, 0);
-  const left = planned - spent;
-  const pct = planned > 0 ? spent / planned : 0;
-  const itemizedAmount = rows.reduce((total, row) => total + row.allocatedTotal, 0);
-  const itemizedPct = planned > 0 ? itemizedAmount / planned : 0;
-  const usedPercentage = Math.round(pct * 100);
-  const balance = remainingLabel(left);
-  const isOver = balance.label === 'over';
-  const activeCount = rows.filter((row) => row.timing.lifecycle === 'active').length;
-  const upcomingCount = rows.filter((row) => row.timing.lifecycle === 'upcoming').length;
-  const onTrackCount = rows.filter((row) => row.status === 'onTrack').length;
-  const watchCount = rows.filter((row) => row.status === 'watch').length;
-  const overCount = rows.filter((row) => row.status === 'over').length;
-  const planCount = rows.length;
-  const monthLabel = formatMonthYear(selectedMonth);
-  return {
-    planned,
-    spent,
-    left,
-    pct,
-    planCount,
-    monthLabel,
-    eyebrowLabel: Strings.budgetPlansSummaryEyebrow(planCount, monthLabel),
-    usedPercentage,
-    progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
-    itemizedAmount,
-    itemizedPct,
-    itemizedPercentage: Math.round(itemizedPct * 100),
-    balanceAmount: balance.magnitude,
-    balanceStatus: balance.label,
-    balanceColor: isOver ? Colors.dark.negative : Colors.dark.positive,
-    barColor: isOver ? Colors.dark.negative : Colors.dark.gold,
-    barStatus: isOver ? 'over' : 'under',
-    activeCount,
-    upcomingCount,
-    onTrackCount,
-    watchCount,
-    overCount,
-    needsAttentionCount: watchCount + overCount,
-    statusItems: [
-      {
-        key: 'onTrack',
-        icon: 'check-circle-outline',
-        color: Colors.dark.positive,
-        label: Strings.budgetPlansSummaryOnTrackCount(onTrackCount),
-      },
-      {
-        key: 'watch',
-        icon: 'alert-circle-outline',
-        color: Colors.dark.warning,
-        label: Strings.budgetPlansSummaryWatchCount(watchCount),
-      },
-      {
-        key: 'over',
-        icon: 'alert-octagon-outline',
-        color: Colors.dark.negative,
-        label: Strings.budgetPlansSummaryOverCount(overCount),
-      },
-      {
-        key: 'upcoming',
-        icon: 'clock-outline',
-        color: Colors.shared.transferBlue,
-        label: Strings.budgetPlansSummaryUpcomingCount(upcomingCount),
-      },
-    ],
-  };
-}
-
-export function validatePlanDraft({
-  name,
-  startDate,
-  endDate,
-  totalAmount,
-  categoryIds,
-  allocations,
-}: {
-  name: string;
-  startDate: string;
-  endDate: string;
-  totalAmount: number;
-  categoryIds: string[];
-  allocations: Record<string, number | undefined>;
-}): PlanDraftValidationErrors {
-  const errors: PlanDraftValidationErrors = {};
-  if (name.trim().length === 0) errors.name = Strings.budgetPlanNameRequired;
-  if (endDate < startDate) errors.dates = Strings.budgetPlanDateInvalid;
-  if (!Number.isFinite(totalAmount) || totalAmount <= 0)
-    errors.amount = Strings.budgetPlanAmountRequired;
-  if (categoryIds.length === 0) errors.categories = Strings.budgetPlanCategoryRequired;
-  if (
-    Object.values(allocations).some(
-      (amount) => amount !== undefined && (!Number.isFinite(amount) || amount < 0),
-    )
-  ) {
-    errors.allocations = Strings.budgetPlanAllocationInvalid;
-  }
-  if (computeAllocationHelper(totalAmount, allocations).isOver) {
-    errors.allocations = Strings.budgetPlanAllocationOver;
-  }
-  return errors;
 }

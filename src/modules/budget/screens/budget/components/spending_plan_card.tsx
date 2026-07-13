@@ -9,7 +9,7 @@ import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/the
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
 import { SpendingPlanCategoryChip } from '@/modules/budget/screens/budget/components/spending_plan_category_chip';
-import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 
 interface SpendingPlanCardProps {
   row: SpendingPlanRowVM;

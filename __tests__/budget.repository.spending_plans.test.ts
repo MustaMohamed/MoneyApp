@@ -20,19 +20,23 @@ jest.mock('@/database/client', () => {
 });
 jest.mock('@/modules/budget/database/budget_stats', () => ({
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
+  getSpendingPlanSpend: jest.fn().mockResolvedValue({}),
 }));
 jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
   getBudgetRows: jest.fn().mockResolvedValue([]),
   setBudgetRow: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock('@/modules/budget/database/spending_plan_categories', () => ({
+  getSpendingPlanCategoryRows: jest.fn().mockResolvedValue([]),
+  replaceSpendingPlanCategoryRows: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('@/modules/budget/database/spending_plans', () => ({
   deleteSpendingPlan: jest.fn().mockResolvedValue(undefined),
-  getPlanCategorySpend: jest.fn().mockResolvedValue({}),
   getSpendingPlanById: jest.fn().mockResolvedValue(null),
   getSpendingPlanRows: jest.fn().mockResolvedValue([]),
   getSpendingPlanRowsForRange: jest.fn().mockResolvedValue([]),
-  setSpendingPlan: jest.fn().mockResolvedValue(undefined),
+  setSpendingPlanRow: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/modules/categories/database/categories', () => ({
   getCategoriesByType: jest.fn().mockResolvedValue([
@@ -53,24 +57,37 @@ const { mockWithExclusiveTransactionAsync } = jest.requireMock('@/database/clien
 };
 const {
   deleteSpendingPlan,
-  getPlanCategorySpend,
   getSpendingPlanById,
   getSpendingPlanRows,
   getSpendingPlanRowsForRange,
-  setSpendingPlan,
+  setSpendingPlanRow,
 } = jest.requireMock('@/modules/budget/database/spending_plans') as {
   deleteSpendingPlan: jest.Mock<Promise<void>, [SQLiteDatabase, string]>;
-  getPlanCategorySpend: jest.Mock<Promise<Record<string, number>>, [SQLiteDatabase, unknown]>;
-  getSpendingPlanById: jest.Mock<
-    Promise<SpendingPlanWithCategories | null>,
-    [SQLiteDatabase, string]
-  >;
-  getSpendingPlanRows: jest.Mock<Promise<SpendingPlanWithCategories[]>, [SQLiteDatabase, string]>;
+  getSpendingPlanById: jest.Mock<Promise<SpendingPlan | null>, [SQLiteDatabase, string]>;
+  getSpendingPlanRows: jest.Mock<Promise<SpendingPlan[]>, [SQLiteDatabase, string]>;
   getSpendingPlanRowsForRange: jest.Mock<
-    Promise<SpendingPlanWithCategories[]>,
+    Promise<SpendingPlan[]>,
     [SQLiteDatabase, { startDate: string; endDate: string }]
   >;
-  setSpendingPlan: jest.Mock<Promise<void>, [SQLiteDatabase, SpendingPlan, SpendingPlanCategory[]]>;
+  setSpendingPlanRow: jest.Mock<Promise<void>, [SQLiteDatabase, SpendingPlan]>;
+};
+const { getSpendingPlanCategoryRows, replaceSpendingPlanCategoryRows } = jest.requireMock(
+  '@/modules/budget/database/spending_plan_categories',
+) as {
+  getSpendingPlanCategoryRows: jest.Mock<
+    Promise<SpendingPlanCategory[]>,
+    [SQLiteDatabase, string[]]
+  >;
+  replaceSpendingPlanCategoryRows: jest.Mock<
+    Promise<void>,
+    [SQLiteDatabase, string, SpendingPlanCategory[]]
+  >;
+};
+const { getSpendingPlanSpend } = jest.requireMock('@/modules/budget/database/budget_stats') as {
+  getSpendingPlanSpend: jest.Mock<
+    Promise<Record<string, Record<string, number>>>,
+    [SQLiteDatabase, string[]]
+  >;
 };
 const { getCategoriesByType } = jest.requireMock('@/modules/categories/database/categories') as {
   getCategoriesByType: jest.Mock<
@@ -125,7 +142,7 @@ describe('BudgetRepository spending plans', () => {
       categories: [{ categoryId: 'cat_food', allocatedAmount: 3000 }, { categoryId: 'cat_travel' }],
     });
 
-    expect(setSpendingPlan).toHaveBeenCalledWith(
+    expect(setSpendingPlanRow).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         id: 'new-plan-id',
@@ -134,11 +151,11 @@ describe('BudgetRepository spending plans', () => {
         end_date: '2026-07-21',
         total_amount: 8000,
       }),
-      [
-        { plan_id: 'new-plan-id', category_id: 'cat_food', allocated_amount: 3000 },
-        { plan_id: 'new-plan-id', category_id: 'cat_travel', allocated_amount: null },
-      ],
     );
+    expect(replaceSpendingPlanCategoryRows).toHaveBeenCalledWith(expect.anything(), 'new-plan-id', [
+      { plan_id: 'new-plan-id', category_id: 'cat_food', allocated_amount: 3000 },
+      { plan_id: 'new-plan-id', category_id: 'cat_travel', allocated_amount: null },
+    ]);
   });
 
   it('serializes overlap validation and writes in an exclusive transaction', async () => {
@@ -155,11 +172,7 @@ describe('BudgetRepository spending plans', () => {
       startDate: '2026-07-18',
       endDate: '2026-07-21',
     });
-    expect(setSpendingPlan).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      expect.any(Array),
-    );
+    expect(setSpendingPlanRow).toHaveBeenCalledWith(expect.anything(), expect.anything());
   });
 
   it('rejects allocations above the plan total', async () => {
@@ -175,7 +188,7 @@ describe('BudgetRepository spending plans', () => {
         ],
       }),
     ).rejects.toThrow('Allocations exceed the plan total');
-    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(setSpendingPlanRow).not.toHaveBeenCalled();
   });
 
   it('rejects a negative category allocation before writing', async () => {
@@ -189,7 +202,7 @@ describe('BudgetRepository spending plans', () => {
       }),
     ).rejects.toThrow('Each allocation must be zero or greater');
 
-    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(setSpendingPlanRow).not.toHaveBeenCalled();
   });
 
   it('rejects non-expense categories before writing', async () => {
@@ -205,13 +218,13 @@ describe('BudgetRepository spending plans', () => {
       }),
     ).rejects.toThrow('Select expense categories only');
 
-    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(setSpendingPlanRow).not.toHaveBeenCalled();
   });
 
   it('rejects overlapping plans for the same category', async () => {
-    getSpendingPlanRowsForRange.mockResolvedValueOnce([
-      plan('existing', 'Existing trip', '2026-07-20', '2026-07-25', ['cat_food']),
-    ]);
+    const existing = plan('existing', 'Existing trip', '2026-07-20', '2026-07-25', ['cat_food']);
+    getSpendingPlanRowsForRange.mockResolvedValueOnce([existing]);
+    getSpendingPlanCategoryRows.mockResolvedValueOnce(existing.categories);
 
     await expect(
       new BudgetRepository().setSpendingPlan({
@@ -222,13 +235,13 @@ describe('BudgetRepository spending plans', () => {
         categories: [{ categoryId: 'cat_food' }],
       }),
     ).rejects.toThrow('cat_food overlaps Existing trip');
-    expect(setSpendingPlan).not.toHaveBeenCalled();
+    expect(setSpendingPlanRow).not.toHaveBeenCalled();
   });
 
   it('allows overlapping dates for different categories', async () => {
-    getSpendingPlanRowsForRange.mockResolvedValueOnce([
-      plan('existing', 'Existing trip', '2026-07-20', '2026-07-25', ['cat_food']),
-    ]);
+    const existing = plan('existing', 'Existing trip', '2026-07-20', '2026-07-25', ['cat_food']);
+    getSpendingPlanRowsForRange.mockResolvedValueOnce([existing]);
+    getSpendingPlanCategoryRows.mockResolvedValueOnce(existing.categories);
 
     await new BudgetRepository().setSpendingPlan({
       name: 'New trip',
@@ -238,7 +251,7 @@ describe('BudgetRepository spending plans', () => {
       categories: [{ categoryId: 'cat_travel' }],
     });
 
-    expect(setSpendingPlan).toHaveBeenCalledTimes(1);
+    expect(setSpendingPlanRow).toHaveBeenCalledTimes(1);
   });
 
   it('preserves created_at when editing an existing plan', async () => {
@@ -255,32 +268,38 @@ describe('BudgetRepository spending plans', () => {
       categories: [{ categoryId: 'cat_food' }],
     });
 
-    expect(setSpendingPlan).toHaveBeenCalledWith(
+    expect(setSpendingPlanRow).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
         id: 'plan_trip',
         name: 'Trip edited',
         created_at: NOW,
       }),
-      expect.any(Array),
     );
   });
 
   it('loads visible plans and category spend for them', async () => {
-    getSpendingPlanRows.mockResolvedValueOnce([
-      plan('plan_trip', 'Trip', '2026-07-18', '2026-07-21', ['cat_food']),
-    ]);
-    getPlanCategorySpend.mockResolvedValueOnce({ cat_food: 1200 });
+    const loadedPlan = plan('plan_trip', 'Trip', '2026-07-18', '2026-07-21', ['cat_food']);
+    getSpendingPlanRows.mockResolvedValueOnce([loadedPlan]);
+    getSpendingPlanCategoryRows.mockResolvedValueOnce(loadedPlan.categories);
+    getSpendingPlanSpend.mockResolvedValueOnce({ plan_trip: { cat_food: 1200 } });
 
     const result = await new BudgetRepository().getSpendingPlansForMonth('2026-07');
 
     expect(result.plans).toHaveLength(1);
     expect(result.spendByPlanId).toEqual({ plan_trip: { cat_food: 1200 } });
-    expect(getPlanCategorySpend).toHaveBeenCalledWith(expect.anything(), {
-      startDate: '2026-07-18',
-      endDate: '2026-07-21',
-      categoryIds: ['cat_food'],
-    });
+    expect(getSpendingPlanSpend).toHaveBeenCalledWith(expect.anything(), ['plan_trip']);
+  });
+
+  it('loads plan details by id independently of the selected month', async () => {
+    const loadedPlan = plan('plan_trip', 'Trip', '2026-08-01', '2026-08-04', ['cat_food']);
+    getSpendingPlanById.mockResolvedValueOnce(loadedPlan);
+    getSpendingPlanCategoryRows.mockResolvedValueOnce(loadedPlan.categories);
+    getSpendingPlanSpend.mockResolvedValueOnce({ plan_trip: { cat_food: 400 } });
+
+    const result = await new BudgetRepository().getSpendingPlanDetails('plan_trip');
+
+    expect(result).toEqual({ plan: loadedPlan, spend: { cat_food: 400 } });
   });
 
   it('deletes a spending plan by id', async () => {

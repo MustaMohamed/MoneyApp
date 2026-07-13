@@ -3,19 +3,30 @@ import uuid from 'react-native-uuid';
 import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
-import { getCategorySpendByMonth } from '@/modules/budget/database/budget_stats';
+import {
+  getCategorySpendByMonth,
+  getSpendingPlanSpend,
+} from '@/modules/budget/database/budget_stats';
 import { deleteBudgetRow, getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
 import {
+  getSpendingPlanCategoryRows,
+  replaceSpendingPlanCategoryRows,
+} from '@/modules/budget/database/spending_plan_categories';
+import {
   deleteSpendingPlan,
-  getPlanCategorySpend,
   getSpendingPlanById,
   getSpendingPlanRows,
   getSpendingPlanRowsForRange,
-  setSpendingPlan as setSpendingPlanRow,
-  type SpendingPlanWithCategories,
+  setSpendingPlanRow,
 } from '@/modules/budget/database/spending_plans';
-import type { Budget, SpendingPlan } from '@/modules/budget/entities/budget.entity';
+import type {
+  Budget,
+  SpendingPlan,
+  SpendingPlanCategory,
+  SpendingPlanWithCategories,
+} from '@/modules/budget/entities/budget.entity';
 import { getCategoriesByType } from '@/modules/categories/database/categories';
+import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
 export function currentYearMonth(now: Date = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -43,6 +54,7 @@ export interface IBudgetRepository {
   copyLimitsToMonth(sourceMonth: string, targetMonth: string, categoryIds: string[]): Promise<void>;
   getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>>;
   getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult>;
+  getSpendingPlanDetails(id: string): Promise<SpendingPlanDetailsResult | undefined>;
   setSpendingPlan(input: SetSpendingPlanInput): Promise<void>;
   removeSpendingPlan(id: string): Promise<void>;
 }
@@ -55,23 +67,31 @@ export interface SetBudgetInput {
   yearMonth?: string;
 }
 
-export interface SpendingPlanCategoryInput {
-  categoryId: string;
-  allocatedAmount?: number;
-}
-
-export interface SetSpendingPlanInput {
-  id?: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  totalAmount: number;
-  categories: SpendingPlanCategoryInput[];
-}
+export type SetSpendingPlanInput = SpendingPlanInput;
 
 export interface SpendingPlansForMonthResult {
   plans: SpendingPlanWithCategories[];
   spendByPlanId: Record<string, Record<string, number>>;
+}
+
+export interface SpendingPlanDetailsResult {
+  plan: SpendingPlanWithCategories;
+  spend: Record<string, number>;
+}
+
+export class SpendingPlanValidationError extends Error {}
+
+function hydrateSpendingPlans(
+  plans: SpendingPlan[],
+  categories: SpendingPlanCategory[],
+): SpendingPlanWithCategories[] {
+  const categoriesByPlan = new Map<string, SpendingPlanCategory[]>();
+  for (const category of categories) {
+    const rows = categoriesByPlan.get(category.plan_id) ?? [];
+    rows.push(category);
+    categoriesByPlan.set(category.plan_id, rows);
+  }
+  return plans.map((plan) => ({ ...plan, categories: categoriesByPlan.get(plan.id) ?? [] }));
 }
 
 function normalizeBudgetName(name: string): string {
@@ -94,27 +114,12 @@ function rangesOverlap(
 }
 
 function validateSpendingPlanInput(input: SetSpendingPlanInput): void {
-  if (normalizePlanName(input.name).length === 0) throw new Error(Strings.budgetPlanNameRequired);
-  if (input.endDate < input.startDate) throw new Error(Strings.budgetPlanDateInvalid);
-  if (!Number.isFinite(input.totalAmount) || input.totalAmount <= 0) {
-    throw new Error(Strings.budgetPlanAmountInvalid);
+  const result = spendingPlanInputSchema.safeParse(input);
+  if (!result.success) {
+    throw new SpendingPlanValidationError(
+      result.error.issues[0]?.message ?? Strings.budgetPlanSaveError,
+    );
   }
-  const unique = new Set(input.categories.map((category) => category.categoryId));
-  if (unique.size === 0) throw new Error(Strings.budgetPlanCategoryRequired);
-  if (unique.size !== input.categories.length) throw new Error('Duplicate plan category');
-  for (const category of input.categories) {
-    if (
-      category.allocatedAmount !== undefined &&
-      (!Number.isFinite(category.allocatedAmount) || category.allocatedAmount < 0)
-    ) {
-      throw new Error(Strings.budgetPlanAllocationInvalid);
-    }
-  }
-  const allocated = input.categories.reduce(
-    (total, category) => total + (category.allocatedAmount ?? 0),
-    0,
-  );
-  if (allocated > input.totalAmount) throw new Error(Strings.budgetPlanAllocationOver);
 }
 
 export class BudgetRepository implements IBudgetRepository {
@@ -235,19 +240,27 @@ export class BudgetRepository implements IBudgetRepository {
 
   async getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult> {
     const db = await getDb();
-    const plans = await getSpendingPlanRows(db, yearMonth);
-    const spendEntries = await Promise.all(
-      plans.map(async (plan) => {
-        const categoryIds = plan.categories.map((category) => category.category_id);
-        const spend = await getPlanCategorySpend(db, {
-          startDate: plan.start_date,
-          endDate: plan.end_date,
-          categoryIds,
-        });
-        return [plan.id, spend] as const;
-      }),
-    );
-    return { plans, spendByPlanId: Object.fromEntries(spendEntries) };
+    const planRows = await getSpendingPlanRows(db, yearMonth);
+    const planIds = planRows.map((plan) => plan.id);
+    const [categoryRows, spendByPlanId] = await Promise.all([
+      getSpendingPlanCategoryRows(db, planIds),
+      getSpendingPlanSpend(db, planIds),
+    ]);
+    return { plans: hydrateSpendingPlans(planRows, categoryRows), spendByPlanId };
+  }
+
+  async getSpendingPlanDetails(id: string): Promise<SpendingPlanDetailsResult | undefined> {
+    const db = await getDb();
+    const plan = await getSpendingPlanById(db, id);
+    if (!plan) return undefined;
+    const [categories, spendByPlanId] = await Promise.all([
+      getSpendingPlanCategoryRows(db, [id]),
+      getSpendingPlanSpend(db, [id]),
+    ]);
+    return {
+      plan: { ...plan, categories },
+      spend: spendByPlanId[id] ?? {},
+    };
   }
 
   async setSpendingPlan(input: SetSpendingPlanInput): Promise<void> {
@@ -262,12 +275,19 @@ export class BudgetRepository implements IBudgetRepository {
       const invalidCategory = input.categories.find(
         (category) => !expenseCategoryById.has(category.categoryId),
       );
-      if (invalidCategory) throw new Error(Strings.budgetPlanExpenseCategoriesOnly);
+      if (invalidCategory) {
+        throw new SpendingPlanValidationError(Strings.budgetPlanExpenseCategoriesOnly);
+      }
 
-      const existingPlans = await getSpendingPlanRowsForRange(tx, {
+      const existingPlanRows = await getSpendingPlanRowsForRange(tx, {
         startDate: input.startDate,
         endDate: input.endDate,
       });
+      const existingPlanCategories = await getSpendingPlanCategoryRows(
+        tx,
+        existingPlanRows.map((plan) => plan.id),
+      );
+      const existingPlans = hydrateSpendingPlans(existingPlanRows, existingPlanCategories);
       const selectedCategoryIds = new Set(input.categories.map((category) => category.categoryId));
       const conflict = existingPlans
         .filter((plan) => plan.id !== input.id)
@@ -286,7 +306,9 @@ export class BudgetRepository implements IBudgetRepository {
           (conflictCategoryId ? expenseCategoryById.get(conflictCategoryId)?.name : undefined) ??
           conflictCategoryId ??
           Strings.budgetPlanCategories;
-        throw new Error(Strings.budgetPlanOverlapError(categoryName, conflict.name));
+        throw new SpendingPlanValidationError(
+          Strings.budgetPlanOverlapError(categoryName, conflict.name),
+        );
       }
 
       const existing = input.id ? await getSpendingPlanById(tx, input.id) : null;
@@ -301,9 +323,10 @@ export class BudgetRepository implements IBudgetRepository {
         updated_at: now,
       };
 
-      await setSpendingPlanRow(
+      await setSpendingPlanRow(tx, plan);
+      await replaceSpendingPlanCategoryRows(
         tx,
-        plan,
+        planId,
         input.categories.map((category) => ({
           plan_id: planId,
           category_id: category.categoryId,

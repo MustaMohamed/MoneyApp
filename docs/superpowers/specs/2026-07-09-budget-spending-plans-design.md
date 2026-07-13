@@ -186,11 +186,11 @@ Plan cards stay compact and do not expand full category rows inline. Category ch
 - Percentage used.
 - An accessible label containing the category name and complete values.
 
-For a selected category without an individual allocation, the chip shows the icon and category spend without inventing a percentage or category limit. Full category names return in the plan detail sheet where identification matters.
+For a selected category without an individual allocation, the overview chip shows only the category icon and does not invent a percentage, amount, or category limit. Full category names and spend return on the plan detail screen where identification matters.
 
-### Plan Detail Sheet
+### Plan Detail Screen
 
-Tapping a plan opens a compact, scrollable detail sheet. Its hierarchy is:
+Tapping a plan opens a full-screen, scrollable route. Its hierarchy is:
 
 1. Header with plan name and an edit icon action.
 2. Summary with amount left/over, date range, lifecycle copy, spent of total, percentage used, progress bar, and elapsed-time marker when active.

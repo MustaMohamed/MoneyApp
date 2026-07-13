@@ -1,11 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
+import { Chip, PressableFeedback } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
-import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/components/spending_plan_sheet.styles';
+import { Colors, Size } from '@/constants/theme';
+import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.styles';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 
@@ -19,7 +19,6 @@ export function SpendingPlanCategorySelector({
   onPress,
 }: SpendingPlanCategorySelectorProps) {
   const extraCount = Math.max(0, selectedCategories.length - 3);
-
   return (
     <>
       <Text style={styles.label}>{Strings.budgetPlanCategories}</Text>
@@ -31,27 +30,25 @@ export function SpendingPlanCategorySelector({
       >
         <View style={styles.pickerContent}>
           {selectedCategories.slice(0, 3).map((category) => (
-            <View key={category.id} style={styles.categoryChip}>
+            <Chip key={category.id} size="sm" variant="soft" color="default">
               <MaterialCommunityIcons
                 name={toIconName(category.icon, 'tag')}
                 size={Size.iconMicro}
                 color={category.color}
               />
-              <Text style={styles.categoryChipText}>{category.name}</Text>
-            </View>
+              <Chip.Label>{category.name}</Chip.Label>
+            </Chip>
           ))}
           {extraCount > 0 ? (
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryChipText}>
-                {Strings.budgetPlanMoreCategoriesCount(extraCount)}
-              </Text>
-            </View>
+            <Chip size="sm" variant="soft" color="default">
+              <Chip.Label>{Strings.budgetPlanMoreCategoriesCount(extraCount)}</Chip.Label>
+            </Chip>
           ) : null}
           {selectedCategories.length === 0 ? (
             <Text style={styles.pickerPlaceholder}>{Strings.budgetPlanPickCategories}</Text>
           ) : null}
         </View>
-        <Text style={styles.chev}>{'›'}</Text>
+        <MaterialCommunityIcons name="chevron-right" size={Size.iconXs} color={Colors.dark.text2} />
       </PressableFeedback>
     </>
   );

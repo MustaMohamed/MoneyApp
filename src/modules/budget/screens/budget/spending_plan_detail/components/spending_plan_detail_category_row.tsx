@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
-import type { SpendingPlanDetailCategoryRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { SpendingPlanDetailCategoryRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
 
 interface SpendingPlanDetailCategoryRowProps {

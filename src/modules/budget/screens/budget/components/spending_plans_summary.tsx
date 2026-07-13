@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, LetterSpacing, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
-import type { SpendingPlansSummaryVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { SpendingPlansSummaryVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { formatAmount } from '@/utils/format_amount';
 
 interface SpendingPlansSummaryProps {

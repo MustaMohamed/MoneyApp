@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
-import type { SpendingPlanDetailVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { SpendingPlanDetailVM } from '@/modules/budget/screens/budget/spending_plans.types';
 
 interface SpendingPlanDetailSummaryProps {
   detail: SpendingPlanDetailVM;

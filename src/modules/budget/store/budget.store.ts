@@ -24,6 +24,7 @@ interface BudgetStoreShape {
   spendByMonth: Record<string, Record<string, number>>;
   spendingPlans: SpendingPlansForMonthResult['plans'];
   spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'];
+  loadedMonth: string | undefined;
   loaded: boolean;
   /** Expected monthly income in EGP. null = not yet set by the user. */
   expectedIncome: number | null;
@@ -36,6 +37,7 @@ type BudgetStore = BudgetStoreShape & {
     expectedIncome: number | null,
     spendingPlans: SpendingPlansForMonthResult['plans'],
     spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'],
+    loadedMonth?: string,
   ) => void;
   load: (anchorMonth?: string) => Promise<void>;
   setBudget: (input: SetBudgetInput) => Promise<void>;
@@ -64,26 +66,37 @@ const INITIAL_STATE: BudgetStoreShape = {
   spendByMonth: {},
   spendingPlans: [],
   spendingPlanSpendById: {},
+  loadedMonth: undefined,
   loaded: false,
   expectedIncome: null,
 };
 
 export function createBudgetStore(repo: IAppSettingsRepository) {
+  let latestLoadRequest = 0;
   return createMoneyAppSelectors(
     create<BudgetStore>((set, get) => ({
       ...INITIAL_STATE,
 
-      setData: (rows, spendByMonth, expectedIncome, spendingPlans, spendingPlanSpendById) =>
+      setData: (
+        rows,
+        spendByMonth,
+        expectedIncome,
+        spendingPlans,
+        spendingPlanSpendById,
+        loadedMonth,
+      ) =>
         set({
           rows,
           spendByMonth,
           expectedIncome,
           spendingPlans,
           spendingPlanSpendById,
+          loadedMonth,
           loaded: true,
         }),
 
       load: async (anchorMonth = currentYearMonth()) => {
+        const request = ++latestLoadRequest;
         const months = lastMonths(anchorMonth, HISTORY_MONTHS);
         const [rows, spendByMonth, rawIncome, planResult] = await Promise.all([
           budgetRepository.getRows(),
@@ -92,12 +105,14 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
           budgetRepository.getSpendingPlansForMonth(anchorMonth),
         ]);
         const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
+        if (request !== latestLoadRequest) return;
         get().setData(
           rows,
           spendByMonth,
           expectedIncome,
           planResult.plans,
           planResult.spendByPlanId,
+          anchorMonth,
         );
       },
 

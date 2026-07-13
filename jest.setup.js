@@ -68,6 +68,10 @@ jest.mock('heroui-native', () => {
   const Description = passThrough(RNText);
   const FieldError = passThrough(RNText);
   const Input = passThrough(TextInput);
+  const InputGroup = passThrough(View);
+  InputGroup.Input = passThrough(TextInput);
+  InputGroup.Prefix = passThrough(View);
+  InputGroup.Suffix = passThrough(View);
   const Surface = passThrough(View);
   const Text = passThrough(RNText);
   Text.Heading = passThrough(RNText);
@@ -119,6 +123,7 @@ jest.mock('heroui-native', () => {
     Chip,
     TextField,
     Input,
+    InputGroup,
     Label,
     Description,
     FieldError,
