@@ -1,10 +1,10 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Size, Spacing } from '@/constants/theme';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import type { SpendingPlanDetailCategoryRowVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -19,7 +19,7 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
       accessible
       accessibilityRole="text"
       accessibilityLabel={row.accessibilityLabel}
-      style={styles.row}
+      className="border-border min-h-[46px] flex-row items-center gap-3 border-b py-1"
     >
       {row.kind === 'allocated' ? (
         <BudgetRing
@@ -36,7 +36,7 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
           />
         </BudgetRing>
       ) : (
-        <View style={styles.iconBox}>
+        <View className="bg-default h-7 w-7 items-center justify-center rounded-full">
           <MaterialCommunityIcons
             accessible={false}
             name={toIconName(row.icon, 'tag-outline')}
@@ -46,34 +46,38 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
         </View>
       )}
 
-      <View style={styles.copy}>
-        <Text style={styles.name} numberOfLines={1}>
+      <View className="min-w-0 flex-1">
+        <Text className="font-inter text-foreground text-[12px] font-semibold" numberOfLines={1}>
           {row.categoryName}
         </Text>
         <Text
-          style={[
-            styles.supporting,
-            row.kind === 'allocated' ? { color: row.balanceColor } : undefined,
-          ]}
+          className="font-inter text-muted mt-0.5 text-[7.5px]"
+          style={row.kind === 'allocated' ? { color: row.balanceColor } : undefined}
           numberOfLines={1}
         >
           {row.kind === 'allocated' ? row.balanceLabel : row.supportingLabel}
         </Text>
       </View>
 
-      <View style={styles.amountWrap}>
-        <Text style={styles.amount}>{row.amountLabel}</Text>
+      <View className="items-end">
+        <Text className="font-sora text-foreground text-[11px] font-semibold">
+          {row.amountLabel}
+        </Text>
         {row.kind === 'allocated' ? (
-          <View style={styles.statusRow}>
-            <Text style={styles.percentage}>{row.percentageLabel}</Text>
+          <View className="mt-0.5 flex-row items-center gap-1">
+            <Text className="font-inter text-muted text-[7.5px] font-semibold">
+              {row.percentageLabel}
+            </Text>
             <Chip
               size="sm"
               variant="soft"
               color={row.statusTone}
               animation="disable-all"
-              style={styles.statusChip}
+              className="min-h-5 px-1 py-0"
             >
-              <Chip.Label style={styles.statusLabel}>{row.statusLabel}</Chip.Label>
+              <Chip.Label className="font-inter text-[7.5px] font-semibold">
+                {row.statusLabel}
+              </Chip.Label>
             </Chip>
           </View>
         ) : null}
@@ -81,58 +85,3 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-    minHeight: Size.spendingPlanDetailRowHeight,
-    paddingVertical: Spacing.xxs,
-    borderBottomWidth: Size.hairline,
-    borderBottomColor: Colors.dark.border,
-  },
-  iconBox: {
-    width: Size.spendingPlanDetailRing,
-    height: Size.spendingPlanDetailRing,
-    borderRadius: Radius.xl,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.surfaceEl,
-  },
-  copy: { flex: 1, minWidth: 0 },
-  name: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
-  },
-  supporting: {
-    marginTop: Spacing.xxxs,
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.chipMeta,
-    color: Colors.dark.text2,
-  },
-  amountWrap: { alignItems: 'flex-end' },
-  amount: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-    marginTop: Spacing.xxxs,
-  },
-  percentage: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.chipMeta,
-    color: Colors.dark.text2,
-  },
-  statusChip: {
-    minHeight: Size.checkCircle,
-    paddingHorizontal: Spacing.xxs,
-    paddingVertical: 0,
-  },
-  statusLabel: { fontFamily: FontFamily.interSemi, fontSize: Type.chipMeta },
-});

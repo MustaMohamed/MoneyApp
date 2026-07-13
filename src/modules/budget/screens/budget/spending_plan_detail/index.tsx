@@ -1,14 +1,14 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { PressableFeedback } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
 import { Button } from '@/components/ui/button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, TouchSize, Type } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row';
 import { SpendingPlanDetailSkeleton } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton';
 import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary';
@@ -21,9 +21,9 @@ export default function SpendingPlanDetailScreen() {
 
   return (
     <Screen>
-      <View style={styles.header}>
+      <View className="min-h-14 flex-row items-center gap-2 px-4">
         <BackButton onPress={goBack} />
-        <Text style={styles.title} numberOfLines={1}>
+        <Text className="font-sora text-foreground flex-1 text-[18px] font-bold" numberOfLines={1}>
           {plan?.name ?? Strings.budgetPlansDetailTitle}
         </Text>
         {state.viewState === 'ready' && plan ? (
@@ -31,7 +31,7 @@ export default function SpendingPlanDetailScreen() {
             accessibilityRole="button"
             accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
             onPress={editPlan}
-            style={styles.headerAction}
+            className="h-11 w-11 items-center justify-center"
           >
             <MaterialCommunityIcons
               name="pencil-outline"
@@ -40,19 +40,23 @@ export default function SpendingPlanDetailScreen() {
             />
           </PressableFeedback>
         ) : (
-          <View style={styles.headerAction} />
+          <View className="h-11 w-11" />
         )}
       </View>
 
       {state.viewState === 'loading' ? (
-        <ScreenScroll contentContainerStyle={styles.content}>
-          <SpendingPlanDetailSkeleton />
+        <ScreenScroll>
+          <View className="pb-6">
+            <SpendingPlanDetailSkeleton />
+          </View>
         </ScreenScroll>
       ) : null}
 
       {state.viewState === 'notFound' ? (
-        <View style={styles.notFound}>
-          <Text style={styles.notFoundTitle}>{Strings.budgetPlansDetailNotFound}</Text>
+        <View className="flex-1 items-center justify-center gap-4 px-6">
+          <Text className="font-sora text-muted text-center text-[14px] font-semibold">
+            {Strings.budgetPlansDetailNotFound}
+          </Text>
           <Button
             variant="secondary"
             size="sm"
@@ -64,8 +68,10 @@ export default function SpendingPlanDetailScreen() {
       ) : null}
 
       {state.viewState === 'error' ? (
-        <View style={styles.notFound}>
-          <Text style={styles.notFoundTitle}>{state.errorMessage}</Text>
+        <View className="flex-1 items-center justify-center gap-4 px-6">
+          <Text className="font-sora text-muted text-center text-[14px] font-semibold">
+            {state.errorMessage}
+          </Text>
           <Button
             variant="secondary"
             size="sm"
@@ -77,32 +83,42 @@ export default function SpendingPlanDetailScreen() {
 
       {state.viewState === 'ready' && plan ? (
         <>
-          <ScreenScroll contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-            <SpendingPlanDetailSummary detail={plan.detail} />
+          <ScreenScroll showsVerticalScrollIndicator={false}>
+            <View className="pb-6">
+              <SpendingPlanDetailSummary detail={plan.detail} />
 
-            <View style={styles.sectionRow}>
-              <Text style={styles.section}>{Strings.budgetPlansDetailCategories}</Text>
-              <Text style={styles.sectionAmount}>{plan.detail.totalSpentLabel}</Text>
-            </View>
-            <View style={styles.categoryRows}>
-              {plan.detail.categoryRows.map((row) => (
-                <SpendingPlanDetailCategoryRow key={row.categoryId} row={row} />
-              ))}
-              {plan.detail.flexibleRow ? (
-                <View style={styles.flexibleRow}>
-                  <MaterialCommunityIcons
-                    accessible={false}
-                    name="wallet-outline"
-                    size={Size.iconXs}
-                    color={Colors.dark.gold}
-                  />
-                  <Text style={styles.flexibleLabel}>{plan.detail.flexibleRow.label}</Text>
-                  <Text style={styles.flexibleAmount}>{plan.detail.flexibleRow.amountLabel}</Text>
-                </View>
-              ) : null}
+              <View className="mt-4 flex-row items-center justify-between gap-3 px-4">
+                <Text className="font-inter text-muted text-[11px] font-semibold uppercase">
+                  {Strings.budgetPlansDetailCategories}
+                </Text>
+                <Text className="font-inter text-muted text-[11px] font-medium">
+                  {plan.detail.totalSpentLabel}
+                </Text>
+              </View>
+              <View className="mt-1 px-4">
+                {plan.detail.categoryRows.map((row) => (
+                  <SpendingPlanDetailCategoryRow key={row.categoryId} row={row} />
+                ))}
+                {plan.detail.flexibleRow ? (
+                  <View className="border-border min-h-[56px] flex-row items-center gap-2 border-t">
+                    <MaterialCommunityIcons
+                      accessible={false}
+                      name="wallet-outline"
+                      size={Size.iconXs}
+                      color={Colors.dark.gold}
+                    />
+                    <Text className="font-inter text-muted flex-1 text-[12px] font-medium">
+                      {plan.detail.flexibleRow.label}
+                    </Text>
+                    <Text className="font-sora text-foreground text-[12px] font-semibold">
+                      {plan.detail.flexibleRow.amountLabel}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
           </ScreenScroll>
-          <View style={styles.footer}>
+          <View className="border-border border-t px-4 pt-2 pb-3">
             <Button
               variant="primary"
               label={Strings.budgetPlanEditTitle}
@@ -116,85 +132,3 @@ export default function SpendingPlanDetailScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    minHeight: Size.headerHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-  },
-  title: {
-    flex: 1,
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-  },
-  headerAction: {
-    width: TouchSize.min,
-    height: TouchSize.min,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: { paddingBottom: Spacing.xl },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    paddingHorizontal: Spacing.md,
-  },
-  section: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-  },
-  sectionAmount: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  categoryRows: { marginTop: Spacing.xxs, paddingHorizontal: Spacing.md },
-  flexibleRow: {
-    minHeight: Size.headerHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    borderTopWidth: Size.hairline,
-    borderTopColor: Colors.dark.border,
-  },
-  flexibleLabel: {
-    flex: 1,
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
-  flexibleAmount: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
-  },
-  footer: {
-    borderTopWidth: Size.hairline,
-    borderTopColor: Colors.dark.border,
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.xs,
-    paddingBottom: Spacing.sm,
-  },
-  notFound: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.md,
-    paddingHorizontal: Spacing.xl,
-  },
-  notFoundTitle: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text2,
-    textAlign: 'center',
-  },
-});

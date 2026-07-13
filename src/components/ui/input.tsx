@@ -5,12 +5,11 @@ import {
   Description,
   FieldError,
   InputGroup,
+  cn,
   type InputProps as HInputProps,
 } from 'heroui-native';
 import React from 'react';
 import type { ReactNode } from 'react';
-
-import { FontFamily, Spacing, Type } from '@/constants/theme';
 
 export interface InputProps extends HInputProps {
   className?: string;
@@ -40,13 +39,9 @@ export function Input({
       {suffix ? (
         <InputGroup>
           <InputGroup.Input
-            className={className}
+            className={cn('font-inter py-2 text-[16px]', className)}
             style={[
               {
-                fontFamily: FontFamily.interRegular,
-                fontSize: Type.subhead,
-                paddingTop: Spacing.xs,
-                paddingBottom: Spacing.xxs,
                 includeFontPadding: false,
                 textAlignVertical: 'center',
               },
@@ -58,13 +53,9 @@ export function Input({
         </InputGroup>
       ) : (
         <HInput
-          className={className}
+          className={cn('font-inter py-2 text-[16px]', className)}
           style={[
             {
-              fontFamily: FontFamily.interRegular,
-              fontSize: Type.subhead,
-              paddingTop: Spacing.xs,
-              paddingBottom: Spacing.xxs,
               includeFontPadding: false,
               textAlignVertical: 'center',
             },

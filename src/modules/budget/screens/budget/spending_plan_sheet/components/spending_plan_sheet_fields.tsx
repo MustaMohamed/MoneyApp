@@ -4,7 +4,6 @@ import type { BlurEvent, FocusEvent, KeyboardTypeOptions } from 'react-native';
 import { Input } from '@/components/ui/input';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.styles';
 import type { SpendingPlanFormValues } from '@/utils/schemas/budget.schema';
 
 interface SpendingPlanFieldProps {
@@ -38,9 +37,18 @@ function SpendingPlanField(props: SpendingPlanFieldProps) {
           accessibilityLabel={props.label}
           isInvalid={fieldState.invalid}
           errorMessage={fieldState.error?.message}
-          className="border-border bg-background h-10 min-h-0 px-3"
-          style={props.variant === 'amount' ? styles.amountInput : styles.nameInput}
-          suffix={props.suffix ? <Text style={styles.suffix}>{props.suffix}</Text> : undefined}
+          className={
+            props.variant === 'amount'
+              ? 'border-border bg-background font-sora text-foreground h-10 min-h-0 px-3 text-[15px] font-bold'
+              : 'border-border bg-background font-inter text-foreground h-10 min-h-0 px-3 text-[14px] font-semibold'
+          }
+          suffix={
+            props.suffix ? (
+              <Text className="font-inter text-muted text-[12px] font-semibold">
+                {props.suffix}
+              </Text>
+            ) : undefined
+          }
         />
       )}
     />

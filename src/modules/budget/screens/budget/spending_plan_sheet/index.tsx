@@ -1,7 +1,7 @@
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
 
 import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
+import { SHEET_FOOTER_CLEARANCE, Sheet } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SpendingPlanAllocations } from '@/modules/budget/screens/budget/spending_plan_sheet/components/spending_plan_allocations';
@@ -12,7 +12,6 @@ import {
   type SpendingPlanSheetProps,
   useSpendingPlanSheet,
 } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.hook';
-import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.styles';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 
 export type { SpendingPlanSheetProps };
@@ -42,7 +41,8 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
       >
         <BottomSheetScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.bodyContent}
+          contentContainerClassName="px-4 pt-2"
+          contentContainerStyle={{ paddingBottom: SHEET_FOOTER_CLEARANCE }}
         >
           <SpendingPlanFormFields
             control={state.control}
@@ -72,7 +72,9 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             onFocus={actions.onFocus}
             onBlur={actions.onBlur}
           />
-          {state.submitError ? <Text style={styles.errorText}>{state.submitError}</Text> : null}
+          {state.submitError ? (
+            <Text className="font-inter text-danger mt-2 text-[11px]">{state.submitError}</Text>
+          ) : null}
         </BottomSheetScrollView>
       </Sheet>
 

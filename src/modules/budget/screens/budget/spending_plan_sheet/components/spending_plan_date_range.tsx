@@ -5,7 +5,6 @@ import { Platform, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import type { SpendingPlanDatePickerTarget } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.state';
-import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/spending_plan_sheet/spending_plan_sheet.styles';
 import { formatShortDate } from '@/utils/format_date';
 
 interface SpendingPlanDateRangeProps {
@@ -31,24 +30,32 @@ export function SpendingPlanDateRange({
 }: SpendingPlanDateRangeProps) {
   return (
     <>
-      <View style={styles.dateRow}>
+      <View className="mt-2 flex-row gap-2">
         <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel={Strings.budgetPlanStartDate}
           onPress={() => openDatePicker('start')}
-          style={styles.dateBox}
+          className="bg-background border-border min-h-12 flex-1 rounded-lg border px-3 py-2"
         >
-          <Text style={styles.dateLabel}>{Strings.budgetPlanStartDate}</Text>
-          <Text style={styles.dateValue}>{startDate ? formatShortDate(startDate) : '-'}</Text>
+          <Text className="font-inter text-muted text-[11px] font-medium">
+            {Strings.budgetPlanStartDate}
+          </Text>
+          <Text className="font-sora text-foreground mt-0.5 text-[12px] font-semibold">
+            {startDate ? formatShortDate(startDate) : '-'}
+          </Text>
         </PressableFeedback>
         <PressableFeedback
           accessibilityRole="button"
           accessibilityLabel={Strings.budgetPlanEndDate}
           onPress={() => openDatePicker('end')}
-          style={styles.dateBox}
+          className="bg-background border-border min-h-12 flex-1 rounded-lg border px-3 py-2"
         >
-          <Text style={styles.dateLabel}>{Strings.budgetPlanEndDate}</Text>
-          <Text style={styles.dateValue}>{endDate ? formatShortDate(endDate) : '-'}</Text>
+          <Text className="font-inter text-muted text-[11px] font-medium">
+            {Strings.budgetPlanEndDate}
+          </Text>
+          <Text className="font-sora text-foreground mt-0.5 text-[12px] font-semibold">
+            {endDate ? formatShortDate(endDate) : '-'}
+          </Text>
         </PressableFeedback>
       </View>
 

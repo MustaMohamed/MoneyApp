@@ -1,11 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 import { SpendingPlanCard } from '@/modules/budget/screens/budget/components/spending_plan_card';
 import { SpendingPlansSummary } from '@/modules/budget/screens/budget/components/spending_plans_summary';
 import type {
@@ -34,7 +34,7 @@ export function SpendingPlansLens({
 }: SpendingPlansLensProps) {
   return (
     <View>
-      <View style={styles.summaryCluster}>
+      <View className="px-4">
         <SpendingPlansSummary summary={summary} />
         {summaryFooter}
       </View>
@@ -52,16 +52,20 @@ export function SpendingPlansLens({
           ))}
         </>
       ) : (
-        <View style={styles.empty}>
-          <View style={styles.emptyIcon}>
+        <View className="min-h-[300px] items-center justify-center px-6">
+          <View className="bg-surface h-[72px] w-[72px] items-center justify-center rounded-full">
             <MaterialCommunityIcons
               name="calendar-star"
               size={Spacing.xxl}
               color={Colors.dark.text2}
             />
           </View>
-          <Text style={styles.emptyTitle}>{Strings.budgetPlansEmptyTitle}</Text>
-          <Text style={styles.emptyBody}>{Strings.budgetPlansEmptyBody}</Text>
+          <Text className="font-sora text-foreground mt-4 text-center text-[18px] font-semibold">
+            {Strings.budgetPlansEmptyTitle}
+          </Text>
+          <Text className="font-inter text-muted mt-2 max-w-[280px] text-center text-[14px] leading-5 font-medium">
+            {Strings.budgetPlansEmptyBody}
+          </Text>
           <Button
             variant="primary"
             size="sm"
@@ -75,39 +79,3 @@ export function SpendingPlansLens({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  summaryCluster: {
-    paddingHorizontal: Spacing.md,
-  },
-  empty: {
-    minHeight: Size.plansEmptyMinHeight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  emptyIcon: {
-    width: Size.plansEmptyIcon,
-    height: Size.plansEmptyIcon,
-    borderRadius: Size.plansEmptyIcon / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.surface,
-  },
-  emptyTitle: {
-    marginTop: Spacing.md,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  emptyBody: {
-    marginTop: Spacing.xs,
-    maxWidth: Size.plansEmptyTextWidth,
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    lineHeight: Size.compactBodyLineHeight,
-    color: Colors.dark.text2,
-    textAlign: 'center',
-  },
-});

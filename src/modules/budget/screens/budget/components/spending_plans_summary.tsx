@@ -1,11 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Card, Chip } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, LetterSpacing, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Size } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import type { SpendingPlansSummaryVM } from '@/modules/budget/screens/budget/spending_plans.types';
 import { formatAmount } from '@/utils/format_amount';
@@ -27,14 +27,19 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
   const usedLabel = Strings.budgetPlansSummaryUsed(summary.usedPercentage);
 
   return (
-    <Card className="p-0 shadow-none" style={styles.card}>
-      <Card.Body style={styles.body}>
-        <Text style={styles.eyebrow}>{summary.eyebrowLabel}</Text>
+    <Card className="bg-surface border-border rounded-xl border p-0 shadow-none">
+      <Card.Body className="px-2 py-2">
+        <Text className="font-inter text-muted text-[9px] font-semibold tracking-[0.3px] uppercase">
+          {summary.eyebrowLabel}
+        </Text>
 
-        <View style={styles.primaryRow}>
-          <Text style={[styles.primaryValue, { color: summary.balanceColor }]}>
+        <View className="mt-0.5 flex-row items-center justify-between gap-3">
+          <Text
+            className="font-sora shrink text-[22px] font-bold"
+            style={{ color: summary.balanceColor }}
+          >
             {formatAmount(summary.balanceAmount)}
-            <Text style={styles.primarySuffix}> {balanceSuffix}</Text>
+            <Text className="font-inter text-muted text-[9px] font-medium"> {balanceSuffix}</Text>
           </Text>
           {summary.needsAttentionCount > 0 ? (
             <Chip
@@ -43,30 +48,28 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
               variant="soft"
               color="danger"
               animation="disable-all"
-              style={styles.attentionChip}
+              className="min-h-5 px-2 py-0"
             >
-              <Chip.Label style={styles.attentionLabel}>
+              <Chip.Label className="font-inter text-[9px] font-semibold capitalize">
                 {Strings.budgetPlansSummaryAttentionCount(summary.needsAttentionCount)}
               </Chip.Label>
             </Chip>
           ) : null}
         </View>
 
-        <View style={styles.moneyRow}>
-          <View style={{ flexDirection: 'row', gap: Spacing.xxxs }}>
-            <Text style={styles.moneyLabel}>{formatAmount(summary.spent)}</Text>
-            <Text
-              style={{
-                color: Colors.dark.text2,
-                fontFamily: FontFamily.interRegular,
-                fontSize: Type.micro,
-              }}
-            >
+        <View className="mt-0.5 flex-row items-center justify-between gap-3">
+          <View className="flex-row gap-0.5">
+            <Text className="font-inter text-foreground shrink text-[11px] font-semibold">
+              {formatAmount(summary.spent)}
+            </Text>
+            <Text className="font-inter text-muted text-[11px]">
               {Strings.budgetPlansSummarySpentOf()}
             </Text>
-            <Text style={styles.moneyLabel}>{formatAmount(summary.planned)}</Text>
+            <Text className="font-inter text-foreground shrink text-[11px] font-semibold">
+              {formatAmount(summary.planned)}
+            </Text>
           </View>
-          <Text style={styles.usedLabel}>{usedLabel}</Text>
+          <Text className="font-sora text-muted text-[11px]">{usedLabel}</Text>
         </View>
 
         <View
@@ -78,7 +81,7 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
             max: 100,
             now: summary.progressPercentage,
           }}
-          style={styles.progress}
+          className="mt-0.5"
         >
           <BudgetBar
             pct={summary.pct}
@@ -88,17 +91,17 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
           />
         </View>
 
-        <View style={styles.metricsRow}>
+        <View className="border-border mt-2 flex-row items-stretch border-t pt-0.5">
           <SummaryMetric
             label={Strings.budgetPlansSummaryLifecycleLabel}
             value={Strings.budgetPlansSummaryActiveCount(summary.activeCount)}
           />
-          <View style={styles.metricDivider} />
+          <View className="bg-border w-px" />
           <SummaryMetric
             label={Strings.budgetPlansSummaryUpcomingLabel}
             value={Strings.budgetPlansSummaryUpcomingPlansCount(summary.upcomingCount)}
           />
-          <View style={styles.metricDivider} />
+          <View className="bg-border w-px" />
           <SummaryMetric
             value={Strings.budgetPlansSummaryItemized(
               formatAmount(summary.itemizedAmount),
@@ -108,16 +111,18 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
           />
         </View>
 
-        <View style={styles.statusRow}>
+        <View className="mt-1 flex-row items-center justify-between gap-1">
           {summary.statusItems.map((item) => (
-            <View key={item.key} style={styles.statusItem}>
+            <View key={item.key} className="flex-row items-center gap-1">
               <MaterialCommunityIcons
                 accessible={false}
                 name={item.icon}
                 size={Size.iconMicro}
                 color={item.color}
               />
-              <Text style={styles.statusLabel}>{item.label}</Text>
+              <Text className="font-inter text-muted text-center text-[9px] font-medium">
+                {item.label}
+              </Text>
             </View>
           ))}
         </View>
@@ -128,125 +133,13 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
 
 function SummaryMetric({ value, label }: { value: string; label?: string }) {
   return (
-    <View style={styles.metric}>
-      {label ? <Text style={styles.metricLabel}>{label}</Text> : null}
-      <Text style={styles.metricValue}>{value}</Text>
+    <View className="flex-1 items-center justify-center px-1">
+      {label ? (
+        <Text className="font-inter text-muted text-center text-[7.5px]">{label}</Text>
+      ) : null}
+      <Text className="font-sora text-foreground mt-px text-center text-[11px] font-semibold">
+        {value}
+      </Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: Radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-  },
-  body: {
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
-  },
-  eyebrow: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.chip,
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-    letterSpacing: LetterSpacing.eyebrow,
-  },
-  primaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-    marginTop: Spacing.xxxs,
-  },
-  primaryValue: {
-    flexShrink: 1,
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.headline,
-  },
-  primarySuffix: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.chip,
-    color: Colors.dark.text2,
-  },
-  attentionChip: {
-    minHeight: Size.checkCircle,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: 0,
-  },
-  attentionLabel: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.chip,
-    textTransform: 'capitalize',
-  },
-  moneyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-    marginTop: Spacing.xxxs,
-  },
-  moneyLabel: {
-    flexShrink: 1,
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-  },
-  usedLabel: {
-    fontFamily: FontFamily.soraRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  progress: {
-    marginTop: Spacing.xxxs,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    marginTop: Spacing.xs,
-    paddingTop: Spacing.xxxs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.dark.border,
-  },
-  metric: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xxs,
-  },
-  metricDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.dark.border,
-  },
-  metricValue: {
-    marginTop: Spacing.xxxxs,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  metricLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.chip,
-    color: Colors.dark.text2,
-    textAlign: 'center',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.xxs,
-    marginTop: Spacing.xxs,
-  },
-  statusItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xxs,
-  },
-  statusLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.chip,
-    color: Colors.dark.text2,
-    textAlign: 'center',
-  },
-});
