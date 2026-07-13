@@ -1,19 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
+import { Card, Chip, PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
+import { SpendingPlanCategoryChip } from '@/modules/budget/screens/budget/components/spending_plan_category_chip';
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
-import { formatAmount } from '@/utils/format_amount';
-import { formatShortDate } from '@/utils/format_date';
-import { toIconName } from '@/utils/icon_name_guard';
-import { ms } from '@/utils/responsive';
 
 interface SpendingPlanCardProps {
   row: SpendingPlanRowVM;
@@ -23,74 +19,111 @@ interface SpendingPlanCardProps {
 }
 
 export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: SpendingPlanCardProps) {
-  const bandColor = row.isOver ? Colors.dark.negative : budgetBandColor(row.pct);
-  const leftColor = row.left < 0 ? Colors.dark.negative : Colors.dark.positive;
-  const showBuffer = row.buffer > 0;
-
   return (
-    <View style={styles.card}>
+    <Card variant="default" style={styles.card}>
       <PressableFeedback
         accessibilityRole="button"
         accessibilityLabel={row.name}
         onPress={() => onOpenDetails(row.id)}
       >
-        <View style={styles.header}>
+        <Card.Header style={styles.header}>
           <View style={styles.titleWrap}>
-            <Text style={styles.title} numberOfLines={1}>
-              {row.name}
-            </Text>
-            <Text style={styles.meta}>
-              {Strings.budgetPlansDateRange(
-                formatShortDate(row.startDate),
-                formatShortDate(row.endDate),
-              )}
-              {' · '}
-              {Strings.budgetPlansCategoriesCount(row.categoryCount)}
-            </Text>
+            <View style={styles.titleRow}>
+              <Card.Title style={styles.title} numberOfLines={1}>
+                {row.name}
+              </Card.Title>
+              <Chip
+                size="sm"
+                variant="soft"
+                color={row.card.statusTone}
+                animation="disable-all"
+                pointerEvents="none"
+                accessibilityRole="text"
+                style={styles.statusChip}
+              >
+                <Chip.Label style={styles.statusLabel}>{row.card.statusLabel}</Chip.Label>
+              </Chip>
+            </View>
+            <Card.Description style={styles.meta}>{row.card.dateLabel}</Card.Description>
           </View>
           <View style={styles.amountWrap}>
-            <Text style={[styles.amount, { color: leftColor }]}>
-              {formatAmount(Math.abs(row.left))}
+            <Text style={[styles.amount, { color: row.card.balanceColor }]}>
+              {row.card.balanceAmountLabel}
             </Text>
-            <Text style={styles.amountSub}>
-              {row.left < 0 ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus}
-            </Text>
+            <Text style={styles.amountSub}>{row.card.balanceMetaLabel}</Text>
           </View>
-        </View>
+        </Card.Header>
 
-        <View style={styles.chips}>
-          {row.cardChips.map((chip) => {
-            if (chip.type === 'allocation') {
-              return <SpendingPlanAllocationChip key={chip.id} allocation={chip.allocation} />;
-            }
-            if (chip.type === 'category') {
+        <Card.Body style={styles.body}>
+          <View style={styles.moneyLine}>
+            <Text style={styles.spent}>{row.card.spentLabel}</Text>
+            <Text style={styles.percentage}>{row.card.percentageLabel}</Text>
+          </View>
+
+          <View style={styles.progressWrap}>
+            <BudgetBar
+              pct={row.pct}
+              status={row.card.progressStatus}
+              color={row.card.progressColor}
+              height={Spacing.xxs}
+            />
+            {row.card.elapsedMarkerPercentage !== undefined &&
+            row.card.elapsedMarkerColor !== undefined ? (
+              <View
+                accessibilityElementsHidden
+                importantForAccessibility="no-hide-descendants"
+                pointerEvents="none"
+                style={[
+                  styles.elapsedMarker,
+                  {
+                    left: `${row.card.elapsedMarkerPercentage}%`,
+                    backgroundColor: row.card.elapsedMarkerColor,
+                  },
+                ]}
+              />
+            ) : null}
+          </View>
+
+          {row.card.paceLabel === undefined ? null : (
+            <Text style={styles.pace}>{row.card.paceLabel}</Text>
+          )}
+
+          <View style={styles.chips}>
+            {row.card.chips.map((chip) => {
+              if (chip.type === 'allocation') {
+                return <SpendingPlanAllocationChip key={chip.id} allocation={chip.allocation} />;
+              }
+              if (chip.type === 'category') {
+                return <SpendingPlanCategoryChip key={chip.id} category={chip.category} />;
+              }
               return (
-                <View key={chip.id} style={styles.chip}>
-                  <MaterialCommunityIcons
-                    name={toIconName(chip.category.icon, 'tag')}
-                    size={ms(11)}
-                    color={chip.category.color}
-                  />
-                  <Text style={styles.chipText}>{chip.category.name}</Text>
-                </View>
+                <Chip
+                  key={chip.id}
+                  size="sm"
+                  variant="secondary"
+                  color="default"
+                  animation="disable-all"
+                  pointerEvents="none"
+                  accessibilityRole="text"
+                  accessibilityLabel={chip.accessibilityLabel}
+                  style={styles.moreChip}
+                >
+                  <Chip.Label style={styles.moreChipLabel}>{chip.label}</Chip.Label>
+                </Chip>
               );
-            }
-            return (
-              <View key={chip.id} style={styles.chip}>
-                <Text style={styles.chipText}>+{chip.count}</Text>
-              </View>
-            );
-          })}
-        </View>
-
-        <BudgetBar pct={row.pct} status="under" color={bandColor} height={ms(5)} />
+            })}
+          </View>
+        </Card.Body>
       </PressableFeedback>
 
-      <View style={styles.footer}>
-        <Text style={styles.buffer} numberOfLines={1}>
-          {formatAmount(row.spent)} {Strings.budgetPlansSummarySpent.toLowerCase()}
-          {showBuffer ? ` · ${Strings.budgetPlansAllocationBuffer(formatAmount(row.buffer))}` : ''}
-        </Text>
+      <Card.Footer style={styles.footer}>
+        {row.card.allocationFooterLabel === undefined ? (
+          <View style={styles.footerSpacer} />
+        ) : (
+          <Text style={styles.allocationFooter} numberOfLines={1}>
+            {row.card.allocationFooterLabel}
+          </Text>
+        )}
         <View style={styles.actions}>
           <PressableFeedback
             accessibilityRole="button"
@@ -98,7 +131,11 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
             onPress={() => onEdit(row.id)}
             style={styles.iconButton}
           >
-            <MaterialCommunityIcons name="pencil-outline" size={ms(15)} color={Colors.dark.text2} />
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={Size.iconXs}
+              color={Colors.dark.text2}
+            />
           </PressableFeedback>
           <PressableFeedback
             accessibilityRole="button"
@@ -108,13 +145,13 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
           >
             <MaterialCommunityIcons
               name="trash-can-outline"
-              size={ms(15)}
+              size={Size.iconXs}
               color={Colors.dark.text2}
             />
           </PressableFeedback>
         </View>
-      </View>
-    </View>
+      </Card.Footer>
+    </Card>
   );
 }
 
@@ -123,7 +160,7 @@ const styles = StyleSheet.create({
     marginHorizontal: Spacing.md,
     marginTop: Spacing.sm,
     borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderWidth: Size.hairline,
     borderColor: Colors.dark.border,
     backgroundColor: Colors.dark.surface,
     paddingHorizontal: Spacing.sm,
@@ -131,18 +168,33 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
     gap: Spacing.sm,
   },
   titleWrap: { flex: 1 },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
   title: {
+    flexShrink: 1,
     fontFamily: FontFamily.soraSemi,
     fontSize: Type.body,
     color: Colors.dark.text1,
   },
+  statusChip: {
+    minHeight: Size.checkCircle,
+    paddingHorizontal: Spacing.xs,
+    paddingVertical: 0,
+  },
+  statusLabel: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.micro,
+  },
   meta: {
-    marginTop: ms(2),
+    marginTop: Spacing.xxxs,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,
@@ -157,39 +209,79 @@ const styles = StyleSheet.create({
     fontSize: Type.micro,
     color: Colors.dark.text2,
   },
+  body: {
+    marginTop: Spacing.xs,
+  },
+  moneyLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Spacing.sm,
+  },
+  spent: {
+    flexShrink: 1,
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.caption,
+    color: Colors.dark.text1,
+  },
+  percentage: {
+    fontFamily: FontFamily.interSemi,
+    fontSize: Type.micro,
+    color: Colors.dark.text2,
+  },
+  progressWrap: {
+    position: 'relative',
+    justifyContent: 'center',
+    marginTop: Spacing.xs,
+  },
+  elapsedMarker: {
+    position: 'absolute',
+    top: -Spacing.xxxs,
+    width: Spacing.xxxs,
+    height: Size.progressTrack,
+    borderRadius: Radius.sm,
+    transform: [{ translateX: -Spacing.xxxs }],
+  },
+  pace: {
+    marginTop: Spacing.xs,
+    fontFamily: FontFamily.interMedium,
+    fontSize: Type.micro,
+    color: Colors.dark.text2,
+  },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: ms(5),
+    gap: Spacing.xxs,
     marginTop: Spacing.xs,
-    marginBottom: Spacing.xs,
   },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(4),
+  moreChip: {
+    minHeight: Spacing.xl,
     borderRadius: Radius.xl,
     backgroundColor: Colors.dark.bg,
     paddingHorizontal: Spacing.xs,
-    paddingVertical: ms(3),
+    paddingVertical: 0,
   },
-  chipText: {
+  moreChipLabel: {
     fontFamily: FontFamily.interSemi,
     fontSize: Type.micro,
     color: Colors.dark.text1,
   },
-  buffer: {
+  allocationFooter: {
     flex: 1,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,
   },
+  footerSpacer: { flex: 1 },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: Spacing.sm,
-    marginTop: ms(6),
+    marginTop: Spacing.xs,
+    borderTopWidth: Size.hairline,
+    borderTopColor: Colors.dark.border,
+    paddingTop: Spacing.xs,
   },
   actions: {
     flexDirection: 'row',
@@ -197,8 +289,8 @@ const styles = StyleSheet.create({
     gap: Spacing.xxs,
   },
   iconButton: {
-    width: ms(24),
-    height: ms(24),
+    width: Spacing.xl,
+    height: Spacing.xl,
     alignItems: 'center',
     justifyContent: 'center',
   },

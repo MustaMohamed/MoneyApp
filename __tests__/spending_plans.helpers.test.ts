@@ -125,6 +125,161 @@ describe('spending plan helpers', () => {
     ]);
   });
 
+  it('derives a display-ready compact active card and allocation chip', () => {
+    const row = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          startDate: '2026-07-13',
+          endDate: '2026-08-01',
+          totalAmount: 8000,
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: 1200 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+    expect(row.card).toEqual(
+      expect.objectContaining({
+        statusLabel: 'Watch',
+        statusTone: 'warning',
+        dateLabel: 'Jul 13 - Aug 1 · 19 days left',
+        balanceAmountLabel: '6,800',
+        balanceMetaLabel: 'EGP left',
+        balanceColor: Colors.dark.positive,
+        spentLabel: '1,200 / 8,000 spent',
+        percentageLabel: '15% used',
+        progressColor: Colors.dark.budgetUnder,
+        progressStatus: 'under',
+        elapsedMarkerPercentage: 5,
+        elapsedMarkerColor: Colors.shared.transferBlue,
+        paceLabel: '10 pts ahead of pace',
+        allocationFooterLabel: '3,000 assigned · 5,000 flexible',
+      }),
+    );
+    const allocationChip = row.card.chips[0];
+    expect(allocationChip.type).toBe('allocation');
+    if (allocationChip.type !== 'allocation') throw new Error('Expected allocation chip');
+    expect(allocationChip.id).toBe('cat_food');
+    expect(allocationChip.allocation.amountLabel).toBe('1,200/3,000');
+    expect(allocationChip.allocation.percentageLabel).toBe('40%');
+    expect(allocationChip.allocation.bandColor).toBe(Colors.dark.budgetUnder);
+    expect(allocationChip.allocation.accessibilityLabel).toBe('Food, 1,200 of 3,000, 40% used');
+  });
+
+  it('derives lifecycle copy and omits the elapsed marker outside active plans', () => {
+    const [upcoming, completed, completedOver] = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          id: 'upcoming',
+          startDate: '2026-07-18',
+          endDate: '2026-07-21',
+          categoryRows: [{ plan_id: 'upcoming', category_id: 'cat_food', allocated_amount: null }],
+        }),
+        planFixture({
+          id: 'completed',
+          startDate: '2026-07-01',
+          endDate: '2026-07-12',
+          totalAmount: 1000,
+          categoryRows: [{ plan_id: 'completed', category_id: 'cat_food', allocated_amount: null }],
+        }),
+        planFixture({
+          id: 'completed_over',
+          startDate: '2026-07-01',
+          endDate: '2026-07-11',
+          totalAmount: 1000,
+          categoryRows: [
+            { plan_id: 'completed_over', category_id: 'cat_food', allocated_amount: null },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: {
+        upcoming: { cat_food: 0 },
+        completed: { cat_food: 800 },
+        completed_over: { cat_food: 1100 },
+      },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    });
+
+    expect(upcoming.card).toEqual(
+      expect.objectContaining({
+        statusLabel: 'Upcoming',
+        statusTone: 'accent',
+        dateLabel: 'Jul 18 - Jul 21 · starts in 5 days',
+      }),
+    );
+    expect(upcoming.card).not.toHaveProperty('elapsedMarkerPercentage');
+    expect(upcoming.card).not.toHaveProperty('paceLabel');
+
+    expect(completed.card).toEqual(
+      expect.objectContaining({
+        statusLabel: 'On track',
+        statusTone: 'success',
+        dateLabel: 'Jul 1 - Jul 12 · ended yesterday',
+        paceLabel: '200 left at finish',
+      }),
+    );
+    expect(completed.card).not.toHaveProperty('elapsedMarkerPercentage');
+
+    expect(completedOver.card).toEqual(
+      expect.objectContaining({
+        statusLabel: 'Over',
+        statusTone: 'danger',
+        dateLabel: 'Jul 1 - Jul 11 · ended 2 days ago',
+        balanceAmountLabel: '100',
+        balanceMetaLabel: 'EGP over',
+        balanceColor: Colors.dark.negative,
+        progressColor: Colors.dark.negative,
+        progressStatus: 'over',
+        paceLabel: '100 over at finish',
+      }),
+    );
+    expect(completedOver.card).not.toHaveProperty('elapsedMarkerPercentage');
+  });
+
+  it('derives unallocated category chip spend without limit or percentage values', () => {
+    const row = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_travel', allocated_amount: null },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_travel: 125 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+    expect(row.categoryChips[0]).toEqual({
+      id: 'cat_travel',
+      name: 'Travel',
+      icon: 'bag',
+      color: '#09f',
+      spent: 125,
+    });
+    expect(row.card.chips[0]).toEqual({
+      type: 'category',
+      id: 'cat_travel',
+      category: {
+        id: 'cat_travel',
+        name: 'Travel',
+        icon: 'bag',
+        color: '#09f',
+        spent: 125,
+        amountLabel: '125',
+        accessibilityLabel: 'Travel, 125 spent',
+      },
+    });
+    expect(row.card.chips[0]).not.toHaveProperty('category.allocatedAmount');
+    expect(row.card.chips[0]).not.toHaveProperty('category.percentageLabel');
+    expect(row.card.chips[0]).not.toHaveProperty('category.bandColor');
+  });
+
   it('computes plans summary from visible rows', () => {
     const rows = buildSpendingPlanRows({
       plans: [plan],

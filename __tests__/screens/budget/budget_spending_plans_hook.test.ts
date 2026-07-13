@@ -114,7 +114,8 @@ describe('useBudget spending plans', () => {
   it('derives spending plan rows and summary for the selected month', () => {
     const { result } = renderHook(() => useBudget());
 
-    expect(result.current.state.spendingPlanRows[0]).toEqual(
+    const planRow = result.current.state.spendingPlanRows[0];
+    expect(planRow).toEqual(
       expect.objectContaining({
         id: 'plan_trip',
         name: 'Alexandria weekend',
@@ -125,6 +126,12 @@ describe('useBudget spending plans', () => {
         status: 'upcoming',
       }),
     );
+    expect(planRow.card.statusLabel).toBe('Upcoming');
+    expect(planRow.card.dateLabel).toBe('Jul 18 - Jul 21 · starts in 5 days');
+    expect(planRow.card.balanceAmountLabel).toBe('6,800');
+    expect(planRow.card.balanceMetaLabel).toBe('EGP left');
+    expect(planRow.card.spentLabel).toBe('1,200 / 8,000 spent');
+    expect(planRow.card.percentageLabel).toBe('15% used');
     expect(result.current.state.spendingPlansSummary).toEqual({
       planned: 8000,
       spent: 1200,
