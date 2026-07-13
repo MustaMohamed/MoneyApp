@@ -129,6 +129,8 @@ export const Size = {
   // context from a wrapper component inside a <Tabs.Screen>.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
+  compactChipHeight: ms(28),
+  iconMicro: ms(12),
   iconBack: ms(20),
   iconXs: ms(16),
   iconSm: ms(18),

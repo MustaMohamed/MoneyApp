@@ -58,10 +58,6 @@ export interface SpendingPlanAllocationRowVM {
   left: number;
   pct: number;
   isOver: boolean;
-  amountLabel?: string;
-  percentageLabel?: string;
-  bandColor?: string;
-  accessibilityLabel?: string;
 }
 
 export interface SpendingPlanCategoryChipVM {
@@ -69,7 +65,7 @@ export interface SpendingPlanCategoryChipVM {
   name: string;
   icon: string;
   color: string;
-  spent?: number;
+  spent: number;
 }
 
 export type SpendingPlanCardChipVM =
@@ -102,11 +98,13 @@ export type SpendingPlanCardDisplayChipVM =
     };
 
 export interface SpendingPlanCardVM {
+  openDetailsAccessibilityLabel: string;
   statusLabel: string;
   statusTone: SpendingPlanStatusTone;
   dateLabel: string;
   balanceAmountLabel: string;
   balanceMetaLabel: string;
+  balanceAccessibilityLabel: string;
   balanceColor: string;
   spentLabel: string;
   percentageLabel: string;
@@ -116,6 +114,7 @@ export interface SpendingPlanCardVM {
   elapsedMarkerColor?: string;
   paceLabel?: string;
   allocationFooterLabel?: string;
+  allocationChips: SpendingPlanCardAllocationChipVM[];
   chips: SpendingPlanCardDisplayChipVM[];
 }
 
@@ -284,44 +283,60 @@ function activePlanPaceLabel(paceDelta: number): string {
     : Strings.budgetPlansPaceUnder(points);
 }
 
-function buildSpendingPlanCardDisplayChips(
-  chips: SpendingPlanCardChipVM[],
-): SpendingPlanCardDisplayChipVM[] {
+function buildSpendingPlanAllocationCardChip(
+  allocation: SpendingPlanAllocationRowVM,
+): SpendingPlanCardAllocationChipVM {
+  const spentLabel = formatAmount(allocation.spent);
+  const allocatedLabel = formatAmount(allocation.allocatedAmount);
+  const percentage = Math.round(allocation.pct * 100);
+  return {
+    ...allocation,
+    amountLabel: `${spentLabel}/${allocatedLabel}`,
+    percentageLabel: `${percentage}%`,
+    bandColor: allocation.isOver ? Colors.dark.negative : budgetBandColor(allocation.pct),
+    accessibilityLabel: Strings.budgetPlansAllocationChipA11y(
+      allocation.categoryName,
+      spentLabel,
+      allocatedLabel,
+      percentage,
+    ),
+  };
+}
+
+function buildSpendingPlanCategoryCardChip(
+  category: SpendingPlanCategoryChipVM,
+): SpendingPlanCardCategoryChipVM {
+  const amountLabel = formatAmount(category.spent);
+  return {
+    ...category,
+    amountLabel,
+    accessibilityLabel: Strings.budgetPlansCategoryChipA11y(category.name, amountLabel),
+  };
+}
+
+function buildSpendingPlanCardDisplayChips({
+  chips,
+  allocationChips,
+  categoryChips,
+}: {
+  chips: SpendingPlanCardChipVM[];
+  allocationChips: SpendingPlanCardAllocationChipVM[];
+  categoryChips: SpendingPlanCardCategoryChipVM[];
+}): SpendingPlanCardDisplayChipVM[] {
+  const allocationById = new Map(
+    allocationChips.map((allocation) => [allocation.categoryId, allocation]),
+  );
+  const categoryById = new Map(categoryChips.map((category) => [category.id, category]));
   return chips.map((chip) => {
     if (chip.type === 'allocation') {
-      const spentLabel = formatAmount(chip.allocation.spent);
-      const allocatedLabel = formatAmount(chip.allocation.allocatedAmount);
-      const percentage = Math.round(chip.allocation.pct * 100);
-      return {
-        ...chip,
-        allocation: {
-          ...chip.allocation,
-          amountLabel: `${spentLabel}/${allocatedLabel}`,
-          percentageLabel: `${percentage}%`,
-          bandColor: chip.allocation.isOver
-            ? Colors.dark.negative
-            : budgetBandColor(chip.allocation.pct),
-          accessibilityLabel: Strings.budgetPlansAllocationChipA11y(
-            chip.allocation.categoryName,
-            spentLabel,
-            allocatedLabel,
-            percentage,
-          ),
-        },
-      };
+      const allocation = allocationById.get(chip.id);
+      if (allocation === undefined) throw new Error(`Missing allocation card chip: ${chip.id}`);
+      return { ...chip, allocation };
     }
     if (chip.type === 'category') {
-      const spent = chip.category.spent ?? 0;
-      const amountLabel = formatAmount(spent);
-      return {
-        ...chip,
-        category: {
-          ...chip.category,
-          spent,
-          amountLabel,
-          accessibilityLabel: Strings.budgetPlansCategoryChipA11y(chip.category.name, amountLabel),
-        },
-      };
+      const category = categoryById.get(chip.id);
+      if (category === undefined) throw new Error(`Missing category card chip: ${chip.id}`);
+      return { ...chip, category };
     }
     return {
       ...chip,
@@ -332,6 +347,7 @@ function buildSpendingPlanCardDisplayChips(
 }
 
 function buildSpendingPlanCard({
+  name,
   startDate,
   endDate,
   totalAmount,
@@ -346,7 +362,10 @@ function buildSpendingPlanCard({
   buffer,
   hasAllocations,
   chips,
+  allocationRows,
+  categoryChips,
 }: {
+  name: string;
   startDate: string;
   endDate: string;
   totalAmount: number;
@@ -361,6 +380,8 @@ function buildSpendingPlanCard({
   buffer: number;
   hasAllocations: boolean;
   chips: SpendingPlanCardChipVM[];
+  allocationRows: SpendingPlanAllocationRowVM[];
+  categoryChips: SpendingPlanCategoryChipVM[];
 }): SpendingPlanCardVM {
   const balance = remainingLabel(left);
   const statusPresentation = PLAN_STATUS_PRESENTATION[status];
@@ -370,6 +391,10 @@ function buildSpendingPlanCard({
     formatShortDate(endDate),
   );
   const progressStatus: BudgetStatus = isOver ? 'over' : 'under';
+  const balanceMetaLabel = Strings.budgetPlansCardBalanceMeta(
+    Strings.currencyEgp,
+    balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus,
+  );
   const paceLabel =
     timing.lifecycle === 'active'
       ? activePlanPaceLabel(paceDelta)
@@ -378,15 +403,19 @@ function buildSpendingPlanCard({
           ? Strings.budgetPlansFinishedOver(formatAmount(balance.magnitude))
           : Strings.budgetPlansFinishedLeft(formatAmount(balance.magnitude))
         : undefined;
+  const allocationChips = allocationRows.map(buildSpendingPlanAllocationCardChip);
+  const categoryCardChips = categoryChips.map(buildSpendingPlanCategoryCardChip);
 
   return {
+    openDetailsAccessibilityLabel: Strings.budgetPlansOpenDetailsA11y(name),
     statusLabel: statusPresentation.label,
     statusTone: statusPresentation.tone,
     dateLabel: Strings.budgetPlansDateWithLifecycle(dateRange, planLifecycleLabel(timing)),
     balanceAmountLabel: formatAmount(balance.magnitude),
-    balanceMetaLabel: Strings.budgetPlansCardBalanceMeta(
-      Strings.currencyEgp,
-      balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus,
+    balanceMetaLabel,
+    balanceAccessibilityLabel: Strings.budgetPlansCardBalanceA11y(
+      formatAmount(balance.magnitude),
+      balanceMetaLabel,
     ),
     balanceColor: isOver ? Colors.dark.negative : Colors.dark.positive,
     spentLabel: Strings.budgetPlansCardSpentOf(formatAmount(spent), formatAmount(totalAmount)),
@@ -408,7 +437,12 @@ function buildSpendingPlanCard({
           ),
         }
       : {}),
-    chips: buildSpendingPlanCardDisplayChips(chips),
+    allocationChips,
+    chips: buildSpendingPlanCardDisplayChips({
+      chips,
+      allocationChips,
+      categoryChips: categoryCardChips,
+    }),
   };
 }
 
@@ -511,9 +545,6 @@ export function buildSpendingPlanRows({
           const categorySpent = spend[row.category_id] ?? 0;
           const pct = allocatedAmount > 0 ? categorySpent / allocatedAmount : 0;
           const isOver = categorySpent > allocatedAmount;
-          const spentLabel = formatAmount(categorySpent);
-          const allocatedLabel = formatAmount(allocatedAmount);
-          const percentage = Math.round(pct * 100);
           return {
             categoryId: row.category_id,
             categoryName: category?.name ?? row.category_id,
@@ -524,15 +555,6 @@ export function buildSpendingPlanRows({
             left: allocatedAmount - categorySpent,
             pct,
             isOver,
-            amountLabel: `${spentLabel}/${allocatedLabel}`,
-            percentageLabel: `${percentage}%`,
-            bandColor: isOver ? Colors.dark.negative : budgetBandColor(pct),
-            accessibilityLabel: Strings.budgetPlansAllocationChipA11y(
-              category?.name ?? row.category_id,
-              spentLabel,
-              allocatedLabel,
-              percentage,
-            ),
           };
         });
       const allocatedTotal = plan.categories.reduce(
@@ -595,6 +617,7 @@ export function buildSpendingPlanRows({
       const cardChips = buildSpendingPlanCardChips({ allocationRows, categoryChips });
       const buffer = plan.total_amount - allocatedTotal;
       const card = buildSpendingPlanCard({
+        name: plan.name,
         startDate: plan.start_date,
         endDate: plan.end_date,
         totalAmount: plan.total_amount,
@@ -609,6 +632,8 @@ export function buildSpendingPlanRows({
         buffer,
         hasAllocations: allocationRows.length > 0,
         chips: cardChips,
+        allocationRows,
+        categoryChips,
       });
       return {
         id: plan.id,

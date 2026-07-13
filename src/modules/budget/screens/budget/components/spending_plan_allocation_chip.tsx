@@ -6,26 +6,17 @@ import { StyleSheet } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Colors, FontFamily, Radius } from '@/constants/theme';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
-import type { SpendingPlanAllocationRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { SpendingPlanCardAllocationChipVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms, msFont } from '@/utils/responsive';
 
 interface SpendingPlanAllocationChipProps {
-  allocation: SpendingPlanAllocationRowVM;
+  allocation: SpendingPlanCardAllocationChipVM;
 }
 
 export function SpendingPlanAllocationChip({
   allocation,
-}: SpendingPlanAllocationChipProps): React.ReactElement | null {
-  if (
-    allocation.amountLabel === undefined ||
-    allocation.percentageLabel === undefined ||
-    allocation.bandColor === undefined ||
-    allocation.accessibilityLabel === undefined
-  ) {
-    return null;
-  }
-
+}: SpendingPlanAllocationChipProps): React.ReactElement {
   return (
     <Chip
       size="sm"

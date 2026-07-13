@@ -4,10 +4,9 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { Colors, FontFamily, Radius } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import type { SpendingPlanCardCategoryChipVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { toIconName } from '@/utils/icon_name_guard';
-import { ms, msFont } from '@/utils/responsive';
 
 interface SpendingPlanCategoryChipProps {
   category: SpendingPlanCardCategoryChipVM;
@@ -29,7 +28,7 @@ export function SpendingPlanCategoryChip({
       <View style={styles.icon}>
         <MaterialCommunityIcons
           name={toIconName(category.icon, 'tag-outline')}
-          size={ms(12)}
+          size={Size.iconMicro}
           color={category.color}
         />
       </View>
@@ -42,20 +41,20 @@ export function SpendingPlanCategoryChip({
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: ms(28),
+    minHeight: Size.compactChipHeight,
     maxWidth: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(4),
+    gap: Spacing.xxs,
     borderRadius: Radius.xl,
     backgroundColor: Colors.dark.bg,
-    paddingLeft: ms(2),
-    paddingRight: ms(6),
+    paddingLeft: Spacing.xxxs,
+    paddingRight: Spacing.xs,
     paddingVertical: 0,
   },
   icon: {
-    width: ms(20),
-    height: ms(20),
+    width: Size.checkCircle,
+    height: Size.checkCircle,
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: Radius.xl,
@@ -63,7 +62,7 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontFamily: FontFamily.interSemi,
-    fontSize: msFont(9),
+    fontSize: Type.micro,
     color: Colors.dark.text1,
   },
 });

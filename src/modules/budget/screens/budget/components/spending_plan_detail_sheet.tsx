@@ -89,11 +89,11 @@ export function SpendingPlanDetailSheet({
             ))}
           </View>
 
-          {plan.allocationRows.length > 0 ? (
+          {plan.card.allocationChips.length > 0 ? (
             <>
               <Text style={styles.section}>{Strings.budgetPlanAllocateByCategory}</Text>
               <View style={styles.allocations}>
-                {plan.allocationRows.map((allocation) => (
+                {plan.card.allocationChips.map((allocation) => (
                   <SpendingPlanAllocationChip key={allocation.categoryId} allocation={allocation} />
                 ))}
                 {plan.buffer > 0 ? (

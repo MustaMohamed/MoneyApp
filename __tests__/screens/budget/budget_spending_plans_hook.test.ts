@@ -132,6 +132,8 @@ describe('useBudget spending plans', () => {
     expect(planRow.card.balanceMetaLabel).toBe('EGP left');
     expect(planRow.card.spentLabel).toBe('1,200 / 8,000 spent');
     expect(planRow.card.percentageLabel).toBe('15% used');
+    expect(planRow.card.openDetailsAccessibilityLabel).toBe('Open Alexandria weekend details');
+    expect(planRow.card.balanceAccessibilityLabel).toBe('6,800 EGP left');
     expect(result.current.state.spendingPlansSummary).toEqual({
       planned: 8000,
       spent: 1200,

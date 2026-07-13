@@ -156,8 +156,21 @@ describe('spending plan helpers', () => {
         elapsedMarkerColor: Colors.shared.transferBlue,
         paceLabel: '10 pts ahead of pace',
         allocationFooterLabel: '3,000 assigned · 5,000 flexible',
+        openDetailsAccessibilityLabel: 'Open Plan plan_trip details',
+        balanceAccessibilityLabel: '6,800 EGP left',
       }),
     );
+    expect(row.allocationRows[0]).toEqual({
+      categoryId: 'cat_food',
+      categoryName: 'Food',
+      icon: 'food',
+      color: '#f90',
+      allocatedAmount: 3000,
+      spent: 1200,
+      left: 1800,
+      pct: 0.4,
+      isOver: false,
+    });
     const allocationChip = row.card.chips[0];
     expect(allocationChip.type).toBe('allocation');
     if (allocationChip.type !== 'allocation') throw new Error('Expected allocation chip');

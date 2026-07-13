@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, TouchSize, Type } from '@/constants/theme';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
 import { SpendingPlanCategoryChip } from '@/modules/budget/screens/budget/components/spending_plan_category_chip';
@@ -21,100 +21,107 @@ interface SpendingPlanCardProps {
 export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: SpendingPlanCardProps) {
   return (
     <Card variant="default" style={styles.card}>
-      <PressableFeedback
-        accessibilityRole="button"
-        accessibilityLabel={row.name}
-        onPress={() => onOpenDetails(row.id)}
-      >
-        <Card.Header style={styles.header}>
-          <View style={styles.titleWrap}>
-            <View style={styles.titleRow}>
-              <Card.Title style={styles.title} numberOfLines={1}>
-                {row.name}
-              </Card.Title>
-              <Chip
-                size="sm"
-                variant="soft"
-                color={row.card.statusTone}
-                animation="disable-all"
-                pointerEvents="none"
-                accessibilityRole="text"
-                style={styles.statusChip}
-              >
-                <Chip.Label style={styles.statusLabel}>{row.card.statusLabel}</Chip.Label>
-              </Chip>
-            </View>
-            <Card.Description style={styles.meta}>{row.card.dateLabel}</Card.Description>
+      <Card.Header style={styles.header}>
+        <View style={styles.titleWrap}>
+          <View style={styles.titleRow}>
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={row.card.openDetailsAccessibilityLabel}
+              onPress={() => onOpenDetails(row.id)}
+              style={styles.detailsTrigger}
+            >
+              <View style={styles.detailsCopy}>
+                <Card.Title style={styles.title} numberOfLines={1}>
+                  {row.name}
+                </Card.Title>
+                <Card.Description style={styles.meta}>{row.card.dateLabel}</Card.Description>
+              </View>
+            </PressableFeedback>
+            <Chip
+              size="sm"
+              variant="soft"
+              color={row.card.statusTone}
+              animation="disable-all"
+              accessibilityRole="text"
+              accessibilityLabel={row.card.statusLabel}
+              style={styles.statusChip}
+            >
+              <Chip.Label style={styles.statusLabel}>{row.card.statusLabel}</Chip.Label>
+            </Chip>
           </View>
-          <View style={styles.amountWrap}>
-            <Text style={[styles.amount, { color: row.card.balanceColor }]}>
-              {row.card.balanceAmountLabel}
-            </Text>
-            <Text style={styles.amountSub}>{row.card.balanceMetaLabel}</Text>
-          </View>
-        </Card.Header>
+        </View>
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={row.card.balanceAccessibilityLabel}
+          style={styles.amountWrap}
+        >
+          <Text style={[styles.amount, { color: row.card.balanceColor }]}>
+            {row.card.balanceAmountLabel}
+          </Text>
+          <Text style={styles.amountSub}>{row.card.balanceMetaLabel}</Text>
+        </View>
+      </Card.Header>
 
-        <Card.Body style={styles.body}>
-          <View style={styles.moneyLine}>
-            <Text style={styles.spent}>{row.card.spentLabel}</Text>
-            <Text style={styles.percentage}>{row.card.percentageLabel}</Text>
-          </View>
+      <Card.Body style={styles.body}>
+        <View style={styles.moneyLine}>
+          <Text style={styles.spent}>{row.card.spentLabel}</Text>
+          <Text style={styles.percentage}>{row.card.percentageLabel}</Text>
+        </View>
 
-          <View style={styles.progressWrap}>
-            <BudgetBar
-              pct={row.pct}
-              status={row.card.progressStatus}
-              color={row.card.progressColor}
-              height={Spacing.xxs}
+        <View style={styles.progressWrap}>
+          <BudgetBar
+            pct={row.pct}
+            status={row.card.progressStatus}
+            color={row.card.progressColor}
+            height={Spacing.xxs}
+          />
+          {row.card.elapsedMarkerPercentage !== undefined &&
+          row.card.elapsedMarkerColor !== undefined ? (
+            <View
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+              pointerEvents="none"
+              style={[
+                styles.elapsedMarker,
+                {
+                  left: `${row.card.elapsedMarkerPercentage}%`,
+                  backgroundColor: row.card.elapsedMarkerColor,
+                },
+              ]}
             />
-            {row.card.elapsedMarkerPercentage !== undefined &&
-            row.card.elapsedMarkerColor !== undefined ? (
-              <View
-                accessibilityElementsHidden
-                importantForAccessibility="no-hide-descendants"
-                pointerEvents="none"
-                style={[
-                  styles.elapsedMarker,
-                  {
-                    left: `${row.card.elapsedMarkerPercentage}%`,
-                    backgroundColor: row.card.elapsedMarkerColor,
-                  },
-                ]}
-              />
-            ) : null}
-          </View>
+          ) : null}
+        </View>
 
-          {row.card.paceLabel === undefined ? null : (
-            <Text style={styles.pace}>{row.card.paceLabel}</Text>
-          )}
+        {row.card.paceLabel === undefined ? null : (
+          <Text style={styles.pace}>{row.card.paceLabel}</Text>
+        )}
 
-          <View style={styles.chips}>
-            {row.card.chips.map((chip) => {
-              if (chip.type === 'allocation') {
-                return <SpendingPlanAllocationChip key={chip.id} allocation={chip.allocation} />;
-              }
-              if (chip.type === 'category') {
-                return <SpendingPlanCategoryChip key={chip.id} category={chip.category} />;
-              }
-              return (
-                <Chip
-                  key={chip.id}
-                  size="sm"
-                  variant="secondary"
-                  color="default"
-                  animation="disable-all"
-                  pointerEvents="none"
-                  accessibilityRole="text"
-                  accessibilityLabel={chip.accessibilityLabel}
-                  style={styles.moreChip}
-                >
-                  <Chip.Label style={styles.moreChipLabel}>{chip.label}</Chip.Label>
-                </Chip>
-              );
-            })}
-          </View>
-        </Card.Body>
-      </PressableFeedback>
+        <View style={styles.chips}>
+          {row.card.chips.map((chip) => {
+            if (chip.type === 'allocation') {
+              return <SpendingPlanAllocationChip key={chip.id} allocation={chip.allocation} />;
+            }
+            if (chip.type === 'category') {
+              return <SpendingPlanCategoryChip key={chip.id} category={chip.category} />;
+            }
+            return (
+              <Chip
+                key={chip.id}
+                size="sm"
+                variant="secondary"
+                color="default"
+                animation="disable-all"
+                accessibilityRole="text"
+                accessibilityLabel={chip.accessibilityLabel}
+                style={styles.moreChip}
+              >
+                <Chip.Label style={styles.moreChipLabel}>{chip.label}</Chip.Label>
+              </Chip>
+            );
+          })}
+        </View>
+      </Card.Body>
 
       <Card.Footer style={styles.footer}>
         {row.card.allocationFooterLabel === undefined ? (
@@ -178,6 +185,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
+  detailsTrigger: {
+    minHeight: TouchSize.min,
+    flex: 1,
+    justifyContent: 'center',
+  },
+  detailsCopy: { flexShrink: 1 },
   title: {
     flexShrink: 1,
     fontFamily: FontFamily.soraSemi,
