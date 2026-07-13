@@ -21,22 +21,25 @@ interface SpendingPlanCardProps {
 export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: SpendingPlanCardProps) {
   return (
     <Card variant="default" style={styles.card}>
-      <Card.Header style={styles.header}>
+      <PressableFeedback
+        accessibilityRole="button"
+        accessibilityLabel={row.card.openDetailsAccessibilityLabel}
+        animation={false}
+        onPress={() => onOpenDetails(row.id)}
+        style={styles.detailsSurface}
+      >
+        <PressableFeedback.Highlight />
+      </PressableFeedback>
+
+      <Card.Header pointerEvents="none" style={styles.header}>
         <View style={styles.titleWrap}>
           <View style={styles.titleRow}>
-            <PressableFeedback
-              accessibilityRole="button"
-              accessibilityLabel={row.card.openDetailsAccessibilityLabel}
-              onPress={() => onOpenDetails(row.id)}
-              style={styles.detailsTrigger}
-            >
-              <View style={styles.detailsCopy}>
-                <Card.Title style={styles.title} numberOfLines={1}>
-                  {row.name}
-                </Card.Title>
-                <Card.Description style={styles.meta}>{row.card.dateLabel}</Card.Description>
-              </View>
-            </PressableFeedback>
+            <View style={styles.detailsCopy}>
+              <Card.Title style={styles.title} numberOfLines={1}>
+                {row.name}
+              </Card.Title>
+              <Card.Description style={styles.meta}>{row.card.dateLabel}</Card.Description>
+            </View>
             <Chip
               size="sm"
               variant="soft"
@@ -63,7 +66,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
         </View>
       </Card.Header>
 
-      <Card.Body style={styles.body}>
+      <Card.Body pointerEvents="none" style={styles.body}>
         <View style={styles.moneyLine}>
           <Text style={styles.spent}>{row.card.spentLabel}</Text>
           <Text style={styles.percentage}>{row.card.percentageLabel}</Text>
@@ -123,11 +126,11 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
         </View>
       </Card.Body>
 
-      <Card.Footer style={styles.footer}>
+      <Card.Footer pointerEvents="box-none" style={styles.footer}>
         {row.card.allocationFooterLabel === undefined ? (
-          <View style={styles.footerSpacer} />
+          <View pointerEvents="none" style={styles.footerSpacer} />
         ) : (
-          <Text style={styles.allocationFooter} numberOfLines={1}>
+          <Text pointerEvents="none" style={styles.allocationFooter} numberOfLines={1}>
             {row.card.allocationFooterLabel}
           </Text>
         )}
@@ -172,6 +175,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.dark.surface,
     paddingHorizontal: Spacing.sm,
     paddingVertical: Spacing.sm,
+    overflow: 'hidden',
+  },
+  detailsSurface: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: Radius.lg,
   },
   header: {
     flexDirection: 'row',
@@ -185,12 +197,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  detailsTrigger: {
+  detailsCopy: {
     minHeight: TouchSize.min,
     flex: 1,
+    flexShrink: 1,
     justifyContent: 'center',
   },
-  detailsCopy: { flexShrink: 1 },
   title: {
     flexShrink: 1,
     fontFamily: FontFamily.soraSemi,

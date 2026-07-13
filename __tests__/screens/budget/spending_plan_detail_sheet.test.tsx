@@ -1,54 +1,60 @@
 import { render } from '@testing-library/react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { CategoryType } from '@/constants/enums';
+import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import { SpendingPlanDetailSheet } from '@/modules/budget/screens/budget/components/spending_plan_detail_sheet';
-import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import type { Category } from '@/modules/categories/entities/category.entity';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
-const plan: SpendingPlanRowVM = {
+const categories: Category[] = [
+  {
+    id: 'cat_food',
+    name: 'Food & Dining',
+    type: CategoryType.Expense,
+    icon: 'food',
+    color: '#D4A44C',
+    is_default: 0,
+    sort_order: 0,
+    budget_group: null,
+    created_at: '',
+    updated_at: '',
+  },
+  {
+    id: 'cat_home',
+    name: 'Housing',
+    type: CategoryType.Expense,
+    icon: 'home',
+    color: '#17294C',
+    is_default: 0,
+    sort_order: 1,
+    budget_group: null,
+    created_at: '',
+    updated_at: '',
+  },
+];
+const spendingPlan: SpendingPlanWithCategories = {
   id: 'plan_trip',
   name: 'Alex weekend',
-  startDate: '2026-07-18',
-  endDate: '2026-07-21',
-  totalAmount: 8000,
-  spent: 1200,
-  left: 6800,
-  pct: 0.15,
-  isOver: false,
-  categoryCount: 2,
-  categoryChips: [
-    { id: 'cat_food', name: 'Food & Dining', icon: 'food', color: '#D4A44C' },
-    { id: 'cat_home', name: 'Housing', icon: 'home', color: '#17294C' },
+  start_date: '2026-07-18',
+  end_date: '2026-07-21',
+  total_amount: 8000,
+  created_at: '',
+  updated_at: '',
+  categories: [
+    { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: 3000 },
+    { plan_id: 'plan_trip', category_id: 'cat_home', allocated_amount: 500 },
   ],
-  cardChips: [],
-  allocationRows: [
-    {
-      categoryId: 'cat_food',
-      categoryName: 'Food & Dining',
-      icon: 'food',
-      color: '#D4A44C',
-      allocatedAmount: 3000,
-      spent: 1200,
-      left: 1800,
-      pct: 0.4,
-      isOver: false,
-    },
-    {
-      categoryId: 'cat_home',
-      categoryName: 'Housing',
-      icon: 'home',
-      color: '#17294C',
-      allocatedAmount: 500,
-      spent: 600,
-      left: -100,
-      pct: 1.2,
-      isOver: true,
-    },
-  ],
-  allocatedTotal: 3500,
-  buffer: 4500,
 };
+const plan = buildSpendingPlanRows({
+  plans: [spendingPlan],
+  categories,
+  spendByPlanId: { plan_trip: { cat_food: 1200, cat_home: 600 } },
+  selectedMonth: '2026-07',
+  today: '2026-07-19',
+})[0];
 
 describe('SpendingPlanDetailSheet', () => {
   it('renders category limits as compact progress chips with spent over total', () => {
