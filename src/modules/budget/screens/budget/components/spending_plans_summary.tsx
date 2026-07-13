@@ -9,7 +9,6 @@ import { Colors, FontFamily, LetterSpacing, Radius, Size, Spacing, Type } from '
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import type { SpendingPlansSummaryVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { formatAmount } from '@/utils/format_amount';
-import { ms } from '@/utils/responsive';
 
 interface SpendingPlansSummaryProps {
   summary: SpendingPlansSummaryVM;
@@ -178,7 +177,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: ms(36),
+    minHeight: Size.typeIconBox,
     paddingHorizontal: Spacing.xxs,
   },
   metricDivider: {

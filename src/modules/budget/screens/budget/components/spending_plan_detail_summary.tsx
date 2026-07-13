@@ -36,7 +36,13 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
           </View>
         </View>
 
-        <View style={styles.progressWrap}>
+        <View
+          accessible
+          accessibilityRole="progressbar"
+          accessibilityLabel={detail.percentageLabel}
+          accessibilityValue={{ min: 0, max: 100, now: detail.progressPercentage }}
+          style={styles.progressWrap}
+        >
           <BudgetBar
             pct={detail.pct}
             status={detail.progressStatus}

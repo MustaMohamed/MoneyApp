@@ -160,6 +160,7 @@ export type SpendingPlanDetailCategoryRowVM =
 
 export interface SpendingPlanDetailVM {
   pct: number;
+  progressPercentage: number;
   dateLabel: string;
   balanceAmountLabel: string;
   balanceMetaLabel: string;
@@ -630,6 +631,7 @@ function buildSpendingPlanDetail({
 
   return {
     pct,
+    progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
     dateLabel: card.dateLabel,
     balanceAmountLabel: card.balanceAmountLabel,
     balanceMetaLabel: card.balanceMetaLabel,

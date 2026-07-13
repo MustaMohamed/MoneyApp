@@ -76,6 +76,8 @@ export const FontFamily = {
 
 /** Typography scale — font sizes only. Use FontFamily separately. */
 export const Type = {
+  chipMeta: msFont(7.5),
+  chip: msFont(9),
   micro: msFont(11),
   caption: msFont(12),
   body: msFont(14),
@@ -131,6 +133,10 @@ export const Size = {
   backBtn: ms(40),
   compactChipHeight: ms(28),
   budgetToolHeight: ms(38),
+  plansEmptyMinHeight: ms(300),
+  plansEmptyIcon: ms(72),
+  plansEmptyTextWidth: ms(280),
+  compactBodyLineHeight: ms(20),
   iconMicro: ms(12),
   iconBack: ms(20),
   iconXs: ms(16),

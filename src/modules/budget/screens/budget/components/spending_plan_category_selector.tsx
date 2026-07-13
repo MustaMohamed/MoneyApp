@@ -4,10 +4,10 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Size } from '@/constants/theme';
 import { spendingPlanSheetStyles as styles } from '@/modules/budget/screens/budget/components/spending_plan_sheet.styles';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
-import { ms } from '@/utils/responsive';
 
 interface SpendingPlanCategorySelectorProps {
   selectedCategories: Category[];
@@ -34,7 +34,7 @@ export function SpendingPlanCategorySelector({
             <View key={category.id} style={styles.categoryChip}>
               <MaterialCommunityIcons
                 name={toIconName(category.icon, 'tag')}
-                size={ms(12)}
+                size={Size.iconMicro}
                 color={category.color}
               />
               <Text style={styles.categoryChipText}>{category.name}</Text>

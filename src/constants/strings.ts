@@ -310,7 +310,6 @@ export const Strings = {
   budgetPlansDetailTimeElapsed: 'Time elapsed',
   budgetPlansDetailAssigned: 'Assigned',
   budgetPlansDetailFlexible: 'Flexible',
-  budgetPlansDetailInsights: 'Insights',
   budgetPlansDetailCategories: 'Category spending',
   budgetPlansDetailUnassigned: 'Unassigned plan budget',
   budgetPlansDetailNoCategoryLimit: 'Included · no category limit',
