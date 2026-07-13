@@ -7,6 +7,7 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import { BUDGET_WARNING_THRESHOLD } from './budget.helpers';
 
 const DAY_MS = 86_400_000;
+const PACE_WARNING_THRESHOLD = 0.1;
 
 export type SpendingPlanLifecycle = 'upcoming' | 'active' | 'completed';
 export type SpendingPlanStatus = 'upcoming' | 'onTrack' | 'watch' | 'over';
@@ -167,7 +168,11 @@ function derivePlanStatus({
 }): SpendingPlanStatus {
   if (lifecycle === 'upcoming') return 'upcoming';
   if (isOver) return 'over';
-  if (lifecycle === 'active' && (paceDelta >= 0.1 || hasCategoryPressure)) return 'watch';
+  if (
+    lifecycle === 'active' &&
+    (paceDelta + Number.EPSILON >= PACE_WARNING_THRESHOLD || hasCategoryPressure)
+  )
+    return 'watch';
   return 'onTrack';
 }
 
@@ -316,10 +321,17 @@ export function buildSpendingPlanRows({
       );
       const highestPressureCategory = allocatedDetailRows.reduce<
         (SpendingPlanDetailCategoryVM & { allocatedAmount: number; pct: number }) | undefined
-      >(
-        (highest, row) => (highest === undefined || row.pct > highest.pct ? row : highest),
-        undefined,
-      );
+      >((highest, row) => {
+        if (highest === undefined) return row;
+        const rowHasZeroAllocationOverage = row.isOver && row.allocatedAmount === 0;
+        const highestHasZeroAllocationOverage = highest.isOver && highest.allocatedAmount === 0;
+        if (rowHasZeroAllocationOverage !== highestHasZeroAllocationOverage) {
+          return rowHasZeroAllocationOverage ? row : highest;
+        }
+        if (row.isOver !== highest.isOver) return row.isOver ? row : highest;
+        if (row.isWarning !== highest.isWarning) return row.isWarning ? row : highest;
+        return row.pct > highest.pct ? row : highest;
+      }, undefined);
       const pct = plan.total_amount > 0 ? spent / plan.total_amount : 0;
       const isOver = spent > plan.total_amount;
       const timing = computePlanTiming(plan.start_date, plan.end_date, today);
@@ -328,7 +340,7 @@ export function buildSpendingPlanRows({
         lifecycle: timing.lifecycle,
         isOver,
         paceDelta,
-        hasCategoryPressure: allocatedDetailRows.some((row) => row.pct >= BUDGET_WARNING_THRESHOLD),
+        hasCategoryPressure: allocatedDetailRows.some((row) => row.isOver || row.isWarning),
       });
       const cardChips = buildSpendingPlanCardChips({ allocationRows, categoryChips });
       return {

@@ -213,6 +213,27 @@ describe('spending plan helpers', () => {
     expect(row.status).toBe(status);
   });
 
+  it('marks an active plan watch at exactly ten percentage points ahead of pace', () => {
+    const row = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          startDate: '2026-07-13',
+          endDate: '2026-07-14',
+          totalAmount: 1000,
+          categoryRows: [{ plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: null }],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: 600 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+    expect(row.timing.elapsedPct).toBe(0.5);
+    expect(row.pct).toBe(0.6);
+    expect(row.status).toBe('watch');
+  });
+
   it('marks an active plan watch when an allocated category is exactly 80% used', () => {
     const row = buildSpendingPlanRows({
       plans: [
@@ -233,6 +254,34 @@ describe('spending plan helpers', () => {
     expect(row.detailCategoryRows[0]).toEqual(
       expect.objectContaining({ pct: 0.8, isWarning: true, isOver: false }),
     );
+    expect(row.status).toBe('watch');
+  });
+
+  it('treats positive spend against a zero allocation as the highest category pressure', () => {
+    const row = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          startDate: '2026-07-01',
+          endDate: '2026-07-20',
+          totalAmount: 2000,
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: 0 },
+            { plan_id: 'plan_trip', category_id: 'cat_travel', allocated_amount: 1000 },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: 50, cat_travel: 500 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+    expect(row.isOver).toBe(false);
+    expect(row.paceDelta).toBeLessThan(0.1);
+    expect(row.detailCategoryRows[0]).toEqual(
+      expect.objectContaining({ allocatedAmount: 0, spent: 50, pct: 0, isOver: true }),
+    );
+    expect(row.highestPressureCategory?.categoryId).toBe('cat_food');
     expect(row.status).toBe('watch');
   });
 
