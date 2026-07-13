@@ -159,7 +159,6 @@ export default function BudgetScreen() {
           <SpendingPlansLens
             rows={state.spendingPlanRows}
             summary={state.spendingPlansSummary}
-            selectedMonth={state.month}
             summaryFooter={
               <BudgetToolRail
                 variant="plans"

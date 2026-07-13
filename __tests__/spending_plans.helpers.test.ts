@@ -1,4 +1,5 @@
 import { CategoryType } from '@/constants/enums';
+import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import {
   buildSpendingPlanCardChips,
@@ -132,13 +133,23 @@ describe('spending plan helpers', () => {
       selectedMonth: '2026-07',
       today: '2026-07-13',
     });
-    expect(computeSpendingPlansSummary(rows)).toEqual({
+    expect(computeSpendingPlansSummary(rows, '2026-07')).toEqual({
       planned: 8000,
       spent: 1200,
       left: 6800,
       pct: 0.15,
+      planCount: 1,
+      monthLabel: 'July 2026',
+      usedPercentage: 15,
+      progressPercentage: 15,
       itemizedAmount: 3000,
       itemizedPct: 0.375,
+      itemizedPercentage: 38,
+      balanceAmount: 6800,
+      balanceStatus: 'left',
+      balanceColor: Colors.dark.positive,
+      barColor: Colors.dark.budgetUnder,
+      barStatus: 'under',
       activeCount: 0,
       upcomingCount: 1,
       onTrackCount: 0,
@@ -396,13 +407,23 @@ describe('spending plan helpers', () => {
       today: '2026-07-13',
     });
 
-    expect(computeSpendingPlansSummary(rows)).toEqual({
+    expect(computeSpendingPlansSummary(rows, '2026-07')).toEqual({
       planned: 4000,
       spent: 1700,
       left: 2300,
       pct: 0.425,
+      planCount: 4,
+      monthLabel: 'July 2026',
+      usedPercentage: 43,
+      progressPercentage: 43,
       itemizedAmount: 1000,
       itemizedPct: 0.25,
+      itemizedPercentage: 25,
+      balanceAmount: 2300,
+      balanceStatus: 'left',
+      balanceColor: Colors.dark.positive,
+      barColor: Colors.dark.budgetUnder,
+      barStatus: 'under',
       activeCount: 2,
       upcomingCount: 1,
       onTrackCount: 1,
@@ -410,6 +431,30 @@ describe('spending plan helpers', () => {
       overCount: 1,
       needsAttentionCount: 2,
     });
+  });
+
+  it('derives display-ready over-budget summary fields', () => {
+    const rows = buildSpendingPlanRows({
+      plans: [planFixture({ totalAmount: 1000 })],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: 1100 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    });
+
+    expect(computeSpendingPlansSummary(rows, '2026-07')).toEqual(
+      expect.objectContaining({
+        left: -100,
+        pct: 1.1,
+        usedPercentage: 110,
+        progressPercentage: 100,
+        balanceAmount: 100,
+        balanceStatus: 'over',
+        balanceColor: Colors.dark.negative,
+        barColor: Colors.dark.negative,
+        barStatus: 'over',
+      }),
+    );
   });
 
   it('allows allocations below the total and reports buffer', () => {

@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
+import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
@@ -129,8 +130,18 @@ describe('useBudget spending plans', () => {
       spent: 1200,
       left: 6800,
       pct: 0.15,
+      planCount: 1,
+      monthLabel: 'July 2026',
+      usedPercentage: 15,
+      progressPercentage: 15,
       itemizedAmount: 3000,
       itemizedPct: 0.375,
+      itemizedPercentage: 38,
+      balanceAmount: 6800,
+      balanceStatus: 'left',
+      balanceColor: Colors.dark.positive,
+      barColor: Colors.dark.budgetUnder,
+      barStatus: 'under',
       activeCount: 0,
       upcomingCount: 1,
       onTrackCount: 0,

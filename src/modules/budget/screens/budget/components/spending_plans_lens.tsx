@@ -17,7 +17,6 @@ import { ms } from '@/utils/responsive';
 interface SpendingPlansLensProps {
   rows: SpendingPlanRowVM[];
   summary: SpendingPlansSummaryVM;
-  selectedMonth: string;
   summaryFooter?: React.ReactNode;
   onCreate: () => void;
   onOpenDetails?: (id: string) => void;
@@ -28,7 +27,6 @@ interface SpendingPlansLensProps {
 export function SpendingPlansLens({
   rows,
   summary,
-  selectedMonth,
   summaryFooter,
   onCreate,
   onOpenDetails,
@@ -38,7 +36,7 @@ export function SpendingPlansLens({
   return (
     <View>
       <View style={styles.summaryCluster}>
-        <SpendingPlansSummary summary={summary} selectedMonth={selectedMonth} />
+        <SpendingPlansSummary summary={summary} />
         {summaryFooter}
       </View>
 

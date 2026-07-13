@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import type { ReactElement, ReactNode } from 'react';
 
 import { CategoryType } from '@/constants/enums';
+import { Colors } from '@/constants/theme';
 import BudgetScreen from '@/modules/budget/screens/budget';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 
@@ -249,7 +250,7 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plan_sheet', () =
 jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () => ({
   SpendingPlansLens: ({
     rows,
-    selectedMonth,
+    summary,
     summaryFooter,
     onOpenDetails,
     onCreate,
@@ -257,7 +258,7 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
     onDelete,
   }: {
     rows: Array<{ id: string; name?: string }>;
-    selectedMonth: string;
+    summary: { monthLabel: string };
     summaryFooter?: ReactNode;
     onOpenDetails?: (id: string) => void;
     onCreate: () => void;
@@ -270,7 +271,7 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
       <View testID="spending-plans-lens">
         {summaryFooter}
         <Text>{`plans-lens:${rows.length}`}</Text>
-        <Text>{`plans-month:${selectedMonth}`}</Text>
+        <Text>{`plans-month:${summary.monthLabel}`}</Text>
         <Pressable accessibilityLabel="create spending plan" onPress={onCreate}>
           <Text>create spending plan</Text>
         </Pressable>
@@ -360,8 +361,18 @@ const baseState: BudgetScreenState = {
     spent: 0,
     left: 0,
     pct: 0,
+    planCount: 0,
+    monthLabel: 'July 2026',
+    usedPercentage: 0,
+    progressPercentage: 0,
     itemizedAmount: 0,
     itemizedPct: 0,
+    itemizedPercentage: 0,
+    balanceAmount: 0,
+    balanceStatus: 'left',
+    balanceColor: Colors.dark.positive,
+    barColor: Colors.dark.budgetUnder,
+    barStatus: 'under',
     activeCount: 0,
     upcomingCount: 0,
     onTrackCount: 0,
@@ -645,8 +656,18 @@ describe('BudgetScreen', () => {
         spent: 1200,
         left: 6800,
         pct: 0.15,
+        planCount: 1,
+        monthLabel: 'July 2026',
+        usedPercentage: 15,
+        progressPercentage: 15,
         itemizedAmount: 3000,
         itemizedPct: 0.375,
+        itemizedPercentage: 38,
+        balanceAmount: 6800,
+        balanceStatus: 'left',
+        balanceColor: Colors.dark.positive,
+        barColor: Colors.dark.budgetUnder,
+        barStatus: 'under',
         activeCount: 1,
         upcomingCount: 0,
         onTrackCount: 0,
@@ -661,7 +682,7 @@ describe('BudgetScreen', () => {
     expect(getByText('tab:plans')).toBeTruthy();
     expect(getByText('rail:plans')).toBeTruthy();
     expect(getByText('plans-lens:1')).toBeTruthy();
-    expect(getByText('plans-month:2026-07')).toBeTruthy();
+    expect(getByText('plans-month:July 2026')).toBeTruthy();
     expect(getByText('plan-disabled:false')).toBeTruthy();
     expect(queryByLabelText('copy budget')).toBeNull();
     expect(queryByLabelText('add budget category')).toBeNull();

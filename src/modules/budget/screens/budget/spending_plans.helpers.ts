@@ -3,8 +3,14 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { SpendingPlanWithCategories } from '@/modules/budget/database/spending_plans';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { formatMonthYear } from '@/utils/format_date';
 
-import { BUDGET_WARNING_THRESHOLD } from './budget.helpers';
+import {
+  BUDGET_WARNING_THRESHOLD,
+  budgetBandColor,
+  remainingLabel,
+  type BudgetStatus,
+} from './budget.helpers';
 
 const DAY_MS = 86_400_000;
 const PACE_WARNING_THRESHOLD = 0.1;
@@ -86,8 +92,18 @@ export interface SpendingPlansSummaryVM {
   spent: number;
   left: number;
   pct: number;
+  planCount: number;
+  monthLabel: string;
+  usedPercentage: number;
+  progressPercentage: number;
   itemizedAmount: number;
   itemizedPct: number;
+  itemizedPercentage: number;
+  balanceAmount: number;
+  balanceStatus: 'left' | 'over';
+  balanceColor: string;
+  barColor: string;
+  barStatus: BudgetStatus;
   activeCount: number;
   upcomingCount: number;
   onTrackCount: number;
@@ -368,10 +384,19 @@ export function buildSpendingPlanRows({
     });
 }
 
-export function computeSpendingPlansSummary(rows: SpendingPlanRowVM[]): SpendingPlansSummaryVM {
+export function computeSpendingPlansSummary(
+  rows: SpendingPlanRowVM[],
+  selectedMonth: string,
+): SpendingPlansSummaryVM {
   const planned = rows.reduce((total, row) => total + row.totalAmount, 0);
   const spent = rows.reduce((total, row) => total + row.spent, 0);
+  const left = planned - spent;
+  const pct = planned > 0 ? spent / planned : 0;
   const itemizedAmount = rows.reduce((total, row) => total + row.allocatedTotal, 0);
+  const itemizedPct = planned > 0 ? itemizedAmount / planned : 0;
+  const usedPercentage = Math.round(pct * 100);
+  const balance = remainingLabel(left);
+  const isOver = balance.label === 'over';
   const activeCount = rows.filter((row) => row.timing.lifecycle === 'active').length;
   const upcomingCount = rows.filter((row) => row.timing.lifecycle === 'upcoming').length;
   const onTrackCount = rows.filter((row) => row.status === 'onTrack').length;
@@ -380,10 +405,20 @@ export function computeSpendingPlansSummary(rows: SpendingPlanRowVM[]): Spending
   return {
     planned,
     spent,
-    left: planned - spent,
-    pct: planned > 0 ? spent / planned : 0,
+    left,
+    pct,
+    planCount: rows.length,
+    monthLabel: formatMonthYear(selectedMonth),
+    usedPercentage,
+    progressPercentage: Math.min(Math.max(usedPercentage, 0), 100),
     itemizedAmount,
-    itemizedPct: planned > 0 ? itemizedAmount / planned : 0,
+    itemizedPct,
+    itemizedPercentage: Math.round(itemizedPct * 100),
+    balanceAmount: balance.magnitude,
+    balanceStatus: balance.label,
+    balanceColor: isOver ? Colors.dark.negative : Colors.dark.positive,
+    barColor: isOver ? Colors.dark.negative : budgetBandColor(pct),
+    barStatus: isOver ? 'over' : 'under',
     activeCount,
     upcomingCount,
     onTrackCount,

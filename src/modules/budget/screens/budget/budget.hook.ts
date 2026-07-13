@@ -193,8 +193,8 @@ export function useBudget() {
   );
 
   const spendingPlansSummary = useMemo(
-    () => computeSpendingPlansSummary(spendingPlanRows),
-    [spendingPlanRows],
+    () => computeSpendingPlansSummary(spendingPlanRows, selectedMonth),
+    [selectedMonth, spendingPlanRows],
   );
 
   const editingRow = useMemo(

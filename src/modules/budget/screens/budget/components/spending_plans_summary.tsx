@@ -6,17 +6,19 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
-import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
 import type { SpendingPlansSummaryVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { formatAmount } from '@/utils/format_amount';
-import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 
 interface SpendingPlansSummaryProps {
   summary: SpendingPlansSummaryVM;
-  selectedMonth: string;
 }
+
+const BALANCE_AMOUNT_COPY = {
+  left: Strings.budgetPlansSummaryLeftAmount,
+  over: Strings.budgetPlansSummaryOverAmount,
+} as const;
 
 const STATUS_ITEMS = [
   {
@@ -45,30 +47,21 @@ const STATUS_ITEMS = [
   },
 ] as const;
 
-export function SpendingPlansSummary({ summary, selectedMonth }: SpendingPlansSummaryProps) {
-  const planCount =
-    summary.onTrackCount + summary.watchCount + summary.overCount + summary.upcomingCount;
-  const usedPercentage = Math.round(summary.pct * 100);
-  const itemizedPercentage = Math.round(summary.itemizedPct * 100);
-  const isOver = summary.left < 0;
-  const amount = formatAmount(Math.abs(summary.left));
-  const primaryValue = isOver
-    ? Strings.budgetPlansSummaryOverAmount(amount)
-    : Strings.budgetPlansSummaryLeftAmount(amount);
-  const usedLabel = Strings.budgetPlansSummaryUsed(usedPercentage);
-  const bandColor = isOver ? Colors.dark.negative : budgetBandColor(summary.pct);
+export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
+  const primaryValue = BALANCE_AMOUNT_COPY[summary.balanceStatus](
+    formatAmount(summary.balanceAmount),
+  );
+  const usedLabel = Strings.budgetPlansSummaryUsed(summary.usedPercentage);
 
   return (
     <Card className="p-0 shadow-none" style={styles.card}>
       <Card.Body style={styles.body}>
         <Text style={styles.eyebrow}>
-          {Strings.budgetPlansSummaryEyebrow(planCount, formatMonthYear(selectedMonth))}
+          {Strings.budgetPlansSummaryEyebrow(summary.planCount, summary.monthLabel)}
         </Text>
 
         <View style={styles.primaryRow}>
-          <Text style={[styles.primaryValue, isOver ? styles.overValue : undefined]}>
-            {primaryValue}
-          </Text>
+          <Text style={[styles.primaryValue, { color: summary.balanceColor }]}>{primaryValue}</Text>
           <Chip
             accessibilityRole="text"
             size="sm"
@@ -99,14 +92,14 @@ export function SpendingPlansSummary({ summary, selectedMonth }: SpendingPlansSu
           accessibilityValue={{
             min: 0,
             max: 100,
-            now: Math.min(Math.max(usedPercentage, 0), 100),
+            now: summary.progressPercentage,
           }}
           style={styles.progress}
         >
           <BudgetBar
             pct={summary.pct}
-            status={isOver ? 'over' : 'under'}
-            color={bandColor}
+            status={summary.barStatus}
+            color={summary.barColor}
             height={ms(8)}
           />
         </View>
@@ -119,7 +112,7 @@ export function SpendingPlansSummary({ summary, selectedMonth }: SpendingPlansSu
           <SummaryMetric
             value={Strings.budgetPlansSummaryItemized(
               formatAmount(summary.itemizedAmount),
-              itemizedPercentage,
+              summary.itemizedPercentage,
             )}
             label={Strings.budgetPlansSummaryItemizedLabel}
           />
@@ -179,10 +172,6 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontFamily: FontFamily.soraBold,
     fontSize: Type.headline,
-    color: Colors.dark.positive,
-  },
-  overValue: {
-    color: Colors.dark.negative,
   },
   attentionLabel: {
     fontFamily: FontFamily.interSemi,

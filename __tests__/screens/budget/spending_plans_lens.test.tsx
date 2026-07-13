@@ -43,8 +43,18 @@ describe('SpendingPlansLens', () => {
     spent: 1200,
     left: 6800,
     pct: 0.15,
+    planCount: 2,
+    monthLabel: 'July 2026',
+    usedPercentage: 15,
+    progressPercentage: 15,
     itemizedAmount: 3000,
     itemizedPct: 0.375,
+    itemizedPercentage: 38,
+    balanceAmount: 6800,
+    balanceStatus: 'left' as const,
+    balanceColor: Colors.dark.positive,
+    barColor: Colors.dark.budgetUnder,
+    barStatus: 'under' as const,
     activeCount: 1,
     upcomingCount: 0,
     onTrackCount: 1,
@@ -125,7 +135,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -152,7 +161,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -173,6 +181,38 @@ describe('SpendingPlansLens', () => {
     ).toBeTruthy();
   });
 
+  it('renders display-ready summary fields without re-deriving raw values', () => {
+    const { getByText } = render(
+      <SpendingPlansLens
+        rows={[row]}
+        summary={{
+          ...summary,
+          left: -999,
+          pct: 0.99,
+          itemizedPct: 0.99,
+          planCount: 7,
+          monthLabel: 'September 2026',
+          usedPercentage: 15,
+          progressPercentage: 15,
+          itemizedPercentage: 38,
+          balanceAmount: 6800,
+          balanceStatus: 'left',
+          balanceColor: Colors.dark.positive,
+          barColor: Colors.dark.budgetUnder,
+          barStatus: 'under',
+        }}
+        onCreate={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(getByText('7 plans in September 2026')).toBeTruthy();
+    expect(getByText('6,800 EGP left')).toBeTruthy();
+    expect(getByText('15% used')).toBeTruthy();
+    expect(getByText('3,000 · 38%')).toBeTruthy();
+  });
+
   it('renders aggregate overspend as a positive over amount', () => {
     const { getByText } = render(
       <SpendingPlansLens
@@ -182,12 +222,18 @@ describe('SpendingPlansLens', () => {
           spent: 8250,
           left: -250,
           pct: 1.03125,
+          usedPercentage: 103,
+          progressPercentage: 100,
+          balanceAmount: 250,
+          balanceStatus: 'over',
+          balanceColor: Colors.dark.negative,
+          barColor: Colors.dark.negative,
+          barStatus: 'over',
           onTrackCount: 0,
           watchCount: 0,
           overCount: 1,
           needsAttentionCount: 1,
         }}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -205,7 +251,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onOpenDetails={onOpenDetails}
         onEdit={onEdit}
@@ -230,7 +275,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         summaryFooter={<Text>summary actions</Text>}
         onCreate={jest.fn()}
         onEdit={jest.fn()}
@@ -246,7 +290,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -265,7 +308,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -280,7 +322,6 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
-        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -301,8 +342,18 @@ describe('SpendingPlansLens', () => {
           spent: 0,
           left: 0,
           pct: 0,
+          planCount: 0,
+          monthLabel: 'July 2026',
+          usedPercentage: 0,
+          progressPercentage: 0,
           itemizedAmount: 0,
           itemizedPct: 0,
+          itemizedPercentage: 0,
+          balanceAmount: 0,
+          balanceStatus: 'left',
+          balanceColor: Colors.dark.positive,
+          barColor: Colors.dark.budgetUnder,
+          barStatus: 'under',
           activeCount: 0,
           upcomingCount: 0,
           onTrackCount: 0,
@@ -310,7 +361,6 @@ describe('SpendingPlansLens', () => {
           overCount: 0,
           needsAttentionCount: 0,
         }}
-        selectedMonth="2026-07"
         onCreate={onCreate}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
