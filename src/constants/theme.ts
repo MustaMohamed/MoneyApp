@@ -130,6 +130,7 @@ export const Size = {
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
   compactChipHeight: ms(28),
+  budgetToolHeight: ms(38),
   iconMicro: ms(12),
   iconBack: ms(20),
   iconXs: ms(16),

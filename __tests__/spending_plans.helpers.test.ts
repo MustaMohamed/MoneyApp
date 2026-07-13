@@ -559,6 +559,120 @@ describe('spending plan helpers', () => {
     );
   });
 
+  it('derives a display-ready detail summary, insights, and honest category rows', () => {
+    const row = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          totalAmount: 5000,
+          categoryRows: [
+            { plan_id: 'plan_trip', category_id: 'cat_food', allocated_amount: 1000 },
+            { plan_id: 'plan_trip', category_id: 'cat_travel', allocated_amount: null },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: { plan_trip: { cat_food: 850, cat_travel: 125 } },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    })[0];
+
+    expect(row.detail).toEqual(
+      expect.objectContaining({
+        dateLabel: 'Jul 8 - Jul 18 · 5 days left',
+        balanceAmountLabel: '4,025',
+        balanceMetaLabel: 'EGP left',
+        spentLabel: '975 / 5,000 spent',
+        percentageLabel: '20% used',
+        elapsedMarkerPercentage: 55,
+        metrics: [
+          { label: 'Budget used', value: '20%' },
+          { label: 'Time elapsed', value: '55%' },
+          { label: 'Assigned', value: '1,000' },
+          { label: 'Flexible', value: '4,000' },
+        ],
+        insights: [
+          expect.objectContaining({ label: '35 pts under pace' }),
+          expect.objectContaining({ label: 'Food has used 85% of its limit' }),
+        ],
+        flexibleRow: {
+          label: 'Flexible',
+          amountLabel: '4,000 EGP',
+          supportingLabel: 'Unassigned plan budget',
+        },
+      }),
+    );
+    expect(row.detail.categoryRows).toEqual([
+      expect.objectContaining({
+        categoryId: 'cat_food',
+        kind: 'allocated',
+        categoryName: 'Food',
+        amountLabel: '850 / 1,000',
+        percentageLabel: '85%',
+        balanceLabel: '150 left',
+        statusLabel: 'Watch',
+      }),
+      expect.objectContaining({
+        categoryId: 'cat_travel',
+        kind: 'unallocated',
+        categoryName: 'Travel',
+        amountLabel: '125 spent',
+        supportingLabel: 'Included · no category limit',
+      }),
+    ]);
+    expect(row.detail.categoryRows[1]).not.toHaveProperty('percentageLabel');
+    expect(row.detail.categoryRows[1]).not.toHaveProperty('balanceLabel');
+    expect(row.detail.categoryRows[1]).not.toHaveProperty('progressColor');
+  });
+
+  it('limits detail insights and omits the elapsed marker outside active plans', () => {
+    const [upcoming, completed] = buildSpendingPlanRows({
+      plans: [
+        planFixture({
+          id: 'upcoming_detail',
+          startDate: '2026-07-18',
+          endDate: '2026-07-21',
+          categoryRows: [
+            {
+              plan_id: 'upcoming_detail',
+              category_id: 'cat_food',
+              allocated_amount: 1000,
+            },
+          ],
+        }),
+        planFixture({
+          id: 'completed_detail',
+          startDate: '2026-07-01',
+          endDate: '2026-07-12',
+          totalAmount: 1000,
+          categoryRows: [
+            {
+              plan_id: 'completed_detail',
+              category_id: 'cat_food',
+              allocated_amount: 1000,
+            },
+          ],
+        }),
+      ],
+      categories,
+      spendByPlanId: {
+        upcoming_detail: { cat_food: 900 },
+        completed_detail: { cat_food: 800 },
+      },
+      selectedMonth: '2026-07',
+      today: '2026-07-13',
+    });
+
+    expect(upcoming.detail).not.toHaveProperty('elapsedMarkerPercentage');
+    expect(upcoming.detail.metrics[1]).toEqual({ label: 'Time elapsed', value: '0%' });
+    expect(upcoming.detail.insights).toHaveLength(1);
+    expect(completed.detail).not.toHaveProperty('elapsedMarkerPercentage');
+    expect(completed.detail.metrics[1]).toEqual({ label: 'Time elapsed', value: '100%' });
+    expect(completed.detail.insights).toEqual([
+      expect.objectContaining({ label: '200 left at finish' }),
+      expect.objectContaining({ label: 'Food has used 80% of its limit' }),
+    ]);
+  });
+
   it('summarizes itemization, lifecycle, status, and attention counts', () => {
     const plans = [
       planFixture({

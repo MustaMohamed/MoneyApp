@@ -7,15 +7,10 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { budgetBandColor } from '@/modules/budget/screens/budget/budget.helpers';
-import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
-import { SpendingPlanAllocationChip } from '@/modules/budget/screens/budget/components/spending_plan_allocation_chip';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { SpendingPlanDetailCategoryRow } from '@/modules/budget/screens/budget/components/spending_plan_detail_category_row';
+import { SpendingPlanDetailSummary } from '@/modules/budget/screens/budget/components/spending_plan_detail_summary';
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
-import { formatAmount } from '@/utils/format_amount';
-import { formatShortDate } from '@/utils/format_date';
-import { toIconName } from '@/utils/icon_name_guard';
-import { ms } from '@/utils/responsive';
 
 interface SpendingPlanDetailSheetProps {
   isOpen: boolean;
@@ -30,21 +25,19 @@ export function SpendingPlanDetailSheet({
   onOpenChange,
   onEdit,
 }: SpendingPlanDetailSheetProps) {
-  const bandColor = plan?.isOver ? Colors.dark.negative : budgetBandColor(plan?.pct ?? 0);
-  const leftColor = (plan?.left ?? 0) < 0 ? Colors.dark.negative : Colors.dark.positive;
-
   return (
     <Sheet
       isOpen={isOpen && plan !== undefined}
       onOpenChange={onOpenChange}
       title={plan?.name ?? Strings.budgetPlansTitle}
-      size="md"
+      size="lg"
       scrollable
       footer={
         plan ? (
           <Button
             variant="primary"
             label={Strings.budgetPlanEditTitle}
+            accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
             onPress={() => onEdit(plan.id)}
           />
         ) : undefined
@@ -55,67 +48,36 @@ export function SpendingPlanDetailSheet({
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.bodyContent}
         >
-          <View style={styles.summary}>
-            <Metric label={Strings.budgetPlanAmountLabel} value={formatAmount(plan.totalAmount)} />
-            <View style={styles.sep} />
-            <Metric label={Strings.budgetPlansSummarySpent} value={formatAmount(plan.spent)} />
-            <View style={styles.sep} />
-            <Metric
-              label={Strings.budgetPlansSummaryLeft}
-              value={formatAmount(plan.left)}
-              color={leftColor}
-            />
-          </View>
-          <BudgetBar pct={plan.pct} status="under" color={bandColor} height={ms(8)} />
+          <SpendingPlanDetailSummary detail={plan.detail} />
 
-          <Text style={styles.dateText}>
-            {Strings.budgetPlansDateRange(
-              formatShortDate(plan.startDate),
-              formatShortDate(plan.endDate),
-            )}
-          </Text>
-
-          <Text style={styles.section}>{Strings.budgetPlanCategories}</Text>
-          <View style={styles.chips}>
-            {plan.categoryChips.map((category) => (
-              <View key={category.id} style={styles.chip}>
-                <MaterialCommunityIcons
-                  name={toIconName(category.icon, 'tag')}
-                  size={ms(11)}
-                  color={category.color}
-                />
-                <Text style={styles.chipText}>{category.name}</Text>
-              </View>
+          <Text style={styles.section}>{Strings.budgetPlansDetailCategories}</Text>
+          <View style={styles.categoryRows}>
+            {plan.detail.categoryRows.map((row) => (
+              <SpendingPlanDetailCategoryRow key={row.categoryId} row={row} />
             ))}
-          </View>
-
-          {plan.card.allocationChips.length > 0 ? (
-            <>
-              <Text style={styles.section}>{Strings.budgetPlanAllocateByCategory}</Text>
-              <View style={styles.allocations}>
-                {plan.card.allocationChips.map((allocation) => (
-                  <SpendingPlanAllocationChip key={allocation.categoryId} allocation={allocation} />
-                ))}
-                {plan.buffer > 0 ? (
-                  <Text style={styles.buffer}>
-                    {Strings.budgetPlansAllocationBuffer(formatAmount(plan.buffer))}
+            {plan.detail.flexibleRow ? (
+              <View style={styles.flexibleRow}>
+                <View style={styles.flexibleIcon}>
+                  <MaterialCommunityIcons
+                    accessible={false}
+                    name="wallet-outline"
+                    size={Size.iconXs}
+                    color={Colors.dark.gold}
+                  />
+                </View>
+                <View style={styles.flexibleCopy}>
+                  <Text style={styles.flexibleLabel}>{plan.detail.flexibleRow.label}</Text>
+                  <Text style={styles.flexibleSupporting}>
+                    {plan.detail.flexibleRow.supportingLabel}
                   </Text>
-                ) : null}
+                </View>
+                <Text style={styles.flexibleAmount}>{plan.detail.flexibleRow.amountLabel}</Text>
               </View>
-            </>
-          ) : null}
+            ) : null}
+          </View>
         </BottomSheetScrollView>
       ) : null}
     </Sheet>
-  );
-}
-
-function Metric({ label, value, color }: { label: string; value: string; color?: string }) {
-  return (
-    <View style={styles.metric}>
-      <Text style={styles.metricLabel}>{label}</Text>
-      <Text style={[styles.metricValue, color ? { color } : undefined]}>{value}</Text>
-    </View>
   );
 }
 
@@ -125,76 +87,52 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.xs,
     paddingBottom: SHEET_FOOTER_CLEARANCE,
   },
-  summary: {
-    flexDirection: 'row',
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-    backgroundColor: Colors.dark.bg,
-    padding: Spacing.md,
-    marginBottom: Spacing.sm,
-  },
-  metric: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  metricLabel: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  metricValue: {
-    marginTop: ms(4),
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-  },
-  sep: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.dark.border,
-  },
-  dateText: {
-    marginTop: Spacing.sm,
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text2,
-  },
   section: {
     marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.xxs,
     fontFamily: FontFamily.interMedium,
     fontSize: Type.micro,
     color: Colors.dark.text2,
     textTransform: 'uppercase',
-    letterSpacing: 0.7,
   },
-  chips: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: ms(6),
+  categoryRows: {
+    borderRadius: Radius.lg,
+    borderWidth: Size.hairline,
+    borderColor: Colors.dark.border,
+    backgroundColor: Colors.dark.surface,
+    paddingHorizontal: Spacing.sm,
+    overflow: 'hidden',
   },
-  chip: {
+  flexibleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: ms(4),
-    borderRadius: Radius.xl,
-    backgroundColor: Colors.dark.surface,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: ms(4),
+    gap: Spacing.sm,
+    minHeight: Size.headerHeight,
+    paddingVertical: Spacing.xs,
   },
-  chipText: {
+  flexibleIcon: {
+    width: Size.typeIconBox,
+    height: Size.typeIconBox,
+    borderRadius: Radius.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.dark.surfaceEl,
+  },
+  flexibleCopy: { flex: 1 },
+  flexibleLabel: {
     fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
+    fontSize: Type.body,
     color: Colors.dark.text1,
   },
-  allocations: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: ms(4),
-  },
-  buffer: {
+  flexibleSupporting: {
+    marginTop: Spacing.xxxs,
     fontFamily: FontFamily.interRegular,
     fontSize: Type.micro,
     color: Colors.dark.text2,
+  },
+  flexibleAmount: {
+    fontFamily: FontFamily.soraSemi,
+    fontSize: Type.caption,
+    color: Colors.dark.text1,
   },
 });

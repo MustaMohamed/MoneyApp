@@ -81,6 +81,13 @@ jest.mock('heroui-native', () => {
   const Chip = passThrough(View);
   Chip.Label = passThrough(RNText);
 
+  const Card = passThrough(View);
+  Card.Header = passThrough(View);
+  Card.Body = passThrough(View);
+  Card.Title = passThrough(RNText);
+  Card.Description = passThrough(RNText);
+  Card.Footer = passThrough(View);
+
   const Separator = (props) => React.createElement(View, { testID: 'separator', ...props });
 
   // BottomSheet compound component mock.
@@ -108,6 +115,7 @@ jest.mock('heroui-native', () => {
     cn: (...args) => args.filter(Boolean).flat(Infinity).join(' '),
     BottomSheet,
     Button,
+    Card,
     Chip,
     TextField,
     Input,

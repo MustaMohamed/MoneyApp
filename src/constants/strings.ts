@@ -306,6 +306,30 @@ export const Strings = {
   budgetPlansFinishedOver: (amount: string) => `${amount} over at finish`,
   budgetPlansCardAllocationFooter: (assigned: string, flexible: string) =>
     `${assigned} assigned · ${flexible} flexible`,
+  budgetPlansDetailBudgetUsed: 'Budget used',
+  budgetPlansDetailTimeElapsed: 'Time elapsed',
+  budgetPlansDetailAssigned: 'Assigned',
+  budgetPlansDetailFlexible: 'Flexible',
+  budgetPlansDetailInsights: 'Insights',
+  budgetPlansDetailCategories: 'Category spending',
+  budgetPlansDetailUnassigned: 'Unassigned plan budget',
+  budgetPlansDetailNoCategoryLimit: 'Included · no category limit',
+  budgetPlansDetailSpent: (amount: string) => `${amount} spent`,
+  budgetPlansDetailBalance: (amount: string, status: string) => `${amount} ${status}`,
+  budgetPlansDetailCategoryPressure: (category: string, percentage: number) =>
+    `${category} has used ${percentage}% of its limit`,
+  budgetPlansDetailCategoryOver: (category: string, amount: string) =>
+    `${category} is ${amount} over its limit`,
+  budgetPlansDetailCategoryA11y: (
+    category: string,
+    spent: string,
+    allocated: string,
+    percentage: number,
+    balance: string,
+    status: string,
+  ) => `${category}, ${spent} of ${allocated}, ${percentage}% used, ${balance}, ${status}`,
+  budgetPlansDetailUnallocatedA11y: (category: string, spent: string) =>
+    `${category}, ${spent} spent, included with no category limit`,
   budgetPlansAllocationChipA11y: (
     category: string,
     spent: string,

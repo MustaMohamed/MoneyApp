@@ -118,6 +118,69 @@ export interface SpendingPlanCardVM {
   chips: SpendingPlanCardDisplayChipVM[];
 }
 
+export interface SpendingPlanDetailMetricVM {
+  label: string;
+  value: string;
+}
+
+export interface SpendingPlanDetailInsightVM {
+  key: 'pace' | 'final' | 'category';
+  icon: 'speedometer' | 'flag-checkered' | 'alert-circle-outline' | 'alert-octagon-outline';
+  color: string;
+  label: string;
+}
+
+export type SpendingPlanDetailCategoryRowVM =
+  | {
+      kind: 'allocated';
+      categoryId: string;
+      categoryName: string;
+      icon: string;
+      color: string;
+      pct: number;
+      amountLabel: string;
+      percentageLabel: string;
+      balanceLabel: string;
+      balanceColor: string;
+      statusLabel: string;
+      statusTone: SpendingPlanStatusTone;
+      progressColor: string;
+      accessibilityLabel: string;
+    }
+  | {
+      kind: 'unallocated';
+      categoryId: string;
+      categoryName: string;
+      icon: string;
+      color: string;
+      amountLabel: string;
+      supportingLabel: string;
+      accessibilityLabel: string;
+    };
+
+export interface SpendingPlanDetailVM {
+  pct: number;
+  dateLabel: string;
+  balanceAmountLabel: string;
+  balanceMetaLabel: string;
+  balanceAccessibilityLabel: string;
+  balanceColor: string;
+  spentLabel: string;
+  percentageLabel: string;
+  progressColor: string;
+  progressStatus: BudgetStatus;
+  elapsedMarkerPercentage?: number;
+  elapsedMarkerColor?: string;
+  metrics: SpendingPlanDetailMetricVM[];
+  insights: SpendingPlanDetailInsightVM[];
+  categoryRows: SpendingPlanDetailCategoryRowVM[];
+  flexibleRow?: {
+    label: string;
+    amountLabel: string;
+    supportingLabel: string;
+  };
+}
+
 export interface SpendingPlanRowVM {
   id: string;
   name: string;
@@ -140,6 +203,7 @@ export interface SpendingPlanRowVM {
   detailCategoryRows: SpendingPlanDetailCategoryVM[];
   highestPressureCategory?: SpendingPlanDetailCategoryVM;
   card: SpendingPlanCardVM;
+  detail: SpendingPlanDetailVM;
 }
 
 export interface SpendingPlansSummaryVM {
@@ -446,6 +510,161 @@ function buildSpendingPlanCard({
   };
 }
 
+function buildDetailCategoryRow(
+  row: SpendingPlanDetailCategoryVM,
+): SpendingPlanDetailCategoryRowVM {
+  const spentLabel = formatAmount(row.spent);
+  if (row.allocatedAmount === undefined || row.left === undefined || row.pct === undefined) {
+    return {
+      kind: 'unallocated',
+      categoryId: row.categoryId,
+      categoryName: row.categoryName,
+      icon: row.icon,
+      color: row.color,
+      amountLabel: Strings.budgetPlansDetailSpent(spentLabel),
+      supportingLabel: Strings.budgetPlansDetailNoCategoryLimit,
+      accessibilityLabel: Strings.budgetPlansDetailUnallocatedA11y(row.categoryName, spentLabel),
+    };
+  }
+
+  const allocatedLabel = formatAmount(row.allocatedAmount);
+  const percentage = Math.round(row.pct * 100);
+  const balance = remainingLabel(row.left);
+  const balanceLabel = Strings.budgetPlansDetailBalance(
+    formatAmount(balance.magnitude),
+    balance.label === 'over' ? Strings.budgetPlansOverStatus : Strings.budgetPlansLeftStatus,
+  );
+  const status = row.isOver
+    ? PLAN_STATUS_PRESENTATION.over
+    : row.isWarning
+      ? PLAN_STATUS_PRESENTATION.watch
+      : PLAN_STATUS_PRESENTATION.onTrack;
+  return {
+    kind: 'allocated',
+    categoryId: row.categoryId,
+    categoryName: row.categoryName,
+    icon: row.icon,
+    color: row.color,
+    pct: row.pct,
+    amountLabel: `${spentLabel} / ${allocatedLabel}`,
+    percentageLabel: `${percentage}%`,
+    balanceLabel,
+    balanceColor: row.isOver ? Colors.dark.negative : Colors.dark.text2,
+    statusLabel: status.label,
+    statusTone: status.tone,
+    progressColor: row.isOver ? Colors.dark.negative : budgetBandColor(row.pct),
+    accessibilityLabel: Strings.budgetPlansDetailCategoryA11y(
+      row.categoryName,
+      spentLabel,
+      allocatedLabel,
+      percentage,
+      balanceLabel,
+      status.label,
+    ),
+  };
+}
+
+function buildSpendingPlanDetail({
+  card,
+  pct,
+  timing,
+  paceDelta,
+  allocatedTotal,
+  buffer,
+  detailCategoryRows,
+  highestPressureCategory,
+}: {
+  card: SpendingPlanCardVM;
+  pct: number;
+  timing: SpendingPlanTimingVM;
+  paceDelta: number;
+  allocatedTotal: number;
+  buffer: number;
+  detailCategoryRows: SpendingPlanDetailCategoryVM[];
+  highestPressureCategory?: SpendingPlanDetailCategoryVM;
+}): SpendingPlanDetailVM {
+  const usedPercentage = Math.round(pct * 100);
+  const elapsedPercentage = Math.round(Math.min(Math.max(timing.elapsedPct, 0), 1) * 100);
+  const insights: SpendingPlanDetailInsightVM[] = [];
+
+  if (card.paceLabel !== undefined) {
+    const isFinal = timing.lifecycle === 'completed';
+    insights.push({
+      key: isFinal ? 'final' : 'pace',
+      icon: isFinal ? 'flag-checkered' : 'speedometer',
+      color:
+        isFinal && card.progressStatus === 'over'
+          ? Colors.dark.negative
+          : !isFinal && paceDelta > 0
+            ? Colors.dark.warning
+            : Colors.dark.positive,
+      label: card.paceLabel,
+    });
+  }
+
+  if (
+    highestPressureCategory !== undefined &&
+    highestPressureCategory.allocatedAmount !== undefined &&
+    highestPressureCategory.pct !== undefined &&
+    (highestPressureCategory.isOver || highestPressureCategory.isWarning)
+  ) {
+    const overAmount = Math.max(
+      0,
+      highestPressureCategory.spent - highestPressureCategory.allocatedAmount,
+    );
+    insights.push({
+      key: 'category',
+      icon: highestPressureCategory.isOver ? 'alert-octagon-outline' : 'alert-circle-outline',
+      color: highestPressureCategory.isOver ? Colors.dark.negative : Colors.dark.warning,
+      label: highestPressureCategory.isOver
+        ? Strings.budgetPlansDetailCategoryOver(
+            highestPressureCategory.categoryName,
+            formatAmount(overAmount),
+          )
+        : Strings.budgetPlansDetailCategoryPressure(
+            highestPressureCategory.categoryName,
+            Math.round(highestPressureCategory.pct * 100),
+          ),
+    });
+  }
+
+  return {
+    pct,
+    dateLabel: card.dateLabel,
+    balanceAmountLabel: card.balanceAmountLabel,
+    balanceMetaLabel: card.balanceMetaLabel,
+    balanceAccessibilityLabel: card.balanceAccessibilityLabel,
+    balanceColor: card.balanceColor,
+    spentLabel: card.spentLabel,
+    percentageLabel: card.percentageLabel,
+    progressColor: card.progressColor,
+    progressStatus: card.progressStatus,
+    ...(card.elapsedMarkerPercentage === undefined || card.elapsedMarkerColor === undefined
+      ? {}
+      : {
+          elapsedMarkerPercentage: card.elapsedMarkerPercentage,
+          elapsedMarkerColor: card.elapsedMarkerColor,
+        }),
+    metrics: [
+      { label: Strings.budgetPlansDetailBudgetUsed, value: `${usedPercentage}%` },
+      { label: Strings.budgetPlansDetailTimeElapsed, value: `${elapsedPercentage}%` },
+      { label: Strings.budgetPlansDetailAssigned, value: formatAmount(allocatedTotal) },
+      { label: Strings.budgetPlansDetailFlexible, value: formatAmount(Math.max(buffer, 0)) },
+    ],
+    insights: insights.slice(0, 2),
+    categoryRows: detailCategoryRows.map(buildDetailCategoryRow),
+    ...(buffer > 0
+      ? {
+          flexibleRow: {
+            label: Strings.budgetPlansDetailFlexible,
+            amountLabel: `${formatAmount(buffer)} ${Strings.currencyEgp}`,
+            supportingLabel: Strings.budgetPlansDetailUnassigned,
+          },
+        }
+      : {}),
+  };
+}
+
 export function planIntersectsMonth(
   plan: Pick<SpendingPlanWithCategories, 'start_date' | 'end_date'>,
   yearMonth: string,
@@ -635,6 +854,16 @@ export function buildSpendingPlanRows({
         allocationRows,
         categoryChips,
       });
+      const detail = buildSpendingPlanDetail({
+        card,
+        pct,
+        timing,
+        paceDelta,
+        allocatedTotal,
+        buffer,
+        detailCategoryRows,
+        highestPressureCategory,
+      });
       return {
         id: plan.id,
         name: plan.name,
@@ -657,6 +886,7 @@ export function buildSpendingPlanRows({
         detailCategoryRows,
         highestPressureCategory,
         card,
+        detail,
       };
     });
 }
