@@ -115,32 +115,96 @@ The Plans tab becomes enabled and functional in Phase 2. The Categories tab rema
 
 ### Plans Summary Card
 
-The Plans tab shows a compact summary card using the same Budget screen visual language:
+The Plans tab shows a compact, data-rich summary card using the same Budget screen visual language. The approved visual reference is `.superpowers/brainstorm/28310-1783638695/content/spending-plans-full-redesign.html`.
 
-- Planned: sum of `totalAmount` for visible plans.
-- Spent: sum of full-range spending for visible plans.
-- Left: `planned - spent`.
-- Progress: spent divided by planned.
+The summary hierarchy is:
+
+- Eyebrow: visible plan count for the selected month, for example `4 plans in July`.
+- Primary value: total amount left across visible plans.
+- Attention badge: count of visible plans in `watch` or `over` state.
+- Money line: total spent of total planned, plus overall percentage used.
+- One overall progress bar: total spent divided by total planned.
+- Compact metrics: active plan count, upcoming plan count, and itemized amount/percentage.
+- Full-width status breakdown row with four evenly distributed items:
+  - green check-circle icon and on-track count;
+  - gold alert-circle icon and watch count;
+  - red alert-octagon icon and over-budget count;
+  - blue clock icon and upcoming count.
+
+Summary calculations use full-plan values for visible plans:
+
+- `planned = sum(totalAmount)`.
+- `spent = sum(full-range plan spending)`.
+- `left = planned - spent`.
+- `pct = planned > 0 ? spent / planned : 0`.
+- `itemizedAmount = sum(category allocations)`.
+- `itemizedPct = planned > 0 ? itemizedAmount / planned : 0`.
+- `needsAttention = watchCount + overCount`.
+
+Itemized percentage is neutral context, not a health score. Category allocations are optional, so less than 100% itemized is valid. The overall card must not show one aggregate time-elapsed marker because visible plans can have different date ranges; pace belongs to each individual plan.
 
 If a visible plan is over budget, its overage contributes to the summary spent/left numbers. If no plans are visible for the selected month, the summary displays zero values without layout shift.
+
+### Plan Health States
+
+Each plan derives one compact state from dates, total spend, pace, and category pressure:
+
+- `upcoming`: today is before `startDate`.
+- `over`: spent exceeds the plan total. This takes precedence over pace and category warnings.
+- `watch`: the plan is active and either:
+  - budget-used percentage is at least 10 percentage points ahead of elapsed-time percentage; or
+  - an allocated category is at or above the existing 80% warning threshold.
+- `onTrack`: every other started plan, including a completed plan that finished within its total.
+
+For an inclusive plan date range:
+
+- `totalDays = daysBetween(startDate, endDate) + 1`.
+- `elapsedDays = clamp(daysBetween(startDate, today) + 1, 0, totalDays)`.
+- `elapsedPct = totalDays > 0 ? elapsedDays / totalDays : 0`.
+- `paceDelta = spentPct - elapsedPct`.
+
+The UI expresses pace as percentage points, for example `20 pts ahead of pace`. Pace is not shown for upcoming plans. Completed over-budget plans show their final overage instead of a pace comparison.
 
 ### Plan Card
 
 Each visible plan row/card shows:
 
 - Plan name.
-- Date range.
-- Category count or category chips.
-- Total spent/left.
-- Progress bar.
-- Optional allocation rows when category allocations exist.
+- Compact status label beside the plan name.
+- Date range and lifecycle copy such as `5 days left`, `starts in 13 days`, or `ended yesterday`.
+- Remaining or over-budget amount as the right-aligned primary value.
+- Total spent of total planned and percentage used.
+- One progress bar with a blue elapsed-time marker for active plans.
+- One pace or final-state insight beneath the progress bar.
+- Up to three compact category chips, followed by `+N` when more categories are hidden.
+- Assigned and flexible amounts in the footer when allocations exist.
 
-Plan cards should stay compact. Allocation rows show only the most important information:
+Plan cards stay compact and do not expand full category rows inline. Category chips remove the visible category name and keep:
 
-- Category name.
-- Spent / allocated.
-- Small progress track.
-- Over state when spent exceeds allocation.
+- A category-colored icon inside a circular progress ring.
+- `spent / allocated`.
+- Percentage used.
+- An accessible label containing the category name and complete values.
+
+For a selected category without an individual allocation, the chip shows the icon and category spend without inventing a percentage or category limit. Full category names return in the plan detail sheet where identification matters.
+
+### Plan Detail Sheet
+
+Tapping a plan opens a compact, scrollable detail sheet. Its hierarchy is:
+
+1. Header with plan name and an edit icon action.
+2. Summary with amount left/over, date range, lifecycle copy, spent of total, percentage used, progress bar, and elapsed-time marker when active.
+3. Four compact metrics: budget used, time elapsed, assigned amount, and flexible amount.
+4. At most two actionable insights:
+   - plan pace or final overage;
+   - highest-pressure allocated category when one is in warning/over state.
+5. Category rows with category name, circular icon progress, spent/allocated, remaining/over amount, and concise state copy.
+6. A flexible-plan-amount row when the plan has unallocated buffer.
+7. One themed `Edit plan` footer action.
+
+For categories without individual allocations, the detail row shows total category spend and `Included · no category limit`; it must not show a fabricated percentage, remaining amount, or progress ring.
+
+The plan detail summary and category rows use the same derived view model as the overview card. Components remain presentational and do not recalculate dates, pace, status, or financial values.
 
 ### Create/Edit Plan Sheet
 
@@ -161,7 +225,7 @@ When allocation mode is on, allocation inputs are shown for selected categories.
 
 ### Empty, Loading, and Error States
 
-- First load and refresh should use skeletons that match the real summary and plan card heights.
+- First load and refresh should use skeletons that match the redesigned summary, plan card, and detail-summary geometry without vertical shift.
 - Empty Plans tab shows an empty state with a plan-oriented message and an action to create a plan.
 - Validation errors remain inline in the sheet.
 - Repository errors use the existing screen error/toast pattern.
@@ -226,6 +290,11 @@ Unit and repository tests should cover:
 - Editing a plan does not conflict with itself.
 - Plan spending includes only expense transactions in range/category.
 - Plans summary totals visible plans without applying monthly category-budget filters.
+- Inclusive elapsed-day and elapsed-percentage calculations.
+- Upcoming, on-track, watch, and over state precedence.
+- Watch state from pace and from category pressure.
+- Overall status counts, attention count, itemized amount, and itemized percentage.
+- Unallocated categories never receive fabricated limit percentages.
 
 UI/hook-level tests should cover:
 
@@ -233,6 +302,9 @@ UI/hook-level tests should cover:
 - Allocation helper state: allocated, total, buffer, and error.
 - Sheet state reset after close/save.
 - Loading skeleton state for Plans summary and plan rows.
+- Overall status row uses the approved icon and color mapping.
+- Plan cards receive derived state, pace, lifecycle, and compact chip view models.
+- Plan detail receives derived summary metrics, insights, and category rows.
 
 ## Rollout Notes
 
