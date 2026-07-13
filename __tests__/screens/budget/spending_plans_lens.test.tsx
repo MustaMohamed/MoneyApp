@@ -1,17 +1,60 @@
 import { fireEvent, render } from '@testing-library/react-native';
+import type { ElementType, ReactNode } from 'react';
 import { StyleSheet, Text } from 'react-native';
 
 import { Strings } from '@/constants/strings';
+import { Colors } from '@/constants/theme';
 import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
 import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending_plans.helpers';
 
-jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { View } = jest.requireActual<typeof import('react-native')>('react-native');
+
+  return ({ name, color, ...props }: { name: string; color?: string } & Record<string, unknown>) =>
+    React.createElement(View, {
+      ...props,
+      testID: `material-community-icon:${name}:${color ?? ''}`,
+    });
+});
+jest.mock('heroui-native', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text: RNText, View } = jest.requireActual<typeof import('react-native')>('react-native');
+  const passThrough =
+    (Component: ElementType) =>
+    ({ children, ...props }: { children?: ReactNode } & Record<string, unknown>) =>
+      React.createElement(Component, props, children);
+  const Card = Object.assign(passThrough(View), { Body: passThrough(View) });
+  const Chip = Object.assign(passThrough(View), { Label: passThrough(RNText) });
+  const Button = Object.assign(passThrough(View), { Label: passThrough(RNText) });
+
+  return {
+    Button,
+    Card,
+    Chip,
+    PressableFeedback: passThrough(View),
+    cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
+  };
+});
 
 describe('SpendingPlansLens', () => {
-  const summary = { planned: 8000, spent: 1200, left: 6800, pct: 0.15 };
+  const summary = {
+    planned: 8000,
+    spent: 1200,
+    left: 6800,
+    pct: 0.15,
+    itemizedAmount: 3000,
+    itemizedPct: 0.375,
+    activeCount: 1,
+    upcomingCount: 0,
+    onTrackCount: 1,
+    watchCount: 1,
+    overCount: 0,
+    needsAttentionCount: 1,
+  };
   const categoryChips = [
-    { id: 'cat_food', name: 'Food', icon: 'food', color: '#f90' },
-    { id: 'cat_travel', name: 'Travel', icon: 'car', color: '#09f' },
+    { id: 'cat_food', name: 'Food', icon: 'food', color: '#f90', spent: 1200 },
+    { id: 'cat_travel', name: 'Travel', icon: 'car', color: '#09f', spent: 0 },
   ];
   const allocation = {
     categoryId: 'cat_food',
@@ -43,23 +86,115 @@ describe('SpendingPlansLens', () => {
     ],
     allocatedTotal: 3000,
     buffer: 5000,
+    timing: {
+      lifecycle: 'active',
+      totalDays: 4,
+      elapsedDays: 1,
+      elapsedPct: 0.25,
+      daysValue: 3,
+    },
+    status: 'onTrack',
+    paceDelta: -0.1,
+    detailCategoryRows: [
+      {
+        categoryId: 'cat_food',
+        categoryName: 'Food',
+        icon: 'food',
+        color: '#f90',
+        spent: 1200,
+        allocatedAmount: 3000,
+        left: 1800,
+        pct: 0.4,
+        isOver: false,
+        isWarning: false,
+      },
+      {
+        categoryId: 'cat_travel',
+        categoryName: 'Travel',
+        icon: 'car',
+        color: '#09f',
+        spent: 0,
+        isOver: false,
+        isWarning: false,
+      },
+    ],
   };
 
-  it('renders summary and plan cards', () => {
+  it('renders the compact summary hierarchy and plan cards', () => {
     const { getAllByText, getByText } = render(
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
+        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
       />,
     );
 
+    expect(getByText('2 plans in July 2026')).toBeTruthy();
+    expect(getByText('6,800 EGP left')).toBeTruthy();
+    expect(getByText('1 needs attention')).toBeTruthy();
+    expect(getByText('1,200 spent of 8,000')).toBeTruthy();
+    expect(getByText('15% used')).toBeTruthy();
+    expect(getByText('1 active')).toBeTruthy();
+    expect(getAllByText('0 upcoming')).toHaveLength(2);
+    expect(getByText('3,000 · 38%')).toBeTruthy();
+    expect(getByText('1 on track')).toBeTruthy();
+    expect(getByText('1 watch')).toBeTruthy();
+    expect(getByText('0 over')).toBeTruthy();
     expect(getByText('Alexandria weekend')).toBeTruthy();
-    expect(getByText('8,000')).toBeTruthy();
-    expect(getByText('1,200')).toBeTruthy();
     expect(getAllByText('Food').length).toBeGreaterThan(0);
+  });
+
+  it('renders the four status icons with the approved semantic colors', () => {
+    const { getByTestId } = render(
+      <SpendingPlansLens
+        rows={[row]}
+        summary={summary}
+        selectedMonth="2026-07"
+        onCreate={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(
+      getByTestId(`material-community-icon:check-circle-outline:${Colors.dark.positive}`),
+    ).toBeTruthy();
+    expect(
+      getByTestId(`material-community-icon:alert-circle-outline:${Colors.dark.warning}`),
+    ).toBeTruthy();
+    expect(
+      getByTestId(`material-community-icon:alert-octagon-outline:${Colors.dark.negative}`),
+    ).toBeTruthy();
+    expect(
+      getByTestId(`material-community-icon:clock-outline:${Colors.shared.transferBlue}`),
+    ).toBeTruthy();
+  });
+
+  it('renders aggregate overspend as a positive over amount', () => {
+    const { getByText } = render(
+      <SpendingPlansLens
+        rows={[row]}
+        summary={{
+          ...summary,
+          spent: 8250,
+          left: -250,
+          pct: 1.03125,
+          onTrackCount: 0,
+          watchCount: 0,
+          overCount: 1,
+          needsAttentionCount: 1,
+        }}
+        selectedMonth="2026-07"
+        onCreate={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(getByText('250 EGP over')).toBeTruthy();
   });
 
   it('opens details from the card and uses explicit edit and delete actions', () => {
@@ -70,6 +205,7 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
+        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onOpenDetails={onOpenDetails}
         onEdit={onEdit}
@@ -94,6 +230,7 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
+        selectedMonth="2026-07"
         summaryFooter={<Text>summary actions</Text>}
         onCreate={jest.fn()}
         onEdit={jest.fn()}
@@ -109,6 +246,7 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
+        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -127,6 +265,7 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
+        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -141,6 +280,7 @@ describe('SpendingPlansLens', () => {
       <SpendingPlansLens
         rows={[row]}
         summary={summary}
+        selectedMonth="2026-07"
         onCreate={jest.fn()}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
@@ -151,18 +291,36 @@ describe('SpendingPlansLens', () => {
     expect(getByText('40%')).toBeTruthy();
   });
 
-  it('renders empty state and create action', () => {
+  it('keeps the zero-value summary stable with the empty state and create action', () => {
     const onCreate = jest.fn();
-    const { getByText } = render(
+    const { getAllByText, getByText } = render(
       <SpendingPlansLens
         rows={[]}
-        summary={{ planned: 0, spent: 0, left: 0, pct: 0 }}
+        summary={{
+          planned: 0,
+          spent: 0,
+          left: 0,
+          pct: 0,
+          itemizedAmount: 0,
+          itemizedPct: 0,
+          activeCount: 0,
+          upcomingCount: 0,
+          onTrackCount: 0,
+          watchCount: 0,
+          overCount: 0,
+          needsAttentionCount: 0,
+        }}
+        selectedMonth="2026-07"
         onCreate={onCreate}
         onEdit={jest.fn()}
         onDelete={jest.fn()}
       />,
     );
 
+    expect(getByText('0 plans in July 2026')).toBeTruthy();
+    expect(getByText('0 EGP left')).toBeTruthy();
+    expect(getByText('0 needs attention')).toBeTruthy();
+    expect(getAllByText('0 upcoming')).toHaveLength(2);
     fireEvent.press(getByText('Create plan'));
     expect(onCreate).toHaveBeenCalledTimes(1);
   });

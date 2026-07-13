@@ -249,6 +249,7 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plan_sheet', () =
 jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () => ({
   SpendingPlansLens: ({
     rows,
+    selectedMonth,
     summaryFooter,
     onOpenDetails,
     onCreate,
@@ -256,6 +257,7 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
     onDelete,
   }: {
     rows: Array<{ id: string; name?: string }>;
+    selectedMonth: string;
     summaryFooter?: ReactNode;
     onOpenDetails?: (id: string) => void;
     onCreate: () => void;
@@ -268,6 +270,7 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
       <View testID="spending-plans-lens">
         {summaryFooter}
         <Text>{`plans-lens:${rows.length}`}</Text>
+        <Text>{`plans-month:${selectedMonth}`}</Text>
         <Pressable accessibilityLabel="create spending plan" onPress={onCreate}>
           <Text>create spending plan</Text>
         </Pressable>
@@ -352,7 +355,20 @@ const baseState: BudgetScreenState = {
   editingRow: undefined,
   editingPlan: undefined,
   detailPlan: undefined,
-  spendingPlansSummary: { planned: 0, spent: 0, left: 0, pct: 0 },
+  spendingPlansSummary: {
+    planned: 0,
+    spent: 0,
+    left: 0,
+    pct: 0,
+    itemizedAmount: 0,
+    itemizedPct: 0,
+    activeCount: 0,
+    upcomingCount: 0,
+    onTrackCount: 0,
+    watchCount: 0,
+    overCount: 0,
+    needsAttentionCount: 0,
+  },
   month: '2026-07',
   daysLeft: 12,
   hasBudgets: false,
@@ -624,7 +640,20 @@ describe('BudgetScreen', () => {
       lensTab: 'plans',
       hasSpendingPlans: true,
       spendingPlanRows: [{ id: 'plan_trip', name: 'Alexandria weekend' } as never],
-      spendingPlansSummary: { planned: 8000, spent: 1200, left: 6800, pct: 0.15 },
+      spendingPlansSummary: {
+        planned: 8000,
+        spent: 1200,
+        left: 6800,
+        pct: 0.15,
+        itemizedAmount: 3000,
+        itemizedPct: 0.375,
+        activeCount: 1,
+        upcomingCount: 0,
+        onTrackCount: 0,
+        watchCount: 1,
+        overCount: 0,
+        needsAttentionCount: 1,
+      },
     });
 
     const { getByText, queryByLabelText, queryByText, queryByTestId } = render(<BudgetScreen />);
@@ -632,6 +661,7 @@ describe('BudgetScreen', () => {
     expect(getByText('tab:plans')).toBeTruthy();
     expect(getByText('rail:plans')).toBeTruthy();
     expect(getByText('plans-lens:1')).toBeTruthy();
+    expect(getByText('plans-month:2026-07')).toBeTruthy();
     expect(getByText('plan-disabled:false')).toBeTruthy();
     expect(queryByLabelText('copy budget')).toBeNull();
     expect(queryByLabelText('add budget category')).toBeNull();
