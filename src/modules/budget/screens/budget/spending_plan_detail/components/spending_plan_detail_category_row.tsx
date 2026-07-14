@@ -18,7 +18,7 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
       accessible
       accessibilityRole="text"
       accessibilityLabel={row.accessibilityLabel}
-      className="border-border min-h-[46px] flex-row items-center gap-3 border-b py-1"
+      className="border-border min-h-[52px] flex-row items-center gap-2 border-b py-1"
     >
       {row.kind === 'allocated' ? (
         <BudgetRing
@@ -30,7 +30,7 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
           <MaterialCommunityIcons
             accessible={false}
             name={toIconName(row.icon, 'tag-outline')}
-            size={Size.iconMicro}
+            size={Size.iconXs}
             color={row.color}
           />
         </BudgetRing>
@@ -39,18 +39,18 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
           <MaterialCommunityIcons
             accessible={false}
             name={toIconName(row.icon, 'tag-outline')}
-            size={Size.iconMicro}
+            size={Size.iconXs}
             color={row.color}
           />
         </View>
       )}
 
       <View className="min-w-0 flex-1">
-        <Text className="font-inter text-foreground text-[12px] font-semibold" numberOfLines={1}>
+        <Text className="font-inter text-foreground text-[15px] font-semibold" numberOfLines={1}>
           {row.categoryName}
         </Text>
         <Text
-          className="font-inter text-content-secondary mt-0.5 text-[7.5px]"
+          className="font-inter text-content-secondary mt-px text-[11.5px]"
           style={row.kind === 'allocated' ? { color: row.progressColor } : undefined}
           numberOfLines={1}
         >
@@ -59,12 +59,12 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
       </View>
 
       <View className="items-end">
-        <Text className="font-sora text-foreground text-[11px] font-semibold">
+        <Text className="font-sora text-foreground text-[15px] font-semibold">
           {row.amountLabel}
         </Text>
         {row.kind === 'allocated' ? (
           <Text
-            className="font-inter text-content-secondary mt-0.5 text-[7.5px] font-medium"
+            className="font-inter text-content-secondary mt-px text-[11.5px] font-medium"
             style={{ color: row.balanceColor }}
           >
             {row.balanceLabel}

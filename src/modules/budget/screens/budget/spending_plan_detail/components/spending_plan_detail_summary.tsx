@@ -15,8 +15,8 @@ interface SpendingPlanDetailSummaryProps {
 export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryProps) {
   return (
     <Surface variant="transparent" className="border-border border-b">
-      <View className="px-4 py-3">
-        <View className="flex-row items-start justify-between gap-4">
+      <View className="px-0 py-1">
+        <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
             <View
               accessible
@@ -24,17 +24,17 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
               accessibilityLabel={detail.balanceAccessibilityLabel}
             >
               <Text
-                className="font-sora text-[22px] font-bold"
+                className="font-sora text-[31px] font-bold"
                 style={{ color: detail.balanceColor }}
               >
                 {detail.balanceAmountLabel}
-                <Text className="font-inter text-content-secondary text-[9px] font-medium">
+                <Text className="font-inter text-content-secondary text-[13px] font-medium">
                   {' '}
                   {detail.balanceMetaLabel}
                 </Text>
               </Text>
             </View>
-            <Text className="font-inter text-content-secondary mt-0.5 text-[9px] font-medium">
+            <Text className="font-inter text-content-secondary mt-px text-[13px] font-medium">
               {detail.dateLabel}
             </Text>
           </View>
@@ -45,19 +45,19 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             animation="disable-all"
             accessibilityRole="text"
             accessibilityLabel={detail.statusLabel}
-            className="min-h-[18px] px-1 py-0"
+            className="min-h-6 px-2 py-0"
           >
-            <Chip.Label className="font-inter text-[7.5px] font-semibold">
+            <Chip.Label className="font-inter text-[11.5px] font-semibold capitalize">
               {detail.statusLabel}
             </Chip.Label>
           </Chip>
         </View>
 
-        <View className="mt-2 flex-row items-center justify-between gap-3">
-          <Text className="font-inter text-foreground text-[11px] font-medium">
+        <View className="mt-1 flex-row items-center justify-between gap-3">
+          <Text className="font-inter text-foreground text-[14px] font-medium">
             {detail.spentLabel}
           </Text>
-          <Text className="font-sora text-content-secondary text-[11px] font-semibold">
+          <Text className="font-inter text-content-secondary text-[13px] font-semibold">
             {detail.percentageLabel}
           </Text>
         </View>
@@ -91,15 +91,15 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
           ) : null}
         </View>
 
-        <View className="border-border mt-2 flex-row items-stretch border-t pt-2">
+        <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
           {detail.metrics.map((metric, index) => (
             <React.Fragment key={metric.label}>
               {index > 0 ? <View className="bg-border w-px" /> : null}
               <View className="flex-1 items-center px-0.5">
-                <Text className="font-inter text-content-secondary text-center text-[7.5px]">
+                <Text className="font-inter text-content-secondary text-center text-[11.5px]">
                   {metric.label}
                 </Text>
-                <Text className="font-sora text-foreground mt-0.5 text-center text-[11px] font-semibold">
+                <Text className="font-sora text-foreground mt-px text-center text-[15px] font-semibold">
                   {metric.value}
                 </Text>
               </View>
@@ -108,11 +108,11 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
         </View>
 
         {detail.insights.length > 0 ? (
-          <View className="border-border mt-2 flex-row gap-1 border-t pt-2">
+          <View className="border-border mt-1.5 flex-row gap-1 border-t pt-1">
             {detail.insights.map((insight) => (
               <View
                 key={insight.key}
-                className="bg-default min-h-8 flex-1 flex-row items-center gap-1 rounded-lg px-2 py-1"
+                className="bg-default min-h-8 flex-1 flex-row items-center gap-1 rounded-lg px-2 py-0.5"
               >
                 <MaterialCommunityIcons
                   accessible={false}
@@ -121,7 +121,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
                   color={insight.color}
                 />
                 <Text
-                  className="font-inter text-content-secondary flex-1 text-[9px] font-medium"
+                  className="font-inter text-content-secondary flex-1 text-[13px] font-medium"
                   numberOfLines={2}
                 >
                   {insight.label}

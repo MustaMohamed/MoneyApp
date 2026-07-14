@@ -85,11 +85,11 @@ export default function SpendingPlanDetailScreen() {
             <View className="pb-6">
               <SpendingPlanDetailSummary detail={plan.detail} />
 
-              <View className="mt-4 flex-row items-center justify-between gap-3 px-4">
-                <Text className="font-inter text-content-secondary text-[11px] font-semibold uppercase">
+              <View className="mt-3 flex-row items-center justify-between gap-3 px-4">
+                <Text className="font-inter text-content-secondary text-[13px] font-semibold uppercase">
                   {Strings.budgetPlansDetailCategories}
                 </Text>
-                <Text className="font-inter text-content-secondary text-[11px] font-medium">
+                <Text className="font-inter text-content-secondary text-[13px] font-medium">
                   {plan.detail.totalSpentLabel}
                 </Text>
               </View>
@@ -98,17 +98,17 @@ export default function SpendingPlanDetailScreen() {
                   <SpendingPlanDetailCategoryRow key={row.categoryId} row={row} />
                 ))}
                 {plan.detail.flexibleRow ? (
-                  <View className="border-border min-h-[56px] flex-row items-center gap-2 border-t">
+                  <View className="border-border min-h-[52px] flex-row items-center gap-2 border-t">
                     <MaterialCommunityIcons
                       accessible={false}
                       name="wallet-outline"
                       size={Size.iconXs}
                       color={Colors.dark.gold}
                     />
-                    <Text className="font-inter text-content-secondary flex-1 text-[12px] font-medium">
+                    <Text className="font-inter text-content-secondary flex-1 text-[14px] font-medium">
                       {plan.detail.flexibleRow.label}
                     </Text>
-                    <Text className="font-sora text-foreground text-[12px] font-semibold">
+                    <Text className="font-sora text-foreground text-[15px] font-semibold">
                       {plan.detail.flexibleRow.amountLabel}
                     </Text>
                   </View>

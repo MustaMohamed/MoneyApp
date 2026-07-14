@@ -64,4 +64,21 @@ describe('spending plan presentation styling', () => {
     expect(planCard).toContain('text-[19px]');
     expect(planSummary).toContain('text-[31px]');
   });
+
+  it('keeps detail typography aligned with the overview hierarchy', () => {
+    const detailScreen = source('src/modules/budget/screens/budget/spending_plan_detail/index.tsx');
+    const detailSummary = source(
+      'src/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary.tsx',
+    );
+    const detailCategoryRow = source(
+      'src/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_category_row.tsx',
+    );
+
+    expect(detailSummary).toContain('text-[31px]');
+    expect(detailSummary).toContain('text-[15px]');
+    expect(detailSummary).not.toContain('text-[7.5px]');
+    expect(detailCategoryRow).toContain('text-[15px]');
+    expect(detailCategoryRow).not.toContain('text-[7.5px]');
+    expect(detailScreen).toContain('text-[13px]');
+  });
 });
