@@ -1,7 +1,7 @@
 # Budget Categories Redesign Design
 
 - **Date:** 2026-07-14
-- **Status:** Approved visual direction, pending written-spec sign-off
+- **Status:** Approved
 - **Scope:** Budget Phase 1 redesign
 - **Visual reference:** `.superpowers/brainstorm/82262-1784038480/content/budget-categories-expandable-v3.html`
 
