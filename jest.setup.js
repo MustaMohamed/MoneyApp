@@ -68,6 +68,10 @@ jest.mock('heroui-native', () => {
   const Description = passThrough(RNText);
   const FieldError = passThrough(RNText);
   const Input = passThrough(TextInput);
+  const InputGroup = passThrough(View);
+  InputGroup.Input = passThrough(TextInput);
+  InputGroup.Prefix = passThrough(View);
+  InputGroup.Suffix = passThrough(View);
   const Surface = passThrough(View);
   const Text = passThrough(RNText);
   Text.Heading = passThrough(RNText);
@@ -77,6 +81,16 @@ jest.mock('heroui-native', () => {
 
   const Button = passThrough(View);
   Button.Label = passThrough(RNText);
+
+  const Chip = passThrough(View);
+  Chip.Label = passThrough(RNText);
+
+  const Card = passThrough(View);
+  Card.Header = passThrough(View);
+  Card.Body = passThrough(View);
+  Card.Title = passThrough(RNText);
+  Card.Description = passThrough(RNText);
+  Card.Footer = passThrough(View);
 
   const Separator = (props) => React.createElement(View, { testID: 'separator', ...props });
 
@@ -105,8 +119,11 @@ jest.mock('heroui-native', () => {
     cn: (...args) => args.filter(Boolean).flat(Infinity).join(' '),
     BottomSheet,
     Button,
+    Card,
+    Chip,
     TextField,
     Input,
+    InputGroup,
     Label,
     Description,
     FieldError,

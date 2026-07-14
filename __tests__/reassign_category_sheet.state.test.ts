@@ -7,6 +7,7 @@ describe('useReassignCategorySheetState initial state', () => {
     const s = useReassignCategorySheetState.getState();
     expect(s.selectedId).toBeNull();
     expect(s.isLoading).toBe(false);
+    expect(s.errorMessage).toBeUndefined();
   });
 });
 
@@ -28,14 +29,24 @@ describe('useReassignCategorySheetState setters', () => {
     useReassignCategorySheetState.getState().setIsLoading(false);
     expect(useReassignCategorySheetState.getState().isLoading).toBe(false);
   });
+
+  it('stores a reassignment error for the sheet to display', () => {
+    useReassignCategorySheetState.getState().setErrorMessage('Plans overlap');
+    expect(useReassignCategorySheetState.getState().errorMessage).toBe('Plans overlap');
+  });
 });
 
 describe('useReassignCategorySheetState reset', () => {
   it('returns to defaults', () => {
-    useReassignCategorySheetState.setState({ selectedId: 'cat-456', isLoading: true });
+    useReassignCategorySheetState.setState({
+      selectedId: 'cat-456',
+      isLoading: true,
+      errorMessage: 'Plans overlap',
+    });
     useReassignCategorySheetState.getState().reset();
     const s = useReassignCategorySheetState.getState();
     expect(s.selectedId).toBeNull();
     expect(s.isLoading).toBe(false);
+    expect(s.errorMessage).toBeUndefined();
   });
 });

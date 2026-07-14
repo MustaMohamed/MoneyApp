@@ -6,6 +6,7 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {
     getRows: jest.fn().mockResolvedValue([]),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
+    getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
     setLimit: jest.fn().mockResolvedValue(undefined),
     removeBudget: jest.fn().mockResolvedValue(undefined),
     copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
@@ -47,7 +48,7 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
 
   it('reset also resets loaded to false and clears rows/spendByMonth', () => {
     const store = createBudgetStore(makeRepo());
-    store.getState().setData([], {}, 5000);
+    store.getState().setData([], {}, 5000, [], {});
     store.getState().reset();
     const s = store.getState();
     expect(s.loaded).toBe(false);

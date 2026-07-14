@@ -1,9 +1,9 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from 'expo-router';
 import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { RefreshControl, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -12,7 +12,6 @@ import { SegmentedTabs } from '@/components/ui/tabs';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
-import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
 import { BudgetDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/budget_delete_confirm_sheet';
 import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components/budget_screen_skeleton';
@@ -20,7 +19,10 @@ import { BudgetToolRail } from '@/modules/budget/screens/budget/components/budge
 import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/category_budget_row';
 import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
+import { SpendingPlanDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet';
+import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
 import { SummaryCard } from '@/modules/budget/screens/budget/components/summary_card';
+import { SpendingPlanSheet } from '@/modules/budget/screens/budget/spending_plan_sheet';
 import { formatMonthYear } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
@@ -36,6 +38,8 @@ export default function BudgetScreen() {
     state,
     openAdd,
     openEdit,
+    openAddPlan,
+    openPlanTool,
     setLensTab,
     setSelectedMonth,
     openCopy,
@@ -46,22 +50,23 @@ export default function BudgetScreen() {
     setCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
+    removeSpendingPlanForMonth,
+    openPlanDetails,
+    refresh,
     goToCategory,
   } = useBudget();
-  const editingTargetId = useBudgetState.useState.targetBudgetId();
-  const editingRow = state.rows
-    .flatMap((row) =>
-      row.budgets.map((budget) => ({
-        ...budget,
-        limit: budget.amount,
-        categoryId: row.categoryId,
-        categoryName: row.name,
-        icon: row.icon,
-        color: row.color,
-      })),
-    )
-    .find((budget) => budget.id === editingTargetId);
-  const openPlans = useCallback(() => setLensTab('plans'), [setLensTab]);
+
+  const refreshControl = (
+    <RefreshControl
+      refreshing={state.refreshing}
+      onRefresh={() => {
+        void refresh();
+      }}
+      tintColor={Colors.dark.gold}
+      colors={[Colors.dark.gold]}
+      progressBackgroundColor={Colors.dark.surface}
+    />
+  );
 
   // Payload carries both id and name so the confirm sheet can display the category name
   const {
@@ -71,6 +76,13 @@ export default function BudgetScreen() {
     confirm: confirmDelete,
     cancel: cancelDelete,
   } = useConfirmAction<{ id: string; name: string }>(removeBudgetForMonth);
+  const {
+    pendingPayload: pendingPlanDelete,
+    busy: planDeleteBusy,
+    request: requestPlanDelete,
+    confirm: confirmPlanDelete,
+    cancel: cancelPlanDelete,
+  } = useConfirmAction<{ id: string; name: string }>(removeSpendingPlanForMonth);
 
   // Close any open swipe row when the user navigates away from this screen
   useFocusEffect(
@@ -101,18 +113,32 @@ export default function BudgetScreen() {
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
 
-      {!state.hasLoaded ? (
-        <ScreenScroll contentContainerStyle={styles.content}>
-          <BudgetScreenSkeleton />
+      {state.loadError && !state.hasLoaded ? (
+        <View className="flex-1 items-center justify-center gap-3 px-6">
+          <HeroText className="font-inter text-muted text-center text-[14px] font-medium">
+            {Strings.budgetLoadError}
+          </HeroText>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={Strings.budgetLoadRetry}
+            accessibilityLabel={Strings.budgetLoadRetry}
+            onPress={() => void refresh()}
+          />
+        </View>
+      ) : !state.hasLoaded || state.refreshing ? (
+        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
+          <BudgetScreenSkeleton variant={state.lensTab === 'plans' ? 'plans' : 'categories'} />
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
-        <ScreenScroll contentContainerStyle={styles.content}>
+        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
           <View style={styles.inset}>
             <SummaryCard overall={state.overall} daysLeft={state.daysLeft} />
             <BudgetToolRail
+              variant="categories"
               onCopy={openCopy}
               onAddCategory={openAdd}
-              onPlan={openPlans}
+              onPlan={openPlanTool}
               copyDisabled={false}
               addCategoryDisabled={state.budgetableCategories.length === 0}
               planDisabled={false}
@@ -139,41 +165,28 @@ export default function BudgetScreen() {
           )}
         </ScreenScroll>
       ) : state.lensTab === 'plans' ? (
-        <ScreenScroll contentContainerStyle={styles.content}>
-          <View style={styles.inset}>
-            <BudgetToolRail
-              onCopy={openCopy}
-              onAddCategory={openAdd}
-              onPlan={openPlans}
-              copyDisabled={false}
-              addCategoryDisabled={state.budgetableCategories.length === 0}
-              planDisabled={false}
-            />
-          </View>
-          <View style={styles.plansPlaceholder}>
-            <View style={styles.plansIcon}>
-              <MaterialCommunityIcons
-                name="calendar-star"
-                size={ms(34)}
-                color={Colors.dark.text2}
+        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
+          <SpendingPlansLens
+            rows={state.spendingPlanRows}
+            summary={state.spendingPlansSummary}
+            summaryFooter={
+              <BudgetToolRail
+                variant="plans"
+                onCopy={openCopy}
+                onAddCategory={openAdd}
+                onPlan={openPlanTool}
+                copyDisabled={false}
+                addCategoryDisabled={state.budgetableCategories.length === 0}
+                planDisabled={false}
               />
-            </View>
-            <HeroText style={styles.plansTitle}>{Strings.budgetPlansTitle}</HeroText>
-            <HeroText style={styles.plansBody}>{Strings.budgetPlansBody}</HeroText>
-          </View>
+            }
+            onCreate={openAddPlan}
+            onOpenDetails={openPlanDetails}
+            onDelete={requestPlanDelete}
+          />
         </ScreenScroll>
       ) : (
-        <ScreenScroll contentContainerStyle={styles.content}>
-          <View style={styles.inset}>
-            <BudgetToolRail
-              onCopy={openCopy}
-              onAddCategory={openAdd}
-              onPlan={openPlans}
-              copyDisabled={false}
-              addCategoryDisabled={state.budgetableCategories.length === 0}
-              planDisabled={false}
-            />
-          </View>
+        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
           <FiftyThirtyTwentyLens vm={state.buckets} suggestion={state.suggestion} />
         </ScreenScroll>
       )}
@@ -196,8 +209,14 @@ export default function BudgetScreen() {
         }}
       />
 
-      <SetBudgetSheet budgetableCategories={state.budgetableCategories} editingRow={editingRow} />
-
+      <SetBudgetSheet
+        budgetableCategories={state.budgetableCategories}
+        editingRow={state.editingRow}
+      />
+      <SpendingPlanSheet
+        budgetableCategories={state.budgetableCategories}
+        editingPlan={state.editingPlan}
+      />
       <BudgetDeleteConfirmSheet
         isOpen={pendingDelete !== null}
         categoryName={pendingDelete?.name ?? ''}
@@ -205,6 +224,15 @@ export default function BudgetScreen() {
         onCancel={cancelDelete}
         onConfirm={() => {
           void confirmDelete();
+        }}
+      />
+      <SpendingPlanDeleteConfirmSheet
+        isOpen={pendingPlanDelete !== null}
+        planName={pendingPlanDelete?.name ?? ''}
+        busy={planDeleteBusy}
+        onCancel={cancelPlanDelete}
+        onConfirm={() => {
+          void confirmPlanDelete();
         }}
       />
     </Screen>
@@ -239,35 +267,5 @@ const styles = StyleSheet.create({
   },
   emptyWrap: {
     minHeight: ms(320),
-  },
-  plansPlaceholder: {
-    minHeight: ms(320),
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-  },
-  plansIcon: {
-    width: ms(72),
-    height: ms(72),
-    borderRadius: ms(36),
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: Colors.dark.surface,
-  },
-  plansTitle: {
-    marginTop: Spacing.md,
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.title,
-    color: Colors.dark.text1,
-    textAlign: 'center',
-  },
-  plansBody: {
-    marginTop: Spacing.xs,
-    maxWidth: ms(280),
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.body,
-    lineHeight: ms(20),
-    color: Colors.dark.text2,
-    textAlign: 'center',
   },
 });

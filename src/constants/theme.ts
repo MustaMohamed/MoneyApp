@@ -76,6 +76,8 @@ export const FontFamily = {
 
 /** Typography scale — font sizes only. Use FontFamily separately. */
 export const Type = {
+  chipMeta: msFont(7.5),
+  chip: msFont(9),
   micro: msFont(11),
   caption: msFont(12),
   body: msFont(14),
@@ -86,8 +88,15 @@ export const Type = {
   hero: msFont(28),
 } as const;
 
+/** Tracking values for compact labels and eyebrow copy. */
+export const LetterSpacing = {
+  eyebrow: ms(0.3),
+} as const;
+
 /** Vertical / horizontal spacing scale. */
 export const Spacing = {
+  xxxxs: ms(1),
+  xxxs: ms(2),
   xxs: ms(4),
   xs: ms(8),
   sm: ms(12),
@@ -123,6 +132,19 @@ export const Size = {
   // context from a wrapper component inside a <Tabs.Screen>.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
+  compactChipHeight: ms(28),
+  spendingPlanChipHeight: ms(25),
+  spendingPlanProgressTrack: ms(4),
+  spendingPlanStatusHeight: ms(18),
+  spendingPlanDetailRing: ms(28),
+  spendingPlanDetailRowHeight: ms(46),
+  spendingPlanFlexibleRowHeight: ms(39),
+  budgetToolHeight: ms(38),
+  plansEmptyMinHeight: ms(300),
+  plansEmptyIcon: ms(72),
+  plansEmptyTextWidth: ms(280),
+  compactBodyLineHeight: ms(20),
+  iconMicro: ms(12),
   iconBack: ms(20),
   iconXs: ms(16),
   iconSm: ms(18),
@@ -137,6 +159,7 @@ export const Size = {
   flagBox: ms(36),
   shieldBox: ms(48),
   colorDot: ms(20),
+  progressTrack: ms(8),
   progressDot: ms(4),
   checkCircle: ms(20),
   illustration: ms(120),

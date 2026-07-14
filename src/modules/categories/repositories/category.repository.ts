@@ -1,6 +1,12 @@
 import uuid from 'react-native-uuid';
 
+import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
+import {
+  deleteSoleCategorySpendingPlans,
+  getSpendingPlanCategoryReassignmentConflict,
+  reassignSpendingPlanCategoryRows,
+} from '@/modules/budget/database/spending_plan_categories';
 import {
   addCategory,
   deleteCategory,
@@ -76,7 +82,10 @@ export class CategoryRepository implements ICategoryRepository {
 
   async delete(id: string): Promise<void> {
     const db = await getDb();
-    await deleteCategory(db, id);
+    await db.withTransactionAsync(async () => {
+      await deleteSoleCategorySpendingPlans(db, id);
+      await deleteCategory(db, id);
+    });
   }
 
   /**
@@ -92,6 +101,12 @@ export class CategoryRepository implements ICategoryRepository {
   async reassignAndDelete(fromId: string, toId: string): Promise<void> {
     const db = await getDb();
     await db.withTransactionAsync(async () => {
+      const conflict = await getSpendingPlanCategoryReassignmentConflict(db, fromId, toId);
+      if (conflict) {
+        throw new Error(
+          Strings.categoriesReassignPlanOverlap(conflict.sourcePlanName, conflict.targetPlanName),
+        );
+      }
       await db.runAsync('UPDATE transactions SET category_id = ? WHERE category_id = ?', [
         toId,
         fromId,
@@ -100,6 +115,7 @@ export class CategoryRepository implements ICategoryRepository {
         toId,
         fromId,
       ]);
+      await reassignSpendingPlanCategoryRows(db, fromId, toId);
       await db.runAsync('DELETE FROM categories WHERE id = ?', [fromId]);
     });
   }

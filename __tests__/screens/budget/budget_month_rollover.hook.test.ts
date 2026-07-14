@@ -98,9 +98,13 @@ function setupStores() {
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: budgetRowsState,
     spendByMonth: spendByMonthState,
+    spendingPlans: [],
+    spendingPlanSpendById: {},
     loaded: false,
     expectedIncome: null,
     load: loadBudgetMock,
+    setSpendingPlan: jest.fn(),
+    removeSpendingPlan: jest.fn(),
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
     selectedMonth: selectedMonthState,
@@ -178,7 +182,7 @@ describe('useBudget — month rollover', () => {
     expect(result.current.state.hasLoaded).toBe(false);
   });
 
-  it('refreshes month when the screen regains focus after a month boundary', async () => {
+  it('preserves the selected month when the screen regains focus', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     setupStores();
     const { result, rerender } = renderHook(() => useBudget());
@@ -192,10 +196,11 @@ describe('useBudget — month rollover', () => {
     });
     rerender(undefined);
 
-    expect(result.current.state.month).toBe('2026-06');
+    expect(result.current.state.month).toBe('2026-05');
+    expect(resetSelectedMonthToCurrentMock).not.toHaveBeenCalled();
   });
 
-  it('cancels pending focus reload work on cleanup while keeping month rollover synchronous', () => {
+  it('cancels pending focus reload work without changing the selected month', () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     setupStores();
     const { result, rerender } = renderHook(() => useBudget());
@@ -212,7 +217,7 @@ describe('useBudget — month rollover', () => {
     });
     rerender(undefined);
 
-    expect(result.current.state.month).toBe('2026-06');
+    expect(result.current.state.month).toBe('2026-05');
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
     expect(loadCategoriesMock).not.toHaveBeenCalled();
     expect(loadBudgetMock).not.toHaveBeenCalled();

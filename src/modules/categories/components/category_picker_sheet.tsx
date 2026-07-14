@@ -14,7 +14,8 @@ interface Props {
   isOpen: boolean;
   title: string;
   categories: Category[];
-  selectedId: string | undefined;
+  selectedId?: string | undefined;
+  selectedIds?: string[] | undefined;
   onSelect: (category: Category) => void;
   onOpenChange: (open: boolean) => void;
 }
@@ -36,6 +37,7 @@ export function CategoryPickerSheet({
   title,
   categories,
   selectedId,
+  selectedIds,
   onSelect,
   onOpenChange,
 }: Props): React.ReactElement {
@@ -49,6 +51,7 @@ export function CategoryPickerSheet({
   const cellWidth = (screenWidth - PADDING * 2 - GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
   const rows = chunk(categories, NUM_COLUMNS);
+  const selectedIdSet = new Set(selectedIds ?? (selectedId ? [selectedId] : []));
 
   return (
     // scrollable=true: size="lg" fixed snap + bounded h-full container so
@@ -76,7 +79,7 @@ export function CategoryPickerSheet({
               }}
             >
               {row.map((cat) => {
-                const isSelected = cat.id === selectedId;
+                const isSelected = selectedIdSet.has(cat.id);
                 // Icon colour: each category has its own colour (e.g. food =
                 // warm orange, transport = blue). Selected wins with the gold
                 // accent so the picker still has a clear "this one" signal.

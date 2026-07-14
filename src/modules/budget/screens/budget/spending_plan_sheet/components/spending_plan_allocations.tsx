@@ -1,0 +1,72 @@
+import { Switch } from 'heroui-native';
+import type { BlurEvent, FocusEvent } from 'react-native';
+import { View } from 'react-native';
+
+import { Input } from '@/components/ui/input';
+import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
+import type { Category } from '@/modules/categories/entities/category.entity';
+
+interface SpendingPlanAllocationsProps {
+  isEnabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+  selectedCategories: Category[];
+  values: Record<string, number | undefined>;
+  helperText: string;
+  isOver: boolean;
+  onAllocationTextChange: (categoryId: string, text: string) => void;
+  onFocus: (event: FocusEvent) => void;
+  onBlur: (event: BlurEvent) => void;
+}
+
+export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
+  return (
+    <>
+      <View className="flex-row items-center justify-between py-4">
+        <Text className="font-inter text-foreground text-[12px] font-semibold">
+          {Strings.budgetPlanAllocateByCategory}
+        </Text>
+        <Switch
+          isSelected={props.isEnabled}
+          onSelectedChange={props.onEnabledChange}
+          accessibilityLabel={Strings.budgetPlanAllocateByCategory}
+        />
+      </View>
+      {props.isEnabled ? (
+        <View className="gap-2">
+          <Text className="font-inter text-muted text-[11px]">{props.helperText}</Text>
+          {props.isOver ? (
+            <Text className="font-inter text-danger mt-2 text-[11px]">
+              {Strings.budgetPlanAllocationOver}
+            </Text>
+          ) : null}
+          {props.selectedCategories.map((category) => (
+            <View key={category.id} className="flex-row items-center justify-between gap-3">
+              <Text className="font-inter text-foreground flex-1 text-[12px] font-semibold">
+                {category.name}
+              </Text>
+              <Input
+                testID={`spending-plan-allocation-${category.id}`}
+                value={
+                  props.values[category.id] === undefined ? '' : String(props.values[category.id])
+                }
+                onChangeText={(text) => props.onAllocationTextChange(category.id, text)}
+                onFocus={props.onFocus}
+                onBlur={props.onBlur}
+                keyboardType="number-pad"
+                placeholder={Strings.zeroAmountPlaceholder}
+                className="border-border bg-background font-sora text-foreground h-9 min-h-0 w-32 px-2 text-[12px] font-bold"
+                suffix={
+                  <Text className="font-inter text-muted text-[12px] font-semibold">
+                    {Strings.currencyEgp}
+                  </Text>
+                }
+                accessibilityLabel={`${Strings.budgetPlanAllocateByCategory} ${category.name}`}
+              />
+            </View>
+          ))}
+        </View>
+      ) : null}
+    </>
+  );
+}

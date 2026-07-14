@@ -1,9 +1,32 @@
 import uuid from 'react-native-uuid';
 
+import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
-import { getCategorySpendByMonth } from '@/modules/budget/database/budget_stats';
+import {
+  getCategorySpendByMonth,
+  getSpendingPlanSpend,
+} from '@/modules/budget/database/budget_stats';
 import { deleteBudgetRow, getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
-import type { Budget } from '@/modules/budget/entities/budget.entity';
+import {
+  getSpendingPlanCategoryRows,
+  replaceSpendingPlanCategoryRows,
+} from '@/modules/budget/database/spending_plan_categories';
+import {
+  deleteSpendingPlan,
+  getSpendingPlanById,
+  getSpendingPlanRows,
+  getSpendingPlanRowsForRange,
+  setSpendingPlanRow,
+} from '@/modules/budget/database/spending_plans';
+import type {
+  Budget,
+  SpendingPlan,
+  SpendingPlanCategory,
+  SpendingPlanWithCategories,
+} from '@/modules/budget/entities/budget.entity';
+import { getCategoriesByType } from '@/modules/categories/database/categories';
+import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
 export function currentYearMonth(now: Date = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -30,6 +53,10 @@ export interface IBudgetRepository {
   copyBudgetsToMonth(sourceMonth: string, targetMonth: string, budgetIds: string[]): Promise<void>;
   copyLimitsToMonth(sourceMonth: string, targetMonth: string, categoryIds: string[]): Promise<void>;
   getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>>;
+  getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult>;
+  getSpendingPlanDetails(id: string): Promise<SpendingPlanDetailsResult | undefined>;
+  setSpendingPlan(input: SetSpendingPlanInput): Promise<void>;
+  removeSpendingPlan(id: string): Promise<void>;
 }
 
 export interface SetBudgetInput {
@@ -40,12 +67,59 @@ export interface SetBudgetInput {
   yearMonth?: string;
 }
 
+export type SetSpendingPlanInput = SpendingPlanInput;
+
+export interface SpendingPlansForMonthResult {
+  plans: SpendingPlanWithCategories[];
+  spendByPlanId: Record<string, Record<string, number>>;
+}
+
+export interface SpendingPlanDetailsResult {
+  plan: SpendingPlanWithCategories;
+  spend: Record<string, number>;
+}
+
+export class SpendingPlanValidationError extends Error {}
+
+function hydrateSpendingPlans(
+  plans: SpendingPlan[],
+  categories: SpendingPlanCategory[],
+): SpendingPlanWithCategories[] {
+  const categoriesByPlan = new Map<string, SpendingPlanCategory[]>();
+  for (const category of categories) {
+    const rows = categoriesByPlan.get(category.plan_id) ?? [];
+    rows.push(category);
+    categoriesByPlan.set(category.plan_id, rows);
+  }
+  return plans.map((plan) => ({ ...plan, categories: categoriesByPlan.get(plan.id) ?? [] }));
+}
+
 function normalizeBudgetName(name: string): string {
   return name.trim();
 }
 
 function sameBudgetName(left: string, right: string): boolean {
   return normalizeBudgetName(left).toLowerCase() === normalizeBudgetName(right).toLowerCase();
+}
+
+function normalizePlanName(name: string): string {
+  return name.trim();
+}
+
+function rangesOverlap(
+  left: { startDate: string; endDate: string },
+  right: { startDate: string; endDate: string },
+): boolean {
+  return left.startDate <= right.endDate && left.endDate >= right.startDate;
+}
+
+function validateSpendingPlanInput(input: SetSpendingPlanInput): void {
+  const result = spendingPlanInputSchema.safeParse(input);
+  if (!result.success) {
+    throw new SpendingPlanValidationError(
+      result.error.issues[0]?.message ?? Strings.budgetPlanSaveError,
+    );
+  }
 }
 
 export class BudgetRepository implements IBudgetRepository {
@@ -162,6 +236,109 @@ export class BudgetRepository implements IBudgetRepository {
   async getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>> {
     const db = await getDb();
     return getCategorySpendByMonth(db, yearMonths);
+  }
+
+  async getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult> {
+    const db = await getDb();
+    const planRows = await getSpendingPlanRows(db, yearMonth);
+    const planIds = planRows.map((plan) => plan.id);
+    const [categoryRows, spendByPlanId] = await Promise.all([
+      getSpendingPlanCategoryRows(db, planIds),
+      getSpendingPlanSpend(db, planIds),
+    ]);
+    return { plans: hydrateSpendingPlans(planRows, categoryRows), spendByPlanId };
+  }
+
+  async getSpendingPlanDetails(id: string): Promise<SpendingPlanDetailsResult | undefined> {
+    const db = await getDb();
+    const plan = await getSpendingPlanById(db, id);
+    if (!plan) return undefined;
+    const [categories, spendByPlanId] = await Promise.all([
+      getSpendingPlanCategoryRows(db, [id]),
+      getSpendingPlanSpend(db, [id]),
+    ]);
+    return {
+      plan: { ...plan, categories },
+      spend: spendByPlanId[id] ?? {},
+    };
+  }
+
+  async setSpendingPlan(input: SetSpendingPlanInput): Promise<void> {
+    validateSpendingPlanInput(input);
+    const db = await getDb();
+    const now = new Date().toISOString();
+    await db.withExclusiveTransactionAsync(async (tx) => {
+      const expenseCategories = await getCategoriesByType(tx, CategoryType.Expense);
+      const expenseCategoryById = new Map(
+        expenseCategories.map((category) => [category.id, category]),
+      );
+      const invalidCategory = input.categories.find(
+        (category) => !expenseCategoryById.has(category.categoryId),
+      );
+      if (invalidCategory) {
+        throw new SpendingPlanValidationError(Strings.budgetPlanExpenseCategoriesOnly);
+      }
+
+      const existingPlanRows = await getSpendingPlanRowsForRange(tx, {
+        startDate: input.startDate,
+        endDate: input.endDate,
+      });
+      const existingPlanCategories = await getSpendingPlanCategoryRows(
+        tx,
+        existingPlanRows.map((plan) => plan.id),
+      );
+      const existingPlans = hydrateSpendingPlans(existingPlanRows, existingPlanCategories);
+      const selectedCategoryIds = new Set(input.categories.map((category) => category.categoryId));
+      const conflict = existingPlans
+        .filter((plan) => plan.id !== input.id)
+        .find(
+          (plan) =>
+            rangesOverlap(
+              { startDate: input.startDate, endDate: input.endDate },
+              { startDate: plan.start_date, endDate: plan.end_date },
+            ) && plan.categories.some((category) => selectedCategoryIds.has(category.category_id)),
+        );
+      if (conflict) {
+        const conflictCategoryId = conflict.categories.find((category) =>
+          selectedCategoryIds.has(category.category_id),
+        )?.category_id;
+        const categoryName =
+          (conflictCategoryId ? expenseCategoryById.get(conflictCategoryId)?.name : undefined) ??
+          conflictCategoryId ??
+          Strings.budgetPlanCategories;
+        throw new SpendingPlanValidationError(
+          Strings.budgetPlanOverlapError(categoryName, conflict.name),
+        );
+      }
+
+      const existing = input.id ? await getSpendingPlanById(tx, input.id) : null;
+      const planId = input.id ?? String(uuid.v4());
+      const plan: SpendingPlan = {
+        id: planId,
+        name: normalizePlanName(input.name),
+        start_date: input.startDate,
+        end_date: input.endDate,
+        total_amount: input.totalAmount,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      };
+
+      await setSpendingPlanRow(tx, plan);
+      await replaceSpendingPlanCategoryRows(
+        tx,
+        planId,
+        input.categories.map((category) => ({
+          plan_id: planId,
+          category_id: category.categoryId,
+          allocated_amount: category.allocatedAmount ?? null,
+        })),
+      );
+    });
+  }
+
+  async removeSpendingPlan(id: string): Promise<void> {
+    const db = await getDb();
+    await deleteSpendingPlan(db, id);
   }
 }
 

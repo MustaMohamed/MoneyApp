@@ -71,7 +71,9 @@ const budgetRows = [
 ];
 
 let loadBudgetMock: jest.Mock;
+let loadCategoriesMock: jest.Mock;
 let setSelectedMonthMock: jest.Mock;
+let setRefreshingMock: jest.Mock;
 let setCopySourceMonthMock: jest.Mock;
 let setCopySelectedBudgetIdsMock: jest.Mock;
 let openCopyMock: jest.Mock;
@@ -81,9 +83,11 @@ let removeBudgetMock: jest.Mock;
 
 function setupStores() {
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
+  loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
   copyBudgetsToMonthMock = jest.fn().mockResolvedValue(undefined);
   removeBudgetMock = jest.fn().mockResolvedValue(undefined);
   setSelectedMonthMock = jest.fn();
+  setRefreshingMock = jest.fn();
   setCopySourceMonthMock = jest.fn();
   setCopySelectedBudgetIdsMock = jest.fn();
   openCopyMock = jest.fn();
@@ -92,16 +96,20 @@ function setupStores() {
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories,
     hasLoaded: true,
-    loadCategories: jest.fn(),
+    loadCategories: loadCategoriesMock,
   }));
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: budgetRows,
     spendByMonth: { food: { '2026-07': 1200 } },
+    spendingPlans: [],
+    spendingPlanSpendById: {},
     loaded: true,
     expectedIncome: null,
     load: loadBudgetMock,
     copyBudgetsToMonth: copyBudgetsToMonthMock,
     removeBudget: removeBudgetMock,
+    setSpendingPlan: jest.fn(),
+    removeSpendingPlan: jest.fn(),
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
     selectedMonth: '2026-07',
@@ -110,10 +118,12 @@ function setupStores() {
     copySheetVisible: false,
     copySelectedBudgetIds: ['budget-food-jun'],
     incomeSuggestion: null,
+    refreshing: false,
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     setLensTab: jest.fn(),
     setSelectedMonth: setSelectedMonthMock,
+    setRefreshing: setRefreshingMock,
     setCopySourceMonth: setCopySourceMonthMock,
     resetSelectedMonthToCurrent: jest.fn(),
     openCopy: openCopyMock,
@@ -135,6 +145,19 @@ describe('useBudget month actions', () => {
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-06');
     expect(loadBudgetMock).toHaveBeenCalledWith('2026-06');
+  });
+
+  it('refreshes categories and budget data for the selected month', async () => {
+    const { result } = renderHook(() => useBudget());
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(setRefreshingMock).toHaveBeenNthCalledWith(1, true);
+    expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
+    expect(loadBudgetMock).toHaveBeenCalledWith('2026-07');
+    expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
   });
 
   it('groups multiple named budgets under one category and counts category spend once', () => {

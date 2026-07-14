@@ -18,8 +18,11 @@ import {
   computeBuckets,
   type BucketsVM,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
+import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 export interface CategoryBudgetRowVM extends CategoryBudgetVM {
@@ -54,19 +57,36 @@ export function useBudget() {
     })),
   );
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth, budgetLoaded, expectedIncome } = useBudgetStore(
+  const {
+    budgetRows,
+    spendByMonth,
+    spendingPlans,
+    spendingPlanSpendById,
+    budgetLoaded,
+    loadedMonth,
+    expectedIncome,
+    loadError,
+  } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
+      spendingPlans: s.spendingPlans,
+      spendingPlanSpendById: s.spendingPlanSpendById,
       budgetLoaded: s.loaded,
+      loadedMonth: s.loadedMonth,
       expectedIncome: s.expectedIncome,
+      loadError: s.loadError,
     })),
   );
   const load = useBudgetStore.getState().load;
   const copyBudgetsToMonth = useBudgetStore.getState().copyBudgetsToMonth;
   const removeBudget = useBudgetStore.getState().removeBudget;
+  const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
+  const removeSpendingPlan = useBudgetStore.getState().removeSpendingPlan;
   const openAdd = useBudgetState.getState().openAdd;
   const openEdit = useBudgetState.getState().openEdit;
+  const openAddPlan = useBudgetState.getState().openAddPlan;
+  const openEditPlan = useBudgetState.getState().openEditPlan;
   const {
     selectedMonth,
     copySourceMonth,
@@ -74,6 +94,9 @@ export function useBudget() {
     copySheetVisible,
     copySelectedBudgetIds,
     incomeSuggestion,
+    refreshing,
+    targetBudgetId,
+    targetPlanId,
   } = useBudgetState(
     useShallow((s) => ({
       selectedMonth: s.selectedMonth,
@@ -82,18 +105,21 @@ export function useBudget() {
       copySheetVisible: s.copySheetVisible,
       copySelectedBudgetIds: s.copySelectedBudgetIds,
       incomeSuggestion: s.incomeSuggestion,
+      refreshing: s.refreshing,
+      targetBudgetId: s.targetBudgetId,
+      targetPlanId: s.targetPlanId,
     })),
   );
   const setLensTab = useBudgetState.getState().setLensTab;
   const setSelectedMonthState = useBudgetState.getState().setSelectedMonth;
   const setCopySourceMonthState = useBudgetState.getState().setCopySourceMonth;
-  const resetSelectedMonthToCurrent = useBudgetState.getState().resetSelectedMonthToCurrent;
   const openCopyState = useBudgetState.getState().openCopy;
   const closeCopy = useBudgetState.getState().closeCopy;
   const setCopySelectedBudgetIds = useBudgetState.getState().setCopySelectedBudgetIds;
   const toggleCopyBudgetId = useBudgetState.getState().toggleCopyBudgetId;
   const clearCopySelection = useBudgetState.getState().clearCopySelection;
   const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
+  const setRefreshing = useBudgetState.getState().setRefreshing;
 
   const loadIncomeSuggestion = useCallback(
     async (month: string) => {
@@ -110,15 +136,13 @@ export function useBudget() {
 
   useFocusEffect(
     useCallback(() => {
-      const month = currentYearMonth(); // refresh in case the month rolled over while mounted
-      resetSelectedMonthToCurrent();
       const task = runAfterInteractions(() => {
         void loadCategories();
-        void load(month);
-        void loadIncomeSuggestion(month);
+        void load(selectedMonth);
+        void loadIncomeSuggestion(selectedMonth);
       });
       return () => task.cancel();
-    }, [loadCategories, load, loadIncomeSuggestion, resetSelectedMonthToCurrent]),
+    }, [loadCategories, load, loadIncomeSuggestion, selectedMonth]),
   );
 
   const rows: CategoryBudgetRowVM[] = useMemo(() => {
@@ -146,6 +170,47 @@ export function useBudget() {
   }, [budgetRows, categories, selectedMonth, spendByMonth]);
 
   const overall = useMemo(() => computeOverall(rows), [rows]);
+
+  const today = toLocalDateString(new Date());
+
+  const spendingPlanRows = useMemo(
+    () =>
+      buildSpendingPlanRows({
+        plans: spendingPlans,
+        categories,
+        spendByPlanId: spendingPlanSpendById,
+        selectedMonth,
+        today,
+      }),
+    [categories, selectedMonth, spendingPlanSpendById, spendingPlans, today],
+  );
+
+  const spendingPlansSummary = useMemo(
+    () => computeSpendingPlansSummary(spendingPlanRows, selectedMonth),
+    [selectedMonth, spendingPlanRows],
+  );
+
+  const editingRow = useMemo(
+    () =>
+      rows
+        .flatMap((row) =>
+          row.budgets.map((budget) => ({
+            ...budget,
+            limit: budget.amount,
+            categoryId: row.categoryId,
+            categoryName: row.name,
+            icon: row.icon,
+            color: row.color,
+          })),
+        )
+        .find((budget) => budget.id === targetBudgetId),
+    [rows, targetBudgetId],
+  );
+
+  const editingPlan = useMemo(
+    () => spendingPlanRows.find((row) => row.id === targetPlanId),
+    [spendingPlanRows, targetPlanId],
+  );
 
   const buckets: BucketsVM = useMemo(
     () => computeBuckets(expectedIncome ?? 0, categories, budgetRows, spendByMonth, selectedMonth),
@@ -191,6 +256,19 @@ export function useBudget() {
     [load, loadIncomeSuggestion, setSelectedMonthState],
   );
 
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        loadCategories(),
+        load(selectedMonth),
+        loadIncomeSuggestion(selectedMonth),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [load, loadCategories, loadIncomeSuggestion, selectedMonth, setRefreshing]);
+
   const openCopy = useCallback(() => {
     openCopyState(copyRows.map((row) => row.id));
   }, [copyRows, openCopyState]);
@@ -228,13 +306,43 @@ export function useBudget() {
     [removeBudget, selectedMonth],
   );
 
+  const removeSpendingPlanForMonth = useCallback(
+    async ({ id }: { id: string; name: string }) => {
+      await removeSpendingPlan(id, selectedMonth);
+    },
+    [removeSpendingPlan, selectedMonth],
+  );
+
+  const openPlanTool = useCallback(() => {
+    if (lensTab === 'plans') {
+      openAddPlan();
+      return;
+    }
+    setLensTab('plans');
+  }, [lensTab, openAddPlan, setLensTab]);
+
+  const openPlanDetails = useCallback(
+    (planId: string) => {
+      router.push({
+        pathname: '/(app)/(tabs)/budget/plans/[id]',
+        params: { id: planId, month: selectedMonth },
+      });
+    },
+    [router, selectedMonth],
+  );
+
   return {
     state: {
       rows,
+      editingRow,
       overall,
+      spendingPlanRows,
+      editingPlan,
+      spendingPlansSummary,
       month: selectedMonth,
       daysLeft,
       hasBudgets: rows.length > 0,
+      hasSpendingPlans: spendingPlanRows.length > 0,
       budgetableCategories,
       buckets,
       suggestion: incomeSuggestion,
@@ -243,10 +351,20 @@ export function useBudget() {
       copyRows,
       copySheetVisible,
       copySelectedBudgetIds,
-      hasLoaded: Boolean(categoriesLoaded && budgetLoaded),
+      refreshing,
+      loadError,
+      hasLoaded: Boolean(
+        categoriesLoaded &&
+        budgetLoaded &&
+        (loadedMonth === undefined || loadedMonth === selectedMonth),
+      ),
     },
     openAdd,
     openEdit,
+    openAddPlan,
+    openEditPlan,
+    openPlanTool,
+    openPlanDetails,
     setLensTab,
     setSelectedMonth,
     openCopy,
@@ -257,6 +375,10 @@ export function useBudget() {
     setCopySourceMonth,
     copySelectedBudgets,
     removeBudgetForMonth,
+    removeSpendingPlanForMonth,
+    setSpendingPlan,
+    removeSpendingPlan,
+    refresh,
     goToCategory,
   };
 }

@@ -6,6 +6,8 @@ import {
   currentYearMonth,
   lastMonths,
   type SetBudgetInput,
+  type SetSpendingPlanInput,
+  type SpendingPlansForMonthResult,
 } from '@/modules/budget/repositories/budget.repository';
 import {
   AppSettingsRepository,
@@ -20,7 +22,11 @@ interface BudgetStoreShape {
   rows: Budget[];
   // spend keyed { [categoryId]: { [yearMonth]: number } } over the loaded window
   spendByMonth: Record<string, Record<string, number>>;
+  spendingPlans: SpendingPlansForMonthResult['plans'];
+  spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'];
+  loadedMonth: string | undefined;
   loaded: boolean;
+  loadError: boolean;
   /** Expected monthly income in EGP. null = not yet set by the user. */
   expectedIncome: number | null;
 }
@@ -30,11 +36,16 @@ type BudgetStore = BudgetStoreShape & {
     rows: Budget[],
     spendByMonth: Record<string, Record<string, number>>,
     expectedIncome: number | null,
+    spendingPlans: SpendingPlansForMonthResult['plans'],
+    spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'],
+    loadedMonth?: string,
   ) => void;
   load: (anchorMonth?: string) => Promise<void>;
   setBudget: (input: SetBudgetInput) => Promise<void>;
   setLimit: (categoryId: string, limit: number, yearMonth?: string) => Promise<void>;
   removeBudget: (id: string, yearMonth?: string) => Promise<void>;
+  setSpendingPlan: (input: SetSpendingPlanInput, anchorMonth?: string) => Promise<void>;
+  removeSpendingPlan: (id: string, yearMonth?: string) => Promise<void>;
   copyBudgetsToMonth: (
     sourceMonth: string,
     targetMonth: string,
@@ -54,27 +65,63 @@ type BudgetStore = BudgetStoreShape & {
 const INITIAL_STATE: BudgetStoreShape = {
   rows: [],
   spendByMonth: {},
+  spendingPlans: [],
+  spendingPlanSpendById: {},
+  loadedMonth: undefined,
   loaded: false,
+  loadError: false,
   expectedIncome: null,
 };
 
 export function createBudgetStore(repo: IAppSettingsRepository) {
+  let latestLoadRequest = 0;
   return createMoneyAppSelectors(
     create<BudgetStore>((set, get) => ({
       ...INITIAL_STATE,
 
-      setData: (rows, spendByMonth, expectedIncome) =>
-        set({ rows, spendByMonth, expectedIncome, loaded: true }),
+      setData: (
+        rows,
+        spendByMonth,
+        expectedIncome,
+        spendingPlans,
+        spendingPlanSpendById,
+        loadedMonth,
+      ) =>
+        set({
+          rows,
+          spendByMonth,
+          expectedIncome,
+          spendingPlans,
+          spendingPlanSpendById,
+          loadedMonth,
+          loaded: true,
+          loadError: false,
+        }),
 
       load: async (anchorMonth = currentYearMonth()) => {
+        const request = ++latestLoadRequest;
+        set({ loadError: false });
         const months = lastMonths(anchorMonth, HISTORY_MONTHS);
-        const [rows, spendByMonth, rawIncome] = await Promise.all([
-          budgetRepository.getRows(),
-          budgetRepository.getSpendByMonth(months),
-          repo.get(EXPECTED_INCOME_KEY),
-        ]);
-        const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
-        get().setData(rows, spendByMonth, expectedIncome);
+        try {
+          const [rows, spendByMonth, rawIncome, planResult] = await Promise.all([
+            budgetRepository.getRows(),
+            budgetRepository.getSpendByMonth(months),
+            repo.get(EXPECTED_INCOME_KEY),
+            budgetRepository.getSpendingPlansForMonth(anchorMonth),
+          ]);
+          const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
+          if (request !== latestLoadRequest) return;
+          get().setData(
+            rows,
+            spendByMonth,
+            expectedIncome,
+            planResult.plans,
+            planResult.spendByPlanId,
+            anchorMonth,
+          );
+        } catch {
+          if (request === latestLoadRequest) set({ loadError: true });
+        }
       },
 
       setBudget: async (input) => {
@@ -97,6 +144,16 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         await get().load(anchorMonth);
       },
 
+      setSpendingPlan: async (input, anchorMonth = input.startDate.slice(0, 7)) => {
+        await budgetRepository.setSpendingPlan(input);
+        await get().load(anchorMonth);
+      },
+
+      removeSpendingPlan: async (id, yearMonth = currentYearMonth()) => {
+        await budgetRepository.removeSpendingPlan(id);
+        await get().load(yearMonth);
+      },
+
       copyBudgetsToMonth: async (sourceMonth, targetMonth, budgetIds) => {
         await budgetRepository.copyBudgetsToMonth(sourceMonth, targetMonth, budgetIds);
         await get().load(targetMonth);
@@ -114,7 +171,10 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
 
       setExpectedIncomeLocal: (amount) => set({ expectedIncome: amount }),
 
-      reset: () => set(INITIAL_STATE),
+      reset: () => {
+        latestLoadRequest += 1;
+        set(INITIAL_STATE);
+      },
     })),
   );
 }

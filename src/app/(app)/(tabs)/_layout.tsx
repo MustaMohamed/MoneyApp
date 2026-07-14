@@ -53,6 +53,7 @@ export function FABOverlay() {
   // collides with their bottom Save/Pay CTAs. Hide it on any /commitments/ sub-route
   // — the FAB is a list-level "add" affordance, not a form/detail one.
   const isCommitmentSubRoute = pathname.startsWith('/commitments/');
+  const isBudgetSubRoute = pathname.startsWith('/budget/');
   const anySheetOpen = useAnySheetOpen();
 
   return (
@@ -61,7 +62,7 @@ export function FABOverlay() {
         onAddTransaction={handleAddTransaction}
         onAddAccount={handleAddAccount}
         onAddCommitment={handleAddCommitment}
-        hidden={isSettingsRoute || isCommitmentSubRoute || anySheetOpen}
+        hidden={isSettingsRoute || isCommitmentSubRoute || isBudgetSubRoute || anySheetOpen}
         bottomOffset={bottomOffset}
       />
     </View>

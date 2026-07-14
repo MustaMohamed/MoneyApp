@@ -11,6 +11,7 @@ import { ms } from '@/utils/responsive';
 type ToolIcon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 interface BudgetToolRailProps {
+  variant?: 'categories' | 'plans';
   onCopy: () => void;
   onAddCategory: () => void;
   onPlan: () => void;
@@ -59,6 +60,7 @@ function ToolButton({
 }
 
 export function BudgetToolRail({
+  variant = 'categories',
   onCopy,
   onAddCategory,
   onPlan,
@@ -66,6 +68,23 @@ export function BudgetToolRail({
   addCategoryDisabled,
   planDisabled,
 }: BudgetToolRailProps) {
+  if (variant === 'plans') {
+    return (
+      <View style={styles.rail} testID="budget-tool-rail">
+        <ToolButton
+          label={Strings.budgetToolPlan}
+          icon="calendar-plus-outline"
+          color={Colors.dark.text2}
+          accessibilityLabel={
+            planDisabled ? Strings.budgetToolPlanComingSoonA11y : Strings.budgetToolPlan
+          }
+          isDisabled={planDisabled}
+          onPress={onPlan}
+        />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.rail} testID="budget-tool-rail">
       <ToolButton
@@ -83,16 +102,6 @@ export function BudgetToolRail({
         accessibilityLabel={Strings.budgetAddCategory}
         isDisabled={addCategoryDisabled}
         onPress={onAddCategory}
-      />
-      <ToolButton
-        label={Strings.budgetToolPlan}
-        icon="calendar-star"
-        color={Colors.dark.text2}
-        accessibilityLabel={
-          planDisabled ? Strings.budgetToolPlanComingSoonA11y : Strings.budgetToolPlan
-        }
-        isDisabled={planDisabled}
-        onPress={onPlan}
       />
     </View>
   );

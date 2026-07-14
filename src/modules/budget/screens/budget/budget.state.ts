@@ -5,24 +5,32 @@ import { previousYearMonth } from '@/modules/budget/screens/budget/budget.helper
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type BudgetSheetMode = 'add' | 'edit';
+export type SpendingPlanSheetMode = 'add' | 'edit';
 export type LensTab = 'categories' | 'plans' | 'fiftythirty';
 
 interface BudgetStateShape {
   sheetVisible: boolean;
   mode: BudgetSheetMode;
   targetBudgetId: string | undefined;
+  planSheetVisible: boolean;
+  planSheetMode: SpendingPlanSheetMode;
+  targetPlanId: string | undefined;
   lensTab: LensTab;
   selectedMonth: string;
   copySourceMonth: string;
   copySheetVisible: boolean;
   copySelectedBudgetIds: string[];
   incomeSuggestion: number | null;
+  refreshing: boolean;
 }
 
 type BudgetState = BudgetStateShape & {
   openAdd: () => void;
   openEdit: (budgetId: string) => void;
   close: () => void;
+  openAddPlan: () => void;
+  openEditPlan: (planId: string) => void;
+  closePlan: () => void;
   setLensTab: (tab: LensTab) => void;
   setSelectedMonth: (month: string) => void;
   setCopySourceMonth: (month: string) => void;
@@ -33,6 +41,7 @@ type BudgetState = BudgetStateShape & {
   toggleCopyBudgetId: (budgetId: string) => void;
   clearCopySelection: () => void;
   setIncomeSuggestion: (suggestion: number | null) => void;
+  setRefreshing: (refreshing: boolean) => void;
   reset: () => void;
 };
 
@@ -42,12 +51,16 @@ function initialState(): BudgetStateShape {
     sheetVisible: false,
     mode: 'add',
     targetBudgetId: undefined,
+    planSheetVisible: false,
+    planSheetMode: 'add',
+    targetPlanId: undefined,
     lensTab: 'categories',
     selectedMonth,
     copySourceMonth: previousYearMonth(selectedMonth),
     copySheetVisible: false,
     copySelectedBudgetIds: [],
     incomeSuggestion: null,
+    refreshing: false,
   };
 }
 
@@ -67,6 +80,19 @@ export const useBudgetState = createMoneyAppSelectors(
         targetBudgetId: budgetId,
       }),
     close: () => set({ sheetVisible: false }),
+    openAddPlan: () =>
+      set({
+        planSheetVisible: true,
+        planSheetMode: 'add',
+        targetPlanId: undefined,
+      }),
+    openEditPlan: (planId) =>
+      set({
+        planSheetVisible: true,
+        planSheetMode: 'edit',
+        targetPlanId: planId,
+      }),
+    closePlan: () => set({ planSheetVisible: false, targetPlanId: undefined }),
     setLensTab: (tab) => set({ lensTab: tab }),
     setSelectedMonth: (month) =>
       set({ selectedMonth: month, copySourceMonth: previousYearMonth(month) }),
@@ -94,6 +120,7 @@ export const useBudgetState = createMoneyAppSelectors(
       }),
     clearCopySelection: () => set({ copySelectedBudgetIds: [] }),
     setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
+    setRefreshing: (refreshing) => set({ refreshing }),
     reset: () => set(initialState()),
   })),
 );
