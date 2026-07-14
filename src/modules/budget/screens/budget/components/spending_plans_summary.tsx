@@ -28,18 +28,21 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
 
   return (
     <Card className="bg-surface border-border rounded-xl border p-0 shadow-none">
-      <Card.Body className="px-2 py-2">
-        <Text className="font-inter text-muted text-[9px] font-semibold tracking-[0.3px] uppercase">
+      <Card.Body className="px-2 py-1.5">
+        <Text className="font-inter text-content-secondary text-[13px] font-semibold tracking-[0.3px] uppercase">
           {summary.eyebrowLabel}
         </Text>
 
         <View className="mt-0.5 flex-row items-center justify-between gap-3">
           <Text
-            className="font-sora shrink text-[22px] font-bold"
+            className="font-sora shrink text-[31px] font-bold"
             style={{ color: summary.balanceColor }}
           >
             {formatAmount(summary.balanceAmount)}
-            <Text className="font-inter text-muted text-[9px] font-medium"> {balanceSuffix}</Text>
+            <Text className="font-inter text-content-secondary text-[13px] font-medium">
+              {' '}
+              {balanceSuffix}
+            </Text>
           </Text>
           {summary.needsAttentionCount > 0 ? (
             <Chip
@@ -48,9 +51,9 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
               variant="soft"
               color="danger"
               animation="disable-all"
-              className="min-h-5 px-2 py-0"
+              className="min-h-7 px-2 py-0"
             >
-              <Chip.Label className="font-inter text-[9px] font-semibold capitalize">
+              <Chip.Label className="font-inter text-[13px] font-semibold capitalize">
                 {Strings.budgetPlansSummaryAttentionCount(summary.needsAttentionCount)}
               </Chip.Label>
             </Chip>
@@ -59,17 +62,17 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
 
         <View className="mt-0.5 flex-row items-center justify-between gap-3">
           <View className="flex-row gap-0.5">
-            <Text className="font-inter text-foreground shrink text-[11px] font-semibold">
+            <Text className="font-inter text-foreground shrink text-[15px] font-semibold">
               {formatAmount(summary.spent)}
             </Text>
-            <Text className="font-inter text-muted text-[11px]">
+            <Text className="font-inter text-content-secondary text-[15px]">
               {Strings.budgetPlansSummarySpentOf()}
             </Text>
-            <Text className="font-inter text-foreground shrink text-[11px] font-semibold">
+            <Text className="font-inter text-foreground shrink text-[15px] font-semibold">
               {formatAmount(summary.planned)}
             </Text>
           </View>
-          <Text className="font-sora text-muted text-[11px]">{usedLabel}</Text>
+          <Text className="font-sora text-content-secondary text-[15px]">{usedLabel}</Text>
         </View>
 
         <View
@@ -81,7 +84,7 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
             max: 100,
             now: summary.progressPercentage,
           }}
-          className="mt-0.5"
+          className="mt-1"
         >
           <BudgetBar
             pct={summary.pct}
@@ -91,7 +94,7 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
           />
         </View>
 
-        <View className="border-border mt-2 flex-row items-stretch border-t pt-0.5">
+        <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
           <SummaryMetric
             label={Strings.budgetPlansSummaryLifecycleLabel}
             value={Strings.budgetPlansSummaryActiveCount(summary.activeCount)}
@@ -111,16 +114,16 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
           />
         </View>
 
-        <View className="mt-1 flex-row items-center justify-between gap-1">
+        <View className="mt-1.5 flex-row flex-wrap">
           {summary.statusItems.map((item) => (
-            <View key={item.key} className="flex-row items-center gap-1">
+            <View key={item.key} className="w-1/2 flex-row items-center gap-1 py-0.5">
               <MaterialCommunityIcons
                 accessible={false}
                 name={item.icon}
-                size={Size.iconMicro}
+                size={Size.iconXs}
                 color={item.color}
               />
-              <Text className="font-inter text-muted text-center text-[9px] font-medium">
+              <Text className="font-inter text-content-secondary text-[13px] font-medium">
                 {item.label}
               </Text>
             </View>
@@ -135,9 +138,9 @@ function SummaryMetric({ value, label }: { value: string; label?: string }) {
   return (
     <View className="flex-1 items-center justify-center px-1">
       {label ? (
-        <Text className="font-inter text-muted text-center text-[7.5px]">{label}</Text>
+        <Text className="font-inter text-content-secondary text-center text-[11.5px]">{label}</Text>
       ) : null}
-      <Text className="font-sora text-foreground mt-px text-center text-[11px] font-semibold">
+      <Text className="font-sora text-foreground mt-px text-center text-[15px] font-semibold">
         {value}
       </Text>
     </View>

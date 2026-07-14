@@ -18,8 +18,7 @@ interface SpendingPlansLensProps {
   summary: SpendingPlansSummaryVM;
   summaryFooter?: React.ReactNode;
   onCreate: () => void;
-  onOpenDetails?: (id: string) => void;
-  onEdit: (id: string) => void;
+  onOpenDetails: (id: string) => void;
   onDelete: (plan: { id: string; name: string }) => void;
 }
 
@@ -29,7 +28,6 @@ export function SpendingPlansLens({
   summaryFooter,
   onCreate,
   onOpenDetails,
-  onEdit,
   onDelete,
 }: SpendingPlansLensProps) {
   return (
@@ -45,8 +43,7 @@ export function SpendingPlansLens({
             <SpendingPlanCard
               key={row.id}
               row={row}
-              onOpenDetails={onOpenDetails ?? onEdit}
-              onEdit={onEdit}
+              onOpenDetails={onOpenDetails}
               onDelete={onDelete}
             />
           ))}

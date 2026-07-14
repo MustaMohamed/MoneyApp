@@ -116,6 +116,7 @@ export type SpendingPlanDetailCategoryRowVM =
       pct: number;
       amountLabel: string;
       percentageLabel: string;
+      supportingLabel: string;
       balanceLabel: string;
       balanceColor: string;
       statusLabel: string;

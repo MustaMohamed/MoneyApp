@@ -14,15 +14,14 @@ import type { SpendingPlanRowVM } from '@/modules/budget/screens/budget/spending
 interface SpendingPlanCardProps {
   row: SpendingPlanRowVM;
   onOpenDetails: (id: string) => void;
-  onEdit: (id: string) => void;
   onDelete: (plan: { id: string; name: string }) => void;
 }
 
-export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: SpendingPlanCardProps) {
+export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanCardProps) {
   return (
     <Card
       variant="default"
-      className="bg-surface border-border mx-4 mt-2 overflow-hidden rounded-lg border px-2 py-2"
+      className="bg-surface border-border mx-4 mt-3 overflow-hidden rounded-lg border px-2 py-1.5"
     >
       <PressableFeedback
         accessibilityRole="button"
@@ -38,7 +37,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
         <View className="flex-1">
           <View className="flex-row items-center gap-2">
             <Card.Title
-              className="font-sora text-foreground -mt-0.5 max-w-[70%] shrink text-[14px] font-semibold"
+              className="font-sora text-foreground max-w-[70%] shrink text-[19px] font-semibold"
               numberOfLines={1}
             >
               {row.name}
@@ -50,14 +49,17 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
               animation="disable-all"
               accessibilityRole="text"
               accessibilityLabel={row.card.statusLabel}
-              className="min-h-[18px] px-2 py-0"
+              className="min-h-6 px-2 py-0"
             >
-              <Chip.Label className="font-inter text-[7.5px] font-semibold capitalize">
+              <Chip.Label className="font-inter text-[11.5px] font-semibold capitalize">
                 {row.card.statusLabel}
               </Chip.Label>
             </Chip>
           </View>
-          <Card.Description className="font-inter text-muted -mt-1 text-[9px]" numberOfLines={1}>
+          <Card.Description
+            className="font-inter text-content-secondary mt-px text-[13px]"
+            numberOfLines={1}
+          >
             {row.card.dateLabel}
           </Card.Description>
         </View>
@@ -68,21 +70,23 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
           className="items-end"
         >
           <Text
-            className="font-sora text-[14px] font-bold"
+            className="font-sora text-[20px] font-bold"
             style={{ color: row.card.balanceColor }}
           >
             {row.card.balanceAmountLabel}
           </Text>
-          <Text className="font-inter text-muted text-[7.5px]">{row.card.balanceMetaLabel}</Text>
+          <Text className="font-inter text-content-secondary text-[11.5px]">
+            {row.card.balanceMetaLabel}
+          </Text>
         </View>
       </Card.Header>
 
-      <Card.Body pointerEvents="none" className="mt-0.5">
+      <Card.Body pointerEvents="none" className="mt-1">
         <View className="flex-row items-center justify-between gap-3">
-          <Text className="font-inter text-foreground shrink text-[9px] font-medium">
+          <Text className="font-inter text-foreground shrink text-[14px] font-medium">
             {row.card.spentLabel}
           </Text>
-          <Text className="font-inter text-muted text-[9px] font-semibold">
+          <Text className="font-inter text-content-secondary text-[13px] font-semibold">
             {row.card.percentageLabel}
           </Text>
         </View>
@@ -111,7 +115,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
         </View>
 
         {row.card.paceLabel === undefined ? null : (
-          <Text className="font-inter text-muted mt-1 text-[9px] font-medium">
+          <Text className="font-inter text-content-secondary mt-0.5 text-[13px] font-medium">
             {row.card.paceLabel}
           </Text>
         )}
@@ -133,9 +137,9 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
                 animation="disable-all"
                 accessibilityRole="text"
                 accessibilityLabel={chip.accessibilityLabel}
-                className="bg-background min-h-6 rounded-full px-2 py-0"
+                className="bg-background min-h-7.5 min-w-7.5 rounded-full p-0"
               >
-                <Chip.Label className="font-inter text-foreground text-[11px] font-semibold">
+                <Chip.Label className="font-inter text-foreground text-[14px] font-semibold">
                   {chip.label}
                 </Chip.Label>
               </Chip>
@@ -146,41 +150,27 @@ export function SpendingPlanCard({ row, onOpenDetails, onEdit, onDelete }: Spend
 
       <Card.Footer
         pointerEvents="box-none"
-        className="border-border mt-0.5 flex-row items-center justify-between gap-3 border-t pt-0.5"
+        className="border-border mt-1 flex-row items-center justify-between gap-3 border-t pt-0.5"
       >
         <Text
           pointerEvents="none"
-          className="font-inter text-muted flex-1 text-[7.5px]"
+          className="font-inter text-content-secondary flex-1 text-[11.5px]"
           numberOfLines={1}
         >
           {row.card.allocationFooterLabel}
         </Text>
-        <View className="flex-row items-center gap-1">
-          <PressableFeedback
-            accessibilityRole="button"
-            accessibilityLabel={`${Strings.budgetPlanEditTitle} ${row.name}`}
-            onPress={() => onEdit(row.id)}
-            className="h-6 w-6 items-center justify-center"
-          >
-            <MaterialCommunityIcons
-              name="pencil-outline"
-              size={Size.iconXs}
-              color={Colors.dark.text2}
-            />
-          </PressableFeedback>
-          <PressableFeedback
-            accessibilityRole="button"
-            accessibilityLabel={`${Strings.budgetPlansRemoveA11y} ${row.name}`}
-            onPress={() => onDelete({ id: row.id, name: row.name })}
-            className="h-6 w-6 items-center justify-center"
-          >
-            <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={Size.iconXs}
-              color={Colors.dark.text2}
-            />
-          </PressableFeedback>
-        </View>
+        <PressableFeedback
+          accessibilityRole="button"
+          accessibilityLabel={`${Strings.budgetPlansRemoveA11y} ${row.name}`}
+          onPress={() => onDelete({ id: row.id, name: row.name })}
+          className="h-6 w-6 items-center justify-center"
+        >
+          <MaterialCommunityIcons
+            name="trash-can-outline"
+            size={Size.iconXs}
+            color={Colors.dark.text2}
+          />
+        </PressableFeedback>
       </Card.Footer>
     </Card>
   );

@@ -41,4 +41,27 @@ describe('spending plan presentation styling', () => {
       ),
     ).toBe(false);
   });
+
+  it('keeps editing in the detail header instead of duplicating a bottom action', () => {
+    const detailScreen = source('src/modules/budget/screens/budget/spending_plan_detail/index.tsx');
+    const planCard = source('src/modules/budget/screens/budget/components/spending_plan_card.tsx');
+
+    expect(detailScreen.match(/onPress=\{editPlan\}/g)).toHaveLength(1);
+    expect(detailScreen).toContain('<StackHeader');
+    expect(detailScreen).not.toContain('<BackButton');
+    expect(planCard).not.toContain('pencil-outline');
+    expect(planCard).not.toContain('onEdit');
+  });
+
+  it('keeps overview card information readable without tiny text', () => {
+    const planCard = source('src/modules/budget/screens/budget/components/spending_plan_card.tsx');
+    const planSummary = source(
+      'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
+    );
+
+    expect(planCard).not.toContain('text-[7.5px]');
+    expect(planSummary).not.toContain('text-[7.5px]');
+    expect(planCard).toContain('text-[19px]');
+    expect(planSummary).toContain('text-[31px]');
+  });
 });

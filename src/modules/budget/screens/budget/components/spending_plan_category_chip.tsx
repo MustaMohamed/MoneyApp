@@ -24,10 +24,10 @@ export function SpendingPlanCategoryChip({
       accessibilityLabel={category.accessibilityLabel}
       className="bg-background min-h-[25px] max-w-full flex-row items-center rounded-full p-0.5"
     >
-      <View className="bg-default h-5 w-5 items-center justify-center rounded-full">
+      <View className="bg-default h-6.5 w-6.5 items-center justify-center rounded-full">
         <MaterialCommunityIcons
           name={toIconName(category.icon, 'tag-outline')}
-          size={Size.iconMicro}
+          size={Size.iconXs}
           color={category.color}
         />
       </View>

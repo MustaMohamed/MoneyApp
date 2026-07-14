@@ -29,6 +29,7 @@
     --warning-foreground: #0f1923;
     --danger: #e05a42;
     --danger-foreground: #f0ebe3;
+    --content-secondary: #6b7f99;
     --muted: #4a5568;
     --segment: #1a2535;
     --border: #2a3a4f;
@@ -67,6 +68,7 @@
     --warning-foreground: #0f1923;
     --danger: #e05a42;
     --danger-foreground: #f0ebe3;
+    --content-secondary: #6b7f99;
     --muted: #4a5568;
     --segment: #1a2535;
     --border: #2a3a4f;
@@ -105,6 +107,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-content-secondary: var(--content-secondary);
   --color-muted: var(--muted);
   --color-segment: var(--segment);
   --color-border: var(--border);

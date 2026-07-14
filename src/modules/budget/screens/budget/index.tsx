@@ -38,7 +38,6 @@ export default function BudgetScreen() {
     openAdd,
     openEdit,
     openAddPlan,
-    openEditPlan,
     openPlanTool,
     setLensTab,
     setSelectedMonth,
@@ -169,7 +168,6 @@ export default function BudgetScreen() {
             }
             onCreate={openAddPlan}
             onOpenDetails={openPlanDetails}
-            onEdit={openEditPlan}
             onDelete={requestPlanDelete}
           />
         </ScreenScroll>

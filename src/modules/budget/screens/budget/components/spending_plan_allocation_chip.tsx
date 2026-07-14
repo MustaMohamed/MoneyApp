@@ -24,12 +24,12 @@ export function SpendingPlanAllocationChip({
       animation="disable-all"
       accessibilityRole="text"
       accessibilityLabel={allocation.accessibilityLabel}
-      className="bg-background min-h-[25px] max-w-full flex-row items-center gap-0.5 rounded-full py-0 pr-1 pl-0.5"
+      className="bg-background min-h-8 max-w-full flex-row items-center gap-1 rounded-full py-0 pr-2 pl-0.5"
     >
       <BudgetRing
         pct={allocation.pct}
         color={allocation.bandColor}
-        size={Size.checkCircle}
+        size={Size.iconLg}
         stroke={Spacing.xxxs}
       >
         <MaterialCommunityIcons
@@ -42,10 +42,10 @@ export function SpendingPlanAllocationChip({
         testID={`spending-plan-allocation-chip-copy:${allocation.categoryId}`}
         className="items-start"
       >
-        <Text className="font-inter text-foreground text-[9px] font-semibold" numberOfLines={1}>
+        <Text className="font-inter text-foreground text-[13px] font-semibold" numberOfLines={1}>
           {allocation.amountLabel}
         </Text>
-        <Text className="font-inter text-muted mt-px text-[7.5px] font-semibold">
+        <Text className="font-inter text-content-secondary text-[11px] font-semibold">
           {allocation.percentageLabel}
         </Text>
       </View>

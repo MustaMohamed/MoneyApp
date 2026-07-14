@@ -1,5 +1,4 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Chip } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -51,11 +50,11 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
           {row.categoryName}
         </Text>
         <Text
-          className="font-inter text-muted mt-0.5 text-[7.5px]"
-          style={row.kind === 'allocated' ? { color: row.balanceColor } : undefined}
+          className="font-inter text-content-secondary mt-0.5 text-[7.5px]"
+          style={row.kind === 'allocated' ? { color: row.progressColor } : undefined}
           numberOfLines={1}
         >
-          {row.kind === 'allocated' ? row.balanceLabel : row.supportingLabel}
+          {row.supportingLabel}
         </Text>
       </View>
 
@@ -64,22 +63,12 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
           {row.amountLabel}
         </Text>
         {row.kind === 'allocated' ? (
-          <View className="mt-0.5 flex-row items-center gap-1">
-            <Text className="font-inter text-muted text-[7.5px] font-semibold">
-              {row.percentageLabel}
-            </Text>
-            <Chip
-              size="sm"
-              variant="soft"
-              color={row.statusTone}
-              animation="disable-all"
-              className="min-h-5 px-1 py-0"
-            >
-              <Chip.Label className="font-inter text-[7.5px] font-semibold">
-                {row.statusLabel}
-              </Chip.Label>
-            </Chip>
-          </View>
+          <Text
+            className="font-inter text-content-secondary mt-0.5 text-[7.5px] font-medium"
+            style={{ color: row.balanceColor }}
+          >
+            {row.balanceLabel}
+          </Text>
         ) : null}
       </View>
     </View>

@@ -295,6 +295,7 @@ function buildDetailCategoryRow(
     pct: row.pct,
     amountLabel: `${spentLabel} / ${allocatedLabel}`,
     percentageLabel,
+    supportingLabel: Strings.budgetPlansDetailCategoryStatus(percentage, status.label),
     balanceLabel,
     balanceColor: row.isOver ? Colors.dark.negative : Colors.dark.text2,
     statusLabel: status.label,

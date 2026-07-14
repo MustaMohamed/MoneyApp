@@ -28,13 +28,13 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
                 style={{ color: detail.balanceColor }}
               >
                 {detail.balanceAmountLabel}
-                <Text className="font-inter text-muted text-[9px] font-medium">
+                <Text className="font-inter text-content-secondary text-[9px] font-medium">
                   {' '}
                   {detail.balanceMetaLabel}
                 </Text>
               </Text>
             </View>
-            <Text className="font-inter text-muted mt-0.5 text-[9px] font-medium">
+            <Text className="font-inter text-content-secondary mt-0.5 text-[9px] font-medium">
               {detail.dateLabel}
             </Text>
           </View>
@@ -57,7 +57,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
           <Text className="font-inter text-foreground text-[11px] font-medium">
             {detail.spentLabel}
           </Text>
-          <Text className="font-sora text-muted text-[11px] font-semibold">
+          <Text className="font-sora text-content-secondary text-[11px] font-semibold">
             {detail.percentageLabel}
           </Text>
         </View>
@@ -96,7 +96,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             <React.Fragment key={metric.label}>
               {index > 0 ? <View className="bg-border w-px" /> : null}
               <View className="flex-1 items-center px-0.5">
-                <Text className="font-inter text-muted text-center text-[7.5px]">
+                <Text className="font-inter text-content-secondary text-center text-[7.5px]">
                   {metric.label}
                 </Text>
                 <Text className="font-sora text-foreground mt-0.5 text-center text-[11px] font-semibold">
@@ -121,7 +121,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
                   color={insight.color}
                 />
                 <Text
-                  className="font-inter text-muted flex-1 text-[9px] font-medium"
+                  className="font-inter text-content-secondary flex-1 text-[9px] font-medium"
                   numberOfLines={2}
                 >
                   {insight.label}

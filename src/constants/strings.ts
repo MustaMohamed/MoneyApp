@@ -324,6 +324,8 @@ export const Strings = {
   budgetPlansDetailNoCategoryLimit: 'Included · no category limit',
   budgetPlansDetailSpent: (amount: string) => `${amount} spent`,
   budgetPlansDetailBalance: (amount: string, status: string) => `${amount} ${status}`,
+  budgetPlansDetailCategoryStatus: (percentage: number, status: string) =>
+    `${percentage}% used · ${status.toLocaleLowerCase()}`,
   budgetPlansDetailCategoryPressure: (category: string, percentage: number) =>
     `${category} has used ${percentage}% of its limit`,
   budgetPlansDetailCategoryOver: (category: string, amount: string) =>

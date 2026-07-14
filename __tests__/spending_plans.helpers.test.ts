@@ -610,6 +610,7 @@ describe('spending plan helpers', () => {
         categoryName: 'Food',
         amountLabel: '850 / 1,000',
         percentageLabel: '85%',
+        supportingLabel: '85% used · watch',
         balanceLabel: '150 left',
         statusLabel: 'Watch',
       }),

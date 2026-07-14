@@ -252,15 +252,13 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
     summaryFooter,
     onOpenDetails,
     onCreate,
-    onEdit,
     onDelete,
   }: {
     rows: Array<{ id: string; name?: string }>;
     summary: { monthLabel: string };
     summaryFooter?: ReactNode;
-    onOpenDetails?: (id: string) => void;
+    onOpenDetails: (id: string) => void;
     onCreate: () => void;
-    onEdit: (id: string) => void;
     onDelete: (plan: { id: string; name: string }) => void;
   }) => {
     const { Pressable, Text, View } =
@@ -277,12 +275,9 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plans_lens', () =
           <View key={row.id}>
             <Pressable
               accessibilityLabel={`open plan ${row.id}`}
-              onPress={() => onOpenDetails?.(row.id)}
+              onPress={() => onOpenDetails(row.id)}
             >
               <Text>{`open plan ${row.id}`}</Text>
-            </Pressable>
-            <Pressable accessibilityLabel={`edit plan ${row.id}`} onPress={() => onEdit(row.id)}>
-              <Text>{`edit plan ${row.id}`}</Text>
             </Pressable>
             <Pressable
               accessibilityLabel={`delete plan ${row.id}`}

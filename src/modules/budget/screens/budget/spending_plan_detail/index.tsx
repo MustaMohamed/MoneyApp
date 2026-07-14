@@ -3,9 +3,9 @@ import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { BackButton } from '@/components/ui/back_button';
 import { Button } from '@/components/ui/button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { StackHeader } from '@/components/ui/stack_header';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
@@ -21,28 +21,26 @@ export default function SpendingPlanDetailScreen() {
 
   return (
     <Screen>
-      <View className="min-h-14 flex-row items-center gap-2 px-4">
-        <BackButton onPress={goBack} />
-        <Text className="font-sora text-foreground flex-1 text-[18px] font-bold" numberOfLines={1}>
-          {plan?.name ?? Strings.budgetPlansDetailTitle}
-        </Text>
-        {state.viewState === 'ready' && plan ? (
-          <PressableFeedback
-            accessibilityRole="button"
-            accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
-            onPress={editPlan}
-            className="h-11 w-11 items-center justify-center"
-          >
-            <MaterialCommunityIcons
-              name="pencil-outline"
-              size={Size.iconSm}
-              color={Colors.dark.gold}
-            />
-          </PressableFeedback>
-        ) : (
-          <View className="h-11 w-11" />
-        )}
-      </View>
+      <StackHeader
+        title={plan?.name ?? Strings.budgetPlansDetailTitle}
+        onBack={goBack}
+        right={
+          state.viewState === 'ready' && plan ? (
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
+              onPress={editPlan}
+              className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={Size.iconSm}
+                color={Colors.dark.gold}
+              />
+            </PressableFeedback>
+          ) : undefined
+        }
+      />
 
       {state.viewState === 'loading' ? (
         <ScreenScroll>
@@ -88,10 +86,10 @@ export default function SpendingPlanDetailScreen() {
               <SpendingPlanDetailSummary detail={plan.detail} />
 
               <View className="mt-4 flex-row items-center justify-between gap-3 px-4">
-                <Text className="font-inter text-muted text-[11px] font-semibold uppercase">
+                <Text className="font-inter text-content-secondary text-[11px] font-semibold uppercase">
                   {Strings.budgetPlansDetailCategories}
                 </Text>
-                <Text className="font-inter text-muted text-[11px] font-medium">
+                <Text className="font-inter text-content-secondary text-[11px] font-medium">
                   {plan.detail.totalSpentLabel}
                 </Text>
               </View>
@@ -107,7 +105,7 @@ export default function SpendingPlanDetailScreen() {
                       size={Size.iconXs}
                       color={Colors.dark.gold}
                     />
-                    <Text className="font-inter text-muted flex-1 text-[12px] font-medium">
+                    <Text className="font-inter text-content-secondary flex-1 text-[12px] font-medium">
                       {plan.detail.flexibleRow.label}
                     </Text>
                     <Text className="font-sora text-foreground text-[12px] font-semibold">
@@ -118,14 +116,6 @@ export default function SpendingPlanDetailScreen() {
               </View>
             </View>
           </ScreenScroll>
-          <View className="border-border border-t px-4 pt-2 pb-3">
-            <Button
-              variant="primary"
-              label={Strings.budgetPlanEditTitle}
-              accessibilityLabel={`${Strings.budgetPlanEditTitle} ${plan.name}`}
-              onPress={editPlan}
-            />
-          </View>
           <SpendingPlanSheet budgetableCategories={state.budgetableCategories} editingPlan={plan} />
         </>
       ) : null}
