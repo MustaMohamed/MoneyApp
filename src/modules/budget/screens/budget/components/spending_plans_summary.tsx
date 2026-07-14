@@ -27,7 +27,7 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
   const usedLabel = Strings.budgetPlansSummaryUsed(summary.usedPercentage);
 
   return (
-    <Card className="bg-surface border-border rounded-xl border p-0 shadow-none">
+    <Card className="bg-surface border-border rounded-2xl border p-0 shadow-none">
       <Card.Body className="px-2 py-1.5">
         <Text className="font-inter text-content-secondary text-[13px] font-semibold tracking-[0.3px] uppercase">
           {summary.eyebrowLabel}

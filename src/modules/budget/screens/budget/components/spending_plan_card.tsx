@@ -21,7 +21,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
   return (
     <Card
       variant="default"
-      className="bg-surface border-border mx-4 mt-3 overflow-hidden rounded-lg border px-2 py-1.5"
+      className="bg-surface border-border mx-4 mt-3 overflow-hidden rounded-2xl border px-2 py-1.5"
     >
       <PressableFeedback
         accessibilityRole="button"

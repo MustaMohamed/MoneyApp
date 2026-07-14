@@ -93,7 +93,7 @@ describe('spending plan presentation styling', () => {
 
     expect(detailSummary).toContain("import { Card, Chip } from 'heroui-native'");
     expect(detailSummary).toContain(
-      'className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none"',
+      'className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"',
     );
     expect(detailSummary).toContain('<Card.Body className="px-2 py-1.5">');
     expect(detailSummary).not.toContain('<Surface');
