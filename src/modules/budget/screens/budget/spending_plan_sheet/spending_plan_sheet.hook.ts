@@ -34,6 +34,7 @@ import { useZodForm } from '@/utils/use_zod_form.hook';
 export interface SpendingPlanSheetProps {
   budgetableCategories: Category[];
   editingPlan?: SpendingPlanRowVM;
+  onSaved?: () => Promise<void> | void;
 }
 
 function parseOptionalAmount(text: string): number | undefined {
@@ -45,6 +46,7 @@ function parseOptionalAmount(text: string): number | undefined {
 export function useSpendingPlanSheet({
   budgetableCategories,
   editingPlan,
+  onSaved,
 }: SpendingPlanSheetProps) {
   const { planSheetVisible, planSheetMode, selectedMonth } = useBudgetState(
     useShallow((state) => ({
@@ -159,6 +161,7 @@ export function useSpendingPlanSheet({
     try {
       await useBudgetStore.getState().setSpendingPlan(validation.data, visibleMonth);
       if (visibleMonth !== selectedMonth) useBudgetState.getState().setSelectedMonth(visibleMonth);
+      await onSaved?.();
       useBudgetState.getState().closePlan();
     } catch (error) {
       state.setSubmitError(

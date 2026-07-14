@@ -3,6 +3,7 @@ import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { RefreshControl, StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
@@ -112,7 +113,20 @@ export default function BudgetScreen() {
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
 
-      {!state.hasLoaded || state.refreshing ? (
+      {state.loadError && !state.hasLoaded ? (
+        <View className="flex-1 items-center justify-center gap-3 px-6">
+          <HeroText className="font-inter text-muted text-center text-[14px] font-medium">
+            {Strings.budgetLoadError}
+          </HeroText>
+          <Button
+            variant="secondary"
+            size="sm"
+            label={Strings.budgetLoadRetry}
+            accessibilityLabel={Strings.budgetLoadRetry}
+            onPress={() => void refresh()}
+          />
+        </View>
+      ) : !state.hasLoaded || state.refreshing ? (
         <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
           <BudgetScreenSkeleton variant={state.lensTab === 'plans' ? 'plans' : 'categories'} />
         </ScreenScroll>

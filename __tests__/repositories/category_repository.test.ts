@@ -177,6 +177,28 @@ function countCategories(id: string): number {
   ).n;
 }
 
+function insertPlan(
+  id: string,
+  startDate: string,
+  endDate: string,
+  assignments: Array<{ categoryId: string; allocatedAmount: number | null }>,
+) {
+  realDb
+    .prepare(
+      `INSERT INTO spending_plans
+       (id, name, start_date, end_date, total_amount, created_at, updated_at)
+       VALUES (?, ?, ?, ?, 1000, ?, ?)`,
+    )
+    .run(id, `Plan ${id}`, startDate, endDate, NOW, NOW);
+  const statement = realDb.prepare(
+    `INSERT INTO spending_plan_categories (plan_id, category_id, allocated_amount)
+     VALUES (?, ?, ?)`,
+  );
+  for (const assignment of assignments) {
+    statement.run(id, assignment.categoryId, assignment.allocatedAmount);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TC-01: 47 transactions reassigned, balances and amounts untouched
 // ─────────────────────────────────────────────────────────────────────────────
@@ -204,6 +226,50 @@ describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignme
         .prepare("SELECT category_id FROM spending_plan_categories WHERE plan_id = 'plan-category'")
         .all(),
     ).toEqual([{ category_id: 'cat_food' }]);
+  });
+
+  it('merges allocations when both categories already belong to the same plan', async () => {
+    insertFromCategory('from-plan-merge');
+    insertPlan('plan-merge', '2026-01-01', '2026-01-03', [
+      { categoryId: 'from-plan-merge', allocatedAmount: 300 },
+      { categoryId: 'cat_food', allocatedAmount: 200 },
+    ]);
+
+    await repo.reassignAndDelete('from-plan-merge', 'cat_food');
+
+    expect(
+      realDb
+        .prepare(
+          `SELECT category_id, allocated_amount
+             FROM spending_plan_categories
+            WHERE plan_id = 'plan-merge'`,
+        )
+        .all(),
+    ).toEqual([{ category_id: 'cat_food', allocated_amount: 500 }]);
+  });
+
+  it('rejects reassignment that would share a category across overlapping plans', async () => {
+    insertFromCategory('from-plan-overlap');
+    insertPlan('plan-source', '2026-01-01', '2026-01-10', [
+      { categoryId: 'from-plan-overlap', allocatedAmount: 300 },
+    ]);
+    insertPlan('plan-target', '2026-01-05', '2026-01-15', [
+      { categoryId: 'cat_food', allocatedAmount: 200 },
+    ]);
+
+    await expect(repo.reassignAndDelete('from-plan-overlap', 'cat_food')).rejects.toThrow(
+      /overlapping spending plans/i,
+    );
+
+    expect(countCategories('from-plan-overlap')).toBe(1);
+    expect(
+      realDb
+        .prepare('SELECT plan_id, category_id FROM spending_plan_categories ORDER BY plan_id')
+        .all(),
+    ).toEqual([
+      { plan_id: 'plan-source', category_id: 'from-plan-overlap' },
+      { plan_id: 'plan-target', category_id: 'cat_food' },
+    ]);
   });
 
   it('moves 47 transactions from source to target category', async () => {
@@ -260,6 +326,45 @@ describe('CategoryRepository.reassignAndDelete — TC-01 (transaction reassignme
     await repo.reassignAndDelete('from-cat-01d', 'cat_food');
 
     expect(countCategories('cat_food')).toBe(1);
+  });
+});
+
+describe('CategoryRepository.delete — spending plan integrity', () => {
+  it('removes a plan when its only category is deleted', async () => {
+    insertFromCategory('sole-plan-category');
+    insertPlan('sole-category-plan', '2026-01-01', '2026-01-03', [
+      { categoryId: 'sole-plan-category', allocatedAmount: 300 },
+    ]);
+
+    await repo.delete('sole-plan-category');
+
+    expect(
+      (
+        realDb
+          .prepare("SELECT COUNT(*) AS count FROM spending_plans WHERE id = 'sole-category-plan'")
+          .get() as { count: number }
+      ).count,
+    ).toBe(0);
+  });
+
+  it('keeps a plan that still has another category', async () => {
+    insertFromCategory('removed-plan-category');
+    insertPlan('multi-category-plan', '2026-01-01', '2026-01-03', [
+      { categoryId: 'removed-plan-category', allocatedAmount: 300 },
+      { categoryId: 'cat_food', allocatedAmount: 200 },
+    ]);
+
+    await repo.delete('removed-plan-category');
+
+    expect(
+      realDb
+        .prepare(
+          `SELECT category_id
+             FROM spending_plan_categories
+            WHERE plan_id = 'multi-category-plan'`,
+        )
+        .all(),
+    ).toEqual([{ category_id: 'cat_food' }]);
   });
 });
 

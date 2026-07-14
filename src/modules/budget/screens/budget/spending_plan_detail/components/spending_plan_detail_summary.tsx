@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Chip, Surface } from 'heroui-native';
+import { Card, Chip } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -14,8 +14,8 @@ interface SpendingPlanDetailSummaryProps {
 
 export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryProps) {
   return (
-    <Surface variant="transparent" className="border-border border-b">
-      <View className="px-0 py-1">
+    <Card className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none">
+      <Card.Body className="px-2 py-1.5">
         <View className="flex-row items-start justify-between gap-3">
           <View className="flex-1">
             <View
@@ -130,7 +130,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             ))}
           </View>
         ) : null}
-      </View>
-    </Surface>
+      </Card.Body>
+    </Card>
   );
 }

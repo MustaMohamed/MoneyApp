@@ -196,6 +196,8 @@ export const Strings = {
   emptyBudgetSub: 'Set a monthly limit on a category to start tracking your spending.',
   emptyBudgetCta: 'Set up your budget',
   budgetTitle: 'Budget',
+  budgetLoadError: 'Could not load your budget.',
+  budgetLoadRetry: 'Try again',
   budgetAddCategory: 'Add budget',
   budgetSummaryBudgeted: 'Budgeted',
   budgetSummarySpent: 'Spent',
@@ -433,6 +435,9 @@ export const Strings = {
   categoriesReassignTitle: (name: string) => `"${name}" has transactions`,
   categoriesReassignBody: 'Move its transactions to:',
   categoriesReassignConfirm: 'Move & Delete',
+  categoriesReassignError: 'Could not move this category.',
+  categoriesReassignPlanOverlap: (sourcePlan: string, targetPlan: string) =>
+    `Cannot merge categories used by overlapping spending plans: ${sourcePlan} and ${targetPlan}.`,
 
   // U23 Settings rows (categories row)
   settingsCategoriesRow: 'Categories',

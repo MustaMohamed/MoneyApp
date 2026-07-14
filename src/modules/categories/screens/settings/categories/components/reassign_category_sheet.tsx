@@ -31,14 +31,16 @@ export function ReassignCategorySheet({
   onConfirm,
   onOpenChange,
 }: ReassignCategorySheetProps) {
-  const { selectedId, isLoading } = useReassignCategorySheetState(
+  const { selectedId, isLoading, errorMessage } = useReassignCategorySheetState(
     useShallow((s) => ({
       selectedId: s.selectedId,
       isLoading: s.isLoading,
+      errorMessage: s.errorMessage,
     })),
   );
   const setSelectedId = useReassignCategorySheetState.getState().setSelectedId;
   const setIsLoading = useReassignCategorySheetState.getState().setIsLoading;
+  const setErrorMessage = useReassignCategorySheetState.getState().setErrorMessage;
 
   const handleClose = () => {
     useReassignCategorySheetState.getState().reset();
@@ -47,12 +49,15 @@ export function ReassignCategorySheet({
 
   const handleConfirm = async () => {
     if (!selectedId) return;
+    setErrorMessage(undefined);
     setIsLoading(true);
     try {
       await onConfirm(selectedId);
+      setSelectedId(null);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : Strings.categoriesReassignError);
     } finally {
       setIsLoading(false);
-      setSelectedId(null);
     }
   };
 
@@ -84,6 +89,9 @@ export function ReassignCategorySheet({
       <Text className="font-inter-regular text-muted mb-4 px-4 text-base">
         {Strings.categoriesReassignBody}
       </Text>
+      {errorMessage ? (
+        <Text className="font-inter text-danger mb-2 px-4 text-sm font-medium">{errorMessage}</Text>
+      ) : null}
 
       <BottomSheetFlatList
         data={options}

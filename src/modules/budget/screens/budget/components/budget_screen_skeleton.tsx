@@ -1,9 +1,9 @@
-import { SkeletonGroup } from 'heroui-native';
+import { Card, SkeletonGroup } from 'heroui-native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
 
 const ROWS = [0, 1, 2, 3];
 const PLAN_ROWS = [0, 1];
@@ -70,196 +70,91 @@ function PlansSkeleton(): React.ReactElement {
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <View
+        <Card
           testID="plans-summary-skeleton"
-          className="border-border bg-surface mx-4 border"
-          style={plansStyles.summary}
+          className="bg-surface border-border mx-4 rounded-xl border p-0 shadow-none"
         >
-          <SkeletonGroup.Item style={plansStyles.eyebrow} />
-          <View style={plansStyles.primaryRow}>
-            <SkeletonGroup.Item style={plansStyles.primaryValue} />
-            <SkeletonGroup.Item style={plansStyles.attention} />
-          </View>
-          <View style={plansStyles.moneyRow}>
-            <SkeletonGroup.Item style={plansStyles.moneyLabel} />
-            <SkeletonGroup.Item style={plansStyles.percentage} />
-          </View>
-          <SkeletonGroup.Item style={plansStyles.progress} />
-          <View style={plansStyles.metricsRow}>
-            {[0, 1, 2].map((metric) => (
-              <View key={metric} style={plansStyles.metric}>
-                <SkeletonGroup.Item style={plansStyles.metricValue} />
-                <SkeletonGroup.Item style={plansStyles.metricLabel} />
-              </View>
-            ))}
-          </View>
-          <View style={plansStyles.statusRow}>
-            {[0, 1, 2, 3].map((status) => (
-              <View key={status} style={plansStyles.statusItem}>
-                <SkeletonGroup.Item style={plansStyles.statusIcon} />
-                <SkeletonGroup.Item style={plansStyles.statusLabel} />
-              </View>
-            ))}
-          </View>
-        </View>
+          <Card.Body className="px-2 py-1.5">
+            <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item className="h-[31px] w-[45%] rounded-lg" />
+              <SkeletonGroup.Item className="h-7 w-[30%] rounded-full" />
+            </View>
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item className="h-[15px] w-1/2 rounded-lg" />
+              <SkeletonGroup.Item className="h-[15px] w-[18%] rounded-lg" />
+            </View>
+            <SkeletonGroup.Item className="mt-1 h-1 w-full rounded-full" />
+            <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
+              {[0, 1, 2].map((metric) => (
+                <View key={metric} className="flex-1 items-center justify-center gap-0.5 px-1">
+                  <SkeletonGroup.Item className="h-[11.5px] w-[45%] rounded-lg" />
+                  <SkeletonGroup.Item className="h-[15px] w-[68%] rounded-lg" />
+                </View>
+              ))}
+            </View>
+            <View className="mt-1.5 flex-row items-center">
+              {[0, 1, 2, 3].map((status) => (
+                <View key={status} className="flex-1 flex-row items-center justify-center gap-0.5">
+                  <SkeletonGroup.Item className="h-4 w-4 rounded-full" />
+                  <SkeletonGroup.Item className="h-[13px] w-10 rounded-lg" />
+                </View>
+              ))}
+            </View>
+          </Card.Body>
+        </Card>
 
-        <View className="mx-4" style={plansStyles.toolRail}>
-          <SkeletonGroup.Item style={plansStyles.tool} />
+        <View className="mx-4 mt-3">
+          <SkeletonGroup.Item className="h-[38px] w-full rounded-lg" />
         </View>
 
         {PLAN_ROWS.map((row) => (
-          <View
+          <Card
             key={row}
             testID="plan-card-skeleton"
-            className="border-border bg-surface mx-4 border"
-            style={plansStyles.card}
+            variant="default"
+            className="bg-surface border-border mx-4 mt-3 overflow-hidden rounded-lg border px-2 py-1.5"
           >
-            <View style={plansStyles.cardHeader}>
-              <View style={plansStyles.cardTitleWrap}>
-                <View style={plansStyles.cardTitleRow}>
-                  <SkeletonGroup.Item style={plansStyles.cardTitle} />
-                  <SkeletonGroup.Item style={plansStyles.cardStatus} />
+            <Card.Header className="flex-row items-start justify-between gap-3">
+              <View className="flex-1">
+                <View className="flex-row items-center gap-2">
+                  <SkeletonGroup.Item
+                    className={
+                      row === 0 ? 'h-[19px] w-[52%] rounded-lg' : 'h-[19px] w-[40%] rounded-lg'
+                    }
+                  />
+                  <SkeletonGroup.Item className="h-6 w-14 rounded-full" />
                 </View>
-                <SkeletonGroup.Item style={plansStyles.cardDate} />
+                <SkeletonGroup.Item className="mt-0.5 h-[13px] w-[72%] rounded-lg" />
               </View>
-              <View style={plansStyles.cardBalanceWrap}>
-                <SkeletonGroup.Item style={plansStyles.cardBalance} />
-                <SkeletonGroup.Item style={plansStyles.cardBalanceMeta} />
+              <View className="items-end gap-0.5">
+                <SkeletonGroup.Item className="h-5 w-16 rounded-lg" />
+                <SkeletonGroup.Item className="h-[11.5px] w-12 rounded-lg" />
               </View>
-            </View>
-            <View style={plansStyles.cardMoneyRow}>
-              <SkeletonGroup.Item style={plansStyles.cardSpent} />
-              <SkeletonGroup.Item style={plansStyles.cardPercentage} />
-            </View>
-            <SkeletonGroup.Item style={plansStyles.cardProgress} />
-            <SkeletonGroup.Item style={plansStyles.cardPace} />
-            <View style={plansStyles.cardChips}>
-              <SkeletonGroup.Item style={plansStyles.cardChip} />
-              <SkeletonGroup.Item style={plansStyles.cardChip} />
-              <SkeletonGroup.Item style={plansStyles.cardChip} />
-            </View>
-            <View style={plansStyles.cardFooter}>
-              <SkeletonGroup.Item style={plansStyles.cardFooterLabel} />
-              <View style={plansStyles.cardActions}>
-                <SkeletonGroup.Item style={plansStyles.cardAction} />
-                <SkeletonGroup.Item style={plansStyles.cardAction} />
+            </Card.Header>
+            <Card.Body className="mt-1">
+              <View className="flex-row items-center justify-between gap-3">
+                <SkeletonGroup.Item className="h-[14px] w-[45%] rounded-lg" />
+                <SkeletonGroup.Item className="h-[13px] w-14 rounded-lg" />
               </View>
-            </View>
-          </View>
+              <SkeletonGroup.Item className="mt-1 h-1 w-full rounded-full" />
+              <SkeletonGroup.Item className="mt-0.5 h-[13px] w-[32%] rounded-lg" />
+              <View className="mt-1 flex-row gap-1">
+                {[0, 1, 2].map((chip) => (
+                  <SkeletonGroup.Item key={chip} className="h-[30px] w-[84px] rounded-full" />
+                ))}
+              </View>
+            </Card.Body>
+            <Card.Footer className="border-border mt-1 flex-row items-center justify-between gap-3 border-t pt-0.5">
+              <SkeletonGroup.Item className="h-[11.5px] w-[45%] rounded-lg" />
+              <SkeletonGroup.Item
+                testID="plan-card-action-skeleton"
+                className="h-6 w-6 rounded-lg"
+              />
+            </Card.Footer>
+          </Card>
         ))}
       </SkeletonGroup>
     </View>
   );
 }
-
-const plansStyles = StyleSheet.create({
-  summary: {
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
-  },
-  eyebrow: {
-    width: '38%',
-    height: Type.chip,
-    borderRadius: Radius.sm,
-  },
-  primaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xxs,
-  },
-  primaryValue: { width: '45%', height: Type.headline, borderRadius: Radius.sm },
-  attention: { width: '30%', height: Size.checkCircle, borderRadius: Radius.xl },
-  moneyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xxs,
-  },
-  moneyLabel: { width: '50%', height: Type.micro, borderRadius: Radius.sm },
-  percentage: { width: '18%', height: Type.micro, borderRadius: Radius.sm },
-  progress: {
-    width: '100%',
-    height: Size.spendingPlanProgressTrack,
-    marginTop: Spacing.xxs,
-    borderRadius: Radius.sm,
-  },
-  metricsRow: {
-    flexDirection: 'row',
-    marginTop: Spacing.xxs,
-    paddingTop: Spacing.xxs,
-    borderTopWidth: Size.hairline,
-    borderTopColor: Colors.dark.border,
-  },
-  metric: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: Spacing.xxxs },
-  metricValue: { width: '68%', height: Type.micro, borderRadius: Radius.sm },
-  metricLabel: { width: '45%', height: Type.chip, borderRadius: Radius.sm },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xxs,
-  },
-  statusItem: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs },
-  statusIcon: { width: Size.iconXs, height: Size.iconXs, borderRadius: Radius.xl },
-  statusLabel: { width: Spacing.xxl, height: Type.chip, borderRadius: Radius.sm },
-  toolRail: { marginTop: Spacing.sm },
-  tool: { width: '100%', height: Size.budgetToolHeight, borderRadius: Radius.md },
-  card: {
-    borderRadius: Radius.sm,
-    paddingHorizontal: Spacing.xs,
-    paddingVertical: Spacing.xs,
-    marginTop: Spacing.xs,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  cardTitleWrap: { flex: 1, justifyContent: 'center' },
-  cardTitleRow: { flexDirection: 'row', alignItems: 'center', gap: Spacing.xs },
-  cardTitle: { flex: 1, height: Type.caption, borderRadius: Radius.sm },
-  cardStatus: {
-    width: Size.headerHeight,
-    height: Size.spendingPlanStatusHeight,
-    borderRadius: Radius.xl,
-  },
-  cardDate: { width: '72%', height: Type.chip, marginTop: Spacing.xxxs, borderRadius: Radius.sm },
-  cardBalanceWrap: { alignItems: 'flex-end', gap: Spacing.xxxs },
-  cardBalance: { width: Spacing.xxl * 2, height: Type.body, borderRadius: Radius.sm },
-  cardBalanceMeta: { width: Spacing.xl * 2, height: Type.chipMeta, borderRadius: Radius.sm },
-  cardMoneyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xxs,
-  },
-  cardSpent: { width: '45%', height: Type.chip, borderRadius: Radius.sm },
-  cardPercentage: { width: Spacing.xl, height: Type.chip, borderRadius: Radius.sm },
-  cardProgress: {
-    width: '100%',
-    height: Size.spendingPlanProgressTrack,
-    marginTop: Spacing.xxs,
-    borderRadius: Radius.sm,
-  },
-  cardPace: { width: '32%', height: Type.chip, marginTop: Spacing.xxs, borderRadius: Radius.sm },
-  cardChips: { flexDirection: 'row', gap: Spacing.xxs, marginTop: Spacing.xxs },
-  cardChip: {
-    width: Size.filterSegmentCompactWidth,
-    height: Size.spendingPlanChipHeight,
-    borderRadius: Radius.xl,
-  },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: Spacing.xxxs,
-    paddingTop: Spacing.xxxs,
-    borderTopWidth: Size.hairline,
-    borderTopColor: Colors.dark.border,
-  },
-  cardFooterLabel: { width: '45%', height: Type.chipMeta, borderRadius: Radius.sm },
-  cardActions: { flexDirection: 'row', gap: Spacing.xxs },
-  cardAction: { width: Spacing.xl, height: Spacing.xl, borderRadius: Radius.sm },
-});

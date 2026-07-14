@@ -32,12 +32,28 @@ export const spendingPlanFormSchema = z.object({
 
 export type SpendingPlanFormValues = z.infer<typeof spendingPlanFormSchema>;
 
+function isValidIsoCalendarDate(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return false;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return (
+    date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
+  );
+}
+
+const spendingPlanDateSchema = z
+  .string()
+  .refine(isValidIsoCalendarDate, Strings.budgetPlanDateInvalid);
+
 export const spendingPlanInputSchema = z
   .object({
     id: z.string().optional(),
     name: z.string().trim().min(1, Strings.budgetPlanNameRequired),
-    startDate: z.string().min(1),
-    endDate: z.string().min(1),
+    startDate: spendingPlanDateSchema,
+    endDate: spendingPlanDateSchema,
     totalAmount: z.number().positive(Strings.budgetPlanAmountInvalid),
     categories: z
       .array(

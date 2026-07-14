@@ -116,7 +116,11 @@ export default function SpendingPlanDetailScreen() {
               </View>
             </View>
           </ScreenScroll>
-          <SpendingPlanSheet budgetableCategories={state.budgetableCategories} editingPlan={plan} />
+          <SpendingPlanSheet
+            budgetableCategories={state.budgetableCategories}
+            editingPlan={plan}
+            onSaved={retry}
+          />
         </>
       ) : null}
     </Screen>

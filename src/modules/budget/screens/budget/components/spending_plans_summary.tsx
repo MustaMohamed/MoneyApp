@@ -114,16 +114,21 @@ export function SpendingPlansSummary({ summary }: SpendingPlansSummaryProps) {
           />
         </View>
 
-        <View className="mt-1.5 flex-row flex-wrap">
+        <View className="mt-1.5 flex-row items-center">
           {summary.statusItems.map((item) => (
-            <View key={item.key} className="w-1/2 flex-row items-center gap-1 py-0.5">
+            <View key={item.key} className="flex-1 flex-row items-center justify-center gap-0.5">
               <MaterialCommunityIcons
                 accessible={false}
                 name={item.icon}
                 size={Size.iconXs}
                 color={item.color}
               />
-              <Text className="font-inter text-content-secondary text-[13px] font-medium">
+              <Text
+                className="font-inter text-content-secondary shrink text-[13px] font-medium"
+                numberOfLines={1}
+                adjustsFontSizeToFit
+                minimumFontScale={0.75}
+              >
                 {item.label}
               </Text>
             </View>

@@ -32,7 +32,13 @@ const { budgetRepository: mockBudgetRepository } = jest.requireMock(
   };
 };
 
-beforeEach(() => useBudgetStore.getState().reset());
+beforeEach(() => {
+  jest.clearAllMocks();
+  useBudgetStore.getState().reset();
+  mockBudgetRepository.getRows.mockResolvedValue([]);
+  mockBudgetRepository.getSpendByMonth.mockResolvedValue({});
+  mockBudgetRepository.getSpendingPlansForMonth.mockResolvedValue({ plans: [], spendByPlanId: {} });
+});
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const r: Budget = {
@@ -52,6 +58,28 @@ describe('useBudgetStore', () => {
     expect(s.spendByMonth).toEqual({});
     expect(s.loaded).toBe(false);
     expect(s.expectedIncome).toBeNull();
+    expect(s.loadError).toBe(false);
+  });
+
+  it('exposes a recoverable error when the first load fails', async () => {
+    const appSettingsRepo: IAppSettingsRepository = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
+    const store = createBudgetStore(appSettingsRepo);
+    mockBudgetRepository.getSpendingPlansForMonth.mockRejectedValueOnce(
+      new Error('plan query failed'),
+    );
+
+    await store.getState().load('2026-05');
+
+    expect(store.getState().loaded).toBe(false);
+    expect(store.getState().loadError).toBe(true);
+
+    await store.getState().load('2026-05');
+
+    expect(store.getState().loaded).toBe(true);
+    expect(store.getState().loadError).toBe(false);
   });
 
   it('setData stores rows + spend and flips loaded', () => {

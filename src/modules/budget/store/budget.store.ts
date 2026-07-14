@@ -26,6 +26,7 @@ interface BudgetStoreShape {
   spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'];
   loadedMonth: string | undefined;
   loaded: boolean;
+  loadError: boolean;
   /** Expected monthly income in EGP. null = not yet set by the user. */
   expectedIncome: number | null;
 }
@@ -68,6 +69,7 @@ const INITIAL_STATE: BudgetStoreShape = {
   spendingPlanSpendById: {},
   loadedMonth: undefined,
   loaded: false,
+  loadError: false,
   expectedIncome: null,
 };
 
@@ -93,27 +95,33 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
           spendingPlanSpendById,
           loadedMonth,
           loaded: true,
+          loadError: false,
         }),
 
       load: async (anchorMonth = currentYearMonth()) => {
         const request = ++latestLoadRequest;
+        set({ loadError: false });
         const months = lastMonths(anchorMonth, HISTORY_MONTHS);
-        const [rows, spendByMonth, rawIncome, planResult] = await Promise.all([
-          budgetRepository.getRows(),
-          budgetRepository.getSpendByMonth(months),
-          repo.get(EXPECTED_INCOME_KEY),
-          budgetRepository.getSpendingPlansForMonth(anchorMonth),
-        ]);
-        const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
-        if (request !== latestLoadRequest) return;
-        get().setData(
-          rows,
-          spendByMonth,
-          expectedIncome,
-          planResult.plans,
-          planResult.spendByPlanId,
-          anchorMonth,
-        );
+        try {
+          const [rows, spendByMonth, rawIncome, planResult] = await Promise.all([
+            budgetRepository.getRows(),
+            budgetRepository.getSpendByMonth(months),
+            repo.get(EXPECTED_INCOME_KEY),
+            budgetRepository.getSpendingPlansForMonth(anchorMonth),
+          ]);
+          const expectedIncome = rawIncome !== null ? Number(rawIncome) : null;
+          if (request !== latestLoadRequest) return;
+          get().setData(
+            rows,
+            spendByMonth,
+            expectedIncome,
+            planResult.plans,
+            planResult.spendByPlanId,
+            anchorMonth,
+          );
+        } catch {
+          if (request === latestLoadRequest) set({ loadError: true });
+        }
       },
 
       setBudget: async (input) => {
@@ -163,7 +171,10 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
 
       setExpectedIncomeLocal: (amount) => set({ expectedIncome: amount }),
 
-      reset: () => set(INITIAL_STATE),
+      reset: () => {
+        latestLoadRequest += 1;
+        set(INITIAL_STATE);
+      },
     })),
   );
 }

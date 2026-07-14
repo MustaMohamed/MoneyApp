@@ -5,6 +5,7 @@ const PRESENTATION_FILES = [
   'src/modules/budget/screens/budget/components/spending_plan_allocation_chip.tsx',
   'src/modules/budget/screens/budget/components/spending_plan_card.tsx',
   'src/modules/budget/screens/budget/components/spending_plan_category_chip.tsx',
+  'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
   'src/modules/budget/screens/budget/components/spending_plans_lens.tsx',
   'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
   'src/modules/budget/screens/budget/spending_plan_detail/index.tsx',
@@ -80,5 +81,43 @@ describe('spending plan presentation styling', () => {
     expect(detailCategoryRow).toContain('text-[15px]');
     expect(detailCategoryRow).not.toContain('text-[7.5px]');
     expect(detailScreen).toContain('text-[13px]');
+  });
+
+  it('uses the main plans summary card treatment on the detail summary', () => {
+    const detailSummary = source(
+      'src/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_summary.tsx',
+    );
+    const detailSkeleton = source(
+      'src/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton.tsx',
+    );
+
+    expect(detailSummary).toContain("import { Card, Chip } from 'heroui-native'");
+    expect(detailSummary).toContain(
+      'className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none"',
+    );
+    expect(detailSummary).toContain('<Card.Body className="px-2 py-1.5">');
+    expect(detailSummary).not.toContain('<Surface');
+    expect(detailSkeleton).toContain(
+      'className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none"',
+    );
+  });
+
+  it('matches loaded plan geometry in overview and detail skeletons', () => {
+    const summary = source(
+      'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
+    );
+    const overviewSkeleton = source(
+      'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
+    );
+    const detailSkeleton = source(
+      'src/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton.tsx',
+    );
+
+    expect(summary).toContain('className="mt-1.5 flex-row items-center"');
+    expect(summary).not.toContain('w-1/2');
+    expect(overviewSkeleton).toContain("import { Card, SkeletonGroup } from 'heroui-native'");
+    expect(overviewSkeleton).not.toContain('plansStyles');
+    expect(overviewSkeleton.match(/testID="plan-card-action-skeleton"/g)).toHaveLength(1);
+    expect(detailSkeleton.match(/testID="plan-detail-insight-skeleton"/g)).toHaveLength(1);
   });
 });

@@ -65,6 +65,7 @@ export function useBudget() {
     budgetLoaded,
     loadedMonth,
     expectedIncome,
+    loadError,
   } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,
@@ -74,6 +75,7 @@ export function useBudget() {
       budgetLoaded: s.loaded,
       loadedMonth: s.loadedMonth,
       expectedIncome: s.expectedIncome,
+      loadError: s.loadError,
     })),
   );
   const load = useBudgetStore.getState().load;
@@ -350,6 +352,7 @@ export function useBudget() {
       copySheetVisible,
       copySelectedBudgetIds,
       refreshing,
+      loadError,
       hasLoaded: Boolean(
         categoriesLoaded &&
         budgetLoaded &&

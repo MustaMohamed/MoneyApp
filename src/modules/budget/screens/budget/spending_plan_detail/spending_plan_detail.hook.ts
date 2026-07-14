@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { CategoryType } from '@/constants/enums';
@@ -31,8 +31,10 @@ export function useSpendingPlanDetail() {
     })),
   );
   const openEditPlan = useBudgetState.getState().openEditPlan;
+  const latestLoadRequest = useRef(0);
 
   const loadPlan = useCallback(async () => {
+    const request = ++latestLoadRequest.current;
     const beginLoad = useSpendingPlanDetailState.getState().beginLoad;
     const finishLoad = useSpendingPlanDetailState.getState().finishLoad;
     const failLoad = useSpendingPlanDetailState.getState().failLoad;
@@ -44,6 +46,7 @@ export function useSpendingPlanDetail() {
         loadCategories(),
         budgetRepository.getSpendingPlanDetails(id),
       ]);
+      if (request !== latestLoadRequest.current) return;
       if (!result) {
         resetData();
         finishLoad('notFound');
@@ -52,6 +55,7 @@ export function useSpendingPlanDetail() {
       setData(result.plan, result.spend);
       finishLoad('ready');
     } catch {
+      if (request !== latestLoadRequest.current) return;
       resetData();
       failLoad(Strings.budgetPlansDetailLoadError);
     }
@@ -62,12 +66,16 @@ export function useSpendingPlanDetail() {
       const task = runAfterInteractions(() => {
         void loadPlan();
       });
-      return () => task.cancel();
+      return () => {
+        task.cancel();
+        latestLoadRequest.current += 1;
+      };
     }, [loadPlan]),
   );
 
   useEffect(
     () => () => {
+      latestLoadRequest.current += 1;
       useSpendingPlanDetailState.getState().reset();
       useSpendingPlanDetailStore.getState().reset();
     },

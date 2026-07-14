@@ -59,6 +59,18 @@ describe('spendingPlanInputSchema', () => {
     );
   });
 
+  it.each(['abc', '2026-7-01', '2026-02-30', '2026-13-01'])(
+    'rejects malformed or impossible calendar date %s',
+    (invalidDate) => {
+      expect(
+        spendingPlanInputSchema.safeParse({ ...validInput, startDate: invalidDate }).success,
+      ).toBe(false);
+      expect(
+        spendingPlanInputSchema.safeParse({ ...validInput, endDate: invalidDate }).success,
+      ).toBe(false);
+    },
+  );
+
   it('rejects allocations above the plan total', () => {
     const result = spendingPlanInputSchema.safeParse({
       ...validInput,

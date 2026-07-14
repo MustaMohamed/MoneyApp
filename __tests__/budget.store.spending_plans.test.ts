@@ -115,4 +115,26 @@ describe('budget store spending plans', () => {
     expect(store.getState().loadedMonth).toBe('2026-08');
     expect(store.getState().spendingPlans).toEqual([{ id: 'august' }]);
   });
+
+  it('ignores an older failed request after a newer month has loaded', async () => {
+    let rejectJuly: ((error: Error) => void) | undefined;
+    budgetRepository.getSpendingPlansForMonth
+      .mockImplementationOnce(
+        () =>
+          new Promise((_resolve, reject) => {
+            rejectJuly = reject;
+          }),
+      )
+      .mockResolvedValueOnce({ plans: [{ id: 'august' }], spendByPlanId: {} });
+    const store = createBudgetStore(repo);
+
+    const julyLoad = store.getState().load('2026-07');
+    const augustLoad = store.getState().load('2026-08');
+    await augustLoad;
+    rejectJuly?.(new Error('stale request failed'));
+    await julyLoad;
+
+    expect(store.getState().loadedMonth).toBe('2026-08');
+    expect(store.getState().loadError).toBe(false);
+  });
 });

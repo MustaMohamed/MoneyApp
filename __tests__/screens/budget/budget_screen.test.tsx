@@ -17,6 +17,16 @@ let mockPendingConfirmPayload: { id: string; name: string } | null = null;
 jest.mock('@/modules/budget/screens/budget/budget.hook', () => ({
   useBudget: jest.fn(),
 }));
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ label, onPress }: { label: string; onPress: () => void }) => {
+    const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <Pressable onPress={onPress} accessibilityRole="button">
+        <Text>{label}</Text>
+      </Pressable>
+    );
+  },
+}));
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@/modules/budget/screens/budget/budget.state', () => ({
   useBudgetState: {
@@ -376,12 +386,13 @@ const baseState: BudgetScreenState = {
   copySelectedBudgetIds: [],
   hasLoaded: false,
   refreshing: false,
+  loadError: false,
 };
 
 const mockedUseBudget = jest.mocked(useBudget);
 
 function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
-  mockedUseBudget.mockReturnValue({
+  const value: BudgetHook = {
     state: { ...baseState, ...state },
     openAdd: jest.fn(),
     openEdit: jest.fn(),
@@ -404,7 +415,9 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     removeSpendingPlan: jest.fn(),
     refresh: jest.fn(),
     goToCategory: jest.fn(),
-  });
+  };
+  mockedUseBudget.mockReturnValue(value);
+  return value;
 }
 
 describe('BudgetScreen', () => {
@@ -429,6 +442,17 @@ describe('BudgetScreen', () => {
     const { getByText } = render(<BudgetScreen />);
 
     expect(getByText('skeleton:plans')).toBeTruthy();
+  });
+
+  it('shows a retry action when the initial load fails', () => {
+    const hook = mockUseBudget({ loadError: true });
+
+    const { getByText, queryByTestId } = render(<BudgetScreen />);
+
+    expect(queryByTestId('budget-screen-skeleton')).toBeNull();
+    expect(getByText('Could not load your budget.')).toBeTruthy();
+    fireEvent.press(getByText('Try again'));
+    expect(hook.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('renders the compact monthly workspace after data loads', () => {
