@@ -149,14 +149,20 @@ If parent category spending is greater than the sum of child-assigned spending, 
 
 - Label: `Unassigned spending`.
 - Supporting copy: `Not linked to a named budget`.
-- Amount: the unassigned spend total.
+- Amount: the unassigned spend total with currency only; do not repeat `unassigned` beside it.
 - No planned amount, percentage, health status, or left value is invented.
+- Use neutral surface, border, icon, text, and amount tokens. Unassigned spending is
+  explanatory reconciliation data, not a warning or attention state.
 
 This row covers existing transactions after migration and any valid transaction that no longer has an assignment because its named budget was deleted.
 
 ### Category Detail Action
 
 The final expanded row is a full-width, icon-led `View category details` action. It opens the existing category detail route and passes the currently selected month so the detail screen does not silently jump to another month.
+
+The action uses the same neutral ledger treatment as the reconciliation row. Gold is
+reserved for primary actions and selected navigation, so the icon, label, and chevron
+use foreground/muted tokens without an accent-tinted surface.
 
 ## Named-Budget Calculations
 

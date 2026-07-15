@@ -231,7 +231,7 @@ export const Strings = {
   budgetCategoriesBalanceMeta: (status: string) => `EGP ${status}`,
   budgetCategoriesUnassignedSpending: 'Unassigned spending',
   budgetCategoriesUnassignedExplanation: 'Not linked to a named budget',
-  budgetCategoriesUnassignedAmount: (amount: string) => `${amount} EGP unassigned`,
+  budgetCategoriesUnassignedAmount: (amount: string) => `${amount} EGP`,
   budgetViewCategoryDetails: (name: string) => `${name} details`,
   budgetViewCategoryDetailsA11y: (name: string) => `View ${name} details`,
   budgetCategoriesBudgetA11y: (

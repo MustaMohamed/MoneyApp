@@ -119,24 +119,24 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             className="min-h-11 flex-row items-center gap-2 px-4"
           >
             <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
-              <View className="border-accent/30 bg-accent/10 h-8 w-8 items-center justify-center rounded-full border">
+              <View className="border-border bg-default h-8 w-8 items-center justify-center rounded-full border">
                 <MaterialCommunityIcons
                   name="chart-box-outline"
                   size={Size.iconXs}
-                  color={Colors.dark.gold}
+                  color={Colors.dark.text2}
                 />
               </View>
             </View>
             <HeroText
               style={{ fontSize: Type.micro }}
-              className="font-inter text-accent flex-1 font-semibold"
+              className="font-inter text-foreground flex-1 font-semibold"
             >
               {Strings.budgetViewCategoryDetails(row.name)}
             </HeroText>
             <MaterialCommunityIcons
               name="chevron-right"
               size={Size.iconXs}
-              color={Colors.dark.gold}
+              color={Colors.dark.text2}
             />
           </PressableFeedback>
         </Accordion.Content>

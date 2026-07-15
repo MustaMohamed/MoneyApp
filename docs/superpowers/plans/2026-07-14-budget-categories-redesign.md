@@ -1055,7 +1055,7 @@ const rowVm: CategoryBudgetRowVM = {
   balanceMetaLabel: 'EGP left',
   ringColor: Colors.dark.positive,
   unassignedSpend: 200,
-  unassignedSpendLabel: '200 EGP unassigned',
+  unassignedSpendLabel: '200 EGP',
   budgets: [{
     id: 'meals',
     name: 'Monthly meals',
@@ -1165,8 +1165,8 @@ Use:
         onPress={() => onViewDetails(row.categoryId)}
         className="border-separator min-h-10 flex-row items-center gap-2 border-t px-4"
       >
-        <MaterialCommunityIcons name="chart-box-outline" color={GoldTokens[500]} />
-        <HeroText className="font-inter text-accent text-[13px] font-semibold">
+        <MaterialCommunityIcons name="chart-box-outline" color={Colors.dark.text2} />
+        <HeroText className="font-inter text-foreground text-[13px] font-semibold">
           {Strings.budgetViewCategoryDetails(row.name)}
         </HeroText>
       </PressableFeedback>
@@ -1176,6 +1176,18 @@ Use:
 ```
 
 The parent uses `BudgetRing`; no progress bar. It renders only supplied labels/colors.
+
+#### Approved neutral-row refinement
+
+Apply the approved Option B treatment without changing ledger geometry:
+
+- `UnassignedSpendingRow` uses neutral default/border/foreground/muted tokens only.
+- Its trailing label is `<amount> EGP`; `Unassigned spending` remains in the row title
+  and is not repeated beside the amount.
+- The category-detail action uses a neutral icon container, foreground label, and muted
+  chevron rather than accent/gold styling.
+- Add source-contract and helper assertions before implementation, then run the focused
+  budget helper and styling architecture suites.
 
 - [ ] **Step 4: Add aligned child rows and HeroUI Menu actions**
 

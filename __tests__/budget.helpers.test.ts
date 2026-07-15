@@ -140,6 +140,7 @@ describe('budget categories ledger view models', () => {
         usedPct: 0.76,
         status: 'on-track',
         unassignedSpend: 200,
+        unassignedSpendLabel: '200 EGP',
       }),
     );
     expect(result.rows[0].budgets).toEqual([

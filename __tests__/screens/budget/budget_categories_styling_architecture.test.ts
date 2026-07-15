@@ -85,6 +85,22 @@ describe('budget categories presentation architecture', () => {
     expect(unassigned).toContain('Strings.budgetCategoriesUnassignedExplanation');
   });
 
+  it('uses neutral styling for reconciliation and category detail rows', () => {
+    const parent = source('src/modules/budget/screens/budget/components/category_budget_row.tsx');
+    const unassigned = source(
+      'src/modules/budget/screens/budget/components/unassigned_spending_row.tsx',
+    );
+
+    expect(unassigned).toContain('bg-default/30');
+    expect(unassigned).toContain('border-border bg-default');
+    expect(unassigned).toContain('text-foreground');
+    expect(unassigned).not.toContain('warning');
+    expect(parent).toContain('border-border bg-default');
+    expect(parent).toContain('className="font-inter text-foreground flex-1 font-semibold"');
+    expect(parent).not.toContain('text-accent');
+    expect(parent).not.toContain('Colors.dark.gold');
+  });
+
   it('anchors named budget actions below the trailing trigger', () => {
     const child = source('src/modules/budget/screens/budget/components/named_budget_row.tsx');
 

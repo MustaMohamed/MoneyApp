@@ -468,7 +468,7 @@ function categoryRow(
     balanceMetaLabel: 'EGP left',
     ringColor: Colors.dark.positive,
     unassignedSpend: spent,
-    unassignedSpendLabel: `${spent} EGP unassigned`,
+    unassignedSpendLabel: `${spent} EGP`,
     budgets,
     accessibilityLabel: name,
   };
