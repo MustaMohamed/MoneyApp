@@ -355,7 +355,10 @@ export function useEditTransaction(
       showBudgetField:
         type === TransactionType.Expense &&
         Boolean(categoryId) &&
-        (Boolean(budgetLookupError) || Boolean(budgetId) || availableBudgets.length > 0),
+        (budgetsLoading ||
+          Boolean(budgetLookupError) ||
+          Boolean(budgetId) ||
+          availableBudgets.length > 0),
       rateUpdatedAt,
     },
     setAmountStr: (value: string) => {

@@ -67,8 +67,11 @@ export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
               key: 'unassigned-income',
               label: Strings.budgetCategoriesSummaryUnassignedIncome,
               value: summary.unassignedIncomeLabel,
-              onPress: onSetIncome,
-              accessibilityLabel: Strings.budgetCategoriesSetIncome,
+              onPress: summary.unassignedIncome === undefined ? onSetIncome : undefined,
+              accessibilityLabel:
+                summary.unassignedIncome === undefined
+                  ? Strings.budgetCategoriesSetIncome
+                  : undefined,
             },
             {
               key: 'unbudgeted-spend',

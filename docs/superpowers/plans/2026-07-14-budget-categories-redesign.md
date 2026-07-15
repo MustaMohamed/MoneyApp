@@ -1446,3 +1446,18 @@ Manual device matrix:
 11. Plans and 50/30/20 tabs remain visually and functionally unchanged.
 
 Do not recommend merge until the user completes this device-QA gate.
+
+## Review Remediation — 2026-07-16
+
+The product owner approved the following review fixes before merge:
+
+1. Surface failed transaction deletion and commitment deactivate/skip actions in their confirmation sheets.
+2. Keep the transaction budget selector mounted while eligibility is loading to prevent form reflow.
+3. Move lifecycle and save orchestration out of Zustand `.state.ts` files into colocated hooks.
+4. Replace cold-load row-count guesses with a stable viewport skeleton region while preserving known refresh geometry.
+5. Allow category and named-budget titles to wrap to two bounded lines without colliding with metadata.
+6. Make `Unassigned income` actionable only when income has not been configured.
+7. Replace mocked HeroUI interaction render tests with logic and source-contract coverage; leave real transitions to device QA.
+8. Cover edit assignment changes across month/category transitions and repository month validation.
+
+Implementation remains inside the existing branch and uses the approved design, financial formulas, HeroUI Native primitives, and module anatomy.

@@ -717,6 +717,7 @@ export const Strings = {
     'This payment will be marked as skipped and excluded from your totals.',
   commitmentsSkipConfirmCancel: 'Cancel',
   commitmentsSkipConfirmConfirm: 'Skip Payment',
+  commitmentsSkipError: 'Could not skip this payment. Please try again.',
 
   // Commitments — C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
@@ -741,6 +742,7 @@ export const Strings = {
     'It will be removed from your list. Past payment records are preserved.',
   commitmentsDeactivateCancel: 'Cancel',
   commitmentsDeactivateConfirm: 'Deactivate',
+  commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
 
   // Commitments — status badges
   commitmentsStatusOverdue: 'Overdue',

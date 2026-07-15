@@ -14,6 +14,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import { useSetBudgetSheetSave } from '@/modules/budget/screens/budget/components/set_budget_sheet.hook';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
@@ -69,8 +70,8 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
   const clearError = useSetBudgetSheetState.getState().clearError;
-  const runSave = useSetBudgetSheetState.getState().runSave;
   const reset = useSetBudgetSheetState.getState().reset;
+  const { runSave } = useSetBudgetSheetSave();
 
   const isEdit = mode === 'edit';
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();

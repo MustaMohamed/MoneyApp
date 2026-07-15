@@ -117,7 +117,7 @@ describe('useAddTransaction — named budget assignment', () => {
     act(() => result.current.setDate('2026-07-10'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
-    expect(result.current.state.showBudgetField).toBe(false);
+    expect(result.current.state.showBudgetField).toBe(true);
     act(() => result.current.handleNumpad('digit', '5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());

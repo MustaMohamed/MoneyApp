@@ -360,6 +360,27 @@ describe('TransactionRepository.update', () => {
       }),
     ).rejects.toThrow('does not match');
   });
+
+  it('rejects retaining a named budget when the transaction moves to another month', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id,category_id,name,limit_amount,effective_from,created_at,updated_at)
+         VALUES ('budget_food','cat_food','Meals',500,'2026-05',?,?)`,
+      )
+      .run(NOW, NOW);
+    const tx = await repo.add({ ...baseInput, budget_id: 'budget_food' });
+
+    await expect(
+      repo.update(tx.id, {
+        amount: 200,
+        currency: Currency.EGP,
+        egp_amount: 200,
+        transaction_date: '2026-06-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toThrow('does not match');
+  });
 });
 
 describe('TransactionRepository.add — cc_payment minimum_payment_snapshot', () => {

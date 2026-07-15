@@ -118,7 +118,7 @@ describe('useEditTransaction', () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
 
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
-    expect(result.current.state.showBudgetField).toBe(false);
+    expect(result.current.state.showBudgetField).toBe(true);
     await act(async () => result.current.handleSave());
 
     expect(updateTx).not.toHaveBeenCalled();
@@ -256,5 +256,55 @@ describe('useEditTransaction', () => {
 
     act(() => result.current.selectCategory(mockCategoryShop));
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('shop'));
+  });
+
+  it('clears a stale assignment when the transaction moves to another month', async () => {
+    const assignedTx = { ...mockTxExpense, budget_id: 'may-budget' };
+    useEditTransactionStore.getState().loadFromTx(assignedTx);
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockImplementation(async (_categoryId, month) =>
+        month === '2026-05' ? [mockBudget('may-budget')] : [mockBudget('june-budget')],
+      );
+    const { result } = renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
+
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('may-budget'));
+    act(() => result.current.setDate('2026-06-02'));
+
+    await waitFor(() => expect(result.current.state.availableBudgets[0]?.id).toBe('june-budget'));
+    expect(result.current.state.selectedBudget?.id).toBe('june-budget');
+  });
+
+  it('allows a historical unassigned transaction to be assigned deliberately', async () => {
+    const budget = mockBudget('b1');
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([budget]);
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+
+    await waitFor(() => expect(result.current.state.availableBudgets).toEqual([budget]));
+    act(() => result.current.selectBudget(budget));
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ budget_id: 'b1' }));
+  });
+
+  it('requires a selection when changed eligibility exposes multiple budgets', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockImplementation(async (_categoryId, month) =>
+        month === '2026-06' ? [mockBudget('june-1'), mockBudget('june-2')] : [],
+      );
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+
+    act(() => result.current.setDate('2026-06-02'));
+    await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(2));
+    expect(result.current.state.selectedBudget).toBeNull();
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.budget).toBeDefined();
+    expect(updateTx).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 
 import type { BudgetGroup } from '@/constants/enums';
-import { Strings } from '@/constants/strings';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface SetBudgetSheetStateShape {
@@ -19,7 +18,6 @@ type SetBudgetSheetState = SetBudgetSheetStateShape & {
   setSaving: (saving: boolean) => void;
   setErrorMessage: (message: string | undefined) => void;
   clearError: () => void;
-  runSave: (operation: () => Promise<void>) => Promise<boolean>;
   togglePicker: () => void;
   collapsePicker: () => void;
   reset: () => void;
@@ -47,18 +45,6 @@ export const useSetBudgetSheetState = createMoneyAppSelectors(
     setSaving: (saving) => set({ saving }),
     setErrorMessage: (errorMessage) => set({ errorMessage }),
     clearError: () => set({ errorMessage: undefined }),
-    runSave: async (operation) => {
-      set({ saving: true, errorMessage: undefined });
-      try {
-        await operation();
-        return true;
-      } catch {
-        set({ errorMessage: Strings.budgetSaveError });
-        return false;
-      } finally {
-        set({ saving: false });
-      }
-    },
     togglePicker: () => set((s) => ({ pickerExpanded: !s.pickerExpanded })),
     collapsePicker: () => set({ pickerExpanded: false }),
     reset: () => set(INITIAL_STATE),

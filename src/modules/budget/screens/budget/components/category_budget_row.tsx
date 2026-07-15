@@ -50,11 +50,11 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
               </BudgetRing>
             </View>
             <View style={{ flex: 1 }}>
-              <View className="flex-row items-center gap-1.5">
+              <View className="flex-row items-start gap-1.5">
                 <HeroText
-                  numberOfLines={1}
+                  numberOfLines={2}
                   style={{ fontSize: Type.body }}
-                  className="font-sora text-foreground shrink font-semibold"
+                  className="font-sora text-foreground flex-1 font-semibold"
                 >
                   {row.name}
                 </HeroText>

@@ -4,6 +4,7 @@ import { Strings } from '@/constants/strings';
 interface Props {
   isOpen: boolean;
   busy: boolean;
+  errorMessage?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -13,7 +14,13 @@ interface Props {
  * Uses deactivateCommitment semantics (soft-delete; history preserved).
  * Copy reuses commitmentsDeactivate* strings — same action, same messaging.
  */
-export function CommitmentDeleteConfirmSheet({ isOpen, busy, onCancel, onConfirm }: Props) {
+export function CommitmentDeleteConfirmSheet({
+  isOpen,
+  busy,
+  errorMessage,
+  onCancel,
+  onConfirm,
+}: Props) {
   return (
     <ConfirmSheet
       isOpen={isOpen}
@@ -21,6 +28,7 @@ export function CommitmentDeleteConfirmSheet({ isOpen, busy, onCancel, onConfirm
         if (!open) onCancel();
       }}
       busy={busy}
+      errorMessage={errorMessage}
       destructive
       title={Strings.commitmentsDeactivateTitle}
       body={Strings.commitmentsDeactivateBody}

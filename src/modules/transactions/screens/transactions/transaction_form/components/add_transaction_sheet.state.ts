@@ -1,10 +1,6 @@
-import { useEffect } from 'react';
 import { create } from 'zustand';
-import { useShallow } from 'zustand/react/shallow';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
-
-const CLOSE_UNMOUNT_DELAY_MS = 350;
 
 interface AddTransactionSheetStateShape {
   readyToOpen: boolean;
@@ -53,34 +49,3 @@ export const useAddTransactionSheetState = createMoneyAppSelectors(
     reset: () => set(INITIAL_STATE),
   })),
 );
-
-export function useAddTransactionSheetLifecycle(visible: boolean) {
-  const state = useAddTransactionSheetState(
-    useShallow((sheet) => ({
-      readyToOpen: sheet.readyToOpen,
-      shouldRenderInner: sheet.shouldRenderInner,
-      hasFooter: sheet.hasFooter,
-      saving: sheet.saving,
-      saveDisabled: sheet.saveDisabled,
-      saveAction: sheet.saveAction,
-    })),
-  );
-  const prepareOpen = useAddTransactionSheetState.getState().prepareOpen;
-  const show = useAddTransactionSheetState.getState().show;
-  const startClose = useAddTransactionSheetState.getState().startClose;
-  const finishClose = useAddTransactionSheetState.getState().finishClose;
-
-  useEffect(() => {
-    if (!visible) {
-      startClose();
-      const timer = setTimeout(finishClose, CLOSE_UNMOUNT_DELAY_MS);
-      return () => clearTimeout(timer);
-    }
-
-    prepareOpen();
-    const timer = setTimeout(show, 0);
-    return () => clearTimeout(timer);
-  }, [finishClose, prepareOpen, show, startClose, visible]);
-
-  return state;
-}

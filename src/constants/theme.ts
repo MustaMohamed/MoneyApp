@@ -150,6 +150,7 @@ export const Size = {
   budgetRingStroke: ms(3),
   budgetCategoryRowHeight: ms(58),
   budgetNamedRowHeight: ms(44),
+  budgetColdContentHeight: ms(320),
   plansEmptyMinHeight: ms(300),
   plansEmptyIcon: ms(72),
   plansEmptyTextWidth: ms(280),

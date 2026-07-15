@@ -34,18 +34,7 @@ describe('useSetBudgetSheetState', () => {
     expect(useSetBudgetSheetState.getState().errorMessage).toBeUndefined();
   });
 
-  it('reports rejection and preserves sheet selection for add/edit retry', async () => {
-    useSetBudgetSheetState.getState().initAddMode('cat_food');
-
-    const saved = await useSetBudgetSheetState
-      .getState()
-      .runSave(jest.fn().mockRejectedValue(new Error('write failed')));
-
-    expect(saved).toBe(false);
-    expect(useSetBudgetSheetState.getState()).toMatchObject({
-      selectedCategoryId: 'cat_food',
-      saving: false,
-      errorMessage: 'Could not save budget. Please try again.',
-    });
+  it('contains state transitions only', () => {
+    expect(useSetBudgetSheetState.getState()).not.toHaveProperty('runSave');
   });
 });

@@ -52,6 +52,26 @@ describe('budget categories presentation architecture', () => {
     ).not.toMatch(/\buseState\(/);
   });
 
+  it('keeps lifecycle and save orchestration out of state stores', () => {
+    const addSheetState = source(
+      'src/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state.ts',
+    );
+    const addSheetHook = source(
+      'src/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.hook.ts',
+    );
+    const setBudgetState = source(
+      'src/modules/budget/screens/budget/components/set_budget_sheet.state.ts',
+    );
+    const setBudgetHook = source(
+      'src/modules/budget/screens/budget/components/set_budget_sheet.hook.ts',
+    );
+
+    expect(addSheetState).not.toMatch(/useEffect|setTimeout/);
+    expect(addSheetHook).toMatch(/useEffect|setTimeout/);
+    expect(setBudgetState).not.toMatch(/async|Promise|Strings/);
+    expect(setBudgetHook).toContain('runSave');
+  });
+
   it('keeps parent progress circular and child rows aligned', () => {
     const parent = source('src/modules/budget/screens/budget/components/category_budget_row.tsx');
     const child = source('src/modules/budget/screens/budget/components/named_budget_row.tsx');
@@ -68,6 +88,16 @@ describe('budget categories presentation architecture', () => {
     expect(child).toContain('width: Size.budgetCategoryColumn');
     expect(unassigned).toContain('width: Size.budgetCategoryColumn');
     expect(child).toContain('size={Size.budgetNamedRing}');
+  });
+
+  it('wraps long category and budget names without shrinking their metadata chips', () => {
+    const parent = source('src/modules/budget/screens/budget/components/category_budget_row.tsx');
+    const child = source('src/modules/budget/screens/budget/components/named_budget_row.tsx');
+
+    expect(parent).toMatch(/numberOfLines=\{2\}/);
+    expect(child).toMatch(/numberOfLines=\{2\}/);
+    expect(parent).toContain('className="font-sora text-foreground flex-1 font-semibold"');
+    expect(child).toContain('className="font-sora text-foreground flex-1 font-semibold"');
   });
 
   it('keeps ledger controls accessible and explains unassigned spending', () => {
@@ -160,6 +190,42 @@ describe('budget categories presentation architecture', () => {
       ),
     ).toHaveLength(2);
     expect(plansLens).toContain('<View className="mt-3 px-4">');
+  });
+
+  it('only makes unassigned income actionable when income is not configured', () => {
+    const summary = source('src/modules/budget/screens/budget/components/summary_card.tsx');
+
+    expect(summary).toContain(
+      'onPress: summary.unassignedIncome === undefined ? onSetIncome : undefined',
+    );
+    expect(summary).toMatch(/accessibilityLabel:\s*summary\.unassignedIncome === undefined/);
+  });
+
+  it('uses a stable cold-load viewport instead of guessed ledger row counts', () => {
+    const skeleton = source(
+      'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
+    );
+
+    expect(skeleton).not.toContain('DEFAULT_CATEGORY_ROWS');
+    expect(skeleton).not.toContain('DEFAULT_PLAN_ROWS');
+    expect(skeleton).toContain('testID="budget-cold-content-skeleton"');
+    expect(skeleton).toContain('minHeight: Size.budgetColdContentHeight');
+  });
+
+  it('keeps category expansion controlled and refresh skeleton geometry data-driven', () => {
+    const parent = source('src/modules/budget/screens/budget/components/category_budget_row.tsx');
+    const child = source('src/modules/budget/screens/budget/components/named_budget_row.tsx');
+    const skeleton = source(
+      'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
+    );
+
+    expect(parent).toContain("value={props.isExpanded ? row.categoryId : ''}");
+    expect(parent).toContain('props.onExpandedChange(');
+    expect(child).toContain('onPress={() => onEdit(budget.id)}');
+    expect(child).toContain('onPress={() => onDelete({ id: budget.id, name: budget.name })}');
+    expect(skeleton).toContain('const renderedRows = hasKnownLayout ? categoryRows : []');
+    expect(skeleton).toContain('categoryRow.budgets.map');
+    expect(skeleton).toContain('rowCount={preserveLayout || planRowCount > 0');
   });
 
   it('uses the centralized EGP label in transaction budget presentation', () => {

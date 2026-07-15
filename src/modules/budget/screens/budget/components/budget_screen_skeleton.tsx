@@ -2,11 +2,8 @@ import { Card, SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
+import { Size, Spacing, Type } from '@/constants/theme';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
-
-const DEFAULT_CATEGORY_ROWS = [0, 1, 2, 3];
-const DEFAULT_PLAN_ROWS = [0, 1];
 
 interface BudgetScreenSkeletonProps {
   variant?: 'categories' | 'plans' | 'fiftythirty';
@@ -28,14 +25,17 @@ export function BudgetScreenSkeleton({
   bucketsHaveIncome = true,
 }: BudgetScreenSkeletonProps): React.ReactElement {
   if (variant === 'plans') {
-    return <PlansSkeleton rowCount={preserveLayout ? planRowCount : DEFAULT_PLAN_ROWS.length} />;
+    return (
+      <PlansSkeleton rowCount={preserveLayout || planRowCount > 0 ? planRowCount : undefined} />
+    );
   }
   if (variant === 'fiftythirty') {
     return <BucketsSkeleton hasIncome={preserveLayout ? bucketsHaveIncome : true} />;
   }
 
-  const renderedRows = preserveLayout ? categoryRows : DEFAULT_CATEGORY_ROWS;
-  const hasPlan = preserveLayout ? categorySummaryHasPlan : true;
+  const hasKnownLayout = preserveLayout || categoryRows.length > 0;
+  const renderedRows = hasKnownLayout ? categoryRows : [];
+  const hasPlan = hasKnownLayout ? categorySummaryHasPlan : true;
 
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
@@ -94,7 +94,9 @@ export function BudgetScreenSkeleton({
         </View>
 
         <SkeletonGroup.Item className="mx-4 mt-4 mb-1 h-[11px] w-28 rounded-md" />
-        {renderedRows.length === 0 ? (
+        {!hasKnownLayout ? (
+          <ColdContentSkeleton />
+        ) : renderedRows.length === 0 ? (
           <View testID="budget-empty-state-skeleton" className="min-h-80 items-center pt-16">
             <SkeletonGroup.Item className="h-16 w-16 rounded-full" />
             <SkeletonGroup.Item className="mt-4 h-[18px] w-40 rounded-lg" />
@@ -217,8 +219,8 @@ function NamedBudgetRowSkeleton(): React.ReactElement {
   );
 }
 
-function PlansSkeleton({ rowCount }: { rowCount: number }): React.ReactElement {
-  const rows = Array.from({ length: rowCount }, (_, index) => index);
+function PlansSkeleton({ rowCount }: { rowCount: number | undefined }): React.ReactElement {
+  const rows = Array.from({ length: rowCount ?? 0 }, (_, index) => index);
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
@@ -260,7 +262,9 @@ function PlansSkeleton({ rowCount }: { rowCount: number }): React.ReactElement {
           <SkeletonGroup.Item className="h-[38px] w-full rounded-lg" />
         </View>
 
-        {rows.length === 0 ? (
+        {rowCount === undefined ? (
+          <ColdContentSkeleton />
+        ) : rows.length === 0 ? (
           <View testID="plans-empty-state-skeleton" className="min-h-[300px] items-center pt-16">
             <SkeletonGroup.Item className="h-16 w-16 rounded-full" />
             <SkeletonGroup.Item className="mt-4 h-[18px] w-40 rounded-lg" />
@@ -314,6 +318,48 @@ function PlansSkeleton({ rowCount }: { rowCount: number }): React.ReactElement {
           </Card>
         ))}
       </SkeletonGroup>
+    </View>
+  );
+}
+
+function ColdContentSkeleton(): React.ReactElement {
+  return (
+    <View
+      testID="budget-cold-content-skeleton"
+      style={{
+        minHeight: Size.budgetColdContentHeight,
+        paddingHorizontal: Spacing.md,
+        paddingTop: Spacing.sm,
+      }}
+    >
+      {[0, 1, 2].map((row) => (
+        <View
+          key={row}
+          className="border-separator border-b"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: Spacing.sm,
+            paddingVertical: Spacing.sm,
+          }}
+        >
+          <SkeletonGroup.Item
+            className="rounded-full"
+            style={{ height: Size.budgetCategoryRing, width: Size.budgetCategoryRing }}
+          />
+          <View style={{ flex: 1, gap: Spacing.xxs }}>
+            <SkeletonGroup.Item
+              className="rounded-md"
+              style={{ height: Type.body, width: '45%' }}
+            />
+            <SkeletonGroup.Item
+              className="rounded-md"
+              style={{ height: Type.caption, width: '65%' }}
+            />
+          </View>
+          <SkeletonGroup.Item className="rounded-md" style={{ height: Type.body, width: '18%' }} />
+        </View>
+      ))}
     </View>
   );
 }
