@@ -2,7 +2,10 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { getCategorySpendByMonth } from '@/modules/budget/database/budget_stats';
+import {
+  getBudgetSpendByMonth,
+  getCategorySpendByMonth,
+} from '@/modules/budget/database/budget_stats';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -21,6 +24,7 @@ function tx(o: Record<string, unknown>) {
     account_id: 'acc',
     to_account_id: null,
     category_id: 'cat_food',
+    budget_id: null,
     note: null,
     transaction_date: '2026-05-04',
     transaction_time: '12:00:00',
@@ -54,7 +58,9 @@ beforeAll(() => {
   });
 });
 
-beforeEach(() => realDb.exec('DELETE FROM transactions'));
+beforeEach(() => {
+  realDb.exec('DELETE FROM transactions; DELETE FROM budgets;');
+});
 afterAll(() => {
   realDb.close();
   sqlite.__reset();
@@ -90,5 +96,40 @@ describe('getCategorySpendByMonth', () => {
     tx({ id: 't1', egp_amount: 1200, commitment_payment_id: 'cp1' });
     const out = await getCategorySpendByMonth(db, ['2026-05']);
     expect(out['cat_food']['2026-05']).toBe(1200);
+  });
+});
+
+describe('getBudgetSpendByMonth', () => {
+  it('attributes only matching expense category and month rows', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
+         VALUES ('food_monthly', 'cat_food', 'Monthly meals', 1000, '2026-05', ?, ?)`,
+      )
+      .run(NOW, NOW);
+
+    tx({ id: 'valid', budget_id: 'food_monthly', egp_amount: 300 });
+    tx({ id: 'income', budget_id: 'food_monthly', type: 'income', egp_amount: 900 });
+    tx({
+      id: 'wrong_category',
+      budget_id: 'food_monthly',
+      category_id: 'cat_car',
+      egp_amount: 500,
+    });
+    tx({
+      id: 'wrong_month',
+      budget_id: 'food_monthly',
+      transaction_date: '2026-06-01',
+      egp_amount: 700,
+    });
+
+    await expect(getBudgetSpendByMonth(db, ['2026-05'])).resolves.toEqual({
+      food_monthly: 300,
+    });
+  });
+
+  it('returns an empty record when no months are requested', async () => {
+    await expect(getBudgetSpendByMonth(db, [])).resolves.toEqual({});
   });
 });

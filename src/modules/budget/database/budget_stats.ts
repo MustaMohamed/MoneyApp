@@ -29,6 +29,31 @@ export async function getCategorySpendByMonth(
   return out;
 }
 
+// Spend attributed to named monthly budgets. Corrupted assignments are ignored unless
+// transaction type, category, and calendar month all match the referenced budget.
+export async function getBudgetSpendByMonth(
+  db: SQLiteDatabase,
+  yearMonths: string[],
+): Promise<Record<string, number>> {
+  if (yearMonths.length === 0) return {};
+  const placeholders = yearMonths.map(() => '?').join(',');
+  const rows = await db.getAllAsync<{ budget_id: string; spent: number }>(
+    `SELECT budget.id AS budget_id,
+            COALESCE(SUM(transaction_row.egp_amount), 0) AS spent
+       FROM budgets budget
+       LEFT JOIN transactions transaction_row
+         ON transaction_row.budget_id = budget.id
+        AND transaction_row.type = 'expense'
+        AND transaction_row.category_id = budget.category_id
+        AND substr(transaction_row.transaction_date, 1, 7) = budget.effective_from
+      WHERE budget.effective_from IN (${placeholders})
+      GROUP BY budget.id`,
+    yearMonths,
+  );
+
+  return Object.fromEntries(rows.map((row) => [row.budget_id, row.spent]));
+}
+
 /**
  * Returns the rounded average monthly income over the last N complete months
  * (relative to `currentYearMonth`, which is the current "YYYY-MM" string).

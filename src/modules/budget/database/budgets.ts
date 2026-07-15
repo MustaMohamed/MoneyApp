@@ -8,6 +8,23 @@ export async function getBudgetRows(db: SQLiteDatabase): Promise<Budget[]> {
   );
 }
 
+export async function getBudgetRowById(db: SQLiteDatabase, id: string): Promise<Budget | null> {
+  return db.getFirstAsync<Budget>('SELECT * FROM budgets WHERE id = ?', [id]);
+}
+
+export async function getBudgetRowsForCategoryMonth(
+  db: SQLiteDatabase,
+  categoryId: string,
+  yearMonth: string,
+): Promise<Budget[]> {
+  return db.getAllAsync<Budget>(
+    `SELECT * FROM budgets
+      WHERE category_id = ? AND effective_from = ?
+      ORDER BY name COLLATE NOCASE ASC`,
+    [categoryId, yearMonth],
+  );
+}
+
 // One write path for set / edit: INSERT OR REPLACE collapses a second same
 // category/month/name change onto the same named monthly budget.
 export async function setBudgetRow(db: SQLiteDatabase, row: Budget): Promise<void> {

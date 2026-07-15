@@ -5,6 +5,7 @@ import type { IAppSettingsRepository } from '@/repositories/app_settings.reposit
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {
     getRows: jest.fn().mockResolvedValue([]),
+    getSpendByBudget: jest.fn().mockResolvedValue({}),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
     getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
     setLimit: jest.fn().mockResolvedValue(undefined),
@@ -48,12 +49,13 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
 
   it('reset also resets loaded to false and clears rows/spendByMonth', () => {
     const store = createBudgetStore(makeRepo());
-    store.getState().setData([], {}, 5000, [], {});
+    store.getState().setData([], {}, {}, 5000, [], {});
     store.getState().reset();
     const s = store.getState();
     expect(s.loaded).toBe(false);
     expect(s.rows).toEqual([]);
     expect(s.spendByMonth).toEqual({});
+    expect(s.spendByBudgetId).toEqual({});
     expect(s.expectedIncome).toBeNull();
   });
 

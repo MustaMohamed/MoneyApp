@@ -4,10 +4,17 @@ import { CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import {
+  getBudgetSpendByMonth,
   getCategorySpendByMonth,
   getSpendingPlanSpend,
 } from '@/modules/budget/database/budget_stats';
-import { deleteBudgetRow, getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
+import {
+  deleteBudgetRow,
+  getBudgetRowById,
+  getBudgetRows,
+  getBudgetRowsForCategoryMonth,
+  setBudgetRow,
+} from '@/modules/budget/database/budgets';
 import {
   getSpendingPlanCategoryRows,
   replaceSpendingPlanCategoryRows,
@@ -47,12 +54,15 @@ export function lastMonths(end: string, n: number): string[] {
 
 export interface IBudgetRepository {
   getRows(): Promise<Budget[]>;
+  getById(id: string): Promise<Budget | undefined>;
+  getBudgetsForCategoryMonth(categoryId: string, yearMonth: string): Promise<Budget[]>;
   setBudget(input: SetBudgetInput): Promise<void>;
   setLimit(categoryId: string, limit: number, yearMonth?: string): Promise<void>;
   removeBudget(id: string, yearMonth?: string): Promise<void>;
   copyBudgetsToMonth(sourceMonth: string, targetMonth: string, budgetIds: string[]): Promise<void>;
   copyLimitsToMonth(sourceMonth: string, targetMonth: string, categoryIds: string[]): Promise<void>;
   getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>>;
+  getSpendByBudget(yearMonths: string[]): Promise<Record<string, number>>;
   getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult>;
   getSpendingPlanDetails(id: string): Promise<SpendingPlanDetailsResult | undefined>;
   setSpendingPlan(input: SetSpendingPlanInput): Promise<void>;
@@ -126,6 +136,16 @@ export class BudgetRepository implements IBudgetRepository {
   async getRows(): Promise<Budget[]> {
     const db = await getDb();
     return getBudgetRows(db);
+  }
+
+  async getById(id: string): Promise<Budget | undefined> {
+    const db = await getDb();
+    return (await getBudgetRowById(db, id)) ?? undefined;
+  }
+
+  async getBudgetsForCategoryMonth(categoryId: string, yearMonth: string): Promise<Budget[]> {
+    const db = await getDb();
+    return getBudgetRowsForCategoryMonth(db, categoryId, yearMonth);
   }
 
   async setBudget(input: SetBudgetInput): Promise<void> {
@@ -236,6 +256,11 @@ export class BudgetRepository implements IBudgetRepository {
   async getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>> {
     const db = await getDb();
     return getCategorySpendByMonth(db, yearMonths);
+  }
+
+  async getSpendByBudget(yearMonths: string[]): Promise<Record<string, number>> {
+    const db = await getDb();
+    return getBudgetSpendByMonth(db, yearMonths);
   }
 
   async getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult> {
