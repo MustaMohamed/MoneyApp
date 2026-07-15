@@ -54,7 +54,7 @@ function ToolButton(props: ToolButtonProps) {
 export function BudgetToolRail(props: BudgetToolRailProps) {
   if (props.variant === 'plans') {
     return (
-      <View className="flex-row items-center gap-2" testID="budget-tool-rail">
+      <View className="mt-3 flex-row items-center gap-2" testID="budget-tool-rail">
         <ToolButton
           label={Strings.budgetToolPlan}
           icon="calendar-plus-outline"
