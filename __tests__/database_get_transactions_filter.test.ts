@@ -95,6 +95,7 @@ async function insert(overrides: Partial<Transaction> = {}) {
     account_id: 'acc_a',
     to_account_id: null,
     category_id: 'cat_food',
+    budget_id: null,
     note: null,
     transaction_date: DATE,
     transaction_time: TIME,

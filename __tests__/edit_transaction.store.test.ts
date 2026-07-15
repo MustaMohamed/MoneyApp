@@ -17,6 +17,7 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     account_id: 'acc-1',
     to_account_id: null,
     category_id: 'cat_food',
+    budget_id: null,
     note: null,
     transaction_date: '2026-05-01',
     transaction_time: '10:00:00',

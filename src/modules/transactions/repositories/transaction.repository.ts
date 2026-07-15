@@ -104,6 +104,7 @@ export class TransactionRepository implements ITransactionRepository {
       account_id: data.account_id,
       to_account_id: data.to_account_id ?? null,
       category_id: data.category_id ?? null,
+      budget_id: null,
       note: data.note ?? null,
       transaction_date: data.transaction_date ?? today,
       transaction_time: data.transaction_time ?? time,

@@ -22,6 +22,7 @@ const mockTxExpense: Transaction = {
   account_id: 'a1',
   to_account_id: null,
   category_id: 'c1',
+  budget_id: null,
   note: 'lunch',
   transaction_date: '2026-05-18',
   transaction_time: '12:00:00',
