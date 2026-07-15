@@ -140,6 +140,7 @@ export const Size = {
   spendingPlanDetailRowHeight: ms(46),
   spendingPlanFlexibleRowHeight: ms(39),
   budgetToolHeight: ms(38),
+  budgetActionMenuWidth: ms(132),
   plansEmptyMinHeight: ms(300),
   plansEmptyIcon: ms(72),
   plansEmptyTextWidth: ms(280),

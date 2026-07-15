@@ -1,11 +1,12 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Card, PressableFeedback, Text as HeroText } from 'heroui-native';
+import { Card, PressableFeedback } from 'heroui-native';
 import { View } from 'react-native';
 
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Size } from '@/constants/theme';
 import type { BudgetCategoriesSummaryVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
-import { ms } from '@/utils/responsive';
 
 interface SummaryCardProps {
   summary: BudgetCategoriesSummaryVM;
@@ -20,21 +21,20 @@ interface SummaryMetricProps {
 }
 
 function SummaryMetric({ label, value, tone = 'default', onPress }: SummaryMetricProps) {
-  const content = (
-    <View className="items-center px-1 py-1.5">
-      <HeroText className="font-inter text-muted text-center text-[9px] font-medium uppercase">
-        {label}
-      </HeroText>
-      <HeroText
+  const metricClassName = 'flex-1 items-center justify-center px-1';
+  const children = (
+    <>
+      <Text className="font-inter text-content-secondary text-center text-[11.5px]">{label}</Text>
+      <Text
         className={
           tone === 'warning'
-            ? 'font-sora text-warning mt-0.5 text-[12px] font-semibold'
-            : 'font-sora text-foreground mt-0.5 text-[12px] font-semibold'
+            ? 'font-sora text-warning mt-px text-center text-[15px] font-semibold'
+            : 'font-sora text-foreground mt-px text-center text-[15px] font-semibold'
         }
       >
         {value}
-      </HeroText>
-    </View>
+      </Text>
+    </>
   );
 
   return onPress ? (
@@ -42,12 +42,12 @@ function SummaryMetric({ label, value, tone = 'default', onPress }: SummaryMetri
       accessibilityRole="button"
       accessibilityLabel={Strings.budgetCategoriesSetIncome}
       onPress={onPress}
-      className="flex-1"
+      className={metricClassName}
     >
-      {content}
+      {children}
     </PressableFeedback>
   ) : (
-    <View className="flex-1">{content}</View>
+    <View className={metricClassName}>{children}</View>
   );
 }
 
@@ -59,15 +59,15 @@ function SummaryMetrics({
   onSetIncome: () => void;
 }) {
   return (
-    <View className="border-separator mt-1.5 flex-row border-t">
+    <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
       <SummaryMetric label={Strings.budgetCategoriesSummaryPlanned} value={summary.plannedLabel} />
-      <View className="bg-separator w-px" />
+      <View className="bg-border w-px" />
       <SummaryMetric
         label={Strings.budgetCategoriesSummaryUnassignedIncome}
         value={summary.unassignedIncomeLabel}
         onPress={onSetIncome}
       />
-      <View className="bg-separator w-px" />
+      <View className="bg-border w-px" />
       <SummaryMetric
         label={Strings.budgetCategoriesSummaryUnbudgetedSpend}
         value={summary.unbudgetedSpendLabel}
@@ -79,66 +79,86 @@ function SummaryMetrics({
 
 function SummaryStatusItem({ item }: { item: BudgetCategoriesSummaryVM['statusItems'][number] }) {
   return (
-    <View className="flex-1 items-center gap-0.5 py-1.5">
-      <MaterialCommunityIcons name={item.icon} size={ms(16)} color={item.color} />
-      <HeroText className="font-inter text-muted text-[9px] font-medium">{item.label}</HeroText>
+    <View className="flex-1 flex-row items-center justify-center gap-0.5">
+      <MaterialCommunityIcons
+        accessible={false}
+        name={item.icon}
+        size={Size.iconXs}
+        color={item.color}
+      />
+      <Text
+        className="font-inter text-content-secondary shrink text-[13px] font-medium"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
+      >
+        {item.label}
+      </Text>
     </View>
   );
 }
 
 export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
   return (
-    <Card className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none">
-      <Card.Body className="px-3 py-2">
-        <View className="flex-row items-start justify-between gap-3">
-          <View style={{ flex: 1 }}>
-            <HeroText className="font-inter text-muted text-[10px] font-semibold uppercase">
-              {summary.eyebrowLabel}
-            </HeroText>
-            {summary.hasPlan ? (
-              <HeroText
-                style={{ color: summary.balanceColor }}
-                className="font-sora mt-0.5 text-[25px] font-bold"
-              >
-                {`${summary.balanceAmountLabel} `}
-                <HeroText className="font-inter text-muted text-[11px] font-semibold">
-                  {summary.balanceMetaLabel}
-                </HeroText>
-              </HeroText>
-            ) : (
-              <HeroText className="font-sora text-foreground mt-1 text-[18px] font-bold">
-                {summary.emptyLabel}
-              </HeroText>
-            )}
-          </View>
-          <HeroText className="font-inter text-muted mt-0.5 text-[10px] font-semibold">
+    <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+      <Card.Body className="px-2 py-1.5">
+        <Text className="font-inter text-content-secondary text-[13px] font-semibold tracking-[0.3px] uppercase">
+          {summary.eyebrowLabel}
+        </Text>
+
+        <View className="mt-0.5 flex-row items-center justify-between gap-3">
+          {summary.hasPlan ? (
+            <Text
+              style={{ color: summary.balanceColor }}
+              className="font-sora shrink text-[31px] font-bold"
+            >
+              {summary.balanceAmountLabel}
+              <Text className="font-inter text-content-secondary text-[13px] font-medium">
+                {' '}
+                {summary.balanceMetaLabel}
+              </Text>
+            </Text>
+          ) : (
+            <Text className="font-sora text-foreground shrink text-[18px] font-bold">
+              {summary.emptyLabel}
+            </Text>
+          )}
+          <Text className="font-inter text-content-secondary text-[13px] font-semibold">
             {summary.lifecycleLabel}
-          </HeroText>
+          </Text>
         </View>
 
         {summary.hasPlan ? (
           <>
-            <View className="mt-1 flex-row items-center justify-between gap-3">
-              <HeroText className="font-inter text-foreground text-[12px] font-medium">
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <Text className="font-inter text-foreground shrink text-[15px] font-semibold">
                 {summary.spentPlannedLabel}
-              </HeroText>
+              </Text>
               {summary.usedLabel ? (
-                <HeroText className="font-inter text-muted text-[11px] font-semibold">
+                <Text className="font-sora text-content-secondary text-[15px]">
                   {summary.usedLabel}
-                </HeroText>
+                </Text>
               ) : null}
             </View>
-            <BudgetBar
-              pct={summary.usedPct ?? 0}
-              status="under"
-              color={summary.barColor}
-              height={ms(5)}
-            />
+            <View
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={summary.usedLabel}
+              accessibilityValue={{ text: summary.usedLabel }}
+              className="mt-1"
+            >
+              <BudgetBar
+                pct={summary.usedPct ?? 0}
+                status="under"
+                color={summary.barColor}
+                height={Size.spendingPlanProgressTrack}
+              />
+            </View>
           </>
         ) : null}
         <SummaryMetrics summary={summary} onSetIncome={onSetIncome} />
         {summary.statusItems.length > 0 ? (
-          <View className="border-separator flex-row items-center border-t">
+          <View className="mt-1.5 flex-row items-center">
             {summary.statusItems.map((item) => (
               <SummaryStatusItem key={item.key} item={item} />
             ))}

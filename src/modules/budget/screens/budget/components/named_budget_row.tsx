@@ -3,7 +3,7 @@ import { Chip, Menu, PressableFeedback, Text as HeroText } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { ms } from '@/utils/responsive';
@@ -78,7 +78,13 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Overlay />
-          <Menu.Content presentation="popover" placement="left" width={ms(180)}>
+          <Menu.Content
+            presentation="popover"
+            placement="bottom"
+            align="end"
+            width={Size.budgetActionMenuWidth}
+            className="bg-surface border-border shadow-overlay rounded-lg border px-1 py-1"
+          >
             <Menu.Item onPress={() => onEdit(budget.id)}>
               <Menu.ItemTitle>{Strings.swipeEdit}</Menu.ItemTitle>
             </Menu.Item>

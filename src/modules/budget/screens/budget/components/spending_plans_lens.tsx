@@ -32,7 +32,7 @@ export function SpendingPlansLens({
 }: SpendingPlansLensProps) {
   return (
     <View>
-      <View className="px-4">
+      <View className="mt-3 px-4">
         <SpendingPlansSummary summary={summary} />
         {summaryFooter}
       </View>

@@ -17,33 +17,34 @@ export function BudgetScreenSkeleton({
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <Card className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none">
-          <Card.Body className="px-3 py-2">
-            <View className="flex-row items-start justify-between gap-3">
-              <View className="flex-1 gap-1">
-                <SkeletonGroup.Item className="h-[11px] w-[55%] rounded-md" />
-                <SkeletonGroup.Item className="h-[29px] w-[62%] rounded-md" />
-              </View>
-              <SkeletonGroup.Item className="h-[12px] w-[22%] rounded-md" />
+        <Card
+          testID="categories-summary-skeleton"
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"
+        >
+          <Card.Body className="px-2 py-1.5">
+            <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item className="h-[31px] w-[45%] rounded-lg" />
+              <SkeletonGroup.Item className="h-[13px] w-[22%] rounded-lg" />
             </View>
-            <View className="mt-1 flex-row items-center justify-between gap-3">
-              <SkeletonGroup.Item className="h-[14px] w-[48%] rounded-md" />
-              <SkeletonGroup.Item className="h-[13px] w-[18%] rounded-md" />
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item className="h-[15px] w-1/2 rounded-lg" />
+              <SkeletonGroup.Item className="h-[15px] w-[18%] rounded-lg" />
             </View>
-            <SkeletonGroup.Item className="mt-1 h-[5px] w-full rounded-full" />
-            <View className="border-separator mt-1.5 flex-row border-t">
+            <SkeletonGroup.Item className="mt-1 h-1 w-full rounded-full" />
+            <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
               {[0, 1, 2].map((metric) => (
-                <View key={metric} className="flex-1 items-center gap-1 py-1.5">
-                  <SkeletonGroup.Item className="h-[10px] w-[68%] rounded-md" />
-                  <SkeletonGroup.Item className="h-[14px] w-[48%] rounded-md" />
+                <View key={metric} className="flex-1 items-center justify-center gap-0.5 px-1">
+                  <SkeletonGroup.Item className="h-[11.5px] w-[45%] rounded-lg" />
+                  <SkeletonGroup.Item className="h-[15px] w-[68%] rounded-lg" />
                 </View>
               ))}
             </View>
-            <View className="border-separator flex-row border-t">
+            <View className="mt-1.5 flex-row items-center">
               {[0, 1, 2].map((status) => (
-                <View key={status} className="flex-1 items-center gap-1 py-1.5">
+                <View key={status} className="flex-1 flex-row items-center justify-center gap-0.5">
                   <SkeletonGroup.Item className="h-4 w-4 rounded-full" />
-                  <SkeletonGroup.Item className="h-[10px] w-12 rounded-md" />
+                  <SkeletonGroup.Item className="h-[13px] w-10 rounded-lg" />
                 </View>
               ))}
             </View>
@@ -89,7 +90,7 @@ function PlansSkeleton(): React.ReactElement {
       <SkeletonGroup isLoading isSkeletonOnly>
         <Card
           testID="plans-summary-skeleton"
-          className="bg-surface border-border mx-4 rounded-xl border p-0 shadow-none"
+          className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"
         >
           <Card.Body className="px-2 py-1.5">
             <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
