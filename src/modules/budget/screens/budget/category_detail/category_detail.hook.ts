@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Colors } from '@/constants/theme';
@@ -11,6 +11,7 @@ import {
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
@@ -18,8 +19,15 @@ const HISTORY_MONTHS = 12;
 
 export function useCategoryDetail() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [month, setMonth] = useState(currentYearMonth);
+  const { id, month: routeMonth } = useLocalSearchParams<{ id: string; month?: string }>();
+  const storedMonth = useCategoryDetailState.useState.month();
+  const setMonth = useCategoryDetailState.getState().setMonth;
+  const validRouteMonth =
+    typeof routeMonth === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(routeMonth)
+      ? routeMonth
+      : undefined;
+  const currentMonth = currentYearMonth();
+  const month = validRouteMonth ?? (storedMonth === currentMonth ? storedMonth : currentMonth);
 
   const categories = useCategoryStore.useState.categories();
   const loadCategories = useCategoryStore.getState().loadCategories;
@@ -34,10 +42,11 @@ export function useCategoryDetail() {
 
   useFocusEffect(
     useCallback(() => {
-      setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
+      const selectedMonth = validRouteMonth ?? currentYearMonth();
+      setMonth(selectedMonth);
       void loadCategories();
-      void load();
-    }, [loadCategories, load]),
+      void load(selectedMonth);
+    }, [loadCategories, load, setMonth, validRouteMonth]),
   );
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);

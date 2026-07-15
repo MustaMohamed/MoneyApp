@@ -2,7 +2,9 @@
 import uuid from 'react-native-uuid';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
+import { getBudgetRowById } from '@/modules/budget/database/budgets';
 
 import {
   addTransaction,
@@ -42,6 +44,8 @@ export interface NewTransactionInput {
   to_account_id?: string;
   /** Required for expense and income. */
   category_id?: string;
+  /** Optional named monthly budget assignment for expenses. */
+  budget_id?: string;
   note?: string;
   /** ISO date string, defaults to today. */
   transaction_date?: string;
@@ -56,6 +60,29 @@ export interface ITransactionRepository {
   add(data: NewTransactionInput): Promise<Transaction>;
   delete(id: string): Promise<void>;
   update(id: string, data: UpdateTransactionInput): Promise<void>;
+}
+
+export class TransactionBudgetAssignmentError extends Error {}
+
+async function resolveBudgetAssignment(
+  db: Awaited<ReturnType<typeof getDb>>,
+  input: {
+    type: TransactionType;
+    categoryId: string | null | undefined;
+    transactionDate: string;
+    budgetId: string | null | undefined;
+  },
+): Promise<string | null> {
+  if (input.type !== TransactionType.Expense || !input.budgetId) return null;
+  const budget = await getBudgetRowById(db, input.budgetId);
+  if (
+    !budget ||
+    budget.category_id !== input.categoryId ||
+    budget.effective_from !== input.transactionDate.slice(0, 7)
+  ) {
+    throw new TransactionBudgetAssignmentError(Strings.transactionBudgetAssignmentMismatch);
+  }
+  return budget.id;
 }
 
 export class TransactionRepository implements ITransactionRepository {
@@ -80,6 +107,13 @@ export class TransactionRepository implements ITransactionRepository {
     const now = new Date().toISOString();
     const today = now.slice(0, 10);
     const time = now.slice(11, 19);
+    const transactionDate = data.transaction_date ?? today;
+    const budgetId = await resolveBudgetAssignment(db, {
+      type: data.type,
+      categoryId: data.category_id,
+      transactionDate,
+      budgetId: data.budget_id,
+    });
 
     // Snapshot the CC account's minimum_payment at save time so reversals remain accurate
     // even if the user later changes the CC account's minimum_payment.
@@ -104,9 +138,9 @@ export class TransactionRepository implements ITransactionRepository {
       account_id: data.account_id,
       to_account_id: data.to_account_id ?? null,
       category_id: data.category_id ?? null,
-      budget_id: null,
+      budget_id: budgetId,
       note: data.note ?? null,
-      transaction_date: data.transaction_date ?? today,
+      transaction_date: transactionDate,
       transaction_time: data.transaction_time ?? time,
       commitment_payment_id: null,
       installment_id: null,
@@ -125,6 +159,14 @@ export class TransactionRepository implements ITransactionRepository {
 
   async update(id: string, data: UpdateTransactionInput): Promise<void> {
     const db = await getDb();
-    await updateTransaction(db, id, data);
+    const existing = await getTransactionById(db, id);
+    if (!existing) return;
+    const budgetId = await resolveBudgetAssignment(db, {
+      type: existing.type,
+      categoryId: data.category_id === undefined ? existing.category_id : data.category_id,
+      transactionDate: data.transaction_date,
+      budgetId: data.budget_id === undefined ? existing.budget_id : data.budget_id,
+    });
+    await updateTransaction(db, id, { ...data, budget_id: budgetId });
   }
 }

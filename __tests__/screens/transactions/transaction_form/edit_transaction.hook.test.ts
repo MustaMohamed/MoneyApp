@@ -1,8 +1,10 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
@@ -78,7 +80,19 @@ const mockCategoryShop = {
   updated_at: 'now',
 };
 
+const mockBudget = (id: string, categoryId = 'c1'): Budget => ({
+  id,
+  category_id: categoryId,
+  name: id,
+  limit_amount: 500,
+  effective_from: '2026-05',
+  created_at: 'now',
+  updated_at: 'now',
+});
+
 beforeEach(() => {
+  jest.restoreAllMocks();
+  jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
   useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
   useCategoryStore.setState({
@@ -93,16 +107,35 @@ beforeEach(() => {
 });
 
 describe('useEditTransaction', () => {
-  it('initializes amount, category, note, date from the loaded tx', () => {
+  it('does not save while matching budgets are still loading', async () => {
+    let resolveBudgets: (budgets: Budget[]) => void = () => {};
+    const pendingBudgets = new Promise<Budget[]>((resolve) => {
+      resolveBudgets = resolve;
+    });
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).not.toHaveBeenCalled();
+    await act(async () => resolveBudgets([]));
+  });
+
+  it('initializes amount, category, note, date from the loaded tx', async () => {
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(result.current.state.amountStr).toBe('50');
     expect(result.current.state.categoryId).toBe('c1');
     expect(result.current.state.note).toBe('lunch');
     expect(result.current.state.date).toBe('2026-05-18');
   });
 
-  it('lock policy: type / selectedAccount / selectedToAccount are read-only', () => {
+  it('lock policy: type / selectedAccount / selectedToAccount are read-only', async () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(result.current.state.type).toBe(TransactionType.Expense);
     expect(result.current.state.selectedAccount?.id).toBe('a1');
     // No setType / selectAccount / selectToAccount exports
@@ -111,9 +144,10 @@ describe('useEditTransaction', () => {
     expect((result.current as any).selectToAccount).toBeUndefined();
   });
 
-  it('allows category change', () => {
+  it('allows category change', async () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     act(() => result.current.selectCategory(mockCategoryShop));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(result.current.state.categoryId).toBe('c2');
   });
 
@@ -121,6 +155,7 @@ describe('useEditTransaction', () => {
     const updateTx = jest.fn();
     useTransactionStore.setState({ updateTransaction: updateTx } as any);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     // Update amount via numpad
     act(() => result.current.handleNumpad('backspace'));
     act(() => result.current.handleNumpad('backspace'));
@@ -142,6 +177,7 @@ describe('useEditTransaction', () => {
     const updateTx = jest.fn();
     useTransactionStore.setState({ updateTransaction: updateTx } as any);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     await act(async () => {
       await result.current.handleSave();
     });
@@ -151,5 +187,31 @@ describe('useEditTransaction', () => {
         transaction_time: '12:00:00',
       }),
     );
+  });
+
+  it('preserves a historical unassigned expense when eligibility is unchanged', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockResolvedValue([mockBudget('b1')]);
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+
+    await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(1));
+    expect(result.current.state.selectedBudget).toBeNull();
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ budget_id: null }));
+  });
+
+  it('re-evaluates assignment when the category changes', async () => {
+    const shopBudget = mockBudget('shop', 'c2');
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockImplementation(async (categoryId) => (categoryId === 'c2' ? [shopBudget] : []));
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+
+    act(() => result.current.selectCategory(mockCategoryShop));
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('shop'));
   });
 });

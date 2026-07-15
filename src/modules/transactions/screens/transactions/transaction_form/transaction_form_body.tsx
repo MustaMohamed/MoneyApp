@@ -1,7 +1,7 @@
 // modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Input, PressableFeedback } from 'heroui-native';
+import { Input, PressableFeedback, Spinner } from 'heroui-native';
 import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
@@ -11,6 +11,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -37,6 +38,11 @@ interface Props {
   selectedCategory: Category | null;
   onOpenCategoryPicker: () => void;
   categoryError?: string;
+  showBudgetField: boolean;
+  selectedBudget: Budget | null;
+  budgetsLoading: boolean;
+  onOpenBudgetPicker: () => void;
+  budgetError?: string;
   isUSD: boolean;
   exchangeRate: string;
   setExchangeRate: (v: string) => void;
@@ -69,6 +75,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     selectedCategory,
     onOpenCategoryPicker,
     categoryError,
+    showBudgetField,
+    selectedBudget,
+    budgetsLoading,
+    onOpenBudgetPicker,
+    budgetError,
     isUSD,
     exchangeRate,
     setExchangeRate,
@@ -212,6 +223,41 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             </PressableFeedback>
             {categoryError ? (
               <Text className="font-inter text-danger text-[11px]">{categoryError}</Text>
+            ) : null}
+          </>
+        ) : null}
+
+        {showBudgetField ? (
+          <>
+            <PressableFeedback
+              testID="budget-row"
+              onPress={onOpenBudgetPicker}
+              className="bg-default rounded-md px-3 py-2.5"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text className="font-inter text-muted text-[11px]">
+                  {Strings.addTxBudgetLabel}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
+                  <MaterialCommunityIcons
+                    name="wallet-outline"
+                    size={ms(15)}
+                    color={CoreTokens.text2}
+                  />
+                  <Text className="font-sora text-foreground text-[14px] font-semibold">
+                    {selectedBudget?.name ?? Strings.addTxPickBudgetTitle}
+                  </Text>
+                </View>
+              </View>
+              {budgetsLoading ? (
+                <Spinner size="sm" />
+              ) : (
+                <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
+              )}
+            </PressableFeedback>
+            {budgetError ? (
+              <Text className="font-inter text-danger text-[11px]">{budgetError}</Text>
             ) : null}
           </>
         ) : null}

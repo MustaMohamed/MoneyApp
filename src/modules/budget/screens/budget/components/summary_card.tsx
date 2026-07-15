@@ -1,83 +1,138 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Card, PressableFeedback, Text as HeroText } from 'heroui-native';
+import { View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { budgetBandColor, type OverallVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type { BudgetCategoriesSummaryVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
-import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
-export interface SummaryCardProps {
-  overall: OverallVM;
-  daysLeft: number;
+interface SummaryCardProps {
+  summary: BudgetCategoriesSummaryVM;
+  onSetIncome: () => void;
 }
 
-export function SummaryCard({ overall, daysLeft }: SummaryCardProps) {
-  const bandColor = budgetBandColor(overall.pct);
-  const pctLabel = `${Math.round(overall.pct * 100)}%`;
-  // D6: Left figure stays green/red by sign, not by band
-  const leftColor = overall.left < 0 ? Colors.dark.negative : Colors.dark.positive;
-
-  return (
-    <View style={styles.card}>
-      <View style={styles.figs}>
-        <Figure label={Strings.budgetSummaryBudgeted} value={formatAmount(overall.budgeted)} />
-        <View style={styles.sep} />
-        <Figure label={Strings.budgetSummarySpent} value={formatAmount(overall.spent)} />
-        <View style={styles.sep} />
-        <Figure
-          label={Strings.budgetSummaryLeft}
-          value={formatAmount(overall.left)}
-          accentColor={leftColor}
-        />
-      </View>
-      {/* Bar fill colour = 5-band scale; status kept as fallback (never used when color= passed) */}
-      <BudgetBar pct={overall.pct} status="under" color={bandColor} height={ms(12)} />
-      <View style={styles.meta}>
-        <Text style={[styles.metaText, { color: bandColor }]}>{pctLabel}</Text>
-        <Text style={styles.metaText}>{`${daysLeft} ${Strings.budgetDaysLeftSuffix}`}</Text>
-      </View>
-    </View>
-  );
-}
-
-function Figure({
-  label,
-  value,
-  accentColor,
-}: {
+interface SummaryMetricProps {
   label: string;
   value: string;
-  accentColor?: string;
+  tone?: 'default' | 'warning';
+  onPress?: () => void;
+}
+
+function SummaryMetric({ label, value, tone = 'default', onPress }: SummaryMetricProps) {
+  const content = (
+    <View className="items-center px-1 py-1.5">
+      <HeroText className="font-inter text-muted text-center text-[9px] font-medium uppercase">
+        {label}
+      </HeroText>
+      <HeroText
+        className={
+          tone === 'warning'
+            ? 'font-sora text-warning mt-0.5 text-[12px] font-semibold'
+            : 'font-sora text-foreground mt-0.5 text-[12px] font-semibold'
+        }
+      >
+        {value}
+      </HeroText>
+    </View>
+  );
+
+  return onPress ? (
+    <PressableFeedback
+      accessibilityRole="button"
+      accessibilityLabel={Strings.budgetCategoriesSetIncome}
+      onPress={onPress}
+      className="flex-1"
+    >
+      {content}
+    </PressableFeedback>
+  ) : (
+    <View className="flex-1">{content}</View>
+  );
+}
+
+function SummaryMetrics({
+  summary,
+  onSetIncome,
+}: {
+  summary: BudgetCategoriesSummaryVM;
+  onSetIncome: () => void;
 }) {
   return (
-    <View style={styles.fig}>
-      <Text style={styles.figLabel}>{label}</Text>
-      <Text style={[styles.figVal, accentColor ? { color: accentColor } : undefined]}>{value}</Text>
+    <View className="border-separator mt-1.5 flex-row border-t">
+      <SummaryMetric label={Strings.budgetCategoriesSummaryPlanned} value={summary.plannedLabel} />
+      <View className="bg-separator w-px" />
+      <SummaryMetric
+        label={Strings.budgetCategoriesSummaryUnassignedIncome}
+        value={summary.unassignedIncomeLabel}
+        onPress={onSetIncome}
+      />
+      <View className="bg-separator w-px" />
+      <SummaryMetric
+        label={Strings.budgetCategoriesSummaryUnbudgetedSpend}
+        value={summary.unbudgetedSpendLabel}
+        tone={summary.unbudgetedSpend > 0 ? 'warning' : 'default'}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-    padding: Spacing.md,
-  },
-  figs: { flexDirection: 'row', marginBottom: Spacing.sm },
-  fig: { flex: 1, alignItems: 'center' },
-  sep: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.dark.border },
-  figLabel: { fontFamily: FontFamily.interMedium, fontSize: Type.micro, color: Colors.dark.text2 },
-  figVal: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    marginTop: ms(4),
-  },
-  meta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
-  metaText: { fontFamily: FontFamily.interRegular, fontSize: Type.micro, color: Colors.dark.text2 },
-});
+function SummaryStatusItem({ item }: { item: BudgetCategoriesSummaryVM['statusItems'][number] }) {
+  return (
+    <View className="flex-1 items-center gap-0.5 py-1.5">
+      <MaterialCommunityIcons name={item.icon} size={ms(16)} color={item.color} />
+      <HeroText className="font-inter text-muted text-[9px] font-medium">{item.label}</HeroText>
+    </View>
+  );
+}
+
+export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
+  return (
+    <Card className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none">
+      <Card.Body className="px-3 py-2">
+        <View className="flex-row items-start justify-between gap-3">
+          <View style={{ flex: 1 }}>
+            <HeroText className="font-inter text-muted text-[10px] font-semibold uppercase">
+              {summary.eyebrowLabel}
+            </HeroText>
+            <HeroText
+              style={{ color: summary.balanceColor }}
+              className="font-sora mt-0.5 text-[25px] font-bold"
+            >
+              {`${summary.balanceAmountLabel} `}
+              <HeroText className="font-inter text-muted text-[11px] font-semibold">
+                {summary.balanceMetaLabel}
+              </HeroText>
+            </HeroText>
+          </View>
+          <HeroText className="font-inter text-muted mt-0.5 text-[10px] font-semibold">
+            {summary.lifecycleLabel}
+          </HeroText>
+        </View>
+
+        <View className="mt-1 flex-row items-center justify-between gap-3">
+          <HeroText className="font-inter text-foreground text-[12px] font-medium">
+            {summary.spentPlannedLabel}
+          </HeroText>
+          {summary.usedLabel ? (
+            <HeroText className="font-inter text-muted text-[11px] font-semibold">
+              {summary.usedLabel}
+            </HeroText>
+          ) : null}
+        </View>
+        <BudgetBar
+          pct={summary.usedPct ?? 0}
+          status="under"
+          color={summary.barColor}
+          height={ms(5)}
+        />
+        <SummaryMetrics summary={summary} onSetIncome={onSetIncome} />
+        <View className="border-separator flex-row items-center border-t">
+          {summary.statusItems.map((item) => (
+            <SummaryStatusItem key={item.key} item={item} />
+          ))}
+        </View>
+      </Card.Body>
+    </Card>
+  );
+}

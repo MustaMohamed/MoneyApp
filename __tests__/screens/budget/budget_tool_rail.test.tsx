@@ -11,11 +11,15 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
 jest.mock('heroui-native', () => {
   const { Pressable, Text, View } =
     jest.requireActual<typeof import('react-native')>('react-native');
+  function HeroText({ children }: { children?: ReactNode }) {
+    return <Text>{children}</Text>;
+  }
+  HeroText.Heading = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
   return {
     PressableFeedback: ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
       <Pressable {...props}>{children}</Pressable>
     ),
-    Text: { Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text> },
+    Text: HeroText,
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
     Card: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
   };

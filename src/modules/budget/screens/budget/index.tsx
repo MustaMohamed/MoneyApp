@@ -1,7 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
-import { RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
@@ -10,7 +10,7 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { closeAllRows } from '@/components/ui/swipeable_row';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Size } from '@/constants/theme';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
 import { BudgetDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/budget_delete_confirm_sheet';
@@ -18,6 +18,7 @@ import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components
 import { BudgetToolRail } from '@/modules/budget/screens/budget/components/budget_tool_rail';
 import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/category_budget_row';
 import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
+import { IncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { SpendingPlanDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet';
 import { SpendingPlansLens } from '@/modules/budget/screens/budget/components/spending_plans_lens';
@@ -52,6 +53,8 @@ export default function BudgetScreen() {
     removeBudgetForMonth,
     removeSpendingPlanForMonth,
     openPlanDetails,
+    openIncomeSheet,
+    setExpandedCategoryId,
     refresh,
     goToCategory,
   } = useBudget();
@@ -94,7 +97,10 @@ export default function BudgetScreen() {
   return (
     <Screen>
       <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
-        <View style={styles.header}>
+        <View
+          className="flex-row items-center justify-between gap-2"
+          style={{ minHeight: Size.headerHeight }}
+        >
           <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
             {Strings.budgetTitle}
           </HeroText.Heading>
@@ -102,7 +108,7 @@ export default function BudgetScreen() {
       </Surface>
       <Separator />
 
-      <View style={styles.monthFilter}>
+      <View className="px-4 pt-2">
         <MonthFilter selectedMonth={state.month} onSelectedMonthChange={setSelectedMonth} />
       </View>
 
@@ -127,13 +133,19 @@ export default function BudgetScreen() {
           />
         </View>
       ) : !state.hasLoaded || state.refreshing ? (
-        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
+        <ScreenScroll
+          contentContainerStyle={{ paddingBottom: ms(96) }}
+          refreshControl={refreshControl}
+        >
           <BudgetScreenSkeleton variant={state.lensTab === 'plans' ? 'plans' : 'categories'} />
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
-        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
-          <View style={styles.inset}>
-            <SummaryCard overall={state.overall} daysLeft={state.daysLeft} />
+        <ScreenScroll
+          contentContainerStyle={{ paddingBottom: ms(96) }}
+          refreshControl={refreshControl}
+        >
+          <SummaryCard summary={state.categoriesSummary} onSetIncome={openIncomeSheet} />
+          <View className="mx-4 mt-2">
             <BudgetToolRail
               variant="categories"
               onCopy={openCopy}
@@ -147,25 +159,32 @@ export default function BudgetScreen() {
 
           {state.hasBudgets ? (
             <>
-              <HeroText style={styles.section}>{Strings.budgetDetailCategories}</HeroText>
+              <HeroText className="font-inter text-muted mx-4 mt-4 mb-1 text-[11px] font-medium uppercase">
+                {state.categoriesSummary.categoryCountLabel}
+              </HeroText>
               {state.rows.map((row) => (
                 <CategoryBudgetRow
                   key={row.categoryId}
                   row={row}
-                  onPress={goToCategory}
+                  isExpanded={state.expandedCategoryId === row.categoryId}
+                  onExpandedChange={setExpandedCategoryId}
+                  onViewDetails={goToCategory}
                   onEdit={openEdit}
                   onDelete={requestDelete}
                 />
               ))}
             </>
           ) : (
-            <View style={styles.emptyWrap}>
+            <View className="min-h-80">
               <EmptyState variant="budget" onAction={openAdd} />
             </View>
           )}
         </ScreenScroll>
       ) : state.lensTab === 'plans' ? (
-        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
+        <ScreenScroll
+          contentContainerStyle={{ paddingBottom: ms(96) }}
+          refreshControl={refreshControl}
+        >
           <SpendingPlansLens
             rows={state.spendingPlanRows}
             summary={state.spendingPlansSummary}
@@ -186,7 +205,10 @@ export default function BudgetScreen() {
           />
         </ScreenScroll>
       ) : (
-        <ScreenScroll contentContainerStyle={styles.content} refreshControl={refreshControl}>
+        <ScreenScroll
+          contentContainerStyle={{ paddingBottom: ms(96) }}
+          refreshControl={refreshControl}
+        >
           <FiftyThirtyTwentyLens vm={state.buckets} suggestion={state.suggestion} />
         </ScreenScroll>
       )}
@@ -235,37 +257,7 @@ export default function BudgetScreen() {
           void confirmPlanDelete();
         }}
       />
+      <IncomeSheet />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    minHeight: Size.headerHeight,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: Spacing.sm,
-  },
-  monthFilter: {
-    paddingHorizontal: Spacing.md,
-    paddingTop: Spacing.sm,
-  },
-  content: { paddingBottom: ms(96) },
-  // Non-row children (summary card, section label) re-inset; rows stay full-bleed
-  // so their hairline dividers span the full width (spec D7).
-  inset: { paddingHorizontal: Spacing.md },
-  section: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.7,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-  },
-  emptyWrap: {
-    minHeight: ms(320),
-  },
-});

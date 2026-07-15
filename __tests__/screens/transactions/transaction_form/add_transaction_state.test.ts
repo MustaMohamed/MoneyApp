@@ -14,6 +14,8 @@ describe('useAddTransactionState', () => {
       showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
+      showBudgetPicker: false,
+      budgetsLoading: false,
       rateOverride: false,
     });
   });
@@ -49,6 +51,8 @@ describe('useAddTransactionState', () => {
       showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
+      showBudgetPicker: false,
+      budgetsLoading: false,
       rateOverride: false,
     });
   });

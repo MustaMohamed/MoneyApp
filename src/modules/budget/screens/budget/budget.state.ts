@@ -22,6 +22,7 @@ interface BudgetStateShape {
   copySelectedBudgetIds: string[];
   incomeSuggestion: number | null;
   refreshing: boolean;
+  expandedCategoryId: string | undefined;
 }
 
 type BudgetState = BudgetStateShape & {
@@ -42,6 +43,7 @@ type BudgetState = BudgetStateShape & {
   clearCopySelection: () => void;
   setIncomeSuggestion: (suggestion: number | null) => void;
   setRefreshing: (refreshing: boolean) => void;
+  setExpandedCategoryId: (categoryId: string | undefined) => void;
   reset: () => void;
 };
 
@@ -61,6 +63,7 @@ function initialState(): BudgetStateShape {
     copySelectedBudgetIds: [],
     incomeSuggestion: null,
     refreshing: false,
+    expandedCategoryId: undefined,
   };
 }
 
@@ -95,11 +98,19 @@ export const useBudgetState = createMoneyAppSelectors(
     closePlan: () => set({ planSheetVisible: false, targetPlanId: undefined }),
     setLensTab: (tab) => set({ lensTab: tab }),
     setSelectedMonth: (month) =>
-      set({ selectedMonth: month, copySourceMonth: previousYearMonth(month) }),
+      set({
+        selectedMonth: month,
+        copySourceMonth: previousYearMonth(month),
+        expandedCategoryId: undefined,
+      }),
     setCopySourceMonth: (month) => set({ copySourceMonth: month }),
     resetSelectedMonthToCurrent: () => {
       const selectedMonth = currentYearMonth();
-      set({ selectedMonth, copySourceMonth: previousYearMonth(selectedMonth) });
+      set({
+        selectedMonth,
+        copySourceMonth: previousYearMonth(selectedMonth),
+        expandedCategoryId: undefined,
+      });
     },
     openCopy: (budgetIds = []) => set({ copySheetVisible: true, copySelectedBudgetIds: budgetIds }),
     closeCopy: () =>
@@ -121,6 +132,7 @@ export const useBudgetState = createMoneyAppSelectors(
     clearCopySelection: () => set({ copySelectedBudgetIds: [] }),
     setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
     setRefreshing: (refreshing) => set({ refreshing }),
+    setExpandedCategoryId: (categoryId) => set({ expandedCategoryId: categoryId }),
     reset: () => set(initialState()),
   })),
 );

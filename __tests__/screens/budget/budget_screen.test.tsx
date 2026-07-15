@@ -5,6 +5,10 @@ import { CategoryType } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
 import BudgetScreen from '@/modules/budget/screens/budget';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
+import type {
+  CategoryBudgetRowVM,
+  NamedBudgetVM,
+} from '@/modules/budget/screens/budget/budget_categories.types';
 
 interface RefreshControlTestProps {
   refreshing: boolean;
@@ -191,8 +195,7 @@ jest.mock('@/modules/budget/screens/budget/components/category_budget_row', () =
   }: {
     row: {
       name: string;
-      budgetCount?: number;
-      budgets?: Array<{ id: string; name: string; amount: number }>;
+      budgets?: Array<{ id: string; name: string; planned: number }>;
     };
     onEdit: (id: string) => void;
     onDelete: (payload: { id: string; name: string }) => void;
@@ -201,10 +204,10 @@ jest.mock('@/modules/budget/screens/budget/components/category_budget_row', () =
       jest.requireActual<typeof import('react-native')>('react-native');
     return (
       <View>
-        <Text>{`category:${row.name}:${row.budgetCount ?? 0}`}</Text>
+        <Text>{`category:${row.name}:${row.budgets?.length ?? 0}`}</Text>
         {row.budgets?.map((budget) => (
           <View key={budget.id}>
-            <Text>{`budget:${budget.name}:${budget.amount}`}</Text>
+            <Text>{`budget:${budget.name}:${budget.planned}`}</Text>
             <Pressable accessibilityLabel={`edit ${budget.name}`} onPress={() => onEdit(budget.id)}>
               <Text>edit</Text>
             </Pressable>
@@ -334,6 +337,9 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plan_delete_confi
 jest.mock('@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens', () => ({
   FiftyThirtyTwentyLens: () => null,
 }));
+jest.mock('@/modules/budget/screens/budget/components/income_sheet', () => ({
+  IncomeSheet: () => null,
+}));
 
 type BudgetHook = ReturnType<typeof useBudget>;
 type BudgetScreenState = BudgetHook['state'];
@@ -342,6 +348,31 @@ const mockRequestDelete = jest.fn();
 
 const baseState: BudgetScreenState = {
   rows: [],
+  categoriesSummary: {
+    hasPlan: false,
+    planned: 0,
+    spent: 0,
+    left: 0,
+    usedPct: undefined,
+    unassignedIncome: undefined,
+    unbudgetedSpend: 0,
+    eyebrowLabel: '0 category budgets in July 2026',
+    categoryCountLabel: '0 category budgets',
+    balanceAmountLabel: '0',
+    balanceMetaLabel: 'EGP left',
+    balanceColor: Colors.dark.positive,
+    barColor: Colors.dark.budgetUnder,
+    spentPlannedLabel: '0 spent of 0',
+    usedLabel: undefined,
+    plannedLabel: '0',
+    unassignedIncomeLabel: 'Set income',
+    unbudgetedSpendLabel: '0',
+    lifecycleLabel: '12 days left',
+    onTrackCount: 0,
+    watchCount: 0,
+    overCount: 0,
+    statusItems: [],
+  },
   overall: { budgeted: 0, spent: 0, left: 0, pct: 0 },
   spendingPlanRows: [],
   editingRow: undefined,
@@ -387,9 +418,60 @@ const baseState: BudgetScreenState = {
   hasLoaded: false,
   refreshing: false,
   loadError: false,
+  expandedCategoryId: undefined,
 };
 
-const mockedUseBudget = jest.mocked(useBudget);
+const mockedUseBudget = useBudget as jest.Mock;
+
+function namedBudget(id: string, name: string, planned: number): NamedBudgetVM {
+  return {
+    id,
+    name,
+    planned,
+    spent: 0,
+    left: planned,
+    usedPct: 0,
+    categorySharePct: 1,
+    usedLabel: '0%',
+    shareLabel: '100% of category',
+    spentPlannedLabel: `0 / ${planned} spent`,
+    balanceAmountLabel: String(planned),
+    balanceMetaLabel: 'EGP left',
+    ringColor: Colors.dark.positive,
+    accessibilityLabel: name,
+    menuAccessibilityLabel: `Actions for ${name}`,
+  };
+}
+
+function categoryRow(
+  categoryId: string,
+  name: string,
+  planned: number,
+  spent: number,
+  budgets: NamedBudgetVM[],
+): CategoryBudgetRowVM {
+  return {
+    categoryId,
+    name,
+    icon: 'food',
+    color: '#caa445',
+    planned,
+    spent,
+    left: planned - spent,
+    usedPct: planned > 0 ? spent / planned : 0,
+    status: 'on-track',
+    statusLabel: 'On track',
+    statusChipColor: 'default',
+    spentPlannedUsedLabel: `${spent} / ${planned} spent`,
+    balanceAmountLabel: String(planned - spent),
+    balanceMetaLabel: 'EGP left',
+    ringColor: Colors.dark.positive,
+    unassignedSpend: spent,
+    unassignedSpendLabel: `${spent} EGP unassigned`,
+    budgets,
+    accessibilityLabel: name,
+  };
+}
 
 function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
   const value: BudgetHook = {
@@ -400,7 +482,9 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     openEditPlan: jest.fn(),
     openPlanTool: jest.fn(),
     openPlanDetails: jest.fn(),
+    openIncomeSheet: jest.fn(),
     setLensTab: jest.fn(),
+    setExpandedCategoryId: jest.fn(),
     setSelectedMonth: jest.fn(),
     openCopy: jest.fn(),
     closeCopy: jest.fn(),
@@ -485,21 +569,7 @@ describe('BudgetScreen', () => {
           status: 'new',
         },
       ],
-      rows: [
-        {
-          categoryId: 'food',
-          name: 'Food',
-          icon: 'food',
-          color: '#caa445',
-          limit: 3000,
-          spent: 500,
-          available: 2500,
-          pct: 0.16,
-          status: 'under',
-          budgetCount: 1,
-          budgets: [{ id: 'budget-food', name: 'Food', amount: 3000 }],
-        },
-      ],
+      rows: [categoryRow('food', 'Food', 3000, 500, [namedBudget('budget-food', 'Food', 3000)])],
     });
 
     const { getByText, queryByLabelText, queryByTestId } = render(<BudgetScreen />);
@@ -552,22 +622,10 @@ describe('BudgetScreen', () => {
         },
       ],
       rows: [
-        {
-          categoryId: 'food',
-          name: 'Food',
-          icon: 'food',
-          color: '#caa445',
-          limit: 6500,
-          spent: 1200,
-          available: 5300,
-          pct: 1200 / 6500,
-          status: 'under',
-          budgetCount: 2,
-          budgets: [
-            { id: 'budget-monthly-food', name: 'Monthly Food', amount: 5000 },
-            { id: 'budget-trip-food', name: 'Alexandria Trip Food', amount: 1500 },
-          ],
-        },
+        categoryRow('food', 'Food', 6500, 1200, [
+          namedBudget('budget-monthly-food', 'Monthly Food', 5000),
+          namedBudget('budget-trip-food', 'Alexandria Trip Food', 1500),
+        ]),
       ],
     });
 
@@ -879,22 +937,10 @@ describe('BudgetScreen', () => {
       hasLoaded: true,
       hasBudgets: true,
       rows: [
-        {
-          categoryId: 'food',
-          name: 'Food',
-          icon: 'food',
-          color: '#caa445',
-          limit: 6500,
-          spent: 1200,
-          available: 5300,
-          pct: 1200 / 6500,
-          status: 'under',
-          budgetCount: 2,
-          budgets: [
-            { id: 'budget-monthly-food', name: 'Monthly Food', amount: 5000 },
-            { id: 'budget-trip-food', name: 'Alexandria Trip Food', amount: 1500 },
-          ],
-        },
+        categoryRow('food', 'Food', 6500, 1200, [
+          namedBudget('budget-monthly-food', 'Monthly Food', 5000),
+          namedBudget('budget-trip-food', 'Alexandria Trip Food', 1500),
+        ]),
       ],
     });
     mockedUseBudget.mockReturnValue({

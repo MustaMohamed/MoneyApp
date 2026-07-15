@@ -1,11 +1,14 @@
 import { create } from 'zustand';
 
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface EditTransactionStoreShape {
   editingTx: Transaction | null;
   amountStr: string;
+  availableBudgets: Budget[];
+  budgetId: string | undefined;
 }
 
 type EditTransactionStore = EditTransactionStoreShape & {
@@ -16,6 +19,8 @@ type EditTransactionStore = EditTransactionStoreShape & {
    * stays for legacy hook tests but is no longer wired to any component.
    */
   setAmountStr: (value: string) => void;
+  setAvailableBudgets: (budgets: Budget[]) => void;
+  setBudgetId: (budgetId: string | undefined) => void;
   handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => void;
   reset: () => void;
 };
@@ -23,6 +28,8 @@ type EditTransactionStore = EditTransactionStoreShape & {
 const INITIAL_STATE: EditTransactionStoreShape = {
   editingTx: null,
   amountStr: '0',
+  availableBudgets: [],
+  budgetId: undefined,
 };
 
 export const useEditTransactionStore = createMoneyAppSelectors(
@@ -33,9 +40,13 @@ export const useEditTransactionStore = createMoneyAppSelectors(
       set({
         editingTx: tx,
         amountStr: String(tx.amount),
+        availableBudgets: [],
+        budgetId: tx.budget_id ?? undefined,
       }),
 
     setAmountStr: (value) => set({ amountStr: value }),
+    setAvailableBudgets: (budgets) => set({ availableBudgets: budgets }),
+    setBudgetId: (budgetId) => set({ budgetId }),
 
     handleNumpad: (action, value) =>
       set((s) => {

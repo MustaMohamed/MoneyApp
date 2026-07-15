@@ -1,9 +1,7 @@
 import { Card, SkeletonGroup } from 'heroui-native';
-import React from 'react';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
 
 const ROWS = [0, 1, 2, 3];
 const PLAN_ROWS = [0, 1];
@@ -18,47 +16,65 @@ export function BudgetScreenSkeleton({
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <View className="border-border bg-surface mx-4 mt-3 rounded-2xl border p-3">
-          <View style={{ flexDirection: 'row', gap: Spacing.sm }}>
-            <SkeletonGroup.Item className="h-8 flex-1 rounded-md" />
-            <SkeletonGroup.Item className="h-8 flex-1 rounded-md" />
-            <SkeletonGroup.Item className="h-8 flex-1 rounded-md" />
-          </View>
-          <SkeletonGroup.Item className="mt-3 h-3 w-full rounded-full" />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between' }} className="mt-2">
-            <SkeletonGroup.Item className="h-3 w-12 rounded-md" />
-            <SkeletonGroup.Item className="h-3 w-16 rounded-md" />
-          </View>
+        <Card className="bg-surface border-border mx-4 mt-3 rounded-xl border p-0 shadow-none">
+          <Card.Body className="px-3 py-2">
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="flex-1 gap-1">
+                <SkeletonGroup.Item className="h-[11px] w-[55%] rounded-md" />
+                <SkeletonGroup.Item className="h-[29px] w-[62%] rounded-md" />
+              </View>
+              <SkeletonGroup.Item className="h-[12px] w-[22%] rounded-md" />
+            </View>
+            <View className="mt-1 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item className="h-[14px] w-[48%] rounded-md" />
+              <SkeletonGroup.Item className="h-[13px] w-[18%] rounded-md" />
+            </View>
+            <SkeletonGroup.Item className="mt-1 h-[5px] w-full rounded-full" />
+            <View className="border-separator mt-1.5 flex-row border-t">
+              {[0, 1, 2].map((metric) => (
+                <View key={metric} className="flex-1 items-center gap-1 py-1.5">
+                  <SkeletonGroup.Item className="h-[10px] w-[68%] rounded-md" />
+                  <SkeletonGroup.Item className="h-[14px] w-[48%] rounded-md" />
+                </View>
+              ))}
+            </View>
+            <View className="border-separator flex-row border-t">
+              {[0, 1, 2].map((status) => (
+                <View key={status} className="flex-1 items-center gap-1 py-1.5">
+                  <SkeletonGroup.Item className="h-4 w-4 rounded-full" />
+                  <SkeletonGroup.Item className="h-[10px] w-12 rounded-md" />
+                </View>
+              ))}
+            </View>
+          </Card.Body>
+        </Card>
+
+        <View className="mx-4 mt-2 flex-row gap-2">
+          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
+          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
         </View>
 
-        <View style={{ flexDirection: 'row', gap: Spacing.xs }} className="mx-4 mt-2">
-          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
-          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
-          <SkeletonGroup.Item className="h-9 flex-1 rounded-lg" />
-        </View>
-
-        <SkeletonGroup.Item className="mx-4 mt-4 h-3 w-24 rounded-md" />
+        <SkeletonGroup.Item className="mx-4 mt-4 mb-1 h-[11px] w-28 rounded-md" />
         {ROWS.map((row) => (
           <View
             key={row}
             testID="budget-row-skeleton"
-            className="border-separator border-b px-4 py-2"
+            className="border-separator min-h-[58px] flex-row items-center gap-2.5 border-b px-4 py-2"
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.sm }}>
-              <SkeletonGroup.Item className="h-10 w-10 rounded-full" />
-              <View style={{ flex: 1 }} className="gap-1.5">
-                <SkeletonGroup.Item
-                  className={row % 2 === 0 ? 'h-4 w-32 rounded-md' : 'h-4 w-24 rounded-md'}
-                />
-                <SkeletonGroup.Item className="h-3 w-12 rounded-md" />
-              </View>
-              <View style={{ alignItems: 'flex-end' }} className="gap-1.5">
-                <SkeletonGroup.Item
-                  className={row % 2 === 0 ? 'h-4 w-20 rounded-md' : 'h-4 w-16 rounded-md'}
-                />
-                <SkeletonGroup.Item className="h-3 w-24 rounded-md" />
-              </View>
+            <View className="w-[46px] items-center">
+              <SkeletonGroup.Item className="h-[42px] w-[42px] rounded-full" />
             </View>
+            <View className="flex-1 gap-1.5">
+              <SkeletonGroup.Item
+                className={row % 2 === 0 ? 'h-[15px] w-36 rounded-md' : 'h-[15px] w-28 rounded-md'}
+              />
+              <SkeletonGroup.Item className="h-[11px] w-40 rounded-md" />
+            </View>
+            <View className="items-end gap-1">
+              <SkeletonGroup.Item className="h-4 w-14 rounded-md" />
+              <SkeletonGroup.Item className="h-[10px] w-10 rounded-md" />
+            </View>
+            <SkeletonGroup.Item className="h-4 w-4 rounded-md" />
           </View>
         ))}
       </SkeletonGroup>

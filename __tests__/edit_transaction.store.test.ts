@@ -1,5 +1,6 @@
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -44,6 +45,19 @@ describe('useEditTransactionStore.loadFromTx', () => {
     const tx = makeTx();
     useEditTransactionStore.getState().loadFromTx(tx);
     expect(useEditTransactionStore.getState().editingTx).toBe(tx);
+  });
+
+  it('loads the existing named budget assignment', () => {
+    useEditTransactionStore.getState().loadFromTx(makeTx({ budget_id: 'budget-food' }));
+    expect(useEditTransactionStore.getState().budgetId).toBe('budget-food');
+  });
+
+  it('stores available budgets and a selected budget', () => {
+    const budget = { id: 'budget-food' } as Budget;
+    useEditTransactionStore.getState().setAvailableBudgets([budget]);
+    useEditTransactionStore.getState().setBudgetId(budget.id);
+    expect(useEditTransactionStore.getState().availableBudgets).toEqual([budget]);
+    expect(useEditTransactionStore.getState().budgetId).toBe(budget.id);
   });
 
   it('formats integer amount without decimal for integer amounts', () => {

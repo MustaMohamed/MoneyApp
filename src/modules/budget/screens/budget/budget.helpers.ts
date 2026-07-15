@@ -1,7 +1,15 @@
 import { CategoryType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import type {
+  BudgetCategoriesSummaryVM,
+  BudgetHealth,
+  CategoryBudgetRowVM,
+  NamedBudgetVM,
+} from '@/modules/budget/screens/budget/budget_categories.types';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { formatAmount } from '@/utils/format_amount';
 
 export const BUDGET_WARNING_THRESHOLD = 0.8;
 
@@ -115,6 +123,240 @@ export function computeStatus(spent: number, limit: number): BudgetStatus {
   if (spent > limit) return 'over';
   if (spent / limit >= BUDGET_WARNING_THRESHOLD) return 'warning';
   return 'under';
+}
+
+export function computeBudgetHealth(spent: number, planned: number): BudgetHealth {
+  if (spent > planned) return 'over';
+  if (planned > 0 && spent / planned >= BUDGET_WARNING_THRESHOLD) return 'watch';
+  return 'on-track';
+}
+
+function healthLabel(health: BudgetHealth): string {
+  if (health === 'over') return Strings.budgetCategoriesStatusOver;
+  if (health === 'watch') return Strings.budgetCategoriesStatusWatch;
+  return Strings.budgetCategoriesStatusOnTrack;
+}
+
+function healthColor(health: BudgetHealth): string {
+  if (health === 'over') return Colors.dark.negative;
+  if (health === 'watch') return Colors.dark.budgetWatch;
+  return Colors.dark.positive;
+}
+
+function percentage(value: number | undefined): number {
+  return Math.round((value ?? 0) * 100);
+}
+
+export interface CategoryLedgerInput {
+  categories: Category[];
+  budgets: Budget[];
+  spendByMonth: Record<string, Record<string, number>>;
+  spendByBudgetId: Record<string, number>;
+  yearMonth: string;
+}
+
+export function buildCategoryBudgetRows({
+  categories,
+  budgets,
+  spendByMonth,
+  spendByBudgetId,
+  yearMonth,
+}: CategoryLedgerInput): { rows: CategoryBudgetRowVM[]; unbudgetedSpend: number } {
+  const rows: CategoryBudgetRowVM[] = [];
+  let unbudgetedSpend = 0;
+
+  for (const category of categories) {
+    if (category.type !== CategoryType.Expense) continue;
+    const categoryBudgets = getBudgetsForCategoryMonth(budgets, category.id, yearMonth);
+    const categorySpend = spendByMonth[category.id]?.[yearMonth] ?? 0;
+    if (categoryBudgets.length === 0) {
+      unbudgetedSpend += categorySpend;
+      continue;
+    }
+
+    const planned = categoryBudgets.reduce((total, budget) => total + budget.limit_amount, 0);
+    const spent = categorySpend;
+    const left = planned - spent;
+    const usedPct = planned > 0 ? spent / planned : 0;
+    const status = computeBudgetHealth(spent, planned);
+    const balance = remainingLabel(left);
+
+    const namedBudgets: NamedBudgetVM[] = categoryBudgets.map((budget) => {
+      const budgetSpent = spendByBudgetId[budget.id] ?? 0;
+      const budgetLeft = budget.limit_amount - budgetSpent;
+      const budgetUsedPct = budget.limit_amount > 0 ? budgetSpent / budget.limit_amount : undefined;
+      const categorySharePct = planned > 0 ? budget.limit_amount / planned : undefined;
+      const budgetBalance = remainingLabel(budgetLeft);
+      const spentLabel = formatAmount(budgetSpent);
+      const plannedLabel = formatAmount(budget.limit_amount);
+      const balanceLabel = formatAmount(budgetBalance.magnitude);
+
+      return {
+        id: budget.id,
+        name: budget.name,
+        planned: budget.limit_amount,
+        spent: budgetSpent,
+        left: budgetLeft,
+        usedPct: budgetUsedPct,
+        categorySharePct,
+        usedLabel: `${percentage(budgetUsedPct)}%`,
+        shareLabel: Strings.budgetCategoriesShare(percentage(categorySharePct)),
+        spentPlannedLabel: Strings.budgetCategoriesSpentPlanned(spentLabel, plannedLabel),
+        balanceAmountLabel: balanceLabel,
+        balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(budgetBalance.label),
+        ringColor: budgetBandColor(budgetUsedPct ?? 0),
+        accessibilityLabel: Strings.budgetCategoriesBudgetA11y(
+          budget.name,
+          spentLabel,
+          plannedLabel,
+          balanceLabel,
+          budgetBalance.label,
+        ),
+        menuAccessibilityLabel: Strings.budgetCategoriesBudgetMenuA11y(budget.name),
+      };
+    });
+
+    const assignedSpend = namedBudgets.reduce((total, budget) => total + budget.spent, 0);
+    const unassignedSpend = Math.max(spent - assignedSpend, 0);
+    const spentLabel = formatAmount(spent);
+    const plannedLabel = formatAmount(planned);
+    const balanceLabel = formatAmount(balance.magnitude);
+
+    rows.push({
+      categoryId: category.id,
+      name: category.name,
+      icon: category.icon,
+      color: category.color,
+      planned,
+      spent,
+      left,
+      usedPct,
+      status,
+      statusLabel: healthLabel(status),
+      statusChipColor: status === 'over' ? 'danger' : 'default',
+      spentPlannedUsedLabel: Strings.budgetCategoriesSpentPlannedUsed(
+        spentLabel,
+        plannedLabel,
+        percentage(usedPct),
+      ),
+      balanceAmountLabel: balanceLabel,
+      balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(balance.label),
+      ringColor: healthColor(status),
+      unassignedSpend,
+      unassignedSpendLabel: Strings.budgetCategoriesUnassignedAmount(formatAmount(unassignedSpend)),
+      budgets: namedBudgets,
+      accessibilityLabel: Strings.budgetCategoriesCategoryA11y(
+        category.name,
+        spentLabel,
+        plannedLabel,
+        balanceLabel,
+        balance.label,
+        healthLabel(status),
+      ),
+    });
+  }
+
+  return { rows, unbudgetedSpend };
+}
+
+export interface BudgetCategoriesSummaryInput {
+  rows: CategoryBudgetRowVM[];
+  expectedIncome: number | null;
+  unbudgetedSpend: number;
+  selectedMonth: string;
+  today: string;
+}
+
+function summaryLifecycle(selectedMonth: string, today: string): string {
+  const currentMonth = today.slice(0, 7);
+  if (selectedMonth > currentMonth) return Strings.budgetCategoriesLifecyclePlanned;
+  if (selectedMonth < currentMonth) return Strings.budgetCategoriesLifecycleComplete;
+  const [year, month] = selectedMonth.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return Strings.budgetCategoriesDaysLeft(Math.max(0, lastDay - Number(today.slice(8, 10))));
+}
+
+export function buildBudgetCategoriesSummary({
+  rows,
+  expectedIncome,
+  unbudgetedSpend,
+  selectedMonth,
+  today,
+}: BudgetCategoriesSummaryInput): BudgetCategoriesSummaryVM {
+  const planned = rows.reduce((total, row) => total + row.planned, 0);
+  const spent = rows.reduce((total, row) => total + row.spent, 0);
+  const left = planned - spent;
+  const balance = remainingLabel(left);
+  const usedPct = planned > 0 ? spent / planned : undefined;
+  const unassignedIncome =
+    expectedIncome === null ? undefined : Math.max(expectedIncome - planned, 0);
+  const onTrackCount = rows.filter((row) => row.status === 'on-track').length;
+  const watchCount = rows.filter((row) => row.status === 'watch').length;
+  const overCount = rows.filter((row) => row.status === 'over').length;
+  const monthLabel = new Date(`${selectedMonth}-01T12:00:00`).toLocaleDateString('en-US', {
+    month: 'long',
+  });
+
+  return {
+    hasPlan: planned > 0,
+    planned,
+    spent,
+    left,
+    usedPct,
+    unassignedIncome,
+    unbudgetedSpend,
+    eyebrowLabel: Strings.budgetCategoriesSummaryEyebrow(rows.length, monthLabel),
+    categoryCountLabel: Strings.budgetCategoryCountLabel(rows.length),
+    balanceAmountLabel: formatAmount(balance.magnitude),
+    balanceMetaLabel: Strings.budgetCategoriesBalanceMeta(balance.label),
+    balanceColor: left < 0 ? Colors.dark.negative : Colors.dark.positive,
+    barColor: budgetBandColor(usedPct ?? 0),
+    spentPlannedLabel: Strings.budgetCategoriesSummarySpentOf(
+      formatAmount(spent),
+      formatAmount(planned),
+    ),
+    usedLabel:
+      usedPct === undefined ? undefined : Strings.budgetCategoriesSummaryUsed(percentage(usedPct)),
+    plannedLabel: formatAmount(planned),
+    unassignedIncomeLabel:
+      unassignedIncome === undefined
+        ? Strings.budgetCategoriesSetIncome
+        : formatAmount(unassignedIncome),
+    unbudgetedSpendLabel: formatAmount(unbudgetedSpend),
+    lifecycleLabel: summaryLifecycle(selectedMonth, today),
+    onTrackCount,
+    watchCount,
+    overCount,
+    statusItems: [
+      {
+        key: 'on-track',
+        label: Strings.budgetCategoriesStatusCount(
+          onTrackCount,
+          Strings.budgetCategoriesStatusOnTrack.toLowerCase(),
+        ),
+        icon: 'check-circle-outline',
+        color: Colors.dark.positive,
+      },
+      {
+        key: 'watch',
+        label: Strings.budgetCategoriesStatusCount(
+          watchCount,
+          Strings.budgetCategoriesStatusWatch.toLowerCase(),
+        ),
+        icon: 'alert-circle-outline',
+        color: Colors.dark.budgetWatch,
+      },
+      {
+        key: 'over',
+        label: Strings.budgetCategoriesStatusCount(
+          overCount,
+          Strings.budgetCategoriesStatusOver.toLowerCase(),
+        ),
+        icon: 'alert-octagon-outline',
+        color: Colors.dark.negative,
+      },
+    ],
+  };
 }
 
 export function computeCategoryRow(

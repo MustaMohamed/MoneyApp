@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -6,6 +6,8 @@ import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Category } from '@/database/entities/category.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
@@ -16,22 +18,34 @@ import {
 import { roundMoney } from '@/utils/money';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
 import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_transaction.helpers';
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
 
-function createEditSchema(type: TransactionType) {
+function createEditSchema(type: TransactionType, requiresBudgetSelection: boolean) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-  return z.object({
-    amount: z
-      .number({ error: Strings.addTxErrAmountRequired })
-      .refine((v) => v > 0, Strings.addTxErrAmountZero),
-    categoryId: isTransferOrCC ? z.string() : z.string().min(1, Strings.addTxErrCategoryRequired),
-    note: z.string(),
-    date: z.string().min(1),
-    time: z.string().min(1),
-    exchangeRate: z.string(),
-  });
+  return z
+    .object({
+      amount: z
+        .number({ error: Strings.addTxErrAmountRequired })
+        .refine((v) => v > 0, Strings.addTxErrAmountZero),
+      categoryId: isTransferOrCC ? z.string() : z.string().min(1, Strings.addTxErrCategoryRequired),
+      budgetId: z.string(),
+      note: z.string(),
+      date: z.string().min(1),
+      time: z.string().min(1),
+      exchangeRate: z.string(),
+    })
+    .superRefine((data, context) => {
+      if (requiresBudgetSelection && !data.budgetId) {
+        context.addIssue({
+          code: 'custom',
+          message: Strings.addTxErrBudgetRequired,
+          path: ['budgetId'],
+        });
+      }
+    });
 }
 
 export function useEditTransaction(
@@ -49,24 +63,54 @@ export function useEditTransaction(
     })),
   );
   const updateTransaction = useTransactionStore.getState().updateTransaction;
-  const amountStr = useEditTransactionStore.useState.amountStr();
+  const { amountStr, availableBudgets, budgetId } = useEditTransactionStore(
+    useShallow((state) => ({
+      amountStr: state.amountStr,
+      availableBudgets: state.availableBudgets,
+      budgetId: state.budgetId,
+    })),
+  );
   const setAmountStr = useEditTransactionStore.getState().setAmountStr;
   const handleNumpad = useEditTransactionStore.getState().handleNumpad;
-  const { visible, saving, showCategoryPicker, rateOverride } = useEditTransactionState(
+  const setAvailableBudgets = useEditTransactionStore.getState().setAvailableBudgets;
+  const setBudgetId = useEditTransactionStore.getState().setBudgetId;
+  const {
+    visible,
+    saving,
+    showCategoryPicker,
+    showBudgetPicker,
+    budgetsLoading,
+    preserveBudgetNull,
+    rateOverride,
+  } = useEditTransactionState(
     useShallow((s) => ({
       visible: s.visible,
       saving: s.saving,
       showCategoryPicker: s.showCategoryPicker,
+      showBudgetPicker: s.showBudgetPicker,
+      budgetsLoading: s.budgetsLoading,
+      preserveBudgetNull: s.preserveBudgetNull,
       rateOverride: s.rateOverride,
     })),
   );
   const setSaving = useEditTransactionState.getState().setSaving;
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
+  const setShowBudgetPicker = useEditTransactionState.getState().setShowBudgetPicker;
+  const setBudgetsLoading = useEditTransactionState.getState().setBudgetsLoading;
+  const setPreserveBudgetNull = useEditTransactionState.getState().setPreserveBudgetNull;
   const setRateOverride = useEditTransactionState.getState().setRateOverride;
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
-  const schema = useMemo(() => createEditSchema(type), [type]);
+  const requiresBudgetSelection =
+    type === TransactionType.Expense &&
+    availableBudgets.length > 1 &&
+    !budgetId &&
+    !preserveBudgetNull;
+  const schema = useMemo(
+    () => createEditSchema(type, requiresBudgetSelection),
+    [requiresBudgetSelection, type],
+  );
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -75,6 +119,7 @@ export function useEditTransaction(
   });
 
   const categoryId = form.watch('categoryId');
+  const formBudgetId = form.watch('budgetId');
   const note = form.watch('note');
   const date = form.watch('date');
   const exchangeRate = form.watch('exchangeRate');
@@ -98,6 +143,10 @@ export function useEditTransaction(
     () => categories.find((c) => c.id === categoryId) ?? null,
     [categories, categoryId],
   );
+  const selectedBudget = useMemo(
+    () => availableBudgets.find((budget) => budget.id === budgetId) ?? null,
+    [availableBudgets, budgetId],
+  );
   const visibleCategories = useMemo(
     () =>
       categories.filter(
@@ -110,6 +159,7 @@ export function useEditTransaction(
   const errors = {
     amount: form.formState.errors.amount?.message,
     category: form.formState.errors.categoryId?.message,
+    budget: form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
   };
 
@@ -127,7 +177,63 @@ export function useEditTransaction(
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
   }, [visible]);
 
+  const budgetRequestRef = useRef(0);
+  useEffect(() => {
+    const request = ++budgetRequestRef.current;
+    if (type !== TransactionType.Expense || !categoryId) {
+      setAvailableBudgets([]);
+      setBudgetId(undefined);
+      form.setValue('budgetId', '');
+      setBudgetsLoading(false);
+      setPreserveBudgetNull(false);
+      return;
+    }
+
+    setBudgetsLoading(true);
+    setAvailableBudgets([]);
+    setBudgetId(undefined);
+    form.setValue('budgetId', '');
+    void budgetRepository
+      .getBudgetsForCategoryMonth(categoryId, date.slice(0, 7))
+      .then((budgets) => {
+        if (request !== budgetRequestRef.current) return;
+        const preserveNull =
+          initialTx.budget_id === null && isSameBudgetEligibility(initialTx, categoryId, date);
+        const resolution = resolveBudgetAssignment({
+          budgets,
+          currentBudgetId: budgetId,
+          preserveNull,
+        });
+        setPreserveBudgetNull(preserveNull);
+        setAvailableBudgets(budgets);
+        setBudgetId(resolution.budgetId);
+        form.setValue('budgetId', resolution.budgetId ?? '');
+      })
+      .catch(() => {
+        if (request !== budgetRequestRef.current) return;
+        setAvailableBudgets([]);
+        setBudgetId(undefined);
+        form.setValue('budgetId', '');
+        setPreserveBudgetNull(false);
+      })
+      .finally(() => {
+        if (request === budgetRequestRef.current) setBudgetsLoading(false);
+      });
+    // `budgetId` is the current selection, not an effect trigger.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    categoryId,
+    date,
+    setAvailableBudgets,
+    setBudgetId,
+    setBudgetsLoading,
+    setPreserveBudgetNull,
+    type,
+  ]);
+
   async function onValid(data: EditTransactionFormValues) {
+    const formState = useEditTransactionState.getState();
+    if (formState.saving || formState.budgetsLoading) return;
     setSaving(true);
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
@@ -159,6 +265,7 @@ export function useEditTransaction(
         to_amount: to_amount ?? null,
         exchange_rate: parsedRate ?? null,
         category_id: !isTransferOrCC ? data.categoryId : null,
+        budget_id: type === TransactionType.Expense ? data.budgetId || null : null,
         note: data.note.trim() || null,
         transaction_date: data.date,
         transaction_time: initialTx.transaction_time, // preserved — no time UI
@@ -188,6 +295,12 @@ export function useEditTransaction(
     setShowCategoryPicker(false);
   }
 
+  function selectBudget(budget: Budget) {
+    setBudgetId(budget.id);
+    form.setValue('budgetId', budget.id, { shouldValidate: true });
+    setShowBudgetPicker(false);
+  }
+
   return {
     state: {
       type,
@@ -195,7 +308,9 @@ export function useEditTransaction(
       selectedAccount,
       selectedToAccount,
       selectedCategory,
+      selectedBudget,
       categoryId,
+      budgetId: formBudgetId,
       note,
       date,
       exchangeRate,
@@ -206,6 +321,10 @@ export function useEditTransaction(
       saving,
       visibleCategories,
       showCategoryPicker,
+      showBudgetPicker,
+      budgetsLoading,
+      availableBudgets,
+      showBudgetField: type === TransactionType.Expense && availableBudgets.length > 0,
       rateUpdatedAt,
     },
     setAmountStr,
@@ -215,7 +334,9 @@ export function useEditTransaction(
     setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
     toggleRateOverride,
     setShowCategoryPicker,
+    setShowBudgetPicker,
     selectCategory,
+    selectBudget,
     handleSave: form.handleSubmit(onValid),
   };
 }

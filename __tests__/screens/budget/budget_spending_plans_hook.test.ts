@@ -68,6 +68,7 @@ function setupStores() {
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: [],
     spendByMonth: {},
+    spendByBudgetId: {},
     spendingPlans,
     spendingPlanSpendById: { plan_trip: { food: 1200 } },
     loaded: true,
@@ -85,6 +86,7 @@ function setupStores() {
     copySheetVisible: false,
     copySelectedBudgetIds: [],
     incomeSuggestion: null,
+    expandedCategoryId: undefined,
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     openAddPlan: jest.fn(),
@@ -99,6 +101,7 @@ function setupStores() {
     toggleCopyBudgetId: jest.fn(),
     clearCopySelection: jest.fn(),
     setIncomeSuggestion: jest.fn(),
+    setExpandedCategoryId: jest.fn(),
   }));
 }
 

@@ -16,6 +16,8 @@ interface AddTransactionStateShape {
   showAccountPicker: boolean;
   showToPicker: boolean;
   showCategoryPicker: boolean;
+  showBudgetPicker: boolean;
+  budgetsLoading: boolean;
   rateOverride: boolean;
 }
 
@@ -27,6 +29,8 @@ type AddTransactionState = AddTransactionStateShape & {
   setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
+  setShowBudgetPicker: (v: boolean) => void;
+  setBudgetsLoading: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
 };
@@ -38,6 +42,8 @@ const INITIAL_STATE: AddTransactionStateShape = {
   showAccountPicker: false,
   showToPicker: false,
   showCategoryPicker: false,
+  showBudgetPicker: false,
+  budgetsLoading: false,
   rateOverride: false,
 };
 
@@ -52,6 +58,8 @@ export const useAddTransactionState = createMoneyAppSelectors(
     setShowAccountPicker: (v) => set({ showAccountPicker: v }),
     setShowToPicker: (v) => set({ showToPicker: v }),
     setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
+    setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
+    setBudgetsLoading: (v) => set({ budgetsLoading: v }),
     setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),

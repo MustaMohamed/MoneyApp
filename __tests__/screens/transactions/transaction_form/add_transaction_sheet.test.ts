@@ -14,6 +14,9 @@ const mockAccountPickerSheet = jest.fn<React.ReactElement, [object]>((_props) =>
 const mockCategoryPickerSheet = jest.fn<React.ReactElement, [object]>((_props) =>
   React.createElement(View, { testID: 'category-picker-sheet' }),
 );
+const mockBudgetPickerSheet = jest.fn<React.ReactElement, [object]>((_props) =>
+  React.createElement(View, { testID: 'budget-picker-sheet' }),
+);
 
 jest.mock('expo-router', () => ({
   router: { push: jest.fn() },
@@ -58,6 +61,13 @@ jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
 }));
 
 jest.mock(
+  '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet',
+  () => ({
+    BudgetPickerSheet: (props: object) => mockBudgetPickerSheet(props),
+  }),
+);
+
+jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook',
   () => ({
     useAddTransaction: (onClose: () => void) => mockUseAddTransaction(onClose),
@@ -84,6 +94,7 @@ jest.mock(
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { AddTransactionSheet } from '@/modules/transactions/screens/transactions/transaction_form';
+import { useAddTransactionSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state';
 
 function mockAddHookReturn() {
   mockUseAddTransaction.mockReturnValue({
@@ -93,9 +104,11 @@ function mockAddHookReturn() {
       selectedAccount: undefined,
       selectedToAccount: undefined,
       selectedCategory: undefined,
+      selectedBudget: undefined,
       accountId: '',
       toAccountId: '',
       categoryId: '',
+      budgetId: '',
       date: '2026-06-30',
       note: '',
       exchangeRate: '50',
@@ -112,6 +125,10 @@ function mockAddHookReturn() {
       showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
+      showBudgetPicker: false,
+      budgetsLoading: false,
+      availableBudgets: [],
+      showBudgetField: false,
       rateUpdatedAt: undefined,
     },
     setType: jest.fn(),
@@ -124,9 +141,11 @@ function mockAddHookReturn() {
     setShowAccountPicker: jest.fn(),
     setShowToPicker: jest.fn(),
     setShowCategoryPicker: jest.fn(),
+    setShowBudgetPicker: jest.fn(),
     selectAccount: jest.fn(),
     selectToAccount: jest.fn(),
     selectCategory: jest.fn(),
+    selectBudget: jest.fn(),
     handleSave: jest.fn(),
   });
 }
@@ -140,6 +159,8 @@ describe('AddTransactionSheet', () => {
     mockTransactionFormBody.mockClear();
     mockAccountPickerSheet.mockClear();
     mockCategoryPickerSheet.mockClear();
+    mockBudgetPickerSheet.mockClear();
+    useAddTransactionSheetState.getState().reset();
     mockAddHookReturn();
   });
 

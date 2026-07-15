@@ -9,7 +9,8 @@ export async function getBudgetRows(db: SQLiteDatabase): Promise<Budget[]> {
 }
 
 export async function getBudgetRowById(db: SQLiteDatabase, id: string): Promise<Budget | null> {
-  return db.getFirstAsync<Budget>('SELECT * FROM budgets WHERE id = ?', [id]);
+  const rows = await db.getAllAsync<Budget>('SELECT * FROM budgets WHERE id = ?', [id]);
+  return rows[0] ?? null;
 }
 
 export async function getBudgetRowsForCategoryMonth(

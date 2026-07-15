@@ -11,6 +11,9 @@ describe('useEditTransactionState', () => {
       visible: false,
       saving: false,
       showCategoryPicker: false,
+      showBudgetPicker: false,
+      budgetsLoading: false,
+      preserveBudgetNull: false,
       rateOverride: false,
     });
   });

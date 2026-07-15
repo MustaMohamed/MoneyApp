@@ -1,202 +1,132 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
-import React, { useCallback, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Accordion, Chip, PressableFeedback, Text as HeroText } from 'heroui-native';
+import React from 'react';
+import { View } from 'react-native';
 
-import { SwipeableRow, type SwipeAction } from '@/components/ui/swipeable_row';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Spacing, Type } from '@/constants/theme';
-import { budgetBandColor, remainingLabel } from '@/modules/budget/screens/budget/budget.helpers';
-import type {
-  CategoryBudgetItemVM,
-  CategoryBudgetRowVM,
-} from '@/modules/budget/screens/budget/budget.hook';
+import { Colors } from '@/constants/theme';
+import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
-import { formatAmount } from '@/utils/format_amount';
+import { NamedBudgetRow } from '@/modules/budget/screens/budget/components/named_budget_row';
+import { UnassignedSpendingRow } from '@/modules/budget/screens/budget/components/unassigned_spending_row';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 export interface CategoryBudgetRowProps {
   row: CategoryBudgetRowVM;
-  onPress: (categoryId: string) => void;
+  isExpanded: boolean;
+  onExpandedChange: (categoryId: string | undefined) => void;
+  onViewDetails: (categoryId: string) => void;
   onEdit: (budgetId: string) => void;
   onDelete: (payload: { id: string; name: string }) => void;
 }
 
-interface BudgetItemRowProps {
-  budget: CategoryBudgetItemVM;
-  isLast: boolean;
-  onEdit: (budgetId: string) => void;
-  onDelete: (payload: { id: string; name: string }) => void;
-}
-
-function BudgetItemRow({ budget, isLast, onEdit, onDelete }: BudgetItemRowProps) {
-  const handleEdit = useCallback(() => onEdit(budget.id), [budget.id, onEdit]);
-  const handleDelete = useCallback(
-    () => onDelete({ id: budget.id, name: budget.name }),
-    [budget.id, budget.name, onDelete],
-  );
-  const actions: SwipeAction[] = useMemo(
-    () => [
-      {
-        key: 'edit',
-        label: Strings.swipeEdit,
-        icon: 'pencil-outline',
-        variant: 'neutral',
-        onPress: handleEdit,
-      },
-      {
-        key: 'delete',
-        label: Strings.swipeDelete,
-        icon: 'trash-can-outline',
-        variant: 'destructive',
-        onPress: handleDelete,
-      },
-    ],
-    [handleDelete, handleEdit],
-  );
-
+function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
+  const { row } = props;
   return (
-    <SwipeableRow rowId={budget.id} actions={actions} accessibilityLabel={`${budget.name} budget`}>
-      <View style={[styles.budgetRow, isLast && styles.lastBudgetRow]}>
-        <View style={styles.budgetMarker} />
-        <Text style={styles.budgetName}>{budget.name}</Text>
-        <Text style={styles.budgetAmount}>{formatAmount(budget.amount)}</Text>
-      </View>
-    </SwipeableRow>
-  );
-}
-
-function CategoryBudgetRowComponent({ row, onPress, onEdit, onDelete }: CategoryBudgetRowProps) {
-  const bandColor = budgetBandColor(row.pct);
-  const pctText = `${Math.round(row.pct * 100)}%`;
-  const remaining = row.limit - row.spent;
-  const { magnitude, label } = remainingLabel(remaining);
-  const budgetCountText = Strings.budgetCountLabel(row.budgetCount);
-
-  const handlePress = useCallback(() => onPress(row.categoryId), [onPress, row.categoryId]);
-
-  return (
-    <View style={styles.group}>
-      <PressableFeedback
-        onPress={handlePress}
-        style={styles.categoryRow}
-        accessibilityRole="button"
-        accessibilityLabel={`${row.name} category budget, ${pctText}`}
-      >
-        <BudgetRing pct={row.pct} color={bandColor}>
-          <MaterialCommunityIcons
-            name={toIconName(row.icon, 'tag-outline')}
-            size={ms(18)}
-            color={row.color}
-          />
-        </BudgetRing>
-
-        <View style={styles.center}>
-          <Text style={styles.name}>{row.name}</Text>
-          <Text
-            style={[styles.pct, { color: bandColor }]}
-          >{`${budgetCountText} / ${pctText}`}</Text>
-        </View>
-
-        <View style={styles.right}>
-          <View style={styles.remainingRow}>
-            <Text style={[styles.remainingAmount, { color: bandColor }]}>
-              {formatAmount(magnitude)}
-            </Text>
-            <Text style={styles.remainingLabel}>{` ${label}`}</Text>
+    <Accordion
+      selectionMode="single"
+      value={props.isExpanded ? row.categoryId : ''}
+      onValueChange={(value: string | undefined) =>
+        props.onExpandedChange(value === row.categoryId ? row.categoryId : undefined)
+      }
+      hideSeparator
+      className="border-separator border-b"
+    >
+      <Accordion.Item value={row.categoryId}>
+        <Accordion.Trigger
+          accessibilityLabel={row.accessibilityLabel}
+          className="gap-0 px-4 py-2"
+          style={{ paddingHorizontal: ms(16), paddingVertical: ms(8), gap: 0 }}
+        >
+          <View className="flex-row items-center gap-2.5" style={{ flex: 1 }}>
+            <View className="w-[46px] items-center">
+              <BudgetRing pct={row.usedPct} color={row.ringColor} size={ms(42)}>
+                <MaterialCommunityIcons
+                  name={toIconName(row.icon, 'tag-outline')}
+                  size={ms(17)}
+                  color={row.color}
+                />
+              </BudgetRing>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View className="flex-row items-center gap-1.5">
+                <HeroText
+                  numberOfLines={1}
+                  className="font-sora text-foreground shrink text-[14px] font-semibold"
+                >
+                  {row.name}
+                </HeroText>
+                <Chip size="sm" variant="soft" color={row.statusChipColor} className="h-5 py-0">
+                  <Chip.Label
+                    style={{ color: row.ringColor }}
+                    className="font-inter text-[8px] font-bold uppercase"
+                  >
+                    {row.statusLabel}
+                  </Chip.Label>
+                </Chip>
+              </View>
+              <HeroText className="font-inter text-muted mt-0.5 text-[10px]">
+                {row.spentPlannedUsedLabel}
+              </HeroText>
+            </View>
+            <View className="items-end">
+              <HeroText
+                style={{ color: row.ringColor }}
+                className="font-sora text-[15px] font-bold"
+              >
+                {row.balanceAmountLabel}
+              </HeroText>
+              <HeroText className="font-inter text-muted text-[9px]">
+                {row.balanceMetaLabel}
+              </HeroText>
+            </View>
+            <Accordion.Indicator isAnimatedStyleActive={false}>
+              <MaterialCommunityIcons
+                name={props.isExpanded ? 'chevron-up' : 'chevron-down'}
+                size={ms(17)}
+                color={Colors.dark.text2}
+              />
+            </Accordion.Indicator>
           </View>
-          <Text style={styles.spentBudget}>
-            {`${formatAmount(row.spent)} / ${formatAmount(row.limit)}`}
-          </Text>
-        </View>
-      </PressableFeedback>
-      {row.budgets.map((budget, index) => (
-        <BudgetItemRow
-          key={budget.id}
-          budget={budget}
-          isLast={index === row.budgets.length - 1}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
-      ))}
-    </View>
+        </Accordion.Trigger>
+        <Accordion.Content className="bg-background/30 px-0 pb-0" style={{ padding: 0 }}>
+          {row.budgets.map((budget) => (
+            <NamedBudgetRow
+              key={budget.id}
+              budget={budget}
+              onEdit={props.onEdit}
+              onDelete={props.onDelete}
+            />
+          ))}
+          {row.unassignedSpend > 0 ? (
+            <UnassignedSpendingRow amountLabel={row.unassignedSpendLabel} />
+          ) : null}
+          <PressableFeedback
+            accessibilityRole="button"
+            accessibilityLabel={Strings.budgetViewCategoryDetailsA11y(row.name)}
+            onPress={() => props.onViewDetails(row.categoryId)}
+            className="min-h-11 flex-row items-center gap-2 px-4"
+          >
+            <View className="w-[46px] items-center">
+              <View className="border-accent/30 bg-accent/10 h-8 w-8 items-center justify-center rounded-full border">
+                <MaterialCommunityIcons
+                  name="chart-box-outline"
+                  size={ms(16)}
+                  color={Colors.dark.gold}
+                />
+              </View>
+            </View>
+            <HeroText className="font-inter text-accent flex-1 text-[11px] font-semibold">
+              {Strings.budgetViewCategoryDetails(row.name)}
+            </HeroText>
+            <MaterialCommunityIcons name="chevron-right" size={ms(16)} color={Colors.dark.gold} />
+          </PressableFeedback>
+        </Accordion.Content>
+      </Accordion.Item>
+    </Accordion>
   );
 }
 
 export const CategoryBudgetRow = React.memo(CategoryBudgetRowComponent);
 CategoryBudgetRow.displayName = 'CategoryBudgetRow';
-
-const styles = StyleSheet.create({
-  group: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Colors.dark.border,
-  },
-  categoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: ms(10),
-    paddingVertical: Spacing.xs,
-    paddingHorizontal: Spacing.md,
-  },
-  center: { flex: 1 },
-  name: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  pct: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    marginTop: ms(2),
-  },
-  right: { alignItems: 'flex-end' },
-  remainingRow: { flexDirection: 'row', alignItems: 'baseline' },
-  remainingAmount: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-  },
-  remainingLabel: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-  },
-  spentBudget: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    marginTop: ms(2),
-  },
-  budgetRow: {
-    minHeight: ms(34),
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginLeft: ms(58),
-    paddingRight: Spacing.md,
-    paddingVertical: ms(5),
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: Colors.dark.border,
-  },
-  lastBudgetRow: {
-    marginBottom: ms(3),
-  },
-  budgetMarker: {
-    width: ms(6),
-    height: ms(6),
-    borderRadius: ms(3),
-    backgroundColor: Colors.dark.text3,
-  },
-  budgetName: {
-    flex: 1,
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
-  },
-  budgetAmount: {
-    fontFamily: FontFamily.soraSemi,
-    fontSize: Type.caption,
-    color: Colors.dark.text1,
-  },
-});

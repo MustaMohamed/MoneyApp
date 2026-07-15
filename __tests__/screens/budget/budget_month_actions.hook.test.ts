@@ -101,6 +101,7 @@ function setupStores() {
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: budgetRows,
     spendByMonth: { food: { '2026-07': 1200 } },
+    spendByBudgetId: { 'budget-food-jul': 900, 'budget-trip-food-jul': 300 },
     spendingPlans: [],
     spendingPlanSpendById: {},
     loaded: true,
@@ -119,6 +120,7 @@ function setupStores() {
     copySelectedBudgetIds: ['budget-food-jun'],
     incomeSuggestion: null,
     refreshing: false,
+    expandedCategoryId: undefined,
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     setLensTab: jest.fn(),
@@ -130,6 +132,7 @@ function setupStores() {
     closeCopy: closeCopyMock,
     setCopySelectedBudgetIds: setCopySelectedBudgetIdsMock,
     setIncomeSuggestion: jest.fn(),
+    setExpandedCategoryId: jest.fn(),
   }));
 }
 
@@ -167,13 +170,22 @@ describe('useBudget month actions', () => {
       expect.arrayContaining([
         expect.objectContaining({
           categoryId: 'food',
-          limit: 5000,
+          planned: 5000,
           spent: 1200,
-          budgetCount: 2,
-          budgets: [
-            { id: 'budget-food-jul', name: 'Monthly Food', amount: 3500 },
-            { id: 'budget-trip-food-jul', name: 'Alexandria Trip Food', amount: 1500 },
-          ],
+          budgets: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'budget-food-jul',
+              name: 'Monthly Food',
+              planned: 3500,
+              spent: 900,
+            }),
+            expect.objectContaining({
+              id: 'budget-trip-food-jul',
+              name: 'Alexandria Trip Food',
+              planned: 1500,
+              spent: 300,
+            }),
+          ]),
         }),
       ]),
     );

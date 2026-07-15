@@ -1,13 +1,28 @@
 import { TransactionType } from '@/constants/enums';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 
 beforeEach(() => useAddTransactionStore.getState().reset());
+
+const budget = { id: 'budget-food' } as Budget;
 
 describe('useAddTransactionStore initial state', () => {
   it('starts with type=Expense and amountStr="0"', () => {
     const s = useAddTransactionStore.getState();
     expect(s.type).toBe(TransactionType.Expense);
     expect(s.amountStr).toBe('0');
+    expect(s.availableBudgets).toEqual([]);
+    expect(s.budgetId).toBeUndefined();
+  });
+
+  it('clears budget options and selection when the type changes', () => {
+    useAddTransactionStore.getState().setAvailableBudgets([budget]);
+    useAddTransactionStore.getState().setBudgetId(budget.id);
+
+    useAddTransactionStore.getState().setType(TransactionType.Income);
+
+    expect(useAddTransactionStore.getState().availableBudgets).toEqual([]);
+    expect(useAddTransactionStore.getState().budgetId).toBeUndefined();
   });
 });
 
