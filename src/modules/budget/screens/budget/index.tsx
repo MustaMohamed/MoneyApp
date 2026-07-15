@@ -75,6 +75,7 @@ export default function BudgetScreen() {
   const {
     pendingPayload: pendingDelete,
     busy: deleteBusy,
+    error: deleteError,
     request: requestDelete,
     confirm: confirmDelete,
     cancel: cancelDelete,
@@ -82,6 +83,7 @@ export default function BudgetScreen() {
   const {
     pendingPayload: pendingPlanDelete,
     busy: planDeleteBusy,
+    error: planDeleteError,
     request: requestPlanDelete,
     confirm: confirmPlanDelete,
     cancel: cancelPlanDelete,
@@ -243,6 +245,7 @@ export default function BudgetScreen() {
         isOpen={pendingDelete !== null}
         categoryName={pendingDelete?.name ?? ''}
         busy={deleteBusy}
+        errorMessage={deleteError ? Strings.budgetDeleteError : undefined}
         onCancel={cancelDelete}
         onConfirm={() => {
           void confirmDelete();
@@ -252,6 +255,7 @@ export default function BudgetScreen() {
         isOpen={pendingPlanDelete !== null}
         planName={pendingPlanDelete?.name ?? ''}
         busy={planDeleteBusy}
+        errorMessage={planDeleteError ? Strings.budgetPlanDeleteError : undefined}
         onCancel={cancelPlanDelete}
         onConfirm={() => {
           void confirmPlanDelete();

@@ -323,6 +323,7 @@ export const Strings = {
     `Remove ${name}? This deletes the temporary budget and its category allocations.`,
   budgetPlanDeleteConfirmConfirm: 'Remove',
   budgetPlanDeleteConfirmCancel: 'Cancel',
+  budgetPlanDeleteError: 'Could not remove this plan. Please try again.',
   budgetPlansEmptyTitle: 'No spending plans',
   budgetPlansEmptyBody: 'Create a short-term plan for travel, a week, or another temporary period.',
   budgetPlansCreateAction: 'Create plan',
@@ -880,6 +881,7 @@ export const Strings = {
     `Remove ${name}? Its transactions stay in the category and their spending becomes unassigned.`,
   budgetDeleteConfirmConfirm: 'Remove',
   budgetDeleteConfirmCancel: 'Cancel',
+  budgetDeleteError: 'Could not remove this budget. Please try again.',
 
   // Transactions — swipe/list delete confirm
   // Note: deleteConfirmTitle, deleteConfirmBody, deleteTransaction, deleteCancel already exist

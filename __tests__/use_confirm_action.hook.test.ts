@@ -103,23 +103,35 @@ describe('useConfirmAction', () => {
     expect(action).toHaveBeenCalledTimes(1);
   });
 
-  it('confirm() when action rejects still clears busy and clears pending', async () => {
-    const action = jest.fn().mockRejectedValue(new Error('db error'));
+  it('confirm() when action rejects keeps the pending payload and exposes the error', async () => {
+    const error = new Error('db error');
+    const action = jest.fn().mockRejectedValue(error);
     const { result } = renderHook(() => useConfirmAction<string>(action));
     act(() => {
       result.current.request('tx-bad');
     });
 
     await act(async () => {
-      try {
-        await result.current.confirm();
-      } catch {
-        /* expected */
-      }
+      await result.current.confirm();
     });
 
     expect(result.current.busy).toBe(false);
-    expect(result.current.pendingPayload).toBeNull();
+    expect(result.current.pendingPayload).toBe('tx-bad');
+    expect(result.current.error).toBe(error);
+  });
+
+  it('request() and cancel() clear a previous confirmation error', async () => {
+    const action = jest.fn().mockRejectedValue(new Error('db error'));
+    const { result } = renderHook(() => useConfirmAction<string>(action));
+    act(() => result.current.request('first'));
+    await act(async () => result.current.confirm());
+
+    act(() => result.current.request('second'));
+    expect(result.current.error).toBeNull();
+
+    await act(async () => result.current.confirm());
+    act(() => result.current.cancel());
+    expect(result.current.error).toBeNull();
   });
 
   it('confirm() is a no-op when pendingPayload is null', async () => {

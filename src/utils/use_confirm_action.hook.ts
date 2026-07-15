@@ -8,6 +8,8 @@ import { useCallback, useState } from 'react';
  *                    null means no action is pending (sheet should be closed).
  *   busy           — true while the async action is in flight; gates the sheet
  *                    from being dismissed and prevents double-invocation.
+ *   error          — the last rejected action error. The pending payload stays
+ *                    available so the confirmation UI can explain and retry.
  *
  * Usage:
  *   const { pendingPayload, busy, request, confirm, cancel } =
@@ -31,12 +33,15 @@ import { useCallback, useState } from 'react';
 export function useConfirmAction<T>(action: (payload: T) => Promise<void>) {
   const [pendingPayload, setPendingPayload] = useState<T | null>(null);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown | null>(null);
 
   const request = useCallback((payload: T) => {
+    setError(null);
     setPendingPayload(payload);
   }, []);
 
   const cancel = useCallback(() => {
+    setError(null);
     setPendingPayload(null);
   }, []);
 
@@ -47,14 +52,16 @@ export function useConfirmAction<T>(action: (payload: T) => Promise<void>) {
     if (busy) return;
 
     setBusy(true);
+    setError(null);
     try {
       await action(pendingPayload);
-    } finally {
-      // Always clear state, even on rejection — sheet must not stay stuck
-      setBusy(false);
       setPendingPayload(null);
+    } catch (actionError) {
+      setError(actionError);
+    } finally {
+      setBusy(false);
     }
   }, [action, pendingPayload, busy]);
 
-  return { pendingPayload, busy, request, confirm, cancel };
+  return { pendingPayload, busy, error, request, confirm, cancel };
 }

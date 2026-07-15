@@ -75,6 +75,8 @@ describe('budget categories presentation architecture', () => {
     );
 
     expect(parent).toContain('accessibilityState={{ expanded: props.isExpanded }}');
+    expect(child).not.toMatch(/return \(\s*<View\s+accessible/);
+    expect(child).toContain('accessibilityLabel={budget.accessibilityLabel}');
     expect(child).toContain('minHeight: ms(44)');
     expect(child).toContain('minWidth: ms(44)');
     expect(child).toContain('width={ms(180)}');
