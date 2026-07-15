@@ -2,6 +2,7 @@ import { Card, SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
+import { ms } from '@/utils/responsive';
 
 const ROWS = [0, 1, 2, 3];
 const PLAN_ROWS = [0, 1];
@@ -61,7 +62,7 @@ export function BudgetScreenSkeleton({
             testID="budget-row-skeleton"
             className="border-separator min-h-[58px] flex-row items-center gap-2.5 border-b px-4 py-2"
           >
-            <View className="w-[46px] items-center">
+            <View className="items-center" style={{ width: ms(46) }}>
               <SkeletonGroup.Item className="h-[42px] w-[42px] rounded-full" />
             </View>
             <View className="flex-1 gap-1.5">

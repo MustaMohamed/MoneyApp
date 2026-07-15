@@ -7,6 +7,7 @@ interface IncomeSheetStateShape {
   amountText: string;
   suggestion: number | null;
   saving: boolean;
+  errorMessage: string | undefined;
 }
 
 type IncomeSheetState = IncomeSheetStateShape & {
@@ -14,6 +15,7 @@ type IncomeSheetState = IncomeSheetStateShape & {
   close: () => void;
   setAmountText: (text: string) => void;
   setSaving: (saving: boolean) => void;
+  setErrorMessage: (message: string | undefined) => void;
   reset: () => void;
 };
 
@@ -22,6 +24,7 @@ const INITIAL_STATE: IncomeSheetStateShape = {
   amountText: '',
   suggestion: null,
   saving: false,
+  errorMessage: undefined,
 };
 
 export const useIncomeSheetState = createMoneyAppSelectors(
@@ -40,10 +43,11 @@ export const useIncomeSheetState = createMoneyAppSelectors(
               : '',
       }),
 
-    close: () => set({ isOpen: false, saving: false }),
+    close: () => set({ isOpen: false, saving: false, errorMessage: undefined }),
 
-    setAmountText: (text) => set({ amountText: text }),
+    setAmountText: (text) => set({ amountText: text, errorMessage: undefined }),
     setSaving: (saving) => set({ saving }),
+    setErrorMessage: (errorMessage) => set({ errorMessage }),
 
     reset: () => set(INITIAL_STATE),
   })),

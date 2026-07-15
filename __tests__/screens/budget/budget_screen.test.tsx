@@ -350,6 +350,7 @@ const baseState: BudgetScreenState = {
   rows: [],
   categoriesSummary: {
     hasPlan: false,
+    emptyLabel: 'No budget set',
     planned: 0,
     spent: 0,
     left: 0,

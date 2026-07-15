@@ -42,6 +42,7 @@ export interface MonthResultVM {
   delta: number;
   status: BudgetStatus;
   isProvisional: boolean;
+  lifecycle: 'completed' | 'provisional' | 'planned';
 }
 
 export interface CategoryHistoryVM {
@@ -209,6 +210,7 @@ export function buildCategoryBudgetRows({
           budget.name,
           spentLabel,
           plannedLabel,
+          percentage(budgetUsedPct),
           balanceLabel,
           budgetBalance.label,
         ),
@@ -249,6 +251,7 @@ export function buildCategoryBudgetRows({
         category.name,
         spentLabel,
         plannedLabel,
+        percentage(usedPct),
         balanceLabel,
         balance.label,
         healthLabel(status),
@@ -299,6 +302,7 @@ export function buildBudgetCategoriesSummary({
 
   return {
     hasPlan: planned > 0,
+    emptyLabel: planned > 0 ? undefined : Strings.budgetCategoriesNoBudgetSet,
     planned,
     spent,
     left,
@@ -327,35 +331,38 @@ export function buildBudgetCategoriesSummary({
     onTrackCount,
     watchCount,
     overCount,
-    statusItems: [
-      {
-        key: 'on-track',
-        label: Strings.budgetCategoriesStatusCount(
-          onTrackCount,
-          Strings.budgetCategoriesStatusOnTrack.toLowerCase(),
-        ),
-        icon: 'check-circle-outline',
-        color: Colors.dark.positive,
-      },
-      {
-        key: 'watch',
-        label: Strings.budgetCategoriesStatusCount(
-          watchCount,
-          Strings.budgetCategoriesStatusWatch.toLowerCase(),
-        ),
-        icon: 'alert-circle-outline',
-        color: Colors.dark.budgetWatch,
-      },
-      {
-        key: 'over',
-        label: Strings.budgetCategoriesStatusCount(
-          overCount,
-          Strings.budgetCategoriesStatusOver.toLowerCase(),
-        ),
-        icon: 'alert-octagon-outline',
-        color: Colors.dark.negative,
-      },
-    ],
+    statusItems:
+      planned > 0
+        ? [
+            {
+              key: 'on-track',
+              label: Strings.budgetCategoriesStatusCount(
+                onTrackCount,
+                Strings.budgetCategoriesStatusOnTrack.toLowerCase(),
+              ),
+              icon: 'check-circle-outline',
+              color: Colors.dark.positive,
+            },
+            {
+              key: 'watch',
+              label: Strings.budgetCategoriesStatusCount(
+                watchCount,
+                Strings.budgetCategoriesStatusWatch.toLowerCase(),
+              ),
+              icon: 'alert-circle-outline',
+              color: Colors.dark.budgetWatch,
+            },
+            {
+              key: 'over',
+              label: Strings.budgetCategoriesStatusCount(
+                overCount,
+                Strings.budgetCategoriesStatusOver.toLowerCase(),
+              ),
+              icon: 'alert-octagon-outline',
+              color: Colors.dark.negative,
+            },
+          ]
+        : [],
   };
 }
 
@@ -469,17 +476,18 @@ export function buildBudgetCopyRows({
 }
 
 export function computeCategoryHistory(results: MonthResultVM[]): CategoryHistoryVM {
+  const historicalResults = results.filter((result) => result.lifecycle !== 'planned');
   let netBanked = 0;
   let totalSpent = 0;
   let monthsUnder = 0;
-  for (const r of results) {
+  for (const r of historicalResults) {
     netBanked += r.delta;
     totalSpent += r.spent;
     if (r.spent <= r.limit) monthsUnder += 1;
   }
-  const monthsTotal = results.length;
+  const monthsTotal = historicalResults.length;
   return {
-    results,
+    results: historicalResults,
     netBanked,
     avgPerMonth: monthsTotal > 0 ? totalSpent / monthsTotal : 0,
     hitRate: monthsTotal > 0 ? monthsUnder / monthsTotal : 0,

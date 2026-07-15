@@ -52,6 +52,11 @@ export function IncomeSheet() {
             {Strings.incomeSheetSuggestionNote}
           </HeroText>
         ) : null}
+        {state.errorMessage ? (
+          <HeroText className="font-inter text-danger mt-2 text-[11px] font-medium">
+            {state.errorMessage}
+          </HeroText>
+        ) : null}
       </View>
     </Sheet>
   );

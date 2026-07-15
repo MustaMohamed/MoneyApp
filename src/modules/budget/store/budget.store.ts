@@ -172,8 +172,9 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
       },
 
       setExpectedIncome: async (amount) => {
+        const anchorMonth = get().loadedMonth ?? currentYearMonth();
         await repo.set(EXPECTED_INCOME_KEY, String(amount));
-        await get().load();
+        await get().load(anchorMonth);
       },
 
       setExpectedIncomeLocal: (amount) => set({ expectedIncome: amount }),

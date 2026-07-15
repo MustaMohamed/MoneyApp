@@ -38,7 +38,9 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
               </ListGroup.ItemPrefix>
               <ListGroup.ItemContent>
                 <ListGroup.ItemTitle>{budget.name}</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>{`${formatAmount(budget.limit_amount)} EGP`}</ListGroup.ItemDescription>
+                <ListGroup.ItemDescription>
+                  {`${formatAmount(budget.limit_amount)} ${Strings.currencyEgp}`}
+                </ListGroup.ItemDescription>
               </ListGroup.ItemContent>
               <ListGroup.ItemSuffix>
                 {props.selectedId === budget.id ? (

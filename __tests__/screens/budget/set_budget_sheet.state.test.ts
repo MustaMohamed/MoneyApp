@@ -21,4 +21,31 @@ describe('useSetBudgetSheetState', () => {
     useSetBudgetSheetState.getState().setGroupValue(null);
     expect(useSetBudgetSheetState.getState().groupValue).toBeNull();
   });
+
+  it('tracks save state and clears a visible error when the form is edited', () => {
+    useSetBudgetSheetState.getState().setSaving(true);
+    useSetBudgetSheetState.getState().setErrorMessage('Save failed');
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      saving: true,
+      errorMessage: 'Save failed',
+    });
+
+    useSetBudgetSheetState.getState().clearError();
+    expect(useSetBudgetSheetState.getState().errorMessage).toBeUndefined();
+  });
+
+  it('reports rejection and preserves sheet selection for add/edit retry', async () => {
+    useSetBudgetSheetState.getState().initAddMode('cat_food');
+
+    const saved = await useSetBudgetSheetState
+      .getState()
+      .runSave(jest.fn().mockRejectedValue(new Error('write failed')));
+
+    expect(saved).toBe(false);
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_food',
+      saving: false,
+      errorMessage: 'Could not save budget. Please try again.',
+    });
+  });
 });

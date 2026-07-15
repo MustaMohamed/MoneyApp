@@ -71,13 +71,14 @@ function AddTransactionSheetInner({
     publishFooter(
       hook.state.hasAccounts,
       hook.state.saving,
-      hook.state.saving || hook.state.budgetsLoading,
+      hook.state.saving || hook.state.budgetsLoading || Boolean(hook.state.budgetLookupError),
       invokeSave,
     );
     return clearFooter;
   }, [
     clearFooter,
     hook.state.budgetsLoading,
+    hook.state.budgetLookupError,
     hook.state.hasAccounts,
     hook.state.saving,
     invokeSave,
@@ -112,8 +113,11 @@ function AddTransactionSheetInner({
           showBudgetField={hook.state.showBudgetField}
           selectedBudget={hook.state.selectedBudget}
           budgetsLoading={hook.state.budgetsLoading}
+          budgetLookupError={hook.state.budgetLookupError}
           onOpenBudgetPicker={() => hook.setShowBudgetPicker(true)}
+          onRetryBudgetLookup={hook.retryBudgetLookup}
           budgetError={hook.state.errors.budget}
+          errorMessage={hook.state.errorMessage}
           isUSD={hook.state.isUSD}
           exchangeRate={hook.state.exchangeRate}
           setExchangeRate={hook.setExchangeRate}

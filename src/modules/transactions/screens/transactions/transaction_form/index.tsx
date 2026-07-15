@@ -47,7 +47,11 @@ function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Tra
             variant="primary"
             label={Strings.editTxSaveCta}
             isLoading={hook.state.saving}
-            isDisabled={hook.state.saving || hook.state.budgetsLoading}
+            isDisabled={
+              hook.state.saving ||
+              hook.state.budgetsLoading ||
+              Boolean(hook.state.budgetLookupError)
+            }
             onPress={() => void hook.handleSave()}
           />
         }
@@ -70,8 +74,11 @@ function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Tra
           showBudgetField={hook.state.showBudgetField}
           selectedBudget={hook.state.selectedBudget}
           budgetsLoading={hook.state.budgetsLoading}
+          budgetLookupError={hook.state.budgetLookupError}
           onOpenBudgetPicker={() => hook.setShowBudgetPicker(true)}
+          onRetryBudgetLookup={hook.retryBudgetLookup}
           budgetError={hook.state.errors.budget}
+          errorMessage={hook.state.errorMessage}
           isUSD={hook.state.isUSD}
           exchangeRate={hook.state.exchangeRate}
           setExchangeRate={hook.setExchangeRate}

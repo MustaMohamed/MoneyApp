@@ -9,6 +9,9 @@ interface EditTransactionStateShape {
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
   budgetsLoading: boolean;
+  budgetLookupVersion: number;
+  budgetLookupError: string | undefined;
+  errorMessage: string | undefined;
   preserveBudgetNull: boolean;
   rateOverride: boolean;
 }
@@ -20,6 +23,10 @@ type EditTransactionState = EditTransactionStateShape & {
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
   setBudgetsLoading: (v: boolean) => void;
+  setBudgetLookupError: (message: string | undefined) => void;
+  setErrorMessage: (message: string | undefined) => void;
+  retryBudgetLookup: () => void;
+  clearError: () => void;
   setPreserveBudgetNull: (v: boolean) => void;
   setRateOverride: (v: boolean) => void;
   reset: () => void;
@@ -31,6 +38,9 @@ const INITIAL_STATE: EditTransactionStateShape = {
   showCategoryPicker: false,
   showBudgetPicker: false,
   budgetsLoading: false,
+  budgetLookupVersion: 0,
+  budgetLookupError: undefined,
+  errorMessage: undefined,
   preserveBudgetNull: false,
   rateOverride: false,
 };
@@ -45,6 +55,14 @@ export const useEditTransactionState = createMoneyAppSelectors(
     setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
     setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
     setBudgetsLoading: (v) => set({ budgetsLoading: v }),
+    setBudgetLookupError: (budgetLookupError) => set({ budgetLookupError }),
+    setErrorMessage: (errorMessage) => set({ errorMessage }),
+    retryBudgetLookup: () =>
+      set((state) => ({
+        budgetLookupVersion: state.budgetLookupVersion + 1,
+        budgetLookupError: undefined,
+      })),
+    clearError: () => set({ errorMessage: undefined }),
     setPreserveBudgetNull: (v) => set({ preserveBudgetNull: v }),
     setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),

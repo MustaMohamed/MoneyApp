@@ -95,43 +95,55 @@ export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
             <HeroText className="font-inter text-muted text-[10px] font-semibold uppercase">
               {summary.eyebrowLabel}
             </HeroText>
-            <HeroText
-              style={{ color: summary.balanceColor }}
-              className="font-sora mt-0.5 text-[25px] font-bold"
-            >
-              {`${summary.balanceAmountLabel} `}
-              <HeroText className="font-inter text-muted text-[11px] font-semibold">
-                {summary.balanceMetaLabel}
+            {summary.hasPlan ? (
+              <HeroText
+                style={{ color: summary.balanceColor }}
+                className="font-sora mt-0.5 text-[25px] font-bold"
+              >
+                {`${summary.balanceAmountLabel} `}
+                <HeroText className="font-inter text-muted text-[11px] font-semibold">
+                  {summary.balanceMetaLabel}
+                </HeroText>
               </HeroText>
-            </HeroText>
+            ) : (
+              <HeroText className="font-sora text-foreground mt-1 text-[18px] font-bold">
+                {summary.emptyLabel}
+              </HeroText>
+            )}
           </View>
           <HeroText className="font-inter text-muted mt-0.5 text-[10px] font-semibold">
             {summary.lifecycleLabel}
           </HeroText>
         </View>
 
-        <View className="mt-1 flex-row items-center justify-between gap-3">
-          <HeroText className="font-inter text-foreground text-[12px] font-medium">
-            {summary.spentPlannedLabel}
-          </HeroText>
-          {summary.usedLabel ? (
-            <HeroText className="font-inter text-muted text-[11px] font-semibold">
-              {summary.usedLabel}
-            </HeroText>
-          ) : null}
-        </View>
-        <BudgetBar
-          pct={summary.usedPct ?? 0}
-          status="under"
-          color={summary.barColor}
-          height={ms(5)}
-        />
+        {summary.hasPlan ? (
+          <>
+            <View className="mt-1 flex-row items-center justify-between gap-3">
+              <HeroText className="font-inter text-foreground text-[12px] font-medium">
+                {summary.spentPlannedLabel}
+              </HeroText>
+              {summary.usedLabel ? (
+                <HeroText className="font-inter text-muted text-[11px] font-semibold">
+                  {summary.usedLabel}
+                </HeroText>
+              ) : null}
+            </View>
+            <BudgetBar
+              pct={summary.usedPct ?? 0}
+              status="under"
+              color={summary.barColor}
+              height={ms(5)}
+            />
+          </>
+        ) : null}
         <SummaryMetrics summary={summary} onSetIncome={onSetIncome} />
-        <View className="border-separator flex-row items-center border-t">
-          {summary.statusItems.map((item) => (
-            <SummaryStatusItem key={item.key} item={item} />
-          ))}
-        </View>
+        {summary.statusItems.length > 0 ? (
+          <View className="border-separator flex-row items-center border-t">
+            {summary.statusItems.map((item) => (
+              <SummaryStatusItem key={item.key} item={item} />
+            ))}
+          </View>
+        ) : null}
       </Card.Body>
     </Card>
   );

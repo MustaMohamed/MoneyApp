@@ -21,7 +21,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
       accessibilityLabel={budget.accessibilityLabel}
       className="border-separator bg-background/30 min-h-13 flex-row items-center gap-2 border-b px-4 py-1.5"
     >
-      <View className="w-[46px] items-center">
+      <View className="items-center" style={{ width: ms(46) }}>
         <BudgetRing pct={budget.usedPct ?? 0} color={budget.ringColor} size={ms(34)} stroke={ms(3)}>
           <HeroText className="font-inter text-foreground text-[8px] font-bold">
             {budget.usedLabel}
@@ -59,14 +59,16 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
         <Menu.Trigger asChild>
           <PressableFeedback
             accessibilityLabel={budget.menuAccessibilityLabel}
-            className="h-8 w-7 items-center justify-center"
+            accessibilityRole="button"
+            className="items-center justify-center"
+            style={{ minHeight: ms(44), minWidth: ms(44) }}
           >
             <MaterialCommunityIcons name="dots-vertical" size={ms(18)} color={Colors.dark.text2} />
           </PressableFeedback>
         </Menu.Trigger>
         <Menu.Portal>
           <Menu.Overlay />
-          <Menu.Content presentation="popover" placement="left" width={180}>
+          <Menu.Content presentation="popover" placement="left" width={ms(180)}>
             <Menu.Item onPress={() => onEdit(budget.id)}>
               <Menu.ItemTitle>{Strings.swipeEdit}</Menu.ItemTitle>
             </Menu.Item>

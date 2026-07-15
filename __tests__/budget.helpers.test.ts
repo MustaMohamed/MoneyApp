@@ -156,6 +156,39 @@ describe('budget categories ledger view models', () => {
         categorySharePct: 0.2,
       }),
     ]);
+    expect(result.rows[0].accessibilityLabel).toContain('76% used');
+    expect(result.rows[0].budgets[0]?.accessibilityLabel).toContain('70% used');
+  });
+
+  it('describes an empty month without usage or status claims', () => {
+    const result = buildBudgetCategoriesSummary({
+      rows: [],
+      expectedIncome: null,
+      unbudgetedSpend: 0,
+      selectedMonth: '2026-08',
+      today: '2026-07-14',
+    });
+
+    expect(result.hasPlan).toBe(false);
+    expect(result.emptyLabel).toBe('No budget set');
+    expect(result.usedLabel).toBeUndefined();
+    expect(result.statusItems).toEqual([]);
+  });
+
+  it.each([
+    ['2026-06', 'Complete'],
+    ['2026-07', '16 days left'],
+    ['2026-08', 'Planned'],
+  ])('labels %s with its month lifecycle', (selectedMonth, lifecycleLabel) => {
+    const result = buildBudgetCategoriesSummary({
+      rows: [],
+      expectedIncome: null,
+      unbudgetedSpend: 0,
+      selectedMonth,
+      today: '2026-07-15',
+    });
+
+    expect(result.lifecycleLabel).toBe(lifecycleLabel);
   });
 
   it.each([
@@ -349,6 +382,7 @@ describe('computeCategoryHistory', () => {
       delta: 600,
       status: 'warning',
       isProvisional: false,
+      lifecycle: 'completed',
     },
     {
       yearMonth: '2026-03',
@@ -357,6 +391,7 @@ describe('computeCategoryHistory', () => {
       delta: -200,
       status: 'over',
       isProvisional: false,
+      lifecycle: 'completed',
     },
     {
       yearMonth: '2026-04',
@@ -365,6 +400,7 @@ describe('computeCategoryHistory', () => {
       delta: 250,
       status: 'warning',
       isProvisional: false,
+      lifecycle: 'completed',
     },
     {
       yearMonth: '2026-05',
@@ -373,13 +409,24 @@ describe('computeCategoryHistory', () => {
       delta: 600,
       status: 'warning',
       isProvisional: true,
+      lifecycle: 'provisional',
+    },
+    {
+      yearMonth: '2026-06',
+      limit: 3000,
+      spent: 0,
+      delta: 3000,
+      status: 'under',
+      isProvisional: false,
+      lifecycle: 'planned',
     },
   ];
-  it('nets the deltas, averages spend, and computes hit-rate', () => {
+  it('includes the provisional current month but excludes planned future months', () => {
     const h = computeCategoryHistory(results);
+    expect(h.results).toHaveLength(4);
     expect(h.netBanked).toBe(1250);
     expect(h.avgPerMonth).toBe((2400 + 3200 + 2750 + 2400) / 4);
-    expect(h.monthsUnder).toBe(3); // Feb, Apr, May under-or-equal; Mar over
+    expect(h.monthsUnder).toBe(3);
     expect(h.monthsTotal).toBe(4);
     expect(h.hitRate).toBeCloseTo(3 / 4);
   });

@@ -11,11 +11,12 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
 let capturedFocusCallback: (() => void | (() => void)) | null = null;
+let mockRouteMonth: string | undefined;
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: mockRouterBack }),
-  useLocalSearchParams: () => ({ id: 'cat-1' }),
+  useLocalSearchParams: () => ({ id: 'cat-1', month: mockRouteMonth }),
   useFocusEffect: (cb: () => void | (() => void)) => {
     capturedFocusCallback = cb;
   },
@@ -172,6 +173,7 @@ beforeEach(() => {
   getTrailingIncomeSuggestion.mockClear();
   runAfterInteractions.mockClear();
   setupStores();
+  mockRouteMonth = undefined;
 });
 
 afterEach(() => {
@@ -239,6 +241,24 @@ describe('useBudget — month rollover', () => {
 });
 
 describe('useCategoryDetail — month rollover', () => {
+  it.each([
+    ['2026-04', 'completed'],
+    ['2026-05', 'provisional'],
+    ['2026-06', 'planned'],
+  ] as const)('classifies selected %s details as %s', (selectedMonth, lifecycle) => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = selectedMonth;
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [
+      { ...budget('budget-selected', 'Monthly Food'), effective_from: selectedMonth },
+    ];
+
+    const { result } = renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.liveMonth?.lifecycle).toBe(lifecycle);
+    expect(result.current.state.daysLeft).toBe(lifecycle === 'provisional' ? 16 : undefined);
+  });
+
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     const { result } = renderHook(() => useCategoryDetail());

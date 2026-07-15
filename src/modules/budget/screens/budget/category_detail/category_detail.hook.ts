@@ -54,18 +54,26 @@ export function useCategoryDetail() {
   const results: MonthResultVM[] = useMemo(() => {
     if (!id) return [];
     const months = lastMonths(month, HISTORY_MONTHS);
+    const actualCurrentMonth = currentYearMonth();
     const out: MonthResultVM[] = [];
     for (const ym of months) {
       const limit = resolveLimitForMonth(budgetRows, id, ym);
       if (limit === null) continue; // only months the budget was active
       const spent = spendByMonth[id]?.[ym] ?? 0;
+      const lifecycle =
+        ym < actualCurrentMonth
+          ? 'completed'
+          : ym === actualCurrentMonth
+            ? 'provisional'
+            : 'planned';
       out.push({
         yearMonth: ym,
         limit,
         spent,
         delta: limit - spent,
         status: computeStatus(spent, limit),
-        isProvisional: ym === month,
+        isProvisional: lifecycle === 'provisional',
+        lifecycle,
       });
     }
     return out;
@@ -80,6 +88,7 @@ export function useCategoryDetail() {
   const editableBudgetId = liveMonthBudgets.length === 1 ? liveMonthBudgets[0]?.id : undefined;
 
   const daysLeft = useMemo(() => {
+    if (month !== currentYearMonth()) return undefined;
     const [y, m] = month.split('-').map(Number);
     const lastDay = new Date(y, m, 0).getDate();
     const today = new Date();

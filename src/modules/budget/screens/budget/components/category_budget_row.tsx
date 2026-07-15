@@ -36,11 +36,12 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
       <Accordion.Item value={row.categoryId}>
         <Accordion.Trigger
           accessibilityLabel={row.accessibilityLabel}
+          accessibilityState={{ expanded: props.isExpanded }}
           className="gap-0 px-4 py-2"
           style={{ paddingHorizontal: ms(16), paddingVertical: ms(8), gap: 0 }}
         >
           <View className="flex-row items-center gap-2.5" style={{ flex: 1 }}>
-            <View className="w-[46px] items-center">
+            <View className="items-center" style={{ width: ms(46) }}>
               <BudgetRing pct={row.usedPct} color={row.ringColor} size={ms(42)}>
                 <MaterialCommunityIcons
                   name={toIconName(row.icon, 'tag-outline')}
@@ -108,7 +109,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             onPress={() => props.onViewDetails(row.categoryId)}
             className="min-h-11 flex-row items-center gap-2 px-4"
           >
-            <View className="w-[46px] items-center">
+            <View className="items-center" style={{ width: ms(46) }}>
               <View className="border-accent/30 bg-accent/10 h-8 w-8 items-center justify-center rounded-full border">
                 <MaterialCommunityIcons
                   name="chart-box-outline"

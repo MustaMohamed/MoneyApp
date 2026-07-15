@@ -80,6 +80,9 @@ export function useEditTransaction(
     showCategoryPicker,
     showBudgetPicker,
     budgetsLoading,
+    budgetLookupVersion,
+    budgetLookupError,
+    errorMessage,
     preserveBudgetNull,
     rateOverride,
   } = useEditTransactionState(
@@ -89,6 +92,9 @@ export function useEditTransaction(
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
       budgetsLoading: s.budgetsLoading,
+      budgetLookupVersion: s.budgetLookupVersion,
+      budgetLookupError: s.budgetLookupError,
+      errorMessage: s.errorMessage,
       preserveBudgetNull: s.preserveBudgetNull,
       rateOverride: s.rateOverride,
     })),
@@ -97,6 +103,10 @@ export function useEditTransaction(
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useEditTransactionState.getState().setShowBudgetPicker;
   const setBudgetsLoading = useEditTransactionState.getState().setBudgetsLoading;
+  const setBudgetLookupError = useEditTransactionState.getState().setBudgetLookupError;
+  const setErrorMessage = useEditTransactionState.getState().setErrorMessage;
+  const retryBudgetLookup = useEditTransactionState.getState().retryBudgetLookup;
+  const clearError = useEditTransactionState.getState().clearError;
   const setPreserveBudgetNull = useEditTransactionState.getState().setPreserveBudgetNull;
   const setRateOverride = useEditTransactionState.getState().setRateOverride;
 
@@ -159,7 +169,7 @@ export function useEditTransaction(
   const errors = {
     amount: form.formState.errors.amount?.message,
     category: form.formState.errors.categoryId?.message,
-    budget: form.formState.errors.budgetId?.message,
+    budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
   };
 
@@ -181,6 +191,7 @@ export function useEditTransaction(
   useEffect(() => {
     const request = ++budgetRequestRef.current;
     if (type !== TransactionType.Expense || !categoryId) {
+      setBudgetLookupError(undefined);
       setAvailableBudgets([]);
       setBudgetId(undefined);
       form.setValue('budgetId', '');
@@ -189,19 +200,25 @@ export function useEditTransaction(
       return;
     }
 
+    const sameEligibility = isSameBudgetEligibility(initialTx, categoryId, date);
+    const preservedBudgetId = sameEligibility
+      ? (budgetId ?? initialTx.budget_id ?? undefined)
+      : undefined;
+    let active = true;
+    setBudgetLookupError(undefined);
     setBudgetsLoading(true);
     setAvailableBudgets([]);
-    setBudgetId(undefined);
-    form.setValue('budgetId', '');
+    setBudgetId(preservedBudgetId);
+    form.setValue('budgetId', preservedBudgetId ?? '');
     void budgetRepository
       .getBudgetsForCategoryMonth(categoryId, date.slice(0, 7))
       .then((budgets) => {
-        if (request !== budgetRequestRef.current) return;
+        if (!active || request !== budgetRequestRef.current) return;
         const preserveNull =
           initialTx.budget_id === null && isSameBudgetEligibility(initialTx, categoryId, date);
         const resolution = resolveBudgetAssignment({
           budgets,
-          currentBudgetId: budgetId,
+          currentBudgetId: preservedBudgetId,
           preserveNull,
         });
         setPreserveBudgetNull(preserveNull);
@@ -210,22 +227,28 @@ export function useEditTransaction(
         form.setValue('budgetId', resolution.budgetId ?? '');
       })
       .catch(() => {
-        if (request !== budgetRequestRef.current) return;
+        if (!active || request !== budgetRequestRef.current) return;
         setAvailableBudgets([]);
-        setBudgetId(undefined);
-        form.setValue('budgetId', '');
-        setPreserveBudgetNull(false);
+        setBudgetId(preservedBudgetId);
+        form.setValue('budgetId', preservedBudgetId ?? '');
+        setPreserveBudgetNull(initialTx.budget_id === null && sameEligibility);
+        setBudgetLookupError(Strings.addTxBudgetLookupError);
       })
       .finally(() => {
-        if (request === budgetRequestRef.current) setBudgetsLoading(false);
+        if (active && request === budgetRequestRef.current) setBudgetsLoading(false);
       });
+    return () => {
+      active = false;
+    };
     // `budgetId` is the current selection, not an effect trigger.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [
+    budgetLookupVersion,
     categoryId,
     date,
     setAvailableBudgets,
     setBudgetId,
+    setBudgetLookupError,
     setBudgetsLoading,
     setPreserveBudgetNull,
     type,
@@ -233,7 +256,8 @@ export function useEditTransaction(
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
-    if (formState.saving || formState.budgetsLoading) return;
+    if (formState.saving || formState.budgetsLoading || formState.budgetLookupError) return;
+    setErrorMessage(undefined);
     setSaving(true);
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
@@ -278,7 +302,7 @@ export function useEditTransaction(
         onClose();
       }
     } catch {
-      // error logged
+      setErrorMessage(Strings.transactionSaveError);
     } finally {
       setSaving(false);
     }
@@ -291,11 +315,13 @@ export function useEditTransaction(
   }
 
   function selectCategory(category: Category) {
+    clearError();
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
   }
 
   function selectBudget(budget: Budget) {
+    clearError();
     setBudgetId(budget.id);
     form.setValue('budgetId', budget.id, { shouldValidate: true });
     setShowBudgetPicker(false);
@@ -318,25 +344,49 @@ export function useEditTransaction(
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
+      errorMessage,
+      budgetLookupError,
       saving,
       visibleCategories,
       showCategoryPicker,
       showBudgetPicker,
       budgetsLoading,
       availableBudgets,
-      showBudgetField: type === TransactionType.Expense && availableBudgets.length > 0,
+      showBudgetField:
+        type === TransactionType.Expense &&
+        Boolean(categoryId) &&
+        (budgetsLoading ||
+          Boolean(budgetLookupError) ||
+          Boolean(budgetId) ||
+          availableBudgets.length > 0),
       rateUpdatedAt,
     },
-    setAmountStr,
-    handleNumpad,
-    setDate: (v: string) => form.setValue('date', v),
-    setNote: (v: string) => form.setValue('note', v),
-    setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
+    setAmountStr: (value: string) => {
+      clearError();
+      setAmountStr(value);
+    },
+    handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => {
+      clearError();
+      handleNumpad(action, value);
+    },
+    setDate: (v: string) => {
+      clearError();
+      form.setValue('date', v);
+    },
+    setNote: (v: string) => {
+      clearError();
+      form.setValue('note', v);
+    },
+    setExchangeRate: (v: string) => {
+      clearError();
+      form.setValue('exchangeRate', v);
+    },
     toggleRateOverride,
     setShowCategoryPicker,
     setShowBudgetPicker,
     selectCategory,
     selectBudget,
+    retryBudgetLookup,
     handleSave: form.handleSubmit(onValid),
   };
 }

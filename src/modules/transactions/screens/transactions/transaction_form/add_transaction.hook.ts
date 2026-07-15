@@ -183,6 +183,9 @@ export function useAddTransaction(onClose: () => void) {
     showCategoryPicker,
     showBudgetPicker,
     budgetsLoading,
+    budgetLookupVersion,
+    budgetLookupError,
+    errorMessage,
     rateOverride,
   } = useAddTransactionState(
     useShallow((s) => ({
@@ -193,6 +196,9 @@ export function useAddTransaction(onClose: () => void) {
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
       budgetsLoading: s.budgetsLoading,
+      budgetLookupVersion: s.budgetLookupVersion,
+      budgetLookupError: s.budgetLookupError,
+      errorMessage: s.errorMessage,
       rateOverride: s.rateOverride,
     })),
   );
@@ -202,6 +208,10 @@ export function useAddTransaction(onClose: () => void) {
   const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useAddTransactionState.getState().setShowBudgetPicker;
   const setBudgetsLoading = useAddTransactionState.getState().setBudgetsLoading;
+  const setBudgetLookupError = useAddTransactionState.getState().setBudgetLookupError;
+  const setErrorMessage = useAddTransactionState.getState().setErrorMessage;
+  const retryBudgetLookup = useAddTransactionState.getState().retryBudgetLookup;
+  const clearError = useAddTransactionState.getState().clearError;
   const setRateOverride = useAddTransactionState.getState().setRateOverride;
 
   // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
@@ -293,7 +303,7 @@ export function useAddTransaction(onClose: () => void) {
     account: form.formState.errors.accountId?.message,
     toAccount: form.formState.errors.toAccountId?.message,
     category: form.formState.errors.categoryId?.message,
-    budget: form.formState.errors.budgetId?.message,
+    budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
   };
 
@@ -334,6 +344,7 @@ export function useAddTransaction(onClose: () => void) {
   useEffect(() => {
     const request = ++budgetRequestRef.current;
     if (type !== TransactionType.Expense || !categoryId) {
+      setBudgetLookupError(undefined);
       setAvailableBudgets([]);
       setBudgetId(undefined);
       form.setValue('budgetId', '');
@@ -341,6 +352,8 @@ export function useAddTransaction(onClose: () => void) {
       return;
     }
 
+    let active = true;
+    setBudgetLookupError(undefined);
     setBudgetsLoading(true);
     setAvailableBudgets([]);
     setBudgetId(undefined);
@@ -348,7 +361,7 @@ export function useAddTransaction(onClose: () => void) {
     void budgetRepository
       .getBudgetsForCategoryMonth(categoryId, date.slice(0, 7))
       .then((budgets) => {
-        if (request !== budgetRequestRef.current) return;
+        if (!active || request !== budgetRequestRef.current) return;
         const resolution = resolveBudgetAssignment({
           budgets,
           currentBudgetId: budgetId,
@@ -359,21 +372,35 @@ export function useAddTransaction(onClose: () => void) {
         form.setValue('budgetId', resolution.budgetId ?? '');
       })
       .catch(() => {
-        if (request !== budgetRequestRef.current) return;
+        if (!active || request !== budgetRequestRef.current) return;
         setAvailableBudgets([]);
         setBudgetId(undefined);
         form.setValue('budgetId', '');
+        setBudgetLookupError(Strings.addTxBudgetLookupError);
       })
       .finally(() => {
-        if (request === budgetRequestRef.current) setBudgetsLoading(false);
+        if (active && request === budgetRequestRef.current) setBudgetsLoading(false);
       });
+    return () => {
+      active = false;
+    };
     // `budgetId` is deliberately read as the current selection, not an effect trigger.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [categoryId, date, setAvailableBudgets, setBudgetId, setBudgetsLoading, type]);
+  }, [
+    budgetLookupVersion,
+    categoryId,
+    date,
+    setAvailableBudgets,
+    setBudgetId,
+    setBudgetLookupError,
+    setBudgetsLoading,
+    type,
+  ]);
 
   async function onValid(data: AddTransactionFormValues) {
     const formState = useAddTransactionState.getState();
-    if (formState.saving || formState.budgetsLoading) return;
+    if (formState.saving || formState.budgetsLoading || formState.budgetLookupError) return;
+    setErrorMessage(undefined);
     setSaving(true);
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
@@ -418,7 +445,7 @@ export function useAddTransaction(onClose: () => void) {
       await loadAccounts();
       onClose();
     } catch {
-      // error logged by store
+      setErrorMessage(Strings.transactionSaveError);
     } finally {
       setSaving(false);
     }
@@ -431,6 +458,7 @@ export function useAddTransaction(onClose: () => void) {
   }
 
   function selectAccount(account: Account) {
+    clearError();
     form.setValue('accountId', account.id);
     if (account.currency === Currency.USD) {
       form.setValue('exchangeRate', String(rate));
@@ -440,6 +468,7 @@ export function useAddTransaction(onClose: () => void) {
   }
 
   function selectToAccount(account: Account) {
+    clearError();
     form.setValue('toAccountId', account.id);
     if (account.currency === Currency.USD && selectedAccount?.currency === Currency.EGP) {
       form.setValue('exchangeRate', String(rate));
@@ -449,11 +478,13 @@ export function useAddTransaction(onClose: () => void) {
   }
 
   function selectCategory(category: Category) {
+    clearError();
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
   }
 
   function selectBudget(budget: Budget) {
+    clearError();
     setBudgetId(budget.id);
     form.setValue('budgetId', budget.id, { shouldValidate: true });
     setShowBudgetPicker(false);
@@ -478,6 +509,8 @@ export function useAddTransaction(onClose: () => void) {
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
+      errorMessage,
+      budgetLookupError,
       saving,
       accounts,
       hasAccounts: accounts.length > 0,
@@ -490,15 +523,36 @@ export function useAddTransaction(onClose: () => void) {
       showBudgetPicker,
       budgetsLoading,
       availableBudgets,
-      showBudgetField: type === TransactionType.Expense && availableBudgets.length > 0,
+      showBudgetField:
+        type === TransactionType.Expense &&
+        Boolean(categoryId) &&
+        (budgetsLoading || Boolean(budgetLookupError) || availableBudgets.length > 0),
       rateUpdatedAt,
     },
-    setType,
-    setAmountStr,
-    handleNumpad,
-    setDate: (v: string) => form.setValue('date', v),
-    setNote: (v: string) => form.setValue('note', v),
-    setExchangeRate: (v: string) => form.setValue('exchangeRate', v),
+    setType: (nextType: TransactionType) => {
+      clearError();
+      setType(nextType);
+    },
+    setAmountStr: (value: string) => {
+      clearError();
+      setAmountStr(value);
+    },
+    handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => {
+      clearError();
+      handleNumpad(action, value);
+    },
+    setDate: (v: string) => {
+      clearError();
+      form.setValue('date', v);
+    },
+    setNote: (v: string) => {
+      clearError();
+      form.setValue('note', v);
+    },
+    setExchangeRate: (v: string) => {
+      clearError();
+      form.setValue('exchangeRate', v);
+    },
     toggleRateOverride,
     setShowAccountPicker,
     setShowToPicker,
@@ -508,6 +562,7 @@ export function useAddTransaction(onClose: () => void) {
     selectToAccount,
     selectCategory,
     selectBudget,
+    retryBudgetLookup,
     handleSave: form.handleSubmit(onValid),
   };
 }

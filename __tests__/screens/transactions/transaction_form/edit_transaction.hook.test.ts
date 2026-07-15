@@ -118,10 +118,52 @@ describe('useEditTransaction', () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
 
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    expect(result.current.state.showBudgetField).toBe(true);
     await act(async () => result.current.handleSave());
 
     expect(updateTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
+  });
+
+  it('blocks save, preserves assignment, and exposes retry when budget lookup fails', async () => {
+    const assignedTx = { ...mockTxExpense, budget_id: 'b1' };
+    useEditTransactionStore.getState().loadFromTx(assignedTx);
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockResolvedValueOnce([mockBudget('b1')]);
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
+
+    await waitFor(() => expect(result.current.state.errors.budget).toBeDefined());
+    expect(result.current.state.budgetId).toBe('b1');
+    expect(result.current.state.showBudgetField).toBe(true);
+    await act(async () => result.current.handleSave());
+    expect(updateTx).not.toHaveBeenCalled();
+
+    act(() => result.current.retryBudgetLookup());
+    expect(result.current.state.errors.budget).toBeUndefined();
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
+  });
+
+  it('shows a save error and preserves edits after update rejection', async () => {
+    const updateTx = jest.fn().mockRejectedValue(new Error('write failed'));
+    const onClose = jest.fn();
+    const onSaved = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, onClose, onSaved));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    act(() => result.current.setNote('keep this edit'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errorMessage).toBe(
+      'Could not save this transaction. Please try again.',
+    );
+    expect(result.current.state.note).toBe('keep this edit');
+    expect(onClose).not.toHaveBeenCalled();
+    expect(onSaved).not.toHaveBeenCalled();
   });
 
   it('initializes amount, category, note, date from the loaded tx', async () => {

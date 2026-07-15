@@ -83,6 +83,32 @@ describe('useBudgetStore — 50/30/20 extensions', () => {
     expect(store.getState().expectedIncome).toBe(30000);
   });
 
+  it('setExpectedIncome reloads the selected past month', async () => {
+    const { lastMonths } = jest.requireMock('@/modules/budget/repositories/budget.repository') as {
+      lastMonths: jest.Mock;
+    };
+    const store = createBudgetStore(makeRepo());
+    store.getState().setData([], {}, {}, null, [], {}, '2026-03');
+
+    await store.getState().setExpectedIncome(30000);
+
+    expect(lastMonths).toHaveBeenLastCalledWith('2026-03', 12);
+    expect(store.getState().loadedMonth).toBe('2026-03');
+  });
+
+  it('setExpectedIncome reloads the selected future month', async () => {
+    const { lastMonths } = jest.requireMock('@/modules/budget/repositories/budget.repository') as {
+      lastMonths: jest.Mock;
+    };
+    const store = createBudgetStore(makeRepo());
+    store.getState().setData([], {}, {}, null, [], {}, '2026-09');
+
+    await store.getState().setExpectedIncome(30000);
+
+    expect(lastMonths).toHaveBeenLastCalledWith('2026-09', 12);
+    expect(store.getState().loadedMonth).toBe('2026-09');
+  });
+
   it('setLimit delegates to budgetRepository then reloads', async () => {
     const { budgetRepository } = jest.requireMock(
       '@/modules/budget/repositories/budget.repository',

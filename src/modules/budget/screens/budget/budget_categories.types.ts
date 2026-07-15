@@ -42,6 +42,7 @@ export interface CategoryBudgetRowVM {
 
 export interface BudgetCategoriesSummaryVM {
   hasPlan: boolean;
+  emptyLabel: string | undefined;
   planned: number;
   spent: number;
   left: number;

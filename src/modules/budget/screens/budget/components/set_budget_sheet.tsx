@@ -53,18 +53,23 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   );
   const close = useBudgetState.getState().close;
   const setBudget = useBudgetStore.getState().setBudget;
-  const { selectedCategoryId, pickerExpanded, groupValue } = useSetBudgetSheetState(
-    useShallow((s) => ({
-      selectedCategoryId: s.selectedCategoryId,
-      pickerExpanded: s.pickerExpanded,
-      groupValue: s.groupValue,
-    })),
-  );
+  const { selectedCategoryId, pickerExpanded, groupValue, saving, errorMessage } =
+    useSetBudgetSheetState(
+      useShallow((s) => ({
+        selectedCategoryId: s.selectedCategoryId,
+        pickerExpanded: s.pickerExpanded,
+        groupValue: s.groupValue,
+        saving: s.saving,
+        errorMessage: s.errorMessage,
+      })),
+    );
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
   const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
   const setGroupValue = useSetBudgetSheetState.getState().setGroupValue;
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
+  const clearError = useSetBudgetSheetState.getState().clearError;
+  const runSave = useSetBudgetSheetState.getState().runSave;
   const reset = useSetBudgetSheetState.getState().reset;
 
   const isEdit = mode === 'edit';
@@ -113,18 +118,20 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
 
   const onSubmit = handleSubmit(async (values) => {
     if (!resolvedCategoryId) return;
-    await setBudget({
-      id: isEdit ? editingRow?.id : undefined,
-      categoryId: resolvedCategoryId,
-      name: values.nameText,
-      limit: parseLimit(values.limitText),
-      yearMonth: selectedMonth,
+    const saved = await runSave(async () => {
+      await setBudget({
+        id: isEdit ? editingRow?.id : undefined,
+        categoryId: resolvedCategoryId,
+        name: values.nameText,
+        limit: parseLimit(values.limitText),
+        yearMonth: selectedMonth,
+      });
+      if (!isEdit && groupValue !== null) {
+        const db = await getDb();
+        await setCategoryGroup(db, resolvedCategoryId, groupValue);
+      }
     });
-    if (!isEdit && groupValue !== null) {
-      const db = await getDb();
-      await setCategoryGroup(db, resolvedCategoryId, groupValue);
-    }
-    close();
+    if (saved) close();
   });
 
   return (
@@ -138,7 +145,13 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
         size="md"
         scrollable
         footer={
-          <Button variant="primary" label={Strings.budgetSaveCta} onPress={() => void onSubmit()} />
+          <Button
+            variant="primary"
+            label={Strings.budgetSaveCta}
+            isLoading={saving}
+            isDisabled={saving}
+            onPress={() => void onSubmit()}
+          />
         }
       >
         <BottomSheetScrollView
@@ -195,7 +208,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                 <View style={[styles.field, fieldState.error && styles.fieldError]}>
                   <Input
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => {
+                      clearError();
+                      onChange(text);
+                    }}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     placeholder={Strings.budgetNamePlaceholder}
@@ -221,7 +237,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                 <View style={[styles.field, fieldState.error && styles.fieldError]}>
                   <Input
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => {
+                      clearError();
+                      onChange(text);
+                    }}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     keyboardType="number-pad"
@@ -231,7 +250,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                     style={styles.input}
                     accessibilityLabel={Strings.budgetMonthlyLimitLabel}
                   />
-                  <Text style={styles.suffix}>EGP</Text>
+                  <Text style={styles.suffix}>{Strings.currencyEgp}</Text>
                 </View>
                 {fieldState.error && (
                   <Text style={styles.errorText}>{fieldState.error.message}</Text>
@@ -260,6 +279,9 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
               </RadioGroup>
             </>
           )}
+          {errorMessage ? (
+            <Text className="font-inter text-danger mt-2 text-sm font-medium">{errorMessage}</Text>
+          ) : null}
         </BottomSheetScrollView>
       </Sheet>
 

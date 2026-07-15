@@ -117,12 +117,63 @@ describe('useAddTransaction — named budget assignment', () => {
     act(() => result.current.setDate('2026-07-10'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    expect(result.current.state.showBudgetField).toBe(true);
     act(() => result.current.handleNumpad('digit', '5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());
 
     expect(addTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
+  });
+
+  it('blocks save and exposes retry when the budget lookup fails', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockResolvedValueOnce([]);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.setDate('2026-07-10'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.errors.budget).toBeDefined());
+
+    expect(result.current.state.showBudgetField).toBe(true);
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+    expect(addTx).not.toHaveBeenCalled();
+
+    act(() => result.current.retryBudgetLookup());
+    expect(result.current.state.errors.budget).toBeUndefined();
+    await waitFor(() =>
+      expect(budgetRepository.getBudgetsForCategoryMonth).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  it('does not write a completed budget lookup after unmount', async () => {
+    let resolveBudgets: (budgets: Budget[]) => void = () => {};
+    const pendingBudgets = new Promise<Budget[]>((resolve) => {
+      resolveBudgets = resolve;
+    });
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const setAvailableBudgets = jest.spyOn(
+      useAddTransactionStore.getState(),
+      'setAvailableBudgets',
+    );
+    const setBudgetsLoading = jest.spyOn(useAddTransactionState.getState(), 'setBudgetsLoading');
+    const { result, unmount } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    unmount();
+    setAvailableBudgets.mockClear();
+    setBudgetsLoading.mockClear();
+    await act(async () => resolveBudgets([mockBudget('b1', 'Monthly meals')]));
+
+    expect(setAvailableBudgets).not.toHaveBeenCalled();
+    expect(setBudgetsLoading).not.toHaveBeenCalled();
   });
 
   it('clears a stale budget selection while another month is loading', async () => {
@@ -187,6 +238,26 @@ describe('useAddTransaction — named budget assignment', () => {
 });
 
 describe('useAddTransaction — validation', () => {
+  it('shows a save error and preserves entered values after save rejection', async () => {
+    const addTx = jest.fn().mockRejectedValue(new Error('write failed'));
+    const onClose = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(onClose));
+
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errorMessage).toBe(
+      'Could not save this transaction. Please try again.',
+    );
+    expect(result.current.state.amountStr).toBe('5');
+    expect(result.current.state.categoryId).toBe('c1');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = renderHook(() => useAddTransaction(onClose));

@@ -52,11 +52,51 @@ describe('budget categories presentation architecture', () => {
   it('keeps parent progress circular and child rows aligned', () => {
     const parent = source('src/modules/budget/screens/budget/components/category_budget_row.tsx');
     const child = source('src/modules/budget/screens/budget/components/named_budget_row.tsx');
+    const unassigned = source(
+      'src/modules/budget/screens/budget/components/unassigned_spending_row.tsx',
+    );
 
     expect(parent).toContain('<BudgetRing');
     expect(parent).not.toContain('<BudgetBar');
-    expect(parent).toContain('w-[46px]');
-    expect(child).toContain('w-[46px]');
+    expect(parent).not.toContain('w-[46px]');
+    expect(child).not.toContain('w-[46px]');
+    expect(unassigned).not.toContain('w-[46px]');
+    expect(parent).toContain('width: ms(46)');
+    expect(child).toContain('width: ms(46)');
+    expect(unassigned).toContain('width: ms(46)');
     expect(child).toContain('size={ms(34)}');
+  });
+
+  it('keeps ledger controls accessible and explains unassigned spending', () => {
+    const parent = source('src/modules/budget/screens/budget/components/category_budget_row.tsx');
+    const child = source('src/modules/budget/screens/budget/components/named_budget_row.tsx');
+    const unassigned = source(
+      'src/modules/budget/screens/budget/components/unassigned_spending_row.tsx',
+    );
+
+    expect(parent).toContain('accessibilityState={{ expanded: props.isExpanded }}');
+    expect(child).toContain('minHeight: ms(44)');
+    expect(child).toContain('minWidth: ms(44)');
+    expect(child).toContain('width={ms(180)}');
+    expect(unassigned).toContain('Strings.budgetCategoriesUnassignedExplanation');
+  });
+
+  it('uses the centralized EGP label in transaction budget presentation', () => {
+    const picker = source(
+      'src/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet.tsx',
+    );
+
+    expect(picker).toContain('Strings.currencyEgp');
+    expect(picker).not.toMatch(/\} EGP/);
+  });
+
+  it('scales transaction form geometry passed through style and icon props', () => {
+    const form = source(
+      'src/modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx',
+    );
+
+    expect(form).not.toMatch(/size=\{18\}|gap: 8|padding: 16|paddingBottom: 24/);
+    expect(form).toContain('size={ms(18)}');
+    expect(form).toContain('gap: ms(8)');
   });
 });
