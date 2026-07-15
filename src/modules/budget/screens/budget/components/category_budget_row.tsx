@@ -58,8 +58,17 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                 >
                   {row.name}
                 </HeroText>
-                <Chip size="sm" variant="soft" color={row.statusChipColor} className="h-5 py-0">
+                <Chip
+                  size="sm"
+                  variant="soft"
+                  color={row.statusChipColor}
+                  className="h-5 py-0"
+                  style={{ flexShrink: 0 }}
+                  accessibilityRole="text"
+                  accessibilityLabel={row.statusLabel}
+                >
                   <Chip.Label
+                    numberOfLines={1}
                     style={{ color: row.ringColor, fontSize: Type.chipMeta }}
                     className="font-inter font-bold uppercase"
                   >

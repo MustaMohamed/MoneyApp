@@ -183,4 +183,36 @@ describe('budget categories components', () => {
     fireEvent.press(getByText(Strings.swipeDelete));
     expect(onDelete).toHaveBeenCalledWith({ id: 'meals', name: 'Monthly meals' });
   });
+
+  it('keeps the complete category status visible in a constrained header row', () => {
+    const { getByLabelText, getByText } = render(
+      <CategoryBudgetRow
+        row={categoryRow}
+        isExpanded={false}
+        onExpandedChange={jest.fn()}
+        onViewDetails={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(getByText('On track')).toHaveProp('numberOfLines', 1);
+    expect(getByLabelText('On track')).toHaveStyle({ flexShrink: 0 });
+  });
+
+  it('keeps the complete named-budget share visible in a constrained row', () => {
+    const { getByLabelText, getByText } = render(
+      <CategoryBudgetRow
+        row={categoryRow}
+        isExpanded
+        onExpandedChange={jest.fn()}
+        onViewDetails={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(getByText('100% of category')).toHaveProp('numberOfLines', 1);
+    expect(getByLabelText('100% of category')).toHaveStyle({ flexShrink: 0 });
+  });
 });

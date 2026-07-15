@@ -47,8 +47,17 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             >
               {budget.name}
             </HeroText>
-            <Chip size="sm" variant="soft" color="default" className="h-5 py-0">
+            <Chip
+              size="sm"
+              variant="soft"
+              color="default"
+              className="h-5 py-0"
+              style={{ flexShrink: 0 }}
+              accessibilityRole="text"
+              accessibilityLabel={budget.shareLabel}
+            >
               <Chip.Label
+                numberOfLines={1}
                 style={{ fontSize: Type.chipMeta }}
                 className="font-inter text-info font-semibold"
               >
