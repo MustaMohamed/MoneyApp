@@ -1,6 +1,6 @@
 import uuid from 'react-native-uuid';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import {
@@ -32,7 +32,7 @@ import type {
   SpendingPlanCategory,
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
-import { getCategoriesByType } from '@/modules/categories/database/categories';
+import { getCategoriesByType, setCategoryGroup } from '@/modules/categories/database/categories';
 import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
 export function currentYearMonth(now: Date = new Date()): string {
@@ -75,6 +75,7 @@ export interface SetBudgetInput {
   name: string;
   limit: number;
   yearMonth?: string;
+  categoryGroup?: BudgetGroup;
 }
 
 export type SetSpendingPlanInput = SpendingPlanInput;
@@ -152,18 +153,22 @@ export class BudgetRepository implements IBudgetRepository {
     const db = await getDb();
     const now = new Date().toISOString();
     const yearMonth = input.yearMonth ?? currentYearMonth();
-    const existing = input.id
-      ? (await getBudgetRows(db)).find((row) => row.id === input.id)
-      : undefined;
+    const id = input.id ?? String(uuid.v4());
 
-    await setBudgetRow(db, {
-      id: input.id ?? String(uuid.v4()),
-      category_id: input.categoryId,
-      name: normalizeBudgetName(input.name),
-      limit_amount: input.limit,
-      effective_from: yearMonth,
-      created_at: existing?.created_at ?? now,
-      updated_at: now,
+    await db.withExclusiveTransactionAsync(async (tx) => {
+      const existing = input.id ? await getBudgetRowById(tx, input.id) : undefined;
+      await setBudgetRow(tx, {
+        id,
+        category_id: input.categoryId,
+        name: normalizeBudgetName(input.name),
+        limit_amount: input.limit,
+        effective_from: yearMonth,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      });
+      if (input.categoryGroup !== undefined) {
+        await setCategoryGroup(tx, input.categoryId, input.categoryGroup);
+      }
     });
   }
 

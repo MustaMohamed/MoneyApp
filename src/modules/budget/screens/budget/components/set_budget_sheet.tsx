@@ -12,14 +12,13 @@ import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { getDb } from '@/database/client';
 import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import { setCategoryGroup } from '@/modules/categories/database/categories';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { budgetFormSchema, parseLimit, type BudgetFormValues } from '@/utils/schemas/budget.schema';
@@ -53,6 +52,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   );
   const close = useBudgetState.getState().close;
   const setBudget = useBudgetStore.getState().setBudget;
+  const loadCategories = useCategoryStore.getState().loadCategories;
   const { selectedCategoryId, pickerExpanded, groupValue, saving, errorMessage } =
     useSetBudgetSheetState(
       useShallow((s) => ({
@@ -125,11 +125,9 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
         name: values.nameText,
         limit: parseLimit(values.limitText),
         yearMonth: selectedMonth,
+        categoryGroup: !isEdit && groupValue !== null ? groupValue : undefined,
       });
-      if (!isEdit && groupValue !== null) {
-        const db = await getDb();
-        await setCategoryGroup(db, resolvedCategoryId, groupValue);
-      }
+      await loadCategories().catch(() => undefined);
     });
     if (saved) close();
   });

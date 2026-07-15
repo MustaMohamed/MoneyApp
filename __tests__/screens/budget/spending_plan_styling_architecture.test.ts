@@ -59,11 +59,19 @@ describe('spending plan presentation styling', () => {
     const planSummary = source(
       'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
     );
+    const summaryParts = source(
+      'src/modules/budget/screens/budget/components/budget_summary_parts.tsx',
+    );
 
     expect(planCard).not.toContain('text-[7.5px]');
     expect(planSummary).not.toContain('text-[7.5px]');
     expect(planCard).toContain('text-[19px]');
-    expect(planSummary).toContain('text-[31px]');
+    expect(summaryParts).toContain('fontSize: Type.summary');
+    expect(summaryParts).toContain('fontSize: Type.bodyStrong');
+    expect(summaryParts).toContain('fontSize: Type.detail');
+    expect(summaryParts).toContain('fontSize: Type.meta');
+    expect(summaryParts).toContain('letterSpacing: LetterSpacing.eyebrow');
+    expect(planSummary).not.toMatch(/text-\[[\d.]+px\]/);
   });
 
   it('keeps detail typography aligned with the overview hierarchy', () => {
@@ -106,6 +114,9 @@ describe('spending plan presentation styling', () => {
     const summary = source(
       'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
     );
+    const summaryParts = source(
+      'src/modules/budget/screens/budget/components/budget_summary_parts.tsx',
+    );
     const overviewSkeleton = source(
       'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
     );
@@ -113,7 +124,7 @@ describe('spending plan presentation styling', () => {
       'src/modules/budget/screens/budget/spending_plan_detail/components/spending_plan_detail_skeleton.tsx',
     );
 
-    expect(summary).toContain('className="mt-1.5 flex-row items-center"');
+    expect(summaryParts).toContain('className="mt-1.5 flex-row items-center"');
     expect(summary).not.toContain('w-1/2');
     expect(overviewSkeleton).toContain("import { Card, SkeletonGroup } from 'heroui-native'");
     expect(overviewSkeleton).not.toContain('plansStyles');

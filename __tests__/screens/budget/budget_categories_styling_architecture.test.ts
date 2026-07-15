@@ -27,12 +27,12 @@ describe('budget categories presentation architecture', () => {
       expect(text).not.toContain('StyleSheet');
     }
 
-    expect(source('src/modules/budget/screens/budget/components/summary_card.tsx')).toContain(
-      "import { Card, PressableFeedback } from 'heroui-native'",
-    );
-    expect(source('src/modules/budget/screens/budget/components/summary_card.tsx')).toContain(
-      "import { Text } from '@/components/ui/text'",
-    );
+    expect(
+      source('src/modules/budget/screens/budget/components/budget_summary_parts.tsx'),
+    ).toContain("import { Chip, PressableFeedback } from 'heroui-native'");
+    expect(
+      source('src/modules/budget/screens/budget/components/budget_summary_parts.tsx'),
+    ).toContain("import { Text } from '@/components/ui/text'");
     expect(
       source('src/modules/budget/screens/budget/components/category_budget_row.tsx'),
     ).toContain(
@@ -64,10 +64,10 @@ describe('budget categories presentation architecture', () => {
     expect(parent).not.toContain('w-[46px]');
     expect(child).not.toContain('w-[46px]');
     expect(unassigned).not.toContain('w-[46px]');
-    expect(parent).toContain('width: ms(46)');
-    expect(child).toContain('width: ms(46)');
-    expect(unassigned).toContain('width: ms(46)');
-    expect(child).toContain('size={ms(34)}');
+    expect(parent).toContain('width: Size.budgetCategoryColumn');
+    expect(child).toContain('width: Size.budgetCategoryColumn');
+    expect(unassigned).toContain('width: Size.budgetCategoryColumn');
+    expect(child).toContain('size={Size.budgetNamedRing}');
   });
 
   it('keeps ledger controls accessible and explains unassigned spending', () => {
@@ -80,8 +80,8 @@ describe('budget categories presentation architecture', () => {
     expect(parent).toContain('accessibilityState={{ expanded: props.isExpanded }}');
     expect(child).not.toMatch(/return \(\s*<View\s+accessible/);
     expect(child).toContain('accessibilityLabel={budget.accessibilityLabel}');
-    expect(child).toContain('minHeight: ms(44)');
-    expect(child).toContain('minWidth: ms(44)');
+    expect(child).toContain('minHeight: TouchSize.min');
+    expect(child).toContain('minWidth: TouchSize.min');
     expect(unassigned).toContain('Strings.budgetCategoriesUnassignedExplanation');
   });
 
@@ -100,6 +100,12 @@ describe('budget categories presentation architecture', () => {
 
   it('matches the plans summary hierarchy in loaded and loading states', () => {
     const summary = source('src/modules/budget/screens/budget/components/summary_card.tsx');
+    const plansSummary = source(
+      'src/modules/budget/screens/budget/components/spending_plans_summary.tsx',
+    );
+    const summaryParts = source(
+      'src/modules/budget/screens/budget/components/budget_summary_parts.tsx',
+    );
     const skeleton = source(
       'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
     );
@@ -108,16 +114,29 @@ describe('budget categories presentation architecture', () => {
     );
 
     expect(summary).toContain('<Card.Body className="px-2 py-1.5">');
-    expect(summary).toContain('text-[13px] font-semibold tracking-[0.3px] uppercase');
-    expect(summary).toContain('text-[31px] font-bold');
-    expect(summary).toContain('text-[15px] font-semibold');
-    expect(summary).toContain(
+    expect(summary).toContain('<BudgetSummaryMetricsRow');
+    expect(summary).not.toMatch(/text-\[[\d.]+px\]/);
+    expect(summary).not.toContain('const content = (');
+    expect(summary).toContain('<BudgetSummaryHeader');
+    expect(summary).toContain('<BudgetSummarySpentRow');
+    expect(summary).toContain('<BudgetSummaryStatusRow');
+    expect(summary).toContain('trailingLabel={summary.lifecycleLabel}');
+    expect(plansSummary).toContain('<BudgetSummaryHeader');
+    expect(plansSummary).toContain('<BudgetSummarySpentRow');
+    expect(plansSummary).toContain('<BudgetSummaryStatusRow');
+    expect(plansSummary).toContain('trailingChipLabel={');
+    expect(summaryParts).toContain('fontSize: Type.bodyStrong');
+    expect(summaryParts).toContain('fontSize: Type.detail');
+    expect(summaryParts).toContain('fontSize: Type.meta');
+    expect(summaryParts).toContain('fontSize: Type.summary');
+    expect(summaryParts).toContain('letterSpacing: LetterSpacing.eyebrow');
+    expect(summaryParts).toContain(
       'className="border-border mt-1.5 flex-row items-stretch border-t pt-1"',
     );
-    expect(summary).toContain('className="mt-1.5 flex-row items-center"');
-    expect(summary).not.toContain('text-[9px]');
-    expect(summary).not.toContain('const content = (');
-    expect(summary).toContain('const metricClassName =');
+    expect(summaryParts).toContain('className="mt-1.5 flex-row items-center"');
+    expect(summaryParts).toContain('const metricClassName =');
+    expect(summaryParts).not.toContain('adjustsFontSizeToFit');
+    expect(summaryParts).not.toContain('minimumFontScale');
     expect(skeleton).toContain('testID="categories-summary-skeleton"');
     expect(
       skeleton.match(

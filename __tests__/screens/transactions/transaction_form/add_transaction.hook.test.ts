@@ -117,13 +117,14 @@ describe('useAddTransaction — named budget assignment', () => {
     act(() => result.current.setDate('2026-07-10'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
-    expect(result.current.state.showBudgetField).toBe(true);
+    expect(result.current.state.showBudgetField).toBe(false);
     act(() => result.current.handleNumpad('digit', '5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());
 
     expect(addTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
+    expect(result.current.state.showBudgetField).toBe(false);
   });
 
   it('blocks save and exposes retry when the budget lookup fails', async () => {

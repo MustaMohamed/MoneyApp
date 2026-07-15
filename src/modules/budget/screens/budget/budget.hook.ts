@@ -36,10 +36,11 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
 export function useBudget() {
   const router = useRouter();
 
-  const { categories, categoriesLoaded } = useCategoryStore(
+  const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
     useShallow((s) => ({
       categories: s.categories,
       categoriesLoaded: s.hasLoaded,
+      categoryLoadError: s.loadError,
     })),
   );
   const loadCategories = useCategoryStore.getState().loadCategories;
@@ -129,7 +130,7 @@ export function useBudget() {
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(() => {
-        void loadCategories();
+        void loadCategories().catch(() => undefined);
         void load(selectedMonth);
         void loadIncomeSuggestion(selectedMonth);
       });
@@ -361,7 +362,7 @@ export function useBudget() {
       copySheetVisible,
       copySelectedBudgetIds,
       refreshing,
-      loadError,
+      loadError: loadError || categoryLoadError,
       expandedCategoryId,
       hasLoaded: Boolean(
         categoriesLoaded &&

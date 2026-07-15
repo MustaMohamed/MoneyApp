@@ -4,13 +4,12 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Colors, Size, Spacing, Type } from '@/constants/theme';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
 import { NamedBudgetRow } from '@/modules/budget/screens/budget/components/named_budget_row';
 import { UnassignedSpendingRow } from '@/modules/budget/screens/budget/components/unassigned_spending_row';
 import { toIconName } from '@/utils/icon_name_guard';
-import { ms } from '@/utils/responsive';
 
 export interface CategoryBudgetRowProps {
   row: CategoryBudgetRowVM;
@@ -38,14 +37,14 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
           accessibilityLabel={row.accessibilityLabel}
           accessibilityState={{ expanded: props.isExpanded }}
           className="gap-0 px-4 py-2"
-          style={{ paddingHorizontal: ms(16), paddingVertical: ms(8), gap: 0 }}
+          style={{ paddingHorizontal: Spacing.md, paddingVertical: Spacing.xs, gap: 0 }}
         >
           <View className="flex-row items-center gap-2.5" style={{ flex: 1 }}>
-            <View className="items-center" style={{ width: ms(46) }}>
-              <BudgetRing pct={row.usedPct} color={row.ringColor} size={ms(42)}>
+            <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
+              <BudgetRing pct={row.usedPct} color={row.ringColor} size={Size.budgetCategoryRing}>
                 <MaterialCommunityIcons
                   name={toIconName(row.icon, 'tag-outline')}
-                  size={ms(17)}
+                  size={Size.iconXs}
                   color={row.color}
                 />
               </BudgetRing>
@@ -54,38 +53,39 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
               <View className="flex-row items-center gap-1.5">
                 <HeroText
                   numberOfLines={1}
-                  className="font-sora text-foreground shrink text-[14px] font-semibold"
+                  style={{ fontSize: Type.body }}
+                  className="font-sora text-foreground shrink font-semibold"
                 >
                   {row.name}
                 </HeroText>
                 <Chip size="sm" variant="soft" color={row.statusChipColor} className="h-5 py-0">
                   <Chip.Label
-                    style={{ color: row.ringColor }}
-                    className="font-inter text-[8px] font-bold uppercase"
+                    style={{ color: row.ringColor, fontSize: Type.chipMeta }}
+                    className="font-inter font-bold uppercase"
                   >
                     {row.statusLabel}
                   </Chip.Label>
                 </Chip>
               </View>
-              <HeroText className="font-inter text-muted mt-0.5 text-[10px]">
+              <HeroText style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
                 {row.spentPlannedUsedLabel}
               </HeroText>
             </View>
             <View className="items-end">
               <HeroText
-                style={{ color: row.ringColor }}
-                className="font-sora text-[15px] font-bold"
+                style={{ color: row.ringColor, fontSize: Type.bodyStrong }}
+                className="font-sora font-bold"
               >
                 {row.balanceAmountLabel}
               </HeroText>
-              <HeroText className="font-inter text-muted text-[9px]">
+              <HeroText style={{ fontSize: Type.chip }} className="font-inter text-muted">
                 {row.balanceMetaLabel}
               </HeroText>
             </View>
             <Accordion.Indicator isAnimatedStyleActive={false}>
               <MaterialCommunityIcons
                 name={props.isExpanded ? 'chevron-up' : 'chevron-down'}
-                size={ms(17)}
+                size={Size.iconXs}
                 color={Colors.dark.text2}
               />
             </Accordion.Indicator>
@@ -109,19 +109,26 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             onPress={() => props.onViewDetails(row.categoryId)}
             className="min-h-11 flex-row items-center gap-2 px-4"
           >
-            <View className="items-center" style={{ width: ms(46) }}>
+            <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
               <View className="border-accent/30 bg-accent/10 h-8 w-8 items-center justify-center rounded-full border">
                 <MaterialCommunityIcons
                   name="chart-box-outline"
-                  size={ms(16)}
+                  size={Size.iconXs}
                   color={Colors.dark.gold}
                 />
               </View>
             </View>
-            <HeroText className="font-inter text-accent flex-1 text-[11px] font-semibold">
+            <HeroText
+              style={{ fontSize: Type.micro }}
+              className="font-inter text-accent flex-1 font-semibold"
+            >
               {Strings.budgetViewCategoryDetails(row.name)}
             </HeroText>
-            <MaterialCommunityIcons name="chevron-right" size={ms(16)} color={Colors.dark.gold} />
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={Size.iconXs}
+              color={Colors.dark.gold}
+            />
           </PressableFeedback>
         </Accordion.Content>
       </Accordion.Item>

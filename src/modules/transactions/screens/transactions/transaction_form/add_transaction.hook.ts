@@ -526,7 +526,7 @@ export function useAddTransaction(onClose: () => void) {
       showBudgetField:
         type === TransactionType.Expense &&
         Boolean(categoryId) &&
-        (budgetsLoading || Boolean(budgetLookupError) || availableBudgets.length > 0),
+        (Boolean(budgetLookupError) || availableBudgets.length > 0),
       rateUpdatedAt,
     },
     setType: (nextType: TransactionType) => {

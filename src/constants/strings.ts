@@ -208,6 +208,7 @@ export const Strings = {
   budgetCategoryCountLabel: (count: number) => (count === 1 ? '1 category' : `${count} categories`),
   budgetCategoriesSummaryEyebrow: (count: number, month: string) =>
     `${count} ${count === 1 ? 'category budget' : 'category budgets'} in ${month}`,
+  budgetSummarySpentOfConnector: 'spent of',
   budgetCategoriesSummarySpentOf: (spent: string, planned: string) =>
     `${spent} spent of ${planned}`,
   budgetCategoriesSummaryUsed: (percentage: number) => `${percentage}% used`,

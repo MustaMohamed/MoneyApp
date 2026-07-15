@@ -118,11 +118,12 @@ describe('useEditTransaction', () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
 
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
-    expect(result.current.state.showBudgetField).toBe(true);
+    expect(result.current.state.showBudgetField).toBe(false);
     await act(async () => result.current.handleSave());
 
     expect(updateTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
+    expect(result.current.state.showBudgetField).toBe(false);
   });
 
   it('blocks save, preserves assignment, and exposes retry when budget lookup fails', async () => {

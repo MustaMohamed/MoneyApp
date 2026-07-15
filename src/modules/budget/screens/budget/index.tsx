@@ -139,7 +139,15 @@ export default function BudgetScreen() {
           contentContainerStyle={{ paddingBottom: ms(96) }}
           refreshControl={refreshControl}
         >
-          <BudgetScreenSkeleton variant={state.lensTab === 'plans' ? 'plans' : 'categories'} />
+          <BudgetScreenSkeleton
+            variant={state.lensTab}
+            preserveLayout={state.refreshing}
+            categorySummaryHasPlan={state.categoriesSummary.hasPlan}
+            categoryRows={state.rows}
+            expandedCategoryId={state.expandedCategoryId}
+            planRowCount={state.spendingPlanRows.length}
+            bucketsHaveIncome={state.buckets.hasIncome}
+          />
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
         <ScreenScroll

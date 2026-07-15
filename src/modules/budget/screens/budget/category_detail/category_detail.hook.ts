@@ -29,12 +29,21 @@ export function useCategoryDetail() {
   const currentMonth = currentYearMonth();
   const month = validRouteMonth ?? (storedMonth === currentMonth ? storedMonth : currentMonth);
 
-  const categories = useCategoryStore.useState.categories();
+  const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
+    useShallow((s) => ({
+      categories: s.categories,
+      categoriesLoaded: s.hasLoaded,
+      categoryLoadError: s.loadError,
+    })),
+  );
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth } = useBudgetStore(
+  const { budgetRows, spendByMonth, budgetLoaded, loadedMonth, loadError } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
+      budgetLoaded: s.loaded,
+      loadedMonth: s.loadedMonth,
+      loadError: s.loadError,
     })),
   );
   const load = useBudgetStore.getState().load;
@@ -44,15 +53,16 @@ export function useCategoryDetail() {
     useCallback(() => {
       const selectedMonth = validRouteMonth ?? currentYearMonth();
       setMonth(selectedMonth);
-      void loadCategories();
+      void loadCategories().catch(() => undefined);
       void load(selectedMonth);
     }, [loadCategories, load, setMonth, validRouteMonth]),
   );
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
+  const hasLoaded = categoriesLoaded && budgetLoaded && loadedMonth === month;
 
   const results: MonthResultVM[] = useMemo(() => {
-    if (!id) return [];
+    if (!hasLoaded || !id) return [];
     const months = lastMonths(month, HISTORY_MONTHS);
     const actualCurrentMonth = currentYearMonth();
     const out: MonthResultVM[] = [];
@@ -77,7 +87,7 @@ export function useCategoryDetail() {
       });
     }
     return out;
-  }, [budgetRows, id, month, spendByMonth]);
+  }, [budgetRows, hasLoaded, id, month, spendByMonth]);
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
   const liveMonth = useMemo(() => results.find((r) => r.yearMonth === month), [results, month]);
@@ -105,8 +115,14 @@ export function useCategoryDetail() {
       history,
       daysLeft,
       month,
+      hasLoaded,
+      loadError: !hasLoaded && (loadError || categoryLoadError),
     },
     goBack: () => router.back(),
+    retry: () => {
+      void loadCategories().catch(() => undefined);
+      void load(month);
+    },
     editBudget: () => {
       if (!editableBudgetId) return;
       router.back();

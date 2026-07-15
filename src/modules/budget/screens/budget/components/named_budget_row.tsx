@@ -3,10 +3,9 @@ import { Chip, Menu, PressableFeedback, Text as HeroText } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Colors, Size } from '@/constants/theme';
+import { Colors, Size, TouchSize, Type } from '@/constants/theme';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetRing } from '@/modules/budget/screens/budget/components/budget_ring';
-import { ms } from '@/utils/responsive';
 
 interface NamedBudgetRowProps {
   budget: NamedBudgetVM;
@@ -23,14 +22,17 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
         className="flex-row items-center gap-2"
         style={{ flex: 1 }}
       >
-        <View className="items-center" style={{ width: ms(46) }}>
+        <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
           <BudgetRing
             pct={budget.usedPct ?? 0}
             color={budget.ringColor}
-            size={ms(34)}
-            stroke={ms(3)}
+            size={Size.budgetNamedRing}
+            stroke={Size.budgetRingStroke}
           >
-            <HeroText className="font-inter text-foreground text-[8px] font-bold">
+            <HeroText
+              style={{ fontSize: Type.chipMeta }}
+              className="font-inter text-foreground font-bold"
+            >
               {budget.usedLabel}
             </HeroText>
           </BudgetRing>
@@ -40,26 +42,33 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
           <View className="flex-row items-center gap-1.5">
             <HeroText
               numberOfLines={1}
-              className="font-sora text-foreground shrink text-[12px] font-semibold"
+              style={{ fontSize: Type.caption }}
+              className="font-sora text-foreground shrink font-semibold"
             >
               {budget.name}
             </HeroText>
             <Chip size="sm" variant="soft" color="default" className="h-5 py-0">
-              <Chip.Label className="font-inter text-info text-[8px] font-semibold">
+              <Chip.Label
+                style={{ fontSize: Type.chipMeta }}
+                className="font-inter text-info font-semibold"
+              >
                 {budget.shareLabel}
               </Chip.Label>
             </Chip>
           </View>
-          <HeroText className="font-inter text-muted mt-0.5 text-[10px]">
+          <HeroText style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
             {budget.spentPlannedLabel}
           </HeroText>
         </View>
 
         <View className="min-w-12 items-end">
-          <HeroText style={{ color: budget.ringColor }} className="font-sora text-[13px] font-bold">
+          <HeroText
+            style={{ color: budget.ringColor, fontSize: Type.meta }}
+            className="font-sora font-bold"
+          >
             {budget.balanceAmountLabel}
           </HeroText>
-          <HeroText className="font-inter text-muted text-[8px]">
+          <HeroText style={{ fontSize: Type.chipMeta }} className="font-inter text-muted">
             {budget.balanceMetaLabel}
           </HeroText>
         </View>
@@ -71,9 +80,13 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             accessibilityLabel={budget.menuAccessibilityLabel}
             accessibilityRole="button"
             className="items-center justify-center"
-            style={{ minHeight: ms(44), minWidth: ms(44) }}
+            style={{ minHeight: TouchSize.min, minWidth: TouchSize.min }}
           >
-            <MaterialCommunityIcons name="dots-vertical" size={ms(18)} color={Colors.dark.text2} />
+            <MaterialCommunityIcons
+              name="dots-vertical"
+              size={Size.iconSm}
+              color={Colors.dark.text2}
+            />
           </PressableFeedback>
         </Menu.Trigger>
         <Menu.Portal>

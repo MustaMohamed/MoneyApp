@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import type { SpendingPlan, SpendingPlanCategory } from '@/modules/budget/entities/budget.entity';
 import { BudgetRepository } from '@/modules/budget/repositories/budget.repository';
 
@@ -24,6 +24,7 @@ jest.mock('@/modules/budget/database/budget_stats', () => ({
 }));
 jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
+  getBudgetRowById: jest.fn().mockResolvedValue(null),
   getBudgetRows: jest.fn().mockResolvedValue([]),
   setBudgetRow: jest.fn().mockResolvedValue(undefined),
 }));
@@ -43,6 +44,7 @@ jest.mock('@/modules/categories/database/categories', () => ({
     { id: 'cat_food', type: 'expense' },
     { id: 'cat_travel', type: 'expense' },
   ]),
+  setCategoryGroup: jest.fn().mockResolvedValue(undefined),
 }));
 
 interface SpendingPlanWithCategories extends SpendingPlan {
@@ -95,6 +97,12 @@ const { getCategoriesByType } = jest.requireMock('@/modules/categories/database/
     [SQLiteDatabase, string]
   >;
 };
+const { setCategoryGroup } = jest.requireMock('@/modules/categories/database/categories') as {
+  setCategoryGroup: jest.Mock<Promise<void>, [SQLiteDatabase, string, BudgetGroup | null]>;
+};
+const { setBudgetRow } = jest.requireMock('@/modules/budget/database/budgets') as {
+  setBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, unknown]>;
+};
 
 const NOW = '2026-07-09T00:00:00.000Z';
 
@@ -133,6 +141,27 @@ beforeEach(() => {
 afterEach(() => jest.useRealTimers());
 
 describe('BudgetRepository spending plans', () => {
+  it('writes a budget and its category group in one exclusive transaction', async () => {
+    await new BudgetRepository().setBudget({
+      categoryId: 'cat_food',
+      name: 'Weekday meals',
+      limit: 1200,
+      yearMonth: '2026-07',
+      categoryGroup: BudgetGroup.Need,
+    });
+
+    expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    const transaction = mockWithExclusiveTransactionAsync.mock.calls[0]?.[0];
+    const transactionDb = {} as SQLiteDatabase;
+    setBudgetRow.mockClear();
+    setCategoryGroup.mockClear();
+
+    await transaction?.(transactionDb);
+
+    expect(setBudgetRow).toHaveBeenCalledWith(transactionDb, expect.anything());
+    expect(setCategoryGroup).toHaveBeenCalledWith(transactionDb, 'cat_food', BudgetGroup.Need);
+  });
+
   it('creates a plan with selected categories and allocations', async () => {
     await new BudgetRepository().setSpendingPlan({
       name: 'Alexandria weekend',
