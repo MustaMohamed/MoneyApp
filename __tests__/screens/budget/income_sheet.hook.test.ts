@@ -4,6 +4,20 @@ import { useIncomeSheet } from '@/modules/budget/screens/budget/components/incom
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 
+function deferred() {
+  let resolve: (() => void) | undefined;
+  let reject: ((reason?: unknown) => void) | undefined;
+  const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return {
+    promise,
+    resolve: () => resolve?.(),
+    reject: (reason?: unknown) => reject?.(reason),
+  };
+}
+
 beforeEach(() => {
   useIncomeSheetState.getState().reset();
 });
@@ -21,41 +35,60 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.isOpen).toBe(false);
   });
 
-  it('ignores a duplicate save while persistence is in flight', async () => {
-    const resolveSaves: Array<() => void> = [];
-    const setExpectedIncome = jest.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          resolveSaves.push(resolve);
-        }),
-    );
+  it('blocks close, reopen, and a new save until a successful save clears loading and closes', async () => {
+    const pendingSave = deferred();
+    const setExpectedIncome = jest.fn(() => pendingSave.promise);
     useBudgetStore.setState({ setExpectedIncome });
-    useIncomeSheetState.getState().open(null, 12000, '2026-07', 'July 2026');
+    useIncomeSheetState.getState().open(null, 12000, '2026-06', 'June 2026');
     const { result } = renderHook(() => useIncomeSheet());
 
-    let firstSave: Promise<void> | undefined;
-    let duplicateSave: Promise<void> | undefined;
+    let savePromise: Promise<void> | undefined;
     act(() => {
-      firstSave = result.current.save();
-      duplicateSave = result.current.save();
+      savePromise = result.current.save();
+      result.current.close();
+      useIncomeSheetState.getState().open(null, 9000, '2026-07', 'July 2026');
+      void result.current.save();
     });
 
     expect(setExpectedIncome).toHaveBeenCalledTimes(1);
+    expect(useIncomeSheetState.getState()).toMatchObject({
+      isOpen: true,
+      saving: true,
+      amountText: '12000',
+      yearMonth: '2026-06',
+    });
 
     await act(async () => {
-      resolveSaves.forEach((resolve) => resolve());
-      await Promise.all([firstSave, duplicateSave]);
+      pendingSave.resolve();
+      await savePromise;
     });
+
+    expect(useIncomeSheetState.getState().saving).toBe(false);
+    expect(useIncomeSheetState.getState().isOpen).toBe(false);
   });
 
-  it('shows an error and preserves the amount after persistence rejects', async () => {
-    const setExpectedIncome = jest.fn().mockRejectedValue(new Error('write failed'));
+  it('blocks stale transitions and preserves the original draft when a deferred save rejects', async () => {
+    const pendingSave = deferred();
+    const setExpectedIncome = jest.fn(() => pendingSave.promise);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, null, '2026-06', 'June 2026');
     const { result } = renderHook(() => useIncomeSheet());
 
     act(() => result.current.setAmountText('12000'));
-    await act(async () => result.current.save());
+    let savePromise: Promise<void> | undefined;
+    act(() => {
+      savePromise = result.current.save();
+      result.current.close();
+      useIncomeSheetState.getState().open(null, 9000, '2026-07', 'July 2026');
+      void result.current.save();
+    });
+
+    expect(setExpectedIncome).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      pendingSave.reject(new Error('write failed'));
+      await savePromise;
+    });
 
     expect(setExpectedIncome).toHaveBeenCalledWith('2026-06', 12000);
     expect(result.current.state.errorMessage).toBe(
@@ -63,6 +96,7 @@ describe('useIncomeSheet', () => {
     );
     expect(result.current.state.amountText).toBe('12000');
     expect(result.current.state.isOpen).toBe(true);
+    expect(result.current.state.saving).toBe(false);
     expect(result.current.state.yearMonth).toBe('2026-06');
     expect(result.current.state.monthLabel).toBe('June 2026');
   });

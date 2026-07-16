@@ -22,7 +22,7 @@ import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { toLocalDateString } from '@/utils/format_date';
+import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 export interface BudgetEditTargetVM extends NamedBudgetVM {
@@ -337,8 +337,13 @@ export function useBudget() {
   );
 
   const openIncomeSheet = useCallback(() => {
-    openIncomeSheetState(incomeSuggestion, expectedIncome);
-  }, [expectedIncome, incomeSuggestion, openIncomeSheetState]);
+    openIncomeSheetState(
+      incomeSuggestion,
+      expectedIncome,
+      selectedMonth,
+      formatMonthYear(selectedMonth),
+    );
+  }, [expectedIncome, incomeSuggestion, openIncomeSheetState, selectedMonth]);
 
   return {
     state: {

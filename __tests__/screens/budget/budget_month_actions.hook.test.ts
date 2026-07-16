@@ -2,6 +2,7 @@ import { act, renderHook } from '@testing-library/react-native';
 
 import { CategoryType } from '@/constants/enums';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import type { Category } from '@/modules/categories/entities/category.entity';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -81,7 +82,7 @@ let closeCopyMock: jest.Mock;
 let copyBudgetsToMonthMock: jest.Mock;
 let removeBudgetMock: jest.Mock;
 
-function setupStores() {
+function setupStores(selectedMonth = '2026-07') {
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
   copyBudgetsToMonthMock = jest.fn().mockResolvedValue(undefined);
@@ -113,7 +114,7 @@ function setupStores() {
     removeSpendingPlan: jest.fn(),
   }));
   attachMockSelectorStore(useBudgetState as jest.Mock, () => ({
-    selectedMonth: '2026-07',
+    selectedMonth,
     copySourceMonth: '2026-06',
     lensTab: 'categories',
     copySheetVisible: false,
@@ -137,10 +138,24 @@ function setupStores() {
 }
 
 beforeEach(() => {
+  useIncomeSheetState.getState().reset();
   setupStores();
 });
 
 describe('useBudget month actions', () => {
+  it('opens income editing with the explicitly selected past month', () => {
+    setupStores('2000-05');
+    const { result } = renderHook(() => useBudget());
+
+    act(() => result.current.openIncomeSheet());
+
+    expect(useIncomeSheetState.getState()).toMatchObject({
+      isOpen: true,
+      yearMonth: '2000-05',
+      monthLabel: 'May 2000',
+    });
+  });
+
   it('selects a month through Budget state and reloads that month', () => {
     const { result } = renderHook(() => useBudget());
 

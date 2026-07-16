@@ -30,10 +30,10 @@ export function useIncomeSheet() {
     setSaving(true);
     try {
       await setExpectedIncome(yearMonth, amount);
+      setSaving(false);
       close();
     } catch {
       setErrorMessage(Strings.incomeSheetSaveError);
-    } finally {
       setSaving(false);
     }
   }

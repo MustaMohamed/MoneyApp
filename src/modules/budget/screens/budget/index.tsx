@@ -219,7 +219,7 @@ export default function BudgetScreen() {
           contentContainerStyle={{ paddingBottom: ms(96) }}
           refreshControl={refreshControl}
         >
-          <FiftyThirtyTwentyLens vm={state.buckets} suggestion={state.suggestion} />
+          <FiftyThirtyTwentyLens vm={state.buckets} onEditIncome={openIncomeSheet} />
         </ScreenScroll>
       )}
 

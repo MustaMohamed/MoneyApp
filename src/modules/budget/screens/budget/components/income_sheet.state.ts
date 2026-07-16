@@ -1,7 +1,5 @@
 import { create } from 'zustand';
 
-import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
-import { formatMonthYear } from '@/utils/format_date';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface IncomeSheetStateShape {
@@ -18,8 +16,8 @@ type IncomeSheetState = IncomeSheetStateShape & {
   open: (
     suggestion: number | null,
     currentIncome: number | null,
-    yearMonth?: string,
-    monthLabel?: string,
+    yearMonth: string,
+    monthLabel: string,
   ) => void;
   close: () => void;
   setAmountText: (text: string) => void;
@@ -39,16 +37,16 @@ const INITIAL_STATE: IncomeSheetStateShape = {
 };
 
 export const useIncomeSheetState = createMoneyAppSelectors(
-  create<IncomeSheetState>((set) => ({
+  create<IncomeSheetState>((set, get) => ({
     ...INITIAL_STATE,
 
     open: (suggestion, currentIncome, yearMonth, monthLabel) => {
-      const resolvedYearMonth = yearMonth ?? currentYearMonth();
+      if (get().saving) return;
       set({
         isOpen: true,
         suggestion,
-        yearMonth: resolvedYearMonth,
-        monthLabel: monthLabel ?? formatMonthYear(resolvedYearMonth),
+        yearMonth,
+        monthLabel,
         saving: false,
         errorMessage: undefined,
         amountText:
@@ -60,7 +58,10 @@ export const useIncomeSheetState = createMoneyAppSelectors(
       });
     },
 
-    close: () => set({ isOpen: false, saving: false, errorMessage: undefined }),
+    close: () => {
+      if (get().saving) return;
+      set({ isOpen: false, errorMessage: undefined });
+    },
 
     setAmountText: (text) => set({ amountText: text, errorMessage: undefined }),
     setSaving: (saving) => set({ saving }),

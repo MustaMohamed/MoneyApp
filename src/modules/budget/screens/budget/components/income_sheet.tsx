@@ -1,7 +1,8 @@
-import { Input, Text as HeroText } from 'heroui-native';
+import { Text as HeroText } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
@@ -33,38 +34,39 @@ export function IncomeSheet() {
         <HeroText className="font-inter text-muted mb-4 text-[12px] leading-5">
           {Strings.incomeSheetDescription(state.monthLabel)}
         </HeroText>
-        <HeroText className="font-inter text-muted mb-2 text-[11px] font-medium">
-          {amountLabel}
-        </HeroText>
-        <View className="bg-background border-accent flex-row items-center rounded-lg border px-3 py-2">
-          <Input
-            value={state.amountText}
-            onChangeText={setAmountText}
-            onFocus={onFocus}
-            onBlur={onBlur}
-            editable={!state.saving}
-            keyboardType="number-pad"
-            placeholder={Strings.incomeSheetAmountPlaceholder}
-            placeholderColorClassName="text-muted"
-            className="font-sora text-foreground flex-1 border-0 bg-transparent p-0 text-[20px] font-bold"
-            accessibilityLabel={amountLabel}
-          />
-          <HeroText className="font-inter text-muted text-[13px] font-semibold">
-            {Strings.currencyEgp}
-          </HeroText>
-        </View>
-        {state.suggestion !== null && state.amountText === String(state.suggestion) ? (
-          <HeroText className="font-inter text-muted mt-2 text-[10px] italic">
-            {Strings.incomeSheetSuggestionNote}
-          </HeroText>
-        ) : null}
+        <Input
+          value={state.amountText}
+          onChangeText={setAmountText}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          keyboardType="number-pad"
+          placeholder={Strings.incomeSheetAmountPlaceholder}
+          placeholderColorClassName="text-muted"
+          label={amountLabel}
+          helperText={
+            state.suggestion !== null && state.amountText === String(state.suggestion)
+              ? Strings.incomeSheetSuggestionNote
+              : undefined
+          }
+          suffix={
+            <HeroText className="font-inter text-muted text-[13px] font-semibold">
+              {Strings.currencyEgp}
+            </HeroText>
+          }
+          isInvalid={state.errorMessage !== undefined}
+          errorMessage={state.errorMessage}
+          isDisabled={state.saving}
+          className="font-sora text-foreground text-[20px] font-bold"
+          accessibilityLabel={amountLabel}
+          accessibilityHint={state.errorMessage}
+        />
         {state.errorMessage ? (
-          <HeroText
+          <View
+            accessible
             accessibilityRole="alert"
-            className="font-inter text-danger mt-2 text-[11px] font-medium"
-          >
-            {state.errorMessage}
-          </HeroText>
+            accessibilityLiveRegion="assertive"
+            accessibilityLabel={state.errorMessage}
+          />
         ) : null}
       </View>
     </Sheet>

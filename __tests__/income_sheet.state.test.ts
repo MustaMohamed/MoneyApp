@@ -37,7 +37,7 @@ describe('useIncomeSheetState', () => {
   });
 
   it('close sets isOpen to false', () => {
-    useIncomeSheetState.getState().open(null, null);
+    useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
     useIncomeSheetState.getState().close();
     expect(useIncomeSheetState.getState().isOpen).toBe(false);
   });
@@ -54,12 +54,25 @@ describe('useIncomeSheetState', () => {
     expect(useIncomeSheetState.getState().errorMessage).toBe('Save failed');
   });
 
-  it('tracks and clears the save loading state', () => {
-    useIncomeSheetState.getState().open(null, null);
+  it('blocks close and reopen while saving', () => {
+    useIncomeSheetState.getState().open(null, null, '2026-06', 'June 2026');
+    useIncomeSheetState.getState().setAmountText('12000');
     useIncomeSheetState.getState().setSaving(true);
-    expect(useIncomeSheetState.getState().saving).toBe(true);
+
     useIncomeSheetState.getState().close();
-    expect(useIncomeSheetState.getState().saving).toBe(false);
+    useIncomeSheetState.getState().open(null, 9000, '2026-07', 'July 2026');
+
+    expect(useIncomeSheetState.getState()).toMatchObject({
+      isOpen: true,
+      saving: true,
+      amountText: '12000',
+      yearMonth: '2026-06',
+      monthLabel: 'June 2026',
+    });
+
+    useIncomeSheetState.getState().setSaving(false);
+    useIncomeSheetState.getState().close();
+    expect(useIncomeSheetState.getState().isOpen).toBe(false);
   });
 
   it('reset restores initial state', () => {

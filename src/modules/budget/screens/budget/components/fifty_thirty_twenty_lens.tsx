@@ -6,13 +6,11 @@ import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import type { BucketsVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import { BucketCard } from '@/modules/budget/screens/budget/components/bucket_card';
-import { IncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet';
-import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { ms } from '@/utils/responsive';
 
 interface FiftyThirtyTwentyLensProps {
   vm: BucketsVM;
-  suggestion: number | null;
+  onEditIncome: () => void;
   currency?: string;
 }
 
@@ -22,15 +20,9 @@ function formatAmount(amount: number, currency: string): string {
 
 export function FiftyThirtyTwentyLens({
   vm,
-  suggestion,
+  onEditIncome,
   currency = 'EGP',
 }: FiftyThirtyTwentyLensProps) {
-  const openIncomeSheet = useIncomeSheetState.getState().open;
-
-  const handleEditIncome = () => {
-    openIncomeSheet(suggestion, vm.hasIncome ? vm.income : null);
-  };
-
   return (
     <>
       <View style={styles.incomeHeader}>
@@ -40,7 +32,7 @@ export function FiftyThirtyTwentyLens({
               <Text style={styles.incomeCaption}>{Strings.budget5030MonthlyIncome}</Text>
               <Text style={styles.incomeAmount}>{formatAmount(vm.income, currency)}</Text>
             </View>
-            <Text style={styles.editLink} onPress={handleEditIncome} accessibilityRole="button">
+            <Text style={styles.editLink} onPress={onEditIncome} accessibilityRole="button">
               {Strings.budget5030EditIncome}
             </Text>
           </>
@@ -48,7 +40,7 @@ export function FiftyThirtyTwentyLens({
           <View style={styles.ctaCard}>
             <Text style={styles.ctaTitle}>{Strings.budget5030SetIncomeCta}</Text>
             <Text style={styles.ctaBody}>{Strings.budget5030SetIncomeCtaBody}</Text>
-            <Text style={styles.ctaAction} onPress={handleEditIncome} accessibilityRole="button">
+            <Text style={styles.ctaAction} onPress={onEditIncome} accessibilityRole="button">
               {Strings.budget5030SetIncomeCta}
             </Text>
           </View>
@@ -88,8 +80,6 @@ export function FiftyThirtyTwentyLens({
           </View>
         </>
       )}
-
-      <IncomeSheet />
     </>
   );
 }
