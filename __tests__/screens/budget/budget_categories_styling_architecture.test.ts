@@ -68,6 +68,9 @@ describe('budget categories presentation architecture', () => {
     expect(incomeSheet).toContain('suffix=');
     expect(incomeSheet).toContain('errorMessage={state.errorMessage}');
     expect(incomeSheet).toContain('isDisabled={state.saving}');
+    expect(incomeSheet).toContain('isDismissable={!state.saving}');
+    expect(incomeSheet).toContain('accessibilityLabel={amountAccessibilityLabel}');
+    expect(incomeSheet).toContain('`${amountLabel}, ${Strings.currencyEgp}`');
     expect(incomeSheet).toContain('accessibilityLiveRegion="assertive"');
     expect(incomeSheet).not.toContain('border-accent flex-row');
   });

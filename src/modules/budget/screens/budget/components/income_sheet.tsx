@@ -11,6 +11,7 @@ export function IncomeSheet() {
   const { state, close, setAmountText, save } = useIncomeSheet();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
   const amountLabel = Strings.incomeSheetAmountLabel(state.monthLabel);
+  const amountAccessibilityLabel = `${amountLabel}, ${Strings.currencyEgp}`;
 
   return (
     <Sheet
@@ -20,6 +21,7 @@ export function IncomeSheet() {
       }}
       title={Strings.incomeSheetTitle}
       size="sm"
+      isDismissable={!state.saving}
       footer={
         <Button
           variant="primary"
@@ -57,7 +59,7 @@ export function IncomeSheet() {
           errorMessage={state.errorMessage}
           isDisabled={state.saving}
           className="font-sora text-foreground text-[20px] font-bold"
-          accessibilityLabel={amountLabel}
+          accessibilityLabel={amountAccessibilityLabel}
           accessibilityHint={state.errorMessage}
         />
         {state.errorMessage ? (
