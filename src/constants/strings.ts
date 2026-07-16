@@ -484,6 +484,7 @@ export const Strings = {
   budget5030BreakdownSubtitle: 'Plan + recorded result',
   budget5030StatusIncomeNeeded: 'Income needed',
   budget5030SummaryIncomeNeeded: (group: string) => `${group} needs income`,
+  budget5030SummaryNoPlan: (group: string) => `${group} no plan`,
   budget5030StatusNoPlan: 'No plan yet',
   budget5030StatusWithinCap: 'Within cap',
   budget5030StatusOverCap: 'Over cap',
@@ -505,14 +506,15 @@ export const Strings = {
   budget5030ActualMetric: 'Actual',
   budget5030PlanShare: (percentage: number, group: string) => `${percentage}% of ${group} plan`,
   budget5030SpentOfPlanned: (spent: string, planned: string) => `${spent} / ${planned}`,
-  budget5030SpentPlannedMeta: 'spent / planned',
-  budget5030Unbudgeted: (spent: string) => `${spent} spent · unbudgeted`,
+  budget5030UnbudgetedMeta: 'unbudgeted',
   budget5030PlannedOnly: (planned: string) => `${planned} planned`,
   budget5030ManageGroup: (group: string) => `Manage ${group} budgets`,
   budget5030InsightIncomeNeeded: 'Set monthly income to calculate this rule target.',
   budget5030InsightNoPlan: (group: string) => `${group} has no planned budget yet.`,
-  budget5030InsightWithinCap: (group: string, amount: string) =>
-    `${group} has ${amount} EGP of room under its rule cap.`,
+  budget5030InsightRecordedBelowPlan: (group: string, amount: string) =>
+    `Recorded ${group} spending is ${amount} EGP below the amount planned so far.`,
+  budget5030InsightRecordedAbovePlan: (group: string, amount: string) =>
+    `Recorded ${group} spending is ${amount} EGP above the amount planned so far.`,
   budget5030InsightOverCap: (group: string, amount: string) =>
     `${group} is ${amount} EGP above its rule cap.`,
   budget5030InsightTargetMet: (amount: string) =>
@@ -524,6 +526,7 @@ export const Strings = {
   budget5030NotGroupedBody: 'Not counted in the rule breakdown',
   budget5030NotGroupedAmounts: (planned: string, spent: string) =>
     `${planned} planned · ${spent} spent`,
+  budget5030SetIncomeMetric: 'Set income',
   // Income sheet
   incomeSheetTitle: 'Monthly planning income',
   incomeSheetDescription: (monthLabel: string | undefined) =>

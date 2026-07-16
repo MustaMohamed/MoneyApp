@@ -20,7 +20,6 @@ interface FiftyThirtyTwentyLensProps {
 
 export function FiftyThirtyTwentyLens({
   vm,
-  selectedMonth,
   expandedGroup,
   onExpandedGroupChange,
   onEditIncome,
@@ -28,7 +27,7 @@ export function FiftyThirtyTwentyLens({
 }: FiftyThirtyTwentyLensProps) {
   return (
     <>
-      <MonthlyRuleSummary vm={vm} selectedMonth={selectedMonth} onEditIncome={onEditIncome} />
+      <MonthlyRuleSummary vm={vm} onEditIncome={onEditIncome} />
       <View className="mx-4 mt-4 mb-1 flex-row items-end justify-between">
         <Text
           style={{ fontSize: Type.micro }}

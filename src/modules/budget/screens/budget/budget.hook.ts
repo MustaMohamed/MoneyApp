@@ -25,6 +25,7 @@ import { runAfterInteractions } from '@/utils/run_after_interactions';
 export interface BudgetEditTargetVM extends NamedBudgetVM {
   categoryId: string;
   categoryName: string;
+  categoryGroup: BudgetGroup | null;
   icon: string;
   color: string;
   limit: number;
@@ -72,6 +73,7 @@ export function useBudget() {
   const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
   const removeSpendingPlan = useBudgetStore.getState().removeSpendingPlan;
   const openAdd = useBudgetState.getState().openAdd;
+  const openAddWithContext = useBudgetState.getState().openAddWithContext;
   const openEdit = useBudgetState.getState().openEdit;
   const openAddPlan = useBudgetState.getState().openAddPlan;
   const openEditPlan = useBudgetState.getState().openEditPlan;
@@ -203,12 +205,13 @@ export function useBudget() {
             limit: budget.planned,
             categoryId: row.categoryId,
             categoryName: row.name,
+            categoryGroup: budgetGroupByCategoryId[row.categoryId] ?? null,
             icon: row.icon,
             color: row.color,
           })),
         )
         .find((budget) => budget.id === targetBudgetId),
-    [rows, targetBudgetId],
+    [budgetGroupByCategoryId, rows, targetBudgetId],
   );
 
   const editingPlan = useMemo(
@@ -372,10 +375,13 @@ export function useBudget() {
           ?.contributors.map((contributor) => contributor.categoryId) ?? [],
       );
       const firstMatchingCategory = rows.find((row) => contributorIds.has(row.categoryId));
+      const firstContributorId = ruleLens.buckets.find((bucket) => bucket.group === group)
+        ?.contributors[0]?.categoryId;
       setLensTab('categories');
       setExpandedCategoryId(firstMatchingCategory?.categoryId);
+      if (!firstMatchingCategory) openAddWithContext(firstContributorId, group);
     },
-    [rows, ruleLens.buckets, setExpandedCategoryId, setLensTab],
+    [openAddWithContext, rows, ruleLens.buckets, setExpandedCategoryId, setLensTab],
   );
 
   return {

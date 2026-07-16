@@ -13,6 +13,8 @@ interface BudgetStateShape {
   sheetVisible: boolean;
   mode: BudgetSheetMode;
   targetBudgetId: string | undefined;
+  addCategoryId: string | undefined;
+  addBudgetGroup: BudgetGroup | undefined;
   planSheetVisible: boolean;
   planSheetMode: SpendingPlanSheetMode;
   targetPlanId: string | undefined;
@@ -29,6 +31,7 @@ interface BudgetStateShape {
 
 type BudgetState = BudgetStateShape & {
   openAdd: () => void;
+  openAddWithContext: (categoryId: string | undefined, group: BudgetGroup) => void;
   openEdit: (budgetId: string) => void;
   close: () => void;
   openAddPlan: () => void;
@@ -56,6 +59,8 @@ function initialState(): BudgetStateShape {
     sheetVisible: false,
     mode: 'add',
     targetBudgetId: undefined,
+    addCategoryId: undefined,
+    addBudgetGroup: undefined,
     planSheetVisible: false,
     planSheetMode: 'add',
     targetPlanId: undefined,
@@ -79,14 +84,26 @@ export const useBudgetState = createMoneyAppSelectors(
         sheetVisible: true,
         mode: 'add',
         targetBudgetId: undefined,
+        addCategoryId: undefined,
+        addBudgetGroup: undefined,
+      }),
+    openAddWithContext: (categoryId, group) =>
+      set({
+        sheetVisible: true,
+        mode: 'add',
+        targetBudgetId: undefined,
+        addCategoryId: categoryId,
+        addBudgetGroup: group,
       }),
     openEdit: (budgetId) =>
       set({
         sheetVisible: true,
         mode: 'edit',
         targetBudgetId: budgetId,
+        addCategoryId: undefined,
+        addBudgetGroup: undefined,
       }),
-    close: () => set({ sheetVisible: false }),
+    close: () => set({ sheetVisible: false, addCategoryId: undefined, addBudgetGroup: undefined }),
     openAddPlan: () =>
       set({
         planSheetVisible: true,

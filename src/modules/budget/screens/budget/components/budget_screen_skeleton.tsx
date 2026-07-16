@@ -158,13 +158,22 @@ function RuleLensSkeleton({
       <SkeletonGroup isLoading isSkeletonOnly>
         <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
           <Card.Body className="px-2 py-1.5">
-            <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
+            <View className="flex-row items-center justify-between gap-2">
+              <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
+              <SkeletonGroup.Item className="h-[13px] w-[18%] rounded-lg" />
+            </View>
             <View className="mt-0.5 flex-row items-center justify-between gap-3">
               <SkeletonGroup.Item className="h-[31px] w-[48%] rounded-lg" />
               <SkeletonGroup.Item className="h-7 w-[32%] rounded-lg" />
             </View>
             <View className="mt-0.5 flex-row items-center justify-between gap-3">
-              <SkeletonGroup.Item className="h-[15px] w-1/2 rounded-lg" />
+              <SkeletonGroup.Item
+                className={
+                  vm?.summary.hasIncome && vm.summary.totalPlanned > 0
+                    ? 'h-[15px] w-1/2 rounded-lg'
+                    : 'h-[30px] w-[68%] rounded-lg'
+                }
+              />
               <SkeletonGroup.Item className="h-[15px] w-[18%] rounded-lg" />
             </View>
             <SkeletonGroup.Item className="mt-1 h-1 w-full rounded-full" />
@@ -194,17 +203,22 @@ function RuleLensSkeleton({
           <Card.Body className="p-0">
             {Object.values(BudgetGroup).map((group) => (
               <View key={group}>
-                <View className="border-separator min-h-[58px] flex-row items-center gap-2.5 border-b px-3 py-2">
+                <View
+                  className="border-separator flex-row items-center gap-2 border-b px-3 py-1.5"
+                  style={{ minHeight: Size.budgetRuleRowMinHeight }}
+                >
                   <SkeletonGroup.Item className="h-[42px] w-[42px] rounded-full" />
                   <View className="flex-1 gap-1.5">
                     <SkeletonGroup.Item className="h-[15px] w-32 rounded-md" />
                     <SkeletonGroup.Item className="h-[11px] w-48 rounded-md" />
                   </View>
-                  <View className="items-end gap-1">
+                  <View className="items-end gap-1" style={{ width: Size.budgetRuleValueColumn }}>
                     <SkeletonGroup.Item className="h-[15px] w-12 rounded-md" />
                     <SkeletonGroup.Item className="h-[10px] w-10 rounded-md" />
                   </View>
-                  <SkeletonGroup.Item className="h-4 w-4 rounded-md" />
+                  <View style={{ width: Size.budgetRuleChevronColumn }} className="items-end">
+                    <SkeletonGroup.Item className="h-4 w-4 rounded-md" />
+                  </View>
                 </View>
                 {expandedBudgetGroup === group ? (
                   <View testID="rule-bucket-expanded-skeleton">
@@ -220,7 +234,10 @@ function RuleLensSkeleton({
                           <SkeletonGroup.Item className="h-[12px] w-28 rounded-md" />
                           <SkeletonGroup.Item className="h-[10px] w-32 rounded-md" />
                         </View>
-                        <SkeletonGroup.Item className="h-[12px] w-20 rounded-md" />
+                        <View className="items-end gap-1">
+                          <SkeletonGroup.Item className="h-[12px] w-20 rounded-md" />
+                          <SkeletonGroup.Item className="h-[10px] w-16 rounded-md" />
+                        </View>
                       </View>
                     ))}
                     <SkeletonGroup.Item className="h-10 w-full rounded-none" />
@@ -237,7 +254,10 @@ function RuleLensSkeleton({
               <SkeletonGroup.Item className="h-[12px] w-24 rounded-md" />
               <SkeletonGroup.Item className="h-[10px] w-40 rounded-md" />
             </View>
-            <SkeletonGroup.Item className="h-[12px] w-24 rounded-md" />
+            <View className="items-end gap-1">
+              <SkeletonGroup.Item className="h-[12px] w-24 rounded-md" />
+              <SkeletonGroup.Item className="h-[10px] w-20 rounded-md" />
+            </View>
           </View>
         ) : null}
       </SkeletonGroup>

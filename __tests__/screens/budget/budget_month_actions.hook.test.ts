@@ -84,6 +84,7 @@ let removeBudgetMock: jest.Mock;
 let setLensTabMock: jest.Mock;
 let setExpandedCategoryIdMock: jest.Mock;
 let setExpandedBudgetGroupMock: jest.Mock;
+let openAddWithContextMock: jest.Mock;
 
 function setupStores(selectedMonth = '2026-07') {
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
@@ -99,6 +100,7 @@ function setupStores(selectedMonth = '2026-07') {
   setLensTabMock = jest.fn();
   setExpandedCategoryIdMock = jest.fn();
   setExpandedBudgetGroupMock = jest.fn();
+  openAddWithContextMock = jest.fn();
 
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories,
@@ -134,6 +136,7 @@ function setupStores(selectedMonth = '2026-07') {
     expandedCategoryId: undefined,
     expandedBudgetGroup: BudgetGroup.Need,
     openAdd: jest.fn(),
+    openAddWithContext: openAddWithContextMock,
     openEdit: jest.fn(),
     setLensTab: setLensTabMock,
     setSelectedMonth: setSelectedMonthMock,
@@ -179,6 +182,17 @@ describe('useBudget month actions', () => {
 
     expect(setLensTabMock).toHaveBeenCalledWith('categories');
     expect(setExpandedCategoryIdMock).toHaveBeenCalledWith('food');
+    expect(openAddWithContextMock).not.toHaveBeenCalled();
+  });
+
+  it('opens contextual budget creation when the managed rule group has no budget rows', () => {
+    const { result } = renderHook(() => useBudget());
+
+    act(() => result.current.manageRuleGroup(BudgetGroup.Want));
+
+    expect(setLensTabMock).toHaveBeenCalledWith('categories');
+    expect(setExpandedCategoryIdMock).toHaveBeenCalledWith(undefined);
+    expect(openAddWithContextMock).toHaveBeenCalledWith(undefined, BudgetGroup.Want);
   });
 
   it('preserves controlled rule expansion while refreshing', async () => {

@@ -1,4 +1,5 @@
 import { BudgetGroup, CategoryType } from '@/constants/enums';
+import { Colors } from '@/constants/theme';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
@@ -103,7 +104,7 @@ describe('buildBudgetRuleLens', () => {
       },
     });
 
-    expect(result.summary).toEqual({
+    expect(result.summary).toMatchObject({
       income: 20_000,
       hasIncome: true,
       groupedPlanned: 11_000,
@@ -130,6 +131,15 @@ describe('buildBudgetRuleLens', () => {
       progressRatio: 0.8,
       status: 'within-cap',
     });
+    expect(
+      bucket(result, BudgetGroup.Need).contributors.find((item) => item.categoryId === 'housing'),
+    ).toMatchObject({
+      presentation: {
+        progressRatio: 0.32,
+        ringColor: Colors.dark.budgetUnder,
+        resultMetaLabel: undefined,
+      },
+    });
     expect(bucket(result, BudgetGroup.Want)).toMatchObject({
       ruleRatio: 0.3,
       target: 6_000,
@@ -146,7 +156,54 @@ describe('buildBudgetRuleLens', () => {
       status: 'below-target',
     });
     expect(bucket(result, BudgetGroup.Savings).actual).toBeUndefined();
-    expect(result.notGrouped).toEqual({ planned: 1_000, spent: 300 });
+    expect(result.notGrouped).toMatchObject({
+      planned: 1_000,
+      spent: 300,
+      presentation: {
+        titleLabel: 'Not grouped',
+        bodyLabel: 'Not counted in the rule breakdown',
+        amountsLabel: '1,000 planned · 300 spent',
+      },
+    });
+  });
+
+  it('provides approved no-income summary presentation copy', () => {
+    const result = build({
+      income: null,
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [makeBudget('housing', 5_000)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+    });
+
+    expect(result.summary.presentation).toMatchObject({
+      primaryLabel: 'Set monthly planning income',
+      contextLabel: 'Income is needed to calculate rule targets',
+      progressLabel: 'Not ready',
+      incomeMetricValue: 'Set income',
+    });
+  });
+
+  it('provides approved no-budget summary presentation copy', () => {
+    const result = build();
+
+    expect(result.summary.presentation).toMatchObject({
+      primaryLabel: '20,000 EGP left to plan',
+      contextLabel: 'No category budgets planned for May',
+      progressLabel: '0% planned',
+    });
+  });
+
+  it('compares recorded spending with the plan in a within-cap insight', () => {
+    const result = build({
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [makeBudget('housing', 8_000)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+      spendByMonth: { housing: { [MONTH]: 6_150 } },
+    });
+
+    expect(bucket(result, BudgetGroup.Need).presentation.insightLabel).toBe(
+      'Recorded Needs spending is 1,850 EGP below the amount planned so far.',
+    );
   });
 
   it('uses the selected-month snapshot and allows default fallback without configured income', () => {
@@ -182,7 +239,7 @@ describe('buildBudgetRuleLens', () => {
       contributors: [],
     });
     expect(result.summary).toMatchObject({ groupedPlanned: 0, notGroupedPlanned: 500 });
-    expect(result.notGrouped).toEqual({ planned: 500, spent: 100 });
+    expect(result.notGrouped).toMatchObject({ planned: 500, spent: 100 });
   });
 
   it('sums every named monthly budget once while counting category spend once', () => {
@@ -217,6 +274,11 @@ describe('buildBudgetRuleLens', () => {
       spent: 250,
       planShareRatio: undefined,
       isUnbudgeted: true,
+      presentation: {
+        progressRatio: 1,
+        ringColor: Colors.dark.budgetNear,
+        resultMetaLabel: 'unbudgeted',
+      },
     });
   });
 
@@ -254,7 +316,7 @@ describe('buildBudgetRuleLens', () => {
     }
     expect(bucket(result, BudgetGroup.Need).actual).toBe(700);
     expect(bucket(result, BudgetGroup.Savings).actual).toBeUndefined();
-    expect(result.notGrouped).toEqual({ planned: 500, spent: 100 });
+    expect(result.notGrouped).toMatchObject({ planned: 500, spent: 100 });
   });
 
   it('uses no-plan statuses with income and no budgets while retaining recorded activity', () => {

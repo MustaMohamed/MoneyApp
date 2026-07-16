@@ -89,12 +89,18 @@ describe('budget categories presentation architecture', () => {
     const summary = source(
       'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
     );
+    const bucketRow = source(
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
+    );
 
     expect(ledger).toContain("import { Accordion, Card } from 'heroui-native'");
     expect(ledger).toContain('value={expandedGroup ??');
     expect(summary).toContain("import { Card } from 'heroui-native'");
     expect(summary).toContain('<BudgetSummaryMetricsRow');
     expect(summary).toContain('<BudgetSummaryStatusRow');
+    expect(summary).not.toMatch(/Math\.round|leftToPlan < 0|bucket\.status ===/);
+    expect(bucketRow).toContain('Size.budgetRuleValueColumn');
+    expect(bucketRow).toContain('Size.budgetRuleChevronColumn');
     expect(screen).toContain('expandedGroup={state.expandedBudgetGroup}');
     expect(screen).not.toMatch(/useState|useSharedValue/);
     const skeleton = source(
@@ -140,6 +146,22 @@ describe('budget categories presentation architecture', () => {
     expect(child).toContain('width: Size.budgetCategoryColumn');
     expect(unassigned).toContain('width: Size.budgetCategoryColumn');
     expect(child).toContain('size={Size.budgetNamedRing}');
+  });
+
+  it('uses circular category progress and neutral rule-ledger actions', () => {
+    const contributor = source(
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row.tsx',
+    );
+    const bucket = source(
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
+    );
+
+    expect(contributor).toContain('<BudgetRing');
+    expect(contributor).toContain('presentation.progressRatio');
+    expect(contributor).toContain('presentation.ringColor');
+    expect(contributor).not.toContain('budget5030SpentPlannedMeta');
+    expect(bucket).not.toContain('text-accent');
+    expect(bucket).not.toContain('Colors.dark.gold');
   });
 
   it('wraps long category and budget names without shrinking their metadata chips', () => {

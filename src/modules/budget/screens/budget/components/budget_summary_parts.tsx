@@ -8,6 +8,7 @@ import { Colors, LetterSpacing, Size, Type } from '@/constants/theme';
 
 interface BudgetSummaryHeaderProps {
   eyebrowLabel: string;
+  eyebrowTrailingLabel?: string;
   hasData: boolean;
   balanceLabel: string;
   balanceMetaLabel: string;
@@ -38,6 +39,7 @@ interface BudgetSummaryStatusItem {
 
 export function BudgetSummaryHeader({
   eyebrowLabel,
+  eyebrowTrailingLabel,
   hasData,
   balanceLabel,
   balanceMetaLabel,
@@ -51,18 +53,31 @@ export function BudgetSummaryHeader({
 }: BudgetSummaryHeaderProps) {
   return (
     <>
-      <Text
-        style={{ fontSize: Type.meta, letterSpacing: LetterSpacing.eyebrow }}
-        className="font-inter text-content-secondary font-semibold uppercase"
-      >
-        {eyebrowLabel}
-      </Text>
+      <View className="flex-row items-center justify-between gap-2">
+        <Text
+          style={{ fontSize: Type.meta, letterSpacing: LetterSpacing.eyebrow }}
+          className="font-inter text-content-secondary shrink font-semibold uppercase"
+          numberOfLines={1}
+        >
+          {eyebrowLabel}
+        </Text>
+        {eyebrowTrailingLabel ? (
+          <Text
+            style={{ fontSize: Type.meta }}
+            className="font-inter text-content-secondary shrink-0 font-semibold"
+            numberOfLines={1}
+          >
+            {eyebrowTrailingLabel}
+          </Text>
+        ) : null}
+      </View>
 
       <View className="mt-0.5 min-h-8 flex-row items-center justify-between gap-3">
         {hasData ? (
           <Text
             style={{ color: balanceColor, fontSize: Type.summary }}
             className="font-sora shrink font-bold"
+            numberOfLines={2}
           >
             {balanceLabel}
             <Text
@@ -76,13 +91,14 @@ export function BudgetSummaryHeader({
         ) : (
           <Text
             style={{ fontSize: Type.title }}
-            className="font-sora text-foreground shrink font-bold"
+            className="font-sora text-foreground flex-1 font-bold"
+            numberOfLines={2}
           >
             {emptyLabel}
           </Text>
         )}
         {trailingActionLabel && onTrailingAction ? (
-          <View className="flex-row items-center gap-1.5">
+          <View className="shrink-0 flex-row items-center gap-1.5">
             {trailingLabel ? (
               <Text
                 style={{ fontSize: Type.meta }}
@@ -153,25 +169,23 @@ export function BudgetSummarySpentRow({
   usedLabel: string;
 }) {
   return (
-    <View className="mt-0.5 flex-row items-center justify-between gap-3">
-      <View className="flex-row gap-0.5">
-        <Text
-          style={{ fontSize: Type.bodyStrong }}
-          className="font-inter text-foreground shrink font-semibold"
-        >
-          {spentLabel}
-        </Text>
-        <Text style={{ fontSize: Type.bodyStrong }} className="font-inter text-content-secondary">
-          {connectorLabel}
-        </Text>
-        <Text
-          style={{ fontSize: Type.bodyStrong }}
-          className="font-inter text-foreground shrink font-semibold"
-        >
-          {plannedLabel}
-        </Text>
-      </View>
-      <Text style={{ fontSize: Type.bodyStrong }} className="font-sora text-content-secondary">
+    <View className="mt-0.5 flex-row items-center justify-between gap-2">
+      <Text
+        style={{ flex: 1, fontSize: Type.bodyStrong }}
+        className="font-inter text-content-secondary font-medium"
+        numberOfLines={2}
+      >
+        <Text className="font-inter text-foreground font-semibold">{spentLabel}</Text>
+        {connectorLabel ? ` ${connectorLabel} ` : ''}
+        {plannedLabel ? (
+          <Text className="font-inter text-foreground font-semibold">{plannedLabel}</Text>
+        ) : null}
+      </Text>
+      <Text
+        style={{ fontSize: Type.bodyStrong }}
+        className="font-sora text-content-secondary shrink-0"
+        numberOfLines={1}
+      >
         {usedLabel}
       </Text>
     </View>

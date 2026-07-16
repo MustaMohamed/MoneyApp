@@ -44,11 +44,13 @@ function isBudgetGroup(value: string): value is BudgetGroup {
 }
 
 export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSheetProps) {
-  const { sheetVisible, mode, selectedMonth } = useBudgetState(
+  const { sheetVisible, mode, selectedMonth, addCategoryId, addBudgetGroup } = useBudgetState(
     useShallow((s) => ({
       sheetVisible: s.sheetVisible,
       mode: s.mode,
       selectedMonth: s.selectedMonth,
+      addCategoryId: s.addCategoryId,
+      addBudgetGroup: s.addBudgetGroup,
     })),
   );
   const close = useBudgetState.getState().close;
@@ -65,6 +67,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
       })),
     );
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
+  const initEditMode = useSetBudgetSheetState.getState().initEditMode;
   const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
   const setGroupValue = useSetBudgetSheetState.getState().setGroupValue;
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
@@ -96,21 +99,29 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
         nameText: isEdit && editingRow ? editingRow.name : '',
         limitText: isEdit && editingRow ? String(editingRow.limit) : '',
       });
-      if (!isEdit) {
-        initAddMode(budgetableCategories[0]?.id);
+      if (isEdit) {
+        initEditMode(editingRow?.categoryGroup ?? null);
+      } else {
+        const initialCategory =
+          budgetableCategories.find((category) => category.id === addCategoryId) ??
+          (budgetableCategories.length > 0 ? budgetableCategories[0] : undefined);
+        initAddMode(initialCategory?.id, addBudgetGroup ?? initialCategory?.budget_group ?? null);
       }
     } else {
       reset();
     }
-  }, [sheetVisible, isEdit, editingRow, resetForm, initAddMode, reset, budgetableCategories]);
-
-  useEffect(() => {
-    if (!sheetVisible) {
-      setGroupValue(null);
-      return;
-    }
-    setGroupValue(isEdit ? null : (addModeSelectedCategory?.budget_group ?? null));
-  }, [sheetVisible, isEdit, addModeSelectedCategory, setGroupValue]);
+  }, [
+    sheetVisible,
+    isEdit,
+    editingRow,
+    resetForm,
+    initAddMode,
+    initEditMode,
+    reset,
+    budgetableCategories,
+    addCategoryId,
+    addBudgetGroup,
+  ]);
 
   // Resolved category name for edit mode (locked display)
   const editingCategoryName = editingRow?.categoryName;
@@ -126,7 +137,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
         name: values.nameText,
         limit: parseLimit(values.limitText),
         yearMonth: selectedMonth,
-        categoryGroup: !isEdit && groupValue !== null ? groupValue : undefined,
+        categoryGroup: groupValue ?? undefined,
       });
       await loadCategories().catch(() => undefined);
     });
@@ -258,26 +269,22 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
             )}
           />
 
-          {!isEdit && (
-            <>
-              <Text style={[styles.label, styles.groupLabel]}>
-                {Strings.budget5030GroupPickerLabel}
-              </Text>
-              <RadioGroup
-                value={groupValue ?? undefined}
-                onValueChange={(val) => {
-                  if (isBudgetGroup(val)) setGroupValue(val);
-                }}
-                accessibilityLabel={Strings.budget5030GroupPickerLabel}
-              >
-                {GROUP_OPTIONS.map((opt) => (
-                  <RadioGroup.Item key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </RadioGroup.Item>
-                ))}
-              </RadioGroup>
-            </>
-          )}
+          <Text style={[styles.label, styles.groupLabel]}>
+            {Strings.budget5030GroupPickerLabel}
+          </Text>
+          <RadioGroup
+            value={groupValue ?? undefined}
+            onValueChange={(val) => {
+              if (isBudgetGroup(val)) setGroupValue(val);
+            }}
+            accessibilityLabel={Strings.budget5030GroupPickerLabel}
+          >
+            {GROUP_OPTIONS.map((opt) => (
+              <RadioGroup.Item key={opt.value} value={opt.value}>
+                {opt.label}
+              </RadioGroup.Item>
+            ))}
+          </RadioGroup>
           {errorMessage ? (
             <Text className="font-inter text-danger mt-2 text-sm font-medium">{errorMessage}</Text>
           ) : null}
@@ -293,7 +300,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
           title={Strings.budgetPickCategory}
           categories={budgetableCategories}
           selectedId={selectedCategoryId}
-          onSelect={(cat) => setSelectedCategoryId(cat.id)}
+          onSelect={(cat) => {
+            setSelectedCategoryId(cat.id);
+            setGroupValue(cat.budget_group ?? null);
+          }}
           onOpenChange={collapsePicker}
         />
       )}

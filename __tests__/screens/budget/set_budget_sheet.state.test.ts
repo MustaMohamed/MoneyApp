@@ -22,6 +22,25 @@ describe('useSetBudgetSheetState', () => {
     expect(useSetBudgetSheetState.getState().groupValue).toBeNull();
   });
 
+  it('initialises a contextual category and group together', () => {
+    useSetBudgetSheetState.getState().initAddMode('cat_food', BudgetGroup.Need);
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'cat_food',
+      groupValue: BudgetGroup.Need,
+    });
+  });
+
+  it('initialises edit mode with the current monthly group', () => {
+    useSetBudgetSheetState.getState().initEditMode(BudgetGroup.Savings);
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: undefined,
+      groupValue: BudgetGroup.Savings,
+      pickerExpanded: false,
+    });
+  });
+
   it('tracks save state and clears a visible error when the form is edited', () => {
     useSetBudgetSheetState.getState().setSaving(true);
     useSetBudgetSheetState.getState().setErrorMessage('Save failed');

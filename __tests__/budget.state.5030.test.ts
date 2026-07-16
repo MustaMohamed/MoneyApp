@@ -64,3 +64,27 @@ describe('useBudgetState — 50/30/20 rule expansion', () => {
     expect(useBudgetState.getState().expandedBudgetGroup).toBeUndefined();
   });
 });
+
+describe('useBudgetState — contextual budget creation', () => {
+  it('opens add mode with a category and rule group context', () => {
+    useBudgetState.getState().openAddWithContext('cat_food', BudgetGroup.Need);
+
+    expect(useBudgetState.getState()).toMatchObject({
+      sheetVisible: true,
+      mode: 'add',
+      addCategoryId: 'cat_food',
+      addBudgetGroup: BudgetGroup.Need,
+    });
+  });
+
+  it('clears add context when the sheet closes', () => {
+    useBudgetState.getState().openAddWithContext('cat_food', BudgetGroup.Need);
+    useBudgetState.getState().close();
+
+    expect(useBudgetState.getState()).toMatchObject({
+      sheetVisible: false,
+      addCategoryId: undefined,
+      addBudgetGroup: undefined,
+    });
+  });
+});

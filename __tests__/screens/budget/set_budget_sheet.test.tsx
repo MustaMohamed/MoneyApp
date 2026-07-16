@@ -78,8 +78,26 @@ jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
 jest.mock('heroui-native', () => {
   const { Pressable, Text, TextInput, View } =
     jest.requireActual<typeof import('react-native')>('react-native');
-  const RadioGroup = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
-  RadioGroup.Item = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
+  let onRadioValueChange: ((value: string) => void) | undefined;
+  const RadioGroup = ({
+    children,
+    onValueChange,
+  }: {
+    children?: ReactNode;
+    onValueChange?: (value: string) => void;
+  }) => {
+    onRadioValueChange = onValueChange;
+    return <View>{children}</View>;
+  };
+  RadioGroup.Item = ({ children, value }: { children?: ReactNode; value: string }) => (
+    <Pressable
+      accessibilityRole="radio"
+      accessibilityLabel={String(children)}
+      onPress={() => onRadioValueChange?.(value)}
+    >
+      <Text>{children}</Text>
+    </Pressable>
+  );
   return {
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
     Input: (props: Record<string, unknown>) => (
@@ -203,13 +221,14 @@ describe('SetBudgetSheet', () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().openEdit('budget-trip-food');
 
-    const { getByLabelText, getByTestId, queryByText } = render(
+    const { getByLabelText, getByTestId, getByText } = render(
       <SetBudgetSheet
         budgetableCategories={categories}
         editingRow={{
           id: 'budget-trip-food',
           categoryId: 'housing',
           categoryName: 'Housing',
+          categoryGroup: BudgetGroup.Need,
           name: 'Alexandria Trip Food',
           planned: 1500,
           spent: 0,
@@ -233,10 +252,12 @@ describe('SetBudgetSheet', () => {
 
     expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria Trip Food');
     expect(getByTestId('budget-limit-input')).toHaveProp('value', '1500');
-    expect(queryByText(Strings.budget5030GroupPickerLabel)).toBeNull();
+    expect(getByText(Strings.budget5030GroupPickerLabel)).toBeTruthy();
+    expect(useSetBudgetSheetState.getState().groupValue).toBe(BudgetGroup.Need);
 
     fireEvent.changeText(getByTestId('budget-name-input'), 'Weekend Food');
     fireEvent.changeText(getByTestId('budget-limit-input'), '1750');
+    fireEvent.press(getByLabelText(Strings.budget5030GroupWant));
     fireEvent.press(getByLabelText(Strings.budgetSaveCta));
 
     await waitFor(() =>
@@ -246,6 +267,7 @@ describe('SetBudgetSheet', () => {
         name: 'Weekend Food',
         limit: 1750,
         yearMonth: '2026-08',
+        categoryGroup: BudgetGroup.Want,
       }),
     );
   });

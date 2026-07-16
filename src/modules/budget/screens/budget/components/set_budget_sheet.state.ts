@@ -12,7 +12,8 @@ interface SetBudgetSheetStateShape {
 }
 
 type SetBudgetSheetState = SetBudgetSheetStateShape & {
-  initAddMode: (firstCategoryId: string | undefined) => void;
+  initAddMode: (firstCategoryId: string | undefined, group?: BudgetGroup | null) => void;
+  initEditMode: (group: BudgetGroup | null) => void;
   setSelectedCategoryId: (id: string) => void;
   setGroupValue: (group: BudgetGroup | null) => void;
   setSaving: (saving: boolean) => void;
@@ -34,11 +35,13 @@ const INITIAL_STATE: SetBudgetSheetStateShape = {
 export const useSetBudgetSheetState = createMoneyAppSelectors(
   create<SetBudgetSheetState>((set) => ({
     ...INITIAL_STATE,
-    initAddMode: (firstCategoryId) =>
+    initAddMode: (firstCategoryId, group) =>
       set({
         ...INITIAL_STATE,
         selectedCategoryId: firstCategoryId,
+        groupValue: group ?? null,
       }),
+    initEditMode: (groupValue) => set({ ...INITIAL_STATE, groupValue }),
     setSelectedCategoryId: (id) =>
       set({ selectedCategoryId: id, pickerExpanded: false, errorMessage: undefined }),
     setGroupValue: (group) => set({ groupValue: group, errorMessage: undefined }),
