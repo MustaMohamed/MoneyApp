@@ -100,6 +100,7 @@ const INITIAL_STATE: BudgetStoreShape = {
 
 export function createBudgetStore(repo: BudgetStoreRepository = budgetRepository) {
   let latestLoadRequest = 0;
+  let latestRequestedMonth: string | undefined;
   return createMoneyAppSelectors(
     create<BudgetStore>((set, get) => ({
       ...INITIAL_STATE,
@@ -128,6 +129,7 @@ export function createBudgetStore(repo: BudgetStoreRepository = budgetRepository
         }),
 
       load: async (anchorMonth = currentYearMonth()) => {
+        latestRequestedMonth = anchorMonth;
         const request = ++latestLoadRequest;
         set({ loadError: false });
         const months = lastMonths(anchorMonth, HISTORY_MONTHS);
@@ -211,13 +213,14 @@ export function createBudgetStore(repo: BudgetStoreRepository = budgetRepository
         const expectedIncome =
           typeof yearMonthOrAmount === 'string' ? Number(amount) : yearMonthOrAmount;
         await repo.setExpectedIncome(yearMonth, expectedIncome);
-        await get().load(yearMonth);
+        if (latestRequestedMonth === yearMonth) await get().load(yearMonth);
       },
 
       setExpectedIncomeLocal: (amount) => set({ expectedIncome: amount }),
 
       reset: () => {
         latestLoadRequest += 1;
+        latestRequestedMonth = undefined;
         set(INITIAL_STATE);
       },
     })),

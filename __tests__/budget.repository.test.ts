@@ -9,12 +9,19 @@ import {
 } from '@/modules/budget/repositories/budget.repository';
 
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'new-budget-id') }));
-jest.mock('@/database/client', () => ({
-  getDb: jest.fn().mockResolvedValue({
-    withExclusiveTransactionAsync: async (task: (db: SQLiteDatabase) => Promise<void>) =>
-      task({} as SQLiteDatabase),
-  }),
-}));
+jest.mock('@/database/client', () => {
+  const mockTransactionDb = {} as SQLiteDatabase;
+  const mockWithExclusiveTransactionAsync = jest.fn(
+    async (task: (db: SQLiteDatabase) => Promise<void>) => task(mockTransactionDb),
+  );
+  return {
+    getDb: jest.fn().mockResolvedValue({
+      withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync,
+    }),
+    mockTransactionDb,
+    mockWithExclusiveTransactionAsync,
+  };
+});
 jest.mock('@/modules/budget/database/budget_stats', () => ({
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
 }));
@@ -71,6 +78,15 @@ const {
 };
 const { setCategoryGroup } = jest.requireMock('@/modules/categories/database/categories') as {
   setCategoryGroup: jest.Mock<Promise<void>, [SQLiteDatabase, string, BudgetGroup]>;
+};
+const { mockTransactionDb, mockWithExclusiveTransactionAsync } = jest.requireMock(
+  '@/database/client',
+) as {
+  mockTransactionDb: SQLiteDatabase;
+  mockWithExclusiveTransactionAsync: jest.Mock<
+    Promise<void>,
+    [(task: (db: SQLiteDatabase) => Promise<void>) => Promise<void>]
+  >;
 };
 
 const NOW = '2026-07-01T00:00:00.000Z';
@@ -234,9 +250,11 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
 
     await new BudgetRepository().copyBudgetsToMonth('2026-07', '2026-08', ['budget-food']);
 
+    expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(getBudgetRows).toHaveBeenCalledWith(mockTransactionDb);
     expect(setBudgetRow).toHaveBeenCalledTimes(1);
     expect(setBudgetRow).toHaveBeenCalledWith(
-      expect.anything(),
+      mockTransactionDb,
       expect.objectContaining({
         id: 'new-budget-id',
         category_id: 'food',
@@ -246,7 +264,7 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
       }),
     );
     expect(copyBudgetMonthCategoryGroups).toHaveBeenCalledWith(
-      expect.anything(),
+      mockTransactionDb,
       '2026-07',
       '2026-08',
       ['food'],
@@ -295,5 +313,28 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
       '2026-08',
       ['food'],
     );
+  });
+
+  it('stops sequential transaction writes and skips group snapshots when a budget copy fails', async () => {
+    const writeError = new Error('budget copy failed');
+    getBudgetRows.mockResolvedValueOnce([
+      budget('budget-food', 'food', 'Food', 5000, '2026-07'),
+      budget('budget-rent', 'housing', 'Rent', 7000, '2026-07'),
+      budget('budget-fuel', 'transport', 'Fuel', 1000, '2026-07'),
+    ]);
+    setBudgetRow.mockResolvedValueOnce(undefined).mockRejectedValueOnce(writeError);
+
+    await expect(
+      new BudgetRepository().copyBudgetsToMonth('2026-07', '2026-08', [
+        'budget-food',
+        'budget-rent',
+        'budget-fuel',
+      ]),
+    ).rejects.toThrow(writeError);
+
+    expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(setBudgetRow).toHaveBeenCalledTimes(2);
+    expect(setBudgetRow.mock.calls.every(([db]) => db === mockTransactionDb)).toBe(true);
+    expect(copyBudgetMonthCategoryGroups).not.toHaveBeenCalled();
   });
 });

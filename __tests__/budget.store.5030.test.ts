@@ -76,6 +76,7 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
   it('persists income and reloads the exact supplied month', async () => {
     const repo = makeRepo();
     const store = createBudgetStore(repo);
+    await store.getState().load('2026-09');
 
     await store.getState().setExpectedIncome('2026-09', 30_000);
 
@@ -96,14 +97,39 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
     expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-08');
   });
 
-  it('uses the current month for the compatible income call before a month is loaded', async () => {
+  it('persists without loading when no month has been requested', async () => {
     const repo = makeRepo();
     const store = createBudgetStore(repo);
 
     await store.getState().setExpectedIncome(22_000);
 
     expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-05', 22_000);
-    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-05');
+    expect(repo.getExpectedIncome).not.toHaveBeenCalled();
+    expect(store.getState().loaded).toBe(false);
+  });
+
+  it('does not reload a saved month after a newer month is requested', async () => {
+    const write = deferred<void>();
+    const repo = makeRepo(
+      { '2026-07': 20_000, '2026-08': 30_000 },
+      { '2026-07': { food: BudgetGroup.Need }, '2026-08': { food: BudgetGroup.Want } },
+    );
+    const store = createBudgetStore(repo);
+    await store.getState().load('2026-07');
+    repo.setExpectedIncome.mockReturnValueOnce(write.promise);
+
+    const julySave = store.getState().setExpectedIncome('2026-07', 25_000);
+    await store.getState().load('2026-08');
+    write.resolve(undefined);
+    await julySave;
+
+    expect(repo.getExpectedIncome).toHaveBeenCalledTimes(2);
+    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-08');
+    expect(store.getState()).toMatchObject({
+      expectedIncome: 30_000,
+      budgetGroupByCategoryId: { food: BudgetGroup.Want },
+      loadedMonth: '2026-08',
+    });
   });
 
   it('suppresses a stale month load after a newer month resolves', async () => {

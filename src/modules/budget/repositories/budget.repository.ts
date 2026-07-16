@@ -218,17 +218,18 @@ export class BudgetRepository implements IBudgetRepository {
     budgetIds: string[],
   ): Promise<void> {
     const db = await getDb();
-    const rows = await getBudgetRows(db);
     const now = new Date().toISOString();
     const uniqueBudgetIds = Array.from(new Set(budgetIds));
-    const sourceRows = uniqueBudgetIds
-      .map((budgetId) =>
-        rows.find((row) => row.id === budgetId && row.effective_from === sourceMonth),
-      )
-      .filter((row): row is Budget => row !== undefined);
 
-    await Promise.all(
-      sourceRows.map(async (source) => {
+    await db.withExclusiveTransactionAsync(async (tx) => {
+      const rows = await getBudgetRows(tx);
+      const sourceRows = uniqueBudgetIds
+        .map((budgetId) =>
+          rows.find((row) => row.id === budgetId && row.effective_from === sourceMonth),
+        )
+        .filter((row): row is Budget => row !== undefined);
+
+      for (const source of sourceRows) {
         const target = rows.find(
           (row) =>
             row.category_id === source.category_id &&
@@ -236,7 +237,7 @@ export class BudgetRepository implements IBudgetRepository {
             sameBudgetName(row.name, source.name),
         );
 
-        await setBudgetRow(db, {
+        await setBudgetRow(tx, {
           id: target?.id ?? String(uuid.v4()),
           category_id: source.category_id,
           name: source.name,
@@ -245,14 +246,14 @@ export class BudgetRepository implements IBudgetRepository {
           created_at: target?.created_at ?? now,
           updated_at: now,
         });
-      }),
-    );
-    await copyBudgetMonthCategoryGroups(
-      db,
-      sourceMonth,
-      targetMonth,
-      Array.from(new Set(sourceRows.map((row) => row.category_id))),
-    );
+      }
+      await copyBudgetMonthCategoryGroups(
+        tx,
+        sourceMonth,
+        targetMonth,
+        Array.from(new Set(sourceRows.map((row) => row.category_id))),
+      );
+    });
   }
 
   async copyLimitsToMonth(
