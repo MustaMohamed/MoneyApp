@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { BudgetGroup } from '@/constants/enums';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
 import { previousYearMonth } from '@/modules/budget/screens/budget/budget.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
@@ -23,6 +24,7 @@ interface BudgetStateShape {
   incomeSuggestion: number | null;
   refreshing: boolean;
   expandedCategoryId: string | undefined;
+  expandedBudgetGroup: BudgetGroup | undefined;
 }
 
 type BudgetState = BudgetStateShape & {
@@ -44,6 +46,7 @@ type BudgetState = BudgetStateShape & {
   setIncomeSuggestion: (suggestion: number | null) => void;
   setRefreshing: (refreshing: boolean) => void;
   setExpandedCategoryId: (categoryId: string | undefined) => void;
+  setExpandedBudgetGroup: (group: BudgetGroup | undefined) => void;
   reset: () => void;
 };
 
@@ -64,6 +67,7 @@ function initialState(): BudgetStateShape {
     incomeSuggestion: null,
     refreshing: false,
     expandedCategoryId: undefined,
+    expandedBudgetGroup: undefined,
   };
 }
 
@@ -102,6 +106,7 @@ export const useBudgetState = createMoneyAppSelectors(
         selectedMonth: month,
         copySourceMonth: previousYearMonth(month),
         expandedCategoryId: undefined,
+        expandedBudgetGroup: undefined,
       }),
     setCopySourceMonth: (month) => set({ copySourceMonth: month }),
     resetSelectedMonthToCurrent: () => {
@@ -110,6 +115,7 @@ export const useBudgetState = createMoneyAppSelectors(
         selectedMonth,
         copySourceMonth: previousYearMonth(selectedMonth),
         expandedCategoryId: undefined,
+        expandedBudgetGroup: undefined,
       });
     },
     openCopy: (budgetIds = []) => set({ copySheetVisible: true, copySelectedBudgetIds: budgetIds }),
@@ -133,6 +139,10 @@ export const useBudgetState = createMoneyAppSelectors(
     setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
     setRefreshing: (refreshing) => set({ refreshing }),
     setExpandedCategoryId: (categoryId) => set({ expandedCategoryId: categoryId }),
+    setExpandedBudgetGroup: (group) =>
+      set((state) => ({
+        expandedBudgetGroup: state.expandedBudgetGroup === group ? undefined : group,
+      })),
     reset: () => set(initialState()),
   })),
 );

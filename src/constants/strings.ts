@@ -462,8 +462,13 @@ export const Strings = {
   budget5030GroupWant: 'Want',
   budget5030GroupSavings: 'Savings',
   // Income sheet
-  incomeSheetTitle: 'Monthly income',
-  incomeSheetAmountLabel: 'Expected monthly income',
+  incomeSheetTitle: 'Monthly planning income',
+  incomeSheetDescription: (monthLabel: string | undefined) =>
+    monthLabel
+      ? `This value applies only to your ${monthLabel} budget plan.`
+      : 'This value applies only to the selected budget month.',
+  incomeSheetAmountLabel: (monthLabel: string | undefined) =>
+    monthLabel ? `Expected income for ${monthLabel}` : 'Expected monthly income',
   incomeSheetAmountPlaceholder: '0',
   incomeSheetSuggestionNote: 'Pre-filled from your last 3 months of income',
   incomeSheetSaveCta: 'Save',

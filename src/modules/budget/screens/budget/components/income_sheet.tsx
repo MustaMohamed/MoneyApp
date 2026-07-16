@@ -9,6 +9,7 @@ import { useIncomeSheet } from '@/modules/budget/screens/budget/components/incom
 export function IncomeSheet() {
   const { state, close, setAmountText, save } = useIncomeSheet();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const amountLabel = Strings.incomeSheetAmountLabel(state.monthLabel);
 
   return (
     <Sheet
@@ -23,13 +24,17 @@ export function IncomeSheet() {
           variant="primary"
           label={Strings.incomeSheetSaveCta}
           isLoading={state.saving}
+          isDisabled={state.saving}
           onPress={() => void save()}
         />
       }
     >
       <View className="px-4 pt-2">
+        <HeroText className="font-inter text-muted mb-4 text-[12px] leading-5">
+          {Strings.incomeSheetDescription(state.monthLabel)}
+        </HeroText>
         <HeroText className="font-inter text-muted mb-2 text-[11px] font-medium">
-          {Strings.incomeSheetAmountLabel}
+          {amountLabel}
         </HeroText>
         <View className="bg-background border-accent flex-row items-center rounded-lg border px-3 py-2">
           <Input
@@ -37,11 +42,12 @@ export function IncomeSheet() {
             onChangeText={setAmountText}
             onFocus={onFocus}
             onBlur={onBlur}
+            editable={!state.saving}
             keyboardType="number-pad"
             placeholder={Strings.incomeSheetAmountPlaceholder}
             placeholderColorClassName="text-muted"
             className="font-sora text-foreground flex-1 border-0 bg-transparent p-0 text-[20px] font-bold"
-            accessibilityLabel={Strings.incomeSheetAmountLabel}
+            accessibilityLabel={amountLabel}
           />
           <HeroText className="font-inter text-muted text-[13px] font-semibold">
             {Strings.currencyEgp}
@@ -53,7 +59,10 @@ export function IncomeSheet() {
           </HeroText>
         ) : null}
         {state.errorMessage ? (
-          <HeroText className="font-inter text-danger mt-2 text-[11px] font-medium">
+          <HeroText
+            accessibilityRole="alert"
+            className="font-inter text-danger mt-2 text-[11px] font-medium"
+          >
             {state.errorMessage}
           </HeroText>
         ) : null}

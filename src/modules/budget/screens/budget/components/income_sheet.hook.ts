@@ -10,6 +10,8 @@ export function useIncomeSheet() {
       isOpen: sheet.isOpen,
       amountText: sheet.amountText,
       suggestion: sheet.suggestion,
+      yearMonth: sheet.yearMonth,
+      monthLabel: sheet.monthLabel,
       saving: sheet.saving,
       errorMessage: sheet.errorMessage,
     })),
@@ -21,12 +23,13 @@ export function useIncomeSheet() {
   const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
 
   async function save() {
-    const amount = Number.parseFloat(state.amountText);
-    if (!Number.isFinite(amount) || amount <= 0 || state.saving) return;
+    const { amountText, saving, yearMonth } = useIncomeSheetState.getState();
+    const amount = Number.parseFloat(amountText);
+    if (!Number.isFinite(amount) || amount <= 0 || saving || yearMonth === undefined) return;
     setErrorMessage(undefined);
     setSaving(true);
     try {
-      await setExpectedIncome(amount);
+      await setExpectedIncome(yearMonth, amount);
       close();
     } catch {
       setErrorMessage(Strings.incomeSheetSaveError);

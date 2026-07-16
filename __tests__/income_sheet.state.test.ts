@@ -8,26 +8,30 @@ describe('useIncomeSheetState', () => {
     expect(s.isOpen).toBe(false);
     expect(s.amountText).toBe('');
     expect(s.suggestion).toBeNull();
+    expect(s.yearMonth).toBeUndefined();
+    expect(s.monthLabel).toBeUndefined();
     expect(s.saving).toBe(false);
     expect(s.errorMessage).toBeUndefined();
   });
 
   it('open with suggestion pre-fills amountText from suggestion when no current income', () => {
-    useIncomeSheetState.getState().open(15000, null);
+    useIncomeSheetState.getState().open(15000, null, '2026-07', 'July 2026');
     const s = useIncomeSheetState.getState();
     expect(s.isOpen).toBe(true);
     expect(s.suggestion).toBe(15000);
     expect(s.amountText).toBe('15000');
+    expect(s.yearMonth).toBe('2026-07');
+    expect(s.monthLabel).toBe('July 2026');
   });
 
   it('open with current income pre-fills amountText from current income over suggestion', () => {
-    useIncomeSheetState.getState().open(15000, 20000);
+    useIncomeSheetState.getState().open(15000, 20000, '2026-07', 'July 2026');
     const s = useIncomeSheetState.getState();
     expect(s.amountText).toBe('20000');
   });
 
   it('open with neither suggestion nor current income leaves amountText empty', () => {
-    useIncomeSheetState.getState().open(null, null);
+    useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
     const s = useIncomeSheetState.getState();
     expect(s.amountText).toBe('');
   });
@@ -59,11 +63,13 @@ describe('useIncomeSheetState', () => {
   });
 
   it('reset restores initial state', () => {
-    useIncomeSheetState.getState().open(5000, 6000);
+    useIncomeSheetState.getState().open(5000, 6000, '2026-07', 'July 2026');
     useIncomeSheetState.getState().reset();
     const s = useIncomeSheetState.getState();
     expect(s.isOpen).toBe(false);
     expect(s.amountText).toBe('');
     expect(s.suggestion).toBeNull();
+    expect(s.yearMonth).toBeUndefined();
+    expect(s.monthLabel).toBeUndefined();
   });
 });
