@@ -1,176 +1,165 @@
-import { createBudgetStore } from '@/modules/budget/store/budget.store';
-import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
+import { BudgetGroup } from '@/constants/enums';
+import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
+import { createBudgetStore, type BudgetStoreRepository } from '@/modules/budget/store/budget.store';
 
-// Mock the budget repository so async load/setLimit/removeBudget don't hit the DB
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
-  budgetRepository: {
+  budgetRepository: {},
+  currentYearMonth: jest.fn().mockReturnValue('2026-05'),
+  lastMonths: jest.fn((anchorMonth: string) => [anchorMonth]),
+}));
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
+function makeRepo(
+  incomeByMonth: Record<string, number | null> = {},
+  groupsByMonth: Record<string, BudgetMonthGroupMap> = {},
+): jest.Mocked<BudgetStoreRepository> {
+  return {
+    copyBudgetsToMonth: jest.fn().mockResolvedValue(undefined),
+    copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
+    getCategoryGroups: jest.fn(async (yearMonth) => groupsByMonth[yearMonth] ?? {}),
+    getExpectedIncome: jest.fn(async (yearMonth) => incomeByMonth[yearMonth] ?? null),
     getRows: jest.fn().mockResolvedValue([]),
     getSpendByBudget: jest.fn().mockResolvedValue({}),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
     getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
-    setLimit: jest.fn().mockResolvedValue(undefined),
     removeBudget: jest.fn().mockResolvedValue(undefined),
-    copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
-  },
-  currentYearMonth: jest.fn().mockReturnValue('2026-05'),
-  lastMonths: jest.fn().mockReturnValue(['2026-05']),
-}));
-
-function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
-  const db: Record<string, string> = { ...seed };
-  return {
-    get: jest.fn(async (key: string) => db[key] ?? null),
-    set: jest.fn(async (key: string, value: string) => {
-      db[key] = value;
+    removeSpendingPlan: jest.fn().mockResolvedValue(undefined),
+    setBudget: jest.fn().mockResolvedValue(undefined),
+    setExpectedIncome: jest.fn(async (yearMonth, amount) => {
+      incomeByMonth[yearMonth] = amount;
     }),
+    setLimit: jest.fn().mockResolvedValue(undefined),
+    setSpendingPlan: jest.fn().mockResolvedValue(undefined),
   };
 }
 
-describe('useBudgetStore — 50/30/20 extensions', () => {
-  it('initialises expectedIncome as null', () => {
+describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
+  it('initialises income and category groups empty', () => {
     const store = createBudgetStore(makeRepo());
+
+    expect(store.getState().expectedIncome).toBeNull();
+    expect(store.getState().budgetGroupByCategoryId).toEqual({});
+  });
+
+  it('loads income and category groups for the exact anchor month', async () => {
+    const groups = { food: BudgetGroup.Need, dining: BudgetGroup.Want };
+    const repo = makeRepo({ '2026-06': 25_000 }, { '2026-06': groups });
+    const store = createBudgetStore(repo);
+
+    await store.getState().load('2026-06');
+
+    expect(repo.getExpectedIncome).toHaveBeenCalledWith('2026-06');
+    expect(repo.getCategoryGroups).toHaveBeenCalledWith('2026-06');
+    expect(store.getState()).toMatchObject({
+      expectedIncome: 25_000,
+      budgetGroupByCategoryId: groups,
+      loadedMonth: '2026-06',
+      loaded: true,
+    });
+  });
+
+  it('stores absent exact-month income as null', async () => {
+    const store = createBudgetStore(makeRepo());
+
+    await store.getState().load('2026-07');
+
     expect(store.getState().expectedIncome).toBeNull();
   });
 
-  it('setExpectedIncomeLocal updates state without persisting', () => {
+  it('persists income and reloads the exact supplied month', async () => {
     const repo = makeRepo();
     const store = createBudgetStore(repo);
-    store.getState().setExpectedIncomeLocal(15000);
-    expect(store.getState().expectedIncome).toBe(15000);
-    expect(repo.set).not.toHaveBeenCalled();
+
+    await store.getState().setExpectedIncome('2026-09', 30_000);
+
+    expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-09', 30_000);
+    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-09');
+    expect(repo.getCategoryGroups).toHaveBeenLastCalledWith('2026-09');
+    expect(store.getState()).toMatchObject({ expectedIncome: 30_000, loadedMonth: '2026-09' });
   });
 
-  it('reset clears expectedIncome back to null', () => {
-    const store = createBudgetStore(makeRepo());
-    store.getState().setExpectedIncomeLocal(15000);
-    store.getState().reset();
-    expect(store.getState().expectedIncome).toBeNull();
-  });
-
-  it('reset also resets loaded to false and clears rows/spendByMonth', () => {
-    const store = createBudgetStore(makeRepo());
-    store.getState().setData([], {}, {}, 5000, [], {});
-    store.getState().reset();
-    const s = store.getState();
-    expect(s.loaded).toBe(false);
-    expect(s.rows).toEqual([]);
-    expect(s.spendByMonth).toEqual({});
-    expect(s.spendByBudgetId).toEqual({});
-    expect(s.expectedIncome).toBeNull();
-  });
-
-  it('load reads expectedIncome from repo and stores it', async () => {
-    const repo = makeRepo({ expected_monthly_income: '25000' });
-    const store = createBudgetStore(repo);
-    await store.getState().load();
-    expect(store.getState().expectedIncome).toBe(25000);
-    expect(store.getState().loaded).toBe(true);
-  });
-
-  it('load stores null expectedIncome when key absent from repo', async () => {
-    const repo = makeRepo({});
-    const store = createBudgetStore(repo);
-    await store.getState().load();
-    expect(store.getState().expectedIncome).toBeNull();
-  });
-
-  it('setExpectedIncome persists to repo then reloads', async () => {
+  it('keeps the current income-sheet call compatible with the loaded month', async () => {
     const repo = makeRepo();
     const store = createBudgetStore(repo);
-    await store.getState().setExpectedIncome(30000);
-    expect(repo.set).toHaveBeenCalledWith('expected_monthly_income', '30000');
-    // After reload, state should reflect the new income
-    expect(store.getState().expectedIncome).toBe(30000);
+    await store.getState().load('2026-08');
+
+    await store.getState().setExpectedIncome(28_000);
+
+    expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-08', 28_000);
+    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-08');
   });
 
-  it('setExpectedIncome reloads the selected past month', async () => {
-    const { lastMonths } = jest.requireMock('@/modules/budget/repositories/budget.repository') as {
-      lastMonths: jest.Mock;
-    };
-    const store = createBudgetStore(makeRepo());
-    store.getState().setData([], {}, {}, null, [], {}, '2026-03');
+  it('uses the current month for the compatible income call before a month is loaded', async () => {
+    const repo = makeRepo();
+    const store = createBudgetStore(repo);
 
-    await store.getState().setExpectedIncome(30000);
+    await store.getState().setExpectedIncome(22_000);
 
-    expect(lastMonths).toHaveBeenLastCalledWith('2026-03', 12);
-    expect(store.getState().loadedMonth).toBe('2026-03');
+    expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-05', 22_000);
+    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-05');
   });
 
-  it('setExpectedIncome reloads the selected future month', async () => {
-    const { lastMonths } = jest.requireMock('@/modules/budget/repositories/budget.repository') as {
-      lastMonths: jest.Mock;
-    };
-    const store = createBudgetStore(makeRepo());
-    store.getState().setData([], {}, {}, null, [], {}, '2026-09');
+  it('suppresses a stale month load after a newer month resolves', async () => {
+    const juneIncome = deferred<number | null>();
+    const repo = makeRepo({ '2026-07': 27_000 }, { '2026-07': { food: BudgetGroup.Want } });
+    repo.getExpectedIncome.mockImplementation((yearMonth) =>
+      yearMonth === '2026-06' ? juneIncome.promise : Promise.resolve(27_000),
+    );
+    const store = createBudgetStore(repo);
 
-    await store.getState().setExpectedIncome(30000);
+    const juneLoad = store.getState().load('2026-06');
+    await store.getState().load('2026-07');
+    juneIncome.resolve(18_000);
+    await juneLoad;
 
-    expect(lastMonths).toHaveBeenLastCalledWith('2026-09', 12);
-    expect(store.getState().loadedMonth).toBe('2026-09');
+    expect(store.getState()).toMatchObject({
+      expectedIncome: 27_000,
+      budgetGroupByCategoryId: { food: BudgetGroup.Want },
+      loadedMonth: '2026-07',
+    });
   });
 
-  it('setLimit delegates to budgetRepository then reloads', async () => {
-    const { budgetRepository } = jest.requireMock(
-      '@/modules/budget/repositories/budget.repository',
-    ) as {
-      budgetRepository: { setLimit: jest.Mock };
-    };
-    const store = createBudgetStore(makeRepo());
-    await store.getState().setLimit('cat-1', 5000);
-    expect(budgetRepository.setLimit).toHaveBeenCalledWith('cat-1', 5000);
+  it('reset clears month profile state and invalidates an in-flight load', async () => {
+    const pendingIncome = deferred<number | null>();
+    const repo = makeRepo({}, { '2026-06': { food: BudgetGroup.Need } });
+    repo.getExpectedIncome.mockReturnValueOnce(pendingIncome.promise);
+    const store = createBudgetStore(repo);
+
+    const load = store.getState().load('2026-06');
+    store.getState().reset();
+    pendingIncome.resolve(20_000);
+    await load;
+
+    expect(store.getState()).toMatchObject({
+      rows: [],
+      spendByMonth: {},
+      spendByBudgetId: {},
+      expectedIncome: null,
+      budgetGroupByCategoryId: {},
+      loadedMonth: undefined,
+      loaded: false,
+      loadError: false,
+    });
   });
 
-  it('setLimit delegates the selected month to budgetRepository then reloads that month', async () => {
-    const { budgetRepository, lastMonths } = jest.requireMock(
-      '@/modules/budget/repositories/budget.repository',
-    ) as {
-      budgetRepository: { setLimit: jest.Mock; getSpendByMonth: jest.Mock };
-      lastMonths: jest.Mock;
-    };
-    const store = createBudgetStore(makeRepo());
-    await store.getState().setLimit('cat-1', 5000, '2026-07');
-    expect(budgetRepository.setLimit).toHaveBeenCalledWith('cat-1', 5000, '2026-07');
-    expect(lastMonths).toHaveBeenCalledWith('2026-07', 12);
-    expect(budgetRepository.getSpendByMonth).toHaveBeenCalledWith(['2026-05']);
-  });
+  it('reloads the target month after copying budgets', async () => {
+    const repo = makeRepo();
+    const store = createBudgetStore(repo);
 
-  it('removeBudget delegates to budgetRepository then reloads', async () => {
-    const { budgetRepository } = jest.requireMock(
-      '@/modules/budget/repositories/budget.repository',
-    ) as {
-      budgetRepository: { removeBudget: jest.Mock };
-    };
-    const store = createBudgetStore(makeRepo());
-    await store.getState().removeBudget('cat-1');
-    expect(budgetRepository.removeBudget).toHaveBeenCalledWith('cat-1');
-  });
+    await store.getState().copyBudgetsToMonth('2026-06', '2026-07', ['budget-food', 'budget-rent']);
 
-  it('removeBudget delegates the selected month to budgetRepository then reloads that month', async () => {
-    const { budgetRepository, lastMonths } = jest.requireMock(
-      '@/modules/budget/repositories/budget.repository',
-    ) as {
-      budgetRepository: { removeBudget: jest.Mock };
-      lastMonths: jest.Mock;
-    };
-    const store = createBudgetStore(makeRepo());
-    await store.getState().removeBudget('cat-1', '2026-07');
-    expect(budgetRepository.removeBudget).toHaveBeenCalledWith('cat-1', '2026-07');
-    expect(lastMonths).toHaveBeenCalledWith('2026-07', 12);
-  });
-
-  it('copyLimitsToMonth delegates source, target, and selected categories then reloads target month', async () => {
-    const { budgetRepository, lastMonths } = jest.requireMock(
-      '@/modules/budget/repositories/budget.repository',
-    ) as {
-      budgetRepository: { copyLimitsToMonth: jest.Mock };
-      lastMonths: jest.Mock;
-    };
-    const store = createBudgetStore(makeRepo());
-    await store.getState().copyLimitsToMonth('2026-06', '2026-07', ['cat-1', 'cat-2']);
-    expect(budgetRepository.copyLimitsToMonth).toHaveBeenCalledWith('2026-06', '2026-07', [
-      'cat-1',
-      'cat-2',
+    expect(repo.copyBudgetsToMonth).toHaveBeenCalledWith('2026-06', '2026-07', [
+      'budget-food',
+      'budget-rent',
     ]);
-    expect(lastMonths).toHaveBeenCalledWith('2026-07', 12);
+    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-07');
+    expect(repo.getCategoryGroups).toHaveBeenLastCalledWith('2026-07');
   });
 });

@@ -22,6 +22,14 @@ jest.mock('@/modules/budget/database/budget_stats', () => ({
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
   getSpendingPlanSpend: jest.fn().mockResolvedValue({}),
 }));
+jest.mock('@/modules/budget/database/budget_month_profiles', () => ({
+  copyBudgetMonthCategoryGroups: jest.fn().mockResolvedValue(undefined),
+  getBudgetMonthCategoryGroups: jest.fn().mockResolvedValue({}),
+  getBudgetMonthIncome: jest.fn().mockResolvedValue(null),
+  setBudgetMonthCategoryGroup: jest.fn().mockResolvedValue(undefined),
+  setBudgetMonthIncome: jest.fn().mockResolvedValue(undefined),
+  snapshotBudgetMonthCategoryGroups: jest.fn().mockResolvedValue(undefined),
+}));
 jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
   getBudgetRowById: jest.fn().mockResolvedValue(null),

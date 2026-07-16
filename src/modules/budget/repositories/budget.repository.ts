@@ -4,6 +4,14 @@ import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import {
+  copyBudgetMonthCategoryGroups,
+  getBudgetMonthCategoryGroups,
+  getBudgetMonthIncome,
+  setBudgetMonthCategoryGroup,
+  setBudgetMonthIncome,
+  snapshotBudgetMonthCategoryGroups,
+} from '@/modules/budget/database/budget_month_profiles';
+import {
   getBudgetSpendByMonth,
   getCategorySpendByMonth,
   getSpendingPlanSpend,
@@ -28,6 +36,7 @@ import {
 } from '@/modules/budget/database/spending_plans';
 import type {
   Budget,
+  BudgetMonthGroupMap,
   SpendingPlan,
   SpendingPlanCategory,
   SpendingPlanWithCategories,
@@ -56,6 +65,9 @@ export interface IBudgetRepository {
   getRows(): Promise<Budget[]>;
   getById(id: string): Promise<Budget | undefined>;
   getBudgetsForCategoryMonth(categoryId: string, yearMonth: string): Promise<Budget[]>;
+  getExpectedIncome(yearMonth: string): Promise<number | null>;
+  getCategoryGroups(yearMonth: string): Promise<BudgetMonthGroupMap>;
+  setExpectedIncome(yearMonth: string, amount: number): Promise<void>;
   setBudget(input: SetBudgetInput): Promise<void>;
   setLimit(categoryId: string, limit: number, yearMonth?: string): Promise<void>;
   removeBudget(id: string, yearMonth?: string): Promise<void>;
@@ -149,6 +161,24 @@ export class BudgetRepository implements IBudgetRepository {
     return getBudgetRowsForCategoryMonth(db, categoryId, yearMonth);
   }
 
+  async getExpectedIncome(yearMonth: string): Promise<number | null> {
+    const db = await getDb();
+    return getBudgetMonthIncome(db, yearMonth);
+  }
+
+  async getCategoryGroups(yearMonth: string): Promise<BudgetMonthGroupMap> {
+    const db = await getDb();
+    return getBudgetMonthCategoryGroups(db, yearMonth);
+  }
+
+  async setExpectedIncome(yearMonth: string, amount: number): Promise<void> {
+    const db = await getDb();
+    await db.withExclusiveTransactionAsync(async (tx) => {
+      await setBudgetMonthIncome(tx, yearMonth, amount);
+      await snapshotBudgetMonthCategoryGroups(tx, yearMonth);
+    });
+  }
+
   async setBudget(input: SetBudgetInput): Promise<void> {
     const db = await getDb();
     const now = new Date().toISOString();
@@ -167,6 +197,7 @@ export class BudgetRepository implements IBudgetRepository {
         updated_at: now,
       });
       if (input.categoryGroup !== undefined) {
+        await setBudgetMonthCategoryGroup(tx, yearMonth, input.categoryId, input.categoryGroup);
         await setCategoryGroup(tx, input.categoryId, input.categoryGroup);
       }
     });
@@ -190,14 +221,14 @@ export class BudgetRepository implements IBudgetRepository {
     const rows = await getBudgetRows(db);
     const now = new Date().toISOString();
     const uniqueBudgetIds = Array.from(new Set(budgetIds));
+    const sourceRows = uniqueBudgetIds
+      .map((budgetId) =>
+        rows.find((row) => row.id === budgetId && row.effective_from === sourceMonth),
+      )
+      .filter((row): row is Budget => row !== undefined);
 
     await Promise.all(
-      uniqueBudgetIds.map(async (budgetId) => {
-        const source = rows.find(
-          (row) => row.id === budgetId && row.effective_from === sourceMonth,
-        );
-        if (!source) return;
-
+      sourceRows.map(async (source) => {
         const target = rows.find(
           (row) =>
             row.category_id === source.category_id &&
@@ -215,6 +246,12 @@ export class BudgetRepository implements IBudgetRepository {
           updated_at: now,
         });
       }),
+    );
+    await copyBudgetMonthCategoryGroups(
+      db,
+      sourceMonth,
+      targetMonth,
+      Array.from(new Set(sourceRows.map((row) => row.category_id))),
     );
   }
 
