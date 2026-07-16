@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement, ReactNode } from 'react';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Colors } from '@/constants/theme';
 import BudgetScreen from '@/modules/budget/screens/budget';
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
@@ -334,8 +334,40 @@ jest.mock('@/modules/budget/screens/budget/components/spending_plan_delete_confi
     ) : null;
   },
 }));
-jest.mock('@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens', () => ({
-  FiftyThirtyTwentyLens: () => null,
+jest.mock('@/modules/budget/screens/budget/components/fifty_thirty_twenty', () => ({
+  FiftyThirtyTwentyLens: ({
+    selectedMonth,
+    expandedGroup,
+    onExpandedGroupChange,
+    onEditIncome,
+    onManageGroup,
+  }: {
+    selectedMonth: string;
+    expandedGroup: BudgetGroup | undefined;
+    onExpandedGroupChange: (group: BudgetGroup | undefined) => void;
+    onEditIncome: () => void;
+    onManageGroup: (group: BudgetGroup) => void;
+  }) => {
+    const { BudgetGroup: MockBudgetGroup } =
+      jest.requireActual<typeof import('@/constants/enums')>('@/constants/enums');
+    const { Pressable, Text, View } =
+      jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <View testID="rule-lens">
+        <Text>{`rule-month:${selectedMonth}`}</Text>
+        <Text>{`rule-expanded:${expandedGroup ?? 'none'}`}</Text>
+        <Pressable accessibilityLabel="edit rule income" onPress={onEditIncome} />
+        <Pressable
+          accessibilityLabel="expand needs"
+          onPress={() => onExpandedGroupChange(MockBudgetGroup.Need)}
+        />
+        <Pressable
+          accessibilityLabel="manage needs"
+          onPress={() => onManageGroup(MockBudgetGroup.Need)}
+        />
+      </View>
+    );
+  },
 }));
 jest.mock('@/modules/budget/screens/budget/components/income_sheet', () => ({
   IncomeSheet: () => null,
@@ -409,7 +441,22 @@ const baseState: BudgetScreenState = {
   hasBudgets: false,
   hasSpendingPlans: false,
   budgetableCategories: [],
-  buckets: { income: 0, hasIncome: false, buckets: [], ungrouped: 0, unallocated: 0 },
+  ruleLens: {
+    summary: {
+      income: undefined,
+      hasIncome: false,
+      groupedPlanned: 0,
+      notGroupedPlanned: 0,
+      totalPlanned: 0,
+      leftToPlan: undefined,
+      plannedRatio: undefined,
+      progressRatio: undefined,
+      lifecycle: 'current',
+      daysLeft: 12,
+    },
+    buckets: [],
+    notGrouped: undefined,
+  },
   suggestion: null,
   lensTab: 'categories',
   copySourceMonth: '2026-06',
@@ -420,6 +467,7 @@ const baseState: BudgetScreenState = {
   refreshing: false,
   loadError: false,
   expandedCategoryId: undefined,
+  expandedBudgetGroup: undefined,
 };
 
 const mockedUseBudget = useBudget as jest.Mock;
@@ -484,8 +532,11 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     openPlanTool: jest.fn(),
     openPlanDetails: jest.fn(),
     openIncomeSheet: jest.fn(),
+    openMonthlyIncome: jest.fn(),
     setLensTab: jest.fn(),
     setExpandedCategoryId: jest.fn(),
+    setExpandedBudgetGroup: jest.fn(),
+    manageRuleGroup: jest.fn(),
     setSelectedMonth: jest.fn(),
     openCopy: jest.fn(),
     closeCopy: jest.fn(),
@@ -527,6 +578,25 @@ describe('BudgetScreen', () => {
     const { getByText } = render(<BudgetScreen />);
 
     expect(getByText('skeleton:plans')).toBeTruthy();
+  });
+
+  it('wires month, expansion, income, and manage actions to the rule lens', () => {
+    const budget = mockUseBudget({
+      hasLoaded: true,
+      lensTab: 'fiftythirty',
+      expandedBudgetGroup: BudgetGroup.Want,
+    });
+
+    render(<BudgetScreen />);
+
+    expect(screen.getByText('rule-month:2026-07')).toBeTruthy();
+    expect(screen.getByText('rule-expanded:want')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('edit rule income'));
+    fireEvent.press(screen.getByLabelText('expand needs'));
+    fireEvent.press(screen.getByLabelText('manage needs'));
+    expect(budget.openIncomeSheet).toHaveBeenCalledTimes(1);
+    expect(budget.setExpandedBudgetGroup).toHaveBeenCalledWith(BudgetGroup.Need);
+    expect(budget.manageRuleGroup).toHaveBeenCalledWith(BudgetGroup.Need);
   });
 
   it('shows a retry action when the initial load fails', () => {

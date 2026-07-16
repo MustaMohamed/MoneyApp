@@ -60,29 +60,6 @@ export interface BudgetRuleLensVM {
   notGrouped: { planned: number; spent: number } | undefined;
 }
 
-/** Legacy compatibility type; remove with the old 50/30/20 components in Tasks 5–6. */
-export type BucketStatus = 'on-track' | 'over' | 'ahead' | 'behind';
-
-/** Legacy compatibility type; remove with the old 50/30/20 components in Tasks 5–6. */
-export interface BucketVM {
-  group: BudgetGroup;
-  target: number;
-  allocated: number;
-  spent: number;
-  barPct: number;
-  spendFillPct: number;
-  status: BucketStatus;
-}
-
-/** Legacy compatibility type; remove with the old 50/30/20 components in Tasks 5–6. */
-export interface BucketsVM {
-  income: number;
-  hasIncome: boolean;
-  buckets: BucketVM[];
-  ungrouped: number;
-  unallocated: number;
-}
-
 export interface BuildBudgetRuleLensInput {
   income: number | null;
   categories: Category[];
@@ -278,69 +255,5 @@ export function buildBudgetRuleLens({
       notGroupedPlanned > 0 || notGroupedSpent > 0
         ? { planned: notGroupedPlanned, spent: notGroupedSpent }
         : undefined,
-  };
-}
-
-/** Legacy calculation path; Task 5 replaces its remaining consumers. */
-export function computeBuckets(
-  income: number,
-  categories: Category[],
-  budgets: Budget[],
-  spendByMonth: Record<string, Record<string, number>>,
-  selectedMonth: string,
-): BucketsVM {
-  if (income <= 0) {
-    return { income, hasIncome: false, buckets: [], ungrouped: 0, unallocated: 0 };
-  }
-
-  const totals: Record<BudgetGroup, { allocated: number; spent: number }> = {
-    [BudgetGroup.Need]: { allocated: 0, spent: 0 },
-    [BudgetGroup.Want]: { allocated: 0, spent: 0 },
-    [BudgetGroup.Savings]: { allocated: 0, spent: 0 },
-  };
-  let ungrouped = 0;
-
-  for (const category of categories) {
-    const allocated = resolveLimitForMonth(budgets, category.id, selectedMonth);
-    if (allocated === null) continue;
-
-    if (category.budget_group === null) {
-      ungrouped += allocated;
-      continue;
-    }
-
-    totals[category.budget_group].allocated += allocated;
-    totals[category.budget_group].spent += spendByMonth[category.id]?.[selectedMonth] ?? 0;
-  }
-
-  const buckets = GROUP_ORDER.map((group): BucketVM => {
-    const target = income * GROUP_RATIOS[group];
-    const { allocated, spent } = totals[group];
-    return {
-      group,
-      target,
-      allocated,
-      spent,
-      barPct: clampRatio(allocated / target),
-      spendFillPct: clampRatio(allocated > 0 ? spent / allocated : 0),
-      status:
-        group === BudgetGroup.Savings
-          ? allocated >= target
-            ? 'ahead'
-            : 'behind'
-          : allocated > target
-            ? 'over'
-            : 'on-track',
-    };
-  });
-
-  const allocatedTotal = buckets.reduce((total, bucket) => total + bucket.allocated, 0) + ungrouped;
-
-  return {
-    income,
-    hasIncome: true,
-    buckets,
-    ungrouped,
-    unallocated: income - allocatedTotal,
   };
 }

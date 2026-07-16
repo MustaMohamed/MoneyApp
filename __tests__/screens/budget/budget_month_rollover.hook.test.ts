@@ -114,6 +114,7 @@ function setupStores() {
     loadedMonth: budgetLoadedMonthState,
     loadError: budgetLoadErrorState,
     expectedIncome: null,
+    budgetGroupByCategoryId: {},
     load: loadBudgetMock,
     setSpendingPlan: jest.fn(),
     removeSpendingPlan: jest.fn(),

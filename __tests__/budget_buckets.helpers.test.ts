@@ -1,10 +1,7 @@
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import {
-  buildBudgetRuleLens,
-  computeBuckets,
-} from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const MONTH = '2026-05';
@@ -67,81 +64,6 @@ function bucket(result: ReturnType<typeof buildBudgetRuleLens>, group: BudgetGro
   if (!match) throw new Error(`Missing ${group} bucket`);
   return match;
 }
-
-function legacyBucket(result: ReturnType<typeof computeBuckets>, group: BudgetGroup) {
-  const match = result.buckets.find((item) => item.group === group);
-  if (!match) throw new Error(`Missing legacy ${group} bucket`);
-  return match;
-}
-
-describe('computeBuckets legacy compatibility', () => {
-  it('keeps category-default grouping, Savings spend, and ungrouped allocation live', () => {
-    const categories = [
-      makeCategory('housing', BudgetGroup.Need, 'Housing'),
-      makeCategory('investing', BudgetGroup.Savings, 'Investing'),
-      makeCategory('other', null, 'Other'),
-    ];
-    const result = computeBuckets(
-      20_000,
-      categories,
-      [
-        makeBudget('housing', 5_000, 'Rent'),
-        makeBudget('housing', 800, 'Maintenance'),
-        makeBudget('investing', 4_000),
-        makeBudget('other', 1_000),
-      ],
-      {
-        housing: { [MONTH]: 1_600 },
-        investing: { [MONTH]: 900 },
-        other: { [MONTH]: 300 },
-      },
-      MONTH,
-    );
-
-    expect(legacyBucket(result, BudgetGroup.Need)).toMatchObject({
-      target: 10_000,
-      allocated: 5_800,
-      spent: 1_600,
-      barPct: 0.58,
-      spendFillPct: 1_600 / 5_800,
-      status: 'on-track',
-    });
-    expect(legacyBucket(result, BudgetGroup.Savings)).toMatchObject({
-      target: 4_000,
-      allocated: 4_000,
-      spent: 900,
-      barPct: 1,
-      spendFillPct: 0.225,
-      status: 'ahead',
-    });
-    expect(result.ungrouped).toBe(1_000);
-    expect(result.unallocated).toBe(9_200);
-  });
-
-  it('keeps legacy no-income, over-cap, and month-exact behavior', () => {
-    expect(computeBuckets(0, [], [], {}, MONTH)).toEqual({
-      income: 0,
-      hasIncome: false,
-      buckets: [],
-      ungrouped: 0,
-      unallocated: 0,
-    });
-
-    const result = computeBuckets(
-      20_000,
-      [makeCategory('housing', BudgetGroup.Need, 'Housing')],
-      [makeBudget('housing', 15_000), makeBudget('housing', 50_000, 'Old', '2026-04')],
-      {},
-      MONTH,
-    );
-
-    expect(legacyBucket(result, BudgetGroup.Need)).toMatchObject({
-      allocated: 15_000,
-      barPct: 1,
-      status: 'over',
-    });
-  });
-});
 
 describe('buildBudgetRuleLens', () => {
   it('builds the 50/30/20 summary, bucket totals, actuals, and reconciliation', () => {

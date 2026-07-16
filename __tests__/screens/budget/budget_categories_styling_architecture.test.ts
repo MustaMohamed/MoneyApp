@@ -11,6 +11,12 @@ const PRESENTATION_FILES = [
   'src/modules/budget/screens/budget/components/unassigned_spending_row.tsx',
   'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
   'src/modules/budget/screens/budget/components/income_sheet.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/index.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/not_grouped_row.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/index.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet.tsx',
@@ -55,7 +61,7 @@ describe('budget categories presentation architecture', () => {
   it('uses one root income sheet and the shared HeroUI input composition', () => {
     const screen = source('src/modules/budget/screens/budget/index.tsx');
     const lens = source(
-      'src/modules/budget/screens/budget/components/fifty_thirty_twenty_lens.tsx',
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/index.tsx',
     );
     const incomeSheet = source('src/modules/budget/screens/budget/components/income_sheet.tsx');
 
@@ -73,6 +79,29 @@ describe('budget categories presentation architecture', () => {
     expect(incomeSheet).toContain('`${amountLabel}, ${Strings.currencyEgp}`');
     expect(incomeSheet).toContain('accessibilityLiveRegion="assertive"');
     expect(incomeSheet).not.toContain('border-accent flex-row');
+  });
+
+  it('builds the rule lens from focused HeroUI components with controlled expansion', () => {
+    const screen = source('src/modules/budget/screens/budget/index.tsx');
+    const ledger = source(
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger.tsx',
+    );
+    const summary = source(
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
+    );
+
+    expect(ledger).toContain("import { Accordion, Card } from 'heroui-native'");
+    expect(ledger).toContain('value={expandedGroup ??');
+    expect(summary).toContain("import { Card } from 'heroui-native'");
+    expect(summary).toContain('<BudgetSummaryMetricsRow');
+    expect(summary).toContain('<BudgetSummaryStatusRow');
+    expect(screen).toContain('expandedGroup={state.expandedBudgetGroup}');
+    expect(screen).not.toMatch(/useState|useSharedValue/);
+    const skeleton = source(
+      'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
+    );
+    expect(skeleton).toContain('expandedBucket?.contributors.map');
+    expect(skeleton).toContain('vm?.notGrouped ?');
   });
 
   it('keeps lifecycle and save orchestration out of state stores', () => {
@@ -203,6 +232,7 @@ describe('budget categories presentation architecture', () => {
       'className="border-border mt-1.5 flex-row items-stretch border-t pt-1"',
     );
     expect(summaryParts).toContain('className="mt-1.5 flex-row items-center"');
+    expect(summaryParts).toContain('className="min-h-8 flex-1 flex-row');
     expect(summaryParts).toContain('const metricClassName =');
     expect(summaryParts).not.toContain('adjustsFontSizeToFit');
     expect(summaryParts).not.toContain('minimumFontScale');
@@ -211,7 +241,7 @@ describe('budget categories presentation architecture', () => {
       skeleton.match(
         /className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"/g,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(plansLens).toContain('<View className="mt-3 px-4">');
   });
 

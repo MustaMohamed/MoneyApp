@@ -2,7 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
@@ -12,10 +12,7 @@ import {
   buildCategoryBudgetRows,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
-import {
-  computeBuckets,
-  type BucketsVM,
-} from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
@@ -53,6 +50,7 @@ export function useBudget() {
     budgetLoaded,
     loadedMonth,
     expectedIncome,
+    budgetGroupByCategoryId,
     loadError,
   } = useBudgetStore(
     useShallow((s) => ({
@@ -64,6 +62,7 @@ export function useBudget() {
       budgetLoaded: s.loaded,
       loadedMonth: s.loadedMonth,
       expectedIncome: s.expectedIncome,
+      budgetGroupByCategoryId: s.budgetGroupByCategoryId,
       loadError: s.loadError,
     })),
   );
@@ -87,6 +86,7 @@ export function useBudget() {
     targetBudgetId,
     targetPlanId,
     expandedCategoryId,
+    expandedBudgetGroup,
   } = useBudgetState(
     useShallow((s) => ({
       selectedMonth: s.selectedMonth,
@@ -99,6 +99,7 @@ export function useBudget() {
       targetBudgetId: s.targetBudgetId,
       targetPlanId: s.targetPlanId,
       expandedCategoryId: s.expandedCategoryId,
+      expandedBudgetGroup: s.expandedBudgetGroup,
     })),
   );
   const setLensTab = useBudgetState.getState().setLensTab;
@@ -112,6 +113,7 @@ export function useBudget() {
   const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
   const setRefreshing = useBudgetState.getState().setRefreshing;
   const setExpandedCategoryId = useBudgetState.getState().setExpandedCategoryId;
+  const setExpandedBudgetGroup = useBudgetState.getState().setExpandedBudgetGroup;
   const openIncomeSheetState = useIncomeSheetState.getState().open;
 
   const loadIncomeSuggestion = useCallback(
@@ -214,9 +216,26 @@ export function useBudget() {
     [spendingPlanRows, targetPlanId],
   );
 
-  const buckets: BucketsVM = useMemo(
-    () => computeBuckets(expectedIncome ?? 0, categories, budgetRows, spendByMonth, selectedMonth),
-    [budgetRows, categories, expectedIncome, selectedMonth, spendByMonth],
+  const ruleLens = useMemo(
+    () =>
+      buildBudgetRuleLens({
+        income: expectedIncome,
+        categories,
+        budgets: budgetRows,
+        budgetGroupByCategoryId,
+        spendByMonth,
+        selectedMonth,
+        lifecycleDate: today,
+      }),
+    [
+      budgetGroupByCategoryId,
+      budgetRows,
+      categories,
+      expectedIncome,
+      selectedMonth,
+      spendByMonth,
+      today,
+    ],
   );
 
   // Expense categories remain selectable even when they already have a budget,
@@ -345,6 +364,20 @@ export function useBudget() {
     );
   }, [expectedIncome, incomeSuggestion, openIncomeSheetState, selectedMonth]);
 
+  const manageRuleGroup = useCallback(
+    (group: BudgetGroup) => {
+      const contributorIds = new Set(
+        ruleLens.buckets
+          .find((bucket) => bucket.group === group)
+          ?.contributors.map((contributor) => contributor.categoryId) ?? [],
+      );
+      const firstMatchingCategory = rows.find((row) => contributorIds.has(row.categoryId));
+      setLensTab('categories');
+      setExpandedCategoryId(firstMatchingCategory?.categoryId);
+    },
+    [rows, ruleLens.buckets, setExpandedCategoryId, setLensTab],
+  );
+
   return {
     state: {
       rows,
@@ -359,7 +392,7 @@ export function useBudget() {
       hasBudgets: rows.length > 0,
       hasSpendingPlans: spendingPlanRows.length > 0,
       budgetableCategories,
-      buckets,
+      ruleLens,
       suggestion: incomeSuggestion,
       lensTab,
       copySourceMonth,
@@ -369,6 +402,7 @@ export function useBudget() {
       refreshing,
       loadError: loadError || categoryLoadError,
       expandedCategoryId,
+      expandedBudgetGroup,
       hasLoaded: Boolean(
         categoriesLoaded &&
         budgetLoaded &&
@@ -382,8 +416,11 @@ export function useBudget() {
     openPlanTool,
     openPlanDetails,
     openIncomeSheet,
+    openMonthlyIncome: openIncomeSheet,
     setLensTab,
     setExpandedCategoryId,
+    setExpandedBudgetGroup,
+    manageRuleGroup,
     setSelectedMonth,
     openCopy,
     closeCopy,

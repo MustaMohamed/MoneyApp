@@ -17,7 +17,7 @@ import { BudgetDeleteConfirmSheet } from '@/modules/budget/screens/budget/compon
 import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components/budget_screen_skeleton';
 import { BudgetToolRail } from '@/modules/budget/screens/budget/components/budget_tool_rail';
 import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/category_budget_row';
-import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
+import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty';
 import { IncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { SpendingPlanDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet';
@@ -55,6 +55,8 @@ export default function BudgetScreen() {
     openPlanDetails,
     openIncomeSheet,
     setExpandedCategoryId,
+    setExpandedBudgetGroup,
+    manageRuleGroup,
     refresh,
     goToCategory,
   } = useBudget();
@@ -146,7 +148,8 @@ export default function BudgetScreen() {
             categoryRows={state.rows}
             expandedCategoryId={state.expandedCategoryId}
             planRowCount={state.spendingPlanRows.length}
-            bucketsHaveIncome={state.buckets.hasIncome}
+            ruleLens={state.ruleLens}
+            expandedBudgetGroup={state.expandedBudgetGroup}
           />
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
@@ -219,7 +222,14 @@ export default function BudgetScreen() {
           contentContainerStyle={{ paddingBottom: ms(96) }}
           refreshControl={refreshControl}
         >
-          <FiftyThirtyTwentyLens vm={state.buckets} onEditIncome={openIncomeSheet} />
+          <FiftyThirtyTwentyLens
+            vm={state.ruleLens}
+            selectedMonth={state.month}
+            expandedGroup={state.expandedBudgetGroup}
+            onExpandedGroupChange={setExpandedBudgetGroup}
+            onEditIncome={openIncomeSheet}
+            onManageGroup={manageRuleGroup}
+          />
         </ScreenScroll>
       )}
 
