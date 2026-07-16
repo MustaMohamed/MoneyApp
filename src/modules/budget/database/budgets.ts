@@ -29,8 +29,12 @@ export async function getBudgetRowsForCategoryMonth(
 // Preserve row identity on edits and natural-key copy-over updates so linked
 // transactions keep their budget_id foreign key assignment.
 export async function setBudgetRow(db: SQLiteDatabase, row: Budget): Promise<void> {
-  if (typeof row.limit_amount !== 'number' || !Number.isFinite(row.limit_amount)) {
-    throw new Error('Budget limit amount must be a finite number');
+  if (
+    typeof row.limit_amount !== 'number' ||
+    !Number.isFinite(row.limit_amount) ||
+    row.limit_amount <= 0
+  ) {
+    throw new Error('Budget limit amount must be a finite positive number');
   }
 
   await db.runAsync(

@@ -111,6 +111,10 @@ function clampRatio(ratio: number): number {
   return Math.min(Math.max(ratio, 0), 1);
 }
 
+function normalizeAmount(amount: number): number {
+  return Number.isFinite(amount) && amount > 0 ? amount : 0;
+}
+
 function classifyLifecycle(
   selectedMonth: string,
   lifecycleDate: string,
@@ -146,6 +150,8 @@ function compareContributors(
   if ((left.spent ?? 0) !== (right.spent ?? 0)) return (right.spent ?? 0) - (left.spent ?? 0);
   if (left.name < right.name) return -1;
   if (left.name > right.name) return 1;
+  if (left.categoryId < right.categoryId) return -1;
+  if (left.categoryId > right.categoryId) return 1;
   return 0;
 }
 
@@ -165,20 +171,24 @@ export function buildBudgetRuleLens({
     [BudgetGroup.Want]: { planned: 0, spent: 0, contributors: [] },
     [BudgetGroup.Savings]: { planned: 0, spent: 0, contributors: [] },
   };
+  const normalizedBudgets = budgets.map((budget) => ({
+    ...budget,
+    limit_amount: normalizeAmount(budget.limit_amount),
+  }));
   let notGroupedPlanned = 0;
   let notGroupedSpent = 0;
 
   for (const category of categories) {
     if (category.type !== CategoryType.Expense) continue;
 
-    const planned = resolveLimitForMonth(budgets, category.id, selectedMonth) ?? 0;
+    const planned = resolveLimitForMonth(normalizedBudgets, category.id, selectedMonth) ?? 0;
     const group =
       budgetGroupByCategoryId[category.id] ??
       (hasIncome ? undefined : (category.budget_group ?? undefined));
 
     if (group === undefined) {
       notGroupedPlanned += planned;
-      notGroupedSpent += spendByMonth[category.id]?.[selectedMonth] ?? 0;
+      notGroupedSpent += normalizeAmount(spendByMonth[category.id]?.[selectedMonth] ?? 0);
       continue;
     }
 
@@ -201,7 +211,7 @@ export function buildBudgetRuleLens({
       continue;
     }
 
-    const spent = spendByMonth[category.id]?.[selectedMonth] ?? 0;
+    const spent = normalizeAmount(spendByMonth[category.id]?.[selectedMonth] ?? 0);
     groupTotals.spent += spent;
     if (planned > 0 || spent > 0) {
       groupTotals.contributors.push({
@@ -271,11 +281,7 @@ export function buildBudgetRuleLens({
   };
 }
 
-/**
- * Task 5 replaces the remaining consumer with `buildBudgetRuleLens`. This
- * legacy adapter keeps the staged plan type-safe without maintaining a second
- * calculation path and is removed with the old lens.
- */
+/** Legacy calculation path; Task 5 replaces its remaining consumers. */
 export function computeBuckets(
   income: number,
   categories: Category[],
@@ -287,39 +293,54 @@ export function computeBuckets(
     return { income, hasIncome: false, buckets: [], ungrouped: 0, unallocated: 0 };
   }
 
-  const lens = buildBudgetRuleLens({
-    income,
-    categories,
-    budgets,
-    budgetGroupByCategoryId: {},
-    spendByMonth,
-    selectedMonth,
-    lifecycleDate: `${selectedMonth}-01`,
+  const totals: Record<BudgetGroup, { allocated: number; spent: number }> = {
+    [BudgetGroup.Need]: { allocated: 0, spent: 0 },
+    [BudgetGroup.Want]: { allocated: 0, spent: 0 },
+    [BudgetGroup.Savings]: { allocated: 0, spent: 0 },
+  };
+  let ungrouped = 0;
+
+  for (const category of categories) {
+    const allocated = resolveLimitForMonth(budgets, category.id, selectedMonth);
+    if (allocated === null) continue;
+
+    if (category.budget_group === null) {
+      ungrouped += allocated;
+      continue;
+    }
+
+    totals[category.budget_group].allocated += allocated;
+    totals[category.budget_group].spent += spendByMonth[category.id]?.[selectedMonth] ?? 0;
+  }
+
+  const buckets = GROUP_ORDER.map((group): BucketVM => {
+    const target = income * GROUP_RATIOS[group];
+    const { allocated, spent } = totals[group];
+    return {
+      group,
+      target,
+      allocated,
+      spent,
+      barPct: clampRatio(allocated / target),
+      spendFillPct: clampRatio(allocated > 0 ? spent / allocated : 0),
+      status:
+        group === BudgetGroup.Savings
+          ? allocated >= target
+            ? 'ahead'
+            : 'behind'
+          : allocated > target
+            ? 'over'
+            : 'on-track',
+    };
   });
+
+  const allocatedTotal = buckets.reduce((total, bucket) => total + bucket.allocated, 0) + ungrouped;
 
   return {
     income,
     hasIncome: true,
-    buckets: lens.buckets.map((bucket) => {
-      const spent = bucket.actual ?? 0;
-      return {
-        group: bucket.group,
-        target: bucket.target ?? 0,
-        allocated: bucket.planned,
-        spent,
-        barPct: bucket.progressRatio ?? 0,
-        spendFillPct: clampRatio(bucket.planned > 0 ? spent / bucket.planned : 0),
-        status:
-          bucket.group === BudgetGroup.Savings
-            ? bucket.status === 'target-met'
-              ? 'ahead'
-              : 'behind'
-            : bucket.status === 'over-cap'
-              ? 'over'
-              : 'on-track',
-      };
-    }),
-    ungrouped: lens.notGrouped?.planned ?? 0,
-    unallocated: lens.summary.leftToPlan ?? 0,
+    buckets,
+    ungrouped,
+    unallocated: income - allocatedTotal,
   };
 }

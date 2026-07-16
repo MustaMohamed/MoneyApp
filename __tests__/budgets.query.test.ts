@@ -167,4 +167,22 @@ describe('budgets query file', () => {
       }),
     ).rejects.toThrow();
   });
+
+  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'rejects non-positive or non-finite limit amount %s',
+    async (limitAmount) => {
+      await expect(
+        setBudgetRow(db, {
+          id: 'invalid-budget',
+          category_id: 'cat_food',
+          name: 'Invalid Budget',
+          limit_amount: limitAmount,
+          effective_from: '2026-06',
+          created_at: NOW,
+          updated_at: NOW,
+        }),
+      ).rejects.toThrow('Budget limit amount must be a finite positive number');
+      expect(await getBudgetRows(db)).toEqual([]);
+    },
+  );
 });
