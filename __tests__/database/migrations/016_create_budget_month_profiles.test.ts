@@ -28,6 +28,12 @@ interface BudgetMonthSettingRow {
   year_month: string;
 }
 
+interface BudgetMonthGroupSeedRow {
+  budget_group: string;
+  category_id: string;
+  year_month: string;
+}
+
 function getMigration016(): Migration | undefined {
   const migration = MIGRATIONS.find(({ version }) => version === 16);
   expect(migration).toBeDefined();
@@ -160,6 +166,36 @@ describe('migration016 - budget month profiles', () => {
       { year_month: '2026-06', category_id: 'cat_housing', budget_group: 'need' },
       { year_month: '2026-07', category_id: 'cat_food', budget_group: 'want' },
     ]);
+
+    db.close();
+  });
+
+  it('does not snapshot a grouped income-category budget', () => {
+    const migration = getMigration016();
+    if (!migration) return;
+    const db = createDatabaseThrough015();
+    db.prepare<[string, string]>(
+      `INSERT INTO categories
+       (id, name, type, icon, color, is_default, sort_order, budget_group, created_at, updated_at)
+       VALUES ('cat_grouped_income', 'Grouped Income', 'income', 'cash', '#fff', 0, 100,
+               'want', ?, ?)`,
+    ).run(NOW, NOW);
+    db.prepare<[string, string]>(
+      `INSERT INTO budgets
+       (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
+       VALUES ('income-budget', 'cat_grouped_income', 'Income Budget', 1000, '2026-07', ?, ?)`,
+    ).run(NOW, NOW);
+
+    db.exec(migration.up);
+
+    const rows = db
+      .prepare<[], BudgetMonthGroupSeedRow>(
+        `SELECT year_month, category_id, budget_group
+           FROM budget_month_category_groups
+          WHERE category_id = 'cat_grouped_income'`,
+      )
+      .all();
+    expect(rows).toEqual([]);
 
     db.close();
   });

@@ -48,6 +48,7 @@ export const migration016 = {
       datetime('now')
     FROM budgets budget
     JOIN categories category ON category.id = budget.category_id
-    WHERE category.budget_group IS NOT NULL;
+    WHERE category.type = 'expense'
+      AND category.budget_group IS NOT NULL;
   `,
 };
