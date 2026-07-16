@@ -4,11 +4,13 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back_button';
+import { Button } from '@/components/ui/button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
+import { CategoryDetailSkeleton } from '@/modules/budget/screens/budget/category_detail/components/category_detail_skeleton';
 import { LiveMonthCard } from '@/modules/budget/screens/budget/category_detail/components/live_month_card';
 import { MonthLedger } from '@/modules/budget/screens/budget/category_detail/components/month_ledger';
 import { MonthlyResultChart } from '@/modules/budget/screens/budget/category_detail/components/monthly_result_chart';
@@ -17,7 +19,33 @@ import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 export default function CategoryBudgetDetailScreen() {
-  const { state, goBack, editBudget } = useCategoryDetail();
+  const { state, goBack, editBudget, retry } = useCategoryDetail();
+
+  if (!state.hasLoaded) {
+    return (
+      <Screen>
+        {state.loadError ? (
+          <>
+            <View className="px-4 py-2">
+              <BackButton onPress={goBack} />
+            </View>
+            <View className="flex-1 items-center justify-center gap-3 px-6">
+              <Text className="font-inter text-muted text-center">{Strings.budgetLoadError}</Text>
+              <Button
+                variant="secondary"
+                size="sm"
+                label={Strings.budgetLoadRetry}
+                accessibilityLabel={Strings.budgetLoadRetry}
+                onPress={retry}
+              />
+            </View>
+          </>
+        ) : (
+          <CategoryDetailSkeleton onBack={goBack} />
+        )}
+      </Screen>
+    );
+  }
 
   return (
     <Screen>

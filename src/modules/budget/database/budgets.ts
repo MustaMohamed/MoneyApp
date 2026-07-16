@@ -8,17 +8,45 @@ export async function getBudgetRows(db: SQLiteDatabase): Promise<Budget[]> {
   );
 }
 
-// One write path for set / edit: INSERT OR REPLACE collapses a second same
-// category/month/name change onto the same named monthly budget.
+export async function getBudgetRowById(db: SQLiteDatabase, id: string): Promise<Budget | null> {
+  const rows = await db.getAllAsync<Budget>('SELECT * FROM budgets WHERE id = ?', [id]);
+  return rows[0] ?? null;
+}
+
+export async function getBudgetRowsForCategoryMonth(
+  db: SQLiteDatabase,
+  categoryId: string,
+  yearMonth: string,
+): Promise<Budget[]> {
+  return db.getAllAsync<Budget>(
+    `SELECT * FROM budgets
+      WHERE category_id = ? AND effective_from = ?
+      ORDER BY name COLLATE NOCASE ASC`,
+    [categoryId, yearMonth],
+  );
+}
+
+// Preserve row identity on edits and natural-key copy-over updates so linked
+// transactions keep their budget_id foreign key assignment.
 export async function setBudgetRow(db: SQLiteDatabase, row: Budget): Promise<void> {
   if (typeof row.limit_amount !== 'number' || !Number.isFinite(row.limit_amount)) {
     throw new Error('Budget limit amount must be a finite number');
   }
 
   await db.runAsync(
-    `INSERT OR REPLACE INTO budgets
+    `INSERT INTO budgets
        (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       category_id = excluded.category_id,
+       name = excluded.name,
+       limit_amount = excluded.limit_amount,
+       effective_from = excluded.effective_from,
+       updated_at = excluded.updated_at
+     ON CONFLICT(category_id, effective_from, name) DO UPDATE SET
+       name = excluded.name,
+       limit_amount = excluded.limit_amount,
+       updated_at = excluded.updated_at`,
     [
       row.id,
       row.category_id,

@@ -22,6 +22,7 @@ interface BudgetStoreShape {
   rows: Budget[];
   // spend keyed { [categoryId]: { [yearMonth]: number } } over the loaded window
   spendByMonth: Record<string, Record<string, number>>;
+  spendByBudgetId: Record<string, number>;
   spendingPlans: SpendingPlansForMonthResult['plans'];
   spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'];
   loadedMonth: string | undefined;
@@ -35,6 +36,7 @@ type BudgetStore = BudgetStoreShape & {
   setData: (
     rows: Budget[],
     spendByMonth: Record<string, Record<string, number>>,
+    spendByBudgetId: Record<string, number>,
     expectedIncome: number | null,
     spendingPlans: SpendingPlansForMonthResult['plans'],
     spendingPlanSpendById: SpendingPlansForMonthResult['spendByPlanId'],
@@ -65,6 +67,7 @@ type BudgetStore = BudgetStoreShape & {
 const INITIAL_STATE: BudgetStoreShape = {
   rows: [],
   spendByMonth: {},
+  spendByBudgetId: {},
   spendingPlans: [],
   spendingPlanSpendById: {},
   loadedMonth: undefined,
@@ -82,6 +85,7 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
       setData: (
         rows,
         spendByMonth,
+        spendByBudgetId,
         expectedIncome,
         spendingPlans,
         spendingPlanSpendById,
@@ -90,6 +94,7 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         set({
           rows,
           spendByMonth,
+          spendByBudgetId,
           expectedIncome,
           spendingPlans,
           spendingPlanSpendById,
@@ -103,9 +108,10 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
         set({ loadError: false });
         const months = lastMonths(anchorMonth, HISTORY_MONTHS);
         try {
-          const [rows, spendByMonth, rawIncome, planResult] = await Promise.all([
+          const [rows, spendByMonth, spendByBudgetId, rawIncome, planResult] = await Promise.all([
             budgetRepository.getRows(),
             budgetRepository.getSpendByMonth(months),
+            budgetRepository.getSpendByBudget(months),
             repo.get(EXPECTED_INCOME_KEY),
             budgetRepository.getSpendingPlansForMonth(anchorMonth),
           ]);
@@ -114,6 +120,7 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
           get().setData(
             rows,
             spendByMonth,
+            spendByBudgetId,
             expectedIncome,
             planResult.plans,
             planResult.spendByPlanId,
@@ -165,8 +172,9 @@ export function createBudgetStore(repo: IAppSettingsRepository) {
       },
 
       setExpectedIncome: async (amount) => {
+        const anchorMonth = get().loadedMonth ?? currentYearMonth();
         await repo.set(EXPECTED_INCOME_KEY, String(amount));
-        await get().load();
+        await get().load(anchorMonth);
       },
 
       setExpectedIncomeLocal: (amount) => set({ expectedIncome: amount }),

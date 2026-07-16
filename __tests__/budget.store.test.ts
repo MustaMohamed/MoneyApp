@@ -6,6 +6,7 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {
     copyBudgetsToMonth: jest.fn().mockResolvedValue(undefined),
     getRows: jest.fn().mockResolvedValue([]),
+    getSpendByBudget: jest.fn().mockResolvedValue({}),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
     getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
     removeBudget: jest.fn().mockResolvedValue(undefined),
@@ -23,6 +24,7 @@ const { budgetRepository: mockBudgetRepository } = jest.requireMock(
   budgetRepository: {
     copyBudgetsToMonth: jest.Mock<Promise<void>, [string, string, string[]]>;
     getRows: jest.Mock<Promise<Budget[]>, []>;
+    getSpendByBudget: jest.Mock<Promise<Record<string, number>>, [string[]]>;
     getSpendByMonth: jest.Mock<Promise<Record<string, Record<string, number>>>, [string[]]>;
     getSpendingPlansForMonth: jest.Mock<Promise<{ plans: []; spendByPlanId: {} }>, [string]>;
     removeBudget: jest.Mock<Promise<void>, [string, string?]>;
@@ -36,6 +38,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   useBudgetStore.getState().reset();
   mockBudgetRepository.getRows.mockResolvedValue([]);
+  mockBudgetRepository.getSpendByBudget.mockResolvedValue({});
   mockBudgetRepository.getSpendByMonth.mockResolvedValue({});
   mockBudgetRepository.getSpendingPlansForMonth.mockResolvedValue({ plans: [], spendByPlanId: {} });
 });
@@ -56,6 +59,7 @@ describe('useBudgetStore', () => {
     const s = useBudgetStore.getState();
     expect(s.rows).toEqual([]);
     expect(s.spendByMonth).toEqual({});
+    expect(s.spendByBudgetId).toEqual({});
     expect(s.loaded).toBe(false);
     expect(s.expectedIncome).toBeNull();
     expect(s.loadError).toBe(false);
@@ -83,15 +87,16 @@ describe('useBudgetStore', () => {
   });
 
   it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null, [], {});
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, { b1: 1800 }, null, [], {});
     const s = useBudgetStore.getState();
     expect(s.rows).toEqual([r]);
     expect(s.spendByMonth.a['2026-05']).toBe(2400);
+    expect(s.spendByBudgetId.b1).toBe(1800);
     expect(s.loaded).toBe(true);
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, null, [], {});
+    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, { b1: 1800 }, null, [], {});
     useBudgetStore.getState().reset();
     expect(useBudgetStore.getState().loaded).toBe(false);
   });
@@ -99,6 +104,20 @@ describe('useBudgetStore', () => {
   it('removeBudget exists and is a function on the store', () => {
     const { removeBudget } = useBudgetStore.getState();
     expect(typeof removeBudget).toBe('function');
+  });
+
+  it('loads named-budget spending for the monthly history window', async () => {
+    const appSettingsRepo: IAppSettingsRepository = {
+      get: jest.fn().mockResolvedValue(null),
+      set: jest.fn().mockResolvedValue(undefined),
+    };
+    const store = createBudgetStore(appSettingsRepo);
+    mockBudgetRepository.getSpendByBudget.mockResolvedValue({ b1: 1750 });
+
+    await store.getState().load('2026-05');
+
+    expect(mockBudgetRepository.getSpendByBudget).toHaveBeenCalledWith(['2026-05']);
+    expect(store.getState().spendByBudgetId).toEqual({ b1: 1750 });
   });
 
   it('setBudget persists a named budget and reloads the target month', async () => {

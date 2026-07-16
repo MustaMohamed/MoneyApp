@@ -1,40 +1,18 @@
-import { Input } from 'heroui-native';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
+import { Input, Text as HeroText } from 'heroui-native';
+import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
-import { useBudgetStore } from '@/modules/budget/store/budget.store';
-import { ms } from '@/utils/responsive';
+import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 
 export function IncomeSheet() {
-  const { isOpen, amountText, suggestion } = useIncomeSheetState(
-    useShallow((s) => ({
-      isOpen: s.isOpen,
-      amountText: s.amountText,
-      suggestion: s.suggestion,
-    })),
-  );
-  const close = useIncomeSheetState.getState().close;
-  const setAmountText = useIncomeSheetState.getState().setAmountText;
-  const setExpectedIncome = useBudgetStore.getState().setExpectedIncome;
+  const { state, close, setAmountText, save } = useIncomeSheet();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
-
-  const handleSave = async () => {
-    const amount = parseFloat(amountText);
-    if (!isFinite(amount) || amount <= 0) return;
-    await setExpectedIncome(amount);
-    close();
-  };
 
   return (
     <Sheet
-      isOpen={isOpen}
+      isOpen={state.isOpen}
       onOpenChange={(open) => {
         if (!open) close();
       }}
@@ -44,68 +22,42 @@ export function IncomeSheet() {
         <Button
           variant="primary"
           label={Strings.incomeSheetSaveCta}
-          onPress={() => {
-            void handleSave();
-          }}
+          isLoading={state.saving}
+          onPress={() => void save()}
         />
       }
     >
-      <View style={styles.body}>
-        <Text style={styles.label}>{Strings.incomeSheetAmountLabel}</Text>
-        <View style={styles.field}>
+      <View className="px-4 pt-2">
+        <HeroText className="font-inter text-muted mb-2 text-[11px] font-medium">
+          {Strings.incomeSheetAmountLabel}
+        </HeroText>
+        <View className="bg-background border-accent flex-row items-center rounded-lg border px-3 py-2">
           <Input
-            value={amountText}
+            value={state.amountText}
             onChangeText={setAmountText}
             onFocus={onFocus}
             onBlur={onBlur}
             keyboardType="number-pad"
             placeholder={Strings.incomeSheetAmountPlaceholder}
             placeholderColorClassName="text-muted"
-            className="flex-1 border-0 bg-transparent p-0"
-            style={styles.input}
+            className="font-sora text-foreground flex-1 border-0 bg-transparent p-0 text-[20px] font-bold"
             accessibilityLabel={Strings.incomeSheetAmountLabel}
           />
-          <Text style={styles.suffix}>EGP</Text>
+          <HeroText className="font-inter text-muted text-[13px] font-semibold">
+            {Strings.currencyEgp}
+          </HeroText>
         </View>
-        {suggestion !== null && amountText === String(suggestion) && (
-          <Text style={styles.suggestionNote}>{Strings.incomeSheetSuggestionNote}</Text>
-        )}
+        {state.suggestion !== null && state.amountText === String(state.suggestion) ? (
+          <HeroText className="font-inter text-muted mt-2 text-[10px] italic">
+            {Strings.incomeSheetSuggestionNote}
+          </HeroText>
+        ) : null}
+        {state.errorMessage ? (
+          <HeroText className="font-inter text-danger mt-2 text-[11px] font-medium">
+            {state.errorMessage}
+          </HeroText>
+        ) : null}
       </View>
     </Sheet>
   );
 }
-
-const styles = StyleSheet.create({
-  body: { paddingHorizontal: Spacing.md, paddingTop: Spacing.xs },
-  label: {
-    fontFamily: FontFamily.interMedium,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    marginBottom: Spacing.xs,
-  },
-  field: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.dark.bg,
-    borderWidth: ms(1.5),
-    borderColor: Colors.dark.gold,
-    borderRadius: Radius.md,
-    paddingHorizontal: Spacing.sm,
-    paddingVertical: Spacing.sm,
-  },
-  input: {
-    flex: 1,
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.headline,
-    color: Colors.dark.text1,
-    padding: 0,
-  },
-  suffix: { fontFamily: FontFamily.interSemi, fontSize: Type.body, color: Colors.dark.text2 },
-  suggestionNote: {
-    fontFamily: FontFamily.interRegular,
-    fontSize: Type.micro,
-    color: Colors.dark.text2,
-    marginTop: Spacing.xs,
-    fontStyle: 'italic',
-  },
-});

@@ -1,7 +1,7 @@
 // modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Input, PressableFeedback } from 'heroui-native';
+import { Input, PressableFeedback, Spinner } from 'heroui-native';
 import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
@@ -11,6 +11,7 @@ import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
@@ -37,6 +38,14 @@ interface Props {
   selectedCategory: Category | null;
   onOpenCategoryPicker: () => void;
   categoryError?: string;
+  showBudgetField: boolean;
+  selectedBudget: Budget | null;
+  budgetsLoading: boolean;
+  budgetLookupError?: string;
+  onOpenBudgetPicker: () => void;
+  onRetryBudgetLookup: () => void;
+  budgetError?: string;
+  errorMessage?: string;
   isUSD: boolean;
   exchangeRate: string;
   setExchangeRate: (v: string) => void;
@@ -69,6 +78,14 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     selectedCategory,
     onOpenCategoryPicker,
     categoryError,
+    showBudgetField,
+    selectedBudget,
+    budgetsLoading,
+    budgetLookupError,
+    onOpenBudgetPicker,
+    onRetryBudgetLookup,
+    budgetError,
+    errorMessage,
     isUSD,
     exchangeRate,
     setExchangeRate,
@@ -103,7 +120,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
       <BottomSheetScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 24, gap: 8 }}
+        contentContainerStyle={{ padding: ms(16), paddingBottom: ms(24), gap: ms(8) }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -113,13 +130,13 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           onPress={locked ? undefined : onOpenAccountPicker}
           isDisabled={locked}
           className="bg-default rounded-md px-3 py-3"
-          style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+          style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
         >
           <View style={{ flex: 1 }}>
             <Text className="font-inter text-muted text-[11px]">
               {isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
             </Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
               {selectedAccount ? (
                 <MaterialCommunityIcons
                   name={TYPE_OPTIONS.find((o) => o.type === selectedAccount.type)?.icon ?? 'bank'}
@@ -134,7 +151,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           </View>
           <MaterialCommunityIcons
             name={locked ? 'lock-outline' : 'chevron-right'}
-            size={18}
+            size={ms(18)}
             color={CoreTokens.text2}
           />
         </PressableFeedback>
@@ -150,11 +167,11 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               onPress={locked ? undefined : onOpenToPicker}
               isDisabled={locked}
               className="bg-default rounded-md px-3 py-3"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
             >
               <View style={{ flex: 1 }}>
                 <Text className="font-inter text-muted text-[11px]">{Strings.addTxToLabel}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
                   {selectedToAccount ? (
                     <MaterialCommunityIcons
                       name={
@@ -171,7 +188,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               </View>
               <MaterialCommunityIcons
                 name={locked ? 'lock-outline' : 'chevron-right'}
-                size={18}
+                size={ms(18)}
                 color={CoreTokens.text2}
               />
             </PressableFeedback>
@@ -188,7 +205,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
               testID="category-row"
               onPress={onOpenCategoryPicker}
               className="bg-default rounded-md px-3 py-3"
-              style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+              style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
             >
               <View style={{ flex: 1 }}>
                 <Text className="font-inter text-muted text-[11px]">
@@ -208,10 +225,67 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                   </Text>
                 </View>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={CoreTokens.text2} />
+              <MaterialCommunityIcons name="chevron-right" size={ms(18)} color={CoreTokens.text2} />
             </PressableFeedback>
             {categoryError ? (
               <Text className="font-inter text-danger text-[11px]">{categoryError}</Text>
+            ) : null}
+          </>
+        ) : null}
+
+        {showBudgetField ? (
+          <>
+            <PressableFeedback
+              testID="budget-row"
+              onPress={budgetsLoading || budgetLookupError ? undefined : onOpenBudgetPicker}
+              isDisabled={budgetsLoading || Boolean(budgetLookupError)}
+              accessibilityLabel={Strings.addTxBudgetLabel}
+              className="bg-default rounded-md px-3 py-2.5"
+              style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text className="font-inter text-muted text-[11px]">
+                  {Strings.addTxBudgetLabel}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
+                  <MaterialCommunityIcons
+                    name="wallet-outline"
+                    size={ms(15)}
+                    color={CoreTokens.text2}
+                  />
+                  <Text className="font-sora text-foreground text-[14px] font-semibold">
+                    {budgetsLoading
+                      ? Strings.addTxBudgetLoading
+                      : (selectedBudget?.name ?? Strings.addTxPickBudgetTitle)}
+                  </Text>
+                </View>
+              </View>
+              {budgetsLoading ? (
+                <Spinner size="sm" />
+              ) : (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={ms(18)}
+                  color={CoreTokens.text2}
+                />
+              )}
+            </PressableFeedback>
+            {budgetError ? (
+              <View className="min-h-11 flex-row items-center justify-between gap-2">
+                <Text className="font-inter text-danger flex-1 text-[11px]">{budgetError}</Text>
+                {budgetLookupError ? (
+                  <PressableFeedback
+                    onPress={onRetryBudgetLookup}
+                    accessibilityRole="button"
+                    accessibilityLabel={Strings.addTxBudgetRetryA11y}
+                    className="min-h-11 justify-center px-2"
+                  >
+                    <Text className="font-inter text-accent text-[12px] font-semibold">
+                      {Strings.budgetLoadRetry}
+                    </Text>
+                  </PressableFeedback>
+                ) : null}
+              </View>
             ) : null}
           </>
         ) : null}
@@ -241,6 +315,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             className="font-inter text-foreground p-0 text-[14px]"
           />
         </View>
+        {errorMessage ? (
+          <Text className="font-inter text-danger text-[11px] font-medium">{errorMessage}</Text>
+        ) : null}
       </BottomSheetScrollView>
     </View>
   );

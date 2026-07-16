@@ -6,6 +6,7 @@ import { Strings } from '@/constants/strings';
 interface Props {
   isOpen: boolean;
   busy: boolean;
+  errorMessage?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -18,6 +19,7 @@ interface Props {
 export function DeleteConfirmDialog({
   isOpen,
   busy,
+  errorMessage,
   onCancel,
   onConfirm,
 }: Props): React.ReactElement {
@@ -28,6 +30,7 @@ export function DeleteConfirmDialog({
         if (!open) onCancel();
       }}
       busy={busy}
+      errorMessage={errorMessage}
       destructive
       title={Strings.deleteConfirmTitle}
       body={Strings.deleteConfirmBody}

@@ -7,17 +7,17 @@ import { getDb } from '@/database/client';
 import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
 import {
-  type CategoryBudgetVM,
+  buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
-  computeCategoryRow,
-  computeOverall,
-  getBudgetsForCategoryMonth,
+  buildCategoryBudgetRows,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
   computeBuckets,
   type BucketsVM,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
+import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
@@ -25,21 +25,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
-export interface CategoryBudgetRowVM extends CategoryBudgetVM {
-  name: string;
-  icon: string;
-  color: string;
-  budgetCount: number;
-  budgets: CategoryBudgetItemVM[];
-}
-
-export interface CategoryBudgetItemVM {
-  id: string;
-  name: string;
-  amount: number;
-}
-
-export interface BudgetEditTargetVM extends CategoryBudgetItemVM {
+export interface BudgetEditTargetVM extends NamedBudgetVM {
   categoryId: string;
   categoryName: string;
   icon: string;
@@ -50,16 +36,18 @@ export interface BudgetEditTargetVM extends CategoryBudgetItemVM {
 export function useBudget() {
   const router = useRouter();
 
-  const { categories, categoriesLoaded } = useCategoryStore(
+  const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
     useShallow((s) => ({
       categories: s.categories,
       categoriesLoaded: s.hasLoaded,
+      categoryLoadError: s.loadError,
     })),
   );
   const loadCategories = useCategoryStore.getState().loadCategories;
   const {
     budgetRows,
     spendByMonth,
+    spendByBudgetId,
     spendingPlans,
     spendingPlanSpendById,
     budgetLoaded,
@@ -70,6 +58,7 @@ export function useBudget() {
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
+      spendByBudgetId: s.spendByBudgetId,
       spendingPlans: s.spendingPlans,
       spendingPlanSpendById: s.spendingPlanSpendById,
       budgetLoaded: s.loaded,
@@ -97,6 +86,7 @@ export function useBudget() {
     refreshing,
     targetBudgetId,
     targetPlanId,
+    expandedCategoryId,
   } = useBudgetState(
     useShallow((s) => ({
       selectedMonth: s.selectedMonth,
@@ -108,6 +98,7 @@ export function useBudget() {
       refreshing: s.refreshing,
       targetBudgetId: s.targetBudgetId,
       targetPlanId: s.targetPlanId,
+      expandedCategoryId: s.expandedCategoryId,
     })),
   );
   const setLensTab = useBudgetState.getState().setLensTab;
@@ -120,6 +111,8 @@ export function useBudget() {
   const clearCopySelection = useBudgetState.getState().clearCopySelection;
   const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
   const setRefreshing = useBudgetState.getState().setRefreshing;
+  const setExpandedCategoryId = useBudgetState.getState().setExpandedCategoryId;
+  const openIncomeSheetState = useIncomeSheetState.getState().open;
 
   const loadIncomeSuggestion = useCallback(
     async (month: string) => {
@@ -137,7 +130,7 @@ export function useBudget() {
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(() => {
-        void loadCategories();
+        void loadCategories().catch(() => undefined);
         void load(selectedMonth);
         void loadIncomeSuggestion(selectedMonth);
       });
@@ -145,33 +138,42 @@ export function useBudget() {
     }, [loadCategories, load, loadIncomeSuggestion, selectedMonth]),
   );
 
-  const rows: CategoryBudgetRowVM[] = useMemo(() => {
-    const out: CategoryBudgetRowVM[] = [];
-    for (const c of categories) {
-      if (c.type !== CategoryType.Expense) continue;
-      const categoryBudgets = getBudgetsForCategoryMonth(budgetRows, c.id, selectedMonth);
-      if (categoryBudgets.length === 0) continue; // unbudgeted → not shown
-      const limit = categoryBudgets.reduce((total, budget) => total + budget.limit_amount, 0);
-      const spent = spendByMonth[c.id]?.[selectedMonth] ?? 0;
-      out.push({
-        ...computeCategoryRow(c.id, limit, spent),
-        name: c.name,
-        icon: c.icon,
-        color: c.color,
-        budgetCount: categoryBudgets.length,
-        budgets: categoryBudgets.map((budget) => ({
-          id: budget.id,
-          name: budget.name,
-          amount: budget.limit_amount,
-        })),
-      });
-    }
-    return out;
-  }, [budgetRows, categories, selectedMonth, spendByMonth]);
-
-  const overall = useMemo(() => computeOverall(rows), [rows]);
-
   const today = toLocalDateString(new Date());
+
+  const categoryLedger = useMemo(
+    () =>
+      buildCategoryBudgetRows({
+        categories,
+        budgets: budgetRows,
+        spendByMonth,
+        spendByBudgetId,
+        yearMonth: selectedMonth,
+      }),
+    [budgetRows, categories, selectedMonth, spendByBudgetId, spendByMonth],
+  );
+  const rows = categoryLedger.rows;
+
+  const categoriesSummary = useMemo(
+    () =>
+      buildBudgetCategoriesSummary({
+        rows,
+        expectedIncome,
+        unbudgetedSpend: categoryLedger.unbudgetedSpend,
+        selectedMonth,
+        today,
+      }),
+    [categoryLedger.unbudgetedSpend, expectedIncome, rows, selectedMonth, today],
+  );
+
+  const overall = useMemo(
+    () => ({
+      budgeted: categoriesSummary.planned,
+      spent: categoriesSummary.spent,
+      left: categoriesSummary.left,
+      pct: categoriesSummary.usedPct ?? 0,
+    }),
+    [categoriesSummary],
+  );
 
   const spendingPlanRows = useMemo(
     () =>
@@ -196,7 +198,7 @@ export function useBudget() {
         .flatMap((row) =>
           row.budgets.map((budget) => ({
             ...budget,
-            limit: budget.amount,
+            limit: budget.planned,
             categoryId: row.categoryId,
             categoryName: row.name,
             icon: row.icon,
@@ -244,7 +246,10 @@ export function useBudget() {
   }, [selectedMonth]);
 
   const goToCategory = (categoryId: string) => {
-    router.push(`/(app)/(tabs)/budget/${categoryId}`);
+    router.push({
+      pathname: '/(app)/(tabs)/budget/[id]',
+      params: { id: categoryId, month: selectedMonth },
+    });
   };
 
   const setSelectedMonth = useCallback(
@@ -331,9 +336,14 @@ export function useBudget() {
     [router, selectedMonth],
   );
 
+  const openIncomeSheet = useCallback(() => {
+    openIncomeSheetState(incomeSuggestion, expectedIncome);
+  }, [expectedIncome, incomeSuggestion, openIncomeSheetState]);
+
   return {
     state: {
       rows,
+      categoriesSummary,
       editingRow,
       overall,
       spendingPlanRows,
@@ -352,7 +362,8 @@ export function useBudget() {
       copySheetVisible,
       copySelectedBudgetIds,
       refreshing,
-      loadError,
+      loadError: loadError || categoryLoadError,
+      expandedCategoryId,
       hasLoaded: Boolean(
         categoriesLoaded &&
         budgetLoaded &&
@@ -365,7 +376,9 @@ export function useBudget() {
     openEditPlan,
     openPlanTool,
     openPlanDetails,
+    openIncomeSheet,
     setLensTab,
+    setExpandedCategoryId,
     setSelectedMonth,
     openCopy,
     closeCopy,

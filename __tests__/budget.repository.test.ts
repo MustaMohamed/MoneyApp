@@ -8,20 +8,27 @@ import {
 } from '@/modules/budget/repositories/budget.repository';
 
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'new-budget-id') }));
-jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
+jest.mock('@/database/client', () => ({
+  getDb: jest.fn().mockResolvedValue({
+    withExclusiveTransactionAsync: async (task: (db: SQLiteDatabase) => Promise<void>) =>
+      task({} as SQLiteDatabase),
+  }),
+}));
 jest.mock('@/modules/budget/database/budget_stats', () => ({
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
 }));
 jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
+  getBudgetRowById: jest.fn().mockResolvedValue(null),
   getBudgetRows: jest.fn(),
   setBudgetRow: jest.fn().mockResolvedValue(undefined),
 }));
 
-const { deleteBudgetRow, getBudgetRows, setBudgetRow } = jest.requireMock(
+const { deleteBudgetRow, getBudgetRowById, getBudgetRows, setBudgetRow } = jest.requireMock(
   '@/modules/budget/database/budgets',
 ) as {
   deleteBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, string]>;
+  getBudgetRowById: jest.Mock<Promise<Budget | null>, [SQLiteDatabase, string]>;
   getBudgetRows: jest.Mock<Promise<Budget[]>, [SQLiteDatabase]>;
   setBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, Budget]>;
 };
@@ -91,9 +98,9 @@ describe('BudgetRepository.setBudget', () => {
   });
 
   it('updates an existing budget by id', async () => {
-    getBudgetRows.mockResolvedValueOnce([
+    getBudgetRowById.mockResolvedValueOnce(
       budget('budget-food', 'food', 'Monthly Food', 5000, '2026-07'),
-    ]);
+    );
 
     await new BudgetRepository().setBudget({
       id: 'budget-food',

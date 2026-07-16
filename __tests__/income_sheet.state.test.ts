@@ -8,6 +8,8 @@ describe('useIncomeSheetState', () => {
     expect(s.isOpen).toBe(false);
     expect(s.amountText).toBe('');
     expect(s.suggestion).toBeNull();
+    expect(s.saving).toBe(false);
+    expect(s.errorMessage).toBeUndefined();
   });
 
   it('open with suggestion pre-fills amountText from suggestion when no current income', () => {
@@ -37,8 +39,23 @@ describe('useIncomeSheetState', () => {
   });
 
   it('setAmountText updates the text', () => {
+    useIncomeSheetState.getState().setErrorMessage('Save failed');
     useIncomeSheetState.getState().setAmountText('9999');
     expect(useIncomeSheetState.getState().amountText).toBe('9999');
+    expect(useIncomeSheetState.getState().errorMessage).toBeUndefined();
+  });
+
+  it('stores a visible save error', () => {
+    useIncomeSheetState.getState().setErrorMessage('Save failed');
+    expect(useIncomeSheetState.getState().errorMessage).toBe('Save failed');
+  });
+
+  it('tracks and clears the save loading state', () => {
+    useIncomeSheetState.getState().open(null, null);
+    useIncomeSheetState.getState().setSaving(true);
+    expect(useIncomeSheetState.getState().saving).toBe(true);
+    useIncomeSheetState.getState().close();
+    expect(useIncomeSheetState.getState().saving).toBe(false);
   });
 
   it('reset restores initial state', () => {

@@ -11,11 +11,12 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 
 let capturedFocusCallback: (() => void | (() => void)) | null = null;
+let mockRouteMonth: string | undefined;
 const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
 
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: mockRouterBack }),
-  useLocalSearchParams: () => ({ id: 'cat-1' }),
+  useLocalSearchParams: () => ({ id: 'cat-1', month: mockRouteMonth }),
   useFocusEffect: (cb: () => void | (() => void)) => {
     capturedFocusCallback = cb;
   },
@@ -61,8 +62,12 @@ let setIncomeSuggestionMock: jest.Mock;
 let openEditMock: jest.Mock;
 let mockRouterBack: jest.Mock;
 let categoriesState: Category[];
+let categoriesLoadedState: boolean;
 let budgetRowsState: Budget[];
 let spendByMonthState: Record<string, Record<string, number>>;
+let budgetLoadedState: boolean;
+let budgetLoadedMonthState: string | undefined;
+let budgetLoadErrorState: boolean;
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 import { useCategoryDetail } from '@/modules/budget/screens/budget/category_detail/category_detail.hook';
@@ -78,9 +83,13 @@ function setupStores() {
   selectedMonthState = '2026-05';
   copySourceMonthState = '2026-04';
   categoriesState = [];
+  categoriesLoadedState = true;
   budgetRowsState = [];
   spendByMonthState = {};
-  loadCategoriesMock = jest.fn();
+  budgetLoadedState = true;
+  budgetLoadedMonthState = '2026-05';
+  budgetLoadErrorState = false;
+  loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
   loadBudgetMock = jest.fn();
   openEditMock = jest.fn();
   mockRouterBack = jest.fn();
@@ -92,15 +101,18 @@ function setupStores() {
   setIncomeSuggestionMock = jest.fn();
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories: categoriesState,
-    hasLoaded: false,
+    hasLoaded: categoriesLoadedState,
     loadCategories: loadCategoriesMock,
   }));
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
     rows: budgetRowsState,
     spendByMonth: spendByMonthState,
+    spendByBudgetId: {},
     spendingPlans: [],
     spendingPlanSpendById: {},
-    loaded: false,
+    loaded: budgetLoadedState,
+    loadedMonth: budgetLoadedMonthState,
+    loadError: budgetLoadErrorState,
     expectedIncome: null,
     load: loadBudgetMock,
     setSpendingPlan: jest.fn(),
@@ -113,6 +125,7 @@ function setupStores() {
     copySheetVisible: false,
     copySelectedBudgetIds: [],
     incomeSuggestion: null,
+    expandedCategoryId: undefined,
     openAdd: jest.fn(),
     openEdit: openEditMock,
     setLensTab: jest.fn(),
@@ -130,6 +143,7 @@ function setupStores() {
     toggleCopyBudgetId: jest.fn(),
     clearCopySelection: jest.fn(),
     setIncomeSuggestion: setIncomeSuggestionMock,
+    setExpandedCategoryId: jest.fn(),
   }));
 }
 
@@ -169,6 +183,7 @@ beforeEach(() => {
   getTrailingIncomeSuggestion.mockClear();
   runAfterInteractions.mockClear();
   setupStores();
+  mockRouteMonth = undefined;
 });
 
 afterEach(() => {
@@ -177,6 +192,9 @@ afterEach(() => {
 
 describe('useBudget — month rollover', () => {
   it('exposes unloaded state until categories and budget data settle', () => {
+    categoriesLoadedState = false;
+    budgetLoadedState = false;
+    budgetLoadedMonthState = undefined;
     const { result } = renderHook(() => useBudget());
 
     expect(result.current.state.hasLoaded).toBe(false);
@@ -236,6 +254,50 @@ describe('useBudget — month rollover', () => {
 });
 
 describe('useCategoryDetail — month rollover', () => {
+  it('does not expose stale detail values while the requested month is loading', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = '2026-06';
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [budget('budget-may', 'Monthly Food')];
+    budgetLoadedMonthState = '2026-05';
+
+    const { result } = renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.hasLoaded).toBe(false);
+    expect(result.current.state.liveMonth).toBeUndefined();
+    expect(result.current.state.history.monthsTotal).toBe(0);
+  });
+
+  it('reports a failed requested-month load so the screen can offer retry', () => {
+    mockRouteMonth = '2026-06';
+    budgetLoadedMonthState = '2026-05';
+    budgetLoadErrorState = true;
+
+    const { result } = renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.hasLoaded).toBe(false);
+    expect(result.current.state.loadError).toBe(true);
+  });
+
+  it.each([
+    ['2026-04', 'completed'],
+    ['2026-05', 'provisional'],
+    ['2026-06', 'planned'],
+  ] as const)('classifies selected %s details as %s', (selectedMonth, lifecycle) => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    mockRouteMonth = selectedMonth;
+    budgetLoadedMonthState = selectedMonth;
+    categoriesState = [category('cat-1')];
+    budgetRowsState = [
+      { ...budget('budget-selected', 'Monthly Food'), effective_from: selectedMonth },
+    ];
+
+    const { result } = renderHook(() => useCategoryDetail());
+
+    expect(result.current.state.liveMonth?.lifecycle).toBe(lifecycle);
+    expect(result.current.state.daysLeft).toBe(lifecycle === 'provisional' ? 16 : undefined);
+  });
+
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     const { result } = renderHook(() => useCategoryDetail());

@@ -1,11 +1,9 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { PressableFeedback, Text as HeroText } from 'heroui-native';
+import { View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 type ToolIcon = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
@@ -29,113 +27,66 @@ interface ToolButtonProps {
   onPress: () => void;
 }
 
-function ToolButton({
-  label,
-  icon,
-  color,
-  accessibilityLabel,
-  isDisabled,
-  onPress,
-}: ToolButtonProps) {
+function ToolButton(props: ToolButtonProps) {
   return (
     <PressableFeedback
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ disabled: isDisabled }}
+      accessibilityLabel={props.accessibilityLabel}
+      accessibilityState={{ disabled: props.isDisabled }}
+      isDisabled={props.isDisabled}
       onPress={() => {
-        if (!isDisabled) onPress();
+        if (!props.isDisabled) props.onPress();
       }}
-      style={[styles.tool, isDisabled && styles.toolDisabled]}
+      className="bg-default border-border min-h-9 flex-1 flex-row items-center justify-center gap-1.5 rounded-lg border px-2 disabled:opacity-40"
     >
       <MaterialCommunityIcons
-        name={icon}
+        name={props.icon}
         size={ms(15)}
-        color={isDisabled ? Colors.dark.text3 : color}
+        color={props.isDisabled ? Colors.dark.text3 : props.color}
       />
-      <Text style={[styles.toolLabel, isDisabled && styles.toolLabelDisabled]} numberOfLines={1}>
-        {label}
-      </Text>
+      <HeroText className="font-inter text-foreground text-[11px] font-semibold">
+        {props.label}
+      </HeroText>
     </PressableFeedback>
   );
 }
 
-export function BudgetToolRail({
-  variant = 'categories',
-  onCopy,
-  onAddCategory,
-  onPlan,
-  copyDisabled,
-  addCategoryDisabled,
-  planDisabled,
-}: BudgetToolRailProps) {
-  if (variant === 'plans') {
+export function BudgetToolRail(props: BudgetToolRailProps) {
+  if (props.variant === 'plans') {
     return (
-      <View style={styles.rail} testID="budget-tool-rail">
+      <View className="mt-3 flex-row items-center gap-2" testID="budget-tool-rail">
         <ToolButton
           label={Strings.budgetToolPlan}
           icon="calendar-plus-outline"
           color={Colors.dark.text2}
           accessibilityLabel={
-            planDisabled ? Strings.budgetToolPlanComingSoonA11y : Strings.budgetToolPlan
+            props.planDisabled ? Strings.budgetToolPlanComingSoonA11y : Strings.budgetToolPlan
           }
-          isDisabled={planDisabled}
-          onPress={onPlan}
+          isDisabled={props.planDisabled}
+          onPress={props.onPlan}
         />
       </View>
     );
   }
 
   return (
-    <View style={styles.rail} testID="budget-tool-rail">
-      <ToolButton
-        label={Strings.budgetToolCopy}
-        icon="content-copy"
-        color={Colors.dark.gold}
-        accessibilityLabel={Strings.budgetToolCopyA11y}
-        isDisabled={copyDisabled}
-        onPress={onCopy}
-      />
+    <View className="flex-row items-center gap-2" testID="budget-tool-rail">
       <ToolButton
         label={Strings.budgetToolCategory}
         icon="wallet-plus-outline"
         color={Colors.dark.positive}
         accessibilityLabel={Strings.budgetAddCategory}
-        isDisabled={addCategoryDisabled}
-        onPress={onAddCategory}
+        isDisabled={props.addCategoryDisabled}
+        onPress={props.onAddCategory}
+      />
+      <ToolButton
+        label={Strings.budgetToolCopy}
+        icon="content-copy"
+        color={Colors.dark.gold}
+        accessibilityLabel={Strings.budgetToolCopyA11y}
+        isDisabled={props.copyDisabled}
+        onPress={props.onCopy}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  rail: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.xs,
-    marginTop: Spacing.sm,
-  },
-  tool: {
-    flex: 1,
-    minHeight: ms(38),
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: ms(5),
-    borderRadius: Radius.md,
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-    paddingHorizontal: Spacing.xs,
-  },
-  toolDisabled: {
-    opacity: 0.48,
-  },
-  toolLabel: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.micro,
-    color: Colors.dark.text1,
-  },
-  toolLabelDisabled: {
-    color: Colors.dark.text3,
-  },
-});

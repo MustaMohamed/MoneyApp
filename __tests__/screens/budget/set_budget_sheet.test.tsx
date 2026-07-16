@@ -2,7 +2,7 @@ import { fireEvent, render, waitFor } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { PressableProps } from 'react-native';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Spacing, Type } from '@/constants/theme';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
@@ -12,6 +12,7 @@ import type { Category } from '@/modules/categories/entities/category.entity';
 import { ms } from '@/utils/responsive';
 
 let mockSetBudget: jest.Mock<Promise<void>, [unknown]>;
+const mockLoadCategories = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -64,10 +65,13 @@ jest.mock('@/modules/budget/store/budget.store', () => {
     },
   };
 });
-jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
-jest.mock('@/modules/categories/database/categories', () => ({
-  setCategoryGroup: jest.fn().mockResolvedValue(undefined),
-}));
+jest.mock('@/modules/categories/store/category.store', () => {
+  return {
+    useCategoryStore: {
+      getState: jest.fn(() => ({ loadCategories: mockLoadCategories })),
+    },
+  };
+});
 jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
   CategoryPickerSheet: () => null,
 }));
@@ -112,6 +116,7 @@ beforeEach(() => {
   useBudgetState.getState().reset();
   useSetBudgetSheetState.getState().reset();
   mockSetBudget.mockClear();
+  mockLoadCategories.mockClear();
   useBudgetState.getState().openAdd();
 });
 
@@ -171,6 +176,28 @@ describe('SetBudgetSheet', () => {
     );
   });
 
+  it('saves the selected 50/30/20 group atomically and refreshes categories', async () => {
+    const groupedCategories = [{ ...categories[0], budget_group: BudgetGroup.Need }];
+    const { getByLabelText, getByTestId } = render(
+      <SetBudgetSheet budgetableCategories={groupedCategories} />,
+    );
+
+    fireEvent.changeText(getByTestId('budget-name-input'), 'Monthly housing');
+    fireEvent.changeText(getByTestId('budget-limit-input'), '700');
+    fireEvent.press(getByLabelText(Strings.budgetSaveCta));
+
+    await waitFor(() =>
+      expect(mockSetBudget).toHaveBeenCalledWith({
+        categoryId: 'housing',
+        name: 'Monthly housing',
+        limit: 700,
+        yearMonth: '2026-07',
+        categoryGroup: BudgetGroup.Need,
+      }),
+    );
+    expect(mockLoadCategories).toHaveBeenCalledTimes(1);
+  });
+
   it('prefills and saves an existing budget in edit mode', async () => {
     useBudgetState.getState().reset();
     useBudgetState.getState().setSelectedMonth('2026-08');
@@ -184,7 +211,19 @@ describe('SetBudgetSheet', () => {
           categoryId: 'housing',
           categoryName: 'Housing',
           name: 'Alexandria Trip Food',
-          amount: 1500,
+          planned: 1500,
+          spent: 0,
+          left: 1500,
+          usedPct: 0,
+          categorySharePct: 1,
+          usedLabel: '0%',
+          shareLabel: '100% of category',
+          spentPlannedLabel: '0 / 1,500 spent',
+          balanceAmountLabel: '1,500',
+          balanceMetaLabel: 'EGP left',
+          ringColor: '#4CAF82',
+          accessibilityLabel: 'Alexandria Trip Food',
+          menuAccessibilityLabel: 'Actions for Alexandria Trip Food',
           limit: 1500,
           icon: 'home',
           color: '#6fa8dc',

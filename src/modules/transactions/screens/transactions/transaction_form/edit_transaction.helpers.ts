@@ -3,6 +3,7 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 export type EditTransactionFormValues = {
   amount: number;
   categoryId: string;
+  budgetId: string;
   note: string;
   date: string;
   time: string;
@@ -16,6 +17,7 @@ export function buildDefaultsFromTx(
   return {
     amount: tx.amount,
     categoryId: tx.category_id ?? '',
+    budgetId: tx.budget_id ?? '',
     note: tx.note ?? '',
     date: tx.transaction_date,
     time: tx.transaction_time,

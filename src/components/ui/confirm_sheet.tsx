@@ -1,4 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Alert } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ interface ConfirmSheetProps {
   onConfirm: () => void;
   onCancel: () => void;
   busy?: boolean;
+  errorMessage?: string;
   /**
    * When true: trash-can icon in dangerBg circle + danger (red) confirm button.
    * Default false — retains the existing amber warning-circle + primary button.
@@ -43,6 +45,7 @@ export function ConfirmSheet({
   onConfirm,
   onCancel,
   busy = false,
+  errorMessage,
   destructive = false,
 }: ConfirmSheetProps) {
   // Q2 guard: when busy, suppress all close paths so the sheet stays open
@@ -108,6 +111,15 @@ export function ConfirmSheet({
         >
           {body}
         </Text>
+
+        {errorMessage ? (
+          <Alert status="danger" className="mt-4 w-full">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{errorMessage}</Alert.Title>
+            </Alert.Content>
+          </Alert>
+        ) : null}
 
         {/* Cancel / Confirm button row */}
         <View style={{ flexDirection: 'row', marginTop: Spacing.lg }} className="gap-3">

@@ -1,10 +1,12 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
 // AccountType.Cash does not exist in the enum; PhysicalWallet is a non-CC
 // asset type that satisfies all "non-credit-card" rules in the schema.
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
@@ -70,7 +72,19 @@ const mockCategoryIncome = {
   updated_at: 'now',
 };
 
+const mockBudget = (id: string, name: string): Budget => ({
+  id,
+  category_id: mockCategoryExpense.id,
+  name,
+  limit_amount: 500,
+  effective_from: '2026-07',
+  created_at: 'now',
+  updated_at: 'now',
+});
+
 beforeEach(() => {
+  jest.restoreAllMocks();
+  jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
   useAccountStore.setState({
     accounts: [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2],
@@ -89,7 +103,162 @@ beforeEach(() => {
   useAddTransactionStore.getState().reset();
 });
 
+describe('useAddTransaction — named budget assignment', () => {
+  it('does not save while matching budgets are still loading', async () => {
+    let resolveBudgets: (budgets: Budget[]) => void = () => {};
+    const pendingBudgets = new Promise<Budget[]>((resolve) => {
+      resolveBudgets = resolve;
+    });
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.setDate('2026-07-10'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    expect(result.current.state.showBudgetField).toBe(true);
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).not.toHaveBeenCalled();
+    await act(async () => resolveBudgets([]));
+    expect(result.current.state.showBudgetField).toBe(false);
+  });
+
+  it('blocks save and exposes retry when the budget lookup fails', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockRejectedValueOnce(new Error('database unavailable'))
+      .mockResolvedValueOnce([]);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.setDate('2026-07-10'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.errors.budget).toBeDefined());
+
+    expect(result.current.state.showBudgetField).toBe(true);
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+    expect(addTx).not.toHaveBeenCalled();
+
+    act(() => result.current.retryBudgetLookup());
+    expect(result.current.state.errors.budget).toBeUndefined();
+    await waitFor(() =>
+      expect(budgetRepository.getBudgetsForCategoryMonth).toHaveBeenCalledTimes(2),
+    );
+  });
+
+  it('does not write a completed budget lookup after unmount', async () => {
+    let resolveBudgets: (budgets: Budget[]) => void = () => {};
+    const pendingBudgets = new Promise<Budget[]>((resolve) => {
+      resolveBudgets = resolve;
+    });
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const setAvailableBudgets = jest.spyOn(
+      useAddTransactionStore.getState(),
+      'setAvailableBudgets',
+    );
+    const setBudgetsLoading = jest.spyOn(useAddTransactionState.getState(), 'setBudgetsLoading');
+    const { result, unmount } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    unmount();
+    setAvailableBudgets.mockClear();
+    setBudgetsLoading.mockClear();
+    await act(async () => resolveBudgets([mockBudget('b1', 'Monthly meals')]));
+
+    expect(setAvailableBudgets).not.toHaveBeenCalled();
+    expect(setBudgetsLoading).not.toHaveBeenCalled();
+  });
+
+  it('clears a stale budget selection while another month is loading', async () => {
+    let resolveAugust: (budgets: Budget[]) => void = () => {};
+    const augustBudgets = new Promise<Budget[]>((resolve) => {
+      resolveAugust = resolve;
+    });
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockImplementation(async (_categoryId, yearMonth) => {
+        if (yearMonth === '2026-07') return [mockBudget('b1', 'Monthly meals')];
+        return augustBudgets;
+      });
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.setDate('2026-07-10'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
+
+    act(() => result.current.setDate('2026-08-10'));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
+    expect(result.current.state.selectedBudget).toBeNull();
+    expect(result.current.state.availableBudgets).toEqual([]);
+    await act(async () => resolveAugust([]));
+  });
+
+  it('auto-selects one matching budget and saves its id', async () => {
+    const budget = mockBudget('b1', 'Monthly meals');
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([budget]);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.setDate('2026-07-10'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).toHaveBeenCalledWith(expect.objectContaining({ budget_id: 'b1' }));
+  });
+
+  it('requires an explicit choice when several budgets match', async () => {
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockResolvedValue([mockBudget('b1', 'Monthly meals'), mockBudget('b2', 'Dining out')]);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.setDate('2026-07-10'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(2));
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.budget).toBeDefined();
+    expect(addTx).not.toHaveBeenCalled();
+  });
+});
+
 describe('useAddTransaction — validation', () => {
+  it('shows a save error and preserves entered values after save rejection', async () => {
+    const addTx = jest.fn().mockRejectedValue(new Error('write failed'));
+    const onClose = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(onClose));
+
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errorMessage).toBe(
+      'Could not save this transaction. Please try again.',
+    );
+    expect(result.current.state.amountStr).toBe('5');
+    expect(result.current.state.categoryId).toBe('c1');
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = renderHook(() => useAddTransaction(onClose));

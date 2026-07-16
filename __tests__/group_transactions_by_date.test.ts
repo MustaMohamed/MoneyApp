@@ -17,6 +17,7 @@ function tx(date: string, time = '10:00:00', id = `tx-${date}-${time}`): Transac
     account_id: 'acc-1',
     to_account_id: null,
     category_id: null,
+    budget_id: null,
     note: null,
     transaction_date: date,
     transaction_time: time,

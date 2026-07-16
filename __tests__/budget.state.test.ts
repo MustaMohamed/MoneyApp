@@ -53,6 +53,14 @@ describe('useBudgetState', () => {
     jest.useRealTimers();
   });
 
+  it('controls one expanded category and clears it when the month changes', () => {
+    useBudgetState.getState().setExpandedCategoryId('cat_food');
+    expect(useBudgetState.getState().expandedCategoryId).toBe('cat_food');
+
+    useBudgetState.getState().setSelectedMonth('2026-08');
+    expect(useBudgetState.getState().expandedCategoryId).toBeUndefined();
+  });
+
   it('stores and resets the copy source month', () => {
     useBudgetState.getState().setSelectedMonth('2026-08');
     useBudgetState.getState().setCopySourceMonth('2026-05');

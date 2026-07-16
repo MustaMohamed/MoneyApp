@@ -1,13 +1,20 @@
 import uuid from 'react-native-uuid';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import {
+  getBudgetSpendByMonth,
   getCategorySpendByMonth,
   getSpendingPlanSpend,
 } from '@/modules/budget/database/budget_stats';
-import { deleteBudgetRow, getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
+import {
+  deleteBudgetRow,
+  getBudgetRowById,
+  getBudgetRows,
+  getBudgetRowsForCategoryMonth,
+  setBudgetRow,
+} from '@/modules/budget/database/budgets';
 import {
   getSpendingPlanCategoryRows,
   replaceSpendingPlanCategoryRows,
@@ -25,7 +32,7 @@ import type {
   SpendingPlanCategory,
   SpendingPlanWithCategories,
 } from '@/modules/budget/entities/budget.entity';
-import { getCategoriesByType } from '@/modules/categories/database/categories';
+import { getCategoriesByType, setCategoryGroup } from '@/modules/categories/database/categories';
 import { spendingPlanInputSchema, type SpendingPlanInput } from '@/utils/schemas/budget.schema';
 
 export function currentYearMonth(now: Date = new Date()): string {
@@ -47,12 +54,15 @@ export function lastMonths(end: string, n: number): string[] {
 
 export interface IBudgetRepository {
   getRows(): Promise<Budget[]>;
+  getById(id: string): Promise<Budget | undefined>;
+  getBudgetsForCategoryMonth(categoryId: string, yearMonth: string): Promise<Budget[]>;
   setBudget(input: SetBudgetInput): Promise<void>;
   setLimit(categoryId: string, limit: number, yearMonth?: string): Promise<void>;
   removeBudget(id: string, yearMonth?: string): Promise<void>;
   copyBudgetsToMonth(sourceMonth: string, targetMonth: string, budgetIds: string[]): Promise<void>;
   copyLimitsToMonth(sourceMonth: string, targetMonth: string, categoryIds: string[]): Promise<void>;
   getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>>;
+  getSpendByBudget(yearMonths: string[]): Promise<Record<string, number>>;
   getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult>;
   getSpendingPlanDetails(id: string): Promise<SpendingPlanDetailsResult | undefined>;
   setSpendingPlan(input: SetSpendingPlanInput): Promise<void>;
@@ -65,6 +75,7 @@ export interface SetBudgetInput {
   name: string;
   limit: number;
   yearMonth?: string;
+  categoryGroup?: BudgetGroup;
 }
 
 export type SetSpendingPlanInput = SpendingPlanInput;
@@ -128,22 +139,36 @@ export class BudgetRepository implements IBudgetRepository {
     return getBudgetRows(db);
   }
 
+  async getById(id: string): Promise<Budget | undefined> {
+    const db = await getDb();
+    return (await getBudgetRowById(db, id)) ?? undefined;
+  }
+
+  async getBudgetsForCategoryMonth(categoryId: string, yearMonth: string): Promise<Budget[]> {
+    const db = await getDb();
+    return getBudgetRowsForCategoryMonth(db, categoryId, yearMonth);
+  }
+
   async setBudget(input: SetBudgetInput): Promise<void> {
     const db = await getDb();
     const now = new Date().toISOString();
     const yearMonth = input.yearMonth ?? currentYearMonth();
-    const existing = input.id
-      ? (await getBudgetRows(db)).find((row) => row.id === input.id)
-      : undefined;
+    const id = input.id ?? String(uuid.v4());
 
-    await setBudgetRow(db, {
-      id: input.id ?? String(uuid.v4()),
-      category_id: input.categoryId,
-      name: normalizeBudgetName(input.name),
-      limit_amount: input.limit,
-      effective_from: yearMonth,
-      created_at: existing?.created_at ?? now,
-      updated_at: now,
+    await db.withExclusiveTransactionAsync(async (tx) => {
+      const existing = input.id ? await getBudgetRowById(tx, input.id) : undefined;
+      await setBudgetRow(tx, {
+        id,
+        category_id: input.categoryId,
+        name: normalizeBudgetName(input.name),
+        limit_amount: input.limit,
+        effective_from: yearMonth,
+        created_at: existing?.created_at ?? now,
+        updated_at: now,
+      });
+      if (input.categoryGroup !== undefined) {
+        await setCategoryGroup(tx, input.categoryId, input.categoryGroup);
+      }
     });
   }
 
@@ -236,6 +261,11 @@ export class BudgetRepository implements IBudgetRepository {
   async getSpendByMonth(yearMonths: string[]): Promise<Record<string, Record<string, number>>> {
     const db = await getDb();
     return getCategorySpendByMonth(db, yearMonths);
+  }
+
+  async getSpendByBudget(yearMonths: string[]): Promise<Record<string, number>> {
+    const db = await getDb();
+    return getBudgetSpendByMonth(db, yearMonths);
   }
 
   async getSpendingPlansForMonth(yearMonth: string): Promise<SpendingPlansForMonthResult> {

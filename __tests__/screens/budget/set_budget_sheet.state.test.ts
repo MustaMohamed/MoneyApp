@@ -21,4 +21,20 @@ describe('useSetBudgetSheetState', () => {
     useSetBudgetSheetState.getState().setGroupValue(null);
     expect(useSetBudgetSheetState.getState().groupValue).toBeNull();
   });
+
+  it('tracks save state and clears a visible error when the form is edited', () => {
+    useSetBudgetSheetState.getState().setSaving(true);
+    useSetBudgetSheetState.getState().setErrorMessage('Save failed');
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      saving: true,
+      errorMessage: 'Save failed',
+    });
+
+    useSetBudgetSheetState.getState().clearError();
+    expect(useSetBudgetSheetState.getState().errorMessage).toBeUndefined();
+  });
+
+  it('contains state transitions only', () => {
+    expect(useSetBudgetSheetState.getState()).not.toHaveProperty('runSave');
+  });
 });

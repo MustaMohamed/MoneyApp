@@ -14,6 +14,11 @@ describe('useAddTransactionState', () => {
       showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
+      showBudgetPicker: false,
+      budgetsLoading: false,
+      budgetLookupVersion: 0,
+      budgetLookupError: undefined,
+      errorMessage: undefined,
       rateOverride: false,
     });
   });
@@ -49,6 +54,8 @@ describe('useAddTransactionState', () => {
       showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
+      showBudgetPicker: false,
+      budgetsLoading: false,
       rateOverride: false,
     });
   });
@@ -65,5 +72,20 @@ describe('useAddTransactionState', () => {
     expect(useAddTransactionState.getState().rateOverride).toBe(true);
     useAddTransactionState.getState().setRateOverride(false);
     expect(useAddTransactionState.getState().rateOverride).toBe(false);
+  });
+
+  it('tracks lookup and save errors and clears them for retry or edits', () => {
+    useAddTransactionState.getState().setBudgetLookupError('Lookup failed');
+    useAddTransactionState.getState().setErrorMessage('Save failed');
+    expect(useAddTransactionState.getState()).toMatchObject({
+      budgetLookupError: 'Lookup failed',
+      errorMessage: 'Save failed',
+    });
+
+    useAddTransactionState.getState().retryBudgetLookup();
+    expect(useAddTransactionState.getState().budgetLookupVersion).toBe(1);
+    expect(useAddTransactionState.getState().budgetLookupError).toBeUndefined();
+    useAddTransactionState.getState().clearError();
+    expect(useAddTransactionState.getState().errorMessage).toBeUndefined();
   });
 });

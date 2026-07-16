@@ -1,83 +1,90 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Card } from 'heroui-native';
+import { View } from 'react-native';
 
-import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { budgetBandColor, type OverallVM } from '@/modules/budget/screens/budget/budget.helpers';
+import { Size } from '@/constants/theme';
+import type { BudgetCategoriesSummaryVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { BudgetBar } from '@/modules/budget/screens/budget/components/budget_bar';
+import {
+  BudgetSummaryHeader,
+  BudgetSummaryMetricsRow,
+  BudgetSummarySpentRow,
+  BudgetSummaryStatusRow,
+} from '@/modules/budget/screens/budget/components/budget_summary_parts';
 import { formatAmount } from '@/utils/format_amount';
-import { ms } from '@/utils/responsive';
 
-export interface SummaryCardProps {
-  overall: OverallVM;
-  daysLeft: number;
+interface SummaryCardProps {
+  summary: BudgetCategoriesSummaryVM;
+  onSetIncome: () => void;
 }
 
-export function SummaryCard({ overall, daysLeft }: SummaryCardProps) {
-  const bandColor = budgetBandColor(overall.pct);
-  const pctLabel = `${Math.round(overall.pct * 100)}%`;
-  // D6: Left figure stays green/red by sign, not by band
-  const leftColor = overall.left < 0 ? Colors.dark.negative : Colors.dark.positive;
-
+export function SummaryCard({ summary, onSetIncome }: SummaryCardProps) {
   return (
-    <View style={styles.card}>
-      <View style={styles.figs}>
-        <Figure label={Strings.budgetSummaryBudgeted} value={formatAmount(overall.budgeted)} />
-        <View style={styles.sep} />
-        <Figure label={Strings.budgetSummarySpent} value={formatAmount(overall.spent)} />
-        <View style={styles.sep} />
-        <Figure
-          label={Strings.budgetSummaryLeft}
-          value={formatAmount(overall.left)}
-          accentColor={leftColor}
+    <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+      <Card.Body className="px-2 py-1.5">
+        <BudgetSummaryHeader
+          eyebrowLabel={summary.eyebrowLabel}
+          hasData={summary.hasPlan}
+          balanceLabel={summary.balanceAmountLabel}
+          balanceMetaLabel={summary.balanceMetaLabel}
+          balanceColor={summary.balanceColor}
+          emptyLabel={summary.emptyLabel ?? Strings.budgetCategoriesNoBudgetSet}
+          trailingLabel={summary.lifecycleLabel}
         />
-      </View>
-      {/* Bar fill colour = 5-band scale; status kept as fallback (never used when color= passed) */}
-      <BudgetBar pct={overall.pct} status="under" color={bandColor} height={ms(12)} />
-      <View style={styles.meta}>
-        <Text style={[styles.metaText, { color: bandColor }]}>{pctLabel}</Text>
-        <Text style={styles.metaText}>{`${daysLeft} ${Strings.budgetDaysLeftSuffix}`}</Text>
-      </View>
-    </View>
+
+        {summary.hasPlan ? (
+          <>
+            <BudgetSummarySpentRow
+              spentLabel={formatAmount(summary.spent)}
+              connectorLabel={Strings.budgetSummarySpentOfConnector}
+              plannedLabel={summary.plannedLabel}
+              usedLabel={summary.usedLabel ?? ''}
+            />
+            <View
+              accessible
+              accessibilityRole="progressbar"
+              accessibilityLabel={summary.usedLabel}
+              accessibilityValue={{ text: summary.usedLabel }}
+              className="mt-1"
+            >
+              <BudgetBar
+                pct={summary.usedPct ?? 0}
+                status="under"
+                color={summary.barColor}
+                height={Size.spendingPlanProgressTrack}
+              />
+            </View>
+          </>
+        ) : null}
+        <BudgetSummaryMetricsRow
+          items={[
+            {
+              key: 'planned',
+              label: Strings.budgetCategoriesSummaryPlanned,
+              value: summary.plannedLabel,
+            },
+            {
+              key: 'unassigned-income',
+              label: Strings.budgetCategoriesSummaryUnassignedIncome,
+              value: summary.unassignedIncomeLabel,
+              onPress: summary.unassignedIncome === undefined ? onSetIncome : undefined,
+              accessibilityLabel:
+                summary.unassignedIncome === undefined
+                  ? Strings.budgetCategoriesSetIncome
+                  : undefined,
+            },
+            {
+              key: 'unbudgeted-spend',
+              label: Strings.budgetCategoriesSummaryUnbudgetedSpend,
+              value: summary.unbudgetedSpendLabel,
+              tone: summary.unbudgetedSpend > 0 ? 'warning' : 'default',
+            },
+          ]}
+        />
+        {summary.statusItems.length > 0 ? (
+          <BudgetSummaryStatusRow items={summary.statusItems} />
+        ) : null}
+      </Card.Body>
+    </Card>
   );
 }
-
-function Figure({
-  label,
-  value,
-  accentColor,
-}: {
-  label: string;
-  value: string;
-  accentColor?: string;
-}) {
-  return (
-    <View style={styles.fig}>
-      <Text style={styles.figLabel}>{label}</Text>
-      <Text style={[styles.figVal, accentColor ? { color: accentColor } : undefined]}>{value}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.dark.surface,
-    borderRadius: Radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-    padding: Spacing.md,
-  },
-  figs: { flexDirection: 'row', marginBottom: Spacing.sm },
-  fig: { flex: 1, alignItems: 'center' },
-  sep: { width: StyleSheet.hairlineWidth, backgroundColor: Colors.dark.border },
-  figLabel: { fontFamily: FontFamily.interMedium, fontSize: Type.micro, color: Colors.dark.text2 },
-  figVal: {
-    fontFamily: FontFamily.soraBold,
-    fontSize: Type.subhead,
-    color: Colors.dark.text1,
-    marginTop: ms(4),
-  },
-  meta: { flexDirection: 'row', justifyContent: 'space-between', marginTop: Spacing.xs },
-  metaText: { fontFamily: FontFamily.interRegular, fontSize: Type.micro, color: Colors.dark.text2 },
-});

@@ -73,7 +73,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   mockUuidCounter = 0;
-  realDb.exec('DELETE FROM transactions');
+  realDb.exec('DELETE FROM transactions; DELETE FROM budgets;');
   realDb.prepare("UPDATE accounts SET current_balance = 5000 WHERE id = 'acc1'").run();
   realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_usd'").run();
   realDb
@@ -152,6 +152,54 @@ describe('TransactionRepository.add', () => {
     // The stored time string should be between before and after (inclusive)
     expect(tx.transaction_time >= before).toBe(true);
     expect(tx.transaction_time <= after).toBe(true);
+  });
+
+  it('persists a matching named budget assignment', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id,category_id,name,limit_amount,effective_from,created_at,updated_at)
+         VALUES ('budget_food','cat_food','Meals',500,'2026-05',?,?)`,
+      )
+      .run(NOW, NOW);
+
+    const tx = await repo.add({ ...baseInput, budget_id: 'budget_food' });
+
+    expect(tx.budget_id).toBe('budget_food');
+    expect(
+      (
+        realDb.prepare('SELECT budget_id FROM transactions WHERE id = ?').get(tx.id) as {
+          budget_id: string | null;
+        }
+      ).budget_id,
+    ).toBe('budget_food');
+  });
+
+  it('rejects assignments for another category or month', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id,category_id,name,limit_amount,effective_from,created_at,updated_at)
+         VALUES ('budget_food','cat_food','Meals',500,'2026-05',?,?)`,
+      )
+      .run(NOW, NOW);
+
+    await expect(
+      repo.add({ ...baseInput, category_id: 'cat_car', budget_id: 'budget_food' }),
+    ).rejects.toThrow('does not match');
+    await expect(
+      repo.add({ ...baseInput, transaction_date: '2026-06-01', budget_id: 'budget_food' }),
+    ).rejects.toThrow('does not match');
+  });
+
+  it('clears budget assignments for non-expense transactions', async () => {
+    const tx = await repo.add({
+      ...baseInput,
+      type: TransactionType.Income,
+      budget_id: 'budget_food',
+    });
+
+    expect(tx.budget_id).toBeNull();
   });
 });
 
@@ -263,6 +311,75 @@ describe('TransactionRepository.update', () => {
         transaction_time: '10:00:00',
       }),
     ).resolves.toBeUndefined();
+  });
+
+  it('updates a matching named budget assignment', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id,category_id,name,limit_amount,effective_from,created_at,updated_at)
+         VALUES ('budget_food','cat_food','Meals',500,'2026-05',?,?)`,
+      )
+      .run(NOW, NOW);
+    const tx = await repo.add(baseInput);
+
+    await repo.update(tx.id, {
+      amount: 200,
+      currency: Currency.EGP,
+      egp_amount: 200,
+      category_id: 'cat_food',
+      budget_id: 'budget_food',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    const row = realDb.prepare('SELECT budget_id FROM transactions WHERE id = ?').get(tx.id) as {
+      budget_id: string | null;
+    };
+    expect(row.budget_id).toBe('budget_food');
+  });
+
+  it('rejects retaining a named budget when the category is explicitly cleared', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id,category_id,name,limit_amount,effective_from,created_at,updated_at)
+         VALUES ('budget_food','cat_food','Meals',500,'2026-05',?,?)`,
+      )
+      .run(NOW, NOW);
+    const tx = await repo.add({ ...baseInput, budget_id: 'budget_food' });
+
+    await expect(
+      repo.update(tx.id, {
+        amount: 200,
+        currency: Currency.EGP,
+        egp_amount: 200,
+        category_id: null,
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toThrow('does not match');
+  });
+
+  it('rejects retaining a named budget when the transaction moves to another month', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id,category_id,name,limit_amount,effective_from,created_at,updated_at)
+         VALUES ('budget_food','cat_food','Meals',500,'2026-05',?,?)`,
+      )
+      .run(NOW, NOW);
+    const tx = await repo.add({ ...baseInput, budget_id: 'budget_food' });
+
+    await expect(
+      repo.update(tx.id, {
+        amount: 200,
+        currency: Currency.EGP,
+        egp_amount: 200,
+        transaction_date: '2026-06-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toThrow('does not match');
   });
 });
 

@@ -8,6 +8,7 @@ interface Props {
   /** Category name — interpolated into the body copy. */
   categoryName: string;
   busy: boolean;
+  errorMessage?: string;
   onCancel: () => void;
   onConfirm: () => void;
 }
@@ -21,6 +22,7 @@ export function BudgetDeleteConfirmSheet({
   isOpen,
   categoryName,
   busy,
+  errorMessage,
   onCancel,
   onConfirm,
 }: Props) {
@@ -31,6 +33,7 @@ export function BudgetDeleteConfirmSheet({
         if (!open) onCancel();
       }}
       busy={busy}
+      errorMessage={errorMessage}
       destructive
       title={Strings.budgetDeleteConfirmTitle}
       body={Strings.budgetDeleteConfirmBody(categoryName)}

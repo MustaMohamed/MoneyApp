@@ -3,9 +3,12 @@ import { Colors } from '@/constants/theme';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import {
   BUDGET_WARNING_THRESHOLD,
+  buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
+  buildCategoryBudgetRows,
   budgetBandColor,
   computeBudgetSummaryForMonth,
+  computeBudgetHealth,
   computeCategoryHistory,
   computeCategoryRow,
   computeOverall,
@@ -114,6 +117,123 @@ describe('computeStatus', () => {
     expect(computeStatus(1000, 1000)).toBe('warning'));
   it('under below the threshold', () => expect(computeStatus(500, 1000)).toBe('under'));
   it('under (guarded) when limit <= 0', () => expect(computeStatus(100, 0)).toBe('under'));
+});
+
+describe('budget categories ledger view models', () => {
+  it('builds parent and child values and reconciles unassigned spending', () => {
+    const result = buildCategoryBudgetRows({
+      categories: [category('food', 'Food & Dining')],
+      budgets: [
+        row('food', 2000, '2026-07', 'Monthly meals', 'meals'),
+        row('food', 500, '2026-07', 'Dining out', 'dining'),
+      ],
+      spendByMonth: { food: { '2026-07': 1900 } },
+      spendByBudgetId: { meals: 1400, dining: 300 },
+      yearMonth: '2026-07',
+    });
+
+    expect(result.rows[0]).toEqual(
+      expect.objectContaining({
+        planned: 2500,
+        spent: 1900,
+        left: 600,
+        usedPct: 0.76,
+        status: 'on-track',
+        unassignedSpend: 200,
+        unassignedSpendLabel: '200 EGP',
+      }),
+    );
+    expect(result.rows[0].budgets).toEqual([
+      expect.objectContaining({
+        planned: 2000,
+        spent: 1400,
+        left: 600,
+        categorySharePct: 0.8,
+      }),
+      expect.objectContaining({
+        planned: 500,
+        spent: 300,
+        left: 200,
+        categorySharePct: 0.2,
+      }),
+    ]);
+    expect(result.rows[0].accessibilityLabel).toContain('76% used');
+    expect(result.rows[0].budgets[0]?.accessibilityLabel).toContain('70% used');
+  });
+
+  it('describes an empty month without usage or status claims', () => {
+    const result = buildBudgetCategoriesSummary({
+      rows: [],
+      expectedIncome: null,
+      unbudgetedSpend: 0,
+      selectedMonth: '2026-08',
+      today: '2026-07-14',
+    });
+
+    expect(result.hasPlan).toBe(false);
+    expect(result.emptyLabel).toBe('No budget set');
+    expect(result.usedLabel).toBeUndefined();
+    expect(result.statusItems).toEqual([]);
+  });
+
+  it.each([
+    ['2026-06', 'Complete'],
+    ['2026-07', '16 days left'],
+    ['2026-08', 'Planned'],
+  ])('labels %s with its month lifecycle', (selectedMonth, lifecycleLabel) => {
+    const result = buildBudgetCategoriesSummary({
+      rows: [],
+      expectedIncome: null,
+      unbudgetedSpend: 0,
+      selectedMonth,
+      today: '2026-07-15',
+    });
+
+    expect(result.lifecycleLabel).toBe(lifecycleLabel);
+  });
+
+  it.each([
+    [799, 1000, 'on-track'],
+    [800, 1000, 'watch'],
+    [1000, 1000, 'watch'],
+    [1001, 1000, 'over'],
+  ] as const)('maps %s of %s to %s', (spent, planned, expected) => {
+    expect(computeBudgetHealth(spent, planned)).toBe(expected);
+  });
+
+  it('separates unbudgeted spend and absent expected income', () => {
+    const ledger = buildCategoryBudgetRows({
+      categories: [category('food', 'Food & Dining'), category('car', 'Car')],
+      budgets: [row('food', 2500, '2026-07', 'Monthly meals', 'meals')],
+      spendByMonth: {
+        food: { '2026-07': 1900 },
+        car: { '2026-07': 450 },
+      },
+      spendByBudgetId: { meals: 1900 },
+      yearMonth: '2026-07',
+    });
+    const result = buildBudgetCategoriesSummary({
+      rows: ledger.rows,
+      expectedIncome: null,
+      unbudgetedSpend: ledger.unbudgetedSpend,
+      selectedMonth: '2026-07',
+      today: '2026-07-14',
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        planned: 2500,
+        spent: 1900,
+        left: 600,
+        usedPct: 0.76,
+        unassignedIncome: undefined,
+        unbudgetedSpend: 450,
+        onTrackCount: 1,
+        watchCount: 0,
+        overCount: 0,
+      }),
+    );
+  });
 });
 
 describe('computeCategoryRow', () => {
@@ -263,6 +383,7 @@ describe('computeCategoryHistory', () => {
       delta: 600,
       status: 'warning',
       isProvisional: false,
+      lifecycle: 'completed',
     },
     {
       yearMonth: '2026-03',
@@ -271,6 +392,7 @@ describe('computeCategoryHistory', () => {
       delta: -200,
       status: 'over',
       isProvisional: false,
+      lifecycle: 'completed',
     },
     {
       yearMonth: '2026-04',
@@ -279,6 +401,7 @@ describe('computeCategoryHistory', () => {
       delta: 250,
       status: 'warning',
       isProvisional: false,
+      lifecycle: 'completed',
     },
     {
       yearMonth: '2026-05',
@@ -287,13 +410,24 @@ describe('computeCategoryHistory', () => {
       delta: 600,
       status: 'warning',
       isProvisional: true,
+      lifecycle: 'provisional',
+    },
+    {
+      yearMonth: '2026-06',
+      limit: 3000,
+      spent: 0,
+      delta: 3000,
+      status: 'under',
+      isProvisional: false,
+      lifecycle: 'planned',
     },
   ];
-  it('nets the deltas, averages spend, and computes hit-rate', () => {
+  it('includes the provisional current month but excludes planned future months', () => {
     const h = computeCategoryHistory(results);
+    expect(h.results).toHaveLength(4);
     expect(h.netBanked).toBe(1250);
     expect(h.avgPerMonth).toBe((2400 + 3200 + 2750 + 2400) / 4);
-    expect(h.monthsUnder).toBe(3); // Feb, Apr, May under-or-equal; Mar over
+    expect(h.monthsUnder).toBe(3);
     expect(h.monthsTotal).toBe(4);
     expect(h.hitRate).toBeCloseTo(3 / 4);
   });

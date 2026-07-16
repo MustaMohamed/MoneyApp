@@ -170,6 +170,7 @@ export class CommitmentRepository implements ICommitmentRepository {
       account_id: details.account_id,
       to_account_id: null,
       category_id: commitment.category_id,
+      budget_id: null,
       note: details.notes ?? null,
       transaction_date: details.paid_date,
       transaction_time: now.slice(11, 19),

@@ -1,5 +1,5 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Colors } from '@/constants/theme';
@@ -11,6 +11,7 @@ import {
   resolveLimitForMonth,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import { useCategoryDetailState } from '@/modules/budget/screens/budget/category_detail/category_detail.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 
@@ -18,15 +19,31 @@ const HISTORY_MONTHS = 12;
 
 export function useCategoryDetail() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [month, setMonth] = useState(currentYearMonth);
+  const { id, month: routeMonth } = useLocalSearchParams<{ id: string; month?: string }>();
+  const storedMonth = useCategoryDetailState.useState.month();
+  const setMonth = useCategoryDetailState.getState().setMonth;
+  const validRouteMonth =
+    typeof routeMonth === 'string' && /^\d{4}-(0[1-9]|1[0-2])$/.test(routeMonth)
+      ? routeMonth
+      : undefined;
+  const currentMonth = currentYearMonth();
+  const month = validRouteMonth ?? (storedMonth === currentMonth ? storedMonth : currentMonth);
 
-  const categories = useCategoryStore.useState.categories();
+  const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
+    useShallow((s) => ({
+      categories: s.categories,
+      categoriesLoaded: s.hasLoaded,
+      categoryLoadError: s.loadError,
+    })),
+  );
   const loadCategories = useCategoryStore.getState().loadCategories;
-  const { budgetRows, spendByMonth } = useBudgetStore(
+  const { budgetRows, spendByMonth, budgetLoaded, loadedMonth, loadError } = useBudgetStore(
     useShallow((s) => ({
       budgetRows: s.rows,
       spendByMonth: s.spendByMonth,
+      budgetLoaded: s.loaded,
+      loadedMonth: s.loadedMonth,
+      loadError: s.loadError,
     })),
   );
   const load = useBudgetStore.getState().load;
@@ -34,33 +51,43 @@ export function useCategoryDetail() {
 
   useFocusEffect(
     useCallback(() => {
-      setMonth(currentYearMonth()); // refresh in case the month rolled over while mounted
-      void loadCategories();
-      void load();
-    }, [loadCategories, load]),
+      const selectedMonth = validRouteMonth ?? currentYearMonth();
+      setMonth(selectedMonth);
+      void loadCategories().catch(() => undefined);
+      void load(selectedMonth);
+    }, [loadCategories, load, setMonth, validRouteMonth]),
   );
 
   const category = useMemo(() => categories.find((c) => c.id === id), [categories, id]);
+  const hasLoaded = categoriesLoaded && budgetLoaded && loadedMonth === month;
 
   const results: MonthResultVM[] = useMemo(() => {
-    if (!id) return [];
+    if (!hasLoaded || !id) return [];
     const months = lastMonths(month, HISTORY_MONTHS);
+    const actualCurrentMonth = currentYearMonth();
     const out: MonthResultVM[] = [];
     for (const ym of months) {
       const limit = resolveLimitForMonth(budgetRows, id, ym);
       if (limit === null) continue; // only months the budget was active
       const spent = spendByMonth[id]?.[ym] ?? 0;
+      const lifecycle =
+        ym < actualCurrentMonth
+          ? 'completed'
+          : ym === actualCurrentMonth
+            ? 'provisional'
+            : 'planned';
       out.push({
         yearMonth: ym,
         limit,
         spent,
         delta: limit - spent,
         status: computeStatus(spent, limit),
-        isProvisional: ym === month,
+        isProvisional: lifecycle === 'provisional',
+        lifecycle,
       });
     }
     return out;
-  }, [budgetRows, id, month, spendByMonth]);
+  }, [budgetRows, hasLoaded, id, month, spendByMonth]);
 
   const history = useMemo(() => computeCategoryHistory(results), [results]);
   const liveMonth = useMemo(() => results.find((r) => r.yearMonth === month), [results, month]);
@@ -71,6 +98,7 @@ export function useCategoryDetail() {
   const editableBudgetId = liveMonthBudgets.length === 1 ? liveMonthBudgets[0]?.id : undefined;
 
   const daysLeft = useMemo(() => {
+    if (month !== currentYearMonth()) return undefined;
     const [y, m] = month.split('-').map(Number);
     const lastDay = new Date(y, m, 0).getDate();
     const today = new Date();
@@ -87,8 +115,14 @@ export function useCategoryDetail() {
       history,
       daysLeft,
       month,
+      hasLoaded,
+      loadError: !hasLoaded && (loadError || categoryLoadError),
     },
     goBack: () => router.back(),
+    retry: () => {
+      void loadCategories().catch(() => undefined);
+      void load(month);
+    },
     editBudget: () => {
       if (!editableBudgetId) return;
       router.back();

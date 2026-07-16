@@ -11,7 +11,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type { Category, NewCategoryInput, UpdateCategoryInput };
 
-const INITIAL_STATE = { categories: [] as Category[], hasLoaded: false };
+const INITIAL_STATE = { categories: [] as Category[], hasLoaded: false, loadError: false };
 
 type CategoryStore = typeof INITIAL_STATE & {
   loadCategories: () => Promise<void>;
@@ -29,10 +29,12 @@ export function createCategoryStore(repo: ICategoryRepository) {
       ...INITIAL_STATE,
 
       loadCategories: async () => {
+        set({ loadError: false });
         try {
           const categories = await repo.getAll();
-          set({ categories, hasLoaded: true });
+          set({ categories, hasLoaded: true, loadError: false });
         } catch (err) {
+          set({ loadError: true });
           console.error('[categoryStore] loadCategories failed:', err);
           throw err;
         }

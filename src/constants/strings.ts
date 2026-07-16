@@ -206,6 +206,64 @@ export const Strings = {
   budgetDaysLeftSuffix: 'days left',
   budgetCountLabel: (count: number) => `${count} ${count === 1 ? 'budget' : 'budgets'}`,
   budgetCategoryCountLabel: (count: number) => (count === 1 ? '1 category' : `${count} categories`),
+  budgetCategoriesSummaryEyebrow: (count: number, month: string) =>
+    `${count} ${count === 1 ? 'category budget' : 'category budgets'} in ${month}`,
+  budgetSummarySpentOfConnector: 'spent of',
+  budgetCategoriesSummarySpentOf: (spent: string, planned: string) =>
+    `${spent} spent of ${planned}`,
+  budgetCategoriesSummaryUsed: (percentage: number) => `${percentage}% used`,
+  budgetCategoriesSummaryPlanned: 'Planned',
+  budgetCategoriesSummaryUnassignedIncome: 'Unassigned income',
+  budgetCategoriesSummaryUnbudgetedSpend: 'Unbudgeted spend',
+  budgetCategoriesSetIncome: 'Set income',
+  budgetCategoriesNoBudgetSet: 'No budget set',
+  budgetCategoriesLifecyclePlanned: 'Planned',
+  budgetCategoriesLifecycleComplete: 'Complete',
+  budgetCategoriesDaysLeft: (days: number) => `${days} ${days === 1 ? 'day' : 'days'} left`,
+  budgetCategoriesStatusOnTrack: 'On track',
+  budgetCategoriesStatusWatch: 'Watch',
+  budgetCategoriesStatusOver: 'Over',
+  budgetCategoriesStatusCount: (count: number, status: string) => `${count} ${status}`,
+  budgetCategoriesSpentPlannedUsed: (spent: string, planned: string, percentage: number) =>
+    `${spent} / ${planned} spent · ${percentage}% used`,
+  budgetCategoriesShare: (percentage: number) => `${percentage}% of category`,
+  budgetCategoriesSpentPlanned: (spent: string, planned: string) => `${spent} / ${planned} spent`,
+  budgetCategoriesBalanceMeta: (status: string) => `EGP ${status}`,
+  budgetCategoriesUnassignedSpending: 'Unassigned spending',
+  budgetCategoriesUnassignedExplanation: 'Not linked to a named budget',
+  budgetCategoriesUnassignedAmount: (amount: string) => `${amount} EGP`,
+  budgetViewCategoryDetails: (name: string) => `${name} details`,
+  budgetViewCategoryDetailsA11y: (name: string) => `View ${name} details`,
+  budgetCategoriesBudgetA11y: (
+    name: string,
+    spent: string,
+    planned: string,
+    percentage: number,
+    balance: string,
+    balanceStatus: string,
+  ) =>
+    `${name}, ${spent} of ${planned} spent, ${percentage}% used, ${balance} EGP ${balanceStatus}`,
+  budgetCategoriesBudgetMenuA11y: (name: string) => `Actions for ${name}`,
+  budgetCategoriesCategoryA11y: (
+    name: string,
+    spent: string,
+    planned: string,
+    percentage: number,
+    balance: string,
+    balanceStatus: string,
+    status: string,
+  ) =>
+    `${name}, ${spent} of ${planned} spent, ${percentage}% used, ${balance} EGP ${balanceStatus}, ${status}`,
+  transactionBudgetAssignmentMismatch:
+    'The selected budget does not match this transaction category and month.',
+  addTxBudgetLabel: 'Budget',
+  addTxPickBudgetTitle: 'Choose a budget',
+  addTxBudgetNone: 'No named budget',
+  addTxErrBudgetRequired: 'Choose a budget for this expense',
+  addTxBudgetLoading: 'Loading matching budgets…',
+  addTxBudgetLookupError: 'Could not load matching budgets. Try again.',
+  addTxBudgetRetryA11y: 'Retry matching budget lookup',
+  transactionSaveError: 'Could not save this transaction. Please try again.',
   budgetOverPill: 'Over',
   budgetSetTitle: 'Set budget',
   budgetEditTitle: 'Edit budget',
@@ -213,6 +271,7 @@ export const Strings = {
   budgetNamePlaceholder: 'e.g. Monthly food',
   budgetMonthlyLimitLabel: 'Monthly limit',
   budgetSaveCta: 'Save budget',
+  budgetSaveError: 'Could not save budget. Please try again.',
   budgetRemoveCta: 'Remove budget',
   budgetNameRequired: 'Enter a budget name',
   budgetAmountRequired: 'Enter a monthly limit',
@@ -224,6 +283,8 @@ export const Strings = {
   budgetDetailMonthlyResult: 'Monthly result',
   budgetDetailCategories: 'Categories',
   budgetDetailInProgress: '* in progress',
+  budgetDetailPlanned: 'Planned',
+  budgetDetailCompleted: 'Complete',
   budgetToolCopy: 'Copy',
   budgetToolCategory: 'Budget',
   budgetToolPlan: 'Plan',
@@ -263,6 +324,7 @@ export const Strings = {
     `Remove ${name}? This deletes the temporary budget and its category allocations.`,
   budgetPlanDeleteConfirmConfirm: 'Remove',
   budgetPlanDeleteConfirmCancel: 'Cancel',
+  budgetPlanDeleteError: 'Could not remove this plan. Please try again.',
   budgetPlansEmptyTitle: 'No spending plans',
   budgetPlansEmptyBody: 'Create a short-term plan for travel, a week, or another temporary period.',
   budgetPlansCreateAction: 'Create plan',
@@ -405,6 +467,7 @@ export const Strings = {
   incomeSheetAmountPlaceholder: '0',
   incomeSheetSuggestionNote: 'Pre-filled from your last 3 months of income',
   incomeSheetSaveCta: 'Save',
+  incomeSheetSaveError: 'Could not save expected income. Please try again.',
   incomeSheetAmountRequired: 'Enter your monthly income',
   incomeSheetAmountInvalid: 'Enter an amount greater than 0',
 
@@ -654,6 +717,7 @@ export const Strings = {
     'This payment will be marked as skipped and excluded from your totals.',
   commitmentsSkipConfirmCancel: 'Cancel',
   commitmentsSkipConfirmConfirm: 'Skip Payment',
+  commitmentsSkipError: 'Could not skip this payment. Please try again.',
 
   // Commitments — C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,
@@ -678,6 +742,7 @@ export const Strings = {
     'It will be removed from your list. Past payment records are preserved.',
   commitmentsDeactivateCancel: 'Cancel',
   commitmentsDeactivateConfirm: 'Deactivate',
+  commitmentsDeactivateError: 'Could not deactivate this commitment. Please try again.',
 
   // Commitments — status badges
   commitmentsStatusOverdue: 'Overdue',
@@ -816,9 +881,10 @@ export const Strings = {
   // Budget — swipe delete confirm
   budgetDeleteConfirmTitle: 'Remove budget?',
   budgetDeleteConfirmBody: (name: string) =>
-    `This stops tracking the limit for ${name}. Your transactions and spending history are kept.`,
+    `Remove ${name}? Its transactions stay in the category and their spending becomes unassigned.`,
   budgetDeleteConfirmConfirm: 'Remove',
   budgetDeleteConfirmCancel: 'Cancel',
+  budgetDeleteError: 'Could not remove this budget. Please try again.',
 
   // Transactions — swipe/list delete confirm
   // Note: deleteConfirmTitle, deleteConfirmBody, deleteTransaction, deleteCancel already exist

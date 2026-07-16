@@ -98,6 +98,7 @@ export default function CommitmentsScreen() {
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
+    error: deleteError,
     request: requestDelete,
     confirm: confirmDelete,
     cancel: cancelDelete,
@@ -105,7 +106,8 @@ export default function CommitmentsScreen() {
 
   const {
     pendingPayload: pendingSkipId,
-    busy: _skipBusy,
+    busy: skipBusy,
+    error: skipError,
     request: requestSkip,
     confirm: confirmSkip,
     cancel: cancelSkip,
@@ -246,6 +248,7 @@ export default function CommitmentsScreen() {
       <CommitmentDeleteConfirmSheet
         isOpen={pendingDeleteId !== null}
         busy={deleteBusy}
+        errorMessage={deleteError ? Strings.commitmentsDeactivateError : undefined}
         onCancel={cancelDelete}
         onConfirm={() => {
           void confirmDelete();
@@ -254,6 +257,8 @@ export default function CommitmentsScreen() {
 
       <SkipConfirmSheet
         isOpen={pendingSkipId !== null}
+        busy={skipBusy}
+        errorMessage={skipError ? Strings.commitmentsSkipError : undefined}
         onCancel={cancelSkip}
         onConfirm={() => {
           void confirmSkip();

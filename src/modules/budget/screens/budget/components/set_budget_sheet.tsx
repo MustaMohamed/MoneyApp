@@ -12,14 +12,14 @@ import { Text } from '@/components/ui/text';
 import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
-import { getDb } from '@/database/client';
 import type { BudgetEditTargetVM } from '@/modules/budget/screens/budget/budget.hook';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
+import { useSetBudgetSheetSave } from '@/modules/budget/screens/budget/components/set_budget_sheet.hook';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
-import { setCategoryGroup } from '@/modules/categories/database/categories';
 import type { Category } from '@/modules/categories/entities/category.entity';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 import { budgetFormSchema, parseLimit, type BudgetFormValues } from '@/utils/schemas/budget.schema';
@@ -53,19 +53,25 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
   );
   const close = useBudgetState.getState().close;
   const setBudget = useBudgetStore.getState().setBudget;
-  const { selectedCategoryId, pickerExpanded, groupValue } = useSetBudgetSheetState(
-    useShallow((s) => ({
-      selectedCategoryId: s.selectedCategoryId,
-      pickerExpanded: s.pickerExpanded,
-      groupValue: s.groupValue,
-    })),
-  );
+  const loadCategories = useCategoryStore.getState().loadCategories;
+  const { selectedCategoryId, pickerExpanded, groupValue, saving, errorMessage } =
+    useSetBudgetSheetState(
+      useShallow((s) => ({
+        selectedCategoryId: s.selectedCategoryId,
+        pickerExpanded: s.pickerExpanded,
+        groupValue: s.groupValue,
+        saving: s.saving,
+        errorMessage: s.errorMessage,
+      })),
+    );
   const initAddMode = useSetBudgetSheetState.getState().initAddMode;
   const setSelectedCategoryId = useSetBudgetSheetState.getState().setSelectedCategoryId;
   const setGroupValue = useSetBudgetSheetState.getState().setGroupValue;
   const togglePicker = useSetBudgetSheetState.getState().togglePicker;
   const collapsePicker = useSetBudgetSheetState.getState().collapsePicker;
+  const clearError = useSetBudgetSheetState.getState().clearError;
   const reset = useSetBudgetSheetState.getState().reset;
+  const { runSave } = useSetBudgetSheetSave();
 
   const isEdit = mode === 'edit';
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
@@ -113,18 +119,18 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
 
   const onSubmit = handleSubmit(async (values) => {
     if (!resolvedCategoryId) return;
-    await setBudget({
-      id: isEdit ? editingRow?.id : undefined,
-      categoryId: resolvedCategoryId,
-      name: values.nameText,
-      limit: parseLimit(values.limitText),
-      yearMonth: selectedMonth,
+    const saved = await runSave(async () => {
+      await setBudget({
+        id: isEdit ? editingRow?.id : undefined,
+        categoryId: resolvedCategoryId,
+        name: values.nameText,
+        limit: parseLimit(values.limitText),
+        yearMonth: selectedMonth,
+        categoryGroup: !isEdit && groupValue !== null ? groupValue : undefined,
+      });
+      await loadCategories().catch(() => undefined);
     });
-    if (!isEdit && groupValue !== null) {
-      const db = await getDb();
-      await setCategoryGroup(db, resolvedCategoryId, groupValue);
-    }
-    close();
+    if (saved) close();
   });
 
   return (
@@ -138,7 +144,13 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
         size="md"
         scrollable
         footer={
-          <Button variant="primary" label={Strings.budgetSaveCta} onPress={() => void onSubmit()} />
+          <Button
+            variant="primary"
+            label={Strings.budgetSaveCta}
+            isLoading={saving}
+            isDisabled={saving}
+            onPress={() => void onSubmit()}
+          />
         }
       >
         <BottomSheetScrollView
@@ -195,7 +207,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                 <View style={[styles.field, fieldState.error && styles.fieldError]}>
                   <Input
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => {
+                      clearError();
+                      onChange(text);
+                    }}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     placeholder={Strings.budgetNamePlaceholder}
@@ -221,7 +236,10 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                 <View style={[styles.field, fieldState.error && styles.fieldError]}>
                   <Input
                     value={value}
-                    onChangeText={onChange}
+                    onChangeText={(text) => {
+                      clearError();
+                      onChange(text);
+                    }}
                     onFocus={onFocus}
                     onBlur={onBlur}
                     keyboardType="number-pad"
@@ -231,7 +249,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
                     style={styles.input}
                     accessibilityLabel={Strings.budgetMonthlyLimitLabel}
                   />
-                  <Text style={styles.suffix}>EGP</Text>
+                  <Text style={styles.suffix}>{Strings.currencyEgp}</Text>
                 </View>
                 {fieldState.error && (
                   <Text style={styles.errorText}>{fieldState.error.message}</Text>
@@ -260,6 +278,9 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
               </RadioGroup>
             </>
           )}
+          {errorMessage ? (
+            <Text className="font-inter text-danger mt-2 text-sm font-medium">{errorMessage}</Text>
+          ) : null}
         </BottomSheetScrollView>
       </Sheet>
 

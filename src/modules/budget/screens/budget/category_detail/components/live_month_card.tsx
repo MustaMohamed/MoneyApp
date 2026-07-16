@@ -16,7 +16,7 @@ export function LiveMonthCard({
   color,
 }: {
   result: MonthResultVM;
-  daysLeft: number;
+  daysLeft: number | undefined;
   color: string;
 }) {
   const pct = result.limit > 0 ? result.spent / result.limit : 0;
@@ -24,7 +24,13 @@ export function LiveMonthCard({
     <HeroShell glowColor={color} style={{ marginHorizontal: 0 }}>
       <View style={styles.inner}>
         <View style={styles.top}>
-          <Text style={styles.muted}>{`${daysLeft} ${Strings.budgetDaysLeftSuffix}`}</Text>
+          <Text style={styles.muted}>
+            {result.lifecycle === 'completed'
+              ? Strings.budgetDetailCompleted
+              : result.lifecycle === 'planned'
+                ? Strings.budgetDetailPlanned
+                : Strings.budgetCategoriesDaysLeft(daysLeft ?? 0)}
+          </Text>
           <Text
             style={styles.left}
           >{`${formatAmount(result.limit - result.spent)} ${Strings.budgetSummaryLeft.toLowerCase()}`}</Text>

@@ -62,9 +62,9 @@ export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promi
       `INSERT INTO transactions (
         id, type, amount, currency, egp_amount, exchange_rate,
         to_amount, minimum_payment_snapshot,
-        account_id, to_account_id, category_id, note,
+        account_id, to_account_id, category_id, budget_id, note,
         transaction_date, transaction_time, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         tx.id,
         tx.type,
@@ -77,6 +77,7 @@ export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promi
         tx.account_id,
         tx.to_account_id,
         tx.category_id,
+        tx.budget_id,
         tx.note,
         tx.transaction_date,
         tx.transaction_time,
@@ -334,6 +335,7 @@ export interface UpdateTransactionInput {
   to_amount?: number | null;
   exchange_rate?: number | null;
   category_id?: string | null;
+  budget_id?: string | null;
   note?: string | null;
   transaction_date: string;
   transaction_time: string;
@@ -472,7 +474,7 @@ export async function updateTransaction(
       `UPDATE transactions
          SET amount = ?, currency = ?, egp_amount = ?, exchange_rate = ?,
              to_amount = ?, minimum_payment_snapshot = ?,
-             category_id = ?, note = ?, transaction_date = ?, transaction_time = ?,
+             category_id = ?, budget_id = ?, note = ?, transaction_date = ?, transaction_time = ?,
              updated_at = ?
        WHERE id = ?`,
       [
@@ -483,6 +485,7 @@ export async function updateTransaction(
         updates.to_amount ?? null,
         newMinPaymentSnapshot,
         updates.category_id ?? null,
+        updates.budget_id === undefined ? existing.budget_id : updates.budget_id,
         updates.note ?? null,
         updates.transaction_date,
         updates.transaction_time,

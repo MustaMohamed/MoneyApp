@@ -93,6 +93,7 @@ export default function TransactionsScreen(): React.ReactElement {
   const {
     pendingPayload: pendingDeleteId,
     busy: deleteBusy,
+    error: deleteError,
     request: requestDelete,
     confirm: confirmDelete,
     cancel: cancelDelete,
@@ -248,6 +249,7 @@ export default function TransactionsScreen(): React.ReactElement {
       <TxDeleteConfirmSheet
         isOpen={pendingDeleteId !== null}
         busy={deleteBusy}
+        errorMessage={deleteError ? Strings.errDeleteFailed : undefined}
         onCancel={cancelDelete}
         onConfirm={() => {
           void confirmDelete();

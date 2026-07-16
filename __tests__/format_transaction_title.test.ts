@@ -17,6 +17,7 @@ const baseTx: Transaction = {
   account_id: 'acc-cib',
   to_account_id: null,
   category_id: 'cat_food',
+  budget_id: null,
   note: null,
   transaction_date: '2026-05-01',
   transaction_time: '14:30:00',

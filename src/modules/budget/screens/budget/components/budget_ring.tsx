@@ -2,17 +2,16 @@ import React from 'react';
 import { View } from 'react-native';
 import { Circle, Svg } from 'react-native-svg';
 
-import { Colors } from '@/constants/theme';
-import { ms } from '@/utils/responsive';
+import { Colors, Size } from '@/constants/theme';
 
 export interface BudgetRingProps {
   /** Spend percentage 0..n. Values > 1 fill the full ring (capped). */
   pct: number;
   /** Fill colour for the progress arc. Use budgetBandColor(pct). */
   color: string;
-  /** Outer diameter in logical pixels. Default ms(46). */
+  /** Outer diameter in logical pixels. Defaults to the category-column token. */
   size?: number;
-  /** Stroke width. Default ms(3.5). */
+  /** Stroke width. Defaults to the shared budget-ring token. */
   stroke?: number;
   /** Icon element centred inside the ring. */
   children: React.ReactNode;
@@ -37,8 +36,8 @@ export interface BudgetRingProps {
 export function BudgetRing({
   pct,
   color,
-  size = ms(46),
-  stroke = ms(3.5),
+  size = Size.budgetCategoryColumn,
+  stroke = Size.budgetRingStroke,
   children,
 }: BudgetRingProps) {
   const radius = (size - stroke) / 2;

@@ -149,6 +149,8 @@ describe('categoryStore — error branches', () => {
     const useStore = createCategoryStore(repo);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(useStore.getState().loadCategories()).rejects.toThrow('db fail');
+    expect(useStore.getState().loadError).toBe(true);
+    expect(useStore.getState().hasLoaded).toBe(false);
     consoleSpy.mockRestore();
   });
 
