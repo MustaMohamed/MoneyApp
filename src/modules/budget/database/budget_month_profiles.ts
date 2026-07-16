@@ -24,8 +24,8 @@ export async function setBudgetMonthIncome(
   yearMonth: string,
   income: number,
 ): Promise<void> {
-  if (!Number.isFinite(income) || income <= 0) {
-    throw new Error('Budget month income must be a finite positive number');
+  if (!Number.isFinite(income) || income <= 0 || income > Number.MAX_SAFE_INTEGER) {
+    throw new Error('Budget month income must be a finite positive safe number');
   }
 
   const now = new Date().toISOString();
@@ -78,15 +78,21 @@ export async function setBudgetMonthCategoryGroup(
   budgetGroup: BudgetGroup,
 ): Promise<void> {
   const now = new Date().toISOString();
-  await db.runAsync(
+  const result = await db.runAsync(
     `INSERT INTO budget_month_category_groups
        (year_month, category_id, budget_group, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?)
+     SELECT ?, id, ?, ?, ?
+       FROM categories
+      WHERE id = ?
+        AND type = 'expense'
      ON CONFLICT(year_month, category_id) DO UPDATE SET
        budget_group = excluded.budget_group,
        updated_at = excluded.updated_at`,
-    [yearMonth, categoryId, budgetGroup, now, now],
+    [yearMonth, budgetGroup, now, now, categoryId],
   );
+  if (result.changes === 0) {
+    throw new Error('Budget month category group requires an expense category');
+  }
 }
 
 export async function copyBudgetMonthCategoryGroups(

@@ -3,7 +3,11 @@ export const migration016 = {
   up: `
     CREATE TABLE IF NOT EXISTS budget_month_settings (
       year_month     TEXT NOT NULL PRIMARY KEY,
-      expected_income REAL NOT NULL CHECK(expected_income > 0),
+      expected_income REAL NOT NULL CHECK(
+        typeof(expected_income) IN ('integer', 'real')
+        AND expected_income > 0
+        AND expected_income <= 9007199254740991
+      ),
       created_at     TEXT NOT NULL,
       updated_at     TEXT NOT NULL
     );
@@ -21,12 +25,18 @@ export const migration016 = {
       (year_month, expected_income, created_at, updated_at)
     SELECT
       strftime('%Y-%m', 'now', 'localtime'),
-      CAST(value AS REAL),
+      CAST(TRIM(value) AS REAL),
       datetime('now'),
       datetime('now')
     FROM app_settings
     WHERE key = 'expected_monthly_income'
-      AND CAST(value AS REAL) > 0;
+      AND TRIM(value) <> ''
+      AND TRIM(value) GLOB '[0-9]*'
+      AND TRIM(value) NOT GLOB '*[^0-9.]*'
+      AND TRIM(value) NOT GLOB '*.*.*'
+      AND TRIM(value) NOT GLOB '*.'
+      AND CAST(TRIM(value) AS REAL) > 0
+      AND CAST(TRIM(value) AS REAL) <= 9007199254740991;
 
     INSERT OR IGNORE INTO budget_month_category_groups
       (year_month, category_id, budget_group, created_at, updated_at)

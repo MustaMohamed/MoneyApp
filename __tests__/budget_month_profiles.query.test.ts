@@ -1,5 +1,10 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
+import {
+  openDatabaseAsync,
+  type SQLiteBindValue,
+  type SQLiteDatabase,
+  type SQLiteRunResult,
+} from 'expo-sqlite';
 
 import { BudgetGroup } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
@@ -12,16 +17,34 @@ import {
   snapshotBudgetMonthCategoryGroups,
 } from '@/modules/budget/database/budget_month_profiles';
 
-const sqlite = SQLite as unknown as { __reset: () => void };
+type SqlMockArgs = [source: string, params?: SQLiteBindValue[]];
+
+interface ExpoSQLiteTestAdapter {
+  __fakeDb: {
+    getAllAsync: jest.Mock<Promise<unknown[]>, SqlMockArgs>;
+    getFirstAsync: jest.Mock<Promise<unknown>, SqlMockArgs>;
+    runAsync: jest.Mock<Promise<SQLiteRunResult>, SqlMockArgs>;
+  };
+  __reset: () => void;
+}
+
+interface IncomeAuditRow {
+  created_at: string;
+  expected_income: number;
+  updated_at: string;
+}
+
+const sqlite = jest.requireMock<ExpoSQLiteTestAdapter>('expo-sqlite');
 const NOW = '2026-07-16T00:00:00.000Z';
 let realDb: ReturnType<typeof Database>;
+let db: SQLiteDatabase;
 
-beforeAll(() => {
+beforeAll(async () => {
   realDb = new Database(':memory:');
   realDb.pragma('foreign_keys = ON');
   realDb.exec(MIGRATIONS.map(({ up }) => up).join('\n'));
   realDb
-    .prepare(
+    .prepare<[string, string, string, string, string, string, string, string]>(
       `INSERT INTO categories
        (id, name, type, icon, color, is_default, sort_order, budget_group, created_at, updated_at)
        VALUES
@@ -32,28 +55,18 @@ beforeAll(() => {
     )
     .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
 
-  const fake = (
-    SQLite as unknown as {
-      __fakeDb: {
-        getAllAsync: jest.Mock;
-        getFirstAsync: jest.Mock;
-        runAsync: jest.Mock;
-      };
-    }
-  ).__fakeDb;
-  fake.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).all(...(params as never[]));
+  const fake = sqlite.__fakeDb;
+  fake.getAllAsync.mockImplementation(async (sql, params = []) => {
+    return realDb.prepare<SQLiteBindValue[], unknown>(sql).all(...params);
   });
-  fake.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).get(...(params as never[])) ?? null;
+  fake.getFirstAsync.mockImplementation(async (sql, params = []) => {
+    return realDb.prepare<SQLiteBindValue[], unknown>(sql).get(...params) ?? null;
   });
-  fake.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    const result = realDb.prepare(sql).run(...(params as never[]));
-    return { changes: result.changes, lastInsertRowId: result.lastInsertRowid };
+  fake.runAsync.mockImplementation(async (sql, params = []) => {
+    const result = realDb.prepare<SQLiteBindValue[]>(sql).run(...params);
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
+  db = await openDatabaseAsync(':memory:');
 });
 
 beforeEach(() => {
@@ -64,10 +77,6 @@ afterAll(() => {
   realDb.close();
   sqlite.__reset();
 });
-
-const db = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
-  typeof getBudgetMonthIncome
->[0];
 
 describe('budget month profile queries', () => {
   it('gets and sets income for the exact requested month', async () => {
@@ -90,29 +99,32 @@ describe('budget month profile queries', () => {
 
     await setBudgetMonthIncome(db, '2026-07', 30_000);
 
-    expect(
-      realDb
-        .prepare(
-          `SELECT expected_income, created_at, updated_at
-           FROM budget_month_settings WHERE year_month = '2026-07'`,
-        )
-        .get(),
-    ).toEqual({
+    const row = realDb
+      .prepare<[], IncomeAuditRow>(
+        `SELECT expected_income, created_at, updated_at
+         FROM budget_month_settings WHERE year_month = '2026-07'`,
+      )
+      .get();
+    expect(row).toMatchObject({
       expected_income: 30_000,
       created_at: 'created-before',
-      updated_at: expect.not.stringMatching('updated-before'),
     });
+    expect(row?.updated_at).not.toBe('updated-before');
   });
 
-  it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
-    'rejects non-finite or non-positive income %s',
-    async (income) => {
-      await expect(setBudgetMonthIncome(db, '2026-07', income)).rejects.toThrow(
-        'Budget month income must be a finite positive number',
-      );
-      expect(await getBudgetMonthIncome(db, '2026-07')).toBeNull();
-    },
-  );
+  it.each([
+    0,
+    -1,
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    9_007_199_254_740_992,
+  ])('rejects non-finite, non-positive, or unsafe income %s', async (income) => {
+    await expect(setBudgetMonthIncome(db, '2026-07', income)).rejects.toThrow(
+      'Budget month income must be a finite positive safe number',
+    );
+    expect(await getBudgetMonthIncome(db, '2026-07')).toBeNull();
+  });
 
   it('snapshots grouped expense categories without overwriting existing rows', async () => {
     realDb
@@ -142,8 +154,16 @@ describe('budget month profile queries', () => {
     expect(await getBudgetMonthCategoryGroups(db, '2026-06')).toEqual({});
   });
 
+  it('rejects an income category without writing a month group', async () => {
+    await expect(
+      setBudgetMonthCategoryGroup(db, '2026-07', 'cat_profile_income', BudgetGroup.Want),
+    ).rejects.toThrow('Budget month category group requires an expense category');
+
+    expect(await getBudgetMonthCategoryGroups(db, '2026-07')).toEqual({});
+  });
+
   it('copies only selected category groups into the target month and preserves the source', async () => {
-    const insert = realDb.prepare(
+    const insert = realDb.prepare<[string, string, string, string, string]>(
       `INSERT INTO budget_month_category_groups
        (year_month, category_id, budget_group, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?)`,

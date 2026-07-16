@@ -4,6 +4,30 @@ import { MIGRATIONS, type Migration } from '@/database/migrations';
 
 const NOW = '2026-07-16T00:00:00.000Z';
 
+interface TableInfoRow {
+  name: string;
+  notnull: number;
+  pk: number;
+}
+
+interface ForeignKeyRow {
+  from: string;
+  on_delete: string;
+  table: string;
+  to: string;
+}
+
+interface CurrentMonthRow {
+  value: string;
+}
+
+interface BudgetMonthSettingRow {
+  created_at: string;
+  expected_income: number;
+  updated_at: string;
+  year_month: string;
+}
+
 function getMigration016(): Migration | undefined {
   const migration = MIGRATIONS.find(({ version }) => version === 16);
   expect(migration).toBeDefined();
@@ -29,19 +53,15 @@ describe('migration016 - budget month profiles', () => {
 
     db.exec(migration.up);
 
-    const settingsColumns = db.prepare('PRAGMA table_info(budget_month_settings)').all() as {
-      name: string;
-      notnull: number;
-      pk: number;
-    }[];
-    const groupColumns = db.prepare('PRAGMA table_info(budget_month_category_groups)').all() as {
-      name: string;
-      notnull: number;
-      pk: number;
-    }[];
+    const settingsColumns = db
+      .prepare<[], TableInfoRow>('PRAGMA table_info(budget_month_settings)')
+      .all();
+    const groupColumns = db
+      .prepare<[], TableInfoRow>('PRAGMA table_info(budget_month_category_groups)')
+      .all();
     const groupForeignKeys = db
-      .prepare('PRAGMA foreign_key_list(budget_month_category_groups)')
-      .all() as { from: string; on_delete: string; table: string; to: string }[];
+      .prepare<[], ForeignKeyRow>('PRAGMA foreign_key_list(budget_month_category_groups)')
+      .all();
 
     expect(settingsColumns.map(({ name }) => name)).toEqual([
       'year_month',
@@ -78,21 +98,17 @@ describe('migration016 - budget month profiles', () => {
     const migration = getMigration016();
     if (!migration) return;
     const db = createDatabaseThrough015();
-    db.prepare("INSERT INTO app_settings (key, value) VALUES ('expected_monthly_income', ?)").run(
-      '25000.5',
-    );
+    db.prepare<[string]>(
+      "INSERT INTO app_settings (key, value) VALUES ('expected_monthly_income', ?)",
+    ).run(' 25000.5 ');
 
     db.exec(migration.up);
 
     const currentMonth = db
-      .prepare("SELECT strftime('%Y-%m', 'now', 'localtime') AS value")
-      .get() as { value: string };
-    const row = db.prepare('SELECT * FROM budget_month_settings').get() as {
-      created_at: string;
-      expected_income: number;
-      updated_at: string;
-      year_month: string;
-    };
+      .prepare<[], CurrentMonthRow>("SELECT strftime('%Y-%m', 'now', 'localtime') AS value")
+      .get();
+    const row = db.prepare<[], BudgetMonthSettingRow>('SELECT * FROM budget_month_settings').get();
+    if (!currentMonth || !row) throw new Error('Expected migration 016 to seed month income');
     expect(row).toMatchObject({ year_month: currentMonth.value, expected_income: 25000.5 });
     expect(row.created_at).toEqual(expect.any(String));
     expect(row.updated_at).toEqual(expect.any(String));
@@ -100,15 +116,15 @@ describe('migration016 - budget month profiles', () => {
     db.close();
   });
 
-  it.each(['0', '-500', 'not-a-number'])(
+  it.each(['0', '-500', '25000oops', 'not-a-number', '9007199254740992'])(
     'does not seed invalid legacy income %s',
     (legacyIncome) => {
       const migration = getMigration016();
       if (!migration) return;
       const db = createDatabaseThrough015();
-      db.prepare("INSERT INTO app_settings (key, value) VALUES ('expected_monthly_income', ?)").run(
-        legacyIncome,
-      );
+      db.prepare<[string]>(
+        "INSERT INTO app_settings (key, value) VALUES ('expected_monthly_income', ?)",
+      ).run(legacyIncome);
 
       db.exec(migration.up);
 
@@ -121,7 +137,7 @@ describe('migration016 - budget month profiles', () => {
     const migration = getMigration016();
     if (!migration) return;
     const db = createDatabaseThrough015();
-    const insertBudget = db.prepare(
+    const insertBudget = db.prepare<[string, string, string, number, string, string, string]>(
       `INSERT INTO budgets
        (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -148,7 +164,26 @@ describe('migration016 - budget month profiles', () => {
     db.close();
   });
 
-  it('rejects non-positive income and unsupported budget groups', () => {
+  it('rejects nonnumeric, non-positive, non-finite, or unsafe income values', () => {
+    const migration = getMigration016();
+    if (!migration) return;
+    const db = createDatabaseThrough015();
+    db.exec(migration.up);
+
+    const insertIncome = db.prepare<[string | number, string, string]>(
+      `INSERT INTO budget_month_settings
+       (year_month, expected_income, created_at, updated_at)
+       VALUES ('2026-07', ?, ?, ?)`,
+    );
+
+    for (const income of [0, 'not-a-number', Number.POSITIVE_INFINITY, 9_007_199_254_740_992]) {
+      expect(() => insertIncome.run(income, NOW, NOW)).toThrow();
+    }
+
+    db.close();
+  });
+
+  it('rejects unsupported budget groups', () => {
     const migration = getMigration016();
     if (!migration) return;
     const db = createDatabaseThrough015();
@@ -156,16 +191,7 @@ describe('migration016 - budget month profiles', () => {
 
     expect(() =>
       db
-        .prepare(
-          `INSERT INTO budget_month_settings
-           (year_month, expected_income, created_at, updated_at)
-           VALUES ('2026-07', 0, ?, ?)`,
-        )
-        .run(NOW, NOW),
-    ).toThrow();
-    expect(() =>
-      db
-        .prepare(
+        .prepare<[string, string]>(
           `INSERT INTO budget_month_category_groups
            (year_month, category_id, budget_group, created_at, updated_at)
            VALUES ('2026-07', 'cat_housing', 'other', ?, ?)`,
