@@ -172,7 +172,9 @@ export function buildBudgetRuleLens({
     if (category.type !== CategoryType.Expense) continue;
 
     const planned = resolveLimitForMonth(budgets, category.id, selectedMonth) ?? 0;
-    const group = budgetGroupByCategoryId[category.id] ?? category.budget_group ?? undefined;
+    const group =
+      budgetGroupByCategoryId[category.id] ??
+      (hasIncome ? undefined : (category.budget_group ?? undefined));
 
     if (group === undefined) {
       notGroupedPlanned += planned;

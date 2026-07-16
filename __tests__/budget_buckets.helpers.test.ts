@@ -149,8 +149,9 @@ describe('buildBudgetRuleLens', () => {
     expect(result.notGrouped).toEqual({ planned: 1_000, spent: 300 });
   });
 
-  it('uses the selected-month snapshot and falls back to the category default only when absent', () => {
+  it('uses the selected-month snapshot and allows default fallback without configured income', () => {
     const result = build({
+      income: null,
       categories: [
         makeCategory('snapshotted', BudgetGroup.Want, 'Snapshotted'),
         makeCategory('fallback', BudgetGroup.Want, 'Fallback'),
@@ -165,6 +166,23 @@ describe('buildBudgetRuleLens', () => {
 
     expect(bucket(result, BudgetGroup.Need)).toMatchObject({ planned: 1_000, actual: 200 });
     expect(bucket(result, BudgetGroup.Want)).toMatchObject({ planned: 500, actual: 100 });
+    expect(result.notGrouped).toBeUndefined();
+  });
+
+  it('reconciles an absent snapshot as not grouped when income is configured', () => {
+    const result = build({
+      categories: [makeCategory('fallback', BudgetGroup.Want, 'Fallback')],
+      budgets: [makeBudget('fallback', 500)],
+      spendByMonth: { fallback: { [MONTH]: 100 } },
+    });
+
+    expect(bucket(result, BudgetGroup.Want)).toMatchObject({
+      planned: 0,
+      actual: 0,
+      contributors: [],
+    });
+    expect(result.summary).toMatchObject({ groupedPlanned: 0, notGroupedPlanned: 500 });
+    expect(result.notGrouped).toEqual({ planned: 500, spent: 100 });
   });
 
   it('sums every named monthly budget once while counting category spend once', () => {
