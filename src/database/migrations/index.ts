@@ -13,6 +13,7 @@ import { migration012 } from './012_add_budget_group';
 import { migration013 } from './013_named_monthly_budgets';
 import { migration014 } from './014_create_spending_plans';
 import { migration015 } from './015_add_budget_id_to_transactions';
+import { migration016 } from './016_create_budget_month_profiles';
 
 export interface Migration {
   version: number;
@@ -35,4 +36,5 @@ export const MIGRATIONS: Migration[] = [
   migration013,
   migration014,
   migration015,
+  migration016,
 ];
