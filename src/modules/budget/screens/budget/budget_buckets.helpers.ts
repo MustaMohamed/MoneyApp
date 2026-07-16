@@ -1,97 +1,323 @@
-import { BudgetGroup } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import type { Category } from '@/database/entities/category.entity';
-import type { Budget } from '@/modules/budget/entities/budget.entity';
+import type { Budget, BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
 import { resolveLimitForMonth } from '@/modules/budget/screens/budget/budget.helpers';
 
+export type BudgetRuleLifecycle = 'completed' | 'current' | 'planned';
+
+export type RuleBucketStatus =
+  | 'income-needed'
+  | 'no-plan'
+  | 'within-cap'
+  | 'over-cap'
+  | 'target-met'
+  | 'below-target';
+
+export interface BudgetRuleContributorVM {
+  categoryId: string;
+  name: string;
+  icon: string;
+  color: string;
+  planned: number;
+  spent: number | undefined;
+  planShareRatio: number | undefined;
+  isUnbudgeted: boolean;
+}
+
+export interface RuleBucketVM {
+  group: BudgetGroup;
+  ruleRatio: number;
+  target: number | undefined;
+  planned: number;
+  actual: number | undefined;
+  variance: number | undefined;
+  /** Truthful planned / target ratio. */
+  planRatio: number | undefined;
+  /** Visual planned / target ratio, clamped to 0–1. */
+  progressRatio: number | undefined;
+  status: RuleBucketStatus;
+  contributors: BudgetRuleContributorVM[];
+}
+
+export interface BudgetRuleSummaryVM {
+  income: number | undefined;
+  hasIncome: boolean;
+  groupedPlanned: number;
+  notGroupedPlanned: number;
+  totalPlanned: number;
+  leftToPlan: number | undefined;
+  /** Truthful total planned / income ratio. */
+  plannedRatio: number | undefined;
+  /** Visual total planned / income ratio, clamped to 0–1. */
+  progressRatio: number | undefined;
+  lifecycle: BudgetRuleLifecycle;
+  daysLeft: number | undefined;
+}
+
+export interface BudgetRuleLensVM {
+  summary: BudgetRuleSummaryVM;
+  buckets: RuleBucketVM[];
+  notGrouped: { planned: number; spent: number } | undefined;
+}
+
+/** Legacy compatibility type; remove with the old 50/30/20 components in Tasks 5–6. */
 export type BucketStatus = 'on-track' | 'over' | 'ahead' | 'behind';
 
+/** Legacy compatibility type; remove with the old 50/30/20 components in Tasks 5–6. */
 export interface BucketVM {
   group: BudgetGroup;
   target: number;
   allocated: number;
   spent: number;
-  /** Clamped 0–1 for bar width. True pct = allocated/target (shown in text). */
   barPct: number;
-  /** Clamped 0–1 for spend fill width. True pct = spent/allocated (shown in text). */
   spendFillPct: number;
   status: BucketStatus;
 }
 
+/** Legacy compatibility type; remove with the old 50/30/20 components in Tasks 5–6. */
 export interface BucketsVM {
   income: number;
   hasIncome: boolean;
   buckets: BucketVM[];
-  /** Sum of limits for budgeted categories with null budget_group. */
   ungrouped: number;
-  /** income − (Σ allocated across all groups + ungrouped). Negative = over-allocated. */
   unallocated: number;
 }
 
-const GROUP_PCTS: Record<BudgetGroup, number> = {
+export interface BuildBudgetRuleLensInput {
+  income: number | null;
+  categories: Category[];
+  budgets: Budget[];
+  budgetGroupByCategoryId: BudgetMonthGroupMap;
+  spendByMonth: Record<string, Record<string, number>>;
+  selectedMonth: string;
+  lifecycleDate: string;
+}
+
+interface GroupTotals {
+  planned: number;
+  spent: number;
+  contributors: BudgetRuleContributorVM[];
+}
+
+const GROUP_RATIOS: Record<BudgetGroup, number> = {
   [BudgetGroup.Need]: 0.5,
   [BudgetGroup.Want]: 0.3,
   [BudgetGroup.Savings]: 0.2,
 };
 
-const GROUP_ORDER = [BudgetGroup.Need, BudgetGroup.Want, BudgetGroup.Savings];
+const GROUP_ORDER: BudgetGroup[] = [BudgetGroup.Need, BudgetGroup.Want, BudgetGroup.Savings];
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
+function clampRatio(ratio: number): number {
+  return Math.min(Math.max(ratio, 0), 1);
 }
 
-function computeGroupStatus(group: BudgetGroup, allocated: number, target: number): BucketStatus {
+function classifyLifecycle(
+  selectedMonth: string,
+  lifecycleDate: string,
+): { lifecycle: BudgetRuleLifecycle; daysLeft: number | undefined } {
+  const currentMonth = lifecycleDate.slice(0, 7);
+  if (selectedMonth < currentMonth) return { lifecycle: 'completed', daysLeft: undefined };
+  if (selectedMonth > currentMonth) return { lifecycle: 'planned', daysLeft: undefined };
+
+  const [year, month] = selectedMonth.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  const currentDay = Number(lifecycleDate.slice(8, 10));
+  return { lifecycle: 'current', daysLeft: Math.max(lastDay - currentDay, 0) };
+}
+
+function bucketStatus(
+  group: BudgetGroup,
+  planned: number,
+  target: number | undefined,
+): RuleBucketStatus {
+  if (target === undefined) return 'income-needed';
+  if (planned === 0) return 'no-plan';
   if (group === BudgetGroup.Savings) {
-    return allocated >= target ? 'ahead' : 'behind';
+    return planned >= target ? 'target-met' : 'below-target';
   }
-  return allocated > target ? 'over' : 'on-track';
+  return planned > target ? 'over-cap' : 'within-cap';
 }
 
+function compareContributors(
+  left: BudgetRuleContributorVM,
+  right: BudgetRuleContributorVM,
+): number {
+  if (left.planned !== right.planned) return right.planned - left.planned;
+  if ((left.spent ?? 0) !== (right.spent ?? 0)) return (right.spent ?? 0) - (left.spent ?? 0);
+  if (left.name < right.name) return -1;
+  if (left.name > right.name) return 1;
+  return 0;
+}
+
+export function buildBudgetRuleLens({
+  income,
+  categories,
+  budgets,
+  budgetGroupByCategoryId,
+  spendByMonth,
+  selectedMonth,
+  lifecycleDate,
+}: BuildBudgetRuleLensInput): BudgetRuleLensVM {
+  const hasIncome = income !== null && Number.isFinite(income) && income > 0;
+  const availableIncome = hasIncome ? income : undefined;
+  const totals: Record<BudgetGroup, GroupTotals> = {
+    [BudgetGroup.Need]: { planned: 0, spent: 0, contributors: [] },
+    [BudgetGroup.Want]: { planned: 0, spent: 0, contributors: [] },
+    [BudgetGroup.Savings]: { planned: 0, spent: 0, contributors: [] },
+  };
+  let notGroupedPlanned = 0;
+  let notGroupedSpent = 0;
+
+  for (const category of categories) {
+    if (category.type !== CategoryType.Expense) continue;
+
+    const planned = resolveLimitForMonth(budgets, category.id, selectedMonth) ?? 0;
+    const group = budgetGroupByCategoryId[category.id] ?? category.budget_group ?? undefined;
+
+    if (group === undefined) {
+      notGroupedPlanned += planned;
+      notGroupedSpent += spendByMonth[category.id]?.[selectedMonth] ?? 0;
+      continue;
+    }
+
+    const groupTotals = totals[group];
+    groupTotals.planned += planned;
+
+    if (group === BudgetGroup.Savings) {
+      if (planned > 0) {
+        groupTotals.contributors.push({
+          categoryId: category.id,
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
+          planned,
+          spent: undefined,
+          planShareRatio: undefined,
+          isUnbudgeted: false,
+        });
+      }
+      continue;
+    }
+
+    const spent = spendByMonth[category.id]?.[selectedMonth] ?? 0;
+    groupTotals.spent += spent;
+    if (planned > 0 || spent > 0) {
+      groupTotals.contributors.push({
+        categoryId: category.id,
+        name: category.name,
+        icon: category.icon,
+        color: category.color,
+        planned,
+        spent,
+        planShareRatio: undefined,
+        isUnbudgeted: planned === 0 && spent > 0,
+      });
+    }
+  }
+
+  const buckets = GROUP_ORDER.map((group): RuleBucketVM => {
+    const groupTotals = totals[group];
+    const target =
+      availableIncome === undefined ? undefined : availableIncome * GROUP_RATIOS[group];
+    const planRatio = target === undefined ? undefined : groupTotals.planned / target;
+    const contributors = groupTotals.contributors
+      .map((contributor) => ({
+        ...contributor,
+        planShareRatio:
+          contributor.planned > 0 && groupTotals.planned > 0
+            ? contributor.planned / groupTotals.planned
+            : undefined,
+      }))
+      .sort(compareContributors);
+
+    return {
+      group,
+      ruleRatio: GROUP_RATIOS[group],
+      target,
+      planned: groupTotals.planned,
+      actual: group === BudgetGroup.Savings ? undefined : groupTotals.spent,
+      variance: target === undefined ? undefined : target - groupTotals.planned,
+      planRatio,
+      progressRatio: planRatio === undefined ? undefined : clampRatio(planRatio),
+      status: bucketStatus(group, groupTotals.planned, target),
+      contributors,
+    };
+  });
+
+  const groupedPlanned = buckets.reduce((total, bucket) => total + bucket.planned, 0);
+  const totalPlanned = groupedPlanned + notGroupedPlanned;
+  const plannedRatio = availableIncome === undefined ? undefined : totalPlanned / availableIncome;
+  const lifecycle = classifyLifecycle(selectedMonth, lifecycleDate);
+
+  return {
+    summary: {
+      income: availableIncome,
+      hasIncome,
+      groupedPlanned,
+      notGroupedPlanned,
+      totalPlanned,
+      leftToPlan: availableIncome === undefined ? undefined : availableIncome - totalPlanned,
+      plannedRatio,
+      progressRatio: plannedRatio === undefined ? undefined : clampRatio(plannedRatio),
+      ...lifecycle,
+    },
+    buckets,
+    notGrouped:
+      notGroupedPlanned > 0 || notGroupedSpent > 0
+        ? { planned: notGroupedPlanned, spent: notGroupedSpent }
+        : undefined,
+  };
+}
+
+/**
+ * Task 5 replaces the remaining consumer with `buildBudgetRuleLens`. This
+ * legacy adapter keeps the staged plan type-safe without maintaining a second
+ * calculation path and is removed with the old lens.
+ */
 export function computeBuckets(
   income: number,
   categories: Category[],
-  rows: Budget[],
+  budgets: Budget[],
   spendByMonth: Record<string, Record<string, number>>,
-  month: string,
+  selectedMonth: string,
 ): BucketsVM {
   if (income <= 0) {
     return { income, hasIncome: false, buckets: [], ungrouped: 0, unallocated: 0 };
   }
 
-  const totals: Record<BudgetGroup, { allocated: number; spent: number }> = {
-    [BudgetGroup.Need]: { allocated: 0, spent: 0 },
-    [BudgetGroup.Want]: { allocated: 0, spent: 0 },
-    [BudgetGroup.Savings]: { allocated: 0, spent: 0 },
-  };
-  let ungrouped = 0;
-
-  for (const cat of categories) {
-    const limit = resolveLimitForMonth(rows, cat.id, month);
-    if (limit === null) continue;
-    const spent = spendByMonth[cat.id]?.[month] ?? 0;
-    if (cat.budget_group === null) {
-      ungrouped += limit;
-    } else {
-      totals[cat.budget_group].allocated += limit;
-      totals[cat.budget_group].spent += spent;
-    }
-  }
-
-  const buckets: BucketVM[] = GROUP_ORDER.map((group) => {
-    const target = GROUP_PCTS[group] * income;
-    const { allocated, spent } = totals[group];
-    return {
-      group,
-      target,
-      allocated,
-      spent,
-      barPct: clamp(allocated / target, 0, 1),
-      spendFillPct: clamp(allocated > 0 ? spent / allocated : 0, 0, 1),
-      status: computeGroupStatus(group, allocated, target),
-    };
+  const lens = buildBudgetRuleLens({
+    income,
+    categories,
+    budgets,
+    budgetGroupByCategoryId: {},
+    spendByMonth,
+    selectedMonth,
+    lifecycleDate: `${selectedMonth}-01`,
   });
 
-  const allocatedTotal = buckets.reduce((s, b) => s + b.allocated, 0) + ungrouped;
-  const unallocated = income - allocatedTotal;
-
-  return { income, hasIncome: true, buckets, ungrouped, unallocated };
+  return {
+    income,
+    hasIncome: true,
+    buckets: lens.buckets.map((bucket) => {
+      const spent = bucket.actual ?? 0;
+      return {
+        group: bucket.group,
+        target: bucket.target ?? 0,
+        allocated: bucket.planned,
+        spent,
+        barPct: bucket.progressRatio ?? 0,
+        spendFillPct: clampRatio(bucket.planned > 0 ? spent / bucket.planned : 0),
+        status:
+          bucket.group === BudgetGroup.Savings
+            ? bucket.status === 'target-met'
+              ? 'ahead'
+              : 'behind'
+            : bucket.status === 'over-cap'
+              ? 'over'
+              : 'on-track',
+      };
+    }),
+    ungrouped: lens.notGrouped?.planned ?? 0,
+    unallocated: lens.summary.leftToPlan ?? 0,
+  };
 }

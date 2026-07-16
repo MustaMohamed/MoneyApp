@@ -1,19 +1,21 @@
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import type { Category } from '@/database/entities/category.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import { computeBuckets } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 
 const NOW = '2026-05-01T00:00:00.000Z';
 const MONTH = '2026-05';
+const TODAY = '2026-05-15';
 
 function makeCategory(
   id: string,
   group: BudgetGroup | null,
+  name = id,
   type: CategoryType = CategoryType.Expense,
 ): Category {
   return {
     id,
-    name: id,
+    name,
     type,
     icon: 'tag',
     color: '#fff',
@@ -28,8 +30,8 @@ function makeCategory(
 function makeBudget(
   categoryId: string,
   limit: number,
-  effectiveFrom = MONTH,
   name = 'Budget',
+  effectiveFrom = MONTH,
 ): Budget {
   return {
     id: `${categoryId}-${name}-${effectiveFrom}`,
@@ -42,146 +44,348 @@ function makeBudget(
   };
 }
 
-describe('computeBuckets — targets', () => {
-  it('computes targets at 50/30/20 of income', () => {
-    const result = computeBuckets(20000, [], [], {}, MONTH);
-    expect(result.hasIncome).toBe(true);
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
-    const want = result.buckets.find((b) => b.group === BudgetGroup.Want)!;
-    const savings = result.buckets.find((b) => b.group === BudgetGroup.Savings)!;
-    expect(need.target).toBe(10000);
-    expect(want.target).toBe(6000);
-    expect(savings.target).toBe(4000);
+function build(
+  overrides: Partial<Parameters<typeof buildBudgetRuleLens>[0]> = {},
+): ReturnType<typeof buildBudgetRuleLens> {
+  return buildBudgetRuleLens({
+    income: 20_000,
+    categories: [],
+    budgets: [],
+    budgetGroupByCategoryId: {},
+    spendByMonth: {},
+    selectedMonth: MONTH,
+    lifecycleDate: TODAY,
+    ...overrides,
   });
-});
+}
 
-describe('computeBuckets — income guard', () => {
-  it('returns hasIncome false when income <= 0', () => {
-    const r0 = computeBuckets(0, [], [], {}, MONTH);
-    expect(r0.hasIncome).toBe(false);
-    expect(r0.buckets).toHaveLength(0);
+function bucket(result: ReturnType<typeof buildBudgetRuleLens>, group: BudgetGroup) {
+  const match = result.buckets.find((item) => item.group === group);
+  if (!match) throw new Error(`Missing ${group} bucket`);
+  return match;
+}
 
-    const rNeg = computeBuckets(-100, [], [], {}, MONTH);
-    expect(rNeg.hasIncome).toBe(false);
-  });
-});
+describe('buildBudgetRuleLens', () => {
+  it('builds the 50/30/20 summary, bucket totals, actuals, and reconciliation', () => {
+    const categories = [
+      makeCategory('housing', BudgetGroup.Need, 'Housing'),
+      makeCategory('groceries', BudgetGroup.Need, 'Groceries'),
+      makeCategory('dining', BudgetGroup.Want, 'Dining'),
+      makeCategory('investing', BudgetGroup.Savings, 'Investing'),
+      makeCategory('other', null, 'Other'),
+      makeCategory('salary', BudgetGroup.Need, 'Salary', CategoryType.Income),
+    ];
+    const budgets = [
+      makeBudget('housing', 5_000),
+      makeBudget('groceries', 3_000),
+      makeBudget('dining', 2_000),
+      makeBudget('investing', 1_000),
+      makeBudget('other', 1_000),
+      makeBudget('salary', 99_000),
+    ];
 
-describe('computeBuckets — allocated', () => {
-  const cats = [
-    makeCategory('cat_housing', BudgetGroup.Need),
-    makeCategory('cat_groceries', BudgetGroup.Need),
-    makeCategory('cat_dining', BudgetGroup.Want),
-    makeCategory('cat_untagged', null),
-  ];
-  const budgets = [
-    makeBudget('cat_housing', 5000),
-    makeBudget('cat_groceries', 3000),
-    makeBudget('cat_dining', 2000),
-    makeBudget('cat_untagged', 1000),
-  ];
-
-  it('sums budgeted tagged categories into their group', () => {
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
-    const want = result.buckets.find((b) => b.group === BudgetGroup.Want)!;
-    expect(need.allocated).toBe(8000);
-    expect(want.allocated).toBe(2000);
-  });
-
-  it('sums multiple named budgets in one category without duplicating spend', () => {
-    const result = computeBuckets(
-      20000,
-      cats,
-      [
-        makeBudget('cat_housing', 5000, MONTH, 'Rent'),
-        makeBudget('cat_housing', 800, MONTH, 'Maintenance'),
-        makeBudget('cat_groceries', 3000, MONTH, 'Monthly Groceries'),
-      ],
-      {
-        cat_housing: { [MONTH]: 1600 },
-        cat_groceries: { [MONTH]: 900 },
+    const result = build({
+      categories,
+      budgets,
+      budgetGroupByCategoryId: {
+        housing: BudgetGroup.Need,
+        groceries: BudgetGroup.Need,
+        dining: BudgetGroup.Want,
+        investing: BudgetGroup.Savings,
       },
-      MONTH,
-    );
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
+      spendByMonth: {
+        housing: { [MONTH]: 1_600 },
+        groceries: { [MONTH]: 900 },
+        dining: { [MONTH]: 700 },
+        investing: { [MONTH]: 8_000 },
+        other: { [MONTH]: 300 },
+        salary: { [MONTH]: 50_000 },
+      },
+    });
 
-    expect(need.allocated).toBe(8800);
-    expect(need.spent).toBe(2500);
+    expect(result.summary).toEqual({
+      income: 20_000,
+      hasIncome: true,
+      groupedPlanned: 11_000,
+      notGroupedPlanned: 1_000,
+      totalPlanned: 12_000,
+      leftToPlan: 8_000,
+      plannedRatio: 0.6,
+      progressRatio: 0.6,
+      lifecycle: 'current',
+      daysLeft: 16,
+    });
+    expect(result.buckets.map((item) => item.group)).toEqual([
+      BudgetGroup.Need,
+      BudgetGroup.Want,
+      BudgetGroup.Savings,
+    ]);
+    expect(bucket(result, BudgetGroup.Need)).toMatchObject({
+      ruleRatio: 0.5,
+      target: 10_000,
+      planned: 8_000,
+      actual: 2_500,
+      variance: 2_000,
+      planRatio: 0.8,
+      progressRatio: 0.8,
+      status: 'within-cap',
+    });
+    expect(bucket(result, BudgetGroup.Want)).toMatchObject({
+      ruleRatio: 0.3,
+      target: 6_000,
+      planned: 2_000,
+      actual: 700,
+      variance: 4_000,
+      status: 'within-cap',
+    });
+    expect(bucket(result, BudgetGroup.Savings)).toMatchObject({
+      ruleRatio: 0.2,
+      target: 4_000,
+      planned: 1_000,
+      variance: 3_000,
+      status: 'below-target',
+    });
+    expect(bucket(result, BudgetGroup.Savings).actual).toBeUndefined();
+    expect(result.notGrouped).toEqual({ planned: 1_000, spent: 300 });
   });
 
-  it('accumulates untagged budgets into ungrouped', () => {
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    expect(result.ungrouped).toBe(1000);
+  it('uses the selected-month snapshot and falls back to the category default only when absent', () => {
+    const result = build({
+      categories: [
+        makeCategory('snapshotted', BudgetGroup.Want, 'Snapshotted'),
+        makeCategory('fallback', BudgetGroup.Want, 'Fallback'),
+      ],
+      budgets: [makeBudget('snapshotted', 1_000), makeBudget('fallback', 500)],
+      budgetGroupByCategoryId: { snapshotted: BudgetGroup.Need },
+      spendByMonth: {
+        snapshotted: { [MONTH]: 200 },
+        fallback: { [MONTH]: 100 },
+      },
+    });
+
+    expect(bucket(result, BudgetGroup.Need)).toMatchObject({ planned: 1_000, actual: 200 });
+    expect(bucket(result, BudgetGroup.Want)).toMatchObject({ planned: 500, actual: 100 });
   });
 
-  it('unallocated = income − (allocated + ungrouped)', () => {
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    // need=8000 + want=2000 + savings=0 + ungrouped=1000 = 11000
-    // unallocated = 20000 − 11000 = 9000
-    expect(result.unallocated).toBe(9000);
+  it('sums every named monthly budget once while counting category spend once', () => {
+    const result = build({
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [
+        makeBudget('housing', 5_000, 'Rent'),
+        makeBudget('housing', 800, 'Maintenance'),
+        makeBudget('housing', 10_000, 'Old rent', '2026-04'),
+      ],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+      spendByMonth: { housing: { [MONTH]: 1_600 } },
+    });
+
+    expect(bucket(result, BudgetGroup.Need)).toMatchObject({ planned: 5_800, actual: 1_600 });
+    expect(bucket(result, BudgetGroup.Need).contributors).toEqual([
+      expect.objectContaining({ categoryId: 'housing', planned: 5_800, spent: 1_600 }),
+    ]);
   });
 
-  it('does not carry allocations from a previous month', () => {
-    const result = computeBuckets(
-      20000,
-      cats,
-      [makeBudget('cat_housing', 5000, '2026-04')],
-      {},
-      MONTH,
-    );
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
+  it('includes unbudgeted grouped expense activity in actuals and contributors', () => {
+    const result = build({
+      categories: [makeCategory('health', BudgetGroup.Need, 'Health')],
+      budgetGroupByCategoryId: { health: BudgetGroup.Need },
+      spendByMonth: { health: { [MONTH]: 250 } },
+    });
+    const needs = bucket(result, BudgetGroup.Need);
 
-    expect(need.allocated).toBe(0);
-  });
-});
-
-describe('computeBuckets — status', () => {
-  it('need/want: on-track when allocated <= target', () => {
-    const cats = [makeCategory('cat_h', BudgetGroup.Need)];
-    const budgets = [makeBudget('cat_h', 5000)]; // target = 10000
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
-    expect(need.status).toBe('on-track');
+    expect(needs).toMatchObject({ planned: 0, actual: 250, status: 'no-plan' });
+    expect(needs.contributors.find((item) => item.categoryId === 'health')).toMatchObject({
+      planned: 0,
+      spent: 250,
+      planShareRatio: undefined,
+      isUnbudgeted: true,
+    });
   });
 
-  it('need/want: over when allocated > target', () => {
-    const cats = [makeCategory('cat_h', BudgetGroup.Need)];
-    const budgets = [makeBudget('cat_h', 15000)]; // target = 10000
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
-    expect(need.status).toBe('over');
-  });
+  it('keeps all rows but leaves targets, ratios, and variances unavailable without income', () => {
+    const result = build({
+      income: 0,
+      categories: [
+        makeCategory('housing', BudgetGroup.Need, 'Housing'),
+        makeCategory('other', null, 'Other'),
+      ],
+      budgets: [makeBudget('housing', 2_000), makeBudget('other', 500)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+      spendByMonth: { housing: { [MONTH]: 700 }, other: { [MONTH]: 100 } },
+    });
 
-  it('savings: ahead when allocated >= target', () => {
-    const cats = [makeCategory('cat_s', BudgetGroup.Savings)];
-    const budgets = [makeBudget('cat_s', 4000)]; // target = 4000 (exactly)
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    const sav = result.buckets.find((b) => b.group === BudgetGroup.Savings)!;
-    expect(sav.status).toBe('ahead');
-  });
-
-  it('savings: behind when allocated < target', () => {
-    const cats = [makeCategory('cat_s', BudgetGroup.Savings)];
-    const budgets = [makeBudget('cat_s', 1000)]; // target = 4000
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    const sav = result.buckets.find((b) => b.group === BudgetGroup.Savings)!;
-    expect(sav.status).toBe('behind');
-  });
-});
-
-describe('computeBuckets — barPct clamped', () => {
-  it('barPct is clamped at 1 when over-allocated', () => {
-    const cats = [makeCategory('cat_h', BudgetGroup.Need)];
-    const budgets = [makeBudget('cat_h', 25000)]; // target = 10000 → ratio = 2.5
-    const result = computeBuckets(20000, cats, budgets, {}, MONTH);
-    const need = result.buckets.find((b) => b.group === BudgetGroup.Need)!;
-    expect(need.barPct).toBe(1);
-  });
-
-  it('barPct is 0 when nothing allocated', () => {
-    const result = computeBuckets(20000, [], [], {}, MONTH);
-    for (const b of result.buckets) {
-      expect(b.barPct).toBe(0);
+    expect(result.summary).toMatchObject({
+      income: undefined,
+      hasIncome: false,
+      groupedPlanned: 2_000,
+      notGroupedPlanned: 500,
+      totalPlanned: 2_500,
+      leftToPlan: undefined,
+      plannedRatio: undefined,
+      progressRatio: undefined,
+    });
+    expect(result.buckets).toHaveLength(3);
+    for (const row of result.buckets) {
+      expect(row).toMatchObject({
+        target: undefined,
+        variance: undefined,
+        planRatio: undefined,
+        progressRatio: undefined,
+        status: 'income-needed',
+      });
     }
+    expect(bucket(result, BudgetGroup.Need).actual).toBe(700);
+    expect(bucket(result, BudgetGroup.Savings).actual).toBeUndefined();
+    expect(result.notGrouped).toEqual({ planned: 500, spent: 100 });
+  });
+
+  it('uses no-plan statuses with income and no budgets while retaining recorded activity', () => {
+    const result = build({
+      categories: [
+        makeCategory('health', BudgetGroup.Need, 'Health'),
+        makeCategory('fun', BudgetGroup.Want, 'Fun'),
+      ],
+      budgetGroupByCategoryId: { health: BudgetGroup.Need, fun: BudgetGroup.Want },
+      spendByMonth: { health: { [MONTH]: 250 }, fun: { [MONTH]: 100 } },
+    });
+
+    expect(result.summary).toMatchObject({
+      totalPlanned: 0,
+      leftToPlan: 20_000,
+      plannedRatio: 0,
+      progressRatio: 0,
+    });
+    expect(result.buckets.map((item) => item.status)).toEqual(['no-plan', 'no-plan', 'no-plan']);
+    expect(bucket(result, BudgetGroup.Need).actual).toBe(250);
+    expect(bucket(result, BudgetGroup.Want).actual).toBe(100);
+    expect(result.notGrouped).toBeUndefined();
+  });
+
+  it('retains true ratios while clamping visual progress for over-plan states', () => {
+    const result = build({
+      categories: [
+        makeCategory('housing', BudgetGroup.Need, 'Housing'),
+        makeCategory('investing', BudgetGroup.Savings, 'Investing'),
+        makeCategory('other', null, 'Other'),
+      ],
+      budgets: [
+        makeBudget('housing', 15_000),
+        makeBudget('investing', 4_000),
+        makeBudget('other', 7_000),
+      ],
+      budgetGroupByCategoryId: {
+        housing: BudgetGroup.Need,
+        investing: BudgetGroup.Savings,
+      },
+    });
+
+    expect(result.summary).toMatchObject({
+      totalPlanned: 26_000,
+      leftToPlan: -6_000,
+      plannedRatio: 1.3,
+      progressRatio: 1,
+    });
+    expect(bucket(result, BudgetGroup.Need)).toMatchObject({
+      planRatio: 1.5,
+      progressRatio: 1,
+      variance: -5_000,
+      status: 'over-cap',
+    });
+    expect(bucket(result, BudgetGroup.Savings)).toMatchObject({
+      planRatio: 1,
+      progressRatio: 1,
+      variance: 0,
+      status: 'target-met',
+    });
+  });
+
+  it('sorts contributors by planned, then spent, then name', () => {
+    const categories = [
+      makeCategory('zeta', BudgetGroup.Need, 'Zeta'),
+      makeCategory('alpha', BudgetGroup.Need, 'Alpha'),
+      makeCategory('beta', BudgetGroup.Need, 'Beta'),
+      makeCategory('gamma', BudgetGroup.Need, 'Gamma'),
+    ];
+    const result = build({
+      categories,
+      budgets: [
+        makeBudget('zeta', 1_000),
+        makeBudget('alpha', 1_000),
+        makeBudget('beta', 1_000),
+        makeBudget('gamma', 2_000),
+      ],
+      budgetGroupByCategoryId: Object.fromEntries(
+        categories.map((category) => [category.id, BudgetGroup.Need]),
+      ),
+      spendByMonth: {
+        zeta: { [MONTH]: 200 },
+        alpha: { [MONTH]: 300 },
+        beta: { [MONTH]: 300 },
+      },
+    });
+
+    expect(bucket(result, BudgetGroup.Need).contributors.map((item) => item.name)).toEqual([
+      'Gamma',
+      'Alpha',
+      'Beta',
+      'Zeta',
+    ]);
+  });
+
+  it('never derives Savings actuals or spend contributors', () => {
+    const result = build({
+      categories: [
+        makeCategory('investing', BudgetGroup.Savings, 'Investing'),
+        makeCategory('cash', BudgetGroup.Savings, 'Cash'),
+      ],
+      budgets: [makeBudget('investing', 2_000)],
+      budgetGroupByCategoryId: {
+        investing: BudgetGroup.Savings,
+        cash: BudgetGroup.Savings,
+      },
+      spendByMonth: {
+        investing: { [MONTH]: 900 },
+        cash: { [MONTH]: 500 },
+      },
+    });
+    const savings = bucket(result, BudgetGroup.Savings);
+
+    expect(savings.actual).toBeUndefined();
+    expect(savings.contributors).toEqual([
+      expect.objectContaining({
+        categoryId: 'investing',
+        planned: 2_000,
+        spent: undefined,
+        isUnbudgeted: false,
+      }),
+    ]);
+  });
+
+  it.each([
+    ['2026-04', 'completed', undefined],
+    ['2026-05', 'current', 16],
+    ['2026-06', 'planned', undefined],
+  ] as const)('classifies %s lifecycle as %s', (selectedMonth, lifecycle, daysLeft) => {
+    const result = build({ selectedMonth });
+
+    expect(result.summary.lifecycle).toBe(lifecycle);
+    expect(result.summary.daysLeft).toBe(daysLeft);
+  });
+
+  it('does not mutate any input collection', () => {
+    const input: Parameters<typeof buildBudgetRuleLens>[0] = {
+      income: 20_000,
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [makeBudget('housing', 5_000)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+      spendByMonth: { housing: { [MONTH]: 1_000 } },
+      selectedMonth: MONTH,
+      lifecycleDate: TODAY,
+    };
+    const before = JSON.stringify(input);
+
+    buildBudgetRuleLens(input);
+
+    expect(JSON.stringify(input)).toBe(before);
   });
 });
