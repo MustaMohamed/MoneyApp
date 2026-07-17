@@ -4,6 +4,7 @@ import type { BudgetGroup } from '@/constants/enums';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface SetBudgetSheetStateShape {
+  sessionKey: string | undefined;
   selectedCategoryId: string | undefined;
   pickerExpanded: boolean;
   groupValue: BudgetGroup | null;
@@ -12,8 +13,12 @@ interface SetBudgetSheetStateShape {
 }
 
 type SetBudgetSheetState = SetBudgetSheetStateShape & {
-  initAddMode: (firstCategoryId: string | undefined, group?: BudgetGroup | null) => void;
-  initEditMode: (group: BudgetGroup | null) => void;
+  initAddMode: (
+    firstCategoryId: string | undefined,
+    group?: BudgetGroup | null,
+    sessionKey?: string,
+  ) => boolean;
+  initEditMode: (group: BudgetGroup | null, sessionKey?: string) => boolean;
   setSelectedCategoryId: (id: string) => void;
   setGroupValue: (group: BudgetGroup | null) => void;
   setSaving: (saving: boolean) => void;
@@ -25,6 +30,7 @@ type SetBudgetSheetState = SetBudgetSheetStateShape & {
 };
 
 const INITIAL_STATE: SetBudgetSheetStateShape = {
+  sessionKey: undefined,
   selectedCategoryId: undefined,
   pickerExpanded: false,
   groupValue: null,
@@ -33,15 +39,27 @@ const INITIAL_STATE: SetBudgetSheetStateShape = {
 };
 
 export const useSetBudgetSheetState = createMoneyAppSelectors(
-  create<SetBudgetSheetState>((set) => ({
+  create<SetBudgetSheetState>((set, get) => ({
     ...INITIAL_STATE,
-    initAddMode: (firstCategoryId, group) =>
+    initAddMode: (firstCategoryId, group, sessionKey) => {
+      if (get().saving || (sessionKey !== undefined && get().sessionKey === sessionKey)) {
+        return false;
+      }
       set({
         ...INITIAL_STATE,
+        sessionKey,
         selectedCategoryId: firstCategoryId,
         groupValue: group ?? null,
-      }),
-    initEditMode: (groupValue) => set({ ...INITIAL_STATE, groupValue }),
+      });
+      return true;
+    },
+    initEditMode: (groupValue, sessionKey) => {
+      if (get().saving || (sessionKey !== undefined && get().sessionKey === sessionKey)) {
+        return false;
+      }
+      set({ ...INITIAL_STATE, sessionKey, groupValue });
+      return true;
+    },
     setSelectedCategoryId: (id) =>
       set({ selectedCategoryId: id, pickerExpanded: false, errorMessage: undefined }),
     setGroupValue: (group) => set({ groupValue: group, errorMessage: undefined }),

@@ -19,6 +19,18 @@ export const budgetFormSchema = z.object({
 
 export type BudgetFormValues = z.infer<typeof budgetFormSchema>;
 
+export const incomeFormSchema = z.object({
+  amountText: z
+    .string()
+    .min(1, Strings.incomeSheetAmountRequired)
+    .refine((text) => {
+      const amount = parseLimit(text);
+      return Number.isFinite(amount) && amount > 0 && amount <= Number.MAX_SAFE_INTEGER;
+    }, Strings.incomeSheetAmountInvalid),
+});
+
+export type IncomeFormValues = z.infer<typeof incomeFormSchema>;
+
 export const spendingPlanFormSchema = z.object({
   nameText: z.string().trim().min(1, Strings.budgetPlanNameRequired),
   totalText: z

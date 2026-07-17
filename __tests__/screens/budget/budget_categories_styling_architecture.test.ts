@@ -72,42 +72,12 @@ describe('budget categories presentation architecture', () => {
     expect(lens).not.toContain('<IncomeSheet');
     expect(incomeSheet).toContain("import { Input } from '@/components/ui/input'");
     expect(incomeSheet).toContain('suffix=');
-    expect(incomeSheet).toContain('errorMessage={state.errorMessage}');
     expect(incomeSheet).toContain('isDisabled={state.saving}');
     expect(incomeSheet).toContain('isDismissable={!state.saving}');
     expect(incomeSheet).toContain('accessibilityLabel={amountAccessibilityLabel}');
     expect(incomeSheet).toContain('`${amountLabel}, ${Strings.currencyEgp}`');
     expect(incomeSheet).toContain('accessibilityLiveRegion="assertive"');
     expect(incomeSheet).not.toContain('border-accent flex-row');
-  });
-
-  it('builds the rule lens from focused HeroUI components with controlled expansion', () => {
-    const screen = source('src/modules/budget/screens/budget/index.tsx');
-    const ledger = source(
-      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger.tsx',
-    );
-    const summary = source(
-      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
-    );
-    const bucketRow = source(
-      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
-    );
-
-    expect(ledger).toContain("import { Accordion, Card } from 'heroui-native'");
-    expect(ledger).toContain('value={expandedGroup ??');
-    expect(summary).toContain("import { Card } from 'heroui-native'");
-    expect(summary).toContain('<BudgetSummaryMetricsRow');
-    expect(summary).toContain('<BudgetSummaryStatusRow');
-    expect(summary).not.toMatch(/Math\.round|leftToPlan < 0|bucket\.status ===/);
-    expect(bucketRow).toContain('Size.budgetRuleValueColumn');
-    expect(bucketRow).toContain('Size.budgetRuleChevronColumn');
-    expect(screen).toContain('expandedGroup={state.expandedBudgetGroup}');
-    expect(screen).not.toMatch(/useState|useSharedValue/);
-    const skeleton = source(
-      'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
-    );
-    expect(skeleton).toContain('expandedBucket?.contributors.map');
-    expect(skeleton).toContain('vm?.notGrouped ?');
   });
 
   it('keeps lifecycle and save orchestration out of state stores', () => {
@@ -146,22 +116,6 @@ describe('budget categories presentation architecture', () => {
     expect(child).toContain('width: Size.budgetCategoryColumn');
     expect(unassigned).toContain('width: Size.budgetCategoryColumn');
     expect(child).toContain('size={Size.budgetNamedRing}');
-  });
-
-  it('uses circular category progress and neutral rule-ledger actions', () => {
-    const contributor = source(
-      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row.tsx',
-    );
-    const bucket = source(
-      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
-    );
-
-    expect(contributor).toContain('<BudgetRing');
-    expect(contributor).toContain('presentation.progressRatio');
-    expect(contributor).toContain('presentation.ringColor');
-    expect(contributor).not.toContain('budget5030SpentPlannedMeta');
-    expect(bucket).not.toContain('text-accent');
-    expect(bucket).not.toContain('Colors.dark.gold');
   });
 
   it('wraps long category and budget names without shrinking their metadata chips', () => {

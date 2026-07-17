@@ -227,9 +227,15 @@ function RuleLensSkeleton({
                     {expandedBucket?.contributors.map((contributor) => (
                       <View
                         key={contributor.categoryId}
+                        testID="rule-contributor-skeleton"
                         className="border-separator min-h-12 flex-row items-center gap-2 border-b px-3 py-1.5"
                       >
-                        <SkeletonGroup.Item className="h-8 w-8 rounded-full" />
+                        <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
+                          <SkeletonGroup.Item
+                            className="rounded-full"
+                            style={{ width: Size.budgetNamedRing, height: Size.budgetNamedRing }}
+                          />
+                        </View>
                         <View className="flex-1 gap-1">
                           <SkeletonGroup.Item className="h-[12px] w-28 rounded-md" />
                           <SkeletonGroup.Item className="h-[10px] w-32 rounded-md" />

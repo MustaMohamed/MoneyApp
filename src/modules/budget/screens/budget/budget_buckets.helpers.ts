@@ -170,6 +170,21 @@ const GROUP_RATIOS: Record<BudgetGroup, number> = {
 
 const GROUP_ORDER: BudgetGroup[] = [BudgetGroup.Need, BudgetGroup.Want, BudgetGroup.Savings];
 
+export function hasBudgetRuleIncome(income: number | null): income is number {
+  return income !== null && Number.isFinite(income) && income > 0;
+}
+
+export function resolveBudgetRuleGroup(
+  category: Pick<Category, 'id' | 'budget_group'>,
+  budgetGroupByCategoryId: BudgetMonthGroupMap,
+  hasIncome: boolean,
+): BudgetGroup | undefined {
+  return (
+    budgetGroupByCategoryId[category.id] ??
+    (hasIncome ? undefined : (category.budget_group ?? undefined))
+  );
+}
+
 const GROUP_PRESENTATION: Record<
   BudgetGroup,
   { label: string; ratioLabel: string; icon: RuleBucketIcon }
@@ -522,7 +537,7 @@ export function buildBudgetRuleLens({
   selectedMonth,
   lifecycleDate,
 }: BuildBudgetRuleLensInput): BudgetRuleLensVM {
-  const hasIncome = income !== null && Number.isFinite(income) && income > 0;
+  const hasIncome = hasBudgetRuleIncome(income);
   const availableIncome = hasIncome ? income : undefined;
   const totals: Record<BudgetGroup, GroupTotals> = {
     [BudgetGroup.Need]: { planned: 0, spent: 0, contributors: [] },
@@ -540,9 +555,7 @@ export function buildBudgetRuleLens({
     if (category.type !== CategoryType.Expense) continue;
 
     const planned = resolveLimitForMonth(normalizedBudgets, category.id, selectedMonth) ?? 0;
-    const group =
-      budgetGroupByCategoryId[category.id] ??
-      (hasIncome ? undefined : (category.budget_group ?? undefined));
+    const group = resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasIncome);
 
     if (group === undefined) {
       notGroupedPlanned += planned;

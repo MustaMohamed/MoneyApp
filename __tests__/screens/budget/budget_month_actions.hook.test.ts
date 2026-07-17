@@ -29,7 +29,7 @@ import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 
 const NOW = '2026-07-01T00:00:00.000Z';
 
-function category(id: string, name: string): Category {
+function category(id: string, name: string, budgetGroup: BudgetGroup): Category {
   return {
     id,
     name,
@@ -38,7 +38,7 @@ function category(id: string, name: string): Category {
     color: '#caa445',
     is_default: 0,
     sort_order: 0,
-    budget_group: null,
+    budget_group: budgetGroup,
     created_at: NOW,
     updated_at: NOW,
   };
@@ -62,7 +62,10 @@ function budget(
   };
 }
 
-const categories = [category('food', 'Food'), category('car', 'Car')];
+const categories = [
+  category('food', 'Food', BudgetGroup.Need),
+  category('car', 'Car', BudgetGroup.Want),
+];
 const budgetRows = [
   budget('budget-car-may', 'car', 'Fuel', 900, '2026-05'),
   budget('budget-food-jun', 'food', 'Monthly Food', 3000, '2026-06'),
@@ -86,7 +89,15 @@ let setExpandedCategoryIdMock: jest.Mock;
 let setExpandedBudgetGroupMock: jest.Mock;
 let openAddWithContextMock: jest.Mock;
 
-function setupStores(selectedMonth = '2026-07') {
+function setupStores(
+  selectedMonth = '2026-07',
+  expectedIncome: number | null = 10000,
+  groupMap: Record<string, BudgetGroup> = {
+    food: BudgetGroup.Need,
+    car: BudgetGroup.Want,
+  },
+  targetBudgetId?: string,
+) {
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
   copyBudgetsToMonthMock = jest.fn().mockResolvedValue(undefined);
@@ -114,11 +125,8 @@ function setupStores(selectedMonth = '2026-07') {
     spendingPlans: [],
     spendingPlanSpendById: {},
     loaded: true,
-    expectedIncome: 10000,
-    budgetGroupByCategoryId: {
-      food: BudgetGroup.Need,
-      car: BudgetGroup.Want,
-    },
+    expectedIncome,
+    budgetGroupByCategoryId: groupMap,
     load: loadBudgetMock,
     copyBudgetsToMonth: copyBudgetsToMonthMock,
     removeBudget: removeBudgetMock,
@@ -131,6 +139,7 @@ function setupStores(selectedMonth = '2026-07') {
     lensTab: 'categories',
     copySheetVisible: false,
     copySelectedBudgetIds: ['budget-food-jun'],
+    targetBudgetId,
     incomeSuggestion: null,
     refreshing: false,
     expandedCategoryId: undefined,
@@ -185,14 +194,22 @@ describe('useBudget month actions', () => {
     expect(openAddWithContextMock).not.toHaveBeenCalled();
   });
 
-  it('opens contextual budget creation when the managed rule group has no budget rows', () => {
+  it('targets a zero-activity category already assigned to the managed group', () => {
     const { result } = renderHook(() => useBudget());
 
     act(() => result.current.manageRuleGroup(BudgetGroup.Want));
 
     expect(setLensTabMock).toHaveBeenCalledWith('categories');
     expect(setExpandedCategoryIdMock).toHaveBeenCalledWith(undefined);
-    expect(openAddWithContextMock).toHaveBeenCalledWith(undefined, BudgetGroup.Want);
+    expect(openAddWithContextMock).toHaveBeenCalledWith('car', BudgetGroup.Want);
+  });
+
+  it('uses the category default when editing before monthly group snapshots exist', () => {
+    setupStores('2026-07', null, {}, 'budget-food-jul');
+
+    const { result } = renderHook(() => useBudget());
+
+    expect(result.current.state.editingRow?.categoryGroup).toBe(BudgetGroup.Need);
   });
 
   it('preserves controlled rule expansion while refreshing', async () => {

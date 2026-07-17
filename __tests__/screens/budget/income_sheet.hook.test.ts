@@ -35,6 +35,32 @@ describe('useIncomeSheet', () => {
     expect(result.current.state.isOpen).toBe(false);
   });
 
+  it('normalizes a formatted income amount before saving', async () => {
+    const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setExpectedIncome });
+    useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
+    const { result } = renderHook(() => useIncomeSheet());
+
+    act(() => result.current.setAmountText('5,000'));
+    await act(async () => result.current.save());
+
+    expect(setExpectedIncome).toHaveBeenCalledWith('2026-07', 5000);
+  });
+
+  it('shows validation feedback and does not save malformed income', async () => {
+    const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
+    useBudgetStore.setState({ setExpectedIncome });
+    useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
+    const { result } = renderHook(() => useIncomeSheet());
+
+    act(() => result.current.setAmountText('12000abc'));
+    await act(async () => result.current.save());
+
+    expect(setExpectedIncome).not.toHaveBeenCalled();
+    expect(result.current.state.validationMessage).toBe('Enter an amount greater than 0');
+    expect(result.current.state.isOpen).toBe(true);
+  });
+
   it('blocks close, reopen, and a new save until a successful save clears loading and closes', async () => {
     const pendingSave = deferred();
     const setExpectedIncome = jest.fn(() => pendingSave.promise);
@@ -43,11 +69,13 @@ describe('useIncomeSheet', () => {
     const { result } = renderHook(() => useIncomeSheet());
 
     let savePromise: Promise<void> | undefined;
-    act(() => {
+    await act(async () => {
       savePromise = result.current.save();
+      await Promise.resolve();
       result.current.close();
       useIncomeSheetState.getState().open(null, 9000, '2026-07', 'July 2026');
       void result.current.save();
+      await Promise.resolve();
     });
 
     expect(setExpectedIncome).toHaveBeenCalledTimes(1);
@@ -76,11 +104,13 @@ describe('useIncomeSheet', () => {
 
     act(() => result.current.setAmountText('12000'));
     let savePromise: Promise<void> | undefined;
-    act(() => {
+    await act(async () => {
       savePromise = result.current.save();
+      await Promise.resolve();
       result.current.close();
       useIncomeSheetState.getState().open(null, 9000, '2026-07', 'July 2026');
       void result.current.save();
+      await Promise.resolve();
     });
 
     expect(setExpectedIncome).toHaveBeenCalledTimes(1);

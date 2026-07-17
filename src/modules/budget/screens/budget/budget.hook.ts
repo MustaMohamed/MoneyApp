@@ -12,7 +12,11 @@ import {
   buildCategoryBudgetRows,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
-import { buildBudgetRuleLens } from '@/modules/budget/screens/budget/budget_buckets.helpers';
+import {
+  buildBudgetRuleLens,
+  hasBudgetRuleIncome,
+  resolveBudgetRuleGroup,
+} from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
 import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_plans.helpers';
@@ -156,6 +160,7 @@ export function useBudget() {
     [budgetRows, categories, selectedMonth, spendByBudgetId, spendByMonth],
   );
   const rows = categoryLedger.rows;
+  const hasConfiguredIncome = hasBudgetRuleIncome(expectedIncome);
 
   const categoriesSummary = useMemo(
     () =>
@@ -200,18 +205,24 @@ export function useBudget() {
     () =>
       rows
         .flatMap((row) =>
-          row.budgets.map((budget) => ({
-            ...budget,
-            limit: budget.planned,
-            categoryId: row.categoryId,
-            categoryName: row.name,
-            categoryGroup: budgetGroupByCategoryId[row.categoryId] ?? null,
-            icon: row.icon,
-            color: row.color,
-          })),
+          row.budgets.map((budget) => {
+            const category = categories.find((candidate) => candidate.id === row.categoryId);
+            return {
+              ...budget,
+              limit: budget.planned,
+              categoryId: row.categoryId,
+              categoryName: row.name,
+              categoryGroup: category
+                ? (resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasConfiguredIncome) ??
+                  null)
+                : null,
+              icon: row.icon,
+              color: row.color,
+            };
+          }),
         )
         .find((budget) => budget.id === targetBudgetId),
-    [budgetGroupByCategoryId, rows, targetBudgetId],
+    [budgetGroupByCategoryId, categories, hasConfiguredIncome, rows, targetBudgetId],
   );
 
   const editingPlan = useMemo(
@@ -369,19 +380,33 @@ export function useBudget() {
 
   const manageRuleGroup = useCallback(
     (group: BudgetGroup) => {
+      const bucket = ruleLens.buckets.find((candidate) => candidate.group === group);
       const contributorIds = new Set(
-        ruleLens.buckets
-          .find((bucket) => bucket.group === group)
-          ?.contributors.map((contributor) => contributor.categoryId) ?? [],
+        bucket?.contributors.map((contributor) => contributor.categoryId) ?? [],
       );
       const firstMatchingCategory = rows.find((row) => contributorIds.has(row.categoryId));
-      const firstContributorId = ruleLens.buckets.find((bucket) => bucket.group === group)
-        ?.contributors[0]?.categoryId;
+      const contextualCategoryId =
+        bucket?.contributors[0]?.categoryId ??
+        categories.find(
+          (category) =>
+            category.type === CategoryType.Expense &&
+            resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasConfiguredIncome) ===
+              group,
+        )?.id;
       setLensTab('categories');
       setExpandedCategoryId(firstMatchingCategory?.categoryId);
-      if (!firstMatchingCategory) openAddWithContext(firstContributorId, group);
+      if (!firstMatchingCategory) openAddWithContext(contextualCategoryId, group);
     },
-    [openAddWithContext, rows, ruleLens.buckets, setExpandedCategoryId, setLensTab],
+    [
+      budgetGroupByCategoryId,
+      categories,
+      hasConfiguredIncome,
+      openAddWithContext,
+      rows,
+      ruleLens.buckets,
+      setExpandedCategoryId,
+      setLensTab,
+    ],
   );
 
   return {

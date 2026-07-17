@@ -33,14 +33,16 @@ jest.mock('@/components/ui/sheet', () => ({
     isOpen,
     children,
     footer,
+    isDismissable = true,
   }: {
     isOpen: boolean;
     children?: ReactNode;
     footer?: ReactNode;
+    isDismissable?: boolean;
   }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
     return isOpen ? (
-      <View>
+      <View testID="set-budget-sheet" accessibilityState={{ disabled: !isDismissable }}>
         {children}
         {footer}
       </View>
@@ -130,6 +132,38 @@ const categories: Category[] = [
   },
 ];
 
+function deferred() {
+  let resolve: (() => void) | undefined;
+  const promise = new Promise<void>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve: () => resolve?.() };
+}
+
+const existingBudget = {
+  id: 'budget-trip-food',
+  categoryId: 'housing',
+  categoryName: 'Housing',
+  categoryGroup: BudgetGroup.Need,
+  name: 'Alexandria Trip Food',
+  planned: 1500,
+  spent: 0,
+  left: 1500,
+  usedPct: 0,
+  categorySharePct: 1,
+  usedLabel: '0%',
+  shareLabel: '100% of category',
+  spentPlannedLabel: '0 / 1,500 spent',
+  balanceAmountLabel: '1,500',
+  balanceMetaLabel: 'EGP left',
+  ringColor: '#4CAF82',
+  accessibilityLabel: 'Alexandria Trip Food',
+  menuAccessibilityLabel: 'Actions for Alexandria Trip Food',
+  limit: 1500,
+  icon: 'home',
+  color: '#6fa8dc',
+};
+
 beforeEach(() => {
   useBudgetState.getState().reset();
   useSetBudgetSheetState.getState().reset();
@@ -171,6 +205,17 @@ describe('SetBudgetSheet', () => {
     expect(getByTestId('budget-name-input')).toHaveStyle({
       fontSize: Type.body,
       height: ms(28),
+    });
+  });
+
+  it('requires category selection when a contextual group has no matching category', () => {
+    useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
+
+    render(<SetBudgetSheet budgetableCategories={categories} />);
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: undefined,
+      groupValue: BudgetGroup.Want,
     });
   });
 
@@ -222,32 +267,7 @@ describe('SetBudgetSheet', () => {
     useBudgetState.getState().openEdit('budget-trip-food');
 
     const { getByLabelText, getByTestId, getByText } = render(
-      <SetBudgetSheet
-        budgetableCategories={categories}
-        editingRow={{
-          id: 'budget-trip-food',
-          categoryId: 'housing',
-          categoryName: 'Housing',
-          categoryGroup: BudgetGroup.Need,
-          name: 'Alexandria Trip Food',
-          planned: 1500,
-          spent: 0,
-          left: 1500,
-          usedPct: 0,
-          categorySharePct: 1,
-          usedLabel: '0%',
-          shareLabel: '100% of category',
-          spentPlannedLabel: '0 / 1,500 spent',
-          balanceAmountLabel: '1,500',
-          balanceMetaLabel: 'EGP left',
-          ringColor: '#4CAF82',
-          accessibilityLabel: 'Alexandria Trip Food',
-          menuAccessibilityLabel: 'Actions for Alexandria Trip Food',
-          limit: 1500,
-          icon: 'home',
-          color: '#6fa8dc',
-        }}
-      />,
+      <SetBudgetSheet budgetableCategories={categories} editingRow={existingBudget} />,
     );
 
     expect(getByTestId('budget-name-input')).toHaveProp('value', 'Alexandria Trip Food');
@@ -270,5 +290,31 @@ describe('SetBudgetSheet', () => {
         categoryGroup: BudgetGroup.Want,
       }),
     );
+  });
+
+  it('keeps an in-flight edit save locked when refreshed props arrive', async () => {
+    const pendingSave = deferred();
+    mockSetBudget.mockReturnValueOnce(pendingSave.promise);
+    useBudgetState.getState().reset();
+    useBudgetState.getState().openEdit(existingBudget.id);
+
+    const screen = render(
+      <SetBudgetSheet budgetableCategories={categories} editingRow={existingBudget} />,
+    );
+
+    fireEvent.press(screen.getByLabelText(Strings.budgetSaveCta));
+    await waitFor(() => expect(useSetBudgetSheetState.getState().saving).toBe(true));
+    expect(screen.getByTestId('set-budget-sheet')).toHaveProp('accessibilityState', {
+      disabled: true,
+    });
+
+    screen.rerender(
+      <SetBudgetSheet budgetableCategories={[...categories]} editingRow={{ ...existingBudget }} />,
+    );
+
+    expect(useSetBudgetSheetState.getState().saving).toBe(true);
+
+    pendingSave.resolve();
+    await waitFor(() => expect(useSetBudgetSheetState.getState().saving).toBe(false));
   });
 });

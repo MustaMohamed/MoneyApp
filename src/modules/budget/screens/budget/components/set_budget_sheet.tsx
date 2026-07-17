@@ -92,21 +92,35 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     [budgetableCategories, selectedCategoryId],
   );
 
-  // Initialise / reset add-mode picker state and group whenever the sheet opens
+  const sessionKey = `${mode}:${editingRow?.id ?? addCategoryId ?? 'new'}:${addBudgetGroup ?? 'ungrouped'}:${selectedMonth}`;
+
+  // Initialise once per open target. Data refreshes may replace row/category
+  // objects while a save is active, so object identity must not reset the form.
   useEffect(() => {
     if (sheetVisible) {
+      let initialized: boolean;
+      if (isEdit) {
+        initialized = initEditMode(editingRow?.categoryGroup ?? null, sessionKey);
+      } else {
+        const contextualCategory = budgetableCategories.find(
+          (category) => category.id === addCategoryId,
+        );
+        const initialCategory =
+          contextualCategory ??
+          (addBudgetGroup === undefined && budgetableCategories.length > 0
+            ? budgetableCategories[0]
+            : undefined);
+        initialized = initAddMode(
+          initialCategory?.id,
+          addBudgetGroup ?? initialCategory?.budget_group ?? null,
+          sessionKey,
+        );
+      }
+      if (!initialized) return;
       resetForm({
         nameText: isEdit && editingRow ? editingRow.name : '',
         limitText: isEdit && editingRow ? String(editingRow.limit) : '',
       });
-      if (isEdit) {
-        initEditMode(editingRow?.categoryGroup ?? null);
-      } else {
-        const initialCategory =
-          budgetableCategories.find((category) => category.id === addCategoryId) ??
-          (budgetableCategories.length > 0 ? budgetableCategories[0] : undefined);
-        initAddMode(initialCategory?.id, addBudgetGroup ?? initialCategory?.budget_group ?? null);
-      }
     } else {
       reset();
     }
@@ -121,6 +135,7 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     budgetableCategories,
     addCategoryId,
     addBudgetGroup,
+    sessionKey,
   ]);
 
   // Resolved category name for edit mode (locked display)
@@ -148,8 +163,9 @@ export function SetBudgetSheet({ budgetableCategories, editingRow }: SetBudgetSh
     <>
       <Sheet
         isOpen={sheetVisible}
+        isDismissable={!saving}
         onOpenChange={(open) => {
-          if (!open) close();
+          if (!open && !saving) close();
         }}
         title={isEdit ? Strings.budgetEditTitle : Strings.budgetSetTitle}
         size="md"

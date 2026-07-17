@@ -26,28 +26,34 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
         className="gap-0 px-3 py-1.5"
         style={{ minHeight: Size.budgetRuleRowMinHeight }}
       >
-        <View className="flex-row items-center gap-2" style={{ flex: 1 }}>
-          <BudgetRing
-            pct={bucket.progressRatio ?? 0}
-            color={presentation.ringColor}
-            size={Size.budgetCategoryRing}
-          >
-            <MaterialCommunityIcons
-              name={presentation.icon}
-              size={Size.iconXs}
+        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+          <View className="items-start" style={{ width: Size.budgetCategoryColumn }}>
+            <BudgetRing
+              pct={bucket.progressRatio ?? 0}
               color={presentation.ringColor}
-            />
-          </BudgetRing>
-          <View style={{ flex: 1, minWidth: 0 }}>
+              size={Size.budgetCategoryRing}
+            >
+              <MaterialCommunityIcons
+                name={presentation.icon}
+                size={Size.iconXs}
+                color={presentation.ringColor}
+              />
+            </BudgetRing>
+          </View>
+          <View className="px-1" style={{ flex: 1, minWidth: 0 }}>
             <View className="flex-row items-center gap-1.5">
               <Text
-                style={{ fontSize: Type.body }}
-                className="font-sora text-foreground shrink font-semibold"
+                style={{ flexShrink: 1, fontSize: Type.body, minWidth: 0 }}
+                className="font-sora text-foreground font-semibold"
                 numberOfLines={1}
               >
                 {presentation.groupLabel}
               </Text>
-              <Text style={{ fontSize: Type.micro }} className="font-sora text-content-secondary">
+              <Text
+                style={{ flexShrink: 0, fontSize: Type.micro }}
+                className="font-sora text-content-secondary"
+                numberOfLines={1}
+              >
                 {presentation.ruleLabel}
               </Text>
               <Chip
