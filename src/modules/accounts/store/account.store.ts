@@ -15,13 +15,18 @@ export type { Account, NewAccountInput, UpdateAccountInput };
 export const EMPTY_ACCOUNTS: Account[] = [];
 Object.freeze(EMPTY_ACCOUNTS);
 
+export const EMPTY_ACCOUNT_LOOKUP: Account[] = [];
+Object.freeze(EMPTY_ACCOUNT_LOOKUP);
+
 const INITIAL_STATE = {
   accounts: EMPTY_ACCOUNTS,
+  accountLookup: EMPTY_ACCOUNT_LOOKUP,
   hasLoaded: false,
 };
 
 export type AccountStore = typeof INITIAL_STATE & {
   loadAccounts: () => Promise<void>;
+  loadAccountLookup: (ids: string[]) => Promise<void>;
   addAccount: (data: NewAccountInput) => Promise<Account>;
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
@@ -31,6 +36,7 @@ export type AccountStore = typeof INITIAL_STATE & {
 
 export function createAccountStore(repo: IAccountRepository) {
   let loadRequestId = 0;
+  let lookupRequestId = 0;
 
   return createMoneyAppSelectors(
     create<AccountStore>((set, get) => ({
@@ -46,6 +52,25 @@ export function createAccountStore(repo: IAccountRepository) {
           }
         } catch (err) {
           console.error('[accountStore] loadAccounts failed:', err);
+          throw err;
+        }
+      },
+
+      loadAccountLookup: async (ids) => {
+        const requestId = ++lookupRequestId;
+        const uniqueIds = [...new Set(ids)];
+        if (uniqueIds.length === 0) {
+          set({ accountLookup: EMPTY_ACCOUNT_LOOKUP });
+          return;
+        }
+
+        try {
+          const accountLookup = await repo.getByIdsIncludingArchived(uniqueIds);
+          if (requestId === lookupRequestId) {
+            set({ accountLookup });
+          }
+        } catch (err) {
+          console.error('[accountStore] loadAccountLookup failed:', err);
           throw err;
         }
       },
@@ -93,6 +118,7 @@ export function createAccountStore(repo: IAccountRepository) {
 
       reset: () => {
         loadRequestId += 1;
+        lookupRequestId += 1;
         set(INITIAL_STATE);
       },
     })),

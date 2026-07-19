@@ -36,6 +36,13 @@ beforeAll(() => {
        VALUES ('acc1','Bank','bank','EGP',0,0,0,0,0,?,?)`,
     )
     .run(now, now);
+  realDb
+    .prepare(
+      `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,
+       interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('card1','Card','credit_card','EGP',0,0,0,0,1,?,?)`,
+    )
+    .run(now, now);
 
   // Insert 3 months of income: Feb=10000, Mar=20000, Apr=30000
   // currentYearMonth in tests = '2026-05' so all three are complete months
@@ -63,6 +70,14 @@ beforeAll(() => {
         now,
       );
   }
+
+  realDb
+    .prepare(
+      `INSERT INTO transactions
+       (id, account_id, type, amount, currency, egp_amount, transaction_date, transaction_time, created_at, updated_at)
+       VALUES ('card-credit','card1','income',9000,'EGP',9000,'2026-04-20','12:00',?,?)`,
+    )
+    .run(now, now);
 });
 
 afterAll(() => {
@@ -79,6 +94,10 @@ describe('getTrailingIncomeSuggestion', () => {
     // avg(10000, 20000, 30000) = 20000
     const result = await getTrailingIncomeSuggestion(mockDb, '2026-05', 3);
     expect(result).toBe(20000);
+  });
+
+  it('excludes credit-card credits from income suggestions', async () => {
+    await expect(getTrailingIncomeSuggestion(mockDb, '2026-05', 3)).resolves.toBe(20000);
   });
 
   it('uses default window size of 3 when not specified', async () => {

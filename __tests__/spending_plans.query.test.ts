@@ -28,7 +28,7 @@ function tx(row: Partial<Record<string, unknown>>) {
     exchange_rate: null,
     to_amount: row.to_amount ?? null,
     minimum_payment_snapshot: null,
-    account_id: 'acc',
+    account_id: row.account_id ?? 'acc',
     to_account_id: row.to_account_id ?? null,
     category_id: row.category_id ?? 'cat_plan_food',
     note: null,
@@ -55,6 +55,12 @@ beforeAll(() => {
     .prepare(
       `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,interest_tracking,is_archived,sort_order,created_at,updated_at)
        VALUES ('acc','Cash','bank','EGP',0,0,0,0,0,?,?)`,
+    )
+    .run(NOW, NOW);
+  realDb
+    .prepare(
+      `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('acc_card','Card','credit_card','EGP',0,0,0,0,1,?,?)`,
     )
     .run(NOW, NOW);
   realDb
@@ -278,6 +284,37 @@ describe('spending plan query file', () => {
 
     expect(spend).toEqual({
       plan_spend: { cat_plan_food: 500, cat_plan_travel: 700 },
+    });
+  });
+
+  it('subtracts card credits from plan spend and clamps category results at zero', async () => {
+    await savePlan(
+      {
+        id: 'plan_credit',
+        name: 'Credited plan',
+        start_date: '2026-07-18',
+        end_date: '2026-07-21',
+        total_amount: 8000,
+        created_at: NOW,
+        updated_at: NOW,
+      },
+      [
+        { plan_id: 'plan_credit', category_id: 'cat_plan_food', allocated_amount: null },
+        { plan_id: 'plan_credit', category_id: 'cat_plan_travel', allocated_amount: null },
+      ],
+    );
+    tx({ id: 'expense', account_id: 'acc_card', egp_amount: 600 });
+    tx({ id: 'credit', account_id: 'acc_card', type: 'income', egp_amount: 150 });
+    tx({
+      id: 'credit-only',
+      account_id: 'acc_card',
+      type: 'income',
+      category_id: 'cat_plan_travel',
+      egp_amount: 150,
+    });
+
+    await expect(getSpendingPlanSpend(db, ['plan_credit'])).resolves.toEqual({
+      plan_credit: { cat_plan_food: 450, cat_plan_travel: 0 },
     });
   });
 });

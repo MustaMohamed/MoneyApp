@@ -30,9 +30,10 @@ beforeAll(() => {
         interest_tracking,is_archived,sort_order,created_at,updated_at)
        VALUES
        ('acc_asset','Checking','bank','EGP',1000,1000,0,0,0,?,?),
-       ('acc_other','Savings','bank','EGP',500,500,0,0,1,?,?)`,
+       ('acc_other','Savings','bank','EGP',500,500,0,0,1,?,?),
+       ('acc_card','Card','credit_card','EGP',0,0,0,0,2,?,?)`,
     )
-    .run(NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW);
 
   const mocked = (
     SQLite as unknown as {
@@ -140,7 +141,6 @@ describe('transaction reads', () => {
         to_amount: 100,
       }),
     );
-
     await expect(getTransactionById(mockDb, 'tx-1')).resolves.toMatchObject({ id: 'tx-1' });
     await expect(getTransactionById(mockDb, 'missing')).resolves.toBeNull();
     await expect(getTransactionsByAccount(mockDb, 'acc_other')).resolves.toEqual([
@@ -196,12 +196,22 @@ describe('getMonthExpenseStats', () => {
         category_id: 'cat_salary',
       }),
     );
+    await insertTransactionRow(
+      mockDb,
+      makeTx({
+        id: 'tx-card-credit',
+        type: TransactionType.Income,
+        amount: 150,
+        egp_amount: 150,
+        account_id: 'acc_card',
+      }),
+    );
 
     await expect(getMonthExpenseStats(mockDb, '2026-05')).resolves.toEqual({
-      totalEgp: 1_000,
-      egpNative: 500,
+      totalEgp: 850,
+      egpNative: 350,
       usdNative: 10,
-      count: 2,
+      count: 3,
     });
   });
 });

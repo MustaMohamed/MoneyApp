@@ -81,7 +81,10 @@ export function useTransactionDetail(id: string) {
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountLookup } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
+  );
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
 
   useEffect(() => {
@@ -101,13 +104,21 @@ export function useTransactionDetail(id: string) {
   }, [id, getById, reloadKey, setTx]);
 
   useEffect(() => {
+    const ids = tx ? (tx.to_account_id ? [tx.account_id, tx.to_account_id] : [tx.account_id]) : [];
+    void loadAccountLookup(ids).catch(() => {});
+  }, [loadAccountLookup, tx]);
+
+  useEffect(() => {
     return () => {
       resetData();
       resetUi();
     };
   }, [resetData, resetUi]);
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const accountsById = useMemo(
+    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
+    [accountLookup, accounts],
+  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const viewState: DetailViewState =

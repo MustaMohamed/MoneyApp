@@ -1,6 +1,10 @@
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/database/entities/account.entity';
-import { createAccountStore, EMPTY_ACCOUNTS } from '@/modules/accounts/store/account.store';
+import {
+  createAccountStore,
+  EMPTY_ACCOUNT_LOOKUP,
+  EMPTY_ACCOUNTS,
+} from '@/modules/accounts/store/account.store';
 import type { IAccountRepository, NewAccountInput } from '@/repositories/account.repository';
 
 const mockAccount: Account = {
@@ -42,6 +46,8 @@ const baseInput: NewAccountInput = {
 function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountRepository {
   return {
     getAll: jest.fn().mockResolvedValue([]),
+    getByIdIncludingArchived: jest.fn().mockResolvedValue(undefined),
+    getByIdsIncludingArchived: jest.fn().mockResolvedValue([]),
     add: jest.fn().mockResolvedValue(mockAccount),
     update: jest.fn().mockResolvedValue(undefined),
     archive: jest.fn().mockResolvedValue(undefined),
@@ -68,6 +74,57 @@ beforeEach(() => {
   consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 });
 
+describe('accountStore.loadAccountLookup', () => {
+  it('loads archived accounts without adding them to the active account list', async () => {
+    const archivedAccount = { ...mockAccount, id: 'archived', is_archived: 1 };
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest.fn().mockResolvedValue([archivedAccount]),
+    });
+    const store = createAccountStore(repo);
+
+    await store.getState().loadAccountLookup(['archived', 'archived']);
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledWith(['archived']);
+    expect(store.getState().accountLookup).toEqual([archivedAccount]);
+    expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
+  });
+
+  it('clears the lookup without querying when no ids are requested', async () => {
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest.fn().mockResolvedValue([mockAccount]),
+    });
+    const store = createAccountStore(repo);
+    await store.getState().loadAccountLookup(['test-id']);
+
+    await store.getState().loadAccountLookup([]);
+
+    expect(repo.getByIdsIncludingArchived).toHaveBeenCalledTimes(1);
+    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNT_LOOKUP);
+  });
+
+  it('does not let an older lookup overwrite a newer result', async () => {
+    const firstLoad = deferred<Account[]>();
+    const secondLoad = deferred<Account[]>();
+    const repo = makeRepo({
+      getByIdsIncludingArchived: jest
+        .fn()
+        .mockReturnValueOnce(firstLoad.promise)
+        .mockReturnValueOnce(secondLoad.promise),
+    });
+    const store = createAccountStore(repo);
+
+    const firstRequest = store.getState().loadAccountLookup(['older']);
+    const secondRequest = store.getState().loadAccountLookup(['newer']);
+    const newerAccount = { ...mockAccount, id: 'newer' };
+    secondLoad.resolve([newerAccount]);
+    await secondRequest;
+    firstLoad.resolve([{ ...mockAccount, id: 'older' }]);
+    await firstRequest;
+
+    expect(store.getState().accountLookup).toEqual([newerAccount]);
+  });
+});
+
 afterEach(() => {
   consoleErrorSpy.mockRestore();
 });
@@ -78,6 +135,7 @@ describe('accountStore.loadAccounts', () => {
     const store = createAccountStore(repo);
 
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
+    expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNT_LOOKUP);
     expect(store.getState().hasLoaded).toBe(false);
   });
 

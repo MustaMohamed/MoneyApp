@@ -32,8 +32,9 @@ beforeAll(() => {
     return { changes: 1, lastInsertRowId: 1 };
   });
 
-  mocked.getAllAsync.mockImplementation(async (sql: string) => {
-    return realDb.prepare(sql).all();
+  mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
+    return realDb.prepare(sql).all(...(params as never[]));
   });
 
   mocked.execAsync.mockImplementation(async (sql: string) => {
@@ -238,6 +239,26 @@ describe('AccountRepository.archive — TC-M15-02', () => {
     await repo.archive(id);
     const all = await repo.getAll();
     expect(all.find((a) => a.id === id)).toBeUndefined();
+  });
+
+  it('getByIdsIncludingArchived resolves archived accounts for history display', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await repo.archive(id);
+
+    const rows = await repo.getByIdsIncludingArchived([id]);
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ id, is_archived: 1 });
+  });
+
+  it('getByIdIncludingArchived resolves one archived account', async () => {
+    await repo.add(baseInput);
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    await repo.archive(id);
+
+    await expect(repo.getByIdIncludingArchived(id)).resolves.toMatchObject({ id, is_archived: 1 });
+    await expect(repo.getByIdIncludingArchived('missing')).resolves.toBeUndefined();
   });
 
   it('updates updated_at timestamp on archive', async () => {

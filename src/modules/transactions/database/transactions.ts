@@ -20,7 +20,8 @@ export interface MonthExpenseStats {
  *  - egpNative: SUM(amount) where currency='EGP' (true EGP-denominated spend)
  *  - usdNative: SUM(amount) where currency='USD' (true USD-denominated spend)
  *  - count: total expense rows
- * Excludes transfers, income, and CC payments — only true expenses.
+ * Card credits subtract from spend and remain included in the contributing row count.
+ * Transfers, cash income, and CC payments are excluded.
  */
 export async function getMonthExpenseStats(
   db: SQLiteDatabase,
@@ -38,14 +39,31 @@ export async function getMonthExpenseStats(
     cnt: number;
   }>(
     `SELECT
-       COALESCE(SUM(egp_amount), 0) AS total,
-       COALESCE(SUM(CASE WHEN currency = 'EGP' THEN amount ELSE 0 END), 0) AS egp_native,
-       COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) AS usd_native,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
+         ELSE -transaction_row.egp_amount
+       END), 0) AS total,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.currency = 'EGP' AND transaction_row.type = 'expense'
+           THEN transaction_row.amount
+         WHEN transaction_row.currency = 'EGP' THEN -transaction_row.amount
+         ELSE 0
+       END), 0) AS egp_native,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.currency = 'USD' AND transaction_row.type = 'expense'
+           THEN transaction_row.amount
+         WHEN transaction_row.currency = 'USD' THEN -transaction_row.amount
+         ELSE 0
+       END), 0) AS usd_native,
        COUNT(*) AS cnt
-     FROM transactions
-     WHERE type = 'expense'
-       AND transaction_date >= ?
-       AND transaction_date < ?`,
+     FROM transactions transaction_row
+     JOIN accounts account_row ON account_row.id = transaction_row.account_id
+     WHERE (
+         transaction_row.type = 'expense'
+         OR (transaction_row.type = 'income' AND account_row.type = 'credit_card')
+       )
+       AND transaction_row.transaction_date >= ?
+       AND transaction_row.transaction_date < ?`,
     [monthStart, nextMonthStart],
   );
   return {
@@ -266,11 +284,21 @@ export async function getPeriodTotals(
     expense: number | null;
   }>(
     `SELECT
-       COALESCE(SUM(CASE WHEN type = 'income'  THEN egp_amount ELSE 0 END), 0) AS income,
-       COALESCE(SUM(CASE WHEN type = 'expense' THEN egp_amount ELSE 0 END), 0) AS expense
-     FROM transactions
-     WHERE transaction_date >= ?
-       AND transaction_date <= ?`,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.type = 'income' AND account_row.type <> 'credit_card'
+           THEN transaction_row.egp_amount
+         ELSE 0
+       END), 0) AS income,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
+         WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
+           THEN -transaction_row.egp_amount
+         ELSE 0
+       END), 0) AS expense
+     FROM transactions transaction_row
+     JOIN accounts account_row ON account_row.id = transaction_row.account_id
+     WHERE transaction_row.transaction_date >= ?
+       AND transaction_row.transaction_date <= ?`,
     [range.from, range.to],
   );
   const incomeEgp = row?.income ?? 0;

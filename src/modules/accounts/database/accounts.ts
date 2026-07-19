@@ -18,6 +18,20 @@ export async function getAccountByIdIncludingArchived(
   return rows[0];
 }
 
+export async function getAccountsByIdsIncludingArchived(
+  db: SQLiteDatabase,
+  ids: string[],
+): Promise<Account[]> {
+  if (ids.length === 0) return [];
+  const placeholders = ids.map(() => '?').join(',');
+  return db.getAllAsync<Account>(
+    `SELECT * FROM accounts
+      WHERE id IN (${placeholders})
+      ORDER BY sort_order ASC, created_at ASC`,
+    ids,
+  );
+}
+
 export async function applyAccountDelta(
   db: SQLiteDatabase,
   delta: AccountDelta,

@@ -5,6 +5,8 @@ import { getDb } from '@/database/client';
 import {
   addAccount,
   archiveAccount,
+  getAccountByIdIncludingArchived,
+  getAccountsByIdsIncludingArchived,
   getAccounts,
   setAccountBalance,
   updateAccount,
@@ -23,6 +25,8 @@ export type UpdateAccountInput = {
 
 export interface IAccountRepository {
   getAll(): Promise<Account[]>;
+  getByIdIncludingArchived(id: string): Promise<Account | undefined>;
+  getByIdsIncludingArchived(ids: string[]): Promise<Account[]>;
   add(data: NewAccountInput): Promise<Account>;
   update(id: string, data: UpdateAccountInput): Promise<void>;
   archive(id: string): Promise<void>;
@@ -33,6 +37,16 @@ export class AccountRepository implements IAccountRepository {
   async getAll(): Promise<Account[]> {
     const db = await getDb();
     return getAccounts(db);
+  }
+
+  async getByIdsIncludingArchived(ids: string[]): Promise<Account[]> {
+    const db = await getDb();
+    return getAccountsByIdsIncludingArchived(db, ids);
+  }
+
+  async getByIdIncludingArchived(id: string): Promise<Account | undefined> {
+    const db = await getDb();
+    return getAccountByIdIncludingArchived(db, id);
   }
 
   async add(data: NewAccountInput): Promise<Account> {
