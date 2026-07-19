@@ -462,7 +462,7 @@ export const Strings = {
   budget5030GroupWant: 'Want',
   budget5030GroupSavings: 'Savings',
   budget5030SummaryEyebrow: (month: string) => `50/30/20 plan · ${month}`,
-  budget5030DaysLeft: (days: number) => `${days} days left`,
+  budget5030DaysLeft: (days: number) => (days === 1 ? '1 day left' : `${days} days left`),
   budget5030LifecyclePlanned: 'Planned',
   budget5030LifecycleComplete: 'Complete',
   budget5030LeftToPlan: 'EGP left to plan',

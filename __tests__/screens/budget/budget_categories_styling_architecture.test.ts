@@ -11,6 +11,7 @@ const PRESENTATION_FILES = [
   'src/modules/budget/screens/budget/components/unassigned_spending_row.tsx',
   'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
   'src/modules/budget/screens/budget/components/income_sheet.tsx',
+  'src/modules/budget/screens/budget/components/set_budget_sheet.tsx',
   'src/modules/budget/screens/budget/components/fifty_thirty_twenty/index.tsx',
   'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
   'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger.tsx',
@@ -98,6 +99,9 @@ describe('budget categories presentation architecture', () => {
     expect(addSheetHook).toMatch(/useEffect|setTimeout/);
     expect(setBudgetState).not.toMatch(/async|Promise|Strings/);
     expect(setBudgetHook).toContain('runSave');
+    expect(source('src/modules/budget/screens/budget/components/set_budget_sheet.tsx')).not.toMatch(
+      /useEffect|useMemo/,
+    );
   });
 
   it('keeps parent progress circular and child rows aligned', () => {

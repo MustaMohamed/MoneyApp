@@ -49,7 +49,14 @@ jest.mock('heroui-native', () => {
     return <Text>{children}</Text>;
   }
   HeroText.Heading = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
+  const Alert = ({ children }: { children?: ReactNode }) => (
+    <View testID="refresh-error-alert">{children}</View>
+  );
+  Alert.Indicator = () => null;
+  Alert.Content = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
+  Alert.Title = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
   return {
+    Alert,
     Separator: () => <View testID="separator" />,
     Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
     Text: HeroText,
@@ -627,6 +634,17 @@ describe('BudgetScreen', () => {
 
     expect(queryByTestId('budget-screen-skeleton')).toBeNull();
     expect(getByText('Could not load your budget.')).toBeTruthy();
+    fireEvent.press(getByText('Try again'));
+    expect(hook.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a non-blocking retry alert when refreshing loaded data fails', () => {
+    const hook = mockUseBudget({ hasLoaded: true, loadError: true });
+
+    const { getByText, getByTestId } = render(<BudgetScreen />);
+
+    expect(getByTestId('refresh-error-alert')).toBeTruthy();
+    expect(getByText('summary-card')).toBeTruthy();
     fireEvent.press(getByText('Try again'));
     expect(hook.refresh).toHaveBeenCalledTimes(1);
   });

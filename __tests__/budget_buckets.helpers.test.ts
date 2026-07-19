@@ -67,6 +67,30 @@ function bucket(result: ReturnType<typeof buildBudgetRuleLens>, group: BudgetGro
 }
 
 describe('buildBudgetRuleLens', () => {
+  it('classifies rule status using the same whole-EGP precision shown to the user', () => {
+    const result = build({
+      income: 10_000.01,
+      categories: [makeCategory('housing', BudgetGroup.Need, 'Housing')],
+      budgets: [makeBudget('housing', 5_000.01)],
+      budgetGroupByCategoryId: { housing: BudgetGroup.Need },
+    });
+    const needs = bucket(result, BudgetGroup.Need);
+
+    expect(needs).toMatchObject({
+      target: 5_000,
+      planned: 5_000,
+      variance: 0,
+      status: 'within-cap',
+    });
+    expect(needs.presentation.varianceLabel).toBe('0');
+  });
+
+  it('keeps rounded rule targets equal to the displayed income', () => {
+    const result = build({ income: 3 });
+
+    expect(result.buckets.reduce((sum, item) => sum + (item.target ?? 0), 0)).toBe(3);
+  });
+
   it('builds the 50/30/20 summary, bucket totals, actuals, and reconciliation', () => {
     const categories = [
       makeCategory('housing', BudgetGroup.Need, 'Housing'),
@@ -538,6 +562,12 @@ describe('buildBudgetRuleLens', () => {
       expect(result.summary.daysLeft).toBe(daysLeft);
     },
   );
+
+  it('uses singular lifecycle copy when one day remains', () => {
+    const result = build({ selectedMonth: '2028-02', lifecycleDate: '2028-02-28' });
+
+    expect(result.summary.presentation.lifecycleLabel).toBe('1 day left');
+  });
 
   it('does not mutate any input collection', () => {
     const input: Parameters<typeof buildBudgetRuleLens>[0] = {

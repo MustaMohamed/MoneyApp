@@ -256,6 +256,20 @@ function normalizeAmount(amount: number): number {
   return Number.isFinite(amount) && amount > 0 ? amount : 0;
 }
 
+function normalizeRuleAmount(amount: number): number {
+  return Math.round(normalizeAmount(amount));
+}
+
+function buildRuleTargets(income: number): Record<BudgetGroup, number> {
+  const needs = normalizeRuleAmount(income * GROUP_RATIOS[BudgetGroup.Need]);
+  const wants = normalizeRuleAmount(income * GROUP_RATIOS[BudgetGroup.Want]);
+  return {
+    [BudgetGroup.Need]: needs,
+    [BudgetGroup.Want]: wants,
+    [BudgetGroup.Savings]: Math.max(income - needs - wants, 0),
+  };
+}
+
 function classifyLifecycle(
   selectedMonth: string,
   lifecycleDate: string,
@@ -538,7 +552,8 @@ export function buildBudgetRuleLens({
   lifecycleDate,
 }: BuildBudgetRuleLensInput): BudgetRuleLensVM {
   const hasIncome = hasBudgetRuleIncome(income);
-  const availableIncome = hasIncome ? income : undefined;
+  const availableIncome = hasIncome ? normalizeRuleAmount(income) : undefined;
+  const targets = availableIncome === undefined ? undefined : buildRuleTargets(availableIncome);
   const totals: Record<BudgetGroup, GroupTotals> = {
     [BudgetGroup.Need]: { planned: 0, spent: 0, contributors: [] },
     [BudgetGroup.Want]: { planned: 0, spent: 0, contributors: [] },
@@ -600,17 +615,22 @@ export function buildBudgetRuleLens({
 
   const buckets = GROUP_ORDER.map((group): RuleBucketVM => {
     const groupTotals = totals[group];
-    const target =
-      availableIncome === undefined ? undefined : availableIncome * GROUP_RATIOS[group];
-    const planRatio = target === undefined ? undefined : groupTotals.planned / target;
+    const planned = normalizeRuleAmount(groupTotals.planned);
+    const actual = normalizeRuleAmount(groupTotals.spent);
+    const target = targets?.[group];
+    const planRatio = target === undefined || target === 0 ? undefined : planned / target;
     const contributorData = groupTotals.contributors
-      .map((contributor) => ({
-        ...contributor,
-        planShareRatio:
-          contributor.planned > 0 && groupTotals.planned > 0
-            ? contributor.planned / groupTotals.planned
-            : undefined,
-      }))
+      .map((contributor) => {
+        const contributorPlanned = normalizeRuleAmount(contributor.planned);
+        return {
+          ...contributor,
+          planned: contributorPlanned,
+          spent:
+            contributor.spent === undefined ? undefined : normalizeRuleAmount(contributor.spent),
+          planShareRatio:
+            contributorPlanned > 0 && planned > 0 ? contributorPlanned / planned : undefined,
+        };
+      })
       .sort(compareContributors);
     const contributors = contributorData.map((contributor) => ({
       ...contributor,
@@ -620,18 +640,20 @@ export function buildBudgetRuleLens({
       group,
       ruleRatio: GROUP_RATIOS[group],
       target,
-      planned: groupTotals.planned,
-      actual: group === BudgetGroup.Savings ? undefined : groupTotals.spent,
-      variance: target === undefined ? undefined : target - groupTotals.planned,
+      planned,
+      actual: group === BudgetGroup.Savings ? undefined : actual,
+      variance: target === undefined ? undefined : target - planned,
       planRatio,
       progressRatio: planRatio === undefined ? undefined : clampRatio(planRatio),
-      status: bucketStatus(group, groupTotals.planned, target),
+      status: bucketStatus(group, planned, target),
       contributors,
     };
     return { ...bucket, presentation: buildBucketPresentation(bucket) };
   });
 
   const groupedPlanned = buckets.reduce((total, bucket) => total + bucket.planned, 0);
+  notGroupedPlanned = normalizeRuleAmount(notGroupedPlanned);
+  notGroupedSpent = normalizeRuleAmount(notGroupedSpent);
   const totalPlanned = groupedPlanned + notGroupedPlanned;
   const plannedRatio = availableIncome === undefined ? undefined : totalPlanned / availableIncome;
   const lifecycle = classifyLifecycle(selectedMonth, lifecycleDate);

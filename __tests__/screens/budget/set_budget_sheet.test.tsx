@@ -4,7 +4,7 @@ import type { PressableProps } from 'react-native';
 
 import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Spacing, Type } from '@/constants/theme';
+import { Type } from '@/constants/theme';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { useSetBudgetSheetState } from '@/modules/budget/screens/budget/components/set_budget_sheet.state';
@@ -75,7 +75,25 @@ jest.mock('@/modules/categories/store/category.store', () => {
   };
 });
 jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
-  CategoryPickerSheet: () => null,
+  CategoryPickerSheet: ({
+    isOpen,
+    categories,
+    onSelect,
+  }: {
+    isOpen: boolean;
+    categories: Category[];
+    onSelect: (category: Category) => void;
+  }) => {
+    const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return isOpen && categories[0] ? (
+      <Pressable
+        accessibilityLabel="select first budget category"
+        onPress={() => onSelect(categories[0])}
+      >
+        <Text>select first budget category</Text>
+      </Pressable>
+    ) : null;
+  },
 }));
 jest.mock('heroui-native', () => {
   const { Pressable, Text, TextInput, View } =
@@ -178,10 +196,14 @@ describe('SetBudgetSheet', () => {
       <SetBudgetSheet budgetableCategories={categories} />,
     );
 
-    expect(getByLabelText(Strings.budgetPickCategory)).toHaveStyle({
-      paddingVertical: Spacing.xs,
-      marginBottom: Spacing.sm,
-    });
+    expect(getByLabelText(Strings.budgetPickCategory)).toHaveProp(
+      'className',
+      expect.stringContaining('mb-3'),
+    );
+    expect(getByLabelText(Strings.budgetPickCategory)).toHaveProp(
+      'className',
+      expect.stringContaining('py-2'),
+    );
     expect(getByTestId('icon-home')).toHaveStyle({ width: ms(13), height: ms(13) });
     expect(getByText('Housing')).toHaveStyle({ fontSize: Type.caption });
   });
@@ -215,6 +237,19 @@ describe('SetBudgetSheet', () => {
 
     expect(useSetBudgetSheetState.getState()).toMatchObject({
       selectedCategoryId: undefined,
+      groupValue: BudgetGroup.Want,
+    });
+  });
+
+  it('preserves the contextual rule group when selecting a category', () => {
+    useBudgetState.getState().openAddWithContext(undefined, BudgetGroup.Want);
+    const screen = render(<SetBudgetSheet budgetableCategories={categories} />);
+
+    fireEvent.press(screen.getByLabelText(Strings.budgetPickCategory));
+    fireEvent.press(screen.getByLabelText('select first budget category'));
+
+    expect(useSetBudgetSheetState.getState()).toMatchObject({
+      selectedCategoryId: 'housing',
       groupValue: BudgetGroup.Want,
     });
   });

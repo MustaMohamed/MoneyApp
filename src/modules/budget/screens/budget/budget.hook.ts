@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { BudgetGroup, CategoryType } from '@/constants/enums';
@@ -37,6 +37,7 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
 
 export function useBudget() {
   const router = useRouter();
+  const incomeSuggestionRequest = useRef(0);
 
   const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
     useShallow((s) => ({
@@ -124,12 +125,13 @@ export function useBudget() {
 
   const loadIncomeSuggestion = useCallback(
     async (month: string) => {
+      const request = ++incomeSuggestionRequest.current;
       try {
         const db = await getDb();
         const s = await getTrailingIncomeSuggestion(db, month);
-        setIncomeSuggestion(s);
+        if (request === incomeSuggestionRequest.current) setIncomeSuggestion(s);
       } catch {
-        setIncomeSuggestion(null);
+        if (request === incomeSuggestionRequest.current) setIncomeSuggestion(null);
       }
     },
     [setIncomeSuggestion],
@@ -288,10 +290,11 @@ export function useBudget() {
   const setSelectedMonth = useCallback(
     (month: string) => {
       setSelectedMonthState(month);
+      setIncomeSuggestion(null);
       void load(month);
       void loadIncomeSuggestion(month);
     },
-    [load, loadIncomeSuggestion, setSelectedMonthState],
+    [load, loadIncomeSuggestion, setIncomeSuggestion, setSelectedMonthState],
   );
 
   const refresh = useCallback(async () => {

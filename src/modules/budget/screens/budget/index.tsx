@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { Separator, Surface, Text as HeroText } from 'heroui-native';
+import { Alert, Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { RefreshControl, View } from 'react-native';
 
@@ -122,6 +122,24 @@ export default function BudgetScreen() {
         onValueChange={setLensTab}
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
+
+      {state.loadError && state.hasLoaded && !state.refreshing ? (
+        <View className="absolute right-4 bottom-24 left-4 z-50">
+          <Alert status="danger" className="w-full">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{Strings.budgetLoadError}</Alert.Title>
+            </Alert.Content>
+            <Button
+              variant="secondary"
+              size="sm"
+              label={Strings.budgetLoadRetry}
+              accessibilityLabel={Strings.budgetLoadRetry}
+              onPress={() => void refresh()}
+            />
+          </Alert>
+        </View>
+      ) : null}
 
       {state.loadError && !state.hasLoaded ? (
         <View className="flex-1 items-center justify-center gap-3 px-6">

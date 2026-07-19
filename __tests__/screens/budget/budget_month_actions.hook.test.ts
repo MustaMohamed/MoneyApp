@@ -24,6 +24,7 @@ jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }
 const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
 const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
 const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
+const { getTrailingIncomeSuggestion } = jest.requireMock('@/modules/budget/database/budget_stats');
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 
@@ -88,6 +89,15 @@ let setLensTabMock: jest.Mock;
 let setExpandedCategoryIdMock: jest.Mock;
 let setExpandedBudgetGroupMock: jest.Mock;
 let openAddWithContextMock: jest.Mock;
+let setIncomeSuggestionMock: jest.Mock;
+
+function deferredValue<T>() {
+  let resolve: ((value: T) => void) | undefined;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve: (value: T) => resolve?.(value) };
+}
 
 function setupStores(
   selectedMonth = '2026-07',
@@ -112,6 +122,7 @@ function setupStores(
   setExpandedCategoryIdMock = jest.fn();
   setExpandedBudgetGroupMock = jest.fn();
   openAddWithContextMock = jest.fn();
+  setIncomeSuggestionMock = jest.fn();
 
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories,
@@ -155,7 +166,7 @@ function setupStores(
     openCopy: openCopyMock,
     closeCopy: closeCopyMock,
     setCopySelectedBudgetIds: setCopySelectedBudgetIdsMock,
-    setIncomeSuggestion: jest.fn(),
+    setIncomeSuggestion: setIncomeSuggestionMock,
     setExpandedCategoryId: setExpandedCategoryIdMock,
     setExpandedBudgetGroup: setExpandedBudgetGroupMock,
   }));
@@ -163,6 +174,7 @@ function setupStores(
 
 beforeEach(() => {
   useIncomeSheetState.getState().reset();
+  getTrailingIncomeSuggestion.mockReset().mockResolvedValue(null);
   setupStores();
 });
 
@@ -243,6 +255,24 @@ describe('useBudget month actions', () => {
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-06');
     expect(loadBudgetMock).toHaveBeenCalledWith('2026-06');
+  });
+
+  it('ignores an older income suggestion that resolves after the latest month request', async () => {
+    const older = deferredValue<number | null>();
+    const latest = deferredValue<number | null>();
+    getTrailingIncomeSuggestion
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(latest.promise);
+    const { result } = renderHook(() => useBudget());
+
+    act(() => result.current.setSelectedMonth('2026-06'));
+    act(() => result.current.setSelectedMonth('2026-05'));
+
+    await act(async () => latest.resolve(22_000));
+    expect(setIncomeSuggestionMock).toHaveBeenLastCalledWith(22_000);
+
+    await act(async () => older.resolve(11_000));
+    expect(setIncomeSuggestionMock).toHaveBeenLastCalledWith(22_000);
   });
 
   it('refreshes categories and budget data for the selected month', async () => {
