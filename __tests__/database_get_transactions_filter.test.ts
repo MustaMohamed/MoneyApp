@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
-import { addTransaction, getTransactions } from '@/database/transactions';
+import { getTransactions, insertTransactionRow } from '@/database/transactions';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -105,7 +105,7 @@ async function insert(overrides: Partial<Transaction> = {}) {
     updated_at: NOW,
     ...overrides,
   };
-  await addTransaction(mockDb, tx);
+  await insertTransactionRow(mockDb, tx);
   return tx;
 }
 

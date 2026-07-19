@@ -1,11 +1,48 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
+
 import type { Account } from '../entities/account.entity';
 
 export async function getAccounts(db: SQLiteDatabase): Promise<Account[]> {
   return db.getAllAsync<Account>(
     'SELECT * FROM accounts WHERE is_archived = 0 ORDER BY sort_order ASC, created_at ASC',
   );
+}
+
+export async function getAccountByIdIncludingArchived(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<Account | undefined> {
+  const rows = await db.getAllAsync<Account>('SELECT * FROM accounts WHERE id = ?', [id]);
+  return rows[0];
+}
+
+export async function applyAccountDelta(
+  db: SQLiteDatabase,
+  delta: AccountDelta,
+  updatedAt: string,
+): Promise<void> {
+  const result =
+    delta.revolvingBalance === 0
+      ? await db.runAsync(
+          `UPDATE accounts
+             SET current_balance = current_balance + ?, updated_at = ?
+           WHERE id = ?`,
+          [delta.currentBalance, updatedAt, delta.accountId],
+        )
+      : await db.runAsync(
+          `UPDATE accounts
+             SET current_balance = current_balance + ?,
+                 revolving_balance = COALESCE(revolving_balance, 0) + ?,
+                 updated_at = ?
+           WHERE id = ?`,
+          [delta.currentBalance, delta.revolvingBalance, updatedAt, delta.accountId],
+        );
+
+  if (result.changes !== 1) {
+    throw new Error(`Account delta target not found: ${delta.accountId}`);
+  }
 }
 
 export async function addAccount(db: SQLiteDatabase, account: Account): Promise<void> {

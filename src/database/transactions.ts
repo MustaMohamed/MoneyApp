@@ -1,13 +1,13 @@
 // Backward-compat stub — the canonical queries live in modules/transactions/.
 export {
   getMonthExpenseStats,
-  addTransaction,
+  insertTransactionRow,
   getTransactions,
   getTransactionsByAccount,
   getTransactionById,
-  deleteTransaction,
+  deleteTransactionRow,
   getPeriodTotals,
-  updateTransaction,
+  updateTransactionRow,
 } from '@/modules/transactions/database/transactions';
 export type {
   MonthExpenseStats,

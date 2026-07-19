@@ -8,6 +8,14 @@ export async function getCategories(db: SQLiteDatabase): Promise<Category[]> {
   return db.getAllAsync<Category>('SELECT * FROM categories ORDER BY type ASC, sort_order ASC');
 }
 
+export async function getCategoryById(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<Category | undefined> {
+  const rows = await db.getAllAsync<Category>('SELECT * FROM categories WHERE id = ?', [id]);
+  return rows[0];
+}
+
 export async function getCategoriesByType(
   db: SQLiteDatabase,
   type: 'expense' | 'income',
