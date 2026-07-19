@@ -264,6 +264,7 @@ export const Strings = {
   addTxBudgetLookupError: 'Could not load matching budgets. Try again.',
   addTxBudgetRetryA11y: 'Retry matching budget lookup',
   transactionSaveError: 'Could not save this transaction. Please try again.',
+  viewCommitment: 'View commitment',
   budgetOverPill: 'Over',
   budgetSetTitle: 'Set budget',
   budgetEditTitle: 'Edit budget',

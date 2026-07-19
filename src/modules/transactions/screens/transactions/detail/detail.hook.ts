@@ -13,7 +13,7 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
 import type { BadgeTone } from './components/detail_row';
-import { getAccountTypeIcon } from './detail.helpers';
+import { getAccountTypeIcon, getCommitmentPaymentRoute } from './detail.helpers';
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
 
@@ -123,6 +123,8 @@ export function useTransactionDetail(id: string) {
 
   const viewState: DetailViewState =
     tx === undefined ? 'loading' : tx === null ? 'notFound' : 'ready';
+  const commitmentPaymentId = tx?.commitment_payment_id ?? undefined;
+  const isCommitmentOwned = commitmentPaymentId !== undefined;
 
   const derived = useMemo(() => {
     if (!tx) return null;
@@ -179,13 +181,15 @@ export function useTransactionDetail(id: string) {
     };
   }, [tx, accountsById, categoriesById]);
 
-  const openDeleteConfirm = useCallback(() => setConfirmVisible(true), [setConfirmVisible]);
+  const openDeleteConfirm = useCallback(() => {
+    if (!isCommitmentOwned) setConfirmVisible(true);
+  }, [isCommitmentOwned, setConfirmVisible]);
   const closeDeleteConfirm = useCallback(() => {
     if (!deleting) setConfirmVisible(false);
   }, [deleting, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
-    if (!tx) return;
+    if (!tx || isCommitmentOwned) return;
     setDeleting(true);
     try {
       await deleteTransaction(tx.id);
@@ -197,7 +201,12 @@ export function useTransactionDetail(id: string) {
       setDeleting(false);
       setConfirmVisible(false);
     }
-  }, [tx, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [tx, isCommitmentOwned, deleteTransaction, setDeleting, setConfirmVisible]);
+
+  const openCommitment = useCallback(() => {
+    if (!commitmentPaymentId) return;
+    router.push(getCommitmentPaymentRoute(commitmentPaymentId));
+  }, [commitmentPaymentId]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);
 
@@ -208,10 +217,14 @@ export function useTransactionDetail(id: string) {
       derived,
       confirmVisible,
       deleting,
+      isCommitmentOwned,
+      isEditable: !isCommitmentOwned,
+      isDeletable: !isCommitmentOwned,
     },
     openDeleteConfirm,
     closeDeleteConfirm,
     confirmDelete,
+    openCommitment,
     reload,
   };
 }

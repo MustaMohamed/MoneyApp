@@ -124,28 +124,37 @@ function TransactionRowComponent({
   const handlePress = useCallback(() => onPress(tx.id), [onPress, tx.id]);
   const handleEdit = useCallback(() => onEdit(tx.id), [onEdit, tx.id]);
   const handleDelete = useCallback(() => onDelete(tx.id), [onDelete, tx.id]);
+  const isCommitmentOwned = tx.commitment_payment_id !== null;
   const actions: SwipeAction[] = useMemo(
-    () => [
-      {
-        key: 'edit',
-        label: Strings.swipeEdit,
-        icon: 'pencil-outline',
-        variant: 'neutral',
-        onPress: handleEdit,
-      },
-      {
-        key: 'delete',
-        label: Strings.swipeDelete,
-        icon: 'trash-can-outline',
-        variant: 'destructive',
-        onPress: handleDelete,
-      },
-    ],
-    [handleDelete, handleEdit],
+    () =>
+      isCommitmentOwned
+        ? []
+        : [
+            {
+              key: 'edit',
+              label: Strings.swipeEdit,
+              icon: 'pencil-outline',
+              variant: 'neutral',
+              onPress: handleEdit,
+            },
+            {
+              key: 'delete',
+              label: Strings.swipeDelete,
+              icon: 'trash-can-outline',
+              variant: 'destructive',
+              onPress: handleDelete,
+            },
+          ],
+    [handleDelete, handleEdit, isCommitmentOwned],
   );
 
   return (
-    <SwipeableRow rowId={tx.id} actions={actions} accessibilityLabel={`${title}, ${nativeText}`}>
+    <SwipeableRow
+      rowId={tx.id}
+      actions={actions}
+      disabled={isCommitmentOwned}
+      accessibilityLabel={`${title}, ${nativeText}`}
+    >
       {/*
         animation={false} disables PressableFeedback's built-in scale so it
         does not conflict with the manual Reanimated scale from useRowPressScale.

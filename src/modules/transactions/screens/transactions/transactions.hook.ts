@@ -210,6 +210,7 @@ export function useTransactions() {
         console.warn('[goToEdit] tx not in loaded window:', id);
         return;
       }
+      if (tx.commitment_payment_id !== null) return;
       useEditTransactionStore.getState().loadFromTx(tx);
       useEditTransactionState.getState().open(tx);
     },
