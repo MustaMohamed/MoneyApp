@@ -42,7 +42,7 @@ export interface Transaction {
   to_account_id: string | null;
   /** null for transfer and cc_payment types. */
   category_id: string | null;
-  /** Nullable named monthly budget assignment; expense transactions only. */
+  /** Nullable named monthly budget assignment; expenses and derived Card credits only. */
   budget_id: string | null;
   note: string | null;
   /** ISO date string, e.g. '2026-05-01'. */
