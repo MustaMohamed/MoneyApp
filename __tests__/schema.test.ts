@@ -46,7 +46,7 @@ describe('database schema — TC-15', () => {
     ]);
   });
 
-  it('accounts table has exactly 17 columns in the spec order', () => {
+  it('accounts table has exactly 18 columns in migration order', () => {
     const db = withDb();
     const cols = db.prepare("PRAGMA table_info('accounts')").all() as {
       name: string;
@@ -73,8 +73,9 @@ describe('database schema — TC-15', () => {
       'sort_order',
       'created_at',
       'updated_at',
+      'balance_review_required',
     ]);
-    expect(cols).toHaveLength(17);
+    expect(cols).toHaveLength(18);
   });
 
   it('app_settings is a 2-column key/value store', () => {

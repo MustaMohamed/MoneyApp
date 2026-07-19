@@ -13,7 +13,7 @@ import type { Account } from '../entities/account.entity';
 
 export type NewAccountInput = Omit<
   Account,
-  'id' | 'created_at' | 'updated_at' | 'current_balance' | 'is_archived'
+  'id' | 'created_at' | 'updated_at' | 'current_balance' | 'is_archived' | 'balance_review_required'
 >;
 
 export type UpdateAccountInput = {
@@ -44,6 +44,7 @@ export class AccountRepository implements IAccountRepository {
       id,
       current_balance: data.opening_balance,
       is_archived: 0,
+      balance_review_required: 0,
       created_at: now,
       updated_at: now,
     };

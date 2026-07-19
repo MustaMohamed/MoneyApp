@@ -50,6 +50,7 @@ const mockAccountEGP: Account = {
   statement_due_day: null,
   interest_tracking: 0,
   apr: null,
+  balance_review_required: 0,
   is_archived: 0,
   sort_order: 0,
   created_at: 'now',
