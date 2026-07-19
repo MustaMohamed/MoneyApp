@@ -14,6 +14,7 @@ describe('accountDetailState initial state', () => {
     expect(state.isSaving).toBe(false);
     expect(state.isAdjusting).toBe(false);
     expect(state.isArchiving).toBe(false);
+    expect(state.isConfirmingBalanceReview).toBe(false);
   });
 });
 
@@ -66,6 +67,14 @@ describe('accountDetailState setters', () => {
     useAccountDetailState.getState().setArchiving(false);
     expect(useAccountDetailState.getState().isArchiving).toBe(false);
   });
+
+  it('setConfirmingBalanceReview toggles', () => {
+    useAccountDetailState.getState().setConfirmingBalanceReview(true);
+    expect(useAccountDetailState.getState().isConfirmingBalanceReview).toBe(true);
+
+    useAccountDetailState.getState().setConfirmingBalanceReview(false);
+    expect(useAccountDetailState.getState().isConfirmingBalanceReview).toBe(false);
+  });
 });
 
 describe('accountDetailState reset', () => {
@@ -80,6 +89,7 @@ describe('accountDetailState reset', () => {
     useAccountDetailState.getState().setSaving(true);
     useAccountDetailState.getState().setAdjusting(true);
     useAccountDetailState.getState().setArchiving(true);
+    useAccountDetailState.getState().setConfirmingBalanceReview(true);
 
     useAccountDetailState.getState().reset();
 
@@ -90,5 +100,6 @@ describe('accountDetailState reset', () => {
     expect(state.isSaving).toBe(false);
     expect(state.isAdjusting).toBe(false);
     expect(state.isArchiving).toBe(false);
+    expect(state.isConfirmingBalanceReview).toBe(false);
   });
 });

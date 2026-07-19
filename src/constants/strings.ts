@@ -146,6 +146,12 @@ export const Strings = {
   accountDetailArchiveBody: 'This account will be hidden from your dashboard and all calculations.',
   accountDetailArchiveCCWarning: 'Outstanding credit card balance will still affect net worth.',
   accountDetailArchiveConfirm: 'Archive',
+  accountBalanceReviewTitle: 'Review this card balance',
+  accountBalanceReviewBody:
+    'Older transactions may have affected this balance. Check it against your card statement.',
+  accountBalanceReviewAdjust: 'Adjust balance',
+  accountBalanceReviewConfirm: 'Balance is correct',
+  accountBalanceReviewError: 'Could not confirm this balance. Please try again.',
 
   // §9 Account Detail — balance hero captions
   accountHeroOpening: (amount: string, currency: string) => `Opening ${amount} ${currency}`,

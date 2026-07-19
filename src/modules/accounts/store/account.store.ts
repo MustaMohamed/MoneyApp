@@ -31,6 +31,7 @@ export type AccountStore = typeof INITIAL_STATE & {
   updateAccount: (id: string, data: UpdateAccountInput) => Promise<void>;
   archiveAccount: (id: string) => Promise<void>;
   adjustBalance: (id: string, newBalance: number) => Promise<void>;
+  confirmBalanceReviewed: (id: string) => Promise<void>;
   reset: () => void;
 };
 
@@ -112,6 +113,16 @@ export function createAccountStore(repo: IAccountRepository) {
           await get().loadAccounts();
         } catch (err) {
           console.error('[accountStore] adjustBalance failed:', err);
+          throw err;
+        }
+      },
+
+      confirmBalanceReviewed: async (id) => {
+        try {
+          await repo.confirmBalanceReviewed(id);
+          await get().loadAccounts();
+        } catch (err) {
+          console.error('[accountStore] confirmBalanceReviewed failed:', err);
           throw err;
         }
       },

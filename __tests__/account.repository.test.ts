@@ -28,8 +28,8 @@ beforeAll(() => {
 
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    realDb.prepare(sql).run(...(params as never[]));
-    return { changes: 1, lastInsertRowId: 1 };
+    const result = realDb.prepare(sql).run(...(params as never[]));
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
 
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
@@ -319,6 +319,45 @@ describe('AccountRepository.adjustBalance — TC-M15-03', () => {
       }
     ).updated_at;
     expect(after).not.toBe(before);
+  });
+
+  it('clears the legacy balance-review flag in the same update', async () => {
+    await repo.add({ ...baseInput, type: AccountType.CreditCard, credit_limit: 5000 });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    realDb.prepare('UPDATE accounts SET balance_review_required = 1 WHERE id = ?').run(id);
+
+    await repo.adjustBalance(id, 750);
+
+    const row = realDb
+      .prepare('SELECT current_balance, balance_review_required FROM accounts WHERE id = ?')
+      .get(id) as { balance_review_required: number; current_balance: number };
+    expect(row).toEqual({ current_balance: 750, balance_review_required: 0 });
+  });
+});
+
+describe('AccountRepository.confirmBalanceReviewed', () => {
+  it('clears the flag without changing the card balance', async () => {
+    await repo.add({
+      ...baseInput,
+      type: AccountType.CreditCard,
+      credit_limit: 5000,
+      opening_balance: 1250,
+    });
+    const id = (realDb.prepare('SELECT id FROM accounts').get() as { id: string }).id;
+    realDb.prepare('UPDATE accounts SET balance_review_required = 1 WHERE id = ?').run(id);
+
+    await repo.confirmBalanceReviewed(id);
+
+    const row = realDb
+      .prepare('SELECT current_balance, balance_review_required FROM accounts WHERE id = ?')
+      .get(id) as { balance_review_required: number; current_balance: number };
+    expect(row).toEqual({ current_balance: 1250, balance_review_required: 0 });
+  });
+
+  it('rejects when the account does not exist', async () => {
+    await expect(repo.confirmBalanceReviewed('missing')).rejects.toThrow(
+      'Account balance review target not found',
+    );
   });
 });
 

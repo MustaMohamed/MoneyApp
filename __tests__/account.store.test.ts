@@ -52,6 +52,7 @@ function makeRepo(overrides: Partial<IAccountRepository> = {}): IAccountReposito
     update: jest.fn().mockResolvedValue(undefined),
     archive: jest.fn().mockResolvedValue(undefined),
     adjustBalance: jest.fn().mockResolvedValue(undefined),
+    confirmBalanceReviewed: jest.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -275,6 +276,28 @@ describe('accountStore.adjustBalance', () => {
     });
     const store = createAccountStore(repo);
     await expect(store.getState().adjustBalance('test-id', 0)).rejects.toThrow('db error');
+  });
+});
+
+describe('accountStore.confirmBalanceReviewed', () => {
+  it('delegates to the repository and reloads accounts', async () => {
+    const repo = makeRepo({ getAll: jest.fn().mockResolvedValue([mockAccount]) });
+    const store = createAccountStore(repo);
+
+    await store.getState().confirmBalanceReviewed('test-id');
+
+    expect(repo.confirmBalanceReviewed).toHaveBeenCalledWith('test-id');
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the current state and propagates repository failures', async () => {
+    const repo = makeRepo({
+      confirmBalanceReviewed: jest.fn().mockRejectedValue(new Error('db error')),
+    });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().confirmBalanceReviewed('test-id')).rejects.toThrow('db error');
+    expect(repo.getAll).not.toHaveBeenCalled();
   });
 });
 

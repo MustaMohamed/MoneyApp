@@ -20,6 +20,8 @@ import { useAccountDetail } from './account_detail.hook';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
 import { ArchiveConfirmationDialog } from './components/archive_confirmation_dialog';
 import { BalanceHero } from './components/balance_hero';
+import { BalanceReviewAlert } from './components/balance_review_alert';
+import { shouldShowBalanceReview } from './components/balance_review_alert.helpers';
 
 const hitSlop = { top: 8, bottom: 8, left: 8, right: 8 };
 
@@ -33,6 +35,7 @@ export default function AccountDetailScreen() {
       isSaving,
       isAdjusting,
       isArchiving,
+      isConfirmingBalanceReview,
     },
     form,
     setEditing,
@@ -41,6 +44,7 @@ export default function AccountDetailScreen() {
     handleAdjustBalance,
     setArchiveVisible,
     handleArchive,
+    handleConfirmBalanceReviewed,
     onBack,
   } = useAccountDetail();
   const { headerStyle, triggerEditToggle, fieldEntering, fieldExiting } = useAccountDetailAnim();
@@ -95,6 +99,16 @@ export default function AccountDetailScreen() {
         showsVerticalScrollIndicator={false}
       >
         <BalanceHero account={account} />
+
+        {!isEditing && shouldShowBalanceReview(account) ? (
+          <BalanceReviewAlert
+            onAdjust={() => setAdjustVisible(true)}
+            onConfirm={() => {
+              void handleConfirmBalanceReviewed();
+            }}
+            isConfirming={isConfirmingBalanceReview}
+          />
+        ) : null}
 
         {isEditing && (
           <Animated.View entering={fieldEntering} exiting={fieldExiting} className="mx-4 mt-4">

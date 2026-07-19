@@ -120,9 +120,29 @@ export async function setAccountBalance(
   newBalance: number,
   updated_at: string,
 ): Promise<void> {
-  await db.runAsync('UPDATE accounts SET current_balance = ?, updated_at = ? WHERE id = ?', [
-    newBalance,
-    updated_at,
-    id,
-  ]);
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET current_balance = ?, balance_review_required = 0, updated_at = ?
+      WHERE id = ?`,
+    [newBalance, updated_at, id],
+  );
+  if (result.changes !== 1) {
+    throw new Error(`Account balance target not found: ${id}`);
+  }
+}
+
+export async function clearAccountBalanceReview(
+  db: SQLiteDatabase,
+  id: string,
+  updated_at: string,
+): Promise<void> {
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET balance_review_required = 0, updated_at = ?
+      WHERE id = ?`,
+    [updated_at, id],
+  );
+  if (result.changes !== 1) {
+    throw new Error(`Account balance review target not found: ${id}`);
+  }
 }

@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
+import { Alert } from 'react-native';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -19,23 +20,33 @@ export function useAccountDetail() {
   const updateAccount = useAccountStore.getState().updateAccount;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const adjustBalance = useAccountStore.getState().adjustBalance;
-  const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
-    useAccountDetailState(
-      useShallow((s) => ({
-        isEditing: s.isEditing,
-        isAdjustVisible: s.isAdjustVisible,
-        isArchiveVisible: s.isArchiveVisible,
-        isSaving: s.isSaving,
-        isAdjusting: s.isAdjusting,
-        isArchiving: s.isArchiving,
-      })),
-    );
+  const confirmBalanceReviewed = useAccountStore.getState().confirmBalanceReviewed;
+  const {
+    isEditing,
+    isAdjustVisible,
+    isArchiveVisible,
+    isSaving,
+    isAdjusting,
+    isArchiving,
+    isConfirmingBalanceReview,
+  } = useAccountDetailState(
+    useShallow((s) => ({
+      isEditing: s.isEditing,
+      isAdjustVisible: s.isAdjustVisible,
+      isArchiveVisible: s.isArchiveVisible,
+      isSaving: s.isSaving,
+      isAdjusting: s.isAdjusting,
+      isArchiving: s.isArchiving,
+      isConfirmingBalanceReview: s.isConfirmingBalanceReview,
+    })),
+  );
   const setEditing = useAccountDetailState.getState().setEditing;
   const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
   const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
   const setSaving = useAccountDetailState.getState().setSaving;
   const setAdjusting = useAccountDetailState.getState().setAdjusting;
   const setArchiving = useAccountDetailState.getState().setArchiving;
+  const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
   const reset = useAccountDetailState.getState().reset;
   useEffect(() => () => reset(), [reset]);
 
@@ -117,6 +128,19 @@ export function useAccountDetail() {
     }
   };
 
+  const handleConfirmBalanceReviewed = async () => {
+    if (!id || isConfirmingBalanceReview) return;
+    setConfirmingBalanceReview(true);
+    try {
+      await confirmBalanceReviewed(id);
+    } catch (error) {
+      console.error('[accountDetail] confirmBalanceReviewed failed:', error);
+      Alert.alert(Strings.accountBalanceReviewError);
+    } finally {
+      setConfirmingBalanceReview(false);
+    }
+  };
+
   const onBack = () => {
     if (isEditing) {
       setEditing(false);
@@ -134,6 +158,7 @@ export function useAccountDetail() {
       isSaving,
       isAdjusting,
       isArchiving,
+      isConfirmingBalanceReview,
     },
     form,
     setEditing,
@@ -142,6 +167,7 @@ export function useAccountDetail() {
     handleAdjustBalance,
     setArchiveVisible,
     handleArchive,
+    handleConfirmBalanceReviewed,
     onBack,
   };
 }

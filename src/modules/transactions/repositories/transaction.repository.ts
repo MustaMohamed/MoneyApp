@@ -1,6 +1,6 @@
 import uuid from 'react-native-uuid';
 
-import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
+import { CategoryType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import {

@@ -5,6 +5,7 @@ import { getDb } from '@/database/client';
 import {
   addAccount,
   archiveAccount,
+  clearAccountBalanceReview,
   getAccountByIdIncludingArchived,
   getAccountsByIdsIncludingArchived,
   getAccounts,
@@ -31,6 +32,7 @@ export interface IAccountRepository {
   update(id: string, data: UpdateAccountInput): Promise<void>;
   archive(id: string): Promise<void>;
   adjustBalance(id: string, newBalance: number): Promise<void>;
+  confirmBalanceReviewed(id: string): Promise<void>;
 }
 
 export class AccountRepository implements IAccountRepository {
@@ -79,6 +81,11 @@ export class AccountRepository implements IAccountRepository {
   async adjustBalance(id: string, newBalance: number): Promise<void> {
     const db = await getDb();
     await setAccountBalance(db, id, newBalance, new Date().toISOString());
+  }
+
+  async confirmBalanceReviewed(id: string): Promise<void> {
+    const db = await getDb();
+    await clearAccountBalanceReview(db, id, new Date().toISOString());
   }
 }
 

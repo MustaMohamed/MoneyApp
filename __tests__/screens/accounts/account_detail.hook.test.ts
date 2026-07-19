@@ -29,7 +29,9 @@ const mockSetArchiveVisible = jest.fn();
 const mockSetSaving = jest.fn();
 const mockSetAdjusting = jest.fn();
 const mockSetArchiving = jest.fn();
+const mockSetConfirmingBalanceReview = jest.fn();
 const mockReset = jest.fn();
+const mockConfirmBalanceReviewed = jest.fn();
 
 type DetailStateMock = {
   isEditing: boolean;
@@ -38,12 +40,14 @@ type DetailStateMock = {
   isSaving: boolean;
   isAdjusting: boolean;
   isArchiving: boolean;
+  isConfirmingBalanceReview: boolean;
   setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
   setSaving: jest.Mock;
   setAdjusting: jest.Mock;
   setArchiving: jest.Mock;
+  setConfirmingBalanceReview: jest.Mock;
   reset: jest.Mock;
 };
 
@@ -55,12 +59,14 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     isSaving: false,
     isAdjusting: false,
     isArchiving: false,
+    isConfirmingBalanceReview: false,
     setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
     setSaving: mockSetSaving,
     setAdjusting: mockSetAdjusting,
     setArchiving: mockSetArchiving,
+    setConfirmingBalanceReview: mockSetConfirmingBalanceReview,
     reset: mockReset,
     ...overrides,
   };
@@ -80,6 +86,7 @@ function setup() {
     updateAccount: jest.fn(),
     archiveAccount: jest.fn(),
     adjustBalance: jest.fn(),
+    confirmBalanceReviewed: mockConfirmBalanceReviewed,
   }));
   mockDetailState();
 }
@@ -105,6 +112,7 @@ describe('useAccountDetail', () => {
     expect(result.current.state.isSaving).toBe(false);
     expect(result.current.state.isAdjusting).toBe(false);
     expect(result.current.state.isArchiving).toBe(false);
+    expect(result.current.state.isConfirmingBalanceReview).toBe(false);
   });
 
   it('exposes the handler surface the screen consumes', () => {
@@ -112,7 +120,19 @@ describe('useAccountDetail', () => {
     expect(typeof result.current.handleSave).toBe('function');
     expect(typeof result.current.handleAdjustBalance).toBe('function');
     expect(typeof result.current.handleArchive).toBe('function');
+    expect(typeof result.current.handleConfirmBalanceReviewed).toBe('function');
     expect(typeof result.current.onBack).toBe('function');
+  });
+
+  it('confirms the legacy card balance without changing its amount', async () => {
+    mockConfirmBalanceReviewed.mockResolvedValue(undefined);
+    const { result } = renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleConfirmBalanceReviewed());
+
+    expect(mockConfirmBalanceReviewed).toHaveBeenCalledWith('acc-1');
+    expect(mockSetConfirmingBalanceReview).toHaveBeenNthCalledWith(1, true);
+    expect(mockSetConfirmingBalanceReview).toHaveBeenLastCalledWith(false);
   });
 
   it('leaves edit mode instead of navigating back when editing', () => {
