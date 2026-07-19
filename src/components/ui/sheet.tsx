@@ -172,6 +172,11 @@ export interface SheetProps {
    */
   fitContent?: boolean;
   /**
+   * Whether the user can dismiss the sheet through the overlay, pan-down
+   * gesture, or header close button. Defaults to true.
+   */
+  isDismissable?: boolean;
+  /**
    * Sticky footer rendered via gorhom footerComponent. Pass a BARE CTA — the
    * footer shell adds surface bg, top hairline, horizontal padding, and a
    * safe-area bottom inset. Do NOT wrap it in your own px/pt/pb (double-pads).
@@ -190,6 +195,7 @@ export function Sheet({
   snapPoints,
   scrollable = false,
   fitContent = false,
+  isDismissable = true,
   footer,
   children,
 }: SheetProps) {
@@ -263,13 +269,13 @@ export function Sheet({
   return (
     <BottomSheet isOpen={isOpen} onOpenChange={onOpenChange}>
       <BottomSheet.Portal>
-        <BottomSheet.Overlay />
+        <BottomSheet.Overlay isCloseOnPress={isDismissable} />
         <BottomSheet.Content
           {...contentSizingProps}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
           android_keyboardInputMode="adjustResize"
-          enablePanDownToClose
+          enablePanDownToClose={isDismissable}
           backgroundClassName="bg-surface"
           handleIndicatorClassName="bg-border"
           {...(footer !== undefined ? { footerComponent: renderFooter } : {})}
@@ -306,6 +312,7 @@ export function Sheet({
               </BottomSheet.Title>
               <BottomSheet.Close
                 testID="sheet-close-btn"
+                isDisabled={!isDismissable}
                 iconProps={{ size: ms(24), color: Colors.dark.text2 }}
               />
             </View>

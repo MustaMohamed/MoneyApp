@@ -1,3 +1,4 @@
+import { BudgetGroup } from '@/constants/enums';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 
 beforeEach(() => useBudgetState.getState().reset());
@@ -22,5 +23,68 @@ describe('useBudgetState — lensTab', () => {
     useBudgetState.getState().setLensTab('fiftythirty');
     useBudgetState.getState().reset();
     expect(useBudgetState.getState().lensTab).toBe('categories');
+  });
+});
+
+describe('useBudgetState — 50/30/20 rule expansion', () => {
+  it('starts with no expanded budget group', () => {
+    expect(useBudgetState.getState().expandedBudgetGroup).toBeUndefined();
+  });
+
+  it('keeps one expanded budget group and collapses it when selected again', () => {
+    useBudgetState.getState().setExpandedBudgetGroup(BudgetGroup.Need);
+    expect(useBudgetState.getState().expandedBudgetGroup).toBe(BudgetGroup.Need);
+
+    useBudgetState.getState().setExpandedBudgetGroup(BudgetGroup.Want);
+    expect(useBudgetState.getState().expandedBudgetGroup).toBe(BudgetGroup.Want);
+
+    useBudgetState.getState().setExpandedBudgetGroup(BudgetGroup.Want);
+    expect(useBudgetState.getState().expandedBudgetGroup).toBeUndefined();
+  });
+
+  it('keeps rule expansion separate from category expansion', () => {
+    useBudgetState.getState().setExpandedCategoryId('cat_food');
+    useBudgetState.getState().setExpandedBudgetGroup(BudgetGroup.Savings);
+
+    expect(useBudgetState.getState().expandedCategoryId).toBe('cat_food');
+    expect(useBudgetState.getState().expandedBudgetGroup).toBe(BudgetGroup.Savings);
+  });
+
+  it('clears rule expansion when the selected month changes', () => {
+    useBudgetState.getState().setExpandedBudgetGroup(BudgetGroup.Need);
+    useBudgetState.getState().setSelectedMonth('2026-08');
+
+    expect(useBudgetState.getState().expandedBudgetGroup).toBeUndefined();
+  });
+
+  it('clears rule expansion when state resets', () => {
+    useBudgetState.getState().setExpandedBudgetGroup(BudgetGroup.Need);
+    useBudgetState.getState().reset();
+
+    expect(useBudgetState.getState().expandedBudgetGroup).toBeUndefined();
+  });
+});
+
+describe('useBudgetState — contextual budget creation', () => {
+  it('opens add mode with a category and rule group context', () => {
+    useBudgetState.getState().openAddWithContext('cat_food', BudgetGroup.Need);
+
+    expect(useBudgetState.getState()).toMatchObject({
+      sheetVisible: true,
+      mode: 'add',
+      addCategoryId: 'cat_food',
+      addBudgetGroup: BudgetGroup.Need,
+    });
+  });
+
+  it('clears add context when the sheet closes', () => {
+    useBudgetState.getState().openAddWithContext('cat_food', BudgetGroup.Need);
+    useBudgetState.getState().close();
+
+    expect(useBudgetState.getState()).toMatchObject({
+      sheetVisible: false,
+      addCategoryId: undefined,
+      addBudgetGroup: undefined,
+    });
   });
 });

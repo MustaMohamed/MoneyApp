@@ -1,10 +1,16 @@
 import type { Budget } from '@/modules/budget/entities/budget.entity';
-import { createBudgetStore, useBudgetStore } from '@/modules/budget/store/budget.store';
-import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
+import {
+  createBudgetStore,
+  type BudgetStoreRepository,
+  useBudgetStore,
+} from '@/modules/budget/store/budget.store';
 
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {
     copyBudgetsToMonth: jest.fn().mockResolvedValue(undefined),
+    copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
+    getCategoryGroups: jest.fn().mockResolvedValue({}),
+    getExpectedIncome: jest.fn().mockResolvedValue(null),
     getRows: jest.fn().mockResolvedValue([]),
     getSpendByBudget: jest.fn().mockResolvedValue({}),
     getSpendByMonth: jest.fn().mockResolvedValue({}),
@@ -12,6 +18,8 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
     removeBudget: jest.fn().mockResolvedValue(undefined),
     removeSpendingPlan: jest.fn().mockResolvedValue(undefined),
     setBudget: jest.fn().mockResolvedValue(undefined),
+    setExpectedIncome: jest.fn().mockResolvedValue(undefined),
+    setLimit: jest.fn().mockResolvedValue(undefined),
     setSpendingPlan: jest.fn().mockResolvedValue(undefined),
   },
   currentYearMonth: jest.fn(() => '2026-05'),
@@ -21,23 +29,15 @@ jest.mock('@/modules/budget/repositories/budget.repository', () => ({
 const { budgetRepository: mockBudgetRepository } = jest.requireMock(
   '@/modules/budget/repositories/budget.repository',
 ) as {
-  budgetRepository: {
-    copyBudgetsToMonth: jest.Mock<Promise<void>, [string, string, string[]]>;
-    getRows: jest.Mock<Promise<Budget[]>, []>;
-    getSpendByBudget: jest.Mock<Promise<Record<string, number>>, [string[]]>;
-    getSpendByMonth: jest.Mock<Promise<Record<string, Record<string, number>>>, [string[]]>;
-    getSpendingPlansForMonth: jest.Mock<Promise<{ plans: []; spendByPlanId: {} }>, [string]>;
-    removeBudget: jest.Mock<Promise<void>, [string, string?]>;
-    removeSpendingPlan: jest.Mock<Promise<void>, [string]>;
-    setBudget: jest.Mock<Promise<void>, [unknown]>;
-    setSpendingPlan: jest.Mock<Promise<void>, [unknown]>;
-  };
+  budgetRepository: jest.Mocked<BudgetStoreRepository>;
 };
 
 beforeEach(() => {
   jest.clearAllMocks();
   useBudgetStore.getState().reset();
   mockBudgetRepository.getRows.mockResolvedValue([]);
+  mockBudgetRepository.getExpectedIncome.mockResolvedValue(null);
+  mockBudgetRepository.getCategoryGroups.mockResolvedValue({});
   mockBudgetRepository.getSpendByBudget.mockResolvedValue({});
   mockBudgetRepository.getSpendByMonth.mockResolvedValue({});
   mockBudgetRepository.getSpendingPlansForMonth.mockResolvedValue({ plans: [], spendByPlanId: {} });
@@ -60,17 +60,14 @@ describe('useBudgetStore', () => {
     expect(s.rows).toEqual([]);
     expect(s.spendByMonth).toEqual({});
     expect(s.spendByBudgetId).toEqual({});
+    expect(s.budgetGroupByCategoryId).toEqual({});
     expect(s.loaded).toBe(false);
     expect(s.expectedIncome).toBeNull();
     expect(s.loadError).toBe(false);
   });
 
   it('exposes a recoverable error when the first load fails', async () => {
-    const appSettingsRepo: IAppSettingsRepository = {
-      get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue(undefined),
-    };
-    const store = createBudgetStore(appSettingsRepo);
+    const store = createBudgetStore(mockBudgetRepository);
     mockBudgetRepository.getSpendingPlansForMonth.mockRejectedValueOnce(
       new Error('plan query failed'),
     );
@@ -87,7 +84,9 @@ describe('useBudgetStore', () => {
   });
 
   it('setData stores rows + spend and flips loaded', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, { b1: 1800 }, null, [], {});
+    useBudgetStore
+      .getState()
+      .setData([r], { a: { '2026-05': 2400 } }, { b1: 1800 }, null, {}, [], {});
     const s = useBudgetStore.getState();
     expect(s.rows).toEqual([r]);
     expect(s.spendByMonth.a['2026-05']).toBe(2400);
@@ -96,7 +95,9 @@ describe('useBudgetStore', () => {
   });
 
   it('reset returns to initial', () => {
-    useBudgetStore.getState().setData([r], { a: { '2026-05': 2400 } }, { b1: 1800 }, null, [], {});
+    useBudgetStore
+      .getState()
+      .setData([r], { a: { '2026-05': 2400 } }, { b1: 1800 }, null, {}, [], {});
     useBudgetStore.getState().reset();
     expect(useBudgetStore.getState().loaded).toBe(false);
   });
@@ -107,11 +108,7 @@ describe('useBudgetStore', () => {
   });
 
   it('loads named-budget spending for the monthly history window', async () => {
-    const appSettingsRepo: IAppSettingsRepository = {
-      get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue(undefined),
-    };
-    const store = createBudgetStore(appSettingsRepo);
+    const store = createBudgetStore(mockBudgetRepository);
     mockBudgetRepository.getSpendByBudget.mockResolvedValue({ b1: 1750 });
 
     await store.getState().load('2026-05');
@@ -121,11 +118,7 @@ describe('useBudgetStore', () => {
   });
 
   it('setBudget persists a named budget and reloads the target month', async () => {
-    const appSettingsRepo: IAppSettingsRepository = {
-      get: jest.fn().mockResolvedValue(null),
-      set: jest.fn().mockResolvedValue(undefined),
-    };
-    const store = createBudgetStore(appSettingsRepo);
+    const store = createBudgetStore(mockBudgetRepository);
 
     await store.getState().setBudget({
       categoryId: 'food',

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { BudgetGroup } from '@/constants/enums';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
 import { previousYearMonth } from '@/modules/budget/screens/budget/budget.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
@@ -12,6 +13,8 @@ interface BudgetStateShape {
   sheetVisible: boolean;
   mode: BudgetSheetMode;
   targetBudgetId: string | undefined;
+  addCategoryId: string | undefined;
+  addBudgetGroup: BudgetGroup | undefined;
   planSheetVisible: boolean;
   planSheetMode: SpendingPlanSheetMode;
   targetPlanId: string | undefined;
@@ -23,10 +26,12 @@ interface BudgetStateShape {
   incomeSuggestion: number | null;
   refreshing: boolean;
   expandedCategoryId: string | undefined;
+  expandedBudgetGroup: BudgetGroup | undefined;
 }
 
 type BudgetState = BudgetStateShape & {
   openAdd: () => void;
+  openAddWithContext: (categoryId: string | undefined, group: BudgetGroup) => void;
   openEdit: (budgetId: string) => void;
   close: () => void;
   openAddPlan: () => void;
@@ -44,6 +49,7 @@ type BudgetState = BudgetStateShape & {
   setIncomeSuggestion: (suggestion: number | null) => void;
   setRefreshing: (refreshing: boolean) => void;
   setExpandedCategoryId: (categoryId: string | undefined) => void;
+  setExpandedBudgetGroup: (group: BudgetGroup | undefined) => void;
   reset: () => void;
 };
 
@@ -53,6 +59,8 @@ function initialState(): BudgetStateShape {
     sheetVisible: false,
     mode: 'add',
     targetBudgetId: undefined,
+    addCategoryId: undefined,
+    addBudgetGroup: undefined,
     planSheetVisible: false,
     planSheetMode: 'add',
     targetPlanId: undefined,
@@ -64,6 +72,7 @@ function initialState(): BudgetStateShape {
     incomeSuggestion: null,
     refreshing: false,
     expandedCategoryId: undefined,
+    expandedBudgetGroup: undefined,
   };
 }
 
@@ -75,14 +84,26 @@ export const useBudgetState = createMoneyAppSelectors(
         sheetVisible: true,
         mode: 'add',
         targetBudgetId: undefined,
+        addCategoryId: undefined,
+        addBudgetGroup: undefined,
+      }),
+    openAddWithContext: (categoryId, group) =>
+      set({
+        sheetVisible: true,
+        mode: 'add',
+        targetBudgetId: undefined,
+        addCategoryId: categoryId,
+        addBudgetGroup: group,
       }),
     openEdit: (budgetId) =>
       set({
         sheetVisible: true,
         mode: 'edit',
         targetBudgetId: budgetId,
+        addCategoryId: undefined,
+        addBudgetGroup: undefined,
       }),
-    close: () => set({ sheetVisible: false }),
+    close: () => set({ sheetVisible: false, addCategoryId: undefined, addBudgetGroup: undefined }),
     openAddPlan: () =>
       set({
         planSheetVisible: true,
@@ -102,6 +123,7 @@ export const useBudgetState = createMoneyAppSelectors(
         selectedMonth: month,
         copySourceMonth: previousYearMonth(month),
         expandedCategoryId: undefined,
+        expandedBudgetGroup: undefined,
       }),
     setCopySourceMonth: (month) => set({ copySourceMonth: month }),
     resetSelectedMonthToCurrent: () => {
@@ -110,6 +132,7 @@ export const useBudgetState = createMoneyAppSelectors(
         selectedMonth,
         copySourceMonth: previousYearMonth(selectedMonth),
         expandedCategoryId: undefined,
+        expandedBudgetGroup: undefined,
       });
     },
     openCopy: (budgetIds = []) => set({ copySheetVisible: true, copySelectedBudgetIds: budgetIds }),
@@ -133,6 +156,10 @@ export const useBudgetState = createMoneyAppSelectors(
     setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
     setRefreshing: (refreshing) => set({ refreshing }),
     setExpandedCategoryId: (categoryId) => set({ expandedCategoryId: categoryId }),
+    setExpandedBudgetGroup: (group) =>
+      set((state) => ({
+        expandedBudgetGroup: state.expandedBudgetGroup === group ? undefined : group,
+      })),
     reset: () => set(initialState()),
   })),
 );

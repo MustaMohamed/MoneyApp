@@ -1,14 +1,18 @@
-import { Input, Text as HeroText } from 'heroui-native';
+import { Text as HeroText } from 'heroui-native';
+import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Sheet, useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Strings } from '@/constants/strings';
 import { useIncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet.hook';
 
 export function IncomeSheet() {
-  const { state, close, setAmountText, save } = useIncomeSheet();
+  const { state, control, close, setAmountText, save } = useIncomeSheet();
   const { onFocus, onBlur } = useBottomSheetAwareHandlers();
+  const amountLabel = Strings.incomeSheetAmountLabel(state.monthLabel);
+  const amountAccessibilityLabel = `${amountLabel}, ${Strings.currencyEgp}`;
 
   return (
     <Sheet
@@ -18,44 +22,66 @@ export function IncomeSheet() {
       }}
       title={Strings.incomeSheetTitle}
       size="sm"
+      isDismissable={!state.saving}
       footer={
         <Button
           variant="primary"
           label={Strings.incomeSheetSaveCta}
           isLoading={state.saving}
+          isDisabled={state.saving}
           onPress={() => void save()}
         />
       }
     >
       <View className="px-4 pt-2">
-        <HeroText className="font-inter text-muted mb-2 text-[11px] font-medium">
-          {Strings.incomeSheetAmountLabel}
+        <HeroText className="font-inter text-muted mb-4 text-[12px] leading-5">
+          {Strings.incomeSheetDescription(state.monthLabel)}
         </HeroText>
-        <View className="bg-background border-accent flex-row items-center rounded-lg border px-3 py-2">
-          <Input
-            value={state.amountText}
-            onChangeText={setAmountText}
-            onFocus={onFocus}
-            onBlur={onBlur}
-            keyboardType="number-pad"
-            placeholder={Strings.incomeSheetAmountPlaceholder}
-            placeholderColorClassName="text-muted"
-            className="font-sora text-foreground flex-1 border-0 bg-transparent p-0 text-[20px] font-bold"
-            accessibilityLabel={Strings.incomeSheetAmountLabel}
+        <Controller
+          control={control}
+          name="amountText"
+          render={({ field: { value, onBlur: onFieldBlur }, fieldState }) => {
+            const errorMessage = fieldState.error?.message ?? state.errorMessage;
+            return (
+              <Input
+                value={value}
+                onChangeText={setAmountText}
+                onFocus={onFocus}
+                onBlur={(event) => {
+                  onFieldBlur();
+                  onBlur(event);
+                }}
+                keyboardType="number-pad"
+                placeholder={Strings.incomeSheetAmountPlaceholder}
+                placeholderColorClassName="text-muted"
+                label={amountLabel}
+                helperText={
+                  state.suggestion !== null && value === String(state.suggestion)
+                    ? Strings.incomeSheetSuggestionNote
+                    : undefined
+                }
+                suffix={
+                  <HeroText className="font-inter text-muted text-[13px] font-semibold">
+                    {Strings.currencyEgp}
+                  </HeroText>
+                }
+                isInvalid={errorMessage !== undefined}
+                errorMessage={errorMessage}
+                isDisabled={state.saving}
+                className="font-sora text-foreground text-[20px] font-bold"
+                accessibilityLabel={amountAccessibilityLabel}
+                accessibilityHint={errorMessage}
+              />
+            );
+          }}
+        />
+        {state.errorMessage || state.validationMessage ? (
+          <View
+            accessible
+            accessibilityRole="alert"
+            accessibilityLiveRegion="assertive"
+            accessibilityLabel={state.errorMessage ?? state.validationMessage}
           />
-          <HeroText className="font-inter text-muted text-[13px] font-semibold">
-            {Strings.currencyEgp}
-          </HeroText>
-        </View>
-        {state.suggestion !== null && state.amountText === String(state.suggestion) ? (
-          <HeroText className="font-inter text-muted mt-2 text-[10px] italic">
-            {Strings.incomeSheetSuggestionNote}
-          </HeroText>
-        ) : null}
-        {state.errorMessage ? (
-          <HeroText className="font-inter text-danger mt-2 text-[11px] font-medium">
-            {state.errorMessage}
-          </HeroText>
         ) : null}
       </View>
     </Sheet>

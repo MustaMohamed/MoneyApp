@@ -1,8 +1,8 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CategoryType } from '@/constants/enums';
+import { BudgetGroup, CategoryType } from '@/constants/enums';
 import { getDb } from '@/database/client';
 import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
@@ -13,8 +13,9 @@ import {
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
-  computeBuckets,
-  type BucketsVM,
+  buildBudgetRuleLens,
+  hasBudgetRuleIncome,
+  resolveBudgetRuleGroup,
 } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import type { NamedBudgetVM } from '@/modules/budget/screens/budget/budget_categories.types';
 import { useIncomeSheetState } from '@/modules/budget/screens/budget/components/income_sheet.state';
@@ -22,12 +23,13 @@ import { buildSpendingPlanRows } from '@/modules/budget/screens/budget/spending_
 import { computeSpendingPlansSummary } from '@/modules/budget/screens/budget/spending_plans_summary.helpers';
 import { useBudgetStore } from '@/modules/budget/store/budget.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import { toLocalDateString } from '@/utils/format_date';
+import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
 export interface BudgetEditTargetVM extends NamedBudgetVM {
   categoryId: string;
   categoryName: string;
+  categoryGroup: BudgetGroup | null;
   icon: string;
   color: string;
   limit: number;
@@ -35,6 +37,7 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
 
 export function useBudget() {
   const router = useRouter();
+  const incomeSuggestionRequest = useRef(0);
 
   const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
     useShallow((s) => ({
@@ -53,6 +56,7 @@ export function useBudget() {
     budgetLoaded,
     loadedMonth,
     expectedIncome,
+    budgetGroupByCategoryId,
     loadError,
   } = useBudgetStore(
     useShallow((s) => ({
@@ -64,6 +68,7 @@ export function useBudget() {
       budgetLoaded: s.loaded,
       loadedMonth: s.loadedMonth,
       expectedIncome: s.expectedIncome,
+      budgetGroupByCategoryId: s.budgetGroupByCategoryId,
       loadError: s.loadError,
     })),
   );
@@ -73,6 +78,7 @@ export function useBudget() {
   const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
   const removeSpendingPlan = useBudgetStore.getState().removeSpendingPlan;
   const openAdd = useBudgetState.getState().openAdd;
+  const openAddWithContext = useBudgetState.getState().openAddWithContext;
   const openEdit = useBudgetState.getState().openEdit;
   const openAddPlan = useBudgetState.getState().openAddPlan;
   const openEditPlan = useBudgetState.getState().openEditPlan;
@@ -87,6 +93,7 @@ export function useBudget() {
     targetBudgetId,
     targetPlanId,
     expandedCategoryId,
+    expandedBudgetGroup,
   } = useBudgetState(
     useShallow((s) => ({
       selectedMonth: s.selectedMonth,
@@ -99,6 +106,7 @@ export function useBudget() {
       targetBudgetId: s.targetBudgetId,
       targetPlanId: s.targetPlanId,
       expandedCategoryId: s.expandedCategoryId,
+      expandedBudgetGroup: s.expandedBudgetGroup,
     })),
   );
   const setLensTab = useBudgetState.getState().setLensTab;
@@ -112,16 +120,18 @@ export function useBudget() {
   const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
   const setRefreshing = useBudgetState.getState().setRefreshing;
   const setExpandedCategoryId = useBudgetState.getState().setExpandedCategoryId;
+  const setExpandedBudgetGroup = useBudgetState.getState().setExpandedBudgetGroup;
   const openIncomeSheetState = useIncomeSheetState.getState().open;
 
   const loadIncomeSuggestion = useCallback(
     async (month: string) => {
+      const request = ++incomeSuggestionRequest.current;
       try {
         const db = await getDb();
         const s = await getTrailingIncomeSuggestion(db, month);
-        setIncomeSuggestion(s);
+        if (request === incomeSuggestionRequest.current) setIncomeSuggestion(s);
       } catch {
-        setIncomeSuggestion(null);
+        if (request === incomeSuggestionRequest.current) setIncomeSuggestion(null);
       }
     },
     [setIncomeSuggestion],
@@ -152,6 +162,7 @@ export function useBudget() {
     [budgetRows, categories, selectedMonth, spendByBudgetId, spendByMonth],
   );
   const rows = categoryLedger.rows;
+  const hasConfiguredIncome = hasBudgetRuleIncome(expectedIncome);
 
   const categoriesSummary = useMemo(
     () =>
@@ -196,17 +207,24 @@ export function useBudget() {
     () =>
       rows
         .flatMap((row) =>
-          row.budgets.map((budget) => ({
-            ...budget,
-            limit: budget.planned,
-            categoryId: row.categoryId,
-            categoryName: row.name,
-            icon: row.icon,
-            color: row.color,
-          })),
+          row.budgets.map((budget) => {
+            const category = categories.find((candidate) => candidate.id === row.categoryId);
+            return {
+              ...budget,
+              limit: budget.planned,
+              categoryId: row.categoryId,
+              categoryName: row.name,
+              categoryGroup: category
+                ? (resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasConfiguredIncome) ??
+                  null)
+                : null,
+              icon: row.icon,
+              color: row.color,
+            };
+          }),
         )
         .find((budget) => budget.id === targetBudgetId),
-    [rows, targetBudgetId],
+    [budgetGroupByCategoryId, categories, hasConfiguredIncome, rows, targetBudgetId],
   );
 
   const editingPlan = useMemo(
@@ -214,9 +232,26 @@ export function useBudget() {
     [spendingPlanRows, targetPlanId],
   );
 
-  const buckets: BucketsVM = useMemo(
-    () => computeBuckets(expectedIncome ?? 0, categories, budgetRows, spendByMonth, selectedMonth),
-    [budgetRows, categories, expectedIncome, selectedMonth, spendByMonth],
+  const ruleLens = useMemo(
+    () =>
+      buildBudgetRuleLens({
+        income: expectedIncome,
+        categories,
+        budgets: budgetRows,
+        budgetGroupByCategoryId,
+        spendByMonth,
+        selectedMonth,
+        lifecycleDate: today,
+      }),
+    [
+      budgetGroupByCategoryId,
+      budgetRows,
+      categories,
+      expectedIncome,
+      selectedMonth,
+      spendByMonth,
+      today,
+    ],
   );
 
   // Expense categories remain selectable even when they already have a budget,
@@ -255,10 +290,11 @@ export function useBudget() {
   const setSelectedMonth = useCallback(
     (month: string) => {
       setSelectedMonthState(month);
+      setIncomeSuggestion(null);
       void load(month);
       void loadIncomeSuggestion(month);
     },
-    [load, loadIncomeSuggestion, setSelectedMonthState],
+    [load, loadIncomeSuggestion, setIncomeSuggestion, setSelectedMonthState],
   );
 
   const refresh = useCallback(async () => {
@@ -337,8 +373,44 @@ export function useBudget() {
   );
 
   const openIncomeSheet = useCallback(() => {
-    openIncomeSheetState(incomeSuggestion, expectedIncome);
-  }, [expectedIncome, incomeSuggestion, openIncomeSheetState]);
+    openIncomeSheetState(
+      incomeSuggestion,
+      expectedIncome,
+      selectedMonth,
+      formatMonthYear(selectedMonth),
+    );
+  }, [expectedIncome, incomeSuggestion, openIncomeSheetState, selectedMonth]);
+
+  const manageRuleGroup = useCallback(
+    (group: BudgetGroup) => {
+      const bucket = ruleLens.buckets.find((candidate) => candidate.group === group);
+      const contributorIds = new Set(
+        bucket?.contributors.map((contributor) => contributor.categoryId) ?? [],
+      );
+      const firstMatchingCategory = rows.find((row) => contributorIds.has(row.categoryId));
+      const contextualCategoryId =
+        bucket?.contributors[0]?.categoryId ??
+        categories.find(
+          (category) =>
+            category.type === CategoryType.Expense &&
+            resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasConfiguredIncome) ===
+              group,
+        )?.id;
+      setLensTab('categories');
+      setExpandedCategoryId(firstMatchingCategory?.categoryId);
+      if (!firstMatchingCategory) openAddWithContext(contextualCategoryId, group);
+    },
+    [
+      budgetGroupByCategoryId,
+      categories,
+      hasConfiguredIncome,
+      openAddWithContext,
+      rows,
+      ruleLens.buckets,
+      setExpandedCategoryId,
+      setLensTab,
+    ],
+  );
 
   return {
     state: {
@@ -354,7 +426,7 @@ export function useBudget() {
       hasBudgets: rows.length > 0,
       hasSpendingPlans: spendingPlanRows.length > 0,
       budgetableCategories,
-      buckets,
+      ruleLens,
       suggestion: incomeSuggestion,
       lensTab,
       copySourceMonth,
@@ -364,6 +436,7 @@ export function useBudget() {
       refreshing,
       loadError: loadError || categoryLoadError,
       expandedCategoryId,
+      expandedBudgetGroup,
       hasLoaded: Boolean(
         categoriesLoaded &&
         budgetLoaded &&
@@ -377,8 +450,11 @@ export function useBudget() {
     openPlanTool,
     openPlanDetails,
     openIncomeSheet,
+    openMonthlyIncome: openIncomeSheet,
     setLensTab,
     setExpandedCategoryId,
+    setExpandedBudgetGroup,
+    manageRuleGroup,
     setSelectedMonth,
     openCopy,
     closeCopy,

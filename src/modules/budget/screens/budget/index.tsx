@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { Separator, Surface, Text as HeroText } from 'heroui-native';
+import { Alert, Separator, Surface, Text as HeroText } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { RefreshControl, View } from 'react-native';
 
@@ -17,7 +17,7 @@ import { BudgetDeleteConfirmSheet } from '@/modules/budget/screens/budget/compon
 import { BudgetScreenSkeleton } from '@/modules/budget/screens/budget/components/budget_screen_skeleton';
 import { BudgetToolRail } from '@/modules/budget/screens/budget/components/budget_tool_rail';
 import { CategoryBudgetRow } from '@/modules/budget/screens/budget/components/category_budget_row';
-import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty_lens';
+import { FiftyThirtyTwentyLens } from '@/modules/budget/screens/budget/components/fifty_thirty_twenty';
 import { IncomeSheet } from '@/modules/budget/screens/budget/components/income_sheet';
 import { SetBudgetSheet } from '@/modules/budget/screens/budget/components/set_budget_sheet';
 import { SpendingPlanDeleteConfirmSheet } from '@/modules/budget/screens/budget/components/spending_plan_delete_confirm_sheet';
@@ -55,6 +55,8 @@ export default function BudgetScreen() {
     openPlanDetails,
     openIncomeSheet,
     setExpandedCategoryId,
+    setExpandedBudgetGroup,
+    manageRuleGroup,
     refresh,
     goToCategory,
   } = useBudget();
@@ -121,6 +123,24 @@ export default function BudgetScreen() {
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
 
+      {state.loadError && state.hasLoaded && !state.refreshing ? (
+        <View className="absolute right-4 bottom-24 left-4 z-50">
+          <Alert status="danger" className="w-full">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{Strings.budgetLoadError}</Alert.Title>
+            </Alert.Content>
+            <Button
+              variant="secondary"
+              size="sm"
+              label={Strings.budgetLoadRetry}
+              accessibilityLabel={Strings.budgetLoadRetry}
+              onPress={() => void refresh()}
+            />
+          </Alert>
+        </View>
+      ) : null}
+
       {state.loadError && !state.hasLoaded ? (
         <View className="flex-1 items-center justify-center gap-3 px-6">
           <HeroText className="font-inter text-muted text-center text-[14px] font-medium">
@@ -146,7 +166,8 @@ export default function BudgetScreen() {
             categoryRows={state.rows}
             expandedCategoryId={state.expandedCategoryId}
             planRowCount={state.spendingPlanRows.length}
-            bucketsHaveIncome={state.buckets.hasIncome}
+            ruleLens={state.ruleLens}
+            expandedBudgetGroup={state.expandedBudgetGroup}
           />
         </ScreenScroll>
       ) : state.lensTab === 'categories' ? (
@@ -219,7 +240,14 @@ export default function BudgetScreen() {
           contentContainerStyle={{ paddingBottom: ms(96) }}
           refreshControl={refreshControl}
         >
-          <FiftyThirtyTwentyLens vm={state.buckets} suggestion={state.suggestion} />
+          <FiftyThirtyTwentyLens
+            vm={state.ruleLens}
+            selectedMonth={state.month}
+            expandedGroup={state.expandedBudgetGroup}
+            onExpandedGroupChange={setExpandedBudgetGroup}
+            onEditIncome={openIncomeSheet}
+            onManageGroup={manageRuleGroup}
+          />
         </ScreenScroll>
       )}
 

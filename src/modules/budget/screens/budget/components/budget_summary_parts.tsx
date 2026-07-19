@@ -4,10 +4,11 @@ import { Fragment, type ComponentProps } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
-import { LetterSpacing, Size, Type } from '@/constants/theme';
+import { Colors, LetterSpacing, Size, Type } from '@/constants/theme';
 
 interface BudgetSummaryHeaderProps {
   eyebrowLabel: string;
+  eyebrowTrailingLabel?: string;
   hasData: boolean;
   balanceLabel: string;
   balanceMetaLabel: string;
@@ -15,6 +16,9 @@ interface BudgetSummaryHeaderProps {
   emptyLabel?: string;
   trailingLabel?: string;
   trailingChipLabel?: string;
+  trailingActionLabel?: string;
+  trailingActionAccessibilityLabel?: string;
+  onTrailingAction?: () => void;
 }
 
 interface BudgetSummaryMetricItem {
@@ -35,6 +39,7 @@ interface BudgetSummaryStatusItem {
 
 export function BudgetSummaryHeader({
   eyebrowLabel,
+  eyebrowTrailingLabel,
   hasData,
   balanceLabel,
   balanceMetaLabel,
@@ -42,21 +47,37 @@ export function BudgetSummaryHeader({
   emptyLabel,
   trailingLabel,
   trailingChipLabel,
+  trailingActionLabel,
+  trailingActionAccessibilityLabel,
+  onTrailingAction,
 }: BudgetSummaryHeaderProps) {
   return (
     <>
-      <Text
-        style={{ fontSize: Type.meta, letterSpacing: LetterSpacing.eyebrow }}
-        className="font-inter text-content-secondary font-semibold uppercase"
-      >
-        {eyebrowLabel}
-      </Text>
+      <View className="flex-row items-center justify-between gap-2">
+        <Text
+          style={{ fontSize: Type.meta, letterSpacing: LetterSpacing.eyebrow }}
+          className="font-inter text-content-secondary shrink font-semibold uppercase"
+          numberOfLines={1}
+        >
+          {eyebrowLabel}
+        </Text>
+        {eyebrowTrailingLabel ? (
+          <Text
+            style={{ fontSize: Type.meta }}
+            className="font-inter text-content-secondary shrink-0 font-semibold"
+            numberOfLines={1}
+          >
+            {eyebrowTrailingLabel}
+          </Text>
+        ) : null}
+      </View>
 
-      <View className="mt-0.5 flex-row items-center justify-between gap-3">
+      <View className="mt-0.5 min-h-8 flex-row items-center justify-between gap-3">
         {hasData ? (
           <Text
             style={{ color: balanceColor, fontSize: Type.summary }}
             className="font-sora shrink font-bold"
+            numberOfLines={2}
           >
             {balanceLabel}
             <Text
@@ -70,12 +91,43 @@ export function BudgetSummaryHeader({
         ) : (
           <Text
             style={{ fontSize: Type.title }}
-            className="font-sora text-foreground shrink font-bold"
+            className="font-sora text-foreground flex-1 font-bold"
+            numberOfLines={2}
           >
             {emptyLabel}
           </Text>
         )}
-        {trailingChipLabel ? (
+        {trailingActionLabel && onTrailingAction ? (
+          <View className="shrink-0 flex-row items-center gap-1.5">
+            {trailingLabel ? (
+              <Text
+                style={{ fontSize: Type.meta }}
+                className="font-inter text-content-secondary shrink font-semibold"
+                numberOfLines={1}
+              >
+                {trailingLabel}
+              </Text>
+            ) : null}
+            <PressableFeedback
+              accessibilityRole="button"
+              accessibilityLabel={trailingActionAccessibilityLabel ?? trailingActionLabel}
+              onPress={onTrailingAction}
+              className="bg-default min-h-7 flex-row items-center gap-1 rounded-lg px-2"
+            >
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={Size.iconMicro}
+                color={Colors.dark.gold}
+              />
+              <Text
+                style={{ fontSize: Type.micro }}
+                className="font-inter text-accent font-semibold"
+              >
+                {trailingActionLabel}
+              </Text>
+            </PressableFeedback>
+          </View>
+        ) : trailingChipLabel ? (
           <Chip
             accessibilityRole="text"
             size="sm"
@@ -117,25 +169,23 @@ export function BudgetSummarySpentRow({
   usedLabel: string;
 }) {
   return (
-    <View className="mt-0.5 flex-row items-center justify-between gap-3">
-      <View className="flex-row gap-0.5">
-        <Text
-          style={{ fontSize: Type.bodyStrong }}
-          className="font-inter text-foreground shrink font-semibold"
-        >
-          {spentLabel}
-        </Text>
-        <Text style={{ fontSize: Type.bodyStrong }} className="font-inter text-content-secondary">
-          {connectorLabel}
-        </Text>
-        <Text
-          style={{ fontSize: Type.bodyStrong }}
-          className="font-inter text-foreground shrink font-semibold"
-        >
-          {plannedLabel}
-        </Text>
-      </View>
-      <Text style={{ fontSize: Type.bodyStrong }} className="font-sora text-content-secondary">
+    <View className="mt-0.5 flex-row items-center justify-between gap-2">
+      <Text
+        style={{ flex: 1, fontSize: Type.bodyStrong }}
+        className="font-inter text-content-secondary font-medium"
+        numberOfLines={2}
+      >
+        <Text className="font-inter text-foreground font-semibold">{spentLabel}</Text>
+        {connectorLabel ? ` ${connectorLabel} ` : ''}
+        {plannedLabel ? (
+          <Text className="font-inter text-foreground font-semibold">{plannedLabel}</Text>
+        ) : null}
+      </Text>
+      <Text
+        style={{ fontSize: Type.bodyStrong }}
+        className="font-sora text-content-secondary shrink-0"
+        numberOfLines={1}
+      >
         {usedLabel}
       </Text>
     </View>
@@ -196,7 +246,10 @@ export function BudgetSummaryStatusRow({ items }: { items: BudgetSummaryStatusIt
   return (
     <View className="mt-1.5 flex-row items-center">
       {items.map((item) => (
-        <View key={item.key} className="flex-1 flex-row items-center justify-center gap-0.5">
+        <View
+          key={item.key}
+          className="min-h-8 flex-1 flex-row items-center justify-center gap-0.5"
+        >
           <MaterialCommunityIcons
             accessible={false}
             name={item.icon}
@@ -205,8 +258,8 @@ export function BudgetSummaryStatusRow({ items }: { items: BudgetSummaryStatusIt
           />
           <Text
             style={{ fontSize: Type.detail }}
-            className="font-inter text-content-secondary shrink font-medium"
-            numberOfLines={1}
+            numberOfLines={2}
+            className="font-inter text-content-secondary shrink text-center font-medium"
           >
             {item.label}
           </Text>

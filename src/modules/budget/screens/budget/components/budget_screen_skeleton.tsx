@@ -1,8 +1,10 @@
 import { Card, SkeletonGroup } from 'heroui-native';
 import { View } from 'react-native';
 
+import { BudgetGroup } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Size, Spacing, Type } from '@/constants/theme';
+import type { BudgetRuleLensVM } from '@/modules/budget/screens/budget/budget_buckets.helpers';
 import type { CategoryBudgetRowVM } from '@/modules/budget/screens/budget/budget_categories.types';
 
 interface BudgetScreenSkeletonProps {
@@ -12,7 +14,8 @@ interface BudgetScreenSkeletonProps {
   categoryRows?: CategoryBudgetRowVM[];
   expandedCategoryId?: string;
   planRowCount?: number;
-  bucketsHaveIncome?: boolean;
+  ruleLens?: BudgetRuleLensVM;
+  expandedBudgetGroup?: BudgetGroup;
 }
 
 export function BudgetScreenSkeleton({
@@ -22,7 +25,8 @@ export function BudgetScreenSkeleton({
   categoryRows = [],
   expandedCategoryId,
   planRowCount = 0,
-  bucketsHaveIncome = true,
+  ruleLens,
+  expandedBudgetGroup,
 }: BudgetScreenSkeletonProps): React.ReactElement {
   if (variant === 'plans') {
     return (
@@ -30,7 +34,12 @@ export function BudgetScreenSkeleton({
     );
   }
   if (variant === 'fiftythirty') {
-    return <BucketsSkeleton hasIncome={preserveLayout ? bucketsHaveIncome : true} />;
+    return (
+      <RuleLensSkeleton
+        vm={preserveLayout ? ruleLens : undefined}
+        expandedBudgetGroup={preserveLayout ? expandedBudgetGroup : undefined}
+      />
+    );
   }
 
   const hasKnownLayout = preserveLayout || categoryRows.length > 0;
@@ -77,7 +86,7 @@ export function BudgetScreenSkeleton({
                 {[0, 1, 2].map((status) => (
                   <View
                     key={status}
-                    className="flex-1 flex-row items-center justify-center gap-0.5"
+                    className="min-h-8 flex-1 flex-row items-center justify-center gap-0.5"
                   >
                     <SkeletonGroup.Item className="h-4 w-4 rounded-full" />
                     <SkeletonGroup.Item className="h-[13px] w-10 rounded-lg" />
@@ -135,42 +144,128 @@ export function BudgetScreenSkeleton({
   );
 }
 
-function BucketsSkeleton({ hasIncome }: { hasIncome: boolean }): React.ReactElement {
+function RuleLensSkeleton({
+  vm,
+  expandedBudgetGroup,
+}: {
+  vm: BudgetRuleLensVM | undefined;
+  expandedBudgetGroup: BudgetGroup | undefined;
+}): React.ReactElement {
+  const expandedBucket = vm?.buckets.find((bucket) => bucket.group === expandedBudgetGroup);
+
   return (
     <View testID="budget-screen-skeleton" accessibilityLabel={Strings.loadingBudgetA11y}>
       <SkeletonGroup isLoading isSkeletonOnly>
-        <View className="mx-4 mt-3 mb-3">
-          {hasIncome ? (
-            <View className="flex-row items-center justify-between py-3">
-              <View className="gap-1.5">
-                <SkeletonGroup.Item className="h-[11px] w-24 rounded-md" />
-                <SkeletonGroup.Item className="h-[18px] w-32 rounded-md" />
-              </View>
-              <SkeletonGroup.Item className="h-[14px] w-12 rounded-md" />
+        <Card className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none">
+          <Card.Body className="px-2 py-1.5">
+            <View className="flex-row items-center justify-between gap-2">
+              <SkeletonGroup.Item className="h-[13px] w-[38%] rounded-lg" />
+              <SkeletonGroup.Item className="h-[13px] w-[18%] rounded-lg" />
             </View>
-          ) : (
-            <SkeletonGroup.Item className="h-32 w-full rounded-xl" />
-          )}
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item className="h-[31px] w-[48%] rounded-lg" />
+              <SkeletonGroup.Item className="h-7 w-[32%] rounded-lg" />
+            </View>
+            <View className="mt-0.5 flex-row items-center justify-between gap-3">
+              <SkeletonGroup.Item
+                className={
+                  vm?.summary.hasIncome && vm.summary.totalPlanned > 0
+                    ? 'h-[15px] w-1/2 rounded-lg'
+                    : 'h-[30px] w-[68%] rounded-lg'
+                }
+              />
+              <SkeletonGroup.Item className="h-[15px] w-[18%] rounded-lg" />
+            </View>
+            <SkeletonGroup.Item className="mt-1 h-1 w-full rounded-full" />
+            <View className="border-border mt-1.5 flex-row items-stretch border-t pt-1">
+              {[0, 1, 2].map((metric) => (
+                <View key={metric} className="flex-1 items-center gap-0.5 px-1">
+                  <SkeletonGroup.Item className="h-[11.5px] w-[45%] rounded-lg" />
+                  <SkeletonGroup.Item className="h-[15px] w-[68%] rounded-lg" />
+                </View>
+              ))}
+            </View>
+            <View className="mt-1.5 flex-row items-center">
+              {[0, 1, 2].map((status) => (
+                <View key={status} className="min-h-8 flex-1 flex-row justify-center gap-0.5">
+                  <SkeletonGroup.Item className="h-4 w-4 rounded-full" />
+                  <SkeletonGroup.Item className="h-[13px] w-12 rounded-lg" />
+                </View>
+              ))}
+            </View>
+          </Card.Body>
+        </Card>
+        <View className="mx-4 mt-4 mb-1 flex-row justify-between">
+          <SkeletonGroup.Item className="h-[11px] w-24 rounded-md" />
+          <SkeletonGroup.Item className="h-[11px] w-28 rounded-md" />
         </View>
-        {hasIncome
-          ? [0, 1, 2].map((bucket) => (
-              <Card
-                key={bucket}
-                testID="bucket-card-skeleton"
-                className="bg-surface border-border mx-4 mb-3 rounded-xl border p-4 shadow-none"
-              >
-                <View className="flex-row items-center justify-between">
-                  <SkeletonGroup.Item className="h-[16px] w-20 rounded-md" />
-                  <SkeletonGroup.Item className="h-[14px] w-16 rounded-md" />
+        <Card className="bg-surface border-border mx-4 rounded-2xl border p-0 shadow-none">
+          <Card.Body className="p-0">
+            {Object.values(BudgetGroup).map((group) => (
+              <View key={group}>
+                <View
+                  className="border-separator flex-row items-center gap-2 border-b px-3 py-1.5"
+                  style={{ minHeight: Size.budgetRuleRowMinHeight }}
+                >
+                  <SkeletonGroup.Item className="h-[42px] w-[42px] rounded-full" />
+                  <View className="flex-1 gap-1.5">
+                    <SkeletonGroup.Item className="h-[15px] w-32 rounded-md" />
+                    <SkeletonGroup.Item className="h-[11px] w-48 rounded-md" />
+                  </View>
+                  <View className="items-end gap-1" style={{ width: Size.budgetRuleValueColumn }}>
+                    <SkeletonGroup.Item className="h-[15px] w-12 rounded-md" />
+                    <SkeletonGroup.Item className="h-[10px] w-10 rounded-md" />
+                  </View>
+                  <View style={{ width: Size.budgetRuleChevronColumn }} className="items-end">
+                    <SkeletonGroup.Item className="h-4 w-4 rounded-md" />
+                  </View>
                 </View>
-                <SkeletonGroup.Item className="mt-3 h-2 w-full rounded-full" />
-                <View className="mt-3 flex-row items-center justify-between">
-                  <SkeletonGroup.Item className="h-[12px] w-28 rounded-md" />
-                  <SkeletonGroup.Item className="h-[12px] w-20 rounded-md" />
-                </View>
-              </Card>
-            ))
-          : null}
+                {expandedBudgetGroup === group ? (
+                  <View testID="rule-bucket-expanded-skeleton">
+                    <SkeletonGroup.Item className="h-9 w-full rounded-none" />
+                    <SkeletonGroup.Item className="mx-3 my-2 h-8 rounded-lg" />
+                    {expandedBucket?.contributors.map((contributor) => (
+                      <View
+                        key={contributor.categoryId}
+                        testID="rule-contributor-skeleton"
+                        className="border-separator min-h-12 flex-row items-center gap-2 border-b px-3 py-1.5"
+                      >
+                        <View className="items-center" style={{ width: Size.budgetCategoryColumn }}>
+                          <SkeletonGroup.Item
+                            className="rounded-full"
+                            style={{ width: Size.budgetNamedRing, height: Size.budgetNamedRing }}
+                          />
+                        </View>
+                        <View className="flex-1 gap-1">
+                          <SkeletonGroup.Item className="h-[12px] w-28 rounded-md" />
+                          <SkeletonGroup.Item className="h-[10px] w-32 rounded-md" />
+                        </View>
+                        <View className="items-end gap-1">
+                          <SkeletonGroup.Item className="h-[12px] w-20 rounded-md" />
+                          <SkeletonGroup.Item className="h-[10px] w-16 rounded-md" />
+                        </View>
+                      </View>
+                    ))}
+                    <SkeletonGroup.Item className="h-10 w-full rounded-none" />
+                  </View>
+                ) : null}
+              </View>
+            ))}
+          </Card.Body>
+        </Card>
+        {vm?.notGrouped ? (
+          <View className="border-border bg-surface mx-4 mt-2 min-h-12 flex-row items-center gap-2 rounded-xl border px-3 py-2">
+            <SkeletonGroup.Item className="h-8 w-8 rounded-full" />
+            <View className="flex-1 gap-1">
+              <SkeletonGroup.Item className="h-[12px] w-24 rounded-md" />
+              <SkeletonGroup.Item className="h-[10px] w-40 rounded-md" />
+            </View>
+            <View className="items-end gap-1">
+              <SkeletonGroup.Item className="h-[12px] w-24 rounded-md" />
+              <SkeletonGroup.Item className="h-[10px] w-20 rounded-md" />
+            </View>
+          </View>
+        ) : null}
       </SkeletonGroup>
     </View>
   );
@@ -249,7 +344,10 @@ function PlansSkeleton({ rowCount }: { rowCount: number | undefined }): React.Re
             </View>
             <View className="mt-1.5 flex-row items-center">
               {[0, 1, 2, 3].map((status) => (
-                <View key={status} className="flex-1 flex-row items-center justify-center gap-0.5">
+                <View
+                  key={status}
+                  className="min-h-8 flex-1 flex-row items-center justify-center gap-0.5"
+                >
                   <SkeletonGroup.Item className="h-4 w-4 rounded-full" />
                   <SkeletonGroup.Item className="h-[13px] w-10 rounded-lg" />
                 </View>

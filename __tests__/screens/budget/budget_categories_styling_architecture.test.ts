@@ -11,6 +11,13 @@ const PRESENTATION_FILES = [
   'src/modules/budget/screens/budget/components/unassigned_spending_row.tsx',
   'src/modules/budget/screens/budget/components/budget_screen_skeleton.tsx',
   'src/modules/budget/screens/budget/components/income_sheet.tsx',
+  'src/modules/budget/screens/budget/components/set_budget_sheet.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/index.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/monthly_rule_summary.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_ledger.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row.tsx',
+  'src/modules/budget/screens/budget/components/fifty_thirty_twenty/not_grouped_row.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/index.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet.tsx',
@@ -52,6 +59,28 @@ describe('budget categories presentation architecture', () => {
     ).not.toMatch(/\buseState\(/);
   });
 
+  it('uses one root income sheet and the shared HeroUI input composition', () => {
+    const screen = source('src/modules/budget/screens/budget/index.tsx');
+    const lens = source(
+      'src/modules/budget/screens/budget/components/fifty_thirty_twenty/index.tsx',
+    );
+    const incomeSheet = source('src/modules/budget/screens/budget/components/income_sheet.tsx');
+
+    expect(screen.match(/<IncomeSheet/g)).toHaveLength(1);
+    expect(screen).toContain('onEditIncome={openIncomeSheet}');
+    expect(lens).toContain('onEditIncome: () => void');
+    expect(lens).not.toContain('useIncomeSheetState');
+    expect(lens).not.toContain('<IncomeSheet');
+    expect(incomeSheet).toContain("import { Input } from '@/components/ui/input'");
+    expect(incomeSheet).toContain('suffix=');
+    expect(incomeSheet).toContain('isDisabled={state.saving}');
+    expect(incomeSheet).toContain('isDismissable={!state.saving}');
+    expect(incomeSheet).toContain('accessibilityLabel={amountAccessibilityLabel}');
+    expect(incomeSheet).toContain('`${amountLabel}, ${Strings.currencyEgp}`');
+    expect(incomeSheet).toContain('accessibilityLiveRegion="assertive"');
+    expect(incomeSheet).not.toContain('border-accent flex-row');
+  });
+
   it('keeps lifecycle and save orchestration out of state stores', () => {
     const addSheetState = source(
       'src/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state.ts',
@@ -70,6 +99,9 @@ describe('budget categories presentation architecture', () => {
     expect(addSheetHook).toMatch(/useEffect|setTimeout/);
     expect(setBudgetState).not.toMatch(/async|Promise|Strings/);
     expect(setBudgetHook).toContain('runSave');
+    expect(source('src/modules/budget/screens/budget/components/set_budget_sheet.tsx')).not.toMatch(
+      /useEffect|useMemo/,
+    );
   });
 
   it('keeps parent progress circular and child rows aligned', () => {
@@ -180,6 +212,7 @@ describe('budget categories presentation architecture', () => {
       'className="border-border mt-1.5 flex-row items-stretch border-t pt-1"',
     );
     expect(summaryParts).toContain('className="mt-1.5 flex-row items-center"');
+    expect(summaryParts).toContain('className="min-h-8 flex-1 flex-row');
     expect(summaryParts).toContain('const metricClassName =');
     expect(summaryParts).not.toContain('adjustsFontSizeToFit');
     expect(summaryParts).not.toContain('minimumFontScale');
@@ -188,7 +221,7 @@ describe('budget categories presentation architecture', () => {
       skeleton.match(
         /className="bg-surface border-border mx-4 mt-3 rounded-2xl border p-0 shadow-none"/g,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(plansLens).toContain('<View className="mt-3 px-4">');
   });
 
