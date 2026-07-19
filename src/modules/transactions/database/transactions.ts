@@ -123,6 +123,10 @@ export interface TransactionListQuery {
 }
 
 const PAGE_SIZE_DEFAULT = 30;
+const TRANSACTION_LIST_ORDER = `transaction_date DESC,
+  transaction_time DESC,
+  created_at DESC,
+  id DESC`;
 
 function escapeLike(input: string): string {
   return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
@@ -192,7 +196,7 @@ export async function getTransactions(
       AND (? IS NULL OR t.transaction_date <= ?)
       AND (? IS NULL OR (t.currency = ? AND t.amount >= ?))
       AND (? IS NULL OR (t.currency = ? AND t.amount <= ?))
-    ORDER BY t.transaction_date DESC, t.transaction_time DESC
+    ORDER BY ${TRANSACTION_LIST_ORDER}
     LIMIT ? OFFSET ?
   `;
 
@@ -232,7 +236,7 @@ export async function getTransactionsByAccount(
   return db.getAllAsync<Transaction>(
     `SELECT * FROM transactions
      WHERE account_id = ? OR to_account_id = ?
-     ORDER BY transaction_date DESC, transaction_time DESC
+     ORDER BY ${TRANSACTION_LIST_ORDER}
      LIMIT ? OFFSET ?`,
     [accountId, accountId, limit, offset],
   );

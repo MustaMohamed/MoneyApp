@@ -160,6 +160,15 @@ describe('transaction reads', () => {
     expect(firstPage.map((row) => row.id)).not.toEqual(secondPage.map((row) => row.id));
   });
 
+  it('uses id as the final account-history tie breaker', async () => {
+    await insertTransactionRow(mockDb, makeTx({ id: 'tx-a' }));
+    await insertTransactionRow(mockDb, makeTx({ id: 'tx-b' }));
+
+    const rows = await getTransactionsByAccount(mockDb, 'acc_asset');
+
+    expect(rows.map((row) => row.id)).toEqual(['tx-b', 'tx-a']);
+  });
+
   it('applies type and escaped search filters', async () => {
     await insertTransactionRow(mockDb, makeTx({ note: '100% groceries' }));
     await insertTransactionRow(
