@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { roundMoney } from '@/utils/money';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
 
 const STALE_THRESHOLD_DAYS = 30;
 
@@ -18,8 +19,8 @@ function isStale(rateUpdatedAt: string | null): boolean {
 }
 
 function formatPreviewAmount(amount: number, rateStr: string): string {
-  const rate = parseFloat(rateStr);
-  if (isNaN(rate) || rate <= 0) return '—';
+  const rate = parsePositiveDecimal(rateStr);
+  if (rate === undefined) return '—';
   const egp = roundMoney(amount * rate);
   return new Intl.NumberFormat('en-US', {
     style: 'decimal',

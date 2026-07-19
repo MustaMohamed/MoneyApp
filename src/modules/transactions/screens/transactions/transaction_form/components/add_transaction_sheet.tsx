@@ -95,6 +95,8 @@ function AddTransactionSheetInner({
           visible={visible}
           locked={false}
           type={hook.state.type}
+          typeLabel={hook.state.typeLabel}
+          typeSupportingText={hook.state.typeSupportingText}
           onSelectType={hook.setType}
           amountStr={hook.state.amountStr}
           setAmountStr={hook.setAmountStr}

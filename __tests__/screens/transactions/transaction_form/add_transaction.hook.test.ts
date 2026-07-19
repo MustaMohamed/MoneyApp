@@ -240,6 +240,85 @@ describe('useAddTransaction — named budget assignment', () => {
 });
 
 describe('useAddTransaction — validation', () => {
+  it('rejects a malformed exchange-rate prefix', async () => {
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountUSD));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    act(() => result.current.setExchangeRate('50abc'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(addTx).not.toHaveBeenCalled();
+  });
+
+  it('uses expense categories and budgets for a Card credit', async () => {
+    const budget = mockBudget('credit-budget', 'Refunded meal');
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([budget]);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+    act(() => result.current.setType(TransactionType.Income));
+    act(() => result.current.selectAccount(mockAccountCC));
+
+    expect(result.current.state.isCardCredit).toBe(true);
+    expect(result.current.state.typeLabel).toBe('Card credit');
+    expect(result.current.state.visibleCategories).toEqual([mockCategoryExpense]);
+
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('credit-budget'));
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: TransactionType.Income,
+        category_id: mockCategoryExpense.id,
+        budget_id: 'credit-budget',
+      }),
+    );
+  });
+
+  it('rejects an income category for a Card credit', async () => {
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+    act(() => result.current.setType(TransactionType.Income));
+    act(() => result.current.selectAccount(mockAccountCC));
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectCategory(mockCategoryIncome));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.category).toBeDefined();
+    expect(addTx).not.toHaveBeenCalled();
+  });
+
+  it('keeps an over-credit draft open and shows the balance error', async () => {
+    const addTx = jest.fn().mockRejectedValue({
+      issues: [{ code: 'card_credit_exceeds_liability' }],
+    });
+    const onClose = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(onClose));
+    act(() => result.current.setType(TransactionType.Income));
+    act(() => result.current.selectAccount(mockAccountCC));
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errorMessage).toBe(
+      'Card credit cannot exceed the current card balance',
+    );
+    expect(result.current.state.categoryId).toBe(mockCategoryExpense.id);
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
   it('shows a save error and preserves entered values after save rejection', async () => {
     const addTx = jest.fn().mockRejectedValue(new Error('write failed'));
     const onClose = jest.fn();
@@ -487,22 +566,24 @@ describe('useAddTransaction — rounding', () => {
 });
 
 describe('useAddTransaction — auto-now time', () => {
-  it('sets transaction_time to the current device clock and never exposes a setter', async () => {
+  afterEach(() => jest.useRealTimers());
+
+  it('sets transaction_time from the submit clock and never exposes a setter', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 6, 1, 9, 0, 0));
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
-    const before = new Date().toTimeString().slice(0, 8);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
+    jest.setSystemTime(new Date(2026, 6, 1, 9, 5, 30));
     act(() => result.current.handleNumpad('digit', '5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
       await result.current.handleSave();
     });
-    const after = new Date().toTimeString().slice(0, 8);
     expect(addTx).toHaveBeenCalled();
     const arg = addTx.mock.calls[0][0];
-    expect(arg.transaction_time >= before).toBe(true);
-    expect(arg.transaction_time <= after).toBe(true);
+    expect(arg.transaction_time).toBe('09:05:30');
     // No setTime exposed
     expect((result.current as any).setTime).toBeUndefined();
   });

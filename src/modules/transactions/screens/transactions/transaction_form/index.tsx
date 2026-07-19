@@ -60,6 +60,8 @@ function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Tra
           visible={props.visible}
           locked
           type={hook.state.type}
+          typeLabel={hook.state.typeLabel}
+          typeSupportingText={hook.state.typeSupportingText}
           onSelectType={() => {}}
           amountStr={hook.state.amountStr}
           setAmountStr={hook.setAmountStr}
