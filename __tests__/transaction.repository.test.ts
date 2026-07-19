@@ -7,6 +7,7 @@ import * as transactionsModule from '@/modules/transactions/database/transaction
 import {
   TransactionBalanceError,
   TransactionNotFoundError,
+  TransactionOwnershipError,
   TransactionValidationError,
 } from '@/modules/transactions/repositories/transaction.errors';
 import {
@@ -788,6 +789,35 @@ describe('missing transaction mutations', () => {
       }),
     ).rejects.toBeInstanceOf(TransactionNotFoundError);
     await expect(repo.delete('missing')).rejects.toBeInstanceOf(TransactionNotFoundError);
+  });
+});
+
+describe('commitment-owned transaction mutations', () => {
+  it('rejects generic update and delete without changing the row or balance', async () => {
+    const transaction = await repo.add(baseInput);
+    realDb
+      .prepare('UPDATE transactions SET commitment_payment_id = ? WHERE id = ?')
+      .run('payment-owner', transaction.id);
+    const balance = accountBalance('acc1');
+
+    await expect(
+      repo.update(transaction.id, {
+        amount: 300,
+        currency: Currency.EGP,
+        egp_amount: 300,
+        category_id: 'cat_food',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionOwnershipError);
+    await expect(repo.delete(transaction.id)).rejects.toBeInstanceOf(TransactionOwnershipError);
+
+    expect(accountBalance('acc1')).toBe(balance);
+    expect(
+      realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(transaction.id),
+    ).toEqual({
+      amount: 200,
+    });
   });
 });
 

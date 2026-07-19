@@ -35,9 +35,10 @@ beforeAll(() => {
         interest_tracking, is_archived, sort_order, created_at, updated_at)
        VALUES
          ('acc1', 'Main EGP', 'bank', 'EGP', 5000, 5000, 0, 0, 0, ?, ?),
-         ('acc2', 'USD Savings', 'bank', 'USD', 1000, 1000, 0, 0, 1, ?, ?)`,
+         ('acc2', 'USD Savings', 'bank', 'USD', 1000, 1000, 0, 0, 1, ?, ?),
+         ('acc_card', 'Credit Card', 'credit_card', 'EGP', 0, 1000, 0, 0, 2, ?, ?)`,
     )
-    .run(NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW);
 
   // Seed categories
   realDb
@@ -96,6 +97,7 @@ beforeEach(() => {
   realDb.exec('DELETE FROM transactions');
   realDb.prepare("UPDATE accounts SET current_balance = 5000 WHERE id = 'acc1'").run();
   realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc2'").run();
+  realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc_card'").run();
 });
 
 afterAll(() => {
@@ -569,6 +571,7 @@ describe('markCommitmentAsPaid', () => {
         paid_date: '2026-05-02',
       },
       tx,
+      { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
     );
 
     // Payment should be marked paid
@@ -623,6 +626,7 @@ describe('markCommitmentAsPaid', () => {
         paid_date: '2026-05-02',
       },
       tx,
+      { accountId: 'acc1', currentBalance: -100, revolvingBalance: 0 },
     );
 
     const txRow = realDb
@@ -645,8 +649,8 @@ describe('markCommitmentAsPaid', () => {
     // USD 10 at rate 50 = EGP 500
     const tx = makeTx({
       id: 'tx-paid-usd',
-      amount: 10, // face value in USD
-      currency: Currency.USD,
+      amount: 500, // native value in the selected EGP account
+      currency: Currency.EGP,
       egp_amount: 500, // EGP equivalent deducted from EGP account
       exchange_rate: 50,
       account_id: 'acc1',
@@ -664,6 +668,7 @@ describe('markCommitmentAsPaid', () => {
         notes: 'USD payment',
       },
       tx,
+      { accountId: 'acc1', currentBalance: -500, revolvingBalance: 0 },
     );
 
     // Payment marked paid
@@ -680,5 +685,40 @@ describe('markCommitmentAsPaid', () => {
       .prepare('SELECT current_balance FROM accounts WHERE id = ?')
       .get('acc1') as Record<string, unknown>;
     expect(accRow.current_balance).toBe(4500); // 5000 - 500
+  });
+
+  it('increases liability when the selected payment account is a credit card', async () => {
+    const payment = makePayment({ id: 'pay-card', amount_due: 200 });
+    await addPayments(mockDb, [payment]);
+    const tx = makeTx({
+      id: 'tx-card',
+      account_id: 'acc_card',
+      commitment_payment_id: 'pay-card',
+    });
+
+    await markCommitmentAsPaid(
+      mockDb,
+      'pay-card',
+      {
+        amount_paid: 200,
+        account_id: 'acc_card',
+        paid_date: '2026-05-02',
+      },
+      tx,
+      { accountId: 'acc_card', currentBalance: 200, revolvingBalance: 0 },
+    );
+
+    expect(
+      (
+        realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_card'").get() as {
+          current_balance: number;
+        }
+      ).current_balance,
+    ).toBe(1_200);
+    expect(realDb.prepare("SELECT budget_id FROM transactions WHERE id = 'tx-card'").get()).toEqual(
+      {
+        budget_id: null,
+      },
+    );
   });
 });
