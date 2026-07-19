@@ -37,6 +37,7 @@ export type TransactionPolicyIssueCode =
   | 'amount_invalid'
   | 'destination_amount_invalid'
   | 'destination_required'
+  | 'destination_not_allowed'
   | 'accounts_must_differ'
   | 'transfer_requires_asset_accounts'
   | 'cc_payment_requires_asset_source'
@@ -123,6 +124,8 @@ export function validateTransactionPolicy(
     if (!command.destination) {
       issues.push({ code: 'destination_required' });
     }
+  } else if (command.destination) {
+    issues.push({ code: 'destination_not_allowed' });
   }
 
   if (command.destination?.id === command.source.id) {

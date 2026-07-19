@@ -36,6 +36,7 @@ export default function AccountDetailScreen() {
       isAdjusting,
       isArchiving,
       isConfirmingBalanceReview,
+      balanceReviewError,
     },
     form,
     setEditing,
@@ -107,6 +108,7 @@ export default function AccountDetailScreen() {
               void handleConfirmBalanceReviewed();
             }}
             isConfirming={isConfirmingBalanceReview}
+            errorMessage={balanceReviewError}
           />
         ) : null}
 

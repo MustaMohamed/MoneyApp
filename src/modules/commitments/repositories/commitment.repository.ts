@@ -160,7 +160,8 @@ export class CommitmentRepository implements ICommitmentRepository {
     commitment: Commitment,
   ): Promise<void> {
     const db = await getDb();
-    const now = new Date().toISOString();
+    const clock = new Date();
+    const now = clock.toISOString();
     const account = await getAccountByIdIncludingArchived(db, details.account_id);
     if (!account || account.is_archived === 1) {
       throw new TransactionValidationError('Payment account is unavailable');
@@ -186,7 +187,7 @@ export class CommitmentRepository implements ICommitmentRepository {
       budget_id: null,
       note: details.notes ?? null,
       transaction_date: details.paid_date,
-      transaction_time: now.slice(11, 19),
+      transaction_time: clock.toTimeString().slice(0, 8),
       commitment_payment_id: paymentId,
       installment_id: null,
       created_at: now,

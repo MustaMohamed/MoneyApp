@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react-native';
 
+import { Strings } from '@/constants/strings';
 import { useAccountDetail } from '@/modules/accounts/screens/accounts/detail/account_detail.hook';
 import { useAccountDetailState } from '@/modules/accounts/screens/accounts/detail/account_detail.state';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -30,6 +31,7 @@ const mockSetSaving = jest.fn();
 const mockSetAdjusting = jest.fn();
 const mockSetArchiving = jest.fn();
 const mockSetConfirmingBalanceReview = jest.fn();
+const mockSetBalanceReviewError = jest.fn();
 const mockReset = jest.fn();
 const mockConfirmBalanceReviewed = jest.fn();
 
@@ -41,6 +43,7 @@ type DetailStateMock = {
   isAdjusting: boolean;
   isArchiving: boolean;
   isConfirmingBalanceReview: boolean;
+  balanceReviewError: string | undefined;
   setEditing: jest.Mock;
   setAdjustVisible: jest.Mock;
   setArchiveVisible: jest.Mock;
@@ -48,6 +51,7 @@ type DetailStateMock = {
   setAdjusting: jest.Mock;
   setArchiving: jest.Mock;
   setConfirmingBalanceReview: jest.Mock;
+  setBalanceReviewError: jest.Mock;
   reset: jest.Mock;
 };
 
@@ -60,6 +64,7 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     isAdjusting: false,
     isArchiving: false,
     isConfirmingBalanceReview: false,
+    balanceReviewError: undefined,
     setEditing: mockSetEditing,
     setAdjustVisible: mockSetAdjustVisible,
     setArchiveVisible: mockSetArchiveVisible,
@@ -67,6 +72,7 @@ function createDetailStore(overrides: Partial<DetailStateMock> = {}): DetailStat
     setAdjusting: mockSetAdjusting,
     setArchiving: mockSetArchiving,
     setConfirmingBalanceReview: mockSetConfirmingBalanceReview,
+    setBalanceReviewError: mockSetBalanceReviewError,
     reset: mockReset,
     ...overrides,
   };
@@ -113,6 +119,7 @@ describe('useAccountDetail', () => {
     expect(result.current.state.isAdjusting).toBe(false);
     expect(result.current.state.isArchiving).toBe(false);
     expect(result.current.state.isConfirmingBalanceReview).toBe(false);
+    expect(result.current.state.balanceReviewError).toBeUndefined();
   });
 
   it('exposes the handler surface the screen consumes', () => {
@@ -131,8 +138,32 @@ describe('useAccountDetail', () => {
     await act(() => result.current.handleConfirmBalanceReviewed());
 
     expect(mockConfirmBalanceReviewed).toHaveBeenCalledWith('acc-1');
+    expect(mockSetBalanceReviewError).toHaveBeenCalledWith(undefined);
     expect(mockSetConfirmingBalanceReview).toHaveBeenNthCalledWith(1, true);
     expect(mockSetConfirmingBalanceReview).toHaveBeenLastCalledWith(false);
+  });
+
+  it('surfaces confirmation failures in screen state', async () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation();
+    mockConfirmBalanceReviewed.mockRejectedValue(new Error('db error'));
+    const { result } = renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleConfirmBalanceReviewed());
+
+    expect(mockSetBalanceReviewError).toHaveBeenNthCalledWith(1, undefined);
+    expect(mockSetBalanceReviewError).toHaveBeenLastCalledWith(Strings.accountBalanceReviewError);
+    expect(mockSetConfirmingBalanceReview).toHaveBeenLastCalledWith(false);
+    consoleError.mockRestore();
+  });
+
+  it('ignores another confirmation while one is active', async () => {
+    mockDetailState({ isConfirmingBalanceReview: true });
+    const { result } = renderHook(() => useAccountDetail());
+
+    await act(() => result.current.handleConfirmBalanceReviewed());
+
+    expect(mockConfirmBalanceReviewed).not.toHaveBeenCalled();
+    expect(mockSetConfirmingBalanceReview).not.toHaveBeenCalled();
   });
 
   it('leaves edit mode instead of navigating back when editing', () => {

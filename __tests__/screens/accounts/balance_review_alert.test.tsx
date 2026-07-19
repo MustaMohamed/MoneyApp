@@ -53,6 +53,20 @@ describe('BalanceReviewAlert', () => {
     expect(onAdjust).not.toHaveBeenCalled();
     expect(onConfirm).not.toHaveBeenCalled();
   });
+
+  it('renders an inline error without replacing the review guidance', () => {
+    const screen = render(
+      <BalanceReviewAlert
+        onAdjust={jest.fn()}
+        onConfirm={jest.fn()}
+        isConfirming={false}
+        errorMessage={Strings.accountBalanceReviewError}
+      />,
+    );
+
+    expect(screen.getByText(Strings.accountBalanceReviewBody)).toBeTruthy();
+    expect(screen.getByText(Strings.accountBalanceReviewError)).toBeTruthy();
+  });
 });
 
 describe('shouldShowBalanceReview', () => {

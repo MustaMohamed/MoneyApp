@@ -15,6 +15,7 @@ describe('accountDetailState initial state', () => {
     expect(state.isAdjusting).toBe(false);
     expect(state.isArchiving).toBe(false);
     expect(state.isConfirmingBalanceReview).toBe(false);
+    expect(state.balanceReviewError).toBeUndefined();
   });
 });
 
@@ -75,6 +76,14 @@ describe('accountDetailState setters', () => {
     useAccountDetailState.getState().setConfirmingBalanceReview(false);
     expect(useAccountDetailState.getState().isConfirmingBalanceReview).toBe(false);
   });
+
+  it('sets and clears the balance review error', () => {
+    useAccountDetailState.getState().setBalanceReviewError('Try again');
+    expect(useAccountDetailState.getState().balanceReviewError).toBe('Try again');
+
+    useAccountDetailState.getState().setBalanceReviewError(undefined);
+    expect(useAccountDetailState.getState().balanceReviewError).toBeUndefined();
+  });
 });
 
 describe('accountDetailState reset', () => {
@@ -90,6 +99,7 @@ describe('accountDetailState reset', () => {
     useAccountDetailState.getState().setAdjusting(true);
     useAccountDetailState.getState().setArchiving(true);
     useAccountDetailState.getState().setConfirmingBalanceReview(true);
+    useAccountDetailState.getState().setBalanceReviewError('Try again');
 
     useAccountDetailState.getState().reset();
 
@@ -101,5 +111,6 @@ describe('accountDetailState reset', () => {
     expect(state.isAdjusting).toBe(false);
     expect(state.isArchiving).toBe(false);
     expect(state.isConfirmingBalanceReview).toBe(false);
+    expect(state.balanceReviewError).toBeUndefined();
   });
 });

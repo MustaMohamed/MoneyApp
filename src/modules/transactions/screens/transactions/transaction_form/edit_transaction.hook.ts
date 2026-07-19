@@ -10,12 +10,12 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   useTransactionStore,
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
-import { roundMoney } from '@/utils/money';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
@@ -306,29 +306,20 @@ export function useEditTransaction(
       const toCurrency = selectedToAccount?.currency;
       const parsedRate = requiresRate ? parsePositiveDecimal(data.exchangeRate) : undefined;
 
-      const egp_amount =
-        fromCurrency === Currency.USD && parsedRate
-          ? roundMoney(data.amount * parsedRate)
-          : data.amount;
-
-      let to_amount: number | undefined;
-      if (isTransferOrCC && toCurrency !== undefined) {
-        if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
-          to_amount = roundMoney(data.amount / parsedRate);
-        } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
-          to_amount = egp_amount;
-        } else {
-          to_amount = data.amount;
-        }
-        if (type === TransactionType.CCPayment) to_amount = egp_amount;
-      }
+      const amounts = resolveTransactionAmounts({
+        type,
+        amount: data.amount,
+        sourceCurrency: fromCurrency,
+        destinationCurrency: toCurrency,
+        exchangeRate: parsedRate,
+      });
 
       const update: UpdateTransactionInput = {
         amount: data.amount,
         currency: fromCurrency,
-        egp_amount,
-        to_amount: to_amount ?? null,
-        exchange_rate: parsedRate ?? null,
+        egp_amount: amounts.egpAmount,
+        to_amount: amounts.toAmount,
+        exchange_rate: amounts.exchangeRate,
         category_id: !isTransferOrCC ? data.categoryId : null,
         budget_id: semantics.usesBudget ? data.budgetId || null : null,
         note: data.note.trim() || null,

@@ -47,6 +47,12 @@ const mockAccountCC2 = {
   name: 'Mastercard',
   type: AccountType.CreditCard,
 };
+const mockAccountCCUSD = {
+  ...mockAccountCC,
+  id: 'a6',
+  name: 'USD Visa',
+  currency: Currency.USD,
+};
 
 const mockCategoryExpense = {
   id: 'c1',
@@ -88,7 +94,7 @@ beforeEach(() => {
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
   useAccountStore.setState({
-    accounts: [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2],
+    accounts: [mockAccountEGP, mockAccountUSD, mockAccountCC, mockAccountCC2, mockAccountCCUSD],
     hasLoaded: true,
   });
   useCategoryStore.setState({
@@ -512,7 +518,7 @@ describe('useAddTransaction — cross-currency math', () => {
     );
   });
 
-  it('cc_payment: to_amount = egp_amount (CC debt always EGP-denominated)', async () => {
+  it('cc_payment: stores the amount in the EGP card destination currency', async () => {
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
@@ -530,6 +536,30 @@ describe('useAddTransaction — cross-currency math', () => {
         currency: Currency.USD,
         egp_amount: 1000, // 20 × 50,
         to_amount: 1000,
+      }),
+    );
+  });
+
+  it('cc_payment: converts an EGP payment to the USD card destination currency', async () => {
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+    act(() => result.current.setType(TransactionType.CCPayment));
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.selectToAccount(mockAccountCCUSD));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    expect(addTx).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 500,
+        currency: Currency.EGP,
+        egp_amount: 500,
+        to_amount: 10,
+        exchange_rate: 50,
       }),
     );
   });

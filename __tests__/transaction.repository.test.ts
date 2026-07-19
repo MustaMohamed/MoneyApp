@@ -14,6 +14,7 @@ import {
   TransactionRepository,
   type NewTransactionInput,
 } from '@/modules/transactions/repositories/transaction.repository';
+import { toLocalDateString } from '@/utils/format_date';
 
 // Override global UUID mock with a counter so each add() gets a unique id
 let mockUuidCounter = 0;
@@ -46,10 +47,11 @@ function seedAccount() {
        ('acc2','Savings','bank','EGP',1000,1000,NULL,NULL,0,0,5,?,?),
        ('acc_usd','USD Bank','bank','USD',0,0,NULL,NULL,0,0,3,?,?),
        ('acc_cc','CC','credit_card','EGP',0,1000,500,200,0,0,1,?,?),
+       ('acc_cc_usd','USD CC','credit_card','USD',0,100,50,20,0,0,6,?,?),
        ('acc_cc_no_min','CC2','credit_card','EGP',0,1000,500,NULL,0,0,2,?,?),
        ('acc_cc_installment','CC3','credit_card','EGP',0,1000,5000,500,0,0,4,?,?)`,
     )
-    .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
 }
 
 beforeAll(() => {
@@ -103,6 +105,11 @@ beforeEach(() => {
     .run();
   realDb
     .prepare(
+      "UPDATE accounts SET current_balance = 100, revolving_balance = 50 WHERE id = 'acc_cc_usd'",
+    )
+    .run();
+  realDb
+    .prepare(
       "UPDATE accounts SET current_balance = 1000, revolving_balance = 500 WHERE id = 'acc_cc_no_min'",
     )
     .run();
@@ -147,8 +154,7 @@ describe('TransactionRepository.add', () => {
 
   it('defaults transaction_date to today when omitted', async () => {
     const tx = await repo.add({ ...baseInput, transaction_date: undefined });
-    const today = new Date().toISOString().slice(0, 10);
-    expect(tx.transaction_date).toBe(today);
+    expect(tx.transaction_date).toBe(toLocalDateString(new Date()));
   });
 
   it('stores null for optional fields when omitted', async () => {
@@ -165,9 +171,9 @@ describe('TransactionRepository.add', () => {
 
   it('defaults transaction_time to current time when omitted', async () => {
     const { transaction_time: _time, ...withoutTime } = baseInput;
-    const before = new Date().toISOString().slice(11, 19);
+    const before = new Date().toTimeString().slice(0, 8);
     const tx = await repo.add(withoutTime);
-    const after = new Date().toISOString().slice(11, 19);
+    const after = new Date().toTimeString().slice(0, 8);
     // The stored time string should be between before and after (inclusive)
     expect(tx.transaction_time >= before).toBe(true);
     expect(tx.transaction_time <= after).toBe(true);
@@ -433,6 +439,25 @@ describe('TransactionRepository.add — cc_payment minimum_payment_snapshot', ()
     });
     expect(tx.minimum_payment_snapshot).toBeNull();
   });
+
+  it('stores and applies the payment in a USD card destination currency', async () => {
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 500,
+      currency: Currency.EGP,
+      egp_amount: 500,
+      to_amount: 10,
+      exchange_rate: 50,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_usd',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(tx.to_amount).toBe(10);
+    expect(accountBalance('acc1')).toBe(4500);
+    expect(accountBalance('acc_cc_usd')).toBe(90);
+  });
 });
 
 describe('TransactionRepository.delete', () => {
@@ -658,6 +683,18 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
 });
 
 describe('credit-card ledger policy', () => {
+  it('rejects a destination account on an ordinary transaction before any write', async () => {
+    const transactionCount = transactionRowCount();
+    const bankBalance = accountBalance('acc1');
+
+    await expect(repo.add({ ...baseInput, to_account_id: 'acc2' })).rejects.toBeInstanceOf(
+      TransactionValidationError,
+    );
+
+    expect(transactionRowCount()).toBe(transactionCount);
+    expect(accountBalance('acc1')).toBe(bankBalance);
+  });
+
   it('keeps expense and Card credit create/update/delete effects reversible', async () => {
     realDb.prepare("UPDATE accounts SET current_balance = 500 WHERE id = 'acc_cc'").run();
 

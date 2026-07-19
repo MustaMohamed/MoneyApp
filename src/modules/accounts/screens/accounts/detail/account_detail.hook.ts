@@ -1,6 +1,5 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useMemo } from 'react';
-import { Alert } from 'react-native';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -29,6 +28,7 @@ export function useAccountDetail() {
     isAdjusting,
     isArchiving,
     isConfirmingBalanceReview,
+    balanceReviewError,
   } = useAccountDetailState(
     useShallow((s) => ({
       isEditing: s.isEditing,
@@ -38,6 +38,7 @@ export function useAccountDetail() {
       isAdjusting: s.isAdjusting,
       isArchiving: s.isArchiving,
       isConfirmingBalanceReview: s.isConfirmingBalanceReview,
+      balanceReviewError: s.balanceReviewError,
     })),
   );
   const setEditing = useAccountDetailState.getState().setEditing;
@@ -47,6 +48,7 @@ export function useAccountDetail() {
   const setAdjusting = useAccountDetailState.getState().setAdjusting;
   const setArchiving = useAccountDetailState.getState().setArchiving;
   const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
+  const setBalanceReviewError = useAccountDetailState.getState().setBalanceReviewError;
   const reset = useAccountDetailState.getState().reset;
   useEffect(() => () => reset(), [reset]);
 
@@ -129,13 +131,15 @@ export function useAccountDetail() {
   };
 
   const handleConfirmBalanceReviewed = async () => {
-    if (!id || isConfirmingBalanceReview) return;
-    setConfirmingBalanceReview(true);
+    const detailState = useAccountDetailState.getState();
+    if (!id || detailState.isConfirmingBalanceReview) return;
+    detailState.setBalanceReviewError(undefined);
+    detailState.setConfirmingBalanceReview(true);
     try {
       await confirmBalanceReviewed(id);
     } catch (error) {
       console.error('[accountDetail] confirmBalanceReviewed failed:', error);
-      Alert.alert(Strings.accountBalanceReviewError);
+      setBalanceReviewError(Strings.accountBalanceReviewError);
     } finally {
       setConfirmingBalanceReview(false);
     }
@@ -159,6 +163,7 @@ export function useAccountDetail() {
       isAdjusting,
       isArchiving,
       isConfirmingBalanceReview,
+      balanceReviewError,
     },
     form,
     setEditing,

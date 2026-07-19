@@ -72,11 +72,14 @@ export function toTransactionTimestamp(now: Date): { date: string; time: string 
 }
 
 export function resolveTransactionSaveError(error: unknown): string {
-  if (!error || typeof error !== 'object' || !('issues' in error) || !Array.isArray(error.issues)) {
+  const issues = error && typeof error === 'object' && 'issues' in error ? error.issues : undefined;
+  if (!Array.isArray(issues)) {
     return Strings.transactionSaveError;
   }
-  const issueCodes = error.issues.map((issue) =>
-    issue && typeof issue === 'object' && 'code' in issue ? issue.code : undefined,
+  const issueCodes = issues.map((issue: unknown) =>
+    issue && typeof issue === 'object' && 'code' in issue && typeof issue.code === 'string'
+      ? issue.code
+      : undefined,
   );
   if (issueCodes.includes('card_credit_exceeds_liability')) {
     return Strings.addTxErrCardCreditExceedsLiability;

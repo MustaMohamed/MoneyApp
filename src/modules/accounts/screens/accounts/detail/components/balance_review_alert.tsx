@@ -9,12 +9,14 @@ interface BalanceReviewAlertProps {
   onAdjust: () => void;
   onConfirm: () => void;
   isConfirming: boolean;
+  errorMessage?: string;
 }
 
 export function BalanceReviewAlert({
   onAdjust,
   onConfirm,
   isConfirming,
+  errorMessage,
 }: BalanceReviewAlertProps): React.ReactElement {
   return (
     <Alert status="warning" className="mx-4 mt-4">
@@ -22,6 +24,9 @@ export function BalanceReviewAlert({
       <Alert.Content className="gap-2">
         <Alert.Title>{Strings.accountBalanceReviewTitle}</Alert.Title>
         <Alert.Description>{Strings.accountBalanceReviewBody}</Alert.Description>
+        {errorMessage ? (
+          <Alert.Description className="text-danger">{errorMessage}</Alert.Description>
+        ) : null}
         <View style={{ flexDirection: 'row' }} className="gap-2 pt-1">
           <View style={{ flex: 1 }}>
             <Button

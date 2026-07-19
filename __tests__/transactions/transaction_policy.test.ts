@@ -257,6 +257,11 @@ describe('transaction policy', () => {
         'destination_required',
       ],
       [
+        'destination on an ordinary transaction',
+        command({ destination: account('destination', AccountType.Bank) }),
+        'destination_not_allowed',
+      ],
+      [
         'credit card transfer source',
         command({
           type: TransactionType.Transfer,

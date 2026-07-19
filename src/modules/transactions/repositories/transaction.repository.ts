@@ -10,7 +10,7 @@ import {
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { getBudgetRowById } from '@/modules/budget/database/budgets';
 import { getCategoryById } from '@/modules/categories/database/categories';
-import { roundMoney } from '@/utils/money';
+import { toLocalDateString } from '@/utils/format_date';
 
 import {
   deleteTransactionRow,
@@ -22,6 +22,7 @@ import {
   type TransactionListQuery,
   type UpdateTransactionInput,
 } from '../database/transactions';
+import { resolveTransactionAmounts, TransactionAmountError } from '../domain/transaction_amounts';
 import {
   resolveCreateDeltas,
   resolveDeleteDeltas,
@@ -131,29 +132,19 @@ function normalizedAmountsMatch(input: {
   destination?: Account;
   type: TransactionType;
 }): boolean {
-  const needsRate =
-    input.source.currency === Currency.USD || input.destination?.currency === Currency.USD;
-  const rate = input.exchangeRate;
-  if (needsRate && (!rate || !Number.isFinite(rate) || rate <= 0)) return false;
-
-  const expectedEgp =
-    input.source.currency === Currency.USD
-      ? roundMoney(input.amount * (rate ?? 0))
-      : roundMoney(input.amount);
-  if (roundMoney(input.egpAmount) !== expectedEgp) return false;
-
-  if (input.type !== TransactionType.Transfer && input.type !== TransactionType.CCPayment) {
-    return input.toAmount === null;
+  try {
+    const expected = resolveTransactionAmounts({
+      type: input.type,
+      amount: input.amount,
+      sourceCurrency: input.source.currency,
+      destinationCurrency: input.destination?.currency,
+      exchangeRate: input.exchangeRate ?? undefined,
+    });
+    return input.egpAmount === expected.egpAmount && input.toAmount === expected.toAmount;
+  } catch (error) {
+    if (error instanceof TransactionAmountError) return false;
+    throw error;
   }
-  if (!input.destination || input.toAmount === null) return false;
-
-  const expectedDestination =
-    input.type === TransactionType.CCPayment || input.destination.currency === Currency.EGP
-      ? expectedEgp
-      : input.source.currency === Currency.USD
-        ? roundMoney(input.amount)
-        : roundMoney(expectedEgp / (rate ?? 0));
-  return roundMoney(input.toAmount) === expectedDestination;
 }
 
 function validateNormalizedInput(input: {
@@ -262,7 +253,8 @@ export class TransactionRepository implements ITransactionRepository {
 
   async add(data: NewTransactionInput): Promise<Transaction> {
     const db = await getDb();
-    const now = new Date().toISOString();
+    const clock = new Date();
+    const now = clock.toISOString();
     const source = requireAccount(await loadAccount(db, data.account_id), 'source');
     const destination = await loadAccount(db, data.to_account_id);
     requireSelectableAccount(source, 'source');
@@ -282,7 +274,7 @@ export class TransactionRepository implements ITransactionRepository {
     });
 
     const reportingClass = resolveReportingClass(data.type, source.type);
-    const transactionDate = data.transaction_date ?? now.slice(0, 10);
+    const transactionDate = data.transaction_date ?? toLocalDateString(clock);
     const assignment = await resolveCategoryAndBudget(db, {
       reportingClass,
       categoryId: data.category_id,
@@ -319,7 +311,7 @@ export class TransactionRepository implements ITransactionRepository {
       budget_id: assignment.budgetId,
       note: data.note ?? null,
       transaction_date: transactionDate,
-      transaction_time: data.transaction_time ?? now.slice(11, 19),
+      transaction_time: data.transaction_time ?? clock.toTimeString().slice(0, 8),
       commitment_payment_id: null,
       installment_id: null,
       created_at: now,
