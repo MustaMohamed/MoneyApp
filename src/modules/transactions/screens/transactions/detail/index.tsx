@@ -1,12 +1,9 @@
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
 
-import { BackButton } from '@/components/ui/back_button';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
-import { Text } from '@/components/ui/text';
+import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
-import { GoldTokens } from '@/constants/theme_tokens';
 
 import { EditTransactionSheet } from '../transaction_form';
 import { useEditTransactionState } from '../transaction_form/edit_transaction.state';
@@ -17,6 +14,7 @@ import { DetailHero } from './components/detail_hero';
 import { DetailLoadError } from './components/detail_load_error';
 import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
+import { TransactionDetailSkeleton } from './components/detail_skeleton';
 import { NotFoundState } from './components/not_found_state';
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
@@ -55,18 +53,10 @@ export default function TransactionDetailScreen(): React.ReactElement {
 
   return (
     <Screen edges={['top', 'bottom']}>
-      <View className="border-separator h-14 flex-row items-center justify-between border-b px-2">
-        <BackButton onPress={() => router.back()} />
-        <Text className="font-sora text-foreground text-[15px] font-semibold">
-          {Strings.detailHeader}
-        </Text>
-        <View className="w-10" />
-      </View>
+      <StackHeader title={Strings.detailHeader} onBack={() => router.back()} />
 
       {state.viewState === 'loading' ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator color={GoldTokens[400]} />
-        </View>
+        <TransactionDetailSkeleton />
       ) : state.viewState === 'notFound' ? (
         <NotFoundState />
       ) : state.viewState === 'error' ? (
@@ -81,6 +71,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
               amountText={state.derived.amountText}
               title={state.derived.title}
               dateTimeText={state.derived.dateTimeText}
+              badgeLabel={state.derived.categoryBadge}
+              heroColor={state.derived.heroColor}
             />
 
             {state.derived.isTransferLike && state.derived.transferFlow ? (
@@ -116,27 +108,23 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 value={state.derived.accountLabel}
                 sublabel={state.derived.accountTypeLabel}
               />
-              {/*
-                showDivider is false on the LAST visible row of the card so
-                the bottom doesn't render a hairline flush against the
-                card's own bottom border (avoids double-line artifact). The
-                last row depends on which conditional rows are present:
-                  DateTime is last when no Original Amount and no Rate
-                  Original Amount is last when no Rate
-                  Rate (when present) is always last
-              */}
+              {state.derived.budgetLabel ? (
+                <DetailRow
+                  icon="wallet-outline"
+                  label={Strings.detailBudget}
+                  value={state.derived.budgetLabel}
+                />
+              ) : null}
               <DetailRow
                 icon="calendar"
                 label={Strings.detailDateTime}
                 value={state.derived.dateTimeText}
-                showDivider={!!state.derived.originalAmountText || !!state.derived.exchangeRateText}
               />
               {state.derived.originalAmountText ? (
                 <DetailRow
                   icon="currency-usd"
                   label={Strings.detailOriginalAmount}
                   value={state.derived.originalAmountText}
-                  showDivider={!!state.derived.exchangeRateText}
                 />
               ) : null}
               {state.derived.exchangeRateText ? (
@@ -145,9 +133,14 @@ export default function TransactionDetailScreen(): React.ReactElement {
                   label={Strings.detailExchangeRate}
                   value={state.derived.exchangeRateText}
                   badge={Strings.capturedBadge}
-                  showDivider={false}
                 />
               ) : null}
+              <DetailRow
+                icon={state.isCommitmentOwned ? 'calendar-check-outline' : 'pencil-outline'}
+                label={Strings.detailSource}
+                value={state.derived.sourceLabel}
+                showDivider={false}
+              />
             </DetailRowsCard>
 
             {/*

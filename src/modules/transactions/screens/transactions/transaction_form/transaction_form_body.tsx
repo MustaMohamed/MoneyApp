@@ -5,6 +5,7 @@ import { Input, PressableFeedback, Spinner } from 'heroui-native';
 import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
+import { SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -61,6 +62,12 @@ interface Props {
   setNote: (v: string) => void;
   currency: Currency;
 }
+
+export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
+  padding: ms(16),
+  paddingBottom: SHEET_FOOTER_CLEARANCE,
+  gap: ms(8),
+};
 
 export function TransactionFormBody(props: Props): React.ReactElement {
   const {
@@ -134,7 +141,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
       <BottomSheetScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: ms(16), paddingBottom: ms(24), gap: ms(8) }}
+        contentContainerStyle={TRANSACTION_FORM_CONTENT_CONTAINER_STYLE}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >

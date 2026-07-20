@@ -213,6 +213,14 @@ describe('TransactionsScreen', () => {
     expect(queryByText('spinner')).toBeNull();
   });
 
+  it('keeps scope controls fixed while summary and search scroll with the ledger', () => {
+    const { getByTestId } = render(<TransactionsScreen />);
+
+    expect(getByTestId('transactions-filter-rail')).toBeTruthy();
+    expect(getByTestId('transactions-list-header')).toBeTruthy();
+    expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
+  });
+
   it('does not show row skeletons after loaded transactions render', () => {
     mockUseTransactions({
       emptyVariant: 'none',

@@ -1,3 +1,4 @@
+import { Strings } from '@/constants/strings';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
@@ -9,6 +10,18 @@ export type TotalsMetric = 'income' | 'expense' | 'net';
 
 export type PolaritySignal = 'good' | 'bad' | 'neutral';
 export type DeltaDirection = 'up' | 'down' | 'flat';
+export type TotalsSummaryState = 'noIncome' | 'withinIncome' | 'overIncome' | 'netCredit';
+
+export interface TotalsPresentation {
+  state: TotalsSummaryState;
+  rawExpenseSharePct: number | null;
+  railPct: number;
+  hasOverflow: boolean;
+  caption: string;
+  captionClassName: string;
+  railClassName: string;
+  accessibilityLabel: string;
+}
 
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 
@@ -44,14 +57,68 @@ export function polarityColor(metric: TotalsMetric, deltaPct: number): PolarityS
 
 export function formatSignedAmount(value: number, metric: TotalsMetric): string {
   const formatted = numberFmt.format(Math.abs(value));
-  if (metric === 'expense') return `-${formatted}`;
+  if (metric === 'expense') return `${value < 0 ? '+' : '-'}${formatted}`;
   return `${value >= 0 ? '+' : '-'}${formatted}`;
 }
 
+export function buildTotalsPresentation(current: PeriodTotals): TotalsPresentation {
+  const rawExpenseSharePct =
+    current.incomeEgp > 0 ? Math.round((current.expenseEgp / current.incomeEgp) * 100) : null;
+  const railPct = Math.max(0, Math.min(100, rawExpenseSharePct ?? 0));
+
+  if (current.expenseEgp < 0) {
+    return {
+      state: 'netCredit',
+      rawExpenseSharePct,
+      railPct,
+      hasOverflow: false,
+      caption: Strings.totalsNetCredit,
+      captionClassName: 'text-success',
+      railClassName: 'bg-success',
+      accessibilityLabel: Strings.totalsNetCredit,
+    };
+  }
+
+  if (current.incomeEgp <= 0) {
+    return {
+      state: 'noIncome',
+      rawExpenseSharePct: null,
+      railPct: 0,
+      hasOverflow: false,
+      caption: Strings.totalsNoIncome,
+      captionClassName: 'text-muted',
+      railClassName: 'bg-danger',
+      accessibilityLabel: Strings.totalsNoIncome,
+    };
+  }
+
+  if ((rawExpenseSharePct ?? 0) > 100) {
+    return {
+      state: 'overIncome',
+      rawExpenseSharePct,
+      railPct,
+      hasOverflow: true,
+      caption: Strings.totalsOverIncome(rawExpenseSharePct ?? 0),
+      captionClassName: 'text-danger',
+      railClassName: 'bg-danger',
+      accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct ?? 0),
+    };
+  }
+
+  return {
+    state: 'withinIncome',
+    rawExpenseSharePct,
+    railPct,
+    hasOverflow: false,
+    caption: Strings.totalsWithinIncome,
+    captionClassName: 'text-success',
+    railClassName: 'bg-danger',
+    accessibilityLabel: Strings.totalsExpenseShareA11y(rawExpenseSharePct ?? 0),
+  };
+}
+
 export function expenseSharePct(current: PeriodTotals): number {
-  if (current.incomeEgp <= 0) return 0;
-  const rawPct = Math.round((current.expenseEgp / current.incomeEgp) * 100);
-  return Math.max(0, Math.min(100, rawPct));
+  return buildTotalsPresentation(current).railPct;
 }
 
 export function deltaDisplay(

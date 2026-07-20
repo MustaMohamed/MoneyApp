@@ -69,7 +69,10 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  realDb.exec('DELETE FROM commitment_payments');
   realDb.exec('DELETE FROM transactions');
+  realDb.exec('DELETE FROM commitments');
+  realDb.exec('DELETE FROM budgets');
   realDb.prepare('UPDATE accounts SET current_balance = 1000').run();
 });
 
@@ -257,6 +260,81 @@ describe('getTransactions — amount range filter (currency-aware)', () => {
       amountCurrency: Currency.EGP,
     });
     expect(out.map((t) => t.id)).toEqual(['b']);
+  });
+});
+
+describe('getTransactions — expanded search projection', () => {
+  it('searches user-facing transaction type labels', async () => {
+    await insert({ id: 'purchase', type: TransactionType.Expense });
+    await insert({
+      id: 'card-payment',
+      type: TransactionType.CCPayment,
+      category_id: null,
+      to_account_id: 'acc_b',
+    });
+
+    expect((await getTransactions(mockDb, { search: 'credit pay' })).map((row) => row.id)).toEqual([
+      'card-payment',
+    ]);
+  });
+
+  it('searches named budgets and commitment sources', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
+         VALUES ('budget-trip', 'cat_food', 'Road trip meals', 2000, '2026-05', ?, ?)`,
+      )
+      .run(NOW, NOW);
+    realDb
+      .prepare(
+        `INSERT INTO commitments
+         (id, name, amount_type, amount, currency, category_id,
+          recurrence_every, recurrence_period, start_date, duration_type,
+          is_active, created_at, updated_at)
+         VALUES ('commitment-power', 'Electric bill', 'fixed', 300, 'EGP', 'cat_food',
+                 1, 'months', '2026-05-01', 'forever', 1, ?, ?)`,
+      )
+      .run(NOW, NOW);
+    realDb
+      .prepare(
+        `INSERT INTO commitment_payments
+         (id, commitment_id, due_date, amount_due, currency, status, created_at, updated_at)
+         VALUES ('payment-power', 'commitment-power', '2026-05-01', 300, 'EGP', 'paid', ?, ?)`,
+      )
+      .run(NOW, NOW);
+    await insert({ id: 'budget-row', budget_id: 'budget-trip' });
+    await insert({ id: 'commitment-row', commitment_payment_id: 'payment-power' });
+
+    expect((await getTransactions(mockDb, { search: 'road trip' })).map((row) => row.id)).toEqual([
+      'budget-row',
+    ]);
+    expect(
+      (await getTransactions(mockDb, { search: 'electric bill' })).map((row) => row.id),
+    ).toEqual(['commitment-row']);
+  });
+
+  it('searches destination accounts and exact normalized native amounts', async () => {
+    await insert({
+      id: 'transfer',
+      type: TransactionType.Transfer,
+      amount: 1500,
+      egp_amount: 1500,
+      to_amount: 750,
+      category_id: null,
+      to_account_id: 'acc_b',
+    });
+    await insert({ id: 'different-amount', amount: 150, egp_amount: 150 });
+
+    expect((await getTransactions(mockDb, { search: 'Bank B' })).map((row) => row.id)).toEqual([
+      'transfer',
+    ]);
+    expect((await getTransactions(mockDb, { search: '1,500' })).map((row) => row.id)).toEqual([
+      'transfer',
+    ]);
+    expect((await getTransactions(mockDb, { search: '750' })).map((row) => row.id)).toEqual([
+      'transfer',
+    ]);
   });
 });
 

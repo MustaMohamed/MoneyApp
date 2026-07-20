@@ -1,8 +1,10 @@
 import { Currency } from '@/constants/enums';
 import {
   advancedFiltersEqual,
-  formatAppliedFilterSummary,
   countActiveFilters,
+  formatAppliedFilterSummary,
+  parseAmountInput,
+  validateAmountRange,
 } from '@/modules/transactions/screens/transactions/filter/filter.helpers';
 import {
   EMPTY_FILTERS_V2,
@@ -111,5 +113,48 @@ describe('countActiveFilters', () => {
         amountMin: 100,
       }),
     ).toBe(3);
+  });
+});
+
+describe('amount range validation', () => {
+  it.each([
+    ['5,000.25', 5000.25],
+    ['0', 0],
+    ['50abc', undefined],
+    ['12,34', undefined],
+    ['-1', undefined],
+  ])('strictly parses %s', (input, expected) => {
+    expect(parseAmountInput(input)).toBe(expected);
+  });
+
+  it('accepts blank bounds and a valid ordered range', () => {
+    expect(validateAmountRange('', '')).toMatchObject({ isValid: true });
+    expect(validateAmountRange('1,000', '2,500')).toEqual({
+      isValid: true,
+      min: 1000,
+      max: 2500,
+      minError: undefined,
+      maxError: undefined,
+      rangeError: undefined,
+    });
+  });
+
+  it('returns field errors without discarding malformed input', () => {
+    expect(validateAmountRange('50abc', '-2')).toMatchObject({
+      isValid: false,
+      min: undefined,
+      max: undefined,
+      minError: expect.any(String),
+      maxError: expect.any(String),
+    });
+  });
+
+  it('rejects a minimum above the maximum', () => {
+    expect(validateAmountRange('500', '100')).toMatchObject({
+      isValid: false,
+      min: 500,
+      max: 100,
+      rangeError: expect.any(String),
+    });
   });
 });

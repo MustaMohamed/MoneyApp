@@ -3,7 +3,9 @@ import { router } from 'expo-router';
 import { Alert } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
@@ -25,6 +27,9 @@ jest.mock('@/modules/transactions/store/transaction.store', () => ({
 }));
 jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
   commitmentRepository: { getPaymentById: jest.fn() },
+}));
+jest.mock('@/modules/budget/repositories/budget.repository', () => ({
+  budgetRepository: { getById: jest.fn() },
 }));
 
 const linkedTransaction: Transaction = {
@@ -52,6 +57,7 @@ const linkedTransaction: Transaction = {
 
 const loadCommitments = jest.fn().mockResolvedValue(undefined);
 const setSelectedMonth = jest.fn().mockResolvedValue(undefined);
+const loadAccountLookup = jest.fn().mockResolvedValue(undefined);
 let getById: jest.Mock;
 
 function deferred<T>() {
@@ -66,10 +72,12 @@ function deferred<T>() {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  loadAccountLookup.mockResolvedValue(undefined);
   jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
   useTxDetailStore.getState().reset();
   useTxDetailState.getState().reset();
   getById = jest.fn().mockResolvedValue(linkedTransaction);
+  (budgetRepository.getById as jest.Mock).mockResolvedValue(undefined);
 
   attachMockSelectorStore(useTransactionStore as unknown as jest.Mock, () => ({
     getById,
@@ -78,7 +86,7 @@ beforeEach(() => {
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: [],
     accountLookup: [],
-    loadAccountLookup: jest.fn().mockResolvedValue(undefined),
+    loadAccountLookup,
   }));
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({ categories: [] }));
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
@@ -134,6 +142,51 @@ describe('useTransactionDetail loading', () => {
     pending.resolve({ ...linkedTransaction, note: 'updated' });
     await waitFor(() => expect(result.current.state.revalidating).toBe(false));
     expect(result.current.state.tx?.note).toBe('updated');
+  });
+
+  it('resolves a named budget before publishing the ready detail snapshot', async () => {
+    const budget = { id: 'budget-1', name: 'Travel meals' };
+    getById.mockResolvedValue({ ...linkedTransaction, budget_id: budget.id });
+    (budgetRepository.getById as jest.Mock).mockResolvedValue(budget);
+
+    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(budgetRepository.getById).toHaveBeenCalledWith('budget-1');
+    expect(result.current.state.derived?.budgetLabel).toBe('Travel meals');
+  });
+
+  it('keeps a valid transaction visible when its budget metadata cannot load', async () => {
+    getById.mockResolvedValue({ ...linkedTransaction, budget_id: 'budget-1' });
+    (budgetRepository.getById as jest.Mock).mockRejectedValue(new Error('budget unavailable'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
+    expect(result.current.state.derived?.budgetLabel).toBe(Strings.detailBudgetUnavailable);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[transactionDetail] budget lookup failed',
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it('keeps a valid transaction visible when account metadata cannot load', async () => {
+    loadAccountLookup.mockRejectedValue(new Error('account unavailable'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
+    expect(result.current.state.derived?.accountLabel).toBe(Strings.unknownAccount);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[transactionDetail] account lookup failed',
+      expect.any(Error),
+    );
+    consoleSpy.mockRestore();
   });
 
   it('keeps ready content and exposes retry when revalidation fails', async () => {

@@ -1,4 +1,5 @@
 import type { Transaction } from '@/database/entities/transaction.entity';
+import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { useTxDetailStore } from '@/modules/transactions/screens/transactions/detail/detail.store';
 
 beforeEach(() => {
@@ -10,7 +11,17 @@ describe('useTxDetailStore', () => {
     expect(useTxDetailStore.getState()).toMatchObject({
       tx: null,
       txId: undefined,
+      budget: undefined,
     });
+  });
+
+  it('stores resolved ownership data with the transaction snapshot', () => {
+    const tx = { id: 't1' } as Transaction;
+    const budget = { id: 'budget-1', name: 'Travel meals' } as Budget;
+
+    useTxDetailStore.getState().setTx('t1', tx, budget);
+
+    expect(useTxDetailStore.getState()).toMatchObject({ tx, budget, txId: 't1' });
   });
 
   it('setTx stores a transaction with its route ownership', () => {

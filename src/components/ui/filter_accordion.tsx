@@ -42,6 +42,9 @@ interface AmountRangeFilterContentProps {
   onChangeMinText: (value: string) => void;
   onChangeMaxText: (value: string) => void;
   accessibilityLabel: string;
+  minError?: string;
+  maxError?: string;
+  rangeError?: string;
 }
 
 export function FilterAccordionShell({
@@ -122,6 +125,9 @@ export function AmountRangeFilterContent({
   onChangeMinText,
   onChangeMaxText,
   accessibilityLabel,
+  minError,
+  maxError,
+  rangeError,
 }: AmountRangeFilterContentProps): React.ReactElement {
   return (
     <View className="mt-3">
@@ -146,6 +152,8 @@ export function AmountRangeFilterContent({
             onChangeText={onChangeMinText}
             keyboardType="decimal-pad"
             placeholder={Strings.filterAmountMinPlaceholder}
+            isInvalid={minError !== undefined}
+            errorMessage={minError}
           />
         </View>
         <View className="flex-1">
@@ -157,9 +165,19 @@ export function AmountRangeFilterContent({
             onChangeText={onChangeMaxText}
             keyboardType="decimal-pad"
             placeholder={Strings.filterAmountMaxPlaceholder}
+            isInvalid={maxError !== undefined}
+            errorMessage={maxError}
           />
         </View>
       </View>
+      {rangeError ? (
+        <Text
+          accessibilityRole="alert"
+          className="font-inter text-danger mt-1.5 text-[11px] font-medium"
+        >
+          {rangeError}
+        </Text>
+      ) : null}
     </View>
   );
 }

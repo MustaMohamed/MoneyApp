@@ -33,7 +33,7 @@ export function FilterSheet(): React.ReactElement {
               variant="secondary"
               label={Strings.filterReset}
               onPress={f.resetDraft}
-              isDisabled={f.state.draftCount === 0}
+              isDisabled={!f.state.canReset}
             />
           </Box>
           <Box testID="filter-apply-action" style={FILTER_SHEET_ACTION_STYLE}>
@@ -83,6 +83,9 @@ export function FilterSheet(): React.ReactElement {
           onChangeCurrency={f.setAmountCurrency}
           onChangeMinText={f.setAmountMinText}
           onChangeMaxText={f.setAmountMaxText}
+          minError={f.state.amountMinError}
+          maxError={f.state.amountMaxError}
+          rangeError={f.state.amountRangeError}
         />
       </BottomSheetScrollView>
     </Sheet>

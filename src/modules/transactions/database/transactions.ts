@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Currency } from '@/constants/enums';
 import { TransactionType } from '@/constants/enums';
+import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 import type { Transaction } from '../entities/transaction.entity';
 
@@ -148,6 +149,8 @@ export async function getTransactions(
   const trimmed = query.search?.trim();
   const searchParam: string | null = trimmed && trimmed.length > 0 ? trimmed : null;
   const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
+  const numericSearch =
+    searchParam !== null ? (parseNonNegativeDecimal(searchParam) ?? null) : null;
 
   const accountIds = query.accountIds ?? [];
   const categoryIds = query.categoryIds ?? [];
@@ -166,20 +169,63 @@ export async function getTransactions(
   const amountCurrency = query.amountCurrency ?? null;
 
   const sql = `
+    WITH search_input(search_text, pattern, numeric_amount) AS (
+      SELECT ?, ?, ?
+    )
     SELECT t.* FROM transactions t
+    CROSS JOIN search_input search
     WHERE (? IS NULL OR t.type = ?)
       AND (
-        ? IS NULL
-        OR t.note LIKE ? ESCAPE '\\' COLLATE NOCASE
+        search.search_text IS NULL
+        OR t.note LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         OR EXISTS (
           SELECT 1 FROM accounts a
           WHERE a.id IN (t.account_id, t.to_account_id)
-            AND a.name LIKE ? ESCAPE '\\' COLLATE NOCASE
+            AND a.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
         )
         OR EXISTS (
           SELECT 1 FROM categories c
           WHERE c.id = t.category_id
-            AND c.name LIKE ? ESCAPE '\\' COLLATE NOCASE
+            AND c.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        )
+        OR EXISTS (
+          SELECT 1 FROM budgets budget
+          WHERE budget.id = t.budget_id
+            AND budget.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        )
+        OR EXISTS (
+          SELECT 1
+          FROM commitment_payments payment
+          JOIN commitments commitment ON commitment.id = payment.commitment_id
+          WHERE payment.id = t.commitment_payment_id
+            AND (
+              commitment.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+              OR payment.notes LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+            )
+        )
+        OR REPLACE(t.type, '_', ' ') LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR CASE t.type
+             WHEN 'cc_payment' THEN 'Credit Pay Credit Card Payment'
+             WHEN 'expense' THEN 'Expense'
+             WHEN 'income' THEN 'Income'
+             WHEN 'transfer' THEN 'Transfer'
+           END LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR (
+          t.type = 'income'
+          AND EXISTS (
+            SELECT 1 FROM accounts source_account
+            WHERE source_account.id = t.account_id
+              AND source_account.type = 'credit_card'
+          )
+          AND 'Card credit' LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        )
+        OR (
+          search.numeric_amount IS NOT NULL
+          AND (
+            t.amount = search.numeric_amount
+            OR t.to_amount = search.numeric_amount
+            OR t.egp_amount = search.numeric_amount
+          )
         )
       )
       AND (
@@ -202,12 +248,11 @@ export async function getTransactions(
   `;
 
   return db.getAllAsync<Transaction>(sql, [
-    typeParam,
-    typeParam,
     searchParam,
     likePattern,
-    likePattern,
-    likePattern,
+    numericSearch,
+    typeParam,
+    typeParam,
     accountListEmpty,
     ...accountParams,
     ...accountParams,

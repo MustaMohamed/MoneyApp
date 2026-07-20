@@ -159,6 +159,35 @@ export default function TransactionsScreen(): React.ReactElement {
   const showRowsSkeleton = state.showInitialSkeleton;
   const listSections = state.sections;
 
+  const listHeaderComponent = useMemo(
+    () => (
+      <View testID="transactions-list-header">
+        <TotalsStrip
+          current={state.totals?.current ?? null}
+          previous={state.totals?.previous ?? null}
+          previousLabel={state.previousLabel}
+          isLoading={state.totals === null}
+        />
+        <SearchRow
+          value={state.searchQuery}
+          onChange={setSearchQuery}
+          onClear={clearSearch}
+          onOpenFilter={openFilter}
+          activeFilterCount={state.activeFilterCount}
+        />
+      </View>
+    ),
+    [
+      clearSearch,
+      openFilter,
+      setSearchQuery,
+      state.activeFilterCount,
+      state.previousLabel,
+      state.searchQuery,
+      state.totals,
+    ],
+  );
+
   const listEmptyComponent = useMemo(
     () =>
       showRowsSkeleton ? (
@@ -217,21 +246,6 @@ export default function TransactionsScreen(): React.ReactElement {
         filterAccessibilityLabel="Transaction type filter"
       />
 
-      <TotalsStrip
-        current={state.totals?.current ?? null}
-        previous={state.totals?.previous ?? null}
-        previousLabel={state.previousLabel}
-        isLoading={state.totals === null}
-      />
-
-      <SearchRow
-        value={state.searchQuery}
-        onChange={setSearchQuery}
-        onClear={clearSearch}
-        onOpenFilter={openFilter}
-        activeFilterCount={state.activeFilterCount}
-      />
-
       <View style={{ flex: 1 }}>
         <SectionList
           testID="transactions-list"
@@ -246,6 +260,7 @@ export default function TransactionsScreen(): React.ReactElement {
           onMomentumScrollEnd={onListScrollEnd}
           onScrollBeginDrag={closeAllRows}
           renderItem={renderItem}
+          ListHeaderComponent={listHeaderComponent}
           ListEmptyComponent={listEmptyComponent}
           ListFooterComponent={listFooterComponent}
           refreshControl={

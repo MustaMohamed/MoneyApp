@@ -1,4 +1,5 @@
 import {
+  buildTotalsPresentation,
   currentYearMonth,
   resolvePeriod,
   previousPeriod,
@@ -88,6 +89,48 @@ describe('computeDeltaPct', () => {
     expect(computeDeltaPct(103, 100)).toBe(3);
     expect(computeDeltaPct(102.5, 100)).toBe(3);
     expect(computeDeltaPct(102.4, 100)).toBe(2);
+  });
+});
+
+describe('buildTotalsPresentation', () => {
+  it('explains spending when the month has no income', () => {
+    expect(buildTotalsPresentation({ incomeEgp: 0, expenseEgp: 500, netEgp: -500 })).toMatchObject({
+      state: 'noIncome',
+      railPct: 0,
+      rawExpenseSharePct: null,
+      hasOverflow: false,
+    });
+  });
+
+  it('distinguishes spending within income from overspending', () => {
+    expect(
+      buildTotalsPresentation({ incomeEgp: 1_000, expenseEgp: 650, netEgp: 350 }),
+    ).toMatchObject({
+      state: 'withinIncome',
+      railPct: 65,
+      rawExpenseSharePct: 65,
+      hasOverflow: false,
+    });
+    expect(
+      buildTotalsPresentation({ incomeEgp: 100, expenseEgp: 350, netEgp: -250 }),
+    ).toMatchObject({
+      state: 'overIncome',
+      railPct: 100,
+      rawExpenseSharePct: 350,
+      hasOverflow: true,
+    });
+  });
+
+  it('presents negative net spending as a card-credit month', () => {
+    expect(buildTotalsPresentation({ incomeEgp: 100, expenseEgp: -50, netEgp: 150 })).toMatchObject(
+      {
+        state: 'netCredit',
+        railPct: 0,
+        rawExpenseSharePct: -50,
+        hasOverflow: false,
+      },
+    );
+    expect(formatSignedAmount(-50, 'expense')).toBe('+50');
   });
 });
 
