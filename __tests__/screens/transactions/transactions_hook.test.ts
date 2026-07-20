@@ -306,6 +306,7 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.sections).toEqual([]);
     expect(result.current.state.listStatus).toBe('initialLoading');
     expect(result.current.state.showInitialSkeleton).toBe(true);
+    expect(result.current.state.paginationError).toBe(false);
   });
 
   it('renders rows only when the snapshot matches the active controls', () => {
@@ -378,6 +379,8 @@ describe('useTransactions query ownership', () => {
       first.result.current.setSelectedMonth('2026-06');
       first.result.current.setSearchQuery('coffee');
       first.result.current.setActiveFilter(TransactionType.Expense);
+    });
+    act(() => {
       first.result.current.onListScroll({
         nativeEvent: { contentOffset: { y: 284 } },
       } as never);
@@ -421,6 +424,41 @@ describe('useTransactions query ownership', () => {
     await waitFor(() => {
       expect(refresh).toHaveBeenCalledTimes(1);
       expect(getPeriodTotals).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('waits for the owning snapshot before restoring its scroll offset', async () => {
+    setupStores({
+      transactions: [],
+      snapshotKey: undefined,
+      status: 'initialLoading',
+    });
+    const queryKey = getTransactionQueryKey(JULY_QUERY);
+    useTransactionsState.getState().activateScrollQuery(queryKey);
+    useTransactionsState.getState().setScrollOffset(queryKey, 284);
+    const scrollTo = jest.fn();
+    const { result, rerender } = renderHook((_props: Record<string, never>) => useTransactions(), {
+      initialProps: {},
+    });
+    result.current.state.listRef.current = {
+      getScrollResponder: () => ({ scrollTo }),
+    } as never;
+
+    act(() => {
+      mockFocusEffectCallback?.();
+    });
+    expect(scrollTo).not.toHaveBeenCalled();
+
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION],
+      snapshotKey: queryKey,
+      status: 'ready',
+    };
+    rerender({});
+
+    await waitFor(() => {
+      expect(scrollTo).toHaveBeenCalledWith({ y: 284, animated: false });
     });
   });
 

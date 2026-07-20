@@ -22,13 +22,15 @@ interface TransactionsStateShape {
   totalsStatus: TransactionTotalsStatus;
   totalsRequestId: number;
   scrollOffset: number;
+  scrollQueryKey: string | null;
 }
 
 type TransactionsState = TransactionsStateShape & {
   beginTotalsLoad: (yearMonth: string, preserveData: boolean) => number;
   resolveTotals: (yearMonth: string, requestId: number, totals: TransactionTotalsState) => void;
   failTotals: (yearMonth: string, requestId: number) => void;
-  setScrollOffset: (offset: number) => void;
+  activateScrollQuery: (queryKey: string) => void;
+  setScrollOffset: (queryKey: string, offset: number) => void;
   reset: () => void;
 };
 
@@ -38,6 +40,7 @@ const INITIAL_STATE: TransactionsStateShape = {
   totalsStatus: 'idle',
   totalsRequestId: 0,
   scrollOffset: 0,
+  scrollQueryKey: null,
 };
 
 export const useTransactionsState = createMoneyAppSelectors(
@@ -71,7 +74,16 @@ export const useTransactionsState = createMoneyAppSelectors(
           totalsStatus: state.totals ? 'refreshErrorWithData' : 'firstLoadError',
         };
       }),
-    setScrollOffset: (scrollOffset) => set({ scrollOffset: Math.max(0, scrollOffset) }),
+    activateScrollQuery: (scrollQueryKey) =>
+      set((state) =>
+        state.scrollQueryKey === scrollQueryKey ? state : { scrollQueryKey, scrollOffset: 0 },
+      ),
+    setScrollOffset: (scrollQueryKey, scrollOffset) =>
+      set((state) =>
+        state.scrollQueryKey === scrollQueryKey
+          ? { scrollOffset: Math.max(0, scrollOffset) }
+          : state,
+      ),
     reset: () => set(INITIAL_STATE),
   })),
 );

@@ -52,17 +52,19 @@ export const useTxDetailState = createMoneyAppSelectors(
       }),
     resolve: (id) =>
       set((state) =>
-        state.activeId === id ? { status: 'ready', revalidating: false, refreshError: false } : {},
+        state.activeId === id
+          ? { status: 'ready', revalidating: false, refreshError: false }
+          : state,
       ),
     resolveNotFound: (id) =>
       set((state) =>
         state.activeId === id
           ? { status: 'notFound', revalidating: false, refreshError: false }
-          : {},
+          : state,
       ),
     failLoad: (id, preserveData) =>
       set((state) => {
-        if (state.activeId !== id) return {};
+        if (state.activeId !== id) return state;
         return preserveData
           ? { status: 'ready', revalidating: false, refreshError: true }
           : { status: 'firstLoadError', revalidating: false, refreshError: false };

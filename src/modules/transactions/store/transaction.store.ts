@@ -141,8 +141,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
         loadMore: async () => {
           const { hasMore, loadingMore, query, queryKey, snapshotKey, status, transactions } =
             get();
-          if (!hasMore || loadingMore || status === 'refreshing' || snapshotKey !== queryKey)
-            return;
+          if (!hasMore || loadingMore || status !== 'ready' || snapshotKey !== queryKey) return;
           const myId = ++pageRequestId;
           set({ loadingMore: true, paginationError: false });
           try {
@@ -163,7 +162,6 @@ export function createTransactionStore(repo: ITransactionRepository) {
               hasMore: rows.length === PAGE_SIZE,
               loadingMore: false,
               paginationError: false,
-              status: 'ready',
             }));
           } catch (error) {
             if (myId === pageRequestId && get().queryKey === queryKey) {

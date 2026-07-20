@@ -11,6 +11,7 @@ describe('useTransactionsState', () => {
     expect(useTransactionsState.getState().totalsYearMonth).toBeNull();
     expect(useTransactionsState.getState().totalsStatus).toBe('idle');
     expect(useTransactionsState.getState().scrollOffset).toBe(0);
+    expect(useTransactionsState.getState().scrollQueryKey).toBeNull();
   });
 
   it('begins a new month with an empty initial-loading snapshot', () => {
@@ -117,10 +118,28 @@ describe('useTransactionsState', () => {
     });
   });
 
-  it('persists the current list scroll offset', () => {
-    useTransactionsState.getState().setScrollOffset(328);
+  it('persists scroll context only for its owning query', () => {
+    useTransactionsState.getState().activateScrollQuery('july-query');
+    useTransactionsState.getState().setScrollOffset('july-query', 328);
 
-    expect(useTransactionsState.getState().scrollOffset).toBe(328);
+    expect(useTransactionsState.getState()).toMatchObject({
+      scrollOffset: 328,
+      scrollQueryKey: 'july-query',
+    });
+
+    useTransactionsState.getState().activateScrollQuery('june-query');
+
+    expect(useTransactionsState.getState()).toMatchObject({
+      scrollOffset: 0,
+      scrollQueryKey: 'june-query',
+    });
+
+    useTransactionsState.getState().setScrollOffset('july-query', 512);
+
+    expect(useTransactionsState.getState()).toMatchObject({
+      scrollOffset: 0,
+      scrollQueryKey: 'june-query',
+    });
   });
 
   it('reset() clears totals', () => {
@@ -129,7 +148,8 @@ describe('useTransactionsState', () => {
       current: { incomeEgp: 100, expenseEgp: 40, netEgp: 60 },
       previous: null,
     });
-    useTransactionsState.getState().setScrollOffset(128);
+    useTransactionsState.getState().activateScrollQuery('july-query');
+    useTransactionsState.getState().setScrollOffset('july-query', 128);
 
     useTransactionsState.getState().reset();
 
@@ -137,5 +157,6 @@ describe('useTransactionsState', () => {
     expect(useTransactionsState.getState().totalsYearMonth).toBeNull();
     expect(useTransactionsState.getState().totalsStatus).toBe('idle');
     expect(useTransactionsState.getState().scrollOffset).toBe(0);
+    expect(useTransactionsState.getState().scrollQueryKey).toBeNull();
   });
 });

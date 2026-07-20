@@ -296,6 +296,27 @@ describe('transactionStore.loadMore', () => {
     });
     consoleSpy.mockRestore();
   });
+
+  it('does not paginate a snapshot whose replacement refresh failed', async () => {
+    const txs = Array.from({ length: PAGE_SIZE + 1 }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
+    const useStore = createTransactionStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await useStore.getState().setQuery({});
+    (repo.getAll as jest.Mock).mockRejectedValueOnce(new Error('refresh failed'));
+    await expect(useStore.getState().refresh()).rejects.toThrow('refresh failed');
+    (repo.getAll as jest.Mock).mockClear();
+
+    await useStore.getState().loadMore();
+
+    expect(repo.getAll).not.toHaveBeenCalled();
+    expect(useStore.getState()).toMatchObject({
+      transactions: txs.slice(0, PAGE_SIZE),
+      status: 'refreshErrorWithData',
+    });
+    consoleSpy.mockRestore();
+  });
 });
 
 describe('transactionStore.refresh', () => {

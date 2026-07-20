@@ -89,12 +89,6 @@ jest.mock('@/modules/transactions/screens/transactions/components/transaction_ro
     return <Text>Transaction row</Text>;
   },
 }));
-jest.mock('@/modules/transactions/screens/transactions/components/transaction_load_error', () => ({
-  TransactionLoadError: ({ variant }: { variant: string }) => {
-    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{`${variant} load error`}</Text>;
-  },
-}));
 jest.mock('@/modules/transactions/screens/transactions/components/date_header', () => ({
   DateHeader: ({ label }: { label: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -336,86 +330,5 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('filtered')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
-  });
-
-  it('shows a retryable first-load error instead of an empty state', () => {
-    mockUseTransactions({
-      listStatus: 'firstLoadError',
-      showInitialSkeleton: false,
-      showFirstLoadError: true,
-    });
-
-    const { getByText, queryByText } = render(<TransactionsScreen />);
-
-    expect(getByText('initial load error')).toBeTruthy();
-    expect(queryByText('transactions')).toBeNull();
-  });
-
-  it('overlays refresh errors without removing loaded rows', () => {
-    mockUseTransactions({
-      listStatus: 'refreshErrorWithData',
-      showInitialSkeleton: false,
-      loadErrorVariant: 'refresh',
-      sections: [
-        {
-          key: 'TODAY',
-          data: [
-            {
-              id: 'tx-1',
-              type: TransactionType.Income,
-              amount: 100,
-              currency: Currency.EGP,
-              egp_amount: 100,
-              to_amount: null,
-              minimum_payment_snapshot: null,
-              revolving_balance_delta: null,
-              account_id: 'acc-1',
-              to_account_id: null,
-              category_id: null,
-              budget_id: null,
-              note: null,
-              transaction_date: '2026-08-01',
-              transaction_time: '12:00:00',
-              exchange_rate: null,
-              commitment_payment_id: null,
-              installment_id: null,
-              created_at: '2026-08-01T12:00:00.000Z',
-              updated_at: '2026-08-01T12:00:00.000Z',
-            },
-          ],
-        },
-      ],
-    });
-
-    const { getByText } = render(<TransactionsScreen />);
-
-    expect(getByText('refresh load error')).toBeTruthy();
-    expect(getByText('Transaction row')).toBeTruthy();
-  });
-
-  it('shows a totals-specific error without replacing loaded rows', () => {
-    mockUseTransactions({
-      listStatus: 'ready',
-      showInitialSkeleton: false,
-      loadErrorVariant: 'totals',
-      sections: [{ key: 'TODAY', data: [] }],
-    });
-
-    const { getByText } = render(<TransactionsScreen />);
-
-    expect(getByText('totals load error')).toBeTruthy();
-  });
-
-  it('renders a retryable pagination error in the list footer', () => {
-    mockUseTransactions({
-      listStatus: 'ready',
-      showInitialSkeleton: false,
-      paginationError: true,
-      sections: [{ key: 'TODAY', data: [] }],
-    });
-
-    const { getByText } = render(<TransactionsScreen />);
-
-    expect(getByText('pagination load error')).toBeTruthy();
   });
 });

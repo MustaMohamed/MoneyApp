@@ -66,6 +66,12 @@ import { Colors, FontFamily, Size, Spacing, Type } from '@/constants/theme';
 import { useSheetVisibilityStore } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
+import {
+  createSheetCloseLifecycle,
+  settleSheetCloseLifecycle,
+  syncSheetCloseLifecycle,
+} from './sheet_close_lifecycle';
+
 export { useBottomSheetAwareHandlers } from 'heroui-native';
 
 /**
@@ -205,21 +211,14 @@ export function Sheet({
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
   const insets = useSafeAreaInsets();
-  const previousIsOpenRef = useRef(isOpen);
-  const closePendingRef = useRef(false);
-
-  useEffect(() => {
-    const wasOpen = previousIsOpenRef.current;
-    previousIsOpenRef.current = isOpen;
-    if (wasOpen && !isOpen) closePendingRef.current = true;
-    if (isOpen) closePendingRef.current = false;
-  }, [isOpen]);
+  const closeLifecycleRef = useRef(createSheetCloseLifecycle(isOpen));
+  closeLifecycleRef.current = syncSheetCloseLifecycle(closeLifecycleRef.current, isOpen);
 
   const handleSheetIndexChange = useCallback(
     (index: number) => {
-      if (index !== -1 || !closePendingRef.current) return;
-      closePendingRef.current = false;
-      onCloseComplete?.();
+      const settlement = settleSheetCloseLifecycle(closeLifecycleRef.current, index);
+      closeLifecycleRef.current = settlement.lifecycle;
+      if (settlement.shouldComplete) onCloseComplete?.();
     },
     [onCloseComplete],
   );
