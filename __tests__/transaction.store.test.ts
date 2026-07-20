@@ -6,6 +6,7 @@ import type {
   TransactionListQuery,
   UpdateTransactionInput,
 } from '@/modules/transactions/repositories/transaction.repository';
+import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import { useTransactionStore } from '@/store/transaction.store';
 import { createTransactionStore, PAGE_SIZE } from '@/store/transaction.store';
 
@@ -87,20 +88,86 @@ function makeRepo(initial: Transaction[] = []): ITransactionRepository {
 }
 
 describe('transactionStore.setQuery', () => {
-  it('starts unloaded so screens do not show empty states before the first fetch settles', () => {
+  it('immediately assigns ownership to the new query and clears the old snapshot', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'old' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({ search: 'old' });
+
+    const nextPage = deferred<Transaction[]>();
+    repo.getAll = jest.fn(() => nextPage.promise);
+    const nextQuery = { search: 'new' };
+    const pending = useStore.getState().setQuery(nextQuery);
+
+    expect(useStore.getState()).toMatchObject({
+      transactions: [],
+      query: nextQuery,
+      queryKey: getTransactionQueryKey(nextQuery),
+      snapshotKey: undefined,
+      status: 'initialLoading',
+    });
+
+    nextPage.resolve([makeTransaction({ id: 'new' })]);
+    await pending;
+    expect(useStore.getState()).toMatchObject({
+      snapshotKey: getTransactionQueryKey(nextQuery),
+      status: 'ready',
+    });
+  });
+
+  it('resolves an empty first page to the explicit empty state', async () => {
+    const useStore = createTransactionStore(makeRepo());
+
+    await useStore.getState().setQuery({});
+
+    expect(useStore.getState().status).toBe('empty');
+  });
+
+  it('exposes a retryable first-load error without converting it to empty data', async () => {
+    const repo = makeRepo();
+    repo.getAll = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('db unavailable'))
+      .mockResolvedValue([]);
+    const useStore = createTransactionStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(useStore.getState().setQuery({ search: 'rent' })).rejects.toThrow(
+      'db unavailable',
+    );
+    expect(useStore.getState()).toMatchObject({
+      transactions: [],
+      snapshotKey: undefined,
+      status: 'firstLoadError',
+    });
+
+    await useStore.getState().retry();
+    expect(useStore.getState()).toMatchObject({
+      snapshotKey: getTransactionQueryKey({ search: 'rent' }),
+      status: 'empty',
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('starts idle so screens do not show empty states before the first fetch settles', () => {
     const repo = makeRepo();
     const useStore = createTransactionStore(repo);
 
-    expect(useStore.getState().hasLoaded).toBe(false);
+    expect(useStore.getState()).toMatchObject({
+      status: 'idle',
+      snapshotKey: undefined,
+    });
   });
 
-  it('marks the list loaded after the first fetch settles', async () => {
+  it('owns the resolved snapshot after the first fetch settles', async () => {
     const repo = makeRepo();
     const useStore = createTransactionStore(repo);
 
     await useStore.getState().setQuery({});
 
-    expect(useStore.getState().hasLoaded).toBe(true);
+    expect(useStore.getState()).toMatchObject({
+      status: 'empty',
+      snapshotKey: getTransactionQueryKey({}),
+    });
   });
 
   it('replaces the list with the page-1 result for the new query', async () => {
@@ -128,17 +195,17 @@ describe('transactionStore.setQuery', () => {
     expect(useStore.getState().hasMore).toBe(false);
   });
 
-  it('toggles loading true during fetch and false on completion', async () => {
+  it('moves from initial loading to empty on completion', async () => {
     const repo = makeRepo();
     const def = deferred<Transaction[]>();
     repo.getAll = jest.fn(() => def.promise);
     const useStore = createTransactionStore(repo);
 
     const inFlight = useStore.getState().setQuery({});
-    expect(useStore.getState().loading).toBe(true);
+    expect(useStore.getState().status).toBe('initialLoading');
     def.resolve([]);
     await inFlight;
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().status).toBe('empty');
   });
 });
 
@@ -183,6 +250,48 @@ describe('transactionStore.loadMore', () => {
 });
 
 describe('transactionStore.refresh', () => {
+  it('preserves a ready snapshot while refresh is in flight', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'before' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    const snapshotKey = useStore.getState().snapshotKey;
+
+    const refreshed = deferred<Transaction[]>();
+    repo.getAll = jest.fn(() => refreshed.promise);
+    const pending = useStore.getState().refresh();
+
+    expect(useStore.getState()).toMatchObject({
+      transactions: [expect.objectContaining({ id: 'before' })],
+      snapshotKey,
+      status: 'refreshing',
+    });
+
+    refreshed.resolve([makeTransaction({ id: 'after' })]);
+    await pending;
+    expect(useStore.getState()).toMatchObject({
+      transactions: [expect.objectContaining({ id: 'after' })],
+      snapshotKey,
+      status: 'ready',
+    });
+  });
+
+  it('preserves a ready snapshot when refresh fails', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'stable' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    repo.getAll = jest.fn().mockRejectedValue(new Error('refresh failed'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(useStore.getState().refresh()).rejects.toThrow('refresh failed');
+
+    expect(useStore.getState()).toMatchObject({
+      transactions: [expect.objectContaining({ id: 'stable' })],
+      snapshotKey: getTransactionQueryKey({}),
+      status: 'refreshErrorWithData',
+    });
+    consoleSpy.mockRestore();
+  });
+
   it('re-fetches page 1 with the current query', async () => {
     const txs = Array.from({ length: 3 }, (_, i) =>
       makeTransaction({ id: `t${i}`, type: TransactionType.Income, category_id: 'cat_salary' }),
@@ -354,18 +463,20 @@ describe('transactionStore.getById', () => {
 });
 
 describe('transactionStore — error handling', () => {
-  it('clears the loading flag and rethrows when the repo errors', async () => {
+  it('enters first-load error and rethrows when the repo errors', async () => {
     const repo = makeRepo();
     repo.getAll = jest.fn().mockRejectedValue(new Error('db down'));
     const useStore = createTransactionStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(useStore.getState().setQuery({})).rejects.toThrow('db down');
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().status).toBe('firstLoadError');
+    consoleSpy.mockRestore();
   });
 });
 
 describe('transactionStore.reset', () => {
-  it('restores INITIAL_STATE (empty list, no query, not loading)', async () => {
+  it('restores the idle state with an empty query', async () => {
     const repo = makeRepo([makeTransaction({ id: 't1' })]);
     const useStore = createTransactionStore(repo);
     await useStore.getState().setQuery({ search: 'x' });
@@ -377,9 +488,11 @@ describe('transactionStore.reset', () => {
     expect(useStore.getState()).toMatchObject({
       transactions: [],
       hasMore: false,
-      loading: false,
-      hasLoaded: false,
+      loadingMore: false,
       query: {},
+      queryKey: getTransactionQueryKey({}),
+      snapshotKey: undefined,
+      status: 'idle',
       mutationVersion: 0,
     });
   });
@@ -414,7 +527,7 @@ describe('transactionStore — race guard', () => {
     expect(useStore.getState().query).toEqual({ search: 'ab' });
   });
 
-  it('a stale request that errors does not clear loading set by a newer request', async () => {
+  it('a stale request that errors does not replace the newer ready snapshot', async () => {
     const repo = makeRepo();
     const firstDef = deferred<Transaction[]>();
     const secondDef = deferred<Transaction[]>();
@@ -428,16 +541,18 @@ describe('transactionStore — race guard', () => {
     // The newer request resolves first and clears loading.
     secondDef.resolve([makeTransaction({ id: 'fresh' })]);
     await fresh;
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().status).toBe('ready');
 
     // Now have the older request reject (e.g. its DB call timed out). The
-    // catch path's `if (myId === requestId)` guard must be FALSE, so it
-    // must NOT touch loading or transactions — those belong to the newer
+    // catch path's request guard must be FALSE, so it must not touch the
+    // status or transactions — those belong to the newer
     // request that already settled.
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     firstDef.reject(new Error('stale db error'));
     await expect(stale).rejects.toThrow('stale db error');
 
-    expect(useStore.getState().loading).toBe(false);
+    expect(useStore.getState().status).toBe('ready');
     expect(useStore.getState().transactions.map((t) => t.id)).toEqual(['fresh']);
+    consoleSpy.mockRestore();
   });
 });

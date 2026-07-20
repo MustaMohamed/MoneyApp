@@ -913,6 +913,9 @@ export const Strings = {
   totalsExpense: 'Expense',
   totalsNet: 'Net',
   totalsVsPrev: (prevLabel: string) => `vs ${prevLabel}`,
+  transactionsLoadError: 'Could not load transactions.',
+  transactionsRefreshError: 'Could not refresh transactions.',
+  transactionsLoadRetry: 'Retry',
 
   // §6 Transactions — Type badges
   typeBadgeCommitment: 'Commitment',

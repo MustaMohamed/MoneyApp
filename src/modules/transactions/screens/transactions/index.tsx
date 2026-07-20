@@ -20,6 +20,7 @@ import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
 import { TotalsStrip } from './components/totals_strip';
+import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
@@ -31,9 +32,8 @@ import { useAddTransactionStore } from './transaction_form/add_transaction.store
 import { useEditTransactionState } from './transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from './transaction_form/edit_transaction.store';
 import { useTransactions } from './transactions.hook';
+import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
-
-type TransactionSection = { key: string; data: Transaction[] };
 
 const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
   {
@@ -77,6 +77,8 @@ export default function TransactionsScreen(): React.ReactElement {
     resetFilters,
     onRefresh,
     onEndReached,
+    onListScroll,
+    retryFailedLoads,
   } = t;
   const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
     useShallow((s) => ({
@@ -147,20 +149,29 @@ export default function TransactionsScreen(): React.ReactElement {
     [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
   );
 
-  const showRowsSkeleton = !state.hasLoaded && state.sections.length === 0;
+  const showRowsSkeleton = state.showInitialSkeleton;
   const listSections = state.sections;
 
   const listEmptyComponent = useMemo(
     () =>
       showRowsSkeleton ? (
         <TransactionRowsSkeleton />
+      ) : state.showFirstLoadError ? (
+        <TransactionLoadError onRetry={() => void retryFailedLoads()} />
       ) : state.emptyVariant === 'none' ? null : (
         <EmptyState
           variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
           onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}
         />
       ),
-    [openAddTx, resetFilters, showRowsSkeleton, state.emptyVariant],
+    [
+      openAddTx,
+      resetFilters,
+      retryFailedLoads,
+      showRowsSkeleton,
+      state.emptyVariant,
+      state.showFirstLoadError,
+    ],
   );
 
   const handleRefresh = useCallback(() => {
@@ -195,7 +206,7 @@ export default function TransactionsScreen(): React.ReactElement {
         current={state.totals?.current ?? null}
         previous={state.totals?.previous ?? null}
         previousLabel={state.previousLabel}
-        isLoading={!state.totals || state.refreshing}
+        isLoading={state.totals === null}
       />
 
       <SearchRow
@@ -206,26 +217,34 @@ export default function TransactionsScreen(): React.ReactElement {
         activeFilterCount={state.activeFilterCount}
       />
 
-      <SectionList
-        sections={listSections}
-        keyExtractor={(item) => item.id}
-        stickySectionHeadersEnabled
-        renderSectionHeader={renderSectionHeader}
-        onScrollBeginDrag={closeAllRows}
-        renderItem={renderItem}
-        ListEmptyComponent={listEmptyComponent}
-        refreshControl={
-          <RefreshControl
-            refreshing={state.refreshing}
-            onRefresh={handleRefresh}
-            tintColor={GoldTokens[500]}
-            colors={[GoldTokens[500]]}
-          />
-        }
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
-      />
+      <View style={{ flex: 1 }}>
+        <SectionList
+          ref={state.listRef}
+          sections={listSections}
+          keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled
+          renderSectionHeader={renderSectionHeader}
+          onScroll={onListScroll}
+          scrollEventThrottle={16}
+          onScrollBeginDrag={closeAllRows}
+          renderItem={renderItem}
+          ListEmptyComponent={listEmptyComponent}
+          refreshControl={
+            <RefreshControl
+              refreshing={state.refreshing}
+              onRefresh={handleRefresh}
+              tintColor={GoldTokens[500]}
+              colors={[GoldTokens[500]]}
+            />
+          }
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
+        />
+        {state.showRefreshError ? (
+          <TransactionLoadError floating onRetry={() => void retryFailedLoads()} />
+        ) : null}
+      </View>
 
       <AddTransactionSheet
         visible={addTxVisible}

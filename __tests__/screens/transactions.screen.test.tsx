@@ -89,6 +89,12 @@ jest.mock('@/modules/transactions/screens/transactions/components/transaction_ro
     return <Text>Transaction row</Text>;
   },
 }));
+jest.mock('@/modules/transactions/screens/transactions/components/transaction_load_error', () => ({
+  TransactionLoadError: ({ floating }: { floating?: boolean }) => {
+    const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return <Text>{floating ? 'Floating load error' : 'Initial load error'}</Text>;
+  },
+}));
 jest.mock('@/modules/transactions/screens/transactions/components/date_header', () => ({
   DateHeader: ({ label }: { label: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -154,8 +160,10 @@ type TransactionsScreenState = TransactionsScreenHook['state'];
 const baseTransactionsState: TransactionsScreenState = {
   sections: [],
   hasMore: false,
-  loading: true,
-  hasLoaded: false,
+  listStatus: 'initialLoading',
+  showInitialSkeleton: true,
+  showFirstLoadError: false,
+  showRefreshError: false,
   refreshing: false,
   emptyVariant: 'none',
   searchQuery: '',
@@ -167,7 +175,9 @@ const baseTransactionsState: TransactionsScreenState = {
   activeFilterCount: 0,
   appliedFilterSummary: '',
   totals: null,
+  totalsStatus: 'initialLoading',
   previousLabel: 'July 2026',
+  listRef: { current: null },
 };
 
 const mockedUseTransactions = jest.mocked(useTransactions);
@@ -181,6 +191,10 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     clearSearch: jest.fn(),
     onEndReached: jest.fn(),
     onRefresh: jest.fn(),
+    onListScroll: jest.fn(),
+    retryList: jest.fn(),
+    retryTotals: jest.fn(),
+    retryFailedLoads: jest.fn(),
     openFilter: jest.fn(),
     resetFilters: jest.fn(),
     goToDetail: jest.fn(),
@@ -204,8 +218,8 @@ describe('TransactionsScreen', () => {
   it('does not show row skeletons after loaded transactions render', () => {
     mockUseTransactions({
       emptyVariant: 'none',
-      loading: false,
-      hasLoaded: true,
+      listStatus: 'ready',
+      showInitialSkeleton: false,
       sections: [
         {
           key: 'TODAY',
@@ -246,13 +260,14 @@ describe('TransactionsScreen', () => {
   it('keeps loaded transactions visible while manually refreshing loaded transactions', () => {
     mockUseTransactions({
       emptyVariant: 'none',
-      loading: false,
-      hasLoaded: true,
+      listStatus: 'refreshing',
+      showInitialSkeleton: false,
       refreshing: true,
       totals: {
         current: { incomeEgp: 1000, expenseEgp: 500, netEgp: 500 },
         previous: { incomeEgp: 900, expenseEgp: 400, netEgp: 500 },
       },
+      totalsStatus: 'refreshing',
       sections: [
         {
           key: 'TODAY',
@@ -286,31 +301,31 @@ describe('TransactionsScreen', () => {
 
     const { getByText, queryByTestId } = render(<TransactionsScreen />);
 
-    expect(getByText('Totals loading:true')).toBeTruthy();
+    expect(getByText('Totals loading:false')).toBeTruthy();
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
 
-  it('does not show row skeletons during post-load filter query transitions', () => {
+  it('shows matching row skeletons during a new filter query transition', () => {
     mockUseTransactions({
       emptyVariant: 'none',
-      loading: true,
-      hasLoaded: true,
+      listStatus: 'initialLoading',
+      showInitialSkeleton: true,
       activeFilter: TransactionType.Expense,
       sections: [],
     });
 
-    const { queryByTestId, queryByText } = render(<TransactionsScreen />);
+    const { getByTestId, queryByText } = render(<TransactionsScreen />);
 
-    expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+    expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
     expect(queryByText('filtered')).toBeNull();
   });
 
   it('does not show row skeletons behind a filtered empty state while refreshing', () => {
     mockUseTransactions({
       emptyVariant: 'noResults',
-      loading: false,
-      hasLoaded: true,
+      listStatus: 'refreshing',
+      showInitialSkeleton: false,
       refreshing: true,
       activeFilter: TransactionType.CCPayment,
       sections: [],
@@ -320,5 +335,60 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('filtered')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+  });
+
+  it('shows a retryable first-load error instead of an empty state', () => {
+    mockUseTransactions({
+      listStatus: 'firstLoadError',
+      showInitialSkeleton: false,
+      showFirstLoadError: true,
+    });
+
+    const { getByText, queryByText } = render(<TransactionsScreen />);
+
+    expect(getByText('Initial load error')).toBeTruthy();
+    expect(queryByText('transactions')).toBeNull();
+  });
+
+  it('overlays refresh errors without removing loaded rows', () => {
+    mockUseTransactions({
+      listStatus: 'refreshErrorWithData',
+      showInitialSkeleton: false,
+      showRefreshError: true,
+      sections: [
+        {
+          key: 'TODAY',
+          data: [
+            {
+              id: 'tx-1',
+              type: TransactionType.Income,
+              amount: 100,
+              currency: Currency.EGP,
+              egp_amount: 100,
+              to_amount: null,
+              minimum_payment_snapshot: null,
+              revolving_balance_delta: null,
+              account_id: 'acc-1',
+              to_account_id: null,
+              category_id: null,
+              budget_id: null,
+              note: null,
+              transaction_date: '2026-08-01',
+              transaction_time: '12:00:00',
+              exchange_rate: null,
+              commitment_payment_id: null,
+              installment_id: null,
+              created_at: '2026-08-01T12:00:00.000Z',
+              updated_at: '2026-08-01T12:00:00.000Z',
+            },
+          ],
+        },
+      ],
+    });
+
+    const { getByText } = render(<TransactionsScreen />);
+
+    expect(getByText('Floating load error')).toBeTruthy();
+    expect(getByText('Transaction row')).toBeTruthy();
   });
 });
