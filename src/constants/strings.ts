@@ -951,6 +951,9 @@ export const Strings = {
   detailEditButton: 'Edit Transaction',
   detailNotFoundTitle: 'Transaction not found',
   detailNotFoundBody: 'This transaction may have been deleted.',
+  detailLoadErrorTitle: 'Could not load this transaction.',
+  detailRefreshErrorTitle: 'Could not refresh this transaction.',
+  detailLoadRetry: 'Retry',
 
   // §7: Add / Edit Transaction
   addTxNoAccountsTitle: 'No Accounts Yet',

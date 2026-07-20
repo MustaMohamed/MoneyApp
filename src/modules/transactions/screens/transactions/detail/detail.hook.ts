@@ -22,7 +22,7 @@ import { useTxDetailStore } from './detail.store';
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-export type DetailViewState = 'loading' | 'notFound' | 'ready';
+export type DetailViewState = 'loading' | 'notFound' | 'error' | 'ready';
 
 const ACCOUNT_TYPE_LABELS: Record<string, string> = {
   bank: Strings.typeBank,
@@ -65,16 +65,28 @@ function signedAmount(tx: Transaction): string {
 }
 
 export function useTransactionDetail(id: string) {
-  const tx = useTxDetailStore.useState.tx();
-  const setTx = useTxDetailStore.getState().setTx;
-  const resetData = useTxDetailStore.getState().reset;
-  const { confirmVisible, deleting, reloadKey } = useTxDetailState(
-    useShallow((s) => ({
-      confirmVisible: s.confirmVisible,
-      deleting: s.deleting,
-      reloadKey: s.reloadKey,
-    })),
+  const { tx, txId } = useTxDetailStore(
+    useShallow((state) => ({ tx: state.tx, txId: state.txId })),
   );
+  const setTx = useTxDetailStore.getState().setTx;
+  const clearForId = useTxDetailStore.getState().clearForId;
+  const resetData = useTxDetailStore.getState().reset;
+  const { activeId, status, revalidating, refreshError, confirmVisible, deleting, reloadKey } =
+    useTxDetailState(
+      useShallow((s) => ({
+        activeId: s.activeId,
+        status: s.status,
+        revalidating: s.revalidating,
+        refreshError: s.refreshError,
+        confirmVisible: s.confirmVisible,
+        deleting: s.deleting,
+        reloadKey: s.reloadKey,
+      })),
+    );
+  const beginLoad = useTxDetailState.getState().beginLoad;
+  const resolve = useTxDetailState.getState().resolve;
+  const resolveNotFound = useTxDetailState.getState().resolveNotFound;
+  const failLoad = useTxDetailState.getState().failLoad;
   const setConfirmVisible = useTxDetailState.getState().setConfirmVisible;
   const setDeleting = useTxDetailState.getState().setDeleting;
   const bumpReload = useTxDetailState.getState().bumpReload;
@@ -91,24 +103,42 @@ export function useTransactionDetail(id: string) {
 
   useEffect(() => {
     let cancelled = false;
-    setTx(undefined);
+    const detailStore = useTxDetailStore.getState();
+    const preserveData = detailStore.txId === id && detailStore.tx !== null;
+    if (!preserveData) clearForId(id);
+    beginLoad(id, preserveData);
     getById(id)
-      .then((t) => {
-        if (!cancelled) setTx(t);
+      .then((transaction) => {
+        if (cancelled) return;
+        if (!transaction) {
+          clearForId(id);
+          resolveNotFound(id);
+          return;
+        }
+        setTx(id, transaction);
+        resolve(id);
       })
       .catch((e) => {
         console.error('[transactionDetail] getById failed', e);
-        if (!cancelled) setTx(null);
+        if (!cancelled) failLoad(id, preserveData);
       });
     return () => {
       cancelled = true;
     };
-  }, [id, getById, reloadKey, setTx]);
+  }, [beginLoad, clearForId, failLoad, getById, id, reloadKey, resolve, resolveNotFound, setTx]);
+
+  const ownsRoute = txId === id;
+  const currentTx = ownsRoute ? tx : null;
+  const currentStatus = activeId === id ? status : 'initialLoading';
 
   useEffect(() => {
-    const ids = tx ? (tx.to_account_id ? [tx.account_id, tx.to_account_id] : [tx.account_id]) : [];
+    const ids = currentTx
+      ? currentTx.to_account_id
+        ? [currentTx.account_id, currentTx.to_account_id]
+        : [currentTx.account_id]
+      : [];
     void loadAccountLookup(ids).catch(() => {});
-  }, [loadAccountLookup, tx]);
+  }, [currentTx, loadAccountLookup]);
 
   useEffect(() => {
     return () => {
@@ -124,64 +154,78 @@ export function useTransactionDetail(id: string) {
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const viewState: DetailViewState =
-    tx === undefined ? 'loading' : tx === null ? 'notFound' : 'ready';
-  const commitmentPaymentId = tx?.commitment_payment_id ?? undefined;
+    currentStatus === 'notFound'
+      ? 'notFound'
+      : currentStatus === 'firstLoadError'
+        ? 'error'
+        : currentStatus === 'ready' && currentTx
+          ? 'ready'
+          : 'loading';
+  const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
   const isCommitmentOwned = commitmentPaymentId !== undefined;
 
   const derived = useMemo(() => {
-    if (!tx) return null;
-    const account = accountsById.get(tx.account_id);
-    const toAccount = tx.to_account_id ? accountsById.get(tx.to_account_id) : undefined;
-    const category = tx.category_id ? categoriesById.get(tx.category_id) : undefined;
+    if (!currentTx) return null;
+    const account = accountsById.get(currentTx.account_id);
+    const toAccount = currentTx.to_account_id
+      ? accountsById.get(currentTx.to_account_id)
+      : undefined;
+    const category = currentTx.category_id ? categoriesById.get(currentTx.category_id) : undefined;
     const { title } = formatTransactionTitle({
-      tx,
+      tx: currentTx,
       account,
       toAccount,
       category,
     });
 
-    const time = formatTime12h(tx.transaction_time);
-    const dateLong = formatLongDate(tx.transaction_date);
+    const time = formatTime12h(currentTx.transaction_time);
+    const dateLong = formatLongDate(currentTx.transaction_date);
 
     return {
       title,
-      amountText: signedAmount(tx),
+      amountText: signedAmount(currentTx),
       dateTimeText: `${dateLong} · ${time}`,
       categoryLabel:
         category?.name ??
-        (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment
-          ? TYPE_BADGE[tx.type]
+        (currentTx.type === TransactionType.Transfer || currentTx.type === TransactionType.CCPayment
+          ? TYPE_BADGE[currentTx.type]
           : Strings.uncategorized),
-      categoryBadge: TYPE_BADGE[tx.type],
-      categoryBadgeTone: TYPE_BADGE_TONE[tx.type],
+      categoryBadge: TYPE_BADGE[currentTx.type],
+      categoryBadgeTone: TYPE_BADGE_TONE[currentTx.type],
       accountLabel: toAccount
         ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
         : (account?.name ?? Strings.unknownAccount),
       accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
       accountIcon: getAccountTypeIcon(account?.type),
       originalAmountText:
-        tx.currency === Currency.USD ? `${numberFmt.format(tx.amount)} USD` : undefined,
+        currentTx.currency === Currency.USD
+          ? `${numberFmt.format(currentTx.amount)} USD`
+          : undefined,
       exchangeRateText:
-        tx.exchange_rate !== null ? `1 USD = ${numberFmt.format(tx.exchange_rate)} EGP` : undefined,
+        currentTx.exchange_rate !== null
+          ? `1 USD = ${numberFmt.format(currentTx.exchange_rate)} EGP`
+          : undefined,
       // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string falls back to the 'No note' label
-      noteText: tx.note?.trim() || Strings.detailNoteEmpty,
+      noteText: currentTx.note?.trim() || Strings.detailNoteEmpty,
       category,
-      isTransferLike: tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment,
+      isTransferLike:
+        currentTx.type === TransactionType.Transfer || currentTx.type === TransactionType.CCPayment,
       transferFlow:
-        (tx.type === TransactionType.Transfer || tx.type === TransactionType.CCPayment) &&
+        (currentTx.type === TransactionType.Transfer ||
+          currentTx.type === TransactionType.CCPayment) &&
         account &&
         toAccount
           ? {
               fromAccount: account,
               toAccount,
-              fromAmount: tx.amount,
-              fromCurrency: tx.currency,
-              toAmount: tx.to_amount ?? tx.egp_amount,
+              fromAmount: currentTx.amount,
+              fromCurrency: currentTx.currency,
+              toAmount: currentTx.to_amount ?? currentTx.egp_amount,
               toCurrency: toAccount.currency,
             }
           : null,
     };
-  }, [tx, accountsById, categoriesById]);
+  }, [accountsById, categoriesById, currentTx]);
 
   const openDeleteConfirm = useCallback(() => {
     if (!isCommitmentOwned) setConfirmVisible(true);
@@ -191,10 +235,10 @@ export function useTransactionDetail(id: string) {
   }, [deleting, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
-    if (!tx || isCommitmentOwned) return;
+    if (!currentTx || isCommitmentOwned) return;
     setDeleting(true);
     try {
-      await deleteTransaction(tx.id);
+      await deleteTransaction(currentTx.id);
       router.back();
     } catch (e) {
       console.error('[transactionDetail] delete failed', e);
@@ -203,7 +247,7 @@ export function useTransactionDetail(id: string) {
       setDeleting(false);
       setConfirmVisible(false);
     }
-  }, [tx, isCommitmentOwned, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [currentTx, isCommitmentOwned, deleteTransaction, setDeleting, setConfirmVisible]);
 
   const openCommitment = useCallback(async () => {
     if (!commitmentPaymentId) return;
@@ -227,8 +271,10 @@ export function useTransactionDetail(id: string) {
   return {
     state: {
       viewState,
-      tx,
+      tx: currentTx,
       derived,
+      revalidating: activeId === id && revalidating,
+      refreshError: activeId === id && refreshError,
       confirmVisible,
       deleting,
       isCommitmentOwned,

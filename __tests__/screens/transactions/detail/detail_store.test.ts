@@ -6,24 +6,32 @@ beforeEach(() => {
 });
 
 describe('useTxDetailStore', () => {
-  it('initialises with tx = undefined', () => {
-    expect(useTxDetailStore.getState().tx).toBeUndefined();
+  it('initialises without transaction ownership', () => {
+    expect(useTxDetailStore.getState()).toMatchObject({
+      tx: null,
+      txId: undefined,
+    });
   });
 
-  it('setTx stores a transaction', () => {
+  it('setTx stores a transaction with its route ownership', () => {
     const tx = { id: 't1' } as Transaction;
-    useTxDetailStore.getState().setTx(tx);
+    useTxDetailStore.getState().setTx('t1', tx);
     expect(useTxDetailStore.getState().tx).toBe(tx);
+    expect(useTxDetailStore.getState().txId).toBe('t1');
   });
 
-  it('setTx(null) records a not-found result', () => {
-    useTxDetailStore.getState().setTx(null);
+  it('clearForId removes stale data and assigns the new route', () => {
+    useTxDetailStore.getState().setTx('t1', { id: 't1' } as Transaction);
+
+    useTxDetailStore.getState().clearForId('t2');
+
     expect(useTxDetailStore.getState().tx).toBeNull();
+    expect(useTxDetailStore.getState().txId).toBe('t2');
   });
 
-  it('reset() returns tx to undefined', () => {
-    useTxDetailStore.getState().setTx({ id: 't1' } as Transaction);
+  it('reset() removes transaction ownership', () => {
+    useTxDetailStore.getState().setTx('t1', { id: 't1' } as Transaction);
     useTxDetailStore.getState().reset();
-    expect(useTxDetailStore.getState().tx).toBeUndefined();
+    expect(useTxDetailStore.getState()).toMatchObject({ tx: null, txId: undefined });
   });
 });
