@@ -28,7 +28,6 @@ import { FilterSheet } from './filter';
 import { useFilterState } from './filter/filter.state';
 import { AddTransactionSheet, EditTransactionSheet } from './transaction_form';
 import { useAddTransactionState } from './transaction_form/add_transaction.state';
-import { useAddTransactionStore } from './transaction_form/add_transaction.store';
 import { useEditTransactionState } from './transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from './transaction_form/edit_transaction.store';
 import { useTransactions } from './transactions.hook';
@@ -113,8 +112,11 @@ export default function TransactionsScreen(): React.ReactElement {
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
         if (useAddTransactionState.getState().visible) {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
+          useAddTransactionState.getState().requestClose();
+          return true;
+        }
+        if (useEditTransactionState.getState().visible) {
+          useEditTransactionState.getState().requestClose();
           return true;
         }
         if (useFilterState.getState().visible) {
@@ -248,22 +250,12 @@ export default function TransactionsScreen(): React.ReactElement {
 
       <AddTransactionSheet
         visible={addTxVisible}
-        onClose={() => {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
-        }}
+        onClose={() => useAddTransactionState.getState().requestClose()}
       />
       <EditTransactionSheet
         visible={editTxVisible}
         tx={editingTx}
-        onClose={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
-        }}
-        onSaved={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
-        }}
+        onClose={() => useEditTransactionState.getState().requestClose()}
       />
       <TxDeleteConfirmSheet
         isOpen={pendingDeleteId !== null}

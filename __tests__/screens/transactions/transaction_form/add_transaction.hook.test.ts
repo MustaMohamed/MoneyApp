@@ -345,6 +345,57 @@ describe('useAddTransaction — validation', () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('preserves entered values while the sheet close animation is running', async () => {
+    useAddTransactionState.getState().open();
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    act(() => result.current.setNote('keep through close'));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    act(() => {
+      useAddTransactionState.getState().requestClose();
+    });
+
+    expect(result.current.state.accountId).toBe(mockAccountEGP.id);
+    expect(result.current.state.categoryId).toBe(mockCategoryExpense.id);
+    expect(result.current.state.note).toBe('keep through close');
+  });
+
+  it('submits once and completes once when save is pressed twice', async () => {
+    let resolveSave: () => void = () => {};
+    const pendingSave = new Promise<void>((resolve) => {
+      resolveSave = resolve;
+    });
+    const addTx = jest.fn().mockReturnValue(pendingSave);
+    const onSaved = jest.fn(() => {
+      expect(useAddTransactionState.getState().saving).toBe(true);
+    });
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(onSaved));
+
+    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    let firstSave: Promise<void>;
+    let secondSave: Promise<void>;
+    act(() => {
+      firstSave = result.current.handleSave();
+      secondSave = result.current.handleSave();
+    });
+    await waitFor(() => expect(addTx).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      resolveSave();
+      await Promise.all([firstSave!, secondSave!]);
+    });
+
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects amount=0', async () => {
     const onClose = jest.fn();
     const { result } = renderHook(() => useAddTransaction(onClose));

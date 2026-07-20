@@ -251,6 +251,48 @@ describe('useEditTransaction', () => {
     expect(onSaved).not.toHaveBeenCalled();
   });
 
+  it('preserves edits while the sheet close animation is running', async () => {
+    useEditTransactionState.getState().open(mockTxExpense);
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    act(() => result.current.setNote('keep through close'));
+
+    act(() => {
+      useEditTransactionState.getState().requestClose();
+    });
+
+    expect(result.current.state.note).toBe('keep through close');
+  });
+
+  it('submits once and completes once when save is pressed twice', async () => {
+    let resolveSave: () => void = () => {};
+    const pendingSave = new Promise<void>((resolve) => {
+      resolveSave = resolve;
+    });
+    const updateTx = jest.fn().mockReturnValue(pendingSave);
+    const onSaved = jest.fn(() => {
+      expect(useEditTransactionState.getState().saving).toBe(true);
+    });
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), onSaved));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    let firstSave: Promise<void>;
+    let secondSave: Promise<void>;
+    act(() => {
+      firstSave = result.current.handleSave();
+      secondSave = result.current.handleSave();
+    });
+    await waitFor(() => expect(updateTx).toHaveBeenCalledTimes(1));
+
+    await act(async () => {
+      resolveSave();
+      await Promise.all([firstSave!, secondSave!]);
+    });
+
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
   it('initializes amount, category, note, date from the loaded tx', async () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));

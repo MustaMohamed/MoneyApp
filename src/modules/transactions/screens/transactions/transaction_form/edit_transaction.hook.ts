@@ -113,7 +113,6 @@ export function useEditTransaction(
   const setAvailableBudgets = useEditTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useEditTransactionStore.getState().setBudgetId;
   const {
-    visible,
     saving,
     showCategoryPicker,
     showBudgetPicker,
@@ -125,7 +124,6 @@ export function useEditTransaction(
     rateOverride,
   } = useEditTransactionState(
     useShallow((s) => ({
-      visible: s.visible,
       saving: s.saving,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
@@ -219,14 +217,6 @@ export function useEditTransaction(
     form.setValue('amount', isNaN(parsed) ? 0 : parsed);
     // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
   }, [amountStr]);
-
-  useEffect(() => {
-    if (!visible) {
-      form.reset(buildDefaultsFromTx(initialTx, rate));
-      setRateOverride(initialTx.exchange_rate !== null);
-    }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- reset-on-close effect; only triggers on visibility toggle; deps stable within session
-  }, [visible]);
 
   const budgetRequestRef = useRef(0);
   useEffect(() => {

@@ -27,7 +27,9 @@ interface AddTransactionStateShape {
 type AddTransactionState = AddTransactionStateShape & {
   open: () => void;
   requestOpen: () => void;
-  close: () => void;
+  requestClose: () => boolean;
+  completeSave: () => void;
+  completeClose: () => void;
   setSaving: (v: boolean) => void;
   setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
@@ -58,12 +60,33 @@ const INITIAL_STATE: AddTransactionStateShape = {
 };
 
 export const useAddTransactionState = createMoneyAppSelectors(
-  create<AddTransactionState>((set) => ({
+  create<AddTransactionState>((set, get) => ({
     ...INITIAL_STATE,
 
     open: () => set({ visible: true, pendingOpen: false }),
     requestOpen: () => set({ pendingOpen: true }),
-    close: () => set(INITIAL_STATE),
+    requestClose: () => {
+      if (get().saving) return false;
+      set({
+        visible: false,
+        pendingOpen: false,
+        showAccountPicker: false,
+        showToPicker: false,
+        showCategoryPicker: false,
+        showBudgetPicker: false,
+      });
+      return true;
+    },
+    completeSave: () =>
+      set({
+        visible: false,
+        pendingOpen: false,
+        showAccountPicker: false,
+        showToPicker: false,
+        showCategoryPicker: false,
+        showBudgetPicker: false,
+      }),
+    completeClose: () => set(INITIAL_STATE),
     setSaving: (v) => set({ saving: v }),
     setShowAccountPicker: (v) => set({ showAccountPicker: v }),
     setShowToPicker: (v) => set({ showToPicker: v }),

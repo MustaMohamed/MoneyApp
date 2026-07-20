@@ -2,7 +2,12 @@ import { act, render } from '@testing-library/react-native';
 import React from 'react';
 import { View } from 'react-native';
 
-const mockSheetProps: Array<{ isOpen: boolean; hasFooter: boolean; instanceId: number }> = [];
+const mockSheetProps: Array<{
+  isOpen: boolean;
+  hasFooter: boolean;
+  isDismissable: boolean | undefined;
+  instanceId: number;
+}> = [];
 let mockNextSheetInstanceId = 1;
 const mockUseAddTransaction = jest.fn<unknown, [() => void]>();
 const mockTransactionFormBody = jest.fn<React.ReactElement, [object]>((_props) =>
@@ -33,17 +38,19 @@ jest.mock('@/components/ui/button', () => ({
 jest.mock('@/components/ui/sheet', () => ({
   Sheet: ({
     isOpen,
+    isDismissable,
     footer,
     children,
   }: {
     isOpen: boolean;
+    isDismissable?: boolean;
     footer?: React.ReactNode;
     children: React.ReactNode;
   }) => {
     const ReactLocal = require('react');
     const { View: RNView } = require('react-native');
     const instanceId = ReactLocal.useRef(mockNextSheetInstanceId++).current;
-    mockSheetProps.push({ isOpen, hasFooter: footer !== undefined, instanceId });
+    mockSheetProps.push({ isOpen, hasFooter: footer !== undefined, isDismissable, instanceId });
     return ReactLocal.createElement(
       RNView,
       { testID: isOpen ? 'sheet-open' : 'sheet-closed' },
@@ -94,10 +101,12 @@ jest.mock(
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { AddTransactionSheet } from '@/modules/transactions/screens/transactions/transaction_form';
+import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
+import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useAddTransactionSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state';
 
-function mockAddHookReturn() {
-  mockUseAddTransaction.mockReturnValue({
+function createMockAddHookReturn() {
+  return {
     state: {
       type: TransactionType.Expense,
       amountStr: '',
@@ -147,7 +156,11 @@ function mockAddHookReturn() {
     selectCategory: jest.fn(),
     selectBudget: jest.fn(),
     handleSave: jest.fn(),
-  });
+  };
+}
+
+function mockAddHookReturn() {
+  mockUseAddTransaction.mockReturnValue(createMockAddHookReturn());
 }
 
 describe('AddTransactionSheet', () => {
@@ -161,6 +174,8 @@ describe('AddTransactionSheet', () => {
     mockCategoryPickerSheet.mockClear();
     mockBudgetPickerSheet.mockClear();
     useAddTransactionSheetState.getState().reset();
+    useAddTransactionState.getState().reset();
+    useAddTransactionStore.getState().reset();
     mockAddHookReturn();
   });
 
@@ -187,7 +202,12 @@ describe('AddTransactionSheet', () => {
     rerender(React.createElement(AddTransactionSheet, { visible: true, onClose }));
 
     const closedFrame = mockSheetProps[mockSheetProps.length - 1];
-    expect(closedFrame).toEqual({ isOpen: false, hasFooter: false, instanceId: 1 });
+    expect(closedFrame).toEqual({
+      isOpen: false,
+      hasFooter: false,
+      isDismissable: true,
+      instanceId: 1,
+    });
     expect(mockUseAddTransaction).not.toHaveBeenCalled();
     expect(mockTransactionFormBody).not.toHaveBeenCalled();
     expect(mockAccountPickerSheet).not.toHaveBeenCalled();
@@ -200,6 +220,7 @@ describe('AddTransactionSheet', () => {
     expect(mockSheetProps[mockSheetProps.length - 1]).toEqual({
       isOpen: true,
       hasFooter: true,
+      isDismissable: true,
       instanceId: closedFrame.instanceId,
     });
     expect(mockUseAddTransaction).toHaveBeenCalled();
@@ -225,7 +246,12 @@ describe('AddTransactionSheet', () => {
 
     const openFrame = mockSheetProps[mockSheetProps.length - 1];
 
-    expect(openFrame).toEqual({ isOpen: false, hasFooter: true, instanceId: 1 });
+    expect(openFrame).toEqual({
+      isOpen: false,
+      hasFooter: true,
+      isDismissable: true,
+      instanceId: 1,
+    });
     expect(mockUseAddTransaction).toHaveBeenCalled();
 
     act(() => {
@@ -234,5 +260,48 @@ describe('AddTransactionSheet', () => {
 
     expect(queryByTestId('sheet-open')).toBeNull();
     expect(queryByTestId('sheet-closed')).toBeNull();
+  });
+
+  it('retains the draft during close and clears it after the close grace', () => {
+    const onClose = jest.fn();
+    useAddTransactionState.getState().open();
+    useAddTransactionState.getState().setRateOverride(true);
+    useAddTransactionStore.getState().setAmountStr('125');
+    const { rerender } = render(
+      React.createElement(AddTransactionSheet, { visible: true, onClose }),
+    );
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+    rerender(React.createElement(AddTransactionSheet, { visible: false, onClose }));
+
+    expect(useAddTransactionStore.getState().amountStr).toBe('125');
+    expect(useAddTransactionState.getState().rateOverride).toBe(true);
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(useAddTransactionStore.getState().amountStr).toBe('0');
+    expect(useAddTransactionState.getState().rateOverride).toBe(false);
+  });
+
+  it('disables every sheet dismissal path while saving', () => {
+    const hookReturn = createMockAddHookReturn();
+    mockUseAddTransaction.mockReturnValue({
+      ...hookReturn,
+      state: {
+        ...hookReturn.state,
+        saving: true,
+      },
+    });
+
+    render(React.createElement(AddTransactionSheet, { visible: true, onClose: jest.fn() }));
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(mockSheetProps[mockSheetProps.length - 1].isDismissable).toBe(false);
   });
 });

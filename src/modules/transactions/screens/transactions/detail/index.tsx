@@ -33,7 +33,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
   useEffect(() => {
     return () => {
       useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      useEditTransactionState.getState().reset();
     };
   }, []);
 
@@ -41,8 +41,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       if (!useEditTransactionState.getState().visible) return;
       e.preventDefault();
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      useEditTransactionState.getState().requestClose();
     });
     return unsubscribe;
   }, [navigation]);
@@ -186,15 +185,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
           {state.isEditable ? (
             <EditTransactionSheet
               visible={editTxVisible}
-              onClose={() => {
-                useEditTransactionStore.getState().reset();
-                useEditTransactionState.getState().close();
-              }}
-              onSaved={() => {
-                useEditTransactionStore.getState().reset();
-                useEditTransactionState.getState().close();
-                reload();
-              }}
+              onClose={() => useEditTransactionState.getState().requestClose()}
+              onSaved={reload}
               tx={state.tx}
             />
           ) : null}

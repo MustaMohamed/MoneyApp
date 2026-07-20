@@ -18,7 +18,9 @@ interface EditTransactionStateShape {
 
 type EditTransactionState = EditTransactionStateShape & {
   open: (tx: Transaction) => void;
-  close: () => void;
+  requestClose: () => boolean;
+  completeSave: () => void;
+  completeClose: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
@@ -46,11 +48,17 @@ const INITIAL_STATE: EditTransactionStateShape = {
 };
 
 export const useEditTransactionState = createMoneyAppSelectors(
-  create<EditTransactionState>((set) => ({
+  create<EditTransactionState>((set, get) => ({
     ...INITIAL_STATE,
 
     open: () => set({ visible: true }),
-    close: () => set(INITIAL_STATE),
+    requestClose: () => {
+      if (get().saving) return false;
+      set({ visible: false, showCategoryPicker: false, showBudgetPicker: false });
+      return true;
+    },
+    completeSave: () => set({ visible: false, showCategoryPicker: false, showBudgetPicker: false }),
+    completeClose: () => set(INITIAL_STATE),
     setSaving: (v) => set({ saving: v }),
     setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
     setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),

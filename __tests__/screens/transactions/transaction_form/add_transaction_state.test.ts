@@ -43,10 +43,11 @@ describe('useAddTransactionState', () => {
     expect(s.pendingOpen).toBe(false);
   });
 
-  it('close() resets to initial', () => {
+  it('requestClose() hides the sheet without clearing the closing draft state', () => {
     useAddTransactionState.getState().open();
-    useAddTransactionState.getState().setSaving(true);
-    useAddTransactionState.getState().close();
+    useAddTransactionState.getState().setRateOverride(true);
+
+    expect(useAddTransactionState.getState().requestClose()).toBe(true);
     expect(useAddTransactionState.getState()).toMatchObject({
       visible: false,
       pendingOpen: false,
@@ -55,7 +56,45 @@ describe('useAddTransactionState', () => {
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
-      budgetsLoading: false,
+      rateOverride: true,
+    });
+  });
+
+  it('requestClose() is ignored while saving', () => {
+    useAddTransactionState.getState().open();
+    useAddTransactionState.getState().setSaving(true);
+
+    expect(useAddTransactionState.getState().requestClose()).toBe(false);
+    expect(useAddTransactionState.getState()).toMatchObject({
+      visible: true,
+      saving: true,
+    });
+  });
+
+  it('completeSave() bypasses the dismissal lock but preserves saving until the request settles', () => {
+    useAddTransactionState.getState().open();
+    useAddTransactionState.getState().setSaving(true);
+    useAddTransactionState.getState().setShowCategoryPicker(true);
+
+    useAddTransactionState.getState().completeSave();
+
+    expect(useAddTransactionState.getState()).toMatchObject({
+      visible: false,
+      saving: true,
+      showCategoryPicker: false,
+    });
+  });
+
+  it('completeClose() clears retained state after the close animation', () => {
+    useAddTransactionState.getState().open();
+    useAddTransactionState.getState().setRateOverride(true);
+    useAddTransactionState.getState().requestClose();
+
+    useAddTransactionState.getState().completeClose();
+
+    expect(useAddTransactionState.getState()).toMatchObject({
+      visible: false,
+      saving: false,
       rateOverride: false,
     });
   });
