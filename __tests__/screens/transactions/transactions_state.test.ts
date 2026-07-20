@@ -142,6 +142,18 @@ describe('useTransactionsState', () => {
     });
   });
 
+  it('does not publish a new state snapshot for an unchanged scroll offset', () => {
+    useTransactionsState.getState().activateScrollQuery('july-query');
+    const listener = jest.fn();
+    const unsubscribe = useTransactionsState.subscribe(listener);
+
+    useTransactionsState.getState().setScrollOffset('july-query', 328);
+    useTransactionsState.getState().setScrollOffset('july-query', 328);
+
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
+  });
+
   it('reset() clears totals', () => {
     const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
     useTransactionsState.getState().resolveTotals('2026-07', requestId, {

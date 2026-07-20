@@ -15,6 +15,7 @@ import type { TransactionListStatus } from '@/modules/transactions/store/transac
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import { formatMonthYear } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 import {
@@ -40,6 +41,7 @@ export function useTransactions() {
   const scrollRestorePendingRef = useRef(false);
   const scrollRestoreFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
+  const currentScrollOffsetRef = useRef(0);
 
   const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
     useShallow((s) => ({
@@ -161,6 +163,7 @@ export function useTransactions() {
     const scrollState = useTransactionsState.getState();
     scrollRestorePendingRef.current = false;
     if (scrollState.scrollQueryKey !== activeKey || scrollState.scrollOffset <= 0) return;
+    currentScrollOffsetRef.current = scrollState.scrollOffset;
     if (scrollRestoreFrameRef.current !== null) {
       cancelAnimationFrame(scrollRestoreFrameRef.current);
     }
@@ -176,6 +179,7 @@ export function useTransactions() {
     const scrollState = useTransactionsState.getState();
     const queryChanged = scrollState.scrollQueryKey !== activeQueryKey;
     activateScrollQuery(activeQueryKey);
+    currentScrollOffsetRef.current = queryChanged ? 0 : scrollState.scrollOffset;
     if (queryChanged) {
       listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
     }
@@ -220,27 +224,31 @@ export function useTransactions() {
       scrollRestorePendingRef.current = true;
       const isFirstFocus = !hasFocusedRef.current;
       hasFocusedRef.current = true;
-      const transactionState = useTransactionStore.getState();
-      const hasVisibleSnapshot =
-        transactionState.snapshotKey === activeQueryKeyRef.current &&
-        transactionState.queryKey === activeQueryKeyRef.current;
-      if (hasVisibleSnapshot && transactionState.status !== 'refreshing') {
-        void refresh().catch((error) =>
-          console.error('[transactions] focus refresh failed:', error),
-        );
-      }
-      if (!isFirstFocus) void loadTotalsRef.current(true);
       attemptScrollRestoreRef.current();
+      const task = runAfterInteractions(() => {
+        const transactionState = useTransactionStore.getState();
+        const hasVisibleSnapshot =
+          transactionState.snapshotKey === activeQueryKeyRef.current &&
+          transactionState.queryKey === activeQueryKeyRef.current;
+        if (hasVisibleSnapshot && transactionState.status !== 'refreshing') {
+          void refresh().catch((error) =>
+            console.error('[transactions] focus refresh failed:', error),
+          );
+        }
+        if (!isFirstFocus) void loadTotalsRef.current(true);
+      });
 
       return () => {
+        task.cancel();
         isFocusedRef.current = false;
         scrollRestorePendingRef.current = false;
+        setScrollOffset(activeQueryKeyRef.current, currentScrollOffsetRef.current);
         if (scrollRestoreFrameRef.current !== null) {
           cancelAnimationFrame(scrollRestoreFrameRef.current);
           scrollRestoreFrameRef.current = null;
         }
       };
-    }, [refresh]),
+    }, [refresh, setScrollOffset]),
   );
 
   const accountsById = useMemo(
@@ -303,9 +311,11 @@ export function useTransactions() {
         ? 'totals'
         : 'none';
 
-  const onListScroll = useCallback(
+  const onListScrollEnd = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      setScrollOffset(activeQueryKey, event.nativeEvent.contentOffset.y);
+      const offset = Math.max(0, event.nativeEvent.contentOffset.y);
+      currentScrollOffsetRef.current = offset;
+      setScrollOffset(activeQueryKey, offset);
     },
     [activeQueryKey, setScrollOffset],
   );
@@ -379,7 +389,7 @@ export function useTransactions() {
     clearSearch,
     onEndReached: loadMore,
     onRefresh,
-    onListScroll,
+    onListScrollEnd,
     retryList: retry,
     retryTotals,
     retryFailedLoads,

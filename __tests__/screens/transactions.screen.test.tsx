@@ -186,7 +186,7 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     clearSearch: jest.fn(),
     onEndReached: jest.fn(),
     onRefresh: jest.fn(),
-    onListScroll: jest.fn(),
+    onListScrollEnd: jest.fn(),
     retryList: jest.fn(),
     retryTotals: jest.fn(),
     retryFailedLoads: jest.fn(),

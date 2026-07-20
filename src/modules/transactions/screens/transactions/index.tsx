@@ -79,7 +79,7 @@ export default function TransactionsScreen(): React.ReactElement {
     resetFilters,
     onRefresh,
     onEndReached,
-    onListScroll,
+    onListScrollEnd,
     retryFailedLoads,
   } = t;
   const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
@@ -237,8 +237,8 @@ export default function TransactionsScreen(): React.ReactElement {
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
           renderSectionHeader={renderSectionHeader}
-          onScroll={onListScroll}
-          scrollEventThrottle={16}
+          onScrollEndDrag={onListScrollEnd}
+          onMomentumScrollEnd={onListScrollEnd}
           onScrollBeginDrag={closeAllRows}
           renderItem={renderItem}
           ListEmptyComponent={listEmptyComponent}
