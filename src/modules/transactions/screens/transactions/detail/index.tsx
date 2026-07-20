@@ -14,6 +14,7 @@ import { useEditTransactionStore } from '../transaction_form/edit_transaction.st
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
 import { DetailHero } from './components/detail_hero';
+import { DetailLoadError } from './components/detail_load_error';
 import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
 import { NotFoundState } from './components/not_found_state';
@@ -32,7 +33,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
   useEffect(() => {
     return () => {
       useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      useEditTransactionState.getState().reset();
     };
   }, []);
 
@@ -40,8 +41,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
     const unsubscribe = navigation.addListener('beforeRemove', (e) => {
       if (!useEditTransactionState.getState().visible) return;
       e.preventDefault();
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().close();
+      useEditTransactionState.getState().requestClose();
     });
     return unsubscribe;
   }, [navigation]);
@@ -69,6 +69,8 @@ export default function TransactionDetailScreen(): React.ReactElement {
         </View>
       ) : state.viewState === 'notFound' ? (
         <NotFoundState />
+      ) : state.viewState === 'error' ? (
+        <DetailLoadError onRetry={reload} />
       ) : // oxlint-disable-next-line typescript/no-unnecessary-condition -- explicit state check for readability; state.tx/derived guards are real
       state.viewState === 'ready' && state.tx && state.derived ? (
         <>
@@ -183,18 +185,12 @@ export default function TransactionDetailScreen(): React.ReactElement {
           {state.isEditable ? (
             <EditTransactionSheet
               visible={editTxVisible}
-              onClose={() => {
-                useEditTransactionStore.getState().reset();
-                useEditTransactionState.getState().close();
-              }}
-              onSaved={() => {
-                useEditTransactionStore.getState().reset();
-                useEditTransactionState.getState().close();
-                reload();
-              }}
+              onClose={() => useEditTransactionState.getState().requestClose()}
+              onSaved={reload}
               tx={state.tx}
             />
           ) : null}
+          {state.refreshError ? <DetailLoadError floating onRetry={reload} /> : null}
         </>
       ) : null}
     </Screen>

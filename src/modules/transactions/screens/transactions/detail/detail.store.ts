@@ -4,22 +4,26 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface TxDetailStoreShape {
-  tx: Transaction | null | undefined;
+  tx: Transaction | null;
+  txId: string | undefined;
 }
 
 type TxDetailStore = TxDetailStoreShape & {
-  setTx: (tx: Transaction | null | undefined) => void;
+  setTx: (id: string, tx: Transaction) => void;
+  clearForId: (id: string) => void;
   reset: () => void;
 };
 
 const INITIAL_STATE: TxDetailStoreShape = {
-  tx: undefined,
+  tx: null,
+  txId: undefined,
 };
 
 export const useTxDetailStore = createMoneyAppSelectors(
   create<TxDetailStore>((set) => ({
     ...INITIAL_STATE,
-    setTx: (tx) => set({ tx }),
+    setTx: (txId, tx) => set({ tx, txId }),
+    clearForId: (txId) => set({ tx: null, txId }),
     reset: () => set(INITIAL_STATE),
   })),
 );

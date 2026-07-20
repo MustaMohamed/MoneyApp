@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FAB } from '@/components/ui/fab';
+import { shouldHideGlobalFab } from '@/components/ui/fab_visibility';
 import { Colors, Size } from '@/constants/theme';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAnySheetOpen } from '@/store/sheet_visibility.store';
@@ -47,13 +48,8 @@ export function FABOverlay() {
   const insets = useSafeAreaInsets();
   const bottomOffset = insets.bottom + Size.tabBarHeight + ms(16);
 
-  const isSettingsRoute = pathname.startsWith('/settings');
-  // The commitment detail/add/edit screens are pushed routes nested INSIDE the
-  // tabs group, so this FAB overlay (a sibling of <Tabs>) floats over them and
-  // collides with their bottom Save/Pay CTAs. Hide it on any /commitments/ sub-route
-  // — the FAB is a list-level "add" affordance, not a form/detail one.
-  const isCommitmentSubRoute = pathname.startsWith('/commitments/');
-  const isBudgetSubRoute = pathname.startsWith('/budget/');
+  // Detail and form routes are nested inside the tabs group, so this overlay
+  // would otherwise collide with their actions. The FAB is list-level only.
   const anySheetOpen = useAnySheetOpen();
 
   return (
@@ -62,7 +58,7 @@ export function FABOverlay() {
         onAddTransaction={handleAddTransaction}
         onAddAccount={handleAddAccount}
         onAddCommitment={handleAddCommitment}
-        hidden={isSettingsRoute || isCommitmentSubRoute || isBudgetSubRoute || anySheetOpen}
+        hidden={shouldHideGlobalFab(pathname, anySheetOpen)}
         bottomOffset={bottomOffset}
       />
     </View>

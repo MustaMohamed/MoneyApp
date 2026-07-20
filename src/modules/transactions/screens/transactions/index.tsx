@@ -15,11 +15,13 @@ import { Colors, Size } from '@/constants/theme';
 import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { ms } from '@/utils/responsive';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
 import { TotalsStrip } from './components/totals_strip';
+import { TransactionLoadError } from './components/transaction_load_error';
 import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
@@ -27,13 +29,11 @@ import { FilterSheet } from './filter';
 import { useFilterState } from './filter/filter.state';
 import { AddTransactionSheet, EditTransactionSheet } from './transaction_form';
 import { useAddTransactionState } from './transaction_form/add_transaction.state';
-import { useAddTransactionStore } from './transaction_form/add_transaction.store';
 import { useEditTransactionState } from './transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from './transaction_form/edit_transaction.store';
 import { useTransactions } from './transactions.hook';
+import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
-
-type TransactionSection = { key: string; data: Transaction[] };
 
 const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
   {
@@ -63,6 +63,8 @@ const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
   },
 ];
 
+const LIST_BOTTOM_CLEARANCE = ms(160);
+
 export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
   const {
@@ -77,6 +79,8 @@ export default function TransactionsScreen(): React.ReactElement {
     resetFilters,
     onRefresh,
     onEndReached,
+    onListScroll,
+    retryFailedLoads,
   } = t;
   const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
     useShallow((s) => ({
@@ -111,8 +115,11 @@ export default function TransactionsScreen(): React.ReactElement {
     useCallback(() => {
       const sub = BackHandler.addEventListener('hardwareBackPress', () => {
         if (useAddTransactionState.getState().visible) {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
+          useAddTransactionState.getState().requestClose();
+          return true;
+        }
+        if (useEditTransactionState.getState().visible) {
+          useEditTransactionState.getState().requestClose();
           return true;
         }
         if (useFilterState.getState().visible) {
@@ -147,20 +154,29 @@ export default function TransactionsScreen(): React.ReactElement {
     [goToDetail, goToEdit, requestDelete, state.accountsById, state.categoriesById],
   );
 
-  const showRowsSkeleton = !state.hasLoaded && state.sections.length === 0;
+  const showRowsSkeleton = state.showInitialSkeleton;
   const listSections = state.sections;
 
   const listEmptyComponent = useMemo(
     () =>
       showRowsSkeleton ? (
         <TransactionRowsSkeleton />
+      ) : state.showFirstLoadError ? (
+        <TransactionLoadError variant="initial" onRetry={() => void retryFailedLoads()} />
       ) : state.emptyVariant === 'none' ? null : (
         <EmptyState
           variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
           onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}
         />
       ),
-    [openAddTx, resetFilters, showRowsSkeleton, state.emptyVariant],
+    [
+      openAddTx,
+      resetFilters,
+      retryFailedLoads,
+      showRowsSkeleton,
+      state.emptyVariant,
+      state.showFirstLoadError,
+    ],
   );
 
   const handleRefresh = useCallback(() => {
@@ -170,6 +186,14 @@ export default function TransactionsScreen(): React.ReactElement {
   const handleEndReached = useCallback(() => {
     void onEndReached();
   }, [onEndReached]);
+
+  const listFooterComponent = useMemo(
+    () =>
+      state.paginationError ? (
+        <TransactionLoadError variant="pagination" onRetry={handleEndReached} />
+      ) : null,
+    [handleEndReached, state.paginationError],
+  );
 
   return (
     <Screen edges={['top']}>
@@ -195,7 +219,7 @@ export default function TransactionsScreen(): React.ReactElement {
         current={state.totals?.current ?? null}
         previous={state.totals?.previous ?? null}
         previousLabel={state.previousLabel}
-        isLoading={!state.totals || state.refreshing}
+        isLoading={state.totals === null}
       />
 
       <SearchRow
@@ -206,45 +230,47 @@ export default function TransactionsScreen(): React.ReactElement {
         activeFilterCount={state.activeFilterCount}
       />
 
-      <SectionList
-        sections={listSections}
-        keyExtractor={(item) => item.id}
-        stickySectionHeadersEnabled
-        renderSectionHeader={renderSectionHeader}
-        onScrollBeginDrag={closeAllRows}
-        renderItem={renderItem}
-        ListEmptyComponent={listEmptyComponent}
-        refreshControl={
-          <RefreshControl
-            refreshing={state.refreshing}
-            onRefresh={handleRefresh}
-            tintColor={GoldTokens[500]}
-            colors={[GoldTokens[500]]}
+      <View style={{ flex: 1 }}>
+        <SectionList
+          ref={state.listRef}
+          sections={listSections}
+          keyExtractor={(item) => item.id}
+          stickySectionHeadersEnabled
+          renderSectionHeader={renderSectionHeader}
+          onScroll={onListScroll}
+          scrollEventThrottle={16}
+          onScrollBeginDrag={closeAllRows}
+          renderItem={renderItem}
+          ListEmptyComponent={listEmptyComponent}
+          ListFooterComponent={listFooterComponent}
+          refreshControl={
+            <RefreshControl
+              refreshing={state.refreshing}
+              onRefresh={handleRefresh}
+              tintColor={GoldTokens[500]}
+              colors={[GoldTokens[500]]}
+            />
+          }
+          onEndReached={handleEndReached}
+          onEndReachedThreshold={0.5}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: LIST_BOTTOM_CLEARANCE }}
+        />
+        {state.loadErrorVariant !== 'none' ? (
+          <TransactionLoadError
+            variant={state.loadErrorVariant}
+            onRetry={() => void retryFailedLoads()}
           />
-        }
-        onEndReached={handleEndReached}
-        onEndReachedThreshold={0.5}
-        contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
-      />
+        ) : null}
+      </View>
 
       <AddTransactionSheet
         visible={addTxVisible}
-        onClose={() => {
-          useAddTransactionState.getState().close();
-          useAddTransactionStore.getState().reset();
-        }}
+        onClose={() => useAddTransactionState.getState().requestClose()}
       />
       <EditTransactionSheet
         visible={editTxVisible}
         tx={editingTx}
-        onClose={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
-        }}
-        onSaved={() => {
-          useEditTransactionStore.getState().reset();
-          useEditTransactionState.getState().close();
-        }}
+        onClose={() => useEditTransactionState.getState().requestClose()}
       />
       <TxDeleteConfirmSheet
         isOpen={pendingDeleteId !== null}

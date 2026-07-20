@@ -117,7 +117,7 @@ jest.mock(
           selector({ visible: false, pendingOpen: false }),
         ),
         {
-          getState: () => ({ visible: false, open: jest.fn(), close: jest.fn() }),
+          getState: () => ({ visible: false, open: jest.fn(), requestClose: jest.fn() }),
         },
       ),
     };
@@ -134,7 +134,7 @@ jest.mock(
   () => ({
     useEditTransactionState: {
       useState: { visible: () => false },
-      getState: () => ({ close: jest.fn() }),
+      getState: () => ({ visible: false, requestClose: jest.fn() }),
     },
   }),
 );
@@ -154,8 +154,11 @@ type TransactionsScreenState = TransactionsScreenHook['state'];
 const baseTransactionsState: TransactionsScreenState = {
   sections: [],
   hasMore: false,
-  loading: true,
-  hasLoaded: false,
+  listStatus: 'initialLoading',
+  showInitialSkeleton: true,
+  showFirstLoadError: false,
+  loadErrorVariant: 'none',
+  paginationError: false,
   refreshing: false,
   emptyVariant: 'none',
   searchQuery: '',
@@ -167,7 +170,9 @@ const baseTransactionsState: TransactionsScreenState = {
   activeFilterCount: 0,
   appliedFilterSummary: '',
   totals: null,
+  totalsStatus: 'initialLoading',
   previousLabel: 'July 2026',
+  listRef: { current: null },
 };
 
 const mockedUseTransactions = jest.mocked(useTransactions);
@@ -181,6 +186,10 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     clearSearch: jest.fn(),
     onEndReached: jest.fn(),
     onRefresh: jest.fn(),
+    onListScroll: jest.fn(),
+    retryList: jest.fn(),
+    retryTotals: jest.fn(),
+    retryFailedLoads: jest.fn(),
     openFilter: jest.fn(),
     resetFilters: jest.fn(),
     goToDetail: jest.fn(),
@@ -204,8 +213,8 @@ describe('TransactionsScreen', () => {
   it('does not show row skeletons after loaded transactions render', () => {
     mockUseTransactions({
       emptyVariant: 'none',
-      loading: false,
-      hasLoaded: true,
+      listStatus: 'ready',
+      showInitialSkeleton: false,
       sections: [
         {
           key: 'TODAY',
@@ -246,13 +255,14 @@ describe('TransactionsScreen', () => {
   it('keeps loaded transactions visible while manually refreshing loaded transactions', () => {
     mockUseTransactions({
       emptyVariant: 'none',
-      loading: false,
-      hasLoaded: true,
+      listStatus: 'refreshing',
+      showInitialSkeleton: false,
       refreshing: true,
       totals: {
         current: { incomeEgp: 1000, expenseEgp: 500, netEgp: 500 },
         previous: { incomeEgp: 900, expenseEgp: 400, netEgp: 500 },
       },
+      totalsStatus: 'refreshing',
       sections: [
         {
           key: 'TODAY',
@@ -286,31 +296,31 @@ describe('TransactionsScreen', () => {
 
     const { getByText, queryByTestId } = render(<TransactionsScreen />);
 
-    expect(getByText('Totals loading:true')).toBeTruthy();
+    expect(getByText('Totals loading:false')).toBeTruthy();
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
 
-  it('does not show row skeletons during post-load filter query transitions', () => {
+  it('shows matching row skeletons during a new filter query transition', () => {
     mockUseTransactions({
       emptyVariant: 'none',
-      loading: true,
-      hasLoaded: true,
+      listStatus: 'initialLoading',
+      showInitialSkeleton: true,
       activeFilter: TransactionType.Expense,
       sections: [],
     });
 
-    const { queryByTestId, queryByText } = render(<TransactionsScreen />);
+    const { getByTestId, queryByText } = render(<TransactionsScreen />);
 
-    expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+    expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
     expect(queryByText('filtered')).toBeNull();
   });
 
   it('does not show row skeletons behind a filtered empty state while refreshing', () => {
     mockUseTransactions({
       emptyVariant: 'noResults',
-      loading: false,
-      hasLoaded: true,
+      listStatus: 'refreshing',
+      showInitialSkeleton: false,
       refreshing: true,
       activeFilter: TransactionType.CCPayment,
       sections: [],

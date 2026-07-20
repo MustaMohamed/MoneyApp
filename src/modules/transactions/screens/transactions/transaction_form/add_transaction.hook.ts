@@ -187,7 +187,6 @@ export function useAddTransaction(onClose: () => void) {
   const setAvailableBudgets = useAddTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useAddTransactionStore.getState().setBudgetId;
   const {
-    visible,
     saving,
     showAccountPicker,
     showToPicker,
@@ -200,7 +199,6 @@ export function useAddTransaction(onClose: () => void) {
     rateOverride,
   } = useAddTransactionState(
     useShallow((s) => ({
-      visible: s.visible,
       saving: s.saving,
       showAccountPicker: s.showAccountPicker,
       showToPicker: s.showToPicker,
@@ -328,24 +326,6 @@ export function useAddTransaction(onClose: () => void) {
     form.setValue('budgetId', '');
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
-
-  // Reset form when sheet closes
-  useEffect(() => {
-    if (!visible) {
-      form.reset({
-        amount: 0,
-        accountId: '',
-        toAccountId: '',
-        categoryId: '',
-        budgetId: '',
-        note: '',
-        date: toTransactionTimestamp(new Date()).date,
-        exchangeRate: String(rate),
-      });
-      setRateOverride(false);
-    }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [visible]);
 
   const budgetRequestRef = useRef(0);
   useEffect(() => {

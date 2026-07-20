@@ -5,6 +5,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface EditTransactionStateShape {
   visible: boolean;
+  sessionId: number;
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
@@ -18,7 +19,9 @@ interface EditTransactionStateShape {
 
 type EditTransactionState = EditTransactionStateShape & {
   open: (tx: Transaction) => void;
-  close: () => void;
+  requestClose: () => boolean;
+  completeSave: () => void;
+  completeClose: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
@@ -34,6 +37,7 @@ type EditTransactionState = EditTransactionStateShape & {
 
 const INITIAL_STATE: EditTransactionStateShape = {
   visible: false,
+  sessionId: 0,
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
@@ -46,11 +50,22 @@ const INITIAL_STATE: EditTransactionStateShape = {
 };
 
 export const useEditTransactionState = createMoneyAppSelectors(
-  create<EditTransactionState>((set) => ({
+  create<EditTransactionState>((set, get) => ({
     ...INITIAL_STATE,
 
-    open: () => set({ visible: true }),
-    close: () => set(INITIAL_STATE),
+    open: () =>
+      set((state) => ({
+        ...INITIAL_STATE,
+        visible: true,
+        sessionId: state.sessionId + 1,
+      })),
+    requestClose: () => {
+      if (get().saving) return false;
+      set({ visible: false, showCategoryPicker: false, showBudgetPicker: false });
+      return true;
+    },
+    completeSave: () => set({ visible: false, showCategoryPicker: false, showBudgetPicker: false }),
+    completeClose: () => set(INITIAL_STATE),
     setSaving: (v) => set({ saving: v }),
     setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
     setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),

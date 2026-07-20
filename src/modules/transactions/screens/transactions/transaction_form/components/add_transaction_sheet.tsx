@@ -8,6 +8,7 @@ import { Strings } from '@/constants/strings';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
+import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionSheetLifecycle } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.hook';
 import { useAddTransactionSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state';
 import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
@@ -29,9 +30,11 @@ export function AddTransactionSheet(props: AddTransactionSheetProps): React.Reac
       onOpenChange={(open) => {
         if (!open) props.onClose();
       }}
+      onCloseComplete={state.handleCloseComplete}
       title={Strings.addTxTitle}
       size="lg"
       scrollable
+      isDismissable={!state.saving}
       footer={
         state.hasFooter ? (
           <Button
@@ -46,6 +49,7 @@ export function AddTransactionSheet(props: AddTransactionSheetProps): React.Reac
     >
       {state.shouldRenderInner ? (
         <AddTransactionSheetInner
+          key={state.sessionId}
           visible={props.visible && state.readyToOpen}
           onClose={props.onClose}
         />
@@ -58,7 +62,8 @@ function AddTransactionSheetInner({
   visible,
   onClose,
 }: AddTransactionSheetProps): React.ReactElement {
-  const hook = useAddTransaction(onClose);
+  const completeSave = useAddTransactionState.getState().completeSave;
+  const hook = useAddTransaction(completeSave);
   const handleSaveRef = useRef(hook.handleSave);
   handleSaveRef.current = hook.handleSave;
   const publishFooter = useAddTransactionSheetState.getState().publishFooter;

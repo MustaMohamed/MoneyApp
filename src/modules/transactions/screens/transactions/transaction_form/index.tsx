@@ -1,3 +1,5 @@
+import { useCallback } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
@@ -5,7 +7,9 @@ import { Strings } from '@/constants/strings';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
+import { useEditTransactionSheetLifecycle } from '@/modules/transactions/screens/transactions/transaction_form/components/edit_transaction_sheet.hook';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
+import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
 export { AddTransactionSheet } from './components/add_transaction_sheet';
@@ -18,19 +22,33 @@ interface EditTransactionSheetProps {
 }
 
 export function EditTransactionSheet(props: EditTransactionSheetProps): React.ReactElement | null {
+  const lifecycle = useEditTransactionSheetLifecycle(props.visible);
   if (!props.tx) return null;
   return (
     <EditSheetInner
+      key={lifecycle.sessionId}
       visible={props.visible}
       tx={props.tx}
       onClose={props.onClose}
       onSaved={props.onSaved}
+      onCloseComplete={lifecycle.handleCloseComplete}
     />
   );
 }
 
-function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Transaction }) {
-  const hook = useEditTransaction(props.tx, props.onClose, props.onSaved);
+function EditSheetInner(
+  props: Omit<EditTransactionSheetProps, 'tx'> & {
+    tx: Transaction;
+    onCloseComplete: () => void;
+  },
+) {
+  const completeSave = useEditTransactionState.getState().completeSave;
+  const onSaved = props.onSaved;
+  const handleSaved = useCallback(() => {
+    completeSave();
+    onSaved?.();
+  }, [completeSave, onSaved]);
+  const hook = useEditTransaction(props.tx, props.onClose, handleSaved);
 
   return (
     <>
@@ -39,9 +57,11 @@ function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Tra
         onOpenChange={(open) => {
           if (!open) props.onClose();
         }}
+        onCloseComplete={props.onCloseComplete}
         title={Strings.editTxTitle}
         size="lg"
         scrollable
+        isDismissable={!hook.state.saving}
         footer={
           <Button
             variant="primary"

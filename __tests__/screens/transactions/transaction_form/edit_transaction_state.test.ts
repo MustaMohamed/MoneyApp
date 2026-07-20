@@ -26,12 +26,49 @@ describe('useEditTransactionState', () => {
     expect(useEditTransactionState.getState().visible).toBe(true);
   });
 
-  it('close() resets to initial', () => {
+  it('requestClose() hides the sheet without clearing the closing edit state', () => {
+    useEditTransactionState.getState().open({ id: 't1' } as any);
+    useEditTransactionState.getState().setRateOverride(true);
+
+    expect(useEditTransactionState.getState().requestClose()).toBe(true);
+    expect(useEditTransactionState.getState().visible).toBe(false);
+    expect(useEditTransactionState.getState().rateOverride).toBe(true);
+  });
+
+  it('requestClose() is ignored while saving', () => {
     useEditTransactionState.getState().open({ id: 't1' } as any);
     useEditTransactionState.getState().setSaving(true);
-    useEditTransactionState.getState().close();
-    expect(useEditTransactionState.getState().visible).toBe(false);
-    expect(useEditTransactionState.getState().saving).toBe(false);
+
+    expect(useEditTransactionState.getState().requestClose()).toBe(false);
+    expect(useEditTransactionState.getState()).toMatchObject({ visible: true, saving: true });
+  });
+
+  it('completeSave() closes after a successful save while preserving the saving lock', () => {
+    useEditTransactionState.getState().open({ id: 't1' } as any);
+    useEditTransactionState.getState().setSaving(true);
+    useEditTransactionState.getState().setShowCategoryPicker(true);
+
+    useEditTransactionState.getState().completeSave();
+
+    expect(useEditTransactionState.getState()).toMatchObject({
+      visible: false,
+      saving: true,
+      showCategoryPicker: false,
+    });
+  });
+
+  it('completeClose() clears retained state after the close animation', () => {
+    useEditTransactionState.getState().open({ id: 't1' } as any);
+    useEditTransactionState.getState().setRateOverride(true);
+    useEditTransactionState.getState().requestClose();
+
+    useEditTransactionState.getState().completeClose();
+
+    expect(useEditTransactionState.getState()).toMatchObject({
+      visible: false,
+      saving: false,
+      rateOverride: false,
+    });
   });
 
   it('tracks lookup and save errors and clears them for retry or edits', () => {

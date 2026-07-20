@@ -913,6 +913,11 @@ export const Strings = {
   totalsExpense: 'Expense',
   totalsNet: 'Net',
   totalsVsPrev: (prevLabel: string) => `vs ${prevLabel}`,
+  transactionsLoadError: 'Could not load transactions.',
+  transactionsRefreshError: 'Could not refresh transactions.',
+  transactionsTotalsLoadError: 'Could not load monthly totals.',
+  transactionsLoadMoreError: 'Could not load more transactions.',
+  transactionsLoadRetry: 'Retry',
 
   // §6 Transactions — Type badges
   typeBadgeCommitment: 'Commitment',
@@ -948,6 +953,9 @@ export const Strings = {
   detailEditButton: 'Edit Transaction',
   detailNotFoundTitle: 'Transaction not found',
   detailNotFoundBody: 'This transaction may have been deleted.',
+  detailLoadErrorTitle: 'Could not load this transaction.',
+  detailRefreshErrorTitle: 'Could not refresh this transaction.',
+  detailLoadRetry: 'Retry',
 
   // §7: Add / Edit Transaction
   addTxNoAccountsTitle: 'No Accounts Yet',

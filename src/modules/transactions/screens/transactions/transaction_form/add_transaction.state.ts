@@ -4,6 +4,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface AddTransactionStateShape {
   visible: boolean;
+  sessionId: number;
   /**
    * Cross-tab open request. The global FAB (mounted outside the transactions
    * tab) sets this and navigates here; the transactions screen consumes it once
@@ -27,7 +28,9 @@ interface AddTransactionStateShape {
 type AddTransactionState = AddTransactionStateShape & {
   open: () => void;
   requestOpen: () => void;
-  close: () => void;
+  requestClose: () => boolean;
+  completeSave: () => void;
+  completeClose: () => void;
   setSaving: (v: boolean) => void;
   setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
@@ -44,6 +47,7 @@ type AddTransactionState = AddTransactionStateShape & {
 
 const INITIAL_STATE: AddTransactionStateShape = {
   visible: false,
+  sessionId: 0,
   pendingOpen: false,
   saving: false,
   showAccountPicker: false,
@@ -58,12 +62,38 @@ const INITIAL_STATE: AddTransactionStateShape = {
 };
 
 export const useAddTransactionState = createMoneyAppSelectors(
-  create<AddTransactionState>((set) => ({
+  create<AddTransactionState>((set, get) => ({
     ...INITIAL_STATE,
 
-    open: () => set({ visible: true, pendingOpen: false }),
+    open: () =>
+      set((state) => ({
+        ...INITIAL_STATE,
+        visible: true,
+        sessionId: state.sessionId + 1,
+      })),
     requestOpen: () => set({ pendingOpen: true }),
-    close: () => set(INITIAL_STATE),
+    requestClose: () => {
+      if (get().saving) return false;
+      set({
+        visible: false,
+        pendingOpen: false,
+        showAccountPicker: false,
+        showToPicker: false,
+        showCategoryPicker: false,
+        showBudgetPicker: false,
+      });
+      return true;
+    },
+    completeSave: () =>
+      set({
+        visible: false,
+        pendingOpen: false,
+        showAccountPicker: false,
+        showToPicker: false,
+        showCategoryPicker: false,
+        showBudgetPicker: false,
+      }),
+    completeClose: () => set(INITIAL_STATE),
     setSaving: (v) => set({ saving: v }),
     setShowAccountPicker: (v) => set({ showAccountPicker: v }),
     setShowToPicker: (v) => set({ showToPicker: v }),
