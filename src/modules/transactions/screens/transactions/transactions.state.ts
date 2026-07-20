@@ -79,11 +79,12 @@ export const useTransactionsState = createMoneyAppSelectors(
         state.scrollQueryKey === scrollQueryKey ? state : { scrollQueryKey, scrollOffset: 0 },
       ),
     setScrollOffset: (scrollQueryKey, scrollOffset) =>
-      set((state) =>
-        state.scrollQueryKey === scrollQueryKey
-          ? { scrollOffset: Math.max(0, scrollOffset) }
-          : state,
-      ),
+      set((state) => {
+        const normalizedOffset = Math.max(0, scrollOffset);
+        return state.scrollQueryKey === scrollQueryKey && state.scrollOffset !== normalizedOffset
+          ? { scrollOffset: normalizedOffset }
+          : state;
+      }),
     reset: () => set(INITIAL_STATE),
   })),
 );

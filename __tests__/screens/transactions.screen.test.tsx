@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -178,7 +178,7 @@ const baseTransactionsState: TransactionsScreenState = {
 const mockedUseTransactions = jest.mocked(useTransactions);
 
 function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
-  mockedUseTransactions.mockReturnValue({
+  const hook = {
     state: { ...baseTransactionsState, ...state },
     setSearchQuery: jest.fn(),
     setActiveFilter: jest.fn(),
@@ -187,6 +187,7 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     onEndReached: jest.fn(),
     onRefresh: jest.fn(),
     onListScroll: jest.fn(),
+    onListScrollEnd: jest.fn(),
     retryList: jest.fn(),
     retryTotals: jest.fn(),
     retryFailedLoads: jest.fn(),
@@ -194,7 +195,9 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     resetFilters: jest.fn(),
     goToDetail: jest.fn(),
     goToEdit: jest.fn(),
-  });
+  };
+  mockedUseTransactions.mockReturnValue(hook);
+  return hook;
 }
 
 describe('TransactionsScreen', () => {
@@ -250,6 +253,28 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+  });
+
+  it('tracks list movement separately from its persistence boundaries', () => {
+    const hook = mockUseTransactions();
+    const { getByTestId } = render(<TransactionsScreen />);
+    const event = {
+      nativeEvent: {
+        contentOffset: { x: 0, y: 100 },
+        contentSize: { height: 1_000, width: 320 },
+        layoutMeasurement: { height: 640, width: 320 },
+      },
+    };
+
+    fireEvent.scroll(getByTestId('transactions-list'), event);
+    fireEvent(getByTestId('transactions-list'), 'scrollEndDrag', event);
+    fireEvent(getByTestId('transactions-list'), 'momentumScrollEnd', event);
+
+    expect(hook.onListScroll).toHaveBeenCalledWith(event);
+    expect(hook.onListScrollEnd).toHaveBeenCalledTimes(2);
+    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(1, event);
+    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(2, event);
+    expect(getByTestId('transactions-list')).toHaveProp('scrollEventThrottle', 100);
   });
 
   it('keeps loaded transactions visible while manually refreshing loaded transactions', () => {

@@ -64,6 +64,7 @@ const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
 ];
 
 const LIST_BOTTOM_CLEARANCE = ms(160);
+const SCROLL_POSITION_THROTTLE_MS = 100;
 
 export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
@@ -80,6 +81,7 @@ export default function TransactionsScreen(): React.ReactElement {
     onRefresh,
     onEndReached,
     onListScroll,
+    onListScrollEnd,
     retryFailedLoads,
   } = t;
   const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
@@ -232,13 +234,16 @@ export default function TransactionsScreen(): React.ReactElement {
 
       <View style={{ flex: 1 }}>
         <SectionList
+          testID="transactions-list"
           ref={state.listRef}
           sections={listSections}
           keyExtractor={(item) => item.id}
           stickySectionHeadersEnabled
           renderSectionHeader={renderSectionHeader}
           onScroll={onListScroll}
-          scrollEventThrottle={16}
+          scrollEventThrottle={SCROLL_POSITION_THROTTLE_MS}
+          onScrollEndDrag={onListScrollEnd}
+          onMomentumScrollEnd={onListScrollEnd}
           onScrollBeginDrag={closeAllRows}
           renderItem={renderItem}
           ListEmptyComponent={listEmptyComponent}

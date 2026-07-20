@@ -51,6 +51,7 @@ const INITIAL_STATE = {
   snapshotKey: undefined as string | undefined,
   status: 'idle' as TransactionListStatus,
   mutationVersion: 0,
+  replacementRequestId: 0,
 };
 
 type TransactionStore = typeof INITIAL_STATE & {
@@ -80,7 +81,12 @@ export function createTransactionStore(repo: ITransactionRepository) {
         const canPreserve = preserveSnapshot && current.snapshotKey === key;
 
         if (canPreserve) {
-          set({ status: 'refreshing', loadingMore: false, paginationError: false });
+          set({
+            status: 'refreshing',
+            loadingMore: false,
+            paginationError: false,
+            replacementRequestId: myId,
+          });
         } else {
           set({
             transactions: [],
@@ -91,6 +97,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
             queryKey: key,
             snapshotKey: undefined,
             status: 'initialLoading',
+            replacementRequestId: myId,
           });
         }
 

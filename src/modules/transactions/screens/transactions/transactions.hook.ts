@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent, SectionList } from 'react-native';
+import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { getDb } from '@/database/client';
@@ -15,6 +15,7 @@ import type { TransactionListStatus } from '@/modules/transactions/store/transac
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 import { formatMonthYear } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 import {
@@ -31,6 +32,8 @@ import { useTransactionsScreenStore } from './transactions.store';
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = { key: string; data: Transaction[] };
 export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals';
+type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
+type ScrollPosition = { queryKey: string | null; offset: number };
 
 export function useTransactions() {
   const router = useRouter();
@@ -40,6 +43,7 @@ export function useTransactions() {
   const scrollRestorePendingRef = useRef(false);
   const scrollRestoreFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
+  const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
 
   const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
     useShallow((s) => ({
@@ -161,6 +165,10 @@ export function useTransactions() {
     const scrollState = useTransactionsState.getState();
     scrollRestorePendingRef.current = false;
     if (scrollState.scrollQueryKey !== activeKey || scrollState.scrollOffset <= 0) return;
+    currentScrollPositionRef.current = {
+      queryKey: activeKey,
+      offset: scrollState.scrollOffset,
+    };
     if (scrollRestoreFrameRef.current !== null) {
       cancelAnimationFrame(scrollRestoreFrameRef.current);
     }
@@ -176,6 +184,10 @@ export function useTransactions() {
     const scrollState = useTransactionsState.getState();
     const queryChanged = scrollState.scrollQueryKey !== activeQueryKey;
     activateScrollQuery(activeQueryKey);
+    currentScrollPositionRef.current = {
+      queryKey: activeQueryKey,
+      offset: queryChanged ? 0 : scrollState.scrollOffset,
+    };
     if (queryChanged) {
       listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
     }
@@ -220,27 +232,57 @@ export function useTransactions() {
       scrollRestorePendingRef.current = true;
       const isFirstFocus = !hasFocusedRef.current;
       hasFocusedRef.current = true;
-      const transactionState = useTransactionStore.getState();
-      const hasVisibleSnapshot =
-        transactionState.snapshotKey === activeQueryKeyRef.current &&
-        transactionState.queryKey === activeQueryKeyRef.current;
-      if (hasVisibleSnapshot && transactionState.status !== 'refreshing') {
-        void refresh().catch((error) =>
-          console.error('[transactions] focus refresh failed:', error),
-        );
-      }
-      if (!isFirstFocus) void loadTotalsRef.current(true);
+      const focusQueryKey = activeQueryKeyRef.current;
+      const focusTransactionState = useTransactionStore.getState();
+      const focusReplacementRequestId = focusTransactionState.replacementRequestId;
+      const shouldRefreshSnapshot =
+        focusTransactionState.snapshotKey === focusQueryKey &&
+        focusTransactionState.queryKey === focusQueryKey &&
+        focusTransactionState.status !== 'refreshing';
+      const focusYearMonth = useTransactionsScreenStore.getState().period.yearMonth;
+      const focusTotalsState = useTransactionsState.getState();
+      const focusTotalsRequestId = focusTotalsState.totalsRequestId;
+      const shouldRefreshTotals =
+        !isFirstFocus &&
+        focusTotalsState.totalsYearMonth === focusYearMonth &&
+        focusTotalsState.totalsStatus !== 'initialLoading' &&
+        focusTotalsState.totalsStatus !== 'refreshing';
       attemptScrollRestoreRef.current();
+      const task = runAfterInteractions(() => {
+        if (activeQueryKeyRef.current !== focusQueryKey) return;
+        const transactionState = useTransactionStore.getState();
+        const snapshotIsUnchanged =
+          shouldRefreshSnapshot &&
+          transactionState.snapshotKey === activeQueryKeyRef.current &&
+          transactionState.queryKey === activeQueryKeyRef.current &&
+          transactionState.replacementRequestId === focusReplacementRequestId;
+        if (snapshotIsUnchanged && transactionState.status !== 'refreshing') {
+          void refresh().catch((error) =>
+            console.error('[transactions] focus refresh failed:', error),
+          );
+        }
+        const totalsState = useTransactionsState.getState();
+        const totalsAreUnchanged =
+          shouldRefreshTotals &&
+          totalsState.totalsYearMonth === focusYearMonth &&
+          totalsState.totalsRequestId === focusTotalsRequestId;
+        if (totalsAreUnchanged) void loadTotalsRef.current(true);
+      });
 
       return () => {
+        task.cancel();
         isFocusedRef.current = false;
         scrollRestorePendingRef.current = false;
+        const scrollPosition = currentScrollPositionRef.current;
+        if (scrollPosition.queryKey === activeQueryKeyRef.current) {
+          setScrollOffset(scrollPosition.queryKey, scrollPosition.offset);
+        }
         if (scrollRestoreFrameRef.current !== null) {
           cancelAnimationFrame(scrollRestoreFrameRef.current);
           scrollRestoreFrameRef.current = null;
         }
       };
-    }, [refresh]),
+    }, [refresh, setScrollOffset]),
   );
 
   const accountsById = useMemo(
@@ -304,10 +346,24 @@ export function useTransactions() {
         : 'none';
 
   const onListScroll = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      setScrollOffset(activeQueryKey, event.nativeEvent.contentOffset.y);
+    (event: ScrollOffsetEvent) => {
+      currentScrollPositionRef.current = {
+        queryKey: activeQueryKey,
+        offset: Math.max(0, event.nativeEvent.contentOffset.y),
+      };
     },
-    [activeQueryKey, setScrollOffset],
+    [activeQueryKey],
+  );
+
+  const onListScrollEnd = useCallback(
+    (event: ScrollOffsetEvent) => {
+      onListScroll(event);
+      const scrollPosition = currentScrollPositionRef.current;
+      if (scrollPosition.queryKey === activeQueryKeyRef.current) {
+        setScrollOffset(scrollPosition.queryKey, scrollPosition.offset);
+      }
+    },
+    [onListScroll, setScrollOffset],
   );
 
   const retryTotals = useCallback(
@@ -380,6 +436,7 @@ export function useTransactions() {
     onEndReached: loadMore,
     onRefresh,
     onListScroll,
+    onListScrollEnd,
     retryList: retry,
     retryTotals,
     retryFailedLoads,
