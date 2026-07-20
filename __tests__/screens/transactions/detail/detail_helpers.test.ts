@@ -1,5 +1,8 @@
 import { AccountType } from '@/constants/enums';
-import { getAccountTypeIcon } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
+import {
+  getAccountTypeIcon,
+  getCommitmentPaymentRoute,
+} from '@/modules/transactions/screens/transactions/detail/detail.helpers';
 
 describe('getAccountTypeIcon', () => {
   // Locks the account-type → glyph mapping for the Detail screen's Account
@@ -32,5 +35,11 @@ describe('getAccountTypeIcon', () => {
     // Defensive — the DB has CHECK constraints but legacy rows from an
     // older enum could still appear.
     expect(getAccountTypeIcon('legacy_type_xyz')).toBe('card-bulleted-outline');
+  });
+});
+
+describe('getCommitmentPaymentRoute', () => {
+  it('uses the payment id expected by the commitment detail route', () => {
+    expect(getCommitmentPaymentRoute('payment-1')).toBe('/commitments/payment-1');
   });
 });

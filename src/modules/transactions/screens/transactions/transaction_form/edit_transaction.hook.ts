@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { CategoryType, Currency, TransactionType } from '@/constants/enums';
+import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Category } from '@/database/entities/category.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -10,20 +10,31 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
   useTransactionStore,
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
-import { roundMoney } from '@/utils/money';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
 import { buildDefaultsFromTx, type EditTransactionFormValues } from './edit_transaction.helpers';
 import { useEditTransactionState } from './edit_transaction.state';
 import { useEditTransactionStore } from './edit_transaction.store';
+import {
+  resolveTransactionFormSemantics,
+  resolveTransactionSaveError,
+} from './transaction_form.helpers';
 
-function createEditSchema(type: TransactionType, requiresBudgetSelection: boolean) {
+function createEditSchema(
+  type: TransactionType,
+  categoryType: ReturnType<typeof resolveTransactionFormSemantics>['categoryType'],
+  categories: Category[],
+  requiresBudgetSelection: boolean,
+  requiresRate: boolean,
+) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   return z
     .object({
@@ -38,12 +49,37 @@ function createEditSchema(type: TransactionType, requiresBudgetSelection: boolea
       exchangeRate: z.string(),
     })
     .superRefine((data, context) => {
+      if (!isTransferOrCC && data.categoryId) {
+        const category = categories.find((candidate) => candidate.id === data.categoryId);
+        if (!category || category.type !== categoryType) {
+          context.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrCategoryMismatch,
+            path: ['categoryId'],
+          });
+        }
+      }
       if (requiresBudgetSelection && !data.budgetId) {
         context.addIssue({
           code: 'custom',
           message: Strings.addTxErrBudgetRequired,
           path: ['budgetId'],
         });
+      }
+      if (requiresRate) {
+        if (!data.exchangeRate) {
+          context.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrRateRequired,
+            path: ['exchangeRate'],
+          });
+        } else if (parsePositiveDecimal(data.exchangeRate) === undefined) {
+          context.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrRateInvalid,
+            path: ['exchangeRate'],
+          });
+        }
       }
     });
 }
@@ -53,7 +89,9 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountLookup } = useAccountStore(
+    useShallow((state) => ({ accounts: state.accounts, accountLookup: state.accountLookup })),
+  );
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore.useState.categories();
   const { rate, rateUpdatedAt } = useCurrencyStore(
@@ -112,14 +150,33 @@ export function useEditTransaction(
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
+  const contextualAccounts = useMemo(
+    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
+    [accountLookup, accounts],
+  );
+  const selectedAccount = contextualAccounts.get(initialTx.account_id) ?? null;
+  const selectedToAccount = initialTx.to_account_id
+    ? (contextualAccounts.get(initialTx.to_account_id) ?? null)
+    : null;
+  const semantics = useMemo(
+    () => resolveTransactionFormSemantics(type, selectedAccount?.type),
+    [selectedAccount?.type, type],
+  );
+  const isUSD = selectedAccount?.currency === Currency.USD;
+  const isToUSD = selectedToAccount?.currency === Currency.USD;
+  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
   const requiresBudgetSelection =
-    type === TransactionType.Expense &&
-    availableBudgets.length > 1 &&
-    !budgetId &&
-    !preserveBudgetNull;
+    semantics.usesBudget && availableBudgets.length > 1 && !budgetId && !preserveBudgetNull;
   const schema = useMemo(
-    () => createEditSchema(type, requiresBudgetSelection),
-    [requiresBudgetSelection, type],
+    () =>
+      createEditSchema(
+        type,
+        semantics.categoryType,
+        categories,
+        requiresBudgetSelection,
+        requiresRate,
+      ),
+    [categories, requiresBudgetSelection, requiresRate, semantics.categoryType, type],
   );
 
   const form = useZodForm(schema, {
@@ -134,21 +191,6 @@ export function useEditTransaction(
   const date = form.watch('date');
   const exchangeRate = form.watch('exchangeRate');
 
-  const selectedAccount = useMemo(
-    () => accounts.find((a) => a.id === initialTx.account_id) ?? null,
-    [accounts, initialTx.account_id],
-  );
-  const selectedToAccount = useMemo(
-    () =>
-      initialTx.to_account_id
-        ? (accounts.find((a) => a.id === initialTx.to_account_id) ?? null)
-        : null,
-    [accounts, initialTx.to_account_id],
-  );
-  const isUSD = selectedAccount?.currency === Currency.USD;
-  const isToUSD = selectedToAccount?.currency === Currency.USD;
-  const requiresRate = isUSD || (isTransferOrCC && isToUSD);
-
   const selectedCategory = useMemo(
     () => categories.find((c) => c.id === categoryId) ?? null,
     [categories, categoryId],
@@ -160,10 +202,9 @@ export function useEditTransaction(
   const visibleCategories = useMemo(
     () =>
       categories.filter(
-        (c) =>
-          c.type === (type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
+        (c) => semantics.categoryType !== undefined && c.type === semantics.categoryType,
       ),
-    [categories, type],
+    [categories, semantics.categoryType],
   );
 
   const errors = {
@@ -190,7 +231,7 @@ export function useEditTransaction(
   const budgetRequestRef = useRef(0);
   useEffect(() => {
     const request = ++budgetRequestRef.current;
-    if (type !== TransactionType.Expense || !categoryId) {
+    if (!semantics.usesBudget || !categoryId) {
       setBudgetLookupError(undefined);
       setAvailableBudgets([]);
       setBudgetId(undefined);
@@ -251,6 +292,7 @@ export function useEditTransaction(
     setBudgetLookupError,
     setBudgetsLoading,
     setPreserveBudgetNull,
+    semantics.usesBudget,
     type,
   ]);
 
@@ -262,34 +304,24 @@ export function useEditTransaction(
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
       const toCurrency = selectedToAccount?.currency;
-      const parsedRate =
-        data.exchangeRate && requiresRate ? parseFloat(data.exchangeRate) : undefined;
+      const parsedRate = requiresRate ? parsePositiveDecimal(data.exchangeRate) : undefined;
 
-      const egp_amount =
-        fromCurrency === Currency.USD && parsedRate
-          ? roundMoney(data.amount * parsedRate)
-          : data.amount;
-
-      let to_amount: number | undefined;
-      if (isTransferOrCC && toCurrency !== undefined) {
-        if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
-          to_amount = roundMoney(data.amount / parsedRate);
-        } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
-          to_amount = egp_amount;
-        } else {
-          to_amount = data.amount;
-        }
-        if (type === TransactionType.CCPayment) to_amount = egp_amount;
-      }
+      const amounts = resolveTransactionAmounts({
+        type,
+        amount: data.amount,
+        sourceCurrency: fromCurrency,
+        destinationCurrency: toCurrency,
+        exchangeRate: parsedRate,
+      });
 
       const update: UpdateTransactionInput = {
         amount: data.amount,
         currency: fromCurrency,
-        egp_amount,
-        to_amount: to_amount ?? null,
-        exchange_rate: parsedRate ?? null,
+        egp_amount: amounts.egpAmount,
+        to_amount: amounts.toAmount,
+        exchange_rate: amounts.exchangeRate,
         category_id: !isTransferOrCC ? data.categoryId : null,
-        budget_id: type === TransactionType.Expense ? data.budgetId || null : null,
+        budget_id: semantics.usesBudget ? data.budgetId || null : null,
         note: data.note.trim() || null,
         transaction_date: data.date,
         transaction_time: initialTx.transaction_time, // preserved — no time UI
@@ -301,8 +333,8 @@ export function useEditTransaction(
       } else {
         onClose();
       }
-    } catch {
-      setErrorMessage(Strings.transactionSaveError);
+    } catch (error) {
+      setErrorMessage(resolveTransactionSaveError(error));
     } finally {
       setSaving(false);
     }
@@ -341,6 +373,9 @@ export function useEditTransaction(
       date,
       exchangeRate,
       rateOverride,
+      isCardCredit: semantics.isCardCredit,
+      typeLabel: semantics.typeLabel,
+      typeSupportingText: semantics.supportingText,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
@@ -353,7 +388,7 @@ export function useEditTransaction(
       budgetsLoading,
       availableBudgets,
       showBudgetField:
-        type === TransactionType.Expense &&
+        semantics.usesBudget &&
         Boolean(categoryId) &&
         (budgetsLoading ||
           Boolean(budgetLookupError) ||

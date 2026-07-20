@@ -33,6 +33,7 @@ function makeTransaction(overrides: Partial<Transaction> = {}): Transaction {
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
+    revolving_balance_delta: overrides.revolving_balance_delta ?? null,
   };
 }
 

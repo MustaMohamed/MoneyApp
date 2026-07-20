@@ -233,27 +233,22 @@ describe('usePaySheet', () => {
     expect(result.current.state.saving).toBe(false);
   });
 
-  // Regression (stale-rate guard): if the user enters a rate for a foreign-currency
-  // account then switches to a same-currency account (requiresRate flips false),
-  // the leftover rate must NOT be persisted as the snapshot — the payment needs no
-  // conversion, so exchange_rate_snapshot must be undefined.
-  it('does not snapshot a stale exchange_rate when the account currency matches the commitment', async () => {
+  it('captures the EGP reporting rate for a USD commitment paid from a USD account', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
     const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
     act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
       result.current.form.setValue('amount', 15);
       result.current.form.setValue('paid_date', '2026-05-20');
-      // stale value carried over from a previously-selected foreign account
       result.current.form.setValue('exchange_rate', 99);
     });
-    expect(result.current.state.requiresRate).toBe(false);
+    expect(result.current.state.requiresRate).toBe(true);
     await act(async () => {
       await result.current.onSubmit();
     });
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
-    expect(arg.exchange_rate_snapshot).toBeUndefined();
+    expect(arg.exchange_rate_snapshot).toBe(99);
   });
 
   it('snapshots the entered rate when the payment crosses currencies', async () => {

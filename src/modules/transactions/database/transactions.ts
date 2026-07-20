@@ -20,7 +20,8 @@ export interface MonthExpenseStats {
  *  - egpNative: SUM(amount) where currency='EGP' (true EGP-denominated spend)
  *  - usdNative: SUM(amount) where currency='USD' (true USD-denominated spend)
  *  - count: total expense rows
- * Excludes transfers, income, and CC payments — only true expenses.
+ * Card credits subtract from spend and remain included in the contributing row count.
+ * Transfers, cash income, and CC payments are excluded.
  */
 export async function getMonthExpenseStats(
   db: SQLiteDatabase,
@@ -38,14 +39,31 @@ export async function getMonthExpenseStats(
     cnt: number;
   }>(
     `SELECT
-       COALESCE(SUM(egp_amount), 0) AS total,
-       COALESCE(SUM(CASE WHEN currency = 'EGP' THEN amount ELSE 0 END), 0) AS egp_native,
-       COALESCE(SUM(CASE WHEN currency = 'USD' THEN amount ELSE 0 END), 0) AS usd_native,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
+         ELSE -transaction_row.egp_amount
+       END), 0) AS total,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.currency = 'EGP' AND transaction_row.type = 'expense'
+           THEN transaction_row.amount
+         WHEN transaction_row.currency = 'EGP' THEN -transaction_row.amount
+         ELSE 0
+       END), 0) AS egp_native,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.currency = 'USD' AND transaction_row.type = 'expense'
+           THEN transaction_row.amount
+         WHEN transaction_row.currency = 'USD' THEN -transaction_row.amount
+         ELSE 0
+       END), 0) AS usd_native,
        COUNT(*) AS cnt
-     FROM transactions
-     WHERE type = 'expense'
-       AND transaction_date >= ?
-       AND transaction_date < ?`,
+     FROM transactions transaction_row
+     JOIN accounts account_row ON account_row.id = transaction_row.account_id
+     WHERE (
+         transaction_row.type = 'expense'
+         OR (transaction_row.type = 'income' AND account_row.type = 'credit_card')
+       )
+       AND transaction_row.transaction_date >= ?
+       AND transaction_row.transaction_date < ?`,
     [monthStart, nextMonthStart],
   );
   return {
@@ -56,85 +74,39 @@ export async function getMonthExpenseStats(
   };
 }
 
-export async function addTransaction(db: SQLiteDatabase, tx: Transaction): Promise<void> {
-  await db.withTransactionAsync(async () => {
-    await db.runAsync(
-      `INSERT INTO transactions (
-        id, type, amount, currency, egp_amount, exchange_rate,
-        to_amount, minimum_payment_snapshot,
-        account_id, to_account_id, category_id, budget_id, note,
-        transaction_date, transaction_time, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tx.id,
-        tx.type,
-        tx.amount,
-        tx.currency,
-        tx.egp_amount,
-        tx.exchange_rate,
-        tx.to_amount,
-        tx.minimum_payment_snapshot,
-        tx.account_id,
-        tx.to_account_id,
-        tx.category_id,
-        tx.budget_id,
-        tx.note,
-        tx.transaction_date,
-        tx.transaction_time,
-        tx.created_at,
-        tx.updated_at,
-      ],
-    );
-
-    const now = tx.updated_at;
-
-    if (tx.type === TransactionType.Expense) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-    } else if (tx.type === TransactionType.Income) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-    } else if (tx.type === TransactionType.Transfer) {
-      const transferToAmt = tx.to_amount ?? tx.egp_amount;
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [transferToAmt, now, tx.to_account_id],
-      );
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- exhaustive narrowing; last branch is always CCPayment
-    } else if (tx.type === TransactionType.CCPayment) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-      const [cc] = await db.getAllAsync<{ revolving_balance: number | null }>(
-        'SELECT revolving_balance FROM accounts WHERE id = ?',
-        [tx.to_account_id],
-      );
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]; runtime guard needed
-      const revolving = cc?.revolving_balance ?? 0;
-      const installmentDue = tx.minimum_payment_snapshot ?? 0;
-      const toAmt = tx.to_amount ?? tx.egp_amount;
-      const installmentCovered = Math.min(toAmt, installmentDue);
-      const revolvingReduction = Math.max(0, toAmt - installmentCovered);
-      const newRevolving = Math.max(0, revolving - revolvingReduction);
-      await db.runAsync(
-        `UPDATE accounts
-           SET current_balance   = current_balance - ?,
-               revolving_balance = ?,
-               updated_at        = ?
-         WHERE id = ?`,
-        [toAmt, newRevolving, now, tx.to_account_id],
-      );
-    }
-  });
+export async function insertTransactionRow(db: SQLiteDatabase, tx: Transaction): Promise<number> {
+  const result = await db.runAsync(
+    `INSERT INTO transactions (
+      id, type, amount, currency, egp_amount, exchange_rate,
+      to_amount, minimum_payment_snapshot, revolving_balance_delta,
+      account_id, to_account_id, category_id, budget_id, note,
+      transaction_date, transaction_time, commitment_payment_id,
+      installment_id, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      tx.id,
+      tx.type,
+      tx.amount,
+      tx.currency,
+      tx.egp_amount,
+      tx.exchange_rate,
+      tx.to_amount,
+      tx.minimum_payment_snapshot,
+      tx.revolving_balance_delta,
+      tx.account_id,
+      tx.to_account_id,
+      tx.category_id,
+      tx.budget_id,
+      tx.note,
+      tx.transaction_date,
+      tx.transaction_time,
+      tx.commitment_payment_id,
+      tx.installment_id,
+      tx.created_at,
+      tx.updated_at,
+    ],
+  );
+  return result.changes;
 }
 
 export interface TransactionListQuery {
@@ -152,6 +124,10 @@ export interface TransactionListQuery {
 }
 
 const PAGE_SIZE_DEFAULT = 30;
+const TRANSACTION_LIST_ORDER = `transaction_date DESC,
+  transaction_time DESC,
+  created_at DESC,
+  id DESC`;
 
 function escapeLike(input: string): string {
   return input.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
@@ -221,7 +197,7 @@ export async function getTransactions(
       AND (? IS NULL OR t.transaction_date <= ?)
       AND (? IS NULL OR (t.currency = ? AND t.amount >= ?))
       AND (? IS NULL OR (t.currency = ? AND t.amount <= ?))
-    ORDER BY t.transaction_date DESC, t.transaction_time DESC
+    ORDER BY ${TRANSACTION_LIST_ORDER}
     LIMIT ? OFFSET ?
   `;
 
@@ -261,7 +237,7 @@ export async function getTransactionsByAccount(
   return db.getAllAsync<Transaction>(
     `SELECT * FROM transactions
      WHERE account_id = ? OR to_account_id = ?
-     ORDER BY transaction_date DESC, transaction_time DESC
+     ORDER BY ${TRANSACTION_LIST_ORDER}
      LIMIT ? OFFSET ?`,
     [accountId, accountId, limit, offset],
   );
@@ -275,57 +251,9 @@ export async function getTransactionById(
   return rows[0] ?? null;
 }
 
-export async function deleteTransaction(db: SQLiteDatabase, id: string): Promise<void> {
-  const rows = await db.getAllAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [id]);
-  const tx = rows[0];
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]; runtime guard needed
-  if (!tx) return;
-
-  await db.withTransactionAsync(async () => {
-    await db.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
-
-    const now = new Date().toISOString();
-
-    if (tx.type === TransactionType.Expense) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-    } else if (tx.type === TransactionType.Income) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-    } else if (tx.type === TransactionType.Transfer) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-      const toAmt = tx.to_amount ?? tx.egp_amount;
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [toAmt, now, tx.to_account_id],
-      );
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- exhaustive narrowing; last branch is always CCPayment
-    } else if (tx.type === TransactionType.CCPayment) {
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [tx.amount, now, tx.account_id],
-      );
-      const installmentDue = tx.minimum_payment_snapshot ?? 0;
-      const toAmt = tx.to_amount ?? tx.egp_amount;
-      const installmentCovered = Math.min(toAmt, installmentDue);
-      const revolvingRestore = Math.max(0, toAmt - installmentCovered);
-      await db.runAsync(
-        `UPDATE accounts
-           SET current_balance   = current_balance + ?,
-               revolving_balance = revolving_balance + ?,
-               updated_at        = ?
-         WHERE id = ?`,
-        [toAmt, revolvingRestore, now, tx.to_account_id],
-      );
-    }
-  });
+export async function deleteTransactionRow(db: SQLiteDatabase, id: string): Promise<number> {
+  const result = await db.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
+  return result.changes;
 }
 
 export interface UpdateTransactionInput {
@@ -361,11 +289,21 @@ export async function getPeriodTotals(
     expense: number | null;
   }>(
     `SELECT
-       COALESCE(SUM(CASE WHEN type = 'income'  THEN egp_amount ELSE 0 END), 0) AS income,
-       COALESCE(SUM(CASE WHEN type = 'expense' THEN egp_amount ELSE 0 END), 0) AS expense
-     FROM transactions
-     WHERE transaction_date >= ?
-       AND transaction_date <= ?`,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.type = 'income' AND account_row.type <> 'credit_card'
+           THEN transaction_row.egp_amount
+         ELSE 0
+       END), 0) AS income,
+       COALESCE(SUM(CASE
+         WHEN transaction_row.type = 'expense' THEN transaction_row.egp_amount
+         WHEN transaction_row.type = 'income' AND account_row.type = 'credit_card'
+           THEN -transaction_row.egp_amount
+         ELSE 0
+       END), 0) AS expense
+     FROM transactions transaction_row
+     JOIN accounts account_row ON account_row.id = transaction_row.account_id
+     WHERE transaction_row.transaction_date >= ?
+       AND transaction_row.transaction_date <= ?`,
     [range.from, range.to],
   );
   const incomeEgp = row?.income ?? 0;
@@ -373,125 +311,37 @@ export async function getPeriodTotals(
   return { incomeEgp, expenseEgp, netEgp: incomeEgp - expenseEgp };
 }
 
-export async function updateTransaction(
+export async function updateTransactionRow(
   db: SQLiteDatabase,
   id: string,
   updates: UpdateTransactionInput,
-): Promise<void> {
-  const rows = await db.getAllAsync<Transaction>('SELECT * FROM transactions WHERE id = ?', [id]);
-  const existing = rows[0];
-  // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]; runtime guard needed
-  if (!existing) return;
-
-  const now = new Date().toISOString();
-
-  await db.withTransactionAsync(async () => {
-    if (existing.type === TransactionType.Expense) {
-      const delta = updates.amount - existing.amount;
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [delta, now, existing.account_id],
-      );
-    } else if (existing.type === TransactionType.Income) {
-      const delta = updates.amount - existing.amount;
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [delta, now, existing.account_id],
-      );
-    } else if (existing.type === TransactionType.Transfer) {
-      const deltaFrom = updates.amount - existing.amount;
-      const newToAmt = updates.to_amount ?? updates.egp_amount;
-      const oldToAmt = existing.to_amount ?? existing.egp_amount;
-      const deltaTo = newToAmt - oldToAmt;
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [deltaFrom, now, existing.account_id],
-      );
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [deltaTo, now, existing.to_account_id],
-      );
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- exhaustive narrowing; last branch is always CCPayment
-    } else if (existing.type === TransactionType.CCPayment) {
-      // Reverse old payment
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance + ?, updated_at = ? WHERE id = ?',
-        [existing.amount, now, existing.account_id],
-      );
-      const oldToAmt = existing.to_amount ?? existing.egp_amount;
-      const oldInstallmentDue = existing.minimum_payment_snapshot ?? 0;
-      const oldInstallmentCovered = Math.min(oldToAmt, oldInstallmentDue);
-      const oldRevolvingRestore = Math.max(0, oldToAmt - oldInstallmentCovered);
-      await db.runAsync(
-        `UPDATE accounts
-           SET current_balance   = current_balance + ?,
-               revolving_balance = revolving_balance + ?,
-               updated_at        = ?
-         WHERE id = ?`,
-        [oldToAmt, oldRevolvingRestore, now, existing.to_account_id],
-      );
-
-      // Apply new payment
-      await db.runAsync(
-        'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-        [updates.amount, now, existing.account_id],
-      );
-      const [ccForApply] = await db.getAllAsync<{
-        revolving_balance: number | null;
-        minimum_payment: number | null;
-      }>('SELECT revolving_balance, minimum_payment FROM accounts WHERE id = ?', [
-        existing.to_account_id,
-      ]);
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]
-      const newRevolving = ccForApply?.revolving_balance ?? 0;
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]
-      const newMinPayment = ccForApply?.minimum_payment ?? 0;
-      const newToAmt = updates.to_amount ?? updates.egp_amount;
-      const newInstallmentCovered = Math.min(newToAmt, newMinPayment);
-      const newRevolvingReduction = Math.max(0, newToAmt - newInstallmentCovered);
-      const finalRevolving = Math.max(0, newRevolving - newRevolvingReduction);
-      await db.runAsync(
-        `UPDATE accounts
-           SET current_balance   = current_balance - ?,
-               revolving_balance = ?,
-               updated_at        = ?
-         WHERE id = ?`,
-        [newToAmt, finalRevolving, now, existing.to_account_id],
-      );
-    }
-
-    let newMinPaymentSnapshot: number | null = null;
-    if (existing.type === TransactionType.CCPayment) {
-      const [ccSnap] = await db.getAllAsync<{ minimum_payment: number | null }>(
-        'SELECT minimum_payment FROM accounts WHERE id = ?',
-        [existing.to_account_id],
-      );
-      // oxlint-disable-next-line typescript/no-unnecessary-condition -- getAllAsync types T[] not (T|undefined)[]
-      newMinPaymentSnapshot = ccSnap?.minimum_payment ?? null;
-    }
-
-    await db.runAsync(
-      `UPDATE transactions
-         SET amount = ?, currency = ?, egp_amount = ?, exchange_rate = ?,
-             to_amount = ?, minimum_payment_snapshot = ?,
-             category_id = ?, budget_id = ?, note = ?, transaction_date = ?, transaction_time = ?,
-             updated_at = ?
-       WHERE id = ?`,
-      [
-        updates.amount,
-        updates.currency,
-        updates.egp_amount,
-        updates.exchange_rate ?? null,
-        updates.to_amount ?? null,
-        newMinPaymentSnapshot,
-        updates.category_id ?? null,
-        updates.budget_id === undefined ? existing.budget_id : updates.budget_id,
-        updates.note ?? null,
-        updates.transaction_date,
-        updates.transaction_time,
-        now,
-        id,
-      ],
-    );
-  });
+  minimumPaymentSnapshot: number | null,
+  revolvingBalanceDelta: number | null,
+  updatedAt: string,
+): Promise<number> {
+  const result = await db.runAsync(
+    `UPDATE transactions
+       SET amount = ?, currency = ?, egp_amount = ?, exchange_rate = ?,
+           to_amount = ?, minimum_payment_snapshot = ?, revolving_balance_delta = ?,
+           category_id = ?, budget_id = ?, note = ?, transaction_date = ?, transaction_time = ?,
+           updated_at = ?
+     WHERE id = ?`,
+    [
+      updates.amount,
+      updates.currency,
+      updates.egp_amount,
+      updates.exchange_rate ?? null,
+      updates.to_amount ?? null,
+      minimumPaymentSnapshot,
+      revolvingBalanceDelta,
+      updates.category_id ?? null,
+      updates.budget_id ?? null,
+      updates.note ?? null,
+      updates.transaction_date,
+      updates.transaction_time,
+      updatedAt,
+      id,
+    ],
+  );
+  return result.changes;
 }

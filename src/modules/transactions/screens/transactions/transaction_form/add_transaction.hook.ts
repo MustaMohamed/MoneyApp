@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
+import { AccountType, Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -11,13 +11,19 @@ import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { roundMoney } from '@/utils/money';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAddTransactionState } from './add_transaction.state';
 import { useAddTransactionStore } from './add_transaction.store';
 import { resolveBudgetAssignment } from './budget_assignment.helpers';
+import {
+  resolveTransactionFormSemantics,
+  resolveTransactionSaveError,
+  toTransactionTimestamp,
+} from './transaction_form.helpers';
 
 export type AddTransactionFormValues = {
   amount: number;
@@ -33,7 +39,8 @@ export type AddTransactionFormValues = {
 function createSchema(
   type: TransactionType,
   accounts: Account[],
-  requiresBudgetSelection: boolean,
+  categories: Category[],
+  hasMultipleBudgets: boolean,
 ) {
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
 
@@ -73,9 +80,22 @@ function createSchema(
           message: Strings.addTxErrCategoryRequired,
           path: ['categoryId'],
         });
+      } else {
+        const account = accounts.find((candidate) => candidate.id === data.accountId);
+        const semantics = resolveTransactionFormSemantics(type, account?.type);
+        const category = categories.find((candidate) => candidate.id === data.categoryId);
+        if (!category || category.type !== semantics.categoryType) {
+          ctx.addIssue({
+            code: 'custom',
+            message: Strings.addTxErrCategoryMismatch,
+            path: ['categoryId'],
+          });
+        }
       }
 
-      if (requiresBudgetSelection && !data.budgetId) {
+      const account = accounts.find((candidate) => candidate.id === data.accountId);
+      const semantics = resolveTransactionFormSemantics(type, account?.type);
+      if (semantics.usesBudget && hasMultipleBudgets && !data.budgetId) {
         ctx.addIssue({
           code: 'custom',
           message: Strings.addTxErrBudgetRequired,
@@ -83,7 +103,7 @@ function createSchema(
         });
       }
 
-      const acc = accounts.find((a) => a.id === data.accountId);
+      const acc = account;
       const toAcc = accounts.find((a) => a.id === data.toAccountId);
 
       if (type === TransactionType.CCPayment) {
@@ -130,8 +150,7 @@ function createSchema(
             path: ['exchangeRate'],
           });
         } else {
-          const r = parseFloat(data.exchangeRate);
-          if (isNaN(r) || r <= 0) {
+          if (parsePositiveDecimal(data.exchangeRate) === undefined) {
             ctx.addIssue({
               code: 'custom',
               message: Strings.addTxErrRateInvalid,
@@ -141,14 +160,6 @@ function createSchema(
         }
       }
     });
-}
-
-function nowDateISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-function nowTimeISO(): string {
-  return new Date().toTimeString().slice(0, 8);
 }
 
 export function useAddTransaction(onClose: () => void) {
@@ -214,17 +225,9 @@ export function useAddTransaction(onClose: () => void) {
   const clearError = useAddTransactionState.getState().clearError;
   const setRateOverride = useAddTransactionState.getState().setRateOverride;
 
-  // Freeze the form-open timestamp once per sheet open so saving later doesn't drift the time.
-  const openedTimeRef = useRef<string>(nowTimeISO());
-  useEffect(() => {
-    if (visible) openedTimeRef.current = nowTimeISO();
-  }, [visible]);
-
-  const requiresBudgetSelection =
-    type === TransactionType.Expense && availableBudgets.length > 1 && !budgetId;
   const schema = useMemo(
-    () => createSchema(type, accounts, requiresBudgetSelection),
-    [accounts, requiresBudgetSelection, type],
+    () => createSchema(type, accounts, categories, availableBudgets.length > 1),
+    [accounts, availableBudgets.length, categories, type],
   );
 
   const form = useZodForm(schema, {
@@ -237,7 +240,7 @@ export function useAddTransaction(onClose: () => void) {
       categoryId: '',
       budgetId: '',
       note: '',
-      date: nowDateISO(),
+      date: toTransactionTimestamp(new Date()).date,
       exchangeRate: String(rate),
     },
   });
@@ -267,6 +270,11 @@ export function useAddTransaction(onClose: () => void) {
     [availableBudgets, budgetId],
   );
 
+  const semantics = useMemo(
+    () => resolveTransactionFormSemantics(type, selectedAccount?.type),
+    [selectedAccount?.type, type],
+  );
+
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
   const isUSD = selectedAccount?.currency === Currency.USD;
   const isToUSD = selectedToAccount?.currency === Currency.USD;
@@ -275,10 +283,9 @@ export function useAddTransaction(onClose: () => void) {
   const visibleCategories = useMemo(
     () =>
       categories.filter(
-        (c) =>
-          c.type === (type === TransactionType.Income ? CategoryType.Income : CategoryType.Expense),
+        (c) => semantics.categoryType !== undefined && c.type === semantics.categoryType,
       ),
-    [categories, type],
+    [categories, semantics.categoryType],
   );
 
   const accountsForFrom = useMemo(() => {
@@ -332,7 +339,7 @@ export function useAddTransaction(onClose: () => void) {
         categoryId: '',
         budgetId: '',
         note: '',
-        date: nowDateISO(),
+        date: toTransactionTimestamp(new Date()).date,
         exchangeRate: String(rate),
       });
       setRateOverride(false);
@@ -343,7 +350,7 @@ export function useAddTransaction(onClose: () => void) {
   const budgetRequestRef = useRef(0);
   useEffect(() => {
     const request = ++budgetRequestRef.current;
-    if (type !== TransactionType.Expense || !categoryId) {
+    if (!semantics.usesBudget || !categoryId) {
       setBudgetLookupError(undefined);
       setAvailableBudgets([]);
       setBudgetId(undefined);
@@ -394,6 +401,7 @@ export function useAddTransaction(onClose: () => void) {
     setBudgetId,
     setBudgetLookupError,
     setBudgetsLoading,
+    semantics.usesBudget,
     type,
   ]);
 
@@ -405,47 +413,36 @@ export function useAddTransaction(onClose: () => void) {
     try {
       const fromCurrency = selectedAccount?.currency ?? Currency.EGP;
       const toCurrency = selectedToAccount?.currency;
-      const parsedRate =
-        data.exchangeRate && requiresRate ? parseFloat(data.exchangeRate) : undefined;
+      const parsedRate = requiresRate ? parsePositiveDecimal(data.exchangeRate) : undefined;
 
-      const egp_amount =
-        fromCurrency === Currency.USD && parsedRate
-          ? roundMoney(data.amount * parsedRate)
-          : data.amount;
+      const amounts = resolveTransactionAmounts({
+        type,
+        amount: data.amount,
+        sourceCurrency: fromCurrency,
+        destinationCurrency: toCurrency,
+        exchangeRate: parsedRate,
+      });
 
-      let to_amount: number | undefined;
-      if (isTransferOrCC && toCurrency !== undefined) {
-        if (fromCurrency === Currency.EGP && toCurrency === Currency.USD && parsedRate) {
-          to_amount = roundMoney(data.amount / parsedRate);
-        } else if (fromCurrency === Currency.USD && toCurrency === Currency.EGP) {
-          to_amount = egp_amount;
-        } else {
-          to_amount = data.amount;
-        }
-        if (type === TransactionType.CCPayment) {
-          to_amount = egp_amount;
-        }
-      }
-
+      const submittedAt = toTransactionTimestamp(new Date());
       await addTransaction({
         type,
         amount: data.amount,
         currency: fromCurrency,
-        egp_amount,
-        to_amount,
-        exchange_rate: parsedRate,
+        egp_amount: amounts.egpAmount,
+        to_amount: amounts.toAmount ?? undefined,
+        exchange_rate: amounts.exchangeRate ?? undefined,
         account_id: data.accountId,
         to_account_id: isTransferOrCC ? data.toAccountId : undefined,
         category_id: !isTransferOrCC ? data.categoryId : undefined,
-        budget_id: type === TransactionType.Expense ? data.budgetId || undefined : undefined,
+        budget_id: semantics.usesBudget ? data.budgetId || undefined : undefined,
         note: data.note.trim() || undefined,
         transaction_date: data.date,
-        transaction_time: openedTimeRef.current,
+        transaction_time: submittedAt.time,
       });
       await loadAccounts();
       onClose();
-    } catch {
-      setErrorMessage(Strings.transactionSaveError);
+    } catch (error) {
+      setErrorMessage(resolveTransactionSaveError(error));
     } finally {
       setSaving(false);
     }
@@ -459,6 +456,13 @@ export function useAddTransaction(onClose: () => void) {
 
   function selectAccount(account: Account) {
     clearError();
+    const nextSemantics = resolveTransactionFormSemantics(type, account.type);
+    if (nextSemantics.categoryType !== semantics.categoryType) {
+      form.setValue('categoryId', '');
+      form.setValue('budgetId', '');
+      setAvailableBudgets([]);
+      setBudgetId(undefined);
+    }
     form.setValue('accountId', account.id);
     if (account.currency === Currency.USD) {
       form.setValue('exchangeRate', String(rate));
@@ -506,6 +510,9 @@ export function useAddTransaction(onClose: () => void) {
       note,
       exchangeRate,
       rateOverride,
+      isCardCredit: semantics.isCardCredit,
+      typeLabel: semantics.typeLabel,
+      typeSupportingText: semantics.supportingText,
       isUSD: requiresRate,
       isTransferOrCC,
       errors,
@@ -524,7 +531,7 @@ export function useAddTransaction(onClose: () => void) {
       budgetsLoading,
       availableBudgets,
       showBudgetField:
-        type === TransactionType.Expense &&
+        semantics.usesBudget &&
         Boolean(categoryId) &&
         (budgetsLoading || Boolean(budgetLookupError) || availableBudgets.length > 0),
       rateUpdatedAt,

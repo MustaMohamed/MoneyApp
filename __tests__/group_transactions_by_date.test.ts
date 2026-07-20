@@ -14,6 +14,7 @@ function tx(date: string, time = '10:00:00', id = `tx-${date}-${time}`): Transac
     exchange_rate: null,
     to_amount: null,
     minimum_payment_snapshot: null,
+    revolving_balance_delta: null,
     account_id: 'acc-1',
     to_account_id: null,
     category_id: null,

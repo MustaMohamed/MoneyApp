@@ -19,23 +19,36 @@ export function useAccountDetail() {
   const updateAccount = useAccountStore.getState().updateAccount;
   const archiveAccount = useAccountStore.getState().archiveAccount;
   const adjustBalance = useAccountStore.getState().adjustBalance;
-  const { isEditing, isAdjustVisible, isArchiveVisible, isSaving, isAdjusting, isArchiving } =
-    useAccountDetailState(
-      useShallow((s) => ({
-        isEditing: s.isEditing,
-        isAdjustVisible: s.isAdjustVisible,
-        isArchiveVisible: s.isArchiveVisible,
-        isSaving: s.isSaving,
-        isAdjusting: s.isAdjusting,
-        isArchiving: s.isArchiving,
-      })),
-    );
+  const confirmBalanceReviewed = useAccountStore.getState().confirmBalanceReviewed;
+  const {
+    isEditing,
+    isAdjustVisible,
+    isArchiveVisible,
+    isSaving,
+    isAdjusting,
+    isArchiving,
+    isConfirmingBalanceReview,
+    balanceReviewError,
+  } = useAccountDetailState(
+    useShallow((s) => ({
+      isEditing: s.isEditing,
+      isAdjustVisible: s.isAdjustVisible,
+      isArchiveVisible: s.isArchiveVisible,
+      isSaving: s.isSaving,
+      isAdjusting: s.isAdjusting,
+      isArchiving: s.isArchiving,
+      isConfirmingBalanceReview: s.isConfirmingBalanceReview,
+      balanceReviewError: s.balanceReviewError,
+    })),
+  );
   const setEditing = useAccountDetailState.getState().setEditing;
   const setAdjustVisible = useAccountDetailState.getState().setAdjustVisible;
   const setArchiveVisible = useAccountDetailState.getState().setArchiveVisible;
   const setSaving = useAccountDetailState.getState().setSaving;
   const setAdjusting = useAccountDetailState.getState().setAdjusting;
   const setArchiving = useAccountDetailState.getState().setArchiving;
+  const setConfirmingBalanceReview = useAccountDetailState.getState().setConfirmingBalanceReview;
+  const setBalanceReviewError = useAccountDetailState.getState().setBalanceReviewError;
   const reset = useAccountDetailState.getState().reset;
   useEffect(() => () => reset(), [reset]);
 
@@ -117,6 +130,21 @@ export function useAccountDetail() {
     }
   };
 
+  const handleConfirmBalanceReviewed = async () => {
+    const detailState = useAccountDetailState.getState();
+    if (!id || detailState.isConfirmingBalanceReview) return;
+    detailState.setBalanceReviewError(undefined);
+    detailState.setConfirmingBalanceReview(true);
+    try {
+      await confirmBalanceReviewed(id);
+    } catch (error) {
+      console.error('[accountDetail] confirmBalanceReviewed failed:', error);
+      setBalanceReviewError(Strings.accountBalanceReviewError);
+    } finally {
+      setConfirmingBalanceReview(false);
+    }
+  };
+
   const onBack = () => {
     if (isEditing) {
       setEditing(false);
@@ -134,6 +162,8 @@ export function useAccountDetail() {
       isSaving,
       isAdjusting,
       isArchiving,
+      isConfirmingBalanceReview,
+      balanceReviewError,
     },
     form,
     setEditing,
@@ -142,6 +172,7 @@ export function useAccountDetail() {
     handleAdjustBalance,
     setArchiveVisible,
     handleArchive,
+    handleConfirmBalanceReviewed,
     onBack,
   };
 }

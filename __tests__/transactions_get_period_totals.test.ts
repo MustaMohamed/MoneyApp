@@ -20,6 +20,10 @@ const sqlite = SQLite as unknown as {
 let realDb: ReturnType<typeof Database>;
 
 const CREATE_TABLE = `
+  CREATE TABLE IF NOT EXISTS accounts (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL
+  );
   CREATE TABLE IF NOT EXISTS transactions (
     id TEXT PRIMARY KEY,
     type TEXT NOT NULL,
@@ -67,6 +71,13 @@ beforeAll(() => {
 
 beforeEach(() => {
   realDb.exec('DELETE FROM transactions');
+  realDb.exec('DELETE FROM accounts');
+  realDb.exec(`
+    INSERT INTO accounts (id, type) VALUES
+      ('a1', 'bank'),
+      ('a2', 'bank'),
+      ('a3', 'credit_card')
+  `);
 });
 
 afterAll(() => {
@@ -128,6 +139,74 @@ describe('getPeriodTotals', () => {
 
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
     expect(result).toEqual({ incomeEgp: 25000, expenseEgp: 1205, netEgp: 23795 });
+  });
+
+  it('subtracts card credits from expense without counting them as cash income', async () => {
+    const db = await sqlite.openDatabaseAsync(':memory:');
+    await insertRow(db, {
+      id: 'income',
+      type: 'income',
+      amount: 1000,
+      currency: 'EGP',
+      egp_amount: 1000,
+      account_id: 'a1',
+      transaction_date: '2026-05-01',
+      transaction_time: '09:00:00',
+      created_at: 'X',
+      updated_at: 'X',
+    });
+    await insertRow(db, {
+      id: 'expense',
+      type: 'expense',
+      amount: 600,
+      currency: 'EGP',
+      egp_amount: 600,
+      account_id: 'a3',
+      transaction_date: '2026-05-02',
+      transaction_time: '09:00:00',
+      created_at: 'X',
+      updated_at: 'X',
+    });
+    await insertRow(db, {
+      id: 'credit',
+      type: 'income',
+      amount: 150,
+      currency: 'EGP',
+      egp_amount: 150,
+      account_id: 'a3',
+      transaction_date: '2026-05-03',
+      transaction_time: '09:00:00',
+      created_at: 'X',
+      updated_at: 'X',
+    });
+
+    await expect(getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' })).resolves.toEqual({
+      incomeEgp: 1000,
+      expenseEgp: 450,
+      netEgp: 550,
+    });
+  });
+
+  it('preserves negative expense when card credits exceed gross expense', async () => {
+    const db = await sqlite.openDatabaseAsync(':memory:');
+    await insertRow(db, {
+      id: 'credit',
+      type: 'income',
+      amount: 150,
+      currency: 'EGP',
+      egp_amount: 150,
+      account_id: 'a3',
+      transaction_date: '2026-05-03',
+      transaction_time: '09:00:00',
+      created_at: 'X',
+      updated_at: 'X',
+    });
+
+    await expect(getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' })).resolves.toEqual({
+      incomeEgp: 0,
+      expenseEgp: -150,
+      netEgp: 150,
+    });
   });
 
   it('excludes transfer and cc_payment rows', async () => {

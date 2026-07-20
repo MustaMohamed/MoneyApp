@@ -1,5 +1,9 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { CommitmentPaymentStatus } from '@/constants/enums';
+import { applyAccountDelta } from '@/modules/accounts/database/accounts';
+import { insertTransactionRow } from '@/modules/transactions/database/transactions';
+import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
@@ -202,12 +206,13 @@ export async function markCommitmentAsPaid(
   paymentId: string,
   details: MarkAsPaidDetails,
   tx: Transaction,
+  accountDelta: AccountDelta,
 ): Promise<void> {
   const now = new Date().toISOString();
 
   await db.withTransactionAsync(async () => {
     // 1. Mark payment as paid
-    await db.runAsync(
+    const paymentResult = await db.runAsync(
       `UPDATE commitment_payments SET
         status = 'paid',
         paid_date = ?,
@@ -216,7 +221,9 @@ export async function markCommitmentAsPaid(
         exchange_rate_snapshot = ?,
         notes = ?,
         updated_at = ?
-       WHERE id = ?`,
+       WHERE id = ?
+         AND status <> 'paid'
+         AND transaction_id IS NULL`,
       [
         details.paid_date,
         details.amount_paid,
@@ -227,51 +234,28 @@ export async function markCommitmentAsPaid(
         paymentId,
       ],
     );
+    if (paymentResult.changes !== 1) {
+      const existing = await getPaymentById(db, paymentId);
+      if (existing?.status === CommitmentPaymentStatus.Paid && existing.transaction_id !== null) {
+        return;
+      }
+      if (!existing) throw new Error(`Commitment payment not found: ${paymentId}`);
+      throw new Error(`Commitment payment cannot be marked as paid: ${paymentId}`);
+    }
 
     // 2. Insert the transaction row
-    await db.runAsync(
-      `INSERT INTO transactions (
-        id, type, amount, currency, egp_amount, exchange_rate,
-        to_amount, minimum_payment_snapshot,
-        account_id, to_account_id, category_id, note,
-        transaction_date, transaction_time, commitment_payment_id,
-        created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        tx.id,
-        tx.type,
-        tx.amount,
-        tx.currency,
-        tx.egp_amount,
-        tx.exchange_rate,
-        tx.to_amount,
-        tx.minimum_payment_snapshot,
-        tx.account_id,
-        tx.to_account_id,
-        tx.category_id,
-        tx.note,
-        tx.transaction_date,
-        tx.transaction_time,
-        tx.commitment_payment_id ?? null,
-        tx.created_at,
-        tx.updated_at,
-      ],
-    );
+    if ((await insertTransactionRow(db, tx)) !== 1) {
+      throw new Error(`Commitment transaction was not inserted: ${tx.id}`);
+    }
 
-    // 3. Deduct balance from account using the account-currency equivalent.
-    //    tx.egp_amount holds the EGP-equivalent (amount_paid * exchange_rate_snapshot when
-    //    the commitment is in a foreign currency, or amount_paid itself for EGP commitments).
-    //    Using tx.amount would deduct the face-value in the commitment's currency (e.g. USD)
-    //    from an EGP account, producing a wrong balance.
-    await db.runAsync(
-      'UPDATE accounts SET current_balance = current_balance - ?, updated_at = ? WHERE id = ?',
-      [tx.egp_amount, now, tx.account_id],
-    );
+    // 3. Apply the account-type-aware native-currency effect.
+    await applyAccountDelta(db, accountDelta, now);
 
     // 4. Link the transaction back to the payment
-    await db.runAsync(
+    const linkResult = await db.runAsync(
       'UPDATE commitment_payments SET transaction_id = ?, updated_at = ? WHERE id = ?',
       [tx.id, now, paymentId],
     );
+    if (linkResult.changes !== 1) throw new Error(`Commitment payment not found: ${paymentId}`);
   });
 }

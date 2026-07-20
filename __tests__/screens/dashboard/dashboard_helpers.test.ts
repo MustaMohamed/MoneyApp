@@ -21,6 +21,7 @@ const makeAccount = (overrides: Partial<Account> = {}): Account => ({
   statement_due_day: null,
   interest_tracking: 0,
   apr: null,
+  balance_review_required: 0,
   is_archived: 0,
   sort_order: 0,
   created_at: '2026-01-01T00:00:00.000Z',

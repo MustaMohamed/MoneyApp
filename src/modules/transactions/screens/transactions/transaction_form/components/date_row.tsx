@@ -8,15 +8,11 @@ import { Platform, View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { formatLongDate } from '@/utils/format_date';
+import { formatLongDate, toLocalDateString } from '@/utils/format_date';
 
 interface Props {
   value: string; // YYYY-MM-DD
   onChange: (next: string) => void;
-}
-
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
 }
 
 export function DateRow({ value, onChange }: Props): React.ReactElement {
@@ -29,11 +25,11 @@ export function DateRow({ value, onChange }: Props): React.ReactElement {
 
   const handleAndroidChange = (event: DateTimePickerEvent, d?: Date) => {
     setShowPicker(false);
-    if (event.type === 'set' && d) onChange(toISODate(d));
+    if (event.type === 'set' && d) onChange(toLocalDateString(d));
   };
 
   const handleIosChange = (_event: DateTimePickerEvent, d?: Date) => {
-    if (d) onChange(toISODate(d));
+    if (d) onChange(toLocalDateString(d));
   };
 
   return (

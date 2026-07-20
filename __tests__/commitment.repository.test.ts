@@ -1,5 +1,6 @@
 import {
   AmountType,
+  AccountType,
   CommitmentPaymentStatus,
   Currency,
   DurationType,
@@ -19,6 +20,8 @@ import {
   markCommitmentAsPaid,
   updatePaymentStatus,
 } from '@/database/commitment_payments';
+import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   addCommitment,
   deactivateCommitment,
@@ -36,6 +39,7 @@ import {
 
 jest.mock('@/modules/commitments/database/commitments');
 jest.mock('@/modules/commitments/database/commitment_payments');
+jest.mock('@/modules/accounts/database/accounts');
 jest.mock('@/database/client');
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'test-uuid-1234') }));
 
@@ -59,9 +63,31 @@ beforeEach(() => {
   (deleteUnpaidPaymentsByCommitment as jest.Mock).mockResolvedValue(undefined);
   (markCommitmentAsPaid as jest.Mock).mockResolvedValue(undefined);
   (updatePaymentStatus as jest.Mock).mockResolvedValue(undefined);
+  (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue(baseAccount);
 });
 
 const repo = new CommitmentRepository();
+
+const baseAccount: Account = {
+  id: 'acc-1',
+  name: 'Main account',
+  type: AccountType.Bank,
+  currency: Currency.EGP,
+  opening_balance: 5_000,
+  current_balance: 5_000,
+  color: null,
+  credit_limit: null,
+  revolving_balance: null,
+  minimum_payment: null,
+  statement_due_day: null,
+  interest_tracking: 0,
+  apr: null,
+  is_archived: 0,
+  balance_review_required: 0,
+  sort_order: 0,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+};
 
 const baseCommitment: Commitment = {
   id: 'c-1',
@@ -324,12 +350,13 @@ describe('CommitmentRepository.markAsPaid', () => {
     paid_date: '2026-05-08',
   };
 
-  it('calls markCommitmentAsPaid with db, paymentId, details, and a built Transaction', async () => {
+  it('calls markCommitmentAsPaid with a native transaction and account delta', async () => {
     await repo.markAsPaid('p-1', details, baseCommitment);
 
     expect(markCommitmentAsPaid).toHaveBeenCalledTimes(1);
-    const [calledDb, calledPaymentId, calledDetails, calledTx] = (markCommitmentAsPaid as jest.Mock)
-      .mock.calls[0];
+    const [calledDb, calledPaymentId, calledDetails, calledTx, calledDelta] = (
+      markCommitmentAsPaid as jest.Mock
+    ).mock.calls[0];
     expect(calledDb).toBe(mockDb);
     expect(calledPaymentId).toBe('p-1');
     expect(calledDetails).toBe(details);
@@ -339,28 +366,70 @@ describe('CommitmentRepository.markAsPaid', () => {
     expect(calledTx.currency).toBe(baseCommitment.currency);
     expect(calledTx.account_id).toBe(details.account_id);
     expect(calledTx.commitment_payment_id).toBe('p-1');
+    expect(calledDelta).toEqual({
+      accountId: 'acc-1',
+      currentBalance: -250,
+      revolvingBalance: 0,
+    });
   });
 
-  it('sets egp_amount to amount_paid when no exchange_rate_snapshot', async () => {
+  it.each([
+    [Currency.EGP, Currency.EGP, 500, undefined, 500, 500, null],
+    [Currency.USD, Currency.EGP, 10, 50, 500, 500, 50],
+    [Currency.EGP, Currency.USD, 500, 50, 10, 500, 50],
+    [Currency.USD, Currency.USD, 10, 50, 10, 500, 50],
+  ] as const)(
+    'normalizes %s commitment to %s account',
+    async (
+      commitmentCurrency,
+      accountCurrency,
+      faceAmount,
+      rate,
+      nativeAmount,
+      egpAmount,
+      storedRate,
+    ) => {
+      (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue({
+        ...baseAccount,
+        currency: accountCurrency,
+      });
+
+      await repo.markAsPaid(
+        'p-1',
+        {
+          ...details,
+          amount_paid: faceAmount,
+          exchange_rate_snapshot: rate,
+        },
+        { ...baseCommitment, currency: commitmentCurrency },
+      );
+
+      const [, , , calledTx] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
+      expect(calledTx).toMatchObject({
+        amount: nativeAmount,
+        currency: accountCurrency,
+        egp_amount: egpAmount,
+        exchange_rate: storedRate,
+      });
+    },
+  );
+
+  it('increases liability when a commitment is paid with a credit card', async () => {
+    (getAccountByIdIncludingArchived as jest.Mock).mockResolvedValue({
+      ...baseAccount,
+      type: AccountType.CreditCard,
+      current_balance: 1_000,
+      revolving_balance: 500,
+    });
+
     await repo.markAsPaid('p-1', details, baseCommitment);
 
-    const [, , , calledTx] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
-    expect(calledTx.egp_amount).toBe(details.amount_paid);
-    expect(calledTx.exchange_rate).toBeNull();
-  });
-
-  it('applies exchange_rate_snapshot to egp_amount when provided', async () => {
-    const detailsWithRate: PaymentDetails = {
-      ...details,
-      amount_paid: 10,
-      exchange_rate_snapshot: 49.5,
-    };
-
-    await repo.markAsPaid('p-1', detailsWithRate, baseCommitment);
-
-    const [, , , calledTx] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
-    expect(calledTx.egp_amount).toBe(10 * 49.5);
-    expect(calledTx.exchange_rate).toBe(49.5);
+    const [, , , , calledDelta] = (markCommitmentAsPaid as jest.Mock).mock.calls[0];
+    expect(calledDelta).toEqual({
+      accountId: 'acc-1',
+      currentBalance: 250,
+      revolvingBalance: 0,
+    });
   });
 });
 

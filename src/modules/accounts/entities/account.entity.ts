@@ -15,6 +15,7 @@ export interface Account {
   interest_tracking: 0 | 1;
   apr: number | null;
   is_archived: 0 | 1;
+  balance_review_required: 0 | 1;
   sort_order: number;
   created_at: string;
   updated_at: string;

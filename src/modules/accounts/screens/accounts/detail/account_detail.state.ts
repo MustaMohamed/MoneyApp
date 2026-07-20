@@ -9,6 +9,8 @@ interface AccountDetailStateShape {
   isSaving: boolean;
   isAdjusting: boolean;
   isArchiving: boolean;
+  isConfirmingBalanceReview: boolean;
+  balanceReviewError: string | undefined;
 }
 
 type AccountDetailState = AccountDetailStateShape & {
@@ -18,6 +20,8 @@ type AccountDetailState = AccountDetailStateShape & {
   setSaving: (v: boolean) => void;
   setAdjusting: (v: boolean) => void;
   setArchiving: (v: boolean) => void;
+  setConfirmingBalanceReview: (v: boolean) => void;
+  setBalanceReviewError: (message: string | undefined) => void;
   reset: () => void;
 };
 
@@ -28,6 +32,8 @@ const INITIAL_STATE: AccountDetailStateShape = {
   isSaving: false,
   isAdjusting: false,
   isArchiving: false,
+  isConfirmingBalanceReview: false,
+  balanceReviewError: undefined,
 };
 
 export function createAccountDetailState() {
@@ -40,6 +46,8 @@ export function createAccountDetailState() {
       setSaving: (v) => set({ isSaving: v }),
       setAdjusting: (v) => set({ isAdjusting: v }),
       setArchiving: (v) => set({ isArchiving: v }),
+      setConfirmingBalanceReview: (v) => set({ isConfirmingBalanceReview: v }),
+      setBalanceReviewError: (message) => set({ balanceReviewError: message }),
       reset: () => set(INITIAL_STATE),
     })),
   );

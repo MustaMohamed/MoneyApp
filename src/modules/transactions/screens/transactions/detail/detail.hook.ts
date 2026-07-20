@@ -7,13 +7,15 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
 import type { BadgeTone } from './components/detail_row';
-import { getAccountTypeIcon } from './detail.helpers';
+import { getAccountTypeIcon, getCommitmentPaymentRoute } from './detail.helpers';
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
 
@@ -81,7 +83,10 @@ export function useTransactionDetail(id: string) {
   const getById = useTransactionStore.getState().getById;
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountLookup } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
+  );
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
 
   useEffect(() => {
@@ -101,17 +106,27 @@ export function useTransactionDetail(id: string) {
   }, [id, getById, reloadKey, setTx]);
 
   useEffect(() => {
+    const ids = tx ? (tx.to_account_id ? [tx.account_id, tx.to_account_id] : [tx.account_id]) : [];
+    void loadAccountLookup(ids).catch(() => {});
+  }, [loadAccountLookup, tx]);
+
+  useEffect(() => {
     return () => {
       resetData();
       resetUi();
     };
   }, [resetData, resetUi]);
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const accountsById = useMemo(
+    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
+    [accountLookup, accounts],
+  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   const viewState: DetailViewState =
     tx === undefined ? 'loading' : tx === null ? 'notFound' : 'ready';
+  const commitmentPaymentId = tx?.commitment_payment_id ?? undefined;
+  const isCommitmentOwned = commitmentPaymentId !== undefined;
 
   const derived = useMemo(() => {
     if (!tx) return null;
@@ -168,13 +183,15 @@ export function useTransactionDetail(id: string) {
     };
   }, [tx, accountsById, categoriesById]);
 
-  const openDeleteConfirm = useCallback(() => setConfirmVisible(true), [setConfirmVisible]);
+  const openDeleteConfirm = useCallback(() => {
+    if (!isCommitmentOwned) setConfirmVisible(true);
+  }, [isCommitmentOwned, setConfirmVisible]);
   const closeDeleteConfirm = useCallback(() => {
     if (!deleting) setConfirmVisible(false);
   }, [deleting, setConfirmVisible]);
 
   const confirmDelete = useCallback(async () => {
-    if (!tx) return;
+    if (!tx || isCommitmentOwned) return;
     setDeleting(true);
     try {
       await deleteTransaction(tx.id);
@@ -186,7 +203,24 @@ export function useTransactionDetail(id: string) {
       setDeleting(false);
       setConfirmVisible(false);
     }
-  }, [tx, deleteTransaction, setDeleting, setConfirmVisible]);
+  }, [tx, isCommitmentOwned, deleteTransaction, setDeleting, setConfirmVisible]);
+
+  const openCommitment = useCallback(async () => {
+    if (!commitmentPaymentId) return;
+    try {
+      const payment = await commitmentRepository.getPaymentById(commitmentPaymentId);
+      if (!payment) {
+        Alert.alert(Strings.commitmentsDetailNotFound);
+        return;
+      }
+      const { loadCommitments, setSelectedMonth } = useCommitmentStore.getState();
+      await Promise.all([loadCommitments(), setSelectedMonth(payment.due_date.slice(0, 7))]);
+      router.push(getCommitmentPaymentRoute(commitmentPaymentId));
+    } catch (error) {
+      console.error('[transactionDetail] open commitment failed', error);
+      Alert.alert(Strings.commitmentsDetailNotFound);
+    }
+  }, [commitmentPaymentId]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);
 
@@ -197,10 +231,14 @@ export function useTransactionDetail(id: string) {
       derived,
       confirmVisible,
       deleting,
+      isCommitmentOwned,
+      isEditable: !isCommitmentOwned,
+      isDeletable: !isCommitmentOwned,
     },
     openDeleteConfirm,
     closeDeleteConfirm,
     confirmDelete,
+    openCommitment,
     reload,
   };
 }

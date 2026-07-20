@@ -21,6 +21,7 @@ const mockTxExpense: Transaction = {
   to_amount: null,
   exchange_rate: null,
   minimum_payment_snapshot: null,
+  revolving_balance_delta: null,
   account_id: 'a1',
   to_account_id: null,
   category_id: 'c1',
@@ -50,10 +51,25 @@ const mockAccountEGP: Account = {
   statement_due_day: null,
   interest_tracking: 0,
   apr: null,
+  balance_review_required: 0,
   is_archived: 0,
   sort_order: 0,
   created_at: 'now',
   updated_at: 'now',
+};
+const mockAccountCC: Account = {
+  ...mockAccountEGP,
+  id: 'a-card',
+  name: 'Visa',
+  type: AccountType.CreditCard,
+  current_balance: 500,
+};
+const mockAccountUSD: Account = {
+  ...mockAccountEGP,
+  id: 'a-usd',
+  name: 'Archived USD',
+  currency: Currency.USD,
+  is_archived: 1,
 };
 const mockCategoryFood = {
   id: 'c1',
@@ -79,6 +95,12 @@ const mockCategoryShop = {
   created_at: 'now',
   updated_at: 'now',
 };
+const mockCategoryIncome = {
+  ...mockCategoryFood,
+  id: 'income',
+  name: 'Salary',
+  type: CategoryType.Income,
+};
 
 const mockBudget = (id: string, categoryId = 'c1'): Budget => ({
   id,
@@ -94,7 +116,11 @@ beforeEach(() => {
   jest.restoreAllMocks();
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
-  useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
+  useAccountStore.setState({
+    accounts: [mockAccountEGP, mockAccountCC],
+    accountLookup: [mockAccountUSD],
+    hasLoaded: true,
+  });
   useCategoryStore.setState({
     categories: [mockCategoryFood, mockCategoryShop],
     loading: false,
@@ -107,6 +133,64 @@ beforeEach(() => {
 });
 
 describe('useEditTransaction', () => {
+  it('rejects malformed exchange rates for an archived USD transaction', async () => {
+    const usdTx = {
+      ...mockTxExpense,
+      account_id: mockAccountUSD.id,
+      currency: Currency.USD,
+      amount: 10,
+      egp_amount: 500,
+      exchange_rate: 50,
+    };
+    useEditTransactionStore.getState().loadFromTx(usdTx);
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    act(() => result.current.setExchangeRate('50abc'));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.selectedAccount?.id).toBe(mockAccountUSD.id);
+    expect(result.current.state.errors.rate).toBeDefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
+  it('uses expense categories and budget eligibility for an existing Card credit', async () => {
+    const creditTx = {
+      ...mockTxExpense,
+      type: TransactionType.Income,
+      account_id: mockAccountCC.id,
+    };
+    useEditTransactionStore.getState().loadFromTx(creditTx);
+    const { result } = renderHook(() => useEditTransaction(creditTx, jest.fn(), jest.fn()));
+
+    expect(result.current.state.isCardCredit).toBe(true);
+    expect(result.current.state.visibleCategories).toEqual([mockCategoryFood, mockCategoryShop]);
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+  });
+
+  it('rejects an income category for an existing Card credit', async () => {
+    useCategoryStore.setState({
+      categories: [mockCategoryFood, mockCategoryShop, mockCategoryIncome],
+    } as any);
+    const creditTx = {
+      ...mockTxExpense,
+      type: TransactionType.Income,
+      account_id: mockAccountCC.id,
+    };
+    useEditTransactionStore.getState().loadFromTx(creditTx);
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(creditTx, jest.fn(), jest.fn()));
+    act(() => result.current.selectCategory(mockCategoryIncome));
+
+    await act(async () => result.current.handleSave());
+
+    expect(result.current.state.errors.category).toBeDefined();
+    expect(updateTx).not.toHaveBeenCalled();
+  });
+
   it('does not save while matching budgets are still loading', async () => {
     let resolveBudgets: (budgets: Budget[]) => void = () => {};
     const pendingBudgets = new Promise<Budget[]>((resolve) => {

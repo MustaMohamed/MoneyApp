@@ -54,6 +54,8 @@ function setupStores() {
 
   attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
     accounts: [],
+    accountLookup: [],
+    loadAccountLookup: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories: [],

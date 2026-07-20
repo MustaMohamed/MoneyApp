@@ -2,7 +2,12 @@ import uuid from 'react-native-uuid';
 
 import { CommitmentPaymentStatus, TransactionType } from '@/constants/enums';
 import { getDb } from '@/database/client';
+import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import { resolveCommitmentPaymentAmounts } from '@/modules/transactions/domain/transaction_amounts';
+import { resolveCreateDeltas } from '@/modules/transactions/domain/transaction_policy';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { TransactionValidationError } from '@/modules/transactions/repositories/transaction.errors';
 
 import {
   addPayments,
@@ -155,31 +160,49 @@ export class CommitmentRepository implements ICommitmentRepository {
     commitment: Commitment,
   ): Promise<void> {
     const db = await getDb();
-    const now = new Date().toISOString();
+    const clock = new Date();
+    const now = clock.toISOString();
+    const account = await getAccountByIdIncludingArchived(db, details.account_id);
+    if (!account || account.is_archived === 1) {
+      throw new TransactionValidationError('Payment account is unavailable');
+    }
+    const amounts = resolveCommitmentPaymentAmounts({
+      amount: details.amount_paid,
+      commitmentCurrency: commitment.currency,
+      accountCurrency: account.currency,
+      exchangeRate: details.exchange_rate_snapshot,
+    });
     const tx: Transaction = {
       id: String(uuid.v4()),
       type: TransactionType.Expense,
-      amount: details.amount_paid,
-      currency: commitment.currency,
-      egp_amount: details.exchange_rate_snapshot
-        ? details.amount_paid * details.exchange_rate_snapshot
-        : details.amount_paid,
-      exchange_rate: details.exchange_rate_snapshot ?? null,
+      amount: amounts.accountNativeAmount,
+      currency: amounts.accountCurrency,
+      egp_amount: amounts.egpAmount,
+      exchange_rate: amounts.exchangeRate,
       to_amount: null,
       minimum_payment_snapshot: null,
+      revolving_balance_delta: null,
       account_id: details.account_id,
       to_account_id: null,
       category_id: commitment.category_id,
       budget_id: null,
       note: details.notes ?? null,
       transaction_date: details.paid_date,
-      transaction_time: now.slice(11, 19),
+      transaction_time: clock.toTimeString().slice(0, 8),
       commitment_payment_id: paymentId,
       installment_id: null,
       created_at: now,
       updated_at: now,
     };
-    await markCommitmentAsPaid(db, paymentId, details, tx);
+    const [accountDelta] = resolveCreateDeltas({
+      type: TransactionType.Expense,
+      amount: tx.amount,
+      egpAmount: tx.egp_amount,
+      toAmount: null,
+      minimumPaymentSnapshot: null,
+      source: toAccountSnapshot(account),
+    });
+    await markCommitmentAsPaid(db, paymentId, details, tx, accountDelta);
   }
 
   async markAsSkipped(paymentId: string): Promise<void> {
@@ -189,6 +212,17 @@ export class CommitmentRepository implements ICommitmentRepository {
       skipped_date: now,
     });
   }
+}
+
+function toAccountSnapshot(account: Account) {
+  return {
+    id: account.id,
+    type: account.type,
+    currency: account.currency,
+    currentBalance: account.current_balance,
+    revolvingBalance: account.revolving_balance,
+    minimumPayment: account.minimum_payment,
+  };
 }
 
 export const commitmentRepository = new CommitmentRepository();

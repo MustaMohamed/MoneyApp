@@ -136,6 +136,7 @@ function makeAccount(id: string, name: string): Account {
     statement_due_day: null,
     interest_tracking: 0,
     apr: null,
+    balance_review_required: 0,
     is_archived: 0,
     sort_order: 0,
     created_at: '2026-05-01T00:00:00.000Z',

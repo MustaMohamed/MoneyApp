@@ -24,7 +24,7 @@ import { useTransactionDetail } from './detail.hook';
 export default function TransactionDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
   const navigation = useNavigation();
-  const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, reload } =
+  const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, openCommitment, reload } =
     useTransactionDetail(id);
 
   const editTxVisible = useEditTransactionState.useState.visible();
@@ -47,7 +47,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
   }, [navigation]);
 
   function handleEdit() {
-    if (state.tx) {
+    if (state.tx && state.isEditable) {
       useEditTransactionStore.getState().loadFromTx(state.tx);
       useEditTransactionState.getState().open(state.tx);
     }
@@ -158,31 +158,43 @@ export default function TransactionDetailScreen(): React.ReactElement {
             */}
             <NoteCard note={state.tx.note} />
 
-            <ActionRow onEdit={handleEdit} onDelete={openDeleteConfirm} />
+            {state.isCommitmentOwned ? (
+              <ActionRow
+                onViewCommitment={() => {
+                  void openCommitment();
+                }}
+              />
+            ) : (
+              <ActionRow onEdit={handleEdit} onDelete={openDeleteConfirm} />
+            )}
           </ScreenScroll>
 
-          <DeleteConfirmDialog
-            isOpen={state.confirmVisible}
-            busy={state.deleting}
-            onCancel={closeDeleteConfirm}
-            onConfirm={() => {
-              void confirmDelete();
-            }}
-          />
+          {state.isDeletable ? (
+            <DeleteConfirmDialog
+              isOpen={state.confirmVisible}
+              busy={state.deleting}
+              onCancel={closeDeleteConfirm}
+              onConfirm={() => {
+                void confirmDelete();
+              }}
+            />
+          ) : null}
 
-          <EditTransactionSheet
-            visible={editTxVisible}
-            onClose={() => {
-              useEditTransactionStore.getState().reset();
-              useEditTransactionState.getState().close();
-            }}
-            onSaved={() => {
-              useEditTransactionStore.getState().reset();
-              useEditTransactionState.getState().close();
-              reload();
-            }}
-            tx={state.tx}
-          />
+          {state.isEditable ? (
+            <EditTransactionSheet
+              visible={editTxVisible}
+              onClose={() => {
+                useEditTransactionStore.getState().reset();
+                useEditTransactionState.getState().close();
+              }}
+              onSaved={() => {
+                useEditTransactionStore.getState().reset();
+                useEditTransactionState.getState().close();
+                reload();
+              }}
+              tx={state.tx}
+            />
+          ) : null}
         </>
       ) : null}
     </Screen>

@@ -5,9 +5,16 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import * as transactionsModule from '@/modules/transactions/database/transactions';
 import {
+  TransactionBalanceError,
+  TransactionNotFoundError,
+  TransactionOwnershipError,
+  TransactionValidationError,
+} from '@/modules/transactions/repositories/transaction.errors';
+import {
   TransactionRepository,
   type NewTransactionInput,
 } from '@/modules/transactions/repositories/transaction.repository';
+import { toLocalDateString } from '@/utils/format_date';
 
 // Override global UUID mock with a counter so each add() gets a unique id
 let mockUuidCounter = 0;
@@ -20,6 +27,11 @@ const getTransactions = jest.spyOn(transactionsModule, 'getTransactions');
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
+let mocked: {
+  runAsync: jest.Mock;
+  getAllAsync: jest.Mock;
+  withTransactionAsync: jest.Mock;
+};
 
 const NOW = '2026-05-01T12:00:00.000Z';
 
@@ -32,12 +44,14 @@ function seedAccount() {
         interest_tracking,is_archived,sort_order,created_at,updated_at)
      VALUES
        ('acc1','Bank','bank','EGP',5000,5000,NULL,NULL,0,0,0,?,?),
+       ('acc2','Savings','bank','EGP',1000,1000,NULL,NULL,0,0,5,?,?),
        ('acc_usd','USD Bank','bank','USD',0,0,NULL,NULL,0,0,3,?,?),
        ('acc_cc','CC','credit_card','EGP',0,1000,500,200,0,0,1,?,?),
+       ('acc_cc_usd','USD CC','credit_card','USD',0,100,50,20,0,0,6,?,?),
        ('acc_cc_no_min','CC2','credit_card','EGP',0,1000,500,NULL,0,0,2,?,?),
        ('acc_cc_installment','CC3','credit_card','EGP',0,1000,5000,500,0,0,4,?,?)`,
     )
-    .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
+    .run(NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW, NOW);
 }
 
 beforeAll(() => {
@@ -45,7 +59,7 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   seedAccount();
 
-  const mocked = (
+  mocked = (
     SQLite as unknown as {
       __fakeDb: {
         runAsync: jest.Mock;
@@ -57,8 +71,8 @@ beforeAll(() => {
 
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    realDb.prepare(sql).run(...(params as never[]));
-    return { changes: 1, lastInsertRowId: 1 };
+    const result = realDb.prepare(sql).run(...(params as never[]));
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
 
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
@@ -67,7 +81,14 @@ beforeAll(() => {
   });
 
   mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
-    await fn();
+    realDb.exec('BEGIN');
+    try {
+      await fn();
+      realDb.exec('COMMIT');
+    } catch (error) {
+      realDb.exec('ROLLBACK');
+      throw error;
+    }
   });
 });
 
@@ -75,10 +96,16 @@ beforeEach(() => {
   mockUuidCounter = 0;
   realDb.exec('DELETE FROM transactions; DELETE FROM budgets;');
   realDb.prepare("UPDATE accounts SET current_balance = 5000 WHERE id = 'acc1'").run();
+  realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc2'").run();
   realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_usd'").run();
   realDb
     .prepare(
       "UPDATE accounts SET current_balance = 1000, revolving_balance = 500 WHERE id = 'acc_cc'",
+    )
+    .run();
+  realDb
+    .prepare(
+      "UPDATE accounts SET current_balance = 100, revolving_balance = 50 WHERE id = 'acc_cc_usd'",
     )
     .run();
   realDb
@@ -127,8 +154,7 @@ describe('TransactionRepository.add', () => {
 
   it('defaults transaction_date to today when omitted', async () => {
     const tx = await repo.add({ ...baseInput, transaction_date: undefined });
-    const today = new Date().toISOString().slice(0, 10);
-    expect(tx.transaction_date).toBe(today);
+    expect(tx.transaction_date).toBe(toLocalDateString(new Date()));
   });
 
   it('stores null for optional fields when omitted', async () => {
@@ -138,17 +164,16 @@ describe('TransactionRepository.add', () => {
     expect(tx.to_account_id).toBeNull();
   });
 
-  it('stores null for category_id when omitted', async () => {
+  it('rejects an expense without a category', async () => {
     const { category_id: _cat, ...withoutCategory } = baseInput;
-    const tx = await repo.add(withoutCategory);
-    expect(tx.category_id).toBeNull();
+    await expect(repo.add(withoutCategory)).rejects.toBeInstanceOf(TransactionValidationError);
   });
 
   it('defaults transaction_time to current time when omitted', async () => {
     const { transaction_time: _time, ...withoutTime } = baseInput;
-    const before = new Date().toISOString().slice(11, 19);
+    const before = new Date().toTimeString().slice(0, 8);
     const tx = await repo.add(withoutTime);
-    const after = new Date().toISOString().slice(11, 19);
+    const after = new Date().toTimeString().slice(0, 8);
     // The stored time string should be between before and after (inclusive)
     expect(tx.transaction_time >= before).toBe(true);
     expect(tx.transaction_time <= after).toBe(true);
@@ -192,14 +217,15 @@ describe('TransactionRepository.add', () => {
     ).rejects.toThrow('does not match');
   });
 
-  it('clears budget assignments for non-expense transactions', async () => {
-    const tx = await repo.add({
-      ...baseInput,
-      type: TransactionType.Income,
-      budget_id: 'budget_food',
-    });
-
-    expect(tx.budget_id).toBeNull();
+  it('rejects budget assignments for cash income', async () => {
+    await expect(
+      repo.add({
+        ...baseInput,
+        type: TransactionType.Income,
+        category_id: 'cat_salary',
+        budget_id: 'budget_food',
+      }),
+    ).rejects.toBeInstanceOf(TransactionValidationError);
   });
 });
 
@@ -358,7 +384,7 @@ describe('TransactionRepository.update', () => {
         transaction_date: '2026-05-01',
         transaction_time: '10:00:00',
       }),
-    ).rejects.toThrow('does not match');
+    ).rejects.toBeInstanceOf(TransactionValidationError);
   });
 
   it('rejects retaining a named budget when the transaction moves to another month', async () => {
@@ -413,6 +439,25 @@ describe('TransactionRepository.add — cc_payment minimum_payment_snapshot', ()
     });
     expect(tx.minimum_payment_snapshot).toBeNull();
   });
+
+  it('stores and applies the payment in a USD card destination currency', async () => {
+    const tx = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 500,
+      currency: Currency.EGP,
+      egp_amount: 500,
+      to_amount: 10,
+      exchange_rate: 50,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc_usd',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(tx.to_amount).toBe(10);
+    expect(accountBalance('acc1')).toBe(4500);
+    expect(accountBalance('acc_cc_usd')).toBe(90);
+  });
 });
 
 describe('TransactionRepository.delete', () => {
@@ -445,7 +490,7 @@ describe('Case A — same-currency transfer (EGP → EGP)', () => {
       to_amount: 1000,
       exchange_rate: 1,
       account_id: 'acc1',
-      to_account_id: 'acc_cc',
+      to_account_id: 'acc2',
       transaction_date: '2026-05-01',
       transaction_time: '10:00:00',
     });
@@ -456,7 +501,7 @@ describe('Case A — same-currency transfer (EGP → EGP)', () => {
     const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
       current_balance: number;
     };
-    const to = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+    const to = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc2'").get() as {
       current_balance: number;
     };
 
@@ -473,7 +518,7 @@ describe('Case B — foreign-currency transfer (EGP → USD)', () => {
       currency: Currency.EGP,
       egp_amount: 1000,
       to_amount: 20,
-      exchange_rate: 0.02,
+      exchange_rate: 50,
       account_id: 'acc1',
       to_account_id: 'acc_usd',
       transaction_date: '2026-05-01',
@@ -482,7 +527,7 @@ describe('Case B — foreign-currency transfer (EGP → USD)', () => {
 
     expect(tx.amount).toBe(1000);
     expect(tx.to_amount).toBe(20);
-    expect(tx.exchange_rate).toBe(0.02);
+    expect(tx.exchange_rate).toBe(50);
 
     const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
       current_balance: number;
@@ -555,7 +600,7 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
       to_amount: 1000,
       exchange_rate: 1,
       account_id: 'acc1',
-      to_account_id: 'acc_cc',
+      to_account_id: 'acc2',
       transaction_date: '2026-05-01',
       transaction_time: '10:00:00',
     });
@@ -563,7 +608,7 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
     const from = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get() as {
       current_balance: number;
     };
-    const to = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc_cc'").get() as {
+    const to = realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc2'").get() as {
       current_balance: number;
     };
     expect(from.current_balance).toBe(5000);
@@ -577,7 +622,7 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
       currency: Currency.EGP,
       egp_amount: 1000,
       to_amount: 20,
-      exchange_rate: 0.02,
+      exchange_rate: 50,
       account_id: 'acc1',
       to_account_id: 'acc_usd',
       transaction_date: '2026-05-01',
@@ -636,3 +681,286 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
     expect(cc.revolving_balance).toBe(5000);
   });
 });
+
+describe('credit-card ledger policy', () => {
+  it('rejects deleting a card expense after a later payment consumed its liability', async () => {
+    realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_cc'").run();
+    const expense = await repo.add({
+      ...baseInput,
+      amount: 100,
+      egp_amount: 100,
+      account_id: 'acc_cc',
+    });
+    await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      to_amount: 100,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    await expect(repo.delete(expense.id)).rejects.toBeInstanceOf(TransactionBalanceError);
+    expect(accountBalance('acc_cc')).toBe(0);
+    expect(realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(expense.id)).toEqual({
+      amount: 100,
+    });
+  });
+
+  it('rejects reducing a card expense after a later payment consumed its liability', async () => {
+    realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_cc'").run();
+    const expense = await repo.add({
+      ...baseInput,
+      amount: 100,
+      egp_amount: 100,
+      account_id: 'acc_cc',
+    });
+    await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      to_amount: 100,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    await expect(
+      repo.update(expense.id, {
+        amount: 50,
+        currency: Currency.EGP,
+        egp_amount: 50,
+        category_id: 'cat_food',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionBalanceError);
+    expect(accountBalance('acc_cc')).toBe(0);
+    expect(realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(expense.id)).toEqual({
+      amount: 100,
+    });
+  });
+
+  it('rejects a destination account on an ordinary transaction before any write', async () => {
+    const transactionCount = transactionRowCount();
+    const bankBalance = accountBalance('acc1');
+
+    await expect(repo.add({ ...baseInput, to_account_id: 'acc2' })).rejects.toBeInstanceOf(
+      TransactionValidationError,
+    );
+
+    expect(transactionRowCount()).toBe(transactionCount);
+    expect(accountBalance('acc1')).toBe(bankBalance);
+  });
+
+  it('keeps expense and Card credit create/update/delete effects reversible', async () => {
+    realDb.prepare("UPDATE accounts SET current_balance = 500 WHERE id = 'acc_cc'").run();
+
+    const expense = await repo.add({
+      ...baseInput,
+      amount: 200,
+      egp_amount: 200,
+      account_id: 'acc_cc',
+    });
+    expect(accountBalance('acc_cc')).toBe(700);
+
+    await repo.update(expense.id, {
+      amount: 350,
+      currency: Currency.EGP,
+      egp_amount: 350,
+      category_id: 'cat_food',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    expect(accountBalance('acc_cc')).toBe(850);
+
+    const credit = await repo.add({
+      ...baseInput,
+      type: TransactionType.Income,
+      amount: 100,
+      egp_amount: 100,
+      account_id: 'acc_cc',
+    });
+    expect(accountBalance('acc_cc')).toBe(750);
+
+    await repo.update(credit.id, {
+      amount: 125,
+      currency: Currency.EGP,
+      egp_amount: 125,
+      category_id: 'cat_food',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+    expect(accountBalance('acc_cc')).toBe(725);
+
+    await repo.delete(credit.id);
+    expect(accountBalance('acc_cc')).toBe(850);
+    await repo.delete(expense.id);
+    expect(accountBalance('acc_cc')).toBe(500);
+  });
+
+  it('rejects over-credit and overpayment before any write', async () => {
+    const transactionCount = transactionRowCount();
+    const bankBalance = accountBalance('acc1');
+    const cardBalance = accountBalance('acc_cc');
+
+    await expect(
+      repo.add({
+        ...baseInput,
+        type: TransactionType.Income,
+        amount: 1_001,
+        egp_amount: 1_001,
+        account_id: 'acc_cc',
+      }),
+    ).rejects.toBeInstanceOf(TransactionBalanceError);
+    await expect(
+      repo.add({
+        type: TransactionType.CCPayment,
+        amount: 1_001,
+        currency: Currency.EGP,
+        egp_amount: 1_001,
+        to_amount: 1_001,
+        account_id: 'acc1',
+        to_account_id: 'acc_cc',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionBalanceError);
+
+    expect(transactionRowCount()).toBe(transactionCount);
+    expect(accountBalance('acc1')).toBe(bankBalance);
+    expect(accountBalance('acc_cc')).toBe(cardBalance);
+  });
+
+  it('rejects transfers involving a credit card before any write', async () => {
+    const transactionCount = transactionRowCount();
+    const cardBalance = accountBalance('acc_cc');
+
+    await expect(
+      repo.add({
+        type: TransactionType.Transfer,
+        amount: 100,
+        currency: Currency.EGP,
+        egp_amount: 100,
+        to_amount: 100,
+        account_id: 'acc_cc',
+        to_account_id: 'acc1',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionValidationError);
+
+    expect(transactionRowCount()).toBe(transactionCount);
+    expect(accountBalance('acc_cc')).toBe(cardBalance);
+  });
+
+  it('rolls back the row when an account write fails', async () => {
+    const originalRunAsync = mocked.runAsync.getMockImplementation();
+    mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
+      if (sql.includes('UPDATE accounts')) throw new Error('Injected account write failure');
+      return originalRunAsync?.(sql, ...rest);
+    });
+
+    try {
+      await expect(repo.add(baseInput)).rejects.toThrow('Injected account write failure');
+      expect(transactionRowCount()).toBe(0);
+      expect(accountBalance('acc1')).toBe(5000);
+    } finally {
+      mocked.runAsync.mockImplementation(originalRunAsync);
+    }
+  });
+});
+
+describe('credit-card revolving balance reversals', () => {
+  it('restores the exact revolving amount when a payment reduced it to zero', async () => {
+    realDb
+      .prepare(
+        "UPDATE accounts SET current_balance = 1000, revolving_balance = 30, minimum_payment = 100 WHERE id = 'acc_cc'",
+      )
+      .run();
+    const payment = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 150,
+      currency: Currency.EGP,
+      egp_amount: 150,
+      to_amount: 150,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(
+      realDb.prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc'").get(),
+    ).toEqual({ revolving_balance: 0 });
+
+    await repo.delete(payment.id);
+
+    expect(
+      realDb.prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc'").get(),
+    ).toEqual({ revolving_balance: 30 });
+  });
+});
+
+describe('missing transaction mutations', () => {
+  it('rejects update and delete with typed not-found errors', async () => {
+    await expect(
+      repo.update('missing', {
+        amount: 100,
+        currency: Currency.EGP,
+        egp_amount: 100,
+        category_id: 'cat_food',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionNotFoundError);
+    await expect(repo.delete('missing')).rejects.toBeInstanceOf(TransactionNotFoundError);
+  });
+});
+
+describe('commitment-owned transaction mutations', () => {
+  it('rejects generic update and delete without changing the row or balance', async () => {
+    const transaction = await repo.add(baseInput);
+    realDb
+      .prepare('UPDATE transactions SET commitment_payment_id = ? WHERE id = ?')
+      .run('payment-owner', transaction.id);
+    const balance = accountBalance('acc1');
+
+    await expect(
+      repo.update(transaction.id, {
+        amount: 300,
+        currency: Currency.EGP,
+        egp_amount: 300,
+        category_id: 'cat_food',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionOwnershipError);
+    await expect(repo.delete(transaction.id)).rejects.toBeInstanceOf(TransactionOwnershipError);
+
+    expect(accountBalance('acc1')).toBe(balance);
+    expect(
+      realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(transaction.id),
+    ).toEqual({
+      amount: 200,
+    });
+  });
+});
+
+function accountBalance(id: string): number {
+  return (
+    realDb.prepare('SELECT current_balance FROM accounts WHERE id = ?').get(id) as {
+      current_balance: number;
+    }
+  ).current_balance;
+}
+
+function transactionRowCount(): number {
+  return (realDb.prepare('SELECT COUNT(*) AS count FROM transactions').get() as { count: number })
+    .count;
+}

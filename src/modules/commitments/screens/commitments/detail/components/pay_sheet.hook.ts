@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AmountType } from '@/constants/enums';
+import { AmountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -62,7 +62,9 @@ export function usePaySheet(
   // window. §7 promoted the V2 ExchangeRateRow to a required-prop API;
   // pay_sheet now plumbs the timestamp through so the warning surfaces
   // here too (commitments was on V1 ExchangeRateRow until §7 cleanup).
-  const rateUpdatedAt = useCurrencyStore.useState.rate_updated_at();
+  const { rate, rateUpdatedAt } = useCurrencyStore(
+    useShallow((state) => ({ rate: state.rate, rateUpdatedAt: state.rate_updated_at })),
+  );
 
   const selectedMonth = useCommitmentStore.useState.selectedMonth();
   const markAsPaid = useCommitmentStore.getState().markAsPaid;
@@ -84,7 +86,7 @@ export function usePaySheet(
 
   const requiresRate = useMemo(() => {
     if (!commitment || !selectedAccount) return false;
-    return commitment.currency !== selectedAccount.currency;
+    return commitment.currency === Currency.USD || selectedAccount.currency === Currency.USD;
   }, [commitment, selectedAccount]);
 
   // Pre-fill form when sheet becomes visible
@@ -126,7 +128,11 @@ export function usePaySheet(
           amount: prefillAmount,
           account_id: prefillAccountId,
           paid_date: toLocalDateString(new Date()),
-          exchange_rate: undefined,
+          exchange_rate:
+            commitment.currency === Currency.USD ||
+            accounts.find((account) => account.id === prefillAccountId)?.currency === Currency.USD
+              ? rate
+              : undefined,
           notes: undefined,
         });
         setRateOverride(false);
@@ -149,11 +155,7 @@ export function usePaySheet(
         amount_paid: data.amount,
         account_id: data.account_id,
         paid_date: data.paid_date,
-        // Only snapshot a rate when the payment actually crosses currencies.
-        // requiresRate recomputes per-render from the selected account, so if
-        // the user entered a rate for a foreign account then switched to a
-        // same-currency one, we must NOT persist that now-stale rate.
-        exchange_rate_snapshot: requiresRate ? data.exchange_rate : undefined,
+        exchange_rate_snapshot: requiresRate ? (data.exchange_rate ?? rate) : undefined,
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });

@@ -4,7 +4,7 @@ import * as SQLite from 'expo-sqlite';
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
-import { addTransaction, getTransactions } from '@/database/transactions';
+import { getTransactions, insertTransactionRow } from '@/database/transactions';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -104,8 +104,9 @@ async function insert(overrides: Partial<Transaction> = {}) {
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
+    revolving_balance_delta: overrides.revolving_balance_delta ?? null,
   };
-  await addTransaction(mockDb, tx);
+  await insertTransactionRow(mockDb, tx);
   return tx;
 }
 
@@ -297,5 +298,28 @@ describe('getTransactions — combined axes', () => {
       amountCurrency: Currency.EGP,
     });
     expect(out.map((t) => t.id)).toEqual(['match']);
+  });
+});
+
+describe('getTransactions — deterministic pagination', () => {
+  it('returns stable, non-overlapping pages when transaction timestamps match', async () => {
+    const expectedIds: string[] = [];
+    for (let index = 0; index < 35; index += 1) {
+      const id = `tied-${String(index).padStart(2, '0')}`;
+      expectedIds.unshift(id);
+      await insert({
+        id,
+        created_at: `2026-05-01T12:00:${String(index).padStart(2, '0')}.000Z`,
+      });
+    }
+
+    const firstPage = await getTransactions(mockDb, { limit: 30, offset: 0 });
+    const secondPage = await getTransactions(mockDb, { limit: 30, offset: 30 });
+    const repeatedFirstPage = await getTransactions(mockDb, { limit: 30, offset: 0 });
+    const combinedIds = [...firstPage, ...secondPage].map((row) => row.id);
+
+    expect(combinedIds).toEqual(expectedIds);
+    expect(new Set(combinedIds)).toHaveProperty('size', 35);
+    expect(repeatedFirstPage.map((row) => row.id)).toEqual(firstPage.map((row) => row.id));
   });
 });

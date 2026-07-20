@@ -92,6 +92,12 @@ jest.mock('heroui-native', () => {
   Card.Description = passThrough(RNText);
   Card.Footer = passThrough(View);
 
+  const Alert = passThrough(View);
+  Alert.Indicator = passThrough(View);
+  Alert.Content = passThrough(View);
+  Alert.Title = passThrough(RNText);
+  Alert.Description = passThrough(RNText);
+
   const Separator = (props) => React.createElement(View, { testID: 'separator', ...props });
 
   // BottomSheet compound component mock.
@@ -117,6 +123,7 @@ jest.mock('heroui-native', () => {
 
   return {
     cn: (...args) => args.filter(Boolean).flat(Infinity).join(' '),
+    Alert,
     BottomSheet,
     Button,
     Card,

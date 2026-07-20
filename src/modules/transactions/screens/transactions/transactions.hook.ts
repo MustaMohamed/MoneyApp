@@ -56,7 +56,10 @@ export function useTransactions() {
   const loadMore = useTransactionStore.getState().loadMore;
   const refresh = useTransactionStore.getState().refresh;
 
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountLookup } = useAccountStore(
+    useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
+  );
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
 
   const openFilter = useFilterState.getState().open;
@@ -110,6 +113,20 @@ export function useTransactions() {
     setQuery(transactionQuery).catch(() => {});
   }, [setQuery, transactionQuery]);
 
+  const transactionAccountIds = useMemo(
+    () =>
+      transactions.flatMap((transaction) =>
+        transaction.to_account_id
+          ? [transaction.account_id, transaction.to_account_id]
+          : [transaction.account_id],
+      ),
+    [transactions],
+  );
+
+  useEffect(() => {
+    void loadAccountLookup(transactionAccountIds).catch(() => {});
+  }, [loadAccountLookup, transactionAccountIds]);
+
   useEffect(() => {
     let cancelled = false;
     void loadTotals(() => !cancelled);
@@ -130,7 +147,10 @@ export function useTransactions() {
     }, []),
   );
 
-  const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
+  const accountsById = useMemo(
+    () => new Map([...accounts, ...accountLookup].map((account) => [account.id, account])),
+    [accountLookup, accounts],
+  );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const sections = useMemo(() => groupTransactionsByDate(transactions), [transactions]);
   const activeFilterCount = useMemo(() => countActiveFilters(appliedFilters), [appliedFilters]);
@@ -190,6 +210,7 @@ export function useTransactions() {
         console.warn('[goToEdit] tx not in loaded window:', id);
         return;
       }
+      if (tx.commitment_payment_id !== null) return;
       useEditTransactionStore.getState().loadFromTx(tx);
       useEditTransactionState.getState().open(tx);
     },

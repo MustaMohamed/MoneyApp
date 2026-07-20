@@ -51,6 +51,12 @@ beforeAll(() => {
        VALUES ('acc','A','bank','EGP',0,0,0,0,0,?,?)`,
     )
     .run(NOW, NOW);
+  realDb
+    .prepare(
+      `INSERT OR IGNORE INTO accounts (id,name,type,currency,opening_balance,current_balance,interest_tracking,is_archived,sort_order,created_at,updated_at)
+       VALUES ('acc_card','Card','credit_card','EGP',0,0,0,0,0,?,?)`,
+    )
+    .run(NOW, NOW);
   const fake = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb;
   fake.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
@@ -97,6 +103,21 @@ describe('getCategorySpendByMonth', () => {
     const out = await getCategorySpendByMonth(db, ['2026-05']);
     expect(out['cat_food']['2026-05']).toBe(1200);
   });
+
+  it('subtracts card credits and clamps displayed category spend at zero', async () => {
+    tx({ id: 'expense', account_id: 'acc_card', egp_amount: 600 });
+    tx({ id: 'credit', type: 'income', account_id: 'acc_card', egp_amount: 150 });
+
+    await expect(getCategorySpendByMonth(db, ['2026-05'])).resolves.toEqual({
+      cat_food: { '2026-05': 450 },
+    });
+
+    realDb.exec('DELETE FROM transactions');
+    tx({ id: 'credit_only', type: 'income', account_id: 'acc_card', egp_amount: 150 });
+    await expect(getCategorySpendByMonth(db, ['2026-05'])).resolves.toEqual({
+      cat_food: { '2026-05': 0 },
+    });
+  });
 });
 
 describe('getBudgetSpendByMonth', () => {
@@ -131,5 +152,27 @@ describe('getBudgetSpendByMonth', () => {
 
   it('returns an empty record when no months are requested', async () => {
     await expect(getBudgetSpendByMonth(db, [])).resolves.toEqual({});
+  });
+
+  it('subtracts matching card credits from named-budget spend', async () => {
+    realDb
+      .prepare(
+        `INSERT INTO budgets
+         (id, category_id, name, limit_amount, effective_from, created_at, updated_at)
+         VALUES ('food_monthly', 'cat_food', 'Monthly meals', 1000, '2026-05', ?, ?)`,
+      )
+      .run(NOW, NOW);
+    tx({ id: 'expense', account_id: 'acc_card', budget_id: 'food_monthly', egp_amount: 600 });
+    tx({
+      id: 'credit',
+      type: 'income',
+      account_id: 'acc_card',
+      budget_id: 'food_monthly',
+      egp_amount: 150,
+    });
+
+    await expect(getBudgetSpendByMonth(db, ['2026-05'])).resolves.toEqual({
+      food_monthly: 450,
+    });
   });
 });

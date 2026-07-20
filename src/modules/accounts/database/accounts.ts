@@ -1,11 +1,62 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
+
 import type { Account } from '../entities/account.entity';
 
 export async function getAccounts(db: SQLiteDatabase): Promise<Account[]> {
   return db.getAllAsync<Account>(
     'SELECT * FROM accounts WHERE is_archived = 0 ORDER BY sort_order ASC, created_at ASC',
   );
+}
+
+export async function getAccountByIdIncludingArchived(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<Account | undefined> {
+  const rows = await db.getAllAsync<Account>('SELECT * FROM accounts WHERE id = ?', [id]);
+  return rows[0];
+}
+
+export async function getAccountsByIdsIncludingArchived(
+  db: SQLiteDatabase,
+  ids: string[],
+): Promise<Account[]> {
+  if (ids.length === 0) return [];
+  const placeholders = ids.map(() => '?').join(',');
+  return db.getAllAsync<Account>(
+    `SELECT * FROM accounts
+      WHERE id IN (${placeholders})
+      ORDER BY sort_order ASC, created_at ASC`,
+    ids,
+  );
+}
+
+export async function applyAccountDelta(
+  db: SQLiteDatabase,
+  delta: AccountDelta,
+  updatedAt: string,
+): Promise<void> {
+  const result =
+    delta.revolvingBalance === 0
+      ? await db.runAsync(
+          `UPDATE accounts
+             SET current_balance = current_balance + ?, updated_at = ?
+           WHERE id = ?`,
+          [delta.currentBalance, updatedAt, delta.accountId],
+        )
+      : await db.runAsync(
+          `UPDATE accounts
+             SET current_balance = current_balance + ?,
+                 revolving_balance = COALESCE(revolving_balance, 0) + ?,
+                 updated_at = ?
+           WHERE id = ?`,
+          [delta.currentBalance, delta.revolvingBalance, updatedAt, delta.accountId],
+        );
+
+  if (result.changes !== 1) {
+    throw new Error(`Account delta target not found: ${delta.accountId}`);
+  }
 }
 
 export async function addAccount(db: SQLiteDatabase, account: Account): Promise<void> {
@@ -69,9 +120,29 @@ export async function setAccountBalance(
   newBalance: number,
   updated_at: string,
 ): Promise<void> {
-  await db.runAsync('UPDATE accounts SET current_balance = ?, updated_at = ? WHERE id = ?', [
-    newBalance,
-    updated_at,
-    id,
-  ]);
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET current_balance = ?, balance_review_required = 0, updated_at = ?
+      WHERE id = ?`,
+    [newBalance, updated_at, id],
+  );
+  if (result.changes !== 1) {
+    throw new Error(`Account balance target not found: ${id}`);
+  }
+}
+
+export async function clearAccountBalanceReview(
+  db: SQLiteDatabase,
+  id: string,
+  updated_at: string,
+): Promise<void> {
+  const result = await db.runAsync(
+    `UPDATE accounts
+        SET balance_review_required = 0, updated_at = ?
+      WHERE id = ?`,
+    [updated_at, id],
+  );
+  if (result.changes !== 1) {
+    throw new Error(`Account balance review target not found: ${id}`);
+  }
 }

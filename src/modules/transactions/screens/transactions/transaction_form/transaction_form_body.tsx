@@ -24,6 +24,8 @@ interface Props {
   visible: boolean;
   locked: boolean;
   type: TransactionType;
+  typeLabel: string;
+  typeSupportingText: string;
   onSelectType: (t: TransactionType) => void;
   amountStr: string;
   setAmountStr: (v: string) => void;
@@ -65,6 +67,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
     visible,
     locked,
     type,
+    typeLabel,
+    typeSupportingText,
     onSelectType,
     amountStr,
     setAmountStr,
@@ -105,7 +109,17 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
   return (
     <View style={{ flex: 1 }}>
-      <TypeTabs active={type} onSelect={onSelectType} isDisabled={locked} />
+      <TypeTabs
+        active={type}
+        incomeLabel={type === TransactionType.Income ? typeLabel : Strings.addTxTypeIncome}
+        onSelect={onSelectType}
+        isDisabled={locked}
+      />
+      <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
+        <Text className="font-inter text-muted text-[11px]" numberOfLines={1}>
+          {typeSupportingText}
+        </Text>
+      </View>
 
       <AmountHero
         visible={visible}

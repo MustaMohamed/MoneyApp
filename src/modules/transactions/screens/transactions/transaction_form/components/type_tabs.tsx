@@ -46,15 +46,17 @@ const TABS: Array<{ type: TransactionType; label: string }> = [
 
 interface Props {
   active: TransactionType;
+  incomeLabel: string;
   onSelect: (t: TransactionType) => void;
   isDisabled: boolean;
 }
 
-export function TypeTabs({ active, onSelect, isDisabled }: Props): React.ReactElement {
+export function TypeTabs({ active, incomeLabel, onSelect, isDisabled }: Props): React.ReactElement {
   return (
     <View style={{ flexDirection: 'row' }} className="border-separator border-b">
-      {TABS.map(({ type, label: lbl }) => {
+      {TABS.map(({ type, label: defaultLabel }) => {
         const isActive = type === active;
+        const displayedLabel = type === TransactionType.Income ? incomeLabel : defaultLabel;
         return (
           <PressableFeedback
             key={type}
@@ -66,7 +68,7 @@ export function TypeTabs({ active, onSelect, isDisabled }: Props): React.ReactEl
             style={{ position: 'relative' }}
             className="flex-1 items-center justify-center py-3"
           >
-            <Text className={label({ active: isActive, type })}>{lbl}</Text>
+            <Text className={label({ active: isActive, type })}>{displayedLabel}</Text>
             {isActive ? (
               <View
                 testID={`type-tab-indicator-${type}`}

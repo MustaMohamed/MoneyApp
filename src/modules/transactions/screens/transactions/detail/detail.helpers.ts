@@ -31,3 +31,7 @@ export function getAccountTypeIcon(type: string | undefined): IconName {
   }
   return 'card-bulleted-outline';
 }
+
+export function getCommitmentPaymentRoute(paymentId: string): `/commitments/${string}` {
+  return `/commitments/${paymentId}`;
+}
