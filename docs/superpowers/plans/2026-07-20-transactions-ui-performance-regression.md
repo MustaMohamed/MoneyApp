@@ -22,7 +22,7 @@
 
 - [x] **Step 1: Write failing tests for end-of-gesture persistence**
 
-Assert that `onListScrollEnd` persists the final offset, the screen API no longer exposes a per-frame `onListScroll` handler, and writing an unchanged offset does not notify Zustand subscribers.
+Assert that `onListScroll` only tracks the latest offset in a ref, `onListScrollEnd` persists the final offset, and writing an unchanged offset does not notify Zustand subscribers.
 
 - [x] **Step 2: Run the focused tests and verify RED**
 
@@ -32,7 +32,7 @@ Expected: FAIL because `onListScrollEnd` does not exist and duplicate offsets cu
 
 - [x] **Step 3: Implement nonreactive scroll tracking**
 
-Add a hook-owned `currentScrollOffsetRef`, expose one `onListScrollEnd` callback, and wire it to both `SectionList.onScrollEndDrag` and `SectionList.onMomentumScrollEnd`. Remove `onScroll` and `scrollEventThrottle`. Persist the ref during focus cleanup and make `setScrollOffset` return the existing Zustand state when the normalized offset is unchanged.
+Add a hook-owned `currentScrollOffsetRef`, expose one `onListScrollEnd` callback, and wire it to both `SectionList.onScrollEndDrag` and `SectionList.onMomentumScrollEnd`. Remove the original high-frequency `onScroll` publication path. Persist the ref during focus cleanup and make `setScrollOffset` return the existing Zustand state when the normalized offset is unchanged. Review remediation restores a throttled `onScroll` handler that updates only the ref so blur can persist an in-flight momentum position without publishing render state.
 
 - [x] **Step 4: Run the focused tests and verify GREEN**
 
@@ -82,3 +82,10 @@ Expected: all commands pass.
 - [x] **Step 3: Review the final diff**
 
 Confirm there are no financial calculation changes, no new dependencies, no per-frame Zustand writes, and no synchronous focus-triggered database refresh during tab transition.
+
+### Review Remediation
+
+- [x] Capture focus-time refresh ownership and skip work superseded before interaction settlement.
+- [x] Track live list movement in a nonreactive ref while keeping Zustand writes at end/blur boundaries.
+- [x] Add race, burst-scroll, and rendered-list wiring regression tests.
+- [x] Re-run CI parity before the requested remediation push.

@@ -178,7 +178,7 @@ const baseTransactionsState: TransactionsScreenState = {
 const mockedUseTransactions = jest.mocked(useTransactions);
 
 function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
-  mockedUseTransactions.mockReturnValue({
+  const hook = {
     state: { ...baseTransactionsState, ...state },
     setSearchQuery: jest.fn(),
     setActiveFilter: jest.fn(),
@@ -186,6 +186,7 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     clearSearch: jest.fn(),
     onEndReached: jest.fn(),
     onRefresh: jest.fn(),
+    onListScroll: jest.fn(),
     onListScrollEnd: jest.fn(),
     retryList: jest.fn(),
     retryTotals: jest.fn(),
@@ -194,7 +195,9 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     resetFilters: jest.fn(),
     goToDetail: jest.fn(),
     goToEdit: jest.fn(),
-  });
+  };
+  mockedUseTransactions.mockReturnValue(hook);
+  return hook;
 }
 
 describe('TransactionsScreen', () => {
@@ -250,6 +253,19 @@ describe('TransactionsScreen', () => {
 
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
+  });
+
+  it('tracks list movement separately from its persistence boundaries', () => {
+    mockUseTransactions();
+    const { getByTestId } = render(<TransactionsScreen />);
+
+    expect(getByTestId('transactions-list')).toHaveProp('onScroll', expect.any(Function));
+    expect(getByTestId('transactions-list')).toHaveProp('onScrollEndDrag', expect.any(Function));
+    expect(getByTestId('transactions-list')).toHaveProp(
+      'onMomentumScrollEnd',
+      expect.any(Function),
+    );
+    expect(getByTestId('transactions-list')).toHaveProp('scrollEventThrottle', 100);
   });
 
   it('keeps loaded transactions visible while manually refreshing loaded transactions', () => {

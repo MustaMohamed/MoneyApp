@@ -1,6 +1,6 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import type { NativeScrollEvent, NativeSyntheticEvent, SectionList } from 'react-native';
+import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
 import { getDb } from '@/database/client';
@@ -32,6 +32,7 @@ import { useTransactionsScreenStore } from './transactions.store';
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = { key: string; data: Transaction[] };
 export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals';
+type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
 
 export function useTransactions() {
   const router = useRouter();
@@ -224,18 +225,41 @@ export function useTransactions() {
       scrollRestorePendingRef.current = true;
       const isFirstFocus = !hasFocusedRef.current;
       hasFocusedRef.current = true;
+      const focusQueryKey = activeQueryKeyRef.current;
+      const focusTransactionState = useTransactionStore.getState();
+      const focusTransactions = focusTransactionState.transactions;
+      const shouldRefreshSnapshot =
+        focusTransactionState.snapshotKey === focusQueryKey &&
+        focusTransactionState.queryKey === focusQueryKey &&
+        focusTransactionState.status !== 'refreshing';
+      const focusYearMonth = useTransactionsScreenStore.getState().period.yearMonth;
+      const focusTotalsState = useTransactionsState.getState();
+      const focusTotalsRequestId = focusTotalsState.totalsRequestId;
+      const shouldRefreshTotals =
+        !isFirstFocus &&
+        focusTotalsState.totalsYearMonth === focusYearMonth &&
+        focusTotalsState.totalsStatus !== 'initialLoading' &&
+        focusTotalsState.totalsStatus !== 'refreshing';
       attemptScrollRestoreRef.current();
       const task = runAfterInteractions(() => {
+        if (activeQueryKeyRef.current !== focusQueryKey) return;
         const transactionState = useTransactionStore.getState();
-        const hasVisibleSnapshot =
+        const snapshotIsUnchanged =
+          shouldRefreshSnapshot &&
           transactionState.snapshotKey === activeQueryKeyRef.current &&
-          transactionState.queryKey === activeQueryKeyRef.current;
-        if (hasVisibleSnapshot && transactionState.status !== 'refreshing') {
+          transactionState.queryKey === activeQueryKeyRef.current &&
+          transactionState.transactions === focusTransactions;
+        if (snapshotIsUnchanged && transactionState.status !== 'refreshing') {
           void refresh().catch((error) =>
             console.error('[transactions] focus refresh failed:', error),
           );
         }
-        if (!isFirstFocus) void loadTotalsRef.current(true);
+        const totalsState = useTransactionsState.getState();
+        const totalsAreUnchanged =
+          shouldRefreshTotals &&
+          totalsState.totalsYearMonth === focusYearMonth &&
+          totalsState.totalsRequestId === focusTotalsRequestId;
+        if (totalsAreUnchanged) void loadTotalsRef.current(true);
       });
 
       return () => {
@@ -311,13 +335,16 @@ export function useTransactions() {
         ? 'totals'
         : 'none';
 
+  const onListScroll = useCallback((event: ScrollOffsetEvent) => {
+    currentScrollOffsetRef.current = Math.max(0, event.nativeEvent.contentOffset.y);
+  }, []);
+
   const onListScrollEnd = useCallback(
-    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const offset = Math.max(0, event.nativeEvent.contentOffset.y);
-      currentScrollOffsetRef.current = offset;
-      setScrollOffset(activeQueryKey, offset);
+    (event: ScrollOffsetEvent) => {
+      onListScroll(event);
+      setScrollOffset(activeQueryKey, currentScrollOffsetRef.current);
     },
-    [activeQueryKey, setScrollOffset],
+    [activeQueryKey, onListScroll, setScrollOffset],
   );
 
   const retryTotals = useCallback(
@@ -389,6 +416,7 @@ export function useTransactions() {
     clearSearch,
     onEndReached: loadMore,
     onRefresh,
+    onListScroll,
     onListScrollEnd,
     retryList: retry,
     retryTotals,

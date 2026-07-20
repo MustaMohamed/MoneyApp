@@ -403,7 +403,7 @@ describe('useTransactions query ownership', () => {
     act(() => {
       first.result.current.onListScrollEnd({
         nativeEvent: { contentOffset: { y: 284 } },
-      } as never);
+      });
     });
     first.unmount();
 
@@ -454,6 +454,72 @@ describe('useTransactions query ownership', () => {
     });
   });
 
+  it('does not refresh a snapshot that finishes loading while focus work is pending', async () => {
+    setupStores({
+      transactions: [],
+      snapshotKey: undefined,
+      status: 'initialLoading',
+    });
+    renderHook(() => useTransactions());
+
+    act(() => {
+      mockFocusEffectCallback?.();
+    });
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION],
+      snapshotKey: getTransactionQueryKey(JULY_QUERY),
+      status: 'ready',
+    };
+
+    await act(async () => {
+      await mockInteractionTasks[0]?.callback();
+    });
+
+    expect(refresh).not.toHaveBeenCalled();
+  });
+
+  it('skips revalidation when rows and totals change while focus work is pending', async () => {
+    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION],
+      status: 'ready',
+    };
+    renderHook(() => useTransactions());
+
+    await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
+    let firstCleanup: void | (() => void) = undefined;
+    act(() => {
+      firstCleanup = mockFocusEffectCallback?.();
+      firstCleanup?.();
+    });
+    refresh.mockClear();
+    jest.mocked(getPeriodTotals).mockClear();
+
+    act(() => {
+      mockFocusEffectCallback?.();
+    });
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [{ ...TRANSACTION, note: 'new snapshot' }],
+    };
+    act(() => {
+      const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', true);
+      useTransactionsState.getState().resolveTotals('2026-07', requestId, {
+        current: EMPTY_TOTALS,
+        previous: EMPTY_TOTALS,
+      });
+    });
+
+    await act(async () => {
+      await mockInteractionTasks[1]?.callback();
+    });
+
+    expect(refresh).not.toHaveBeenCalled();
+    expect(getPeriodTotals).not.toHaveBeenCalled();
+  });
+
   it('cancels pending focus revalidation when the screen blurs', async () => {
     jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
     transactionStoreState = {
@@ -479,6 +545,38 @@ describe('useTransactions query ownership', () => {
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
     expect(refresh).not.toHaveBeenCalled();
     expect(getPeriodTotals).not.toHaveBeenCalled();
+  });
+
+  it('tracks scrolling without publishing offsets until the screen blurs', () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const { result } = renderHook(() => useTransactions());
+    let cleanup: void | (() => void) = undefined;
+    act(() => {
+      cleanup = mockFocusEffectCallback?.();
+    });
+    const listener = jest.fn();
+    const unsubscribe = useTransactionsState.subscribe(listener);
+
+    act(() => {
+      result.current.onListScroll({
+        nativeEvent: { contentOffset: { y: 96 } },
+      });
+      result.current.onListScroll({
+        nativeEvent: { contentOffset: { y: 192 } },
+      });
+      result.current.onListScroll({
+        nativeEvent: { contentOffset: { y: 284 } },
+      });
+    });
+
+    expect(useTransactionsState.getState().scrollOffset).toBe(0);
+    expect(listener).not.toHaveBeenCalled();
+
+    act(() => cleanup?.());
+
+    expect(useTransactionsState.getState().scrollOffset).toBe(284);
+    expect(listener).toHaveBeenCalledTimes(1);
+    unsubscribe();
   });
 
   it('waits for the owning snapshot before restoring its scroll offset', async () => {
