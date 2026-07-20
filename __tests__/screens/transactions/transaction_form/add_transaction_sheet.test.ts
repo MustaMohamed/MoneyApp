@@ -285,6 +285,22 @@ describe('AddTransactionSheet', () => {
 
     expect(useAddTransactionStore.getState().amountStr).toBe('0');
     expect(useAddTransactionState.getState().rateOverride).toBe(false);
+
+    act(() => {
+      useAddTransactionState.getState().open();
+    });
+    rerender(React.createElement(AddTransactionSheet, { visible: true, onClose }));
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(useAddTransactionStore.getState().amountStr).toBe('0');
+    expect(useAddTransactionState.getState()).toMatchObject({
+      visible: true,
+      saving: false,
+      errorMessage: undefined,
+      rateOverride: false,
+    });
   });
 
   it('disables every sheet dismissal path while saving', () => {

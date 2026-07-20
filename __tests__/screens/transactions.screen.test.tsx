@@ -123,7 +123,7 @@ jest.mock(
           selector({ visible: false, pendingOpen: false }),
         ),
         {
-          getState: () => ({ visible: false, open: jest.fn(), close: jest.fn() }),
+          getState: () => ({ visible: false, open: jest.fn(), requestClose: jest.fn() }),
         },
       ),
     };
@@ -140,7 +140,7 @@ jest.mock(
   () => ({
     useEditTransactionState: {
       useState: { visible: () => false },
-      getState: () => ({ close: jest.fn() }),
+      getState: () => ({ visible: false, requestClose: jest.fn() }),
     },
   }),
 );

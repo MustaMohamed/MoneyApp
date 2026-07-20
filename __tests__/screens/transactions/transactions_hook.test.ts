@@ -60,6 +60,12 @@ const JULY_QUERY = {
   dateTo: '2026-07-31',
 };
 
+const JUNE_QUERY = {
+  ...JULY_QUERY,
+  dateFrom: '2026-06-01',
+  dateTo: '2026-06-30',
+};
+
 const TRANSACTION: Transaction = {
   id: 'tx-1',
   type: TransactionType.Expense,
@@ -81,6 +87,14 @@ const TRANSACTION: Transaction = {
   installment_id: null,
   created_at: '2026-07-12T12:00:00.000Z',
   updated_at: '2026-07-12T12:00:00.000Z',
+};
+
+const JUNE_TRANSACTION: Transaction = {
+  ...TRANSACTION,
+  id: 'tx-june',
+  transaction_date: '2026-06-12',
+  created_at: '2026-06-12T12:00:00.000Z',
+  updated_at: '2026-06-12T12:00:00.000Z',
 };
 
 function setupStores(transactionOverrides: Record<string, unknown> = {}) {
@@ -318,5 +332,58 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.sections).toHaveLength(1);
     expect(result.current.state.refreshing).toBe(true);
     expect(result.current.state.showInitialSkeleton).toBe(false);
+  });
+
+  it('never presents the previous month rows during a month transition', () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const { result, rerender } = renderHook((_props: Record<string, never>) => useTransactions(), {
+      initialProps: {},
+    });
+    expect(result.current.state.sections[0].data).toEqual([TRANSACTION]);
+
+    act(() => {
+      result.current.setSelectedMonth('2026-06');
+    });
+
+    expect(result.current.state.selectedMonth).toBe('2026-06');
+    expect(result.current.state.sections).toEqual([]);
+    expect(result.current.state.listStatus).toBe('initialLoading');
+
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [JUNE_TRANSACTION],
+      query: JUNE_QUERY,
+      queryKey: getTransactionQueryKey(JUNE_QUERY),
+      snapshotKey: getTransactionQueryKey(JUNE_QUERY),
+      status: 'ready',
+    };
+    rerender({});
+
+    expect(result.current.state.sections).toHaveLength(1);
+    expect(result.current.state.sections[0].data).toEqual([JUNE_TRANSACTION]);
+  });
+
+  it('preserves list controls and scroll context across detail navigation remounts', () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const first = renderHook(() => useTransactions());
+
+    act(() => {
+      first.result.current.setSelectedMonth('2026-06');
+      first.result.current.setSearchQuery('coffee');
+      first.result.current.setActiveFilter(TransactionType.Expense);
+      first.result.current.onListScroll({
+        nativeEvent: { contentOffset: { y: 284 } },
+      } as never);
+    });
+    first.unmount();
+
+    const second = renderHook(() => useTransactions());
+
+    expect(second.result.current.state).toMatchObject({
+      selectedMonth: '2026-06',
+      searchQuery: 'coffee',
+      activeFilter: TransactionType.Expense,
+    });
+    expect(useTransactionsState.getState().scrollOffset).toBe(284);
   });
 });
