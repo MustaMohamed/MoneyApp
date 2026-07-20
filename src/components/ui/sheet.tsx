@@ -58,7 +58,7 @@
  */
 import { BottomSheetFooter, type BottomSheetFooterProps } from '@gorhom/bottom-sheet';
 import { BottomSheet } from 'heroui-native';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -130,6 +130,8 @@ export function resolveSnapPoints(
 export interface SheetProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Called after a previously open sheet settles at its closed index. */
+  onCloseComplete?: () => void;
   title?: string;
   /**
    * Preset size. Resolves to snapPoints via SIZE_PCT map.
@@ -190,6 +192,7 @@ export interface SheetProps {
 export function Sheet({
   isOpen,
   onOpenChange,
+  onCloseComplete,
   title,
   size,
   snapPoints,
@@ -202,6 +205,24 @@ export function Sheet({
   const increment = useSheetVisibilityStore((s) => s.increment);
   const decrement = useSheetVisibilityStore((s) => s.decrement);
   const insets = useSafeAreaInsets();
+  const previousIsOpenRef = useRef(isOpen);
+  const closePendingRef = useRef(false);
+
+  useEffect(() => {
+    const wasOpen = previousIsOpenRef.current;
+    previousIsOpenRef.current = isOpen;
+    if (wasOpen && !isOpen) closePendingRef.current = true;
+    if (isOpen) closePendingRef.current = false;
+  }, [isOpen]);
+
+  const handleSheetIndexChange = useCallback(
+    (index: number) => {
+      if (index !== -1 || !closePendingRef.current) return;
+      closePendingRef.current = false;
+      onCloseComplete?.();
+    },
+    [onCloseComplete],
+  );
 
   // FAB-hide: increment on open, decrement on close or unmount-while-open.
   useEffect(() => {
@@ -272,6 +293,7 @@ export function Sheet({
         <BottomSheet.Overlay isCloseOnPress={isDismissable} />
         <BottomSheet.Content
           {...contentSizingProps}
+          onChange={handleSheetIndexChange}
           keyboardBehavior="interactive"
           keyboardBlurBehavior="restore"
           android_keyboardInputMode="adjustResize"

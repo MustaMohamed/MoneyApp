@@ -45,6 +45,7 @@ const INITIAL_STATE = {
   transactions: [] as Transaction[],
   hasMore: false,
   loadingMore: false,
+  paginationError: false,
   query: EMPTY_QUERY,
   queryKey: getTransactionQueryKey(EMPTY_QUERY),
   snapshotKey: undefined as string | undefined,
@@ -79,12 +80,13 @@ export function createTransactionStore(repo: ITransactionRepository) {
         const canPreserve = preserveSnapshot && current.snapshotKey === key;
 
         if (canPreserve) {
-          set({ status: 'refreshing', loadingMore: false });
+          set({ status: 'refreshing', loadingMore: false, paginationError: false });
         } else {
           set({
             transactions: [],
             hasMore: false,
             loadingMore: false,
+            paginationError: false,
             query: filters,
             queryKey: key,
             snapshotKey: undefined,
@@ -137,10 +139,12 @@ export function createTransactionStore(repo: ITransactionRepository) {
         },
 
         loadMore: async () => {
-          const { hasMore, loadingMore, query, queryKey, snapshotKey, transactions } = get();
-          if (!hasMore || loadingMore || snapshotKey !== queryKey) return;
+          const { hasMore, loadingMore, query, queryKey, snapshotKey, status, transactions } =
+            get();
+          if (!hasMore || loadingMore || status === 'refreshing' || snapshotKey !== queryKey)
+            return;
           const myId = ++pageRequestId;
-          set({ loadingMore: true });
+          set({ loadingMore: true, paginationError: false });
           try {
             const rows = await repo.getAll({
               ...query,
@@ -158,14 +162,14 @@ export function createTransactionStore(repo: ITransactionRepository) {
               transactions: [...state.transactions, ...rows],
               hasMore: rows.length === PAGE_SIZE,
               loadingMore: false,
+              paginationError: false,
               status: 'ready',
             }));
           } catch (error) {
             if (myId === pageRequestId && get().queryKey === queryKey) {
-              set({ loadingMore: false });
+              set({ loadingMore: false, paginationError: true });
             }
             console.error('[transactionStore] page fetch failed:', error);
-            throw error;
           }
         },
 

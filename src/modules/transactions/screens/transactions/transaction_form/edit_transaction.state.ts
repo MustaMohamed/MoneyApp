@@ -5,6 +5,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface EditTransactionStateShape {
   visible: boolean;
+  sessionId: number;
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
@@ -36,6 +37,7 @@ type EditTransactionState = EditTransactionStateShape & {
 
 const INITIAL_STATE: EditTransactionStateShape = {
   visible: false,
+  sessionId: 0,
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
@@ -51,7 +53,12 @@ export const useEditTransactionState = createMoneyAppSelectors(
   create<EditTransactionState>((set, get) => ({
     ...INITIAL_STATE,
 
-    open: () => set({ visible: true }),
+    open: () =>
+      set((state) => ({
+        ...INITIAL_STATE,
+        visible: true,
+        sessionId: state.sessionId + 1,
+      })),
     requestClose: () => {
       if (get().saving) return false;
       set({ visible: false, showCategoryPicker: false, showBudgetPicker: false });

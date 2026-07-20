@@ -15,6 +15,7 @@ import { Colors, Size } from '@/constants/theme';
 import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { ms } from '@/utils/responsive';
 import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { DateHeader } from './components/date_header';
@@ -61,6 +62,8 @@ const TRANSACTION_FILTERS: FilterRailOption<TransactionFilter>[] = [
     icon: { name: 'credit-card-refund', color: AccentCCTokens[500] },
   },
 ];
+
+const LIST_BOTTOM_CLEARANCE = ms(160);
 
 export default function TransactionsScreen(): React.ReactElement {
   const t = useTransactions();
@@ -159,7 +162,7 @@ export default function TransactionsScreen(): React.ReactElement {
       showRowsSkeleton ? (
         <TransactionRowsSkeleton />
       ) : state.showFirstLoadError ? (
-        <TransactionLoadError onRetry={() => void retryFailedLoads()} />
+        <TransactionLoadError variant="initial" onRetry={() => void retryFailedLoads()} />
       ) : state.emptyVariant === 'none' ? null : (
         <EmptyState
           variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
@@ -183,6 +186,14 @@ export default function TransactionsScreen(): React.ReactElement {
   const handleEndReached = useCallback(() => {
     void onEndReached();
   }, [onEndReached]);
+
+  const listFooterComponent = useMemo(
+    () =>
+      state.paginationError ? (
+        <TransactionLoadError variant="pagination" onRetry={handleEndReached} />
+      ) : null,
+    [handleEndReached, state.paginationError],
+  );
 
   return (
     <Screen edges={['top']}>
@@ -231,6 +242,7 @@ export default function TransactionsScreen(): React.ReactElement {
           onScrollBeginDrag={closeAllRows}
           renderItem={renderItem}
           ListEmptyComponent={listEmptyComponent}
+          ListFooterComponent={listFooterComponent}
           refreshControl={
             <RefreshControl
               refreshing={state.refreshing}
@@ -241,10 +253,13 @@ export default function TransactionsScreen(): React.ReactElement {
           }
           onEndReached={handleEndReached}
           onEndReachedThreshold={0.5}
-          contentContainerStyle={{ flexGrow: 1, paddingBottom: 96 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: LIST_BOTTOM_CLEARANCE }}
         />
-        {state.showRefreshError ? (
-          <TransactionLoadError floating onRetry={() => void retryFailedLoads()} />
+        {state.loadErrorVariant !== 'none' ? (
+          <TransactionLoadError
+            variant={state.loadErrorVariant}
+            onRetry={() => void retryFailedLoads()}
+          />
         ) : null}
       </View>
 

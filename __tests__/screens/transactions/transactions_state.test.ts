@@ -27,8 +27,8 @@ describe('useTransactionsState', () => {
     const current: PeriodTotals = { incomeEgp: 100, expenseEgp: 40, netEgp: 60 };
     const previous: PeriodTotals = { incomeEgp: 80, expenseEgp: 30, netEgp: 50 };
 
-    useTransactionsState.getState().beginTotalsLoad('2026-07', false);
-    useTransactionsState.getState().resolveTotals('2026-07', { current, previous });
+    const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    useTransactionsState.getState().resolveTotals('2026-07', requestId, { current, previous });
 
     expect(useTransactionsState.getState().totals).toEqual({ current, previous });
     expect(useTransactionsState.getState().totalsYearMonth).toBe('2026-07');
@@ -40,8 +40,8 @@ describe('useTransactionsState', () => {
       current: { incomeEgp: 100, expenseEgp: 40, netEgp: 60 },
       previous: { incomeEgp: 80, expenseEgp: 30, netEgp: 50 },
     };
-    useTransactionsState.getState().beginTotalsLoad('2026-07', false);
-    useTransactionsState.getState().resolveTotals('2026-07', totals);
+    const initialRequestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    useTransactionsState.getState().resolveTotals('2026-07', initialRequestId, totals);
 
     useTransactionsState.getState().beginTotalsLoad('2026-07', true);
 
@@ -57,11 +57,11 @@ describe('useTransactionsState', () => {
       current: { incomeEgp: 100, expenseEgp: 40, netEgp: 60 },
       previous: null,
     };
-    useTransactionsState.getState().beginTotalsLoad('2026-07', false);
-    useTransactionsState.getState().resolveTotals('2026-07', totals);
-    useTransactionsState.getState().beginTotalsLoad('2026-07', true);
+    const initialRequestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    useTransactionsState.getState().resolveTotals('2026-07', initialRequestId, totals);
+    const refreshRequestId = useTransactionsState.getState().beginTotalsLoad('2026-07', true);
 
-    useTransactionsState.getState().failTotals('2026-07');
+    useTransactionsState.getState().failTotals('2026-07', refreshRequestId);
 
     expect(useTransactionsState.getState()).toMatchObject({
       totals,
@@ -70,9 +70,9 @@ describe('useTransactionsState', () => {
   });
 
   it('represents a first-load failure without financial zeroes', () => {
-    useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
 
-    useTransactionsState.getState().failTotals('2026-07');
+    useTransactionsState.getState().failTotals('2026-07', requestId);
 
     expect(useTransactionsState.getState()).toMatchObject({
       totals: null,
@@ -81,10 +81,10 @@ describe('useTransactionsState', () => {
   });
 
   it('ignores totals completion for an obsolete month', () => {
-    useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    const julyRequestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
     useTransactionsState.getState().beginTotalsLoad('2026-08', false);
 
-    useTransactionsState.getState().resolveTotals('2026-07', {
+    useTransactionsState.getState().resolveTotals('2026-07', julyRequestId, {
       current: { incomeEgp: 100, expenseEgp: 40, netEgp: 60 },
       previous: null,
     });
@@ -96,6 +96,27 @@ describe('useTransactionsState', () => {
     });
   });
 
+  it('ignores an older completion for the same month', () => {
+    const firstRequestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    const secondRequestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    const latestTotals = {
+      current: { incomeEgp: 300, expenseEgp: 100, netEgp: 200 },
+      previous: null,
+    };
+
+    useTransactionsState.getState().resolveTotals('2026-07', secondRequestId, latestTotals);
+    useTransactionsState.getState().resolveTotals('2026-07', firstRequestId, {
+      current: { incomeEgp: 100, expenseEgp: 80, netEgp: 20 },
+      previous: null,
+    });
+
+    expect(useTransactionsState.getState()).toMatchObject({
+      totals: latestTotals,
+      totalsYearMonth: '2026-07',
+      totalsStatus: 'ready',
+    });
+  });
+
   it('persists the current list scroll offset', () => {
     useTransactionsState.getState().setScrollOffset(328);
 
@@ -103,8 +124,8 @@ describe('useTransactionsState', () => {
   });
 
   it('reset() clears totals', () => {
-    useTransactionsState.getState().beginTotalsLoad('2026-07', false);
-    useTransactionsState.getState().resolveTotals('2026-07', {
+    const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', false);
+    useTransactionsState.getState().resolveTotals('2026-07', requestId, {
       current: { incomeEgp: 100, expenseEgp: 40, netEgp: 60 },
       previous: null,
     });

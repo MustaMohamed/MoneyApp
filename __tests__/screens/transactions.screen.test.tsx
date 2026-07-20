@@ -90,9 +90,9 @@ jest.mock('@/modules/transactions/screens/transactions/components/transaction_ro
   },
 }));
 jest.mock('@/modules/transactions/screens/transactions/components/transaction_load_error', () => ({
-  TransactionLoadError: ({ floating }: { floating?: boolean }) => {
+  TransactionLoadError: ({ variant }: { variant: string }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
-    return <Text>{floating ? 'Floating load error' : 'Initial load error'}</Text>;
+    return <Text>{`${variant} load error`}</Text>;
   },
 }));
 jest.mock('@/modules/transactions/screens/transactions/components/date_header', () => ({
@@ -163,7 +163,8 @@ const baseTransactionsState: TransactionsScreenState = {
   listStatus: 'initialLoading',
   showInitialSkeleton: true,
   showFirstLoadError: false,
-  showRefreshError: false,
+  loadErrorVariant: 'none',
+  paginationError: false,
   refreshing: false,
   emptyVariant: 'none',
   searchQuery: '',
@@ -346,7 +347,7 @@ describe('TransactionsScreen', () => {
 
     const { getByText, queryByText } = render(<TransactionsScreen />);
 
-    expect(getByText('Initial load error')).toBeTruthy();
+    expect(getByText('initial load error')).toBeTruthy();
     expect(queryByText('transactions')).toBeNull();
   });
 
@@ -354,7 +355,7 @@ describe('TransactionsScreen', () => {
     mockUseTransactions({
       listStatus: 'refreshErrorWithData',
       showInitialSkeleton: false,
-      showRefreshError: true,
+      loadErrorVariant: 'refresh',
       sections: [
         {
           key: 'TODAY',
@@ -388,7 +389,33 @@ describe('TransactionsScreen', () => {
 
     const { getByText } = render(<TransactionsScreen />);
 
-    expect(getByText('Floating load error')).toBeTruthy();
+    expect(getByText('refresh load error')).toBeTruthy();
     expect(getByText('Transaction row')).toBeTruthy();
+  });
+
+  it('shows a totals-specific error without replacing loaded rows', () => {
+    mockUseTransactions({
+      listStatus: 'ready',
+      showInitialSkeleton: false,
+      loadErrorVariant: 'totals',
+      sections: [{ key: 'TODAY', data: [] }],
+    });
+
+    const { getByText } = render(<TransactionsScreen />);
+
+    expect(getByText('totals load error')).toBeTruthy();
+  });
+
+  it('renders a retryable pagination error in the list footer', () => {
+    mockUseTransactions({
+      listStatus: 'ready',
+      showInitialSkeleton: false,
+      paginationError: true,
+      sections: [{ key: 'TODAY', data: [] }],
+    });
+
+    const { getByText } = render(<TransactionsScreen />);
+
+    expect(getByText('pagination load error')).toBeTruthy();
   });
 });

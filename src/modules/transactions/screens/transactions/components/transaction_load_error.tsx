@@ -5,21 +5,26 @@ import { Button } from '@/components/ui/button';
 import { Strings } from '@/constants/strings';
 
 interface TransactionLoadErrorProps {
-  floating?: boolean;
+  variant: 'initial' | 'refresh' | 'totals' | 'pagination';
   onRetry: () => void;
 }
 
+const ERROR_TITLES: Record<TransactionLoadErrorProps['variant'], string> = {
+  initial: Strings.transactionsLoadError,
+  refresh: Strings.transactionsRefreshError,
+  totals: Strings.transactionsTotalsLoadError,
+  pagination: Strings.transactionsLoadMoreError,
+};
+
 export function TransactionLoadError({
-  floating = false,
+  variant,
   onRetry,
 }: TransactionLoadErrorProps): React.ReactElement {
   const alert = (
     <Alert status="danger" className="w-full">
       <Alert.Indicator />
       <Alert.Content>
-        <Alert.Title>
-          {floating ? Strings.transactionsRefreshError : Strings.transactionsLoadError}
-        </Alert.Title>
+        <Alert.Title>{ERROR_TITLES[variant]}</Alert.Title>
       </Alert.Content>
       <Button
         variant="secondary"
@@ -31,9 +36,25 @@ export function TransactionLoadError({
     </Alert>
   );
 
-  return floating ? (
-    <View className="absolute right-4 bottom-4 left-4 z-50">{alert}</View>
-  ) : (
-    <View className="flex-1 items-center justify-center px-4">{alert}</View>
+  if (variant === 'initial') {
+    return (
+      <View testID="transaction-load-error" className="flex-1 items-center justify-center px-4">
+        {alert}
+      </View>
+    );
+  }
+
+  if (variant === 'pagination') {
+    return (
+      <View testID="transaction-load-error" className="px-4 py-3">
+        {alert}
+      </View>
+    );
+  }
+
+  return (
+    <View testID="transaction-load-error" className="absolute right-4 bottom-24 left-4 z-50">
+      {alert}
+    </View>
   );
 }

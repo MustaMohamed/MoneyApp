@@ -915,6 +915,8 @@ export const Strings = {
   totalsVsPrev: (prevLabel: string) => `vs ${prevLabel}`,
   transactionsLoadError: 'Could not load transactions.',
   transactionsRefreshError: 'Could not refresh transactions.',
+  transactionsTotalsLoadError: 'Could not load monthly totals.',
+  transactionsLoadMoreError: 'Could not load more transactions.',
   transactionsLoadRetry: 'Retry',
 
   // §6 Transactions — Type badges

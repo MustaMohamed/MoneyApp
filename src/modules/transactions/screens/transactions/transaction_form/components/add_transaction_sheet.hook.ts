@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
@@ -6,9 +6,8 @@ import { useAddTransactionStore } from '@/modules/transactions/screens/transacti
 
 import { useAddTransactionSheetState } from './add_transaction_sheet.state';
 
-const CLOSE_UNMOUNT_DELAY_MS = 350;
-
 export function useAddTransactionSheetLifecycle(visible: boolean) {
+  const sessionId = useAddTransactionState.useState.sessionId();
   const state = useAddTransactionSheetState(
     useShallow((sheet) => ({
       readyToOpen: sheet.readyToOpen,
@@ -25,22 +24,27 @@ export function useAddTransactionSheetLifecycle(visible: boolean) {
   const finishClose = useAddTransactionSheetState.getState().finishClose;
   const completeClose = useAddTransactionState.getState().completeClose;
   const resetDraft = useAddTransactionStore.getState().reset;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
   useEffect(() => {
     if (!visible) {
       startClose();
-      const timer = setTimeout(() => {
-        finishClose();
-        resetDraft();
-        completeClose();
-      }, CLOSE_UNMOUNT_DELAY_MS);
-      return () => clearTimeout(timer);
+      return undefined;
     }
 
+    resetDraft();
     prepareOpen();
     const timer = setTimeout(show, 0);
     return () => clearTimeout(timer);
-  }, [completeClose, finishClose, prepareOpen, resetDraft, show, startClose, visible]);
+  }, [prepareOpen, resetDraft, show, startClose, visible]);
+
+  const handleCloseComplete = useCallback(() => {
+    if (visibleRef.current) return;
+    finishClose();
+    resetDraft();
+    completeClose();
+  }, [completeClose, finishClose, resetDraft]);
 
   useEffect(
     () => () => {
@@ -51,5 +55,5 @@ export function useAddTransactionSheetLifecycle(visible: boolean) {
     [completeClose, finishClose, resetDraft],
   );
 
-  return state;
+  return { ...state, sessionId, handleCloseComplete };
 }

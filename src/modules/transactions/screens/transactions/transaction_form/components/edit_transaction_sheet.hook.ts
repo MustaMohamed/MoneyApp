@@ -1,23 +1,20 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 
-const CLOSE_UNMOUNT_DELAY_MS = 350;
-
-export function useEditTransactionSheetLifecycle(visible: boolean): void {
+export function useEditTransactionSheetLifecycle(visible: boolean) {
+  const sessionId = useEditTransactionState.useState.sessionId();
   const completeClose = useEditTransactionState.getState().completeClose;
   const resetDraft = useEditTransactionStore.getState().reset;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
 
-  useEffect(() => {
-    if (visible) return undefined;
-
-    const timer = setTimeout(() => {
-      resetDraft();
-      completeClose();
-    }, CLOSE_UNMOUNT_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [completeClose, resetDraft, visible]);
+  const handleCloseComplete = useCallback(() => {
+    if (visibleRef.current) return;
+    resetDraft();
+    completeClose();
+  }, [completeClose, resetDraft]);
 
   useEffect(
     () => () => {
@@ -26,4 +23,6 @@ export function useEditTransactionSheetLifecycle(visible: boolean): void {
     },
     [completeClose, resetDraft],
   );
+
+  return { sessionId, handleCloseComplete };
 }

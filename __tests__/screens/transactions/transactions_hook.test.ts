@@ -13,9 +13,13 @@ import { useTransactionsState } from '@/modules/transactions/screens/transaction
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
 
+let mockFocusEffectCallback: (() => void | (() => void)) | undefined;
+
 jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn() }),
-  useFocusEffect: jest.fn(),
+  useFocusEffect: jest.fn((callback: () => void | (() => void)) => {
+    mockFocusEffectCallback = callback;
+  }),
 }));
 
 jest.mock('@/utils/use_debounced_value.hook', () => ({
@@ -102,11 +106,12 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
   setQuery = jest.fn().mockResolvedValue(undefined);
   refresh = jest.fn().mockResolvedValue(undefined);
   retry = jest.fn().mockResolvedValue(undefined);
+  const loadAccountLookup = jest.fn().mockResolvedValue(undefined);
 
   attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
     accounts: [],
     accountLookup: [],
-    loadAccountLookup: jest.fn().mockResolvedValue(undefined),
+    loadAccountLookup,
   }));
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories: [],
@@ -115,6 +120,7 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
     transactions: [],
     hasMore: false,
     loadingMore: false,
+    paginationError: false,
     query: JULY_QUERY,
     queryKey: getTransactionQueryKey(JULY_QUERY),
     snapshotKey: getTransactionQueryKey(JULY_QUERY),
@@ -131,6 +137,7 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
+  mockFocusEffectCallback = undefined;
   setupStores();
   useTransactionsScreenStore.getState().reset();
   useTransactionsScreenStore.getState().setSelectedMonth('2026-07');
@@ -385,5 +392,64 @@ describe('useTransactions query ownership', () => {
       activeFilter: TransactionType.Expense,
     });
     expect(useTransactionsState.getState().scrollOffset).toBe(284);
+  });
+
+  it('revalidates the visible snapshot and totals when the screen regains focus', async () => {
+    jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION],
+      status: 'ready',
+    };
+    renderHook(() => useTransactions());
+
+    await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
+    expect(mockFocusEffectCallback).toBeDefined();
+
+    let firstCleanup: void | (() => void) = undefined;
+    act(() => {
+      firstCleanup = mockFocusEffectCallback?.();
+    });
+    act(() => firstCleanup?.());
+    refresh.mockClear();
+    jest.mocked(getPeriodTotals).mockClear();
+
+    act(() => {
+      mockFocusEffectCallback?.();
+    });
+
+    await waitFor(() => {
+      expect(refresh).toHaveBeenCalledTimes(1);
+      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('does not float a second error when the list and totals both fail initially', async () => {
+    setupStores({
+      transactions: [],
+      snapshotKey: undefined,
+      status: 'firstLoadError',
+    });
+    jest.mocked(getPeriodTotals).mockRejectedValue(new Error('totals unavailable'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+    expect(result.current.state.showFirstLoadError).toBe(true);
+    expect(result.current.state.loadErrorVariant).toBe('none');
+    consoleSpy.mockRestore();
+  });
+
+  it('distinguishes a first totals load failure from a refresh failure', async () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    jest.mocked(getPeriodTotals).mockRejectedValue(new Error('totals unavailable'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const { result } = renderHook(() => useTransactions());
+
+    await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
+    expect(result.current.state.loadErrorVariant).toBe('totals');
+    consoleSpy.mockRestore();
   });
 });

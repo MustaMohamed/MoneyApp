@@ -30,10 +30,12 @@ import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = { key: string; data: Transaction[] };
+export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals';
 
 export function useTransactions() {
   const router = useRouter();
   const listRef = useRef<SectionList<Transaction, TransactionSection>>(null);
+  const hasFocusedRef = useRef(false);
 
   const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
     useShallow((s) => ({
@@ -47,11 +49,12 @@ export function useTransactions() {
   const setActiveFilter = useTransactionsScreenStore.getState().setActiveFilter;
   const setSelectedMonth = useTransactionsScreenStore.getState().setSelectedMonth;
   const clearSearch = useTransactionsScreenStore.getState().clearSearch;
-  const { transactions, hasMore, queryKey, snapshotKey, status, mutationVersion } =
+  const { transactions, hasMore, paginationError, queryKey, snapshotKey, status, mutationVersion } =
     useTransactionStore(
       useShallow((s) => ({
         transactions: s.transactions,
         hasMore: s.hasMore,
+        paginationError: s.paginationError,
         queryKey: s.queryKey,
         snapshotKey: s.snapshotKey,
         status: s.status,
@@ -91,15 +94,16 @@ export function useTransactions() {
   const loadTotals = useCallback(
     async (preserveData = false, shouldApply: () => boolean = () => true) => {
       const targetYearMonth = period.yearMonth;
-      if (shouldApply()) beginTotalsLoad(targetYearMonth, preserveData);
+      if (!shouldApply()) return;
+      const requestId = beginTotalsLoad(targetYearMonth, preserveData);
       try {
         const db = await getDb();
         const current = await getPeriodTotals(db, periodRange);
         const previous = await getPeriodTotals(db, previousPeriodRange);
-        if (shouldApply()) resolveTotals(targetYearMonth, { current, previous });
+        if (shouldApply()) resolveTotals(targetYearMonth, requestId, { current, previous });
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
-        if (shouldApply()) failTotals(targetYearMonth);
+        if (shouldApply()) failTotals(targetYearMonth, requestId);
       }
     },
     [
@@ -111,6 +115,8 @@ export function useTransactions() {
       resolveTotals,
     ],
   );
+  const loadTotalsRef = useRef(loadTotals);
+  loadTotalsRef.current = loadTotals;
 
   const transactionQuery = useMemo(() => {
     const trimmed = debouncedSearch.trim();
@@ -126,6 +132,8 @@ export function useTransactions() {
     () => getTransactionQueryKey(transactionQuery),
     [transactionQuery],
   );
+  const activeQueryKeyRef = useRef(activeQueryKey);
+  activeQueryKeyRef.current = activeQueryKey;
   const hasCurrentSnapshot = snapshotKey === activeQueryKey;
   const currentTransactions = useMemo(
     () => (hasCurrentSnapshot ? transactions : []),
@@ -164,13 +172,26 @@ export function useTransactions() {
 
   useFocusEffect(
     useCallback(() => {
+      const isFirstFocus = !hasFocusedRef.current;
+      hasFocusedRef.current = true;
+      const transactionState = useTransactionStore.getState();
+      const hasVisibleSnapshot =
+        transactionState.snapshotKey === activeQueryKeyRef.current &&
+        transactionState.queryKey === activeQueryKeyRef.current;
+      if (hasVisibleSnapshot && transactionState.status !== 'refreshing') {
+        void refresh().catch((error) =>
+          console.error('[transactions] focus refresh failed:', error),
+        );
+      }
+      if (!isFirstFocus) void loadTotalsRef.current(true);
+
       const frame = requestAnimationFrame(() => {
         const offset = useTransactionsState.getState().scrollOffset;
         if (offset <= 0) return;
         listRef.current?.getScrollResponder()?.scrollTo({ y: offset, animated: false });
       });
       return () => cancelAnimationFrame(frame);
-    }, []),
+    }, [refresh]),
   );
 
   const accountsById = useMemo(
@@ -224,6 +245,14 @@ export function useTransactions() {
   const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
   const displayTotalsStatus =
     totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
+  const showFirstLoadError = listStatus === 'firstLoadError';
+  const loadErrorVariant: TransactionLoadErrorVariant = showFirstLoadError
+    ? 'none'
+    : listStatus === 'refreshErrorWithData' || displayTotalsStatus === 'refreshErrorWithData'
+      ? 'refresh'
+      : displayTotalsStatus === 'firstLoadError'
+        ? 'totals'
+        : 'none';
 
   const onListScroll = useCallback(
     (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -277,11 +306,9 @@ export function useTransactions() {
       listStatus,
       showInitialSkeleton:
         (listStatus === 'idle' || listStatus === 'initialLoading') && sections.length === 0,
-      showFirstLoadError: listStatus === 'firstLoadError',
-      showRefreshError:
-        listStatus === 'refreshErrorWithData' ||
-        displayTotalsStatus === 'firstLoadError' ||
-        displayTotalsStatus === 'refreshErrorWithData',
+      showFirstLoadError,
+      loadErrorVariant,
+      paginationError,
       refreshing: listStatus === 'refreshing',
       emptyVariant,
       searchQuery,

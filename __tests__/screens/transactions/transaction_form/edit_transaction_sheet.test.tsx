@@ -7,7 +7,11 @@ import { EditTransactionSheet } from '@/modules/transactions/screens/transaction
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
 
-const mockSheetProps: Array<{ isOpen: boolean; isDismissable: boolean | undefined }> = [];
+const mockSheetProps: Array<{
+  isOpen: boolean;
+  isDismissable: boolean | undefined;
+  onCloseComplete: () => void;
+}> = [];
 const mockUseEditTransaction = jest.fn();
 
 jest.mock('@/components/ui/button', () => ({
@@ -22,15 +26,17 @@ jest.mock('@/components/ui/sheet', () => ({
   Sheet: ({
     isOpen,
     isDismissable,
+    onCloseComplete,
     children,
   }: {
     isOpen: boolean;
     isDismissable?: boolean;
+    onCloseComplete: () => void;
     children: React.ReactNode;
   }) => {
     const ReactLocal = require('react');
     const { View: RNView } = require('react-native');
-    mockSheetProps.push({ isOpen, isDismissable });
+    mockSheetProps.push({ isOpen, isDismissable, onCloseComplete });
     return ReactLocal.createElement(RNView, null, children);
   },
 }));
@@ -86,6 +92,7 @@ const mockTx = {
   transaction_date: '2026-07-20',
   transaction_time: '12:00:00',
 } as Transaction;
+const replacementTx = { ...mockTx, id: 'tx-2', amount: 40 } as Transaction;
 
 function createHookReturn(saving: boolean) {
   return {
@@ -154,9 +161,8 @@ describe('EditTransactionSheet', () => {
 
     expect(useEditTransactionStore.getState().editingTx).toEqual(mockTx);
 
-    act(() => {
-      jest.runOnlyPendingTimers();
-    });
+    const closingFrame = mockSheetProps[mockSheetProps.length - 1];
+    act(() => closingFrame.onCloseComplete());
 
     expect(useEditTransactionStore.getState().editingTx).toBeNull();
     expect(useEditTransactionState.getState().visible).toBe(false);
@@ -167,9 +173,34 @@ describe('EditTransactionSheet', () => {
 
     render(<EditTransactionSheet visible tx={mockTx} onClose={jest.fn()} />);
 
-    expect(mockSheetProps[mockSheetProps.length - 1]).toEqual({
+    expect(mockSheetProps[mockSheetProps.length - 1]).toMatchObject({
       isOpen: true,
       isDismissable: false,
     });
+  });
+
+  it('keeps a reopened edit session when the previous close finishes late', () => {
+    useEditTransactionState.getState().open(mockTx);
+    useEditTransactionStore.getState().loadFromTx(mockTx);
+    const { rerender } = render(<EditTransactionSheet visible tx={mockTx} onClose={jest.fn()} />);
+
+    rerender(<EditTransactionSheet visible={false} tx={mockTx} onClose={jest.fn()} />);
+    const staleClosingFrame = mockSheetProps[mockSheetProps.length - 1];
+
+    act(() => {
+      useEditTransactionStore.getState().loadFromTx(replacementTx);
+      useEditTransactionState.getState().open(replacementTx);
+    });
+    rerender(<EditTransactionSheet visible tx={replacementTx} onClose={jest.fn()} />);
+
+    act(() => staleClosingFrame.onCloseComplete());
+
+    expect(useEditTransactionState.getState().visible).toBe(true);
+    expect(useEditTransactionStore.getState().editingTx).toEqual(replacementTx);
+    expect(mockUseEditTransaction).toHaveBeenLastCalledWith(
+      replacementTx,
+      expect.any(Function),
+      expect.any(Function),
+    );
   });
 });

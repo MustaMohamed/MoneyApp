@@ -20,13 +20,14 @@ interface TransactionsStateShape {
   totals: TransactionTotalsState | null;
   totalsYearMonth: string | null;
   totalsStatus: TransactionTotalsStatus;
+  totalsRequestId: number;
   scrollOffset: number;
 }
 
 type TransactionsState = TransactionsStateShape & {
-  beginTotalsLoad: (yearMonth: string, preserveData: boolean) => void;
-  resolveTotals: (yearMonth: string, totals: TransactionTotalsState) => void;
-  failTotals: (yearMonth: string) => void;
+  beginTotalsLoad: (yearMonth: string, preserveData: boolean) => number;
+  resolveTotals: (yearMonth: string, requestId: number, totals: TransactionTotalsState) => void;
+  failTotals: (yearMonth: string, requestId: number) => void;
   setScrollOffset: (offset: number) => void;
   reset: () => void;
 };
@@ -35,13 +36,15 @@ const INITIAL_STATE: TransactionsStateShape = {
   totals: null,
   totalsYearMonth: null,
   totalsStatus: 'idle',
+  totalsRequestId: 0,
   scrollOffset: 0,
 };
 
 export const useTransactionsState = createMoneyAppSelectors(
-  create<TransactionsState>((set) => ({
+  create<TransactionsState>((set, get) => ({
     ...INITIAL_STATE,
-    beginTotalsLoad: (yearMonth, preserveData) =>
+    beginTotalsLoad: (yearMonth, preserveData) => {
+      const requestId = get().totalsRequestId + 1;
       set((state) => {
         const canPreserve =
           preserveData && state.totalsYearMonth === yearMonth && state.totals !== null;
@@ -49,15 +52,21 @@ export const useTransactionsState = createMoneyAppSelectors(
           totals: canPreserve ? state.totals : null,
           totalsYearMonth: yearMonth,
           totalsStatus: canPreserve ? 'refreshing' : 'initialLoading',
+          totalsRequestId: requestId,
         };
-      }),
-    resolveTotals: (yearMonth, totals) =>
+      });
+      return requestId;
+    },
+    resolveTotals: (yearMonth, requestId, totals) =>
       set((state) =>
-        state.totalsYearMonth === yearMonth ? { totals, totalsStatus: 'ready' } : state,
+        state.totalsYearMonth === yearMonth && state.totalsRequestId === requestId
+          ? { totals, totalsStatus: 'ready' }
+          : state,
       ),
-    failTotals: (yearMonth) =>
+    failTotals: (yearMonth, requestId) =>
       set((state) => {
-        if (state.totalsYearMonth !== yearMonth) return state;
+        if (state.totalsYearMonth !== yearMonth || state.totalsRequestId !== requestId)
+          return state;
         return {
           totalsStatus: state.totals ? 'refreshErrorWithData' : 'firstLoadError',
         };

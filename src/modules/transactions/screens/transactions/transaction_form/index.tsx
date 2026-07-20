@@ -22,19 +22,26 @@ interface EditTransactionSheetProps {
 }
 
 export function EditTransactionSheet(props: EditTransactionSheetProps): React.ReactElement | null {
+  const lifecycle = useEditTransactionSheetLifecycle(props.visible);
   if (!props.tx) return null;
   return (
     <EditSheetInner
+      key={lifecycle.sessionId}
       visible={props.visible}
       tx={props.tx}
       onClose={props.onClose}
       onSaved={props.onSaved}
+      onCloseComplete={lifecycle.handleCloseComplete}
     />
   );
 }
 
-function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Transaction }) {
-  useEditTransactionSheetLifecycle(props.visible);
+function EditSheetInner(
+  props: Omit<EditTransactionSheetProps, 'tx'> & {
+    tx: Transaction;
+    onCloseComplete: () => void;
+  },
+) {
   const completeSave = useEditTransactionState.getState().completeSave;
   const onSaved = props.onSaved;
   const handleSaved = useCallback(() => {
@@ -50,6 +57,7 @@ function EditSheetInner(props: Omit<EditTransactionSheetProps, 'tx'> & { tx: Tra
         onOpenChange={(open) => {
           if (!open) props.onClose();
         }}
+        onCloseComplete={props.onCloseComplete}
         title={Strings.editTxTitle}
         size="lg"
         scrollable

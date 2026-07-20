@@ -4,6 +4,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 interface AddTransactionStateShape {
   visible: boolean;
+  sessionId: number;
   /**
    * Cross-tab open request. The global FAB (mounted outside the transactions
    * tab) sets this and navigates here; the transactions screen consumes it once
@@ -46,6 +47,7 @@ type AddTransactionState = AddTransactionStateShape & {
 
 const INITIAL_STATE: AddTransactionStateShape = {
   visible: false,
+  sessionId: 0,
   pendingOpen: false,
   saving: false,
   showAccountPicker: false,
@@ -63,7 +65,12 @@ export const useAddTransactionState = createMoneyAppSelectors(
   create<AddTransactionState>((set, get) => ({
     ...INITIAL_STATE,
 
-    open: () => set({ visible: true, pendingOpen: false }),
+    open: () =>
+      set((state) => ({
+        ...INITIAL_STATE,
+        visible: true,
+        sessionId: state.sessionId + 1,
+      })),
     requestOpen: () => set({ pendingOpen: true }),
     requestClose: () => {
       if (get().saving) return false;

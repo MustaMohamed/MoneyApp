@@ -247,6 +247,55 @@ describe('transactionStore.loadMore', () => {
     await Promise.all([first, second]);
     expect(repo.getAll).toHaveBeenCalledTimes(1);
   });
+
+  it('does not paginate while a replacement refresh is running', async () => {
+    const txs = Array.from({ length: PAGE_SIZE }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
+    const refreshed = deferred<Transaction[]>();
+    const useStore = createTransactionStore(repo);
+
+    await useStore.getState().setQuery({});
+    repo.getAll = jest.fn(() => refreshed.promise);
+
+    const refreshPromise = useStore.getState().refresh();
+    const loadMorePromise = useStore.getState().loadMore();
+
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+    expect(useStore.getState().status).toBe('refreshing');
+
+    refreshed.resolve(txs);
+    await Promise.all([refreshPromise, loadMorePromise]);
+    expect(useStore.getState()).toMatchObject({
+      transactions: txs,
+      status: 'ready',
+      loadingMore: false,
+    });
+  });
+
+  it('keeps rows and exposes a retryable state when pagination fails', async () => {
+    const txs = Array.from({ length: PAGE_SIZE + 1 }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const repo = makeRepo(txs);
+    const useStore = createTransactionStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await useStore.getState().setQuery({});
+    (repo.getAll as jest.Mock).mockRejectedValueOnce(new Error('page failed'));
+
+    await expect(useStore.getState().loadMore()).resolves.toBeUndefined();
+    expect(useStore.getState()).toMatchObject({
+      transactions: txs.slice(0, PAGE_SIZE),
+      paginationError: true,
+      loadingMore: false,
+    });
+
+    await useStore.getState().loadMore();
+    expect(useStore.getState()).toMatchObject({
+      transactions: txs,
+      paginationError: false,
+      hasMore: false,
+    });
+    consoleSpy.mockRestore();
+  });
 });
 
 describe('transactionStore.refresh', () => {

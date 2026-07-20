@@ -30,6 +30,7 @@ export function AddTransactionSheet(props: AddTransactionSheetProps): React.Reac
       onOpenChange={(open) => {
         if (!open) props.onClose();
       }}
+      onCloseComplete={state.handleCloseComplete}
       title={Strings.addTxTitle}
       size="lg"
       scrollable
@@ -48,6 +49,7 @@ export function AddTransactionSheet(props: AddTransactionSheetProps): React.Reac
     >
       {state.shouldRenderInner ? (
         <AddTransactionSheetInner
+          key={state.sessionId}
           visible={props.visible && state.readyToOpen}
           onClose={props.onClose}
         />
