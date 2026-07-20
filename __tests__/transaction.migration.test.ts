@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { MIGRATIONS } from '@/database/migrations';
 import { migration004 } from '@/database/migrations/004_create_transactions';
 import { migration005 } from '@/database/migrations/005_add_transaction_native_amounts';
+import { migration018 } from '@/database/migrations/018_add_transaction_revolving_delta';
 
 let db: ReturnType<typeof Database>;
 
@@ -98,5 +99,52 @@ describe('migration005 — to_amount and minimum_payment_snapshot columns', () =
         )
         .run(now, now),
     ).not.toThrow();
+  });
+});
+
+describe('migration018 — exact revolving balance delta', () => {
+  it('adds the nullable revolving_balance_delta column', () => {
+    const cols = db.prepare("PRAGMA table_info('transactions')").all() as { name: string }[];
+
+    expect(cols.map((column) => column.name)).toContain('revolving_balance_delta');
+  });
+
+  it('has version 18', () => {
+    expect(migration018.version).toBe(18);
+  });
+
+  it('leaves legacy payments null when their exact capped delta cannot be reconstructed', () => {
+    const legacyDb = new Database(':memory:');
+    legacyDb.exec(
+      MIGRATIONS.filter((migration) => migration.version < 18)
+        .map((migration) => migration.up)
+        .join('\n'),
+    );
+    const now = new Date().toISOString();
+    legacyDb
+      .prepare(
+        `INSERT INTO accounts (id,name,type,currency,opening_balance,current_balance,
+         interest_tracking,is_archived,sort_order,created_at,updated_at)
+         VALUES ('asset','Asset','bank','EGP',1000,1000,0,0,0,?,?),
+                ('card','Card','credit_card','EGP',0,300,0,0,1,?,?)`,
+      )
+      .run(now, now, now, now);
+    legacyDb
+      .prepare(
+        `INSERT INTO transactions
+         (id,type,amount,currency,egp_amount,to_amount,minimum_payment_snapshot,
+          account_id,to_account_id,transaction_date,transaction_time,created_at,updated_at)
+         VALUES ('payment','cc_payment',200,'EGP',200,200,50,
+                 'asset','card','2026-01-01','12:00:00',?,?)`,
+      )
+      .run(now, now);
+
+    legacyDb.exec(migration018.up);
+
+    const row = legacyDb
+      .prepare('SELECT revolving_balance_delta FROM transactions WHERE id = ?')
+      .get('payment') as { revolving_balance_delta: number | null };
+    expect(row.revolving_balance_delta).toBeNull();
+    legacyDb.close();
   });
 });

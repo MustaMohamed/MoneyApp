@@ -683,6 +683,69 @@ describe('Case E — reversal symmetry (delete restores all balances)', () => {
 });
 
 describe('credit-card ledger policy', () => {
+  it('rejects deleting a card expense after a later payment consumed its liability', async () => {
+    realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_cc'").run();
+    const expense = await repo.add({
+      ...baseInput,
+      amount: 100,
+      egp_amount: 100,
+      account_id: 'acc_cc',
+    });
+    await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      to_amount: 100,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    await expect(repo.delete(expense.id)).rejects.toBeInstanceOf(TransactionBalanceError);
+    expect(accountBalance('acc_cc')).toBe(0);
+    expect(realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(expense.id)).toEqual({
+      amount: 100,
+    });
+  });
+
+  it('rejects reducing a card expense after a later payment consumed its liability', async () => {
+    realDb.prepare("UPDATE accounts SET current_balance = 0 WHERE id = 'acc_cc'").run();
+    const expense = await repo.add({
+      ...baseInput,
+      amount: 100,
+      egp_amount: 100,
+      account_id: 'acc_cc',
+    });
+    await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 100,
+      currency: Currency.EGP,
+      egp_amount: 100,
+      to_amount: 100,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    await expect(
+      repo.update(expense.id, {
+        amount: 50,
+        currency: Currency.EGP,
+        egp_amount: 50,
+        category_id: 'cat_food',
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      }),
+    ).rejects.toBeInstanceOf(TransactionBalanceError);
+    expect(accountBalance('acc_cc')).toBe(0);
+    expect(realDb.prepare('SELECT amount FROM transactions WHERE id = ?').get(expense.id)).toEqual({
+      amount: 100,
+    });
+  });
+
   it('rejects a destination account on an ordinary transaction before any write', async () => {
     const transactionCount = transactionRowCount();
     const bankBalance = accountBalance('acc1');
@@ -810,6 +873,37 @@ describe('credit-card ledger policy', () => {
     } finally {
       mocked.runAsync.mockImplementation(originalRunAsync);
     }
+  });
+});
+
+describe('credit-card revolving balance reversals', () => {
+  it('restores the exact revolving amount when a payment reduced it to zero', async () => {
+    realDb
+      .prepare(
+        "UPDATE accounts SET current_balance = 1000, revolving_balance = 30, minimum_payment = 100 WHERE id = 'acc_cc'",
+      )
+      .run();
+    const payment = await repo.add({
+      type: TransactionType.CCPayment,
+      amount: 150,
+      currency: Currency.EGP,
+      egp_amount: 150,
+      to_amount: 150,
+      account_id: 'acc1',
+      to_account_id: 'acc_cc',
+      transaction_date: '2026-05-01',
+      transaction_time: '10:00:00',
+    });
+
+    expect(
+      realDb.prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc'").get(),
+    ).toEqual({ revolving_balance: 0 });
+
+    await repo.delete(payment.id);
+
+    expect(
+      realDb.prepare("SELECT revolving_balance FROM accounts WHERE id = 'acc_cc'").get(),
+    ).toEqual({ revolving_balance: 30 });
   });
 });
 

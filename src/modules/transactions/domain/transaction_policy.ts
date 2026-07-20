@@ -29,8 +29,15 @@ export interface TransactionPolicyCommand {
   egpAmount: number;
   toAmount: number | null;
   minimumPaymentSnapshot: number | null;
+  /** Exact previously-applied delta; supplied only when reversing a persisted payment. */
+  revolvingBalanceDelta?: number;
   source: LedgerAccountSnapshot;
   destination?: LedgerAccountSnapshot;
+}
+
+export interface TransactionMutationEffect {
+  deltas: AccountDelta[];
+  revolvingBalanceDelta: number | null;
 }
 
 export type TransactionPolicyIssueCode =
@@ -43,7 +50,9 @@ export type TransactionPolicyIssueCode =
   | 'cc_payment_requires_asset_source'
   | 'cc_payment_requires_card_destination'
   | 'card_credit_exceeds_liability'
-  | 'cc_payment_exceeds_liability';
+  | 'cc_payment_exceeds_liability'
+  | 'card_balance_would_be_negative'
+  | 'card_revolving_balance_would_be_negative';
 
 export interface TransactionPolicyIssue {
   code: TransactionPolicyIssueCode;
@@ -167,7 +176,9 @@ export function validateTransactionPolicy(
   return issues;
 }
 
-function resolveUncheckedCreateDeltas(command: TransactionPolicyCommand): AccountDelta[] {
+function resolveUncheckedCreateEffect(
+  command: TransactionPolicyCommand,
+): TransactionMutationEffect {
   const deltas: AccountDelta[] = [
     {
       accountId: command.source.id,
@@ -190,23 +201,40 @@ function resolveUncheckedCreateDeltas(command: TransactionPolicyCommand): Accoun
     const destination = command.destination!;
     const destinationAmount = normalizeMoney(command.toAmount!);
     const minimumPayment = normalizeMoney(command.minimumPaymentSnapshot ?? 0);
-    const revolvingReduction = Math.max(0, destinationAmount - minimumPayment);
-    const availableRevolving = Math.max(0, destination.revolvingBalance ?? 0);
+    const calculatedDelta = normalizeMoney(
+      -Math.min(
+        Math.max(0, destinationAmount - minimumPayment),
+        Math.max(0, destination.revolvingBalance ?? 0),
+      ),
+    );
+    const revolvingBalanceDelta =
+      command.revolvingBalanceDelta === undefined
+        ? calculatedDelta
+        : normalizeMoney(command.revolvingBalanceDelta);
 
     deltas.push({
       accountId: destination.id,
       currentBalance: -destinationAmount,
-      revolvingBalance: normalizeMoney(-Math.min(revolvingReduction, availableRevolving)),
+      revolvingBalance: revolvingBalanceDelta,
     });
+
+    return {
+      deltas: mergeAccountDeltas(deltas),
+      revolvingBalanceDelta,
+    };
   }
 
-  return mergeAccountDeltas(deltas);
+  return { deltas: mergeAccountDeltas(deltas), revolvingBalanceDelta: null };
+}
+
+export function resolveCreateEffect(command: TransactionPolicyCommand): TransactionMutationEffect {
+  const issues = validateTransactionPolicy(command);
+  if (issues.length > 0) throw new TransactionPolicyError(issues);
+  return resolveUncheckedCreateEffect(command);
 }
 
 export function resolveCreateDeltas(command: TransactionPolicyCommand): AccountDelta[] {
-  const issues = validateTransactionPolicy(command);
-  if (issues.length > 0) throw new TransactionPolicyError(issues);
-  return resolveUncheckedCreateDeltas(command);
+  return resolveCreateEffect(command).deltas;
 }
 
 export function invertAccountDeltas(deltas: readonly AccountDelta[]): AccountDelta[] {
@@ -250,15 +278,52 @@ function applyDeltasToSnapshot(
   };
 }
 
+function validateResultingCardBalances(
+  command: TransactionPolicyCommand,
+  deltas: readonly AccountDelta[],
+): TransactionPolicyIssue[] {
+  const snapshots = [command.source, command.destination].filter(
+    (snapshot): snapshot is LedgerAccountSnapshot => snapshot !== undefined,
+  );
+  const issues: TransactionPolicyIssue[] = [];
+
+  for (const snapshot of snapshots) {
+    if (!isCreditCard(snapshot.type)) continue;
+    const result = applyDeltasToSnapshot(snapshot, deltas);
+    if (roundMoney(result.currentBalance) < 0) {
+      issues.push({ code: 'card_balance_would_be_negative' });
+    }
+    if (result.revolvingBalance !== null && roundMoney(result.revolvingBalance) < 0) {
+      issues.push({ code: 'card_revolving_balance_would_be_negative' });
+    }
+  }
+
+  return issues;
+}
+
+function resolveUncheckedDeleteDeltas(command: TransactionPolicyCommand): AccountDelta[] {
+  return invertAccountDeltas(resolveUncheckedCreateEffect(command).deltas);
+}
+
 export function resolveDeleteDeltas(command: TransactionPolicyCommand): AccountDelta[] {
-  return invertAccountDeltas(resolveUncheckedCreateDeltas(command));
+  const deltas = resolveUncheckedDeleteDeltas(command);
+  const issues = validateResultingCardBalances(command, deltas);
+  if (issues.length > 0) throw new TransactionPolicyError(issues);
+  return deltas;
 }
 
 export function resolveUpdateDeltas(
   oldCommand: TransactionPolicyCommand,
   newCommand: TransactionPolicyCommand,
 ): AccountDelta[] {
-  const reversal = resolveDeleteDeltas(oldCommand);
+  return resolveUpdateEffect(oldCommand, newCommand).deltas;
+}
+
+export function resolveUpdateEffect(
+  oldCommand: TransactionPolicyCommand,
+  newCommand: TransactionPolicyCommand,
+): TransactionMutationEffect {
+  const reversal = resolveUncheckedDeleteDeltas(oldCommand);
   const restoredCommand: TransactionPolicyCommand = {
     ...newCommand,
     source: applyDeltasToSnapshot(newCommand.source, reversal),
@@ -267,7 +332,11 @@ export function resolveUpdateDeltas(
         ? undefined
         : applyDeltasToSnapshot(newCommand.destination, reversal),
   };
-  return mergeAccountDeltas(reversal, resolveCreateDeltas(restoredCommand));
+  const replacement = resolveCreateEffect(restoredCommand);
+  const deltas = mergeAccountDeltas(reversal, replacement.deltas);
+  const issues = validateResultingCardBalances(newCommand, deltas);
+  if (issues.length > 0) throw new TransactionPolicyError(issues);
+  return { deltas, revolvingBalanceDelta: replacement.revolvingBalanceDelta };
 }
 
 export function resolveReportingEffect(

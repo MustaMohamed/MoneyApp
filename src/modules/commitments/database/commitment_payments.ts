@@ -1,5 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { CommitmentPaymentStatus } from '@/constants/enums';
 import { applyAccountDelta } from '@/modules/accounts/database/accounts';
 import { insertTransactionRow } from '@/modules/transactions/database/transactions';
 import type { AccountDelta } from '@/modules/transactions/domain/transaction_policy';
@@ -220,7 +221,9 @@ export async function markCommitmentAsPaid(
         exchange_rate_snapshot = ?,
         notes = ?,
         updated_at = ?
-       WHERE id = ?`,
+       WHERE id = ?
+         AND status <> 'paid'
+         AND transaction_id IS NULL`,
       [
         details.paid_date,
         details.amount_paid,
@@ -231,7 +234,14 @@ export async function markCommitmentAsPaid(
         paymentId,
       ],
     );
-    if (paymentResult.changes !== 1) throw new Error(`Commitment payment not found: ${paymentId}`);
+    if (paymentResult.changes !== 1) {
+      const existing = await getPaymentById(db, paymentId);
+      if (existing?.status === CommitmentPaymentStatus.Paid && existing.transaction_id !== null) {
+        return;
+      }
+      if (!existing) throw new Error(`Commitment payment not found: ${paymentId}`);
+      throw new Error(`Commitment payment cannot be marked as paid: ${paymentId}`);
+    }
 
     // 2. Insert the transaction row
     if ((await insertTransactionRow(db, tx)) !== 1) {

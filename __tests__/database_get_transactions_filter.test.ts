@@ -104,6 +104,7 @@ async function insert(overrides: Partial<Transaction> = {}) {
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
+    revolving_balance_delta: overrides.revolving_balance_delta ?? null,
   };
   await insertTransactionRow(mockDb, tx);
   return tx;

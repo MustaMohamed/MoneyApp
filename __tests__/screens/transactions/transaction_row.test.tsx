@@ -44,6 +44,7 @@ function transaction(commitmentPaymentId: string | null): Transaction {
     exchange_rate: null,
     to_amount: null,
     minimum_payment_snapshot: null,
+    revolving_balance_delta: null,
     account_id: 'account',
     to_account_id: null,
     category_id: 'category',

@@ -21,6 +21,7 @@ const mockTxExpense: Transaction = {
   to_amount: null,
   exchange_rate: null,
   minimum_payment_snapshot: null,
+  revolving_balance_delta: null,
   account_id: 'a1',
   to_account_id: null,
   category_id: 'c1',

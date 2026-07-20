@@ -78,8 +78,8 @@ beforeAll(() => {
 
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
     const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    realDb.prepare(sql).run(...(params as never[]));
-    return { changes: 1, lastInsertRowId: 1 };
+    const result = realDb.prepare(sql).run(...(params as never[]));
+    return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
 
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
@@ -152,6 +152,7 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
+    revolving_balance_delta: overrides.revolving_balance_delta ?? null,
   };
 }
 
@@ -542,6 +543,41 @@ describe('updatePaymentStatus', () => {
 });
 
 describe('markCommitmentAsPaid', () => {
+  it('does not post the same payment twice when a completed save is retried', async () => {
+    const payment = makePayment({ id: 'pay-idempotent', amount_due: 200 });
+    await addPayments(mockDb, [payment]);
+    const details = {
+      amount_paid: 200,
+      account_id: 'acc1',
+      paid_date: '2026-05-02',
+    };
+
+    await markCommitmentAsPaid(
+      mockDb,
+      payment.id,
+      details,
+      makeTx({ id: 'tx-first', commitment_payment_id: payment.id }),
+      { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
+    );
+    await markCommitmentAsPaid(
+      mockDb,
+      payment.id,
+      details,
+      makeTx({ id: 'tx-retry', commitment_payment_id: payment.id }),
+      { accountId: 'acc1', currentBalance: -200, revolvingBalance: 0 },
+    );
+
+    expect(realDb.prepare('SELECT COUNT(*) AS count FROM transactions').get()).toEqual({
+      count: 1,
+    });
+    expect(realDb.prepare("SELECT current_balance FROM accounts WHERE id = 'acc1'").get()).toEqual({
+      current_balance: 4800,
+    });
+    expect(
+      realDb.prepare('SELECT transaction_id FROM commitment_payments WHERE id = ?').get(payment.id),
+    ).toEqual({ transaction_id: 'tx-first' });
+  });
+
   it('marks payment as paid, inserts transaction, and deducts balance (same currency EGP)', async () => {
     const payment = makePayment({
       id: 'pay-paid-egp',

@@ -36,6 +36,12 @@ export interface Transaction {
    * null for non-cc_payment types.
    */
   minimum_payment_snapshot: number | null;
+  /**
+   * Exact signed change applied to the destination card's revolving balance.
+   * Stored for cc_payment reversal because the original cap cannot be reconstructed later.
+   * null for non-cc_payment types.
+   */
+  revolving_balance_delta: number | null;
   /** Primary account: debit source for expense/transfer/cc_payment, credit target for income. */
   account_id: string;
   /** Transfer destination or CC account being paid. */

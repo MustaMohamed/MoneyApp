@@ -59,6 +59,7 @@ function makeTx(): Transaction {
     exchange_rate: null,
     to_amount: null,
     minimum_payment_snapshot: null,
+    revolving_balance_delta: null,
     account_id: 'acc_asset',
     to_account_id: null,
     category_id: 'cat_food',
@@ -94,6 +95,7 @@ describe('updateTransactionRow', () => {
           transaction_time: '09:30:00',
         },
         75,
+        -25,
         '2026-05-02T09:30:00.000Z',
       ),
     ).resolves.toBe(1);
@@ -104,6 +106,7 @@ describe('updateTransactionRow', () => {
       category_id: 'cat_groceries',
       note: 'Updated',
       minimum_payment_snapshot: 75,
+      revolving_balance_delta: -25,
       account_id: 'acc_asset',
     });
     expect(
@@ -127,6 +130,7 @@ describe('updateTransactionRow', () => {
           transaction_date: '2026-05-02',
           transaction_time: '09:30:00',
         },
+        null,
         null,
         NOW,
       ),

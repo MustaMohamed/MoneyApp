@@ -159,7 +159,11 @@ export default function TransactionDetailScreen(): React.ReactElement {
             <NoteCard note={state.tx.note} />
 
             {state.isCommitmentOwned ? (
-              <ActionRow onViewCommitment={openCommitment} />
+              <ActionRow
+                onViewCommitment={() => {
+                  void openCommitment();
+                }}
+              />
             ) : (
               <ActionRow onEdit={handleEdit} onDelete={openDeleteConfirm} />
             )}

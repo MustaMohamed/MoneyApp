@@ -78,11 +78,11 @@ export async function insertTransactionRow(db: SQLiteDatabase, tx: Transaction):
   const result = await db.runAsync(
     `INSERT INTO transactions (
       id, type, amount, currency, egp_amount, exchange_rate,
-      to_amount, minimum_payment_snapshot,
+      to_amount, minimum_payment_snapshot, revolving_balance_delta,
       account_id, to_account_id, category_id, budget_id, note,
       transaction_date, transaction_time, commitment_payment_id,
       installment_id, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       tx.id,
       tx.type,
@@ -92,6 +92,7 @@ export async function insertTransactionRow(db: SQLiteDatabase, tx: Transaction):
       tx.exchange_rate,
       tx.to_amount,
       tx.minimum_payment_snapshot,
+      tx.revolving_balance_delta,
       tx.account_id,
       tx.to_account_id,
       tx.category_id,
@@ -315,12 +316,13 @@ export async function updateTransactionRow(
   id: string,
   updates: UpdateTransactionInput,
   minimumPaymentSnapshot: number | null,
+  revolvingBalanceDelta: number | null,
   updatedAt: string,
 ): Promise<number> {
   const result = await db.runAsync(
     `UPDATE transactions
        SET amount = ?, currency = ?, egp_amount = ?, exchange_rate = ?,
-           to_amount = ?, minimum_payment_snapshot = ?,
+           to_amount = ?, minimum_payment_snapshot = ?, revolving_balance_delta = ?,
            category_id = ?, budget_id = ?, note = ?, transaction_date = ?, transaction_time = ?,
            updated_at = ?
      WHERE id = ?`,
@@ -331,6 +333,7 @@ export async function updateTransactionRow(
       updates.exchange_rate ?? null,
       updates.to_amount ?? null,
       minimumPaymentSnapshot,
+      revolvingBalanceDelta,
       updates.category_id ?? null,
       updates.budget_id ?? null,
       updates.note ?? null,

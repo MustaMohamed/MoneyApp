@@ -7,6 +7,8 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
+import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatTime12h } from '@/utils/format_time_12h';
@@ -203,9 +205,21 @@ export function useTransactionDetail(id: string) {
     }
   }, [tx, isCommitmentOwned, deleteTransaction, setDeleting, setConfirmVisible]);
 
-  const openCommitment = useCallback(() => {
+  const openCommitment = useCallback(async () => {
     if (!commitmentPaymentId) return;
-    router.push(getCommitmentPaymentRoute(commitmentPaymentId));
+    try {
+      const payment = await commitmentRepository.getPaymentById(commitmentPaymentId);
+      if (!payment) {
+        Alert.alert(Strings.commitmentsDetailNotFound);
+        return;
+      }
+      const { loadCommitments, setSelectedMonth } = useCommitmentStore.getState();
+      await Promise.all([loadCommitments(), setSelectedMonth(payment.due_date.slice(0, 7))]);
+      router.push(getCommitmentPaymentRoute(commitmentPaymentId));
+    } catch (error) {
+      console.error('[transactionDetail] open commitment failed', error);
+      Alert.alert(Strings.commitmentsDetailNotFound);
+    }
   }, [commitmentPaymentId]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);

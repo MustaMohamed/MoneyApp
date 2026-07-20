@@ -24,10 +24,10 @@ import {
 } from '../database/transactions';
 import { resolveTransactionAmounts, TransactionAmountError } from '../domain/transaction_amounts';
 import {
-  resolveCreateDeltas,
+  resolveCreateEffect,
   resolveDeleteDeltas,
   resolveReportingClass,
-  resolveUpdateDeltas,
+  resolveUpdateEffect,
   TransactionPolicyError,
   type LedgerAccountSnapshot,
   type TransactionPolicyCommand,
@@ -90,10 +90,15 @@ function toAccountSnapshot(account: Account): LedgerAccountSnapshot {
 }
 
 function isBalanceIssue(code: string): boolean {
-  return code === 'card_credit_exceeds_liability' || code === 'cc_payment_exceeds_liability';
+  return (
+    code === 'card_credit_exceeds_liability' ||
+    code === 'cc_payment_exceeds_liability' ||
+    code === 'card_balance_would_be_negative' ||
+    code === 'card_revolving_balance_would_be_negative'
+  );
 }
 
-function resolvePolicyDeltas(resolve: () => ReturnType<typeof resolveCreateDeltas>) {
+function resolvePolicy<T>(resolve: () => T): T {
   try {
     return resolve();
   } catch (error) {
@@ -217,6 +222,7 @@ function toPolicyCommand(input: {
   egpAmount: number;
   toAmount: number | null;
   minimumPaymentSnapshot: number | null;
+  revolvingBalanceDelta?: number;
   source: Account;
   destination?: Account;
 }): TransactionPolicyCommand {
@@ -226,6 +232,7 @@ function toPolicyCommand(input: {
     egpAmount: input.egpAmount,
     toAmount: input.toAmount,
     minimumPaymentSnapshot: input.minimumPaymentSnapshot,
+    revolvingBalanceDelta: input.revolvingBalanceDelta,
     source: toAccountSnapshot(input.source),
     destination: input.destination ? toAccountSnapshot(input.destination) : undefined,
   };
@@ -294,7 +301,7 @@ export class TransactionRepository implements ITransactionRepository {
       source,
       destination,
     });
-    const deltas = resolvePolicyDeltas(() => resolveCreateDeltas(policyCommand));
+    const effect = resolvePolicy(() => resolveCreateEffect(policyCommand));
 
     const transaction: Transaction = {
       id: String(uuid.v4()),
@@ -305,6 +312,7 @@ export class TransactionRepository implements ITransactionRepository {
       exchange_rate: exchangeRate,
       to_amount: toAmount,
       minimum_payment_snapshot: minimumPaymentSnapshot,
+      revolving_balance_delta: effect.revolvingBalanceDelta,
       account_id: source.id,
       to_account_id: destination?.id ?? null,
       category_id: assignment.categoryId,
@@ -322,7 +330,7 @@ export class TransactionRepository implements ITransactionRepository {
       if ((await insertTransactionRow(db, transaction)) !== 1) {
         throw new TransactionValidationError('Transaction was not inserted');
       }
-      for (const delta of deltas) await applyAccountDelta(db, delta, now);
+      for (const delta of effect.deltas) await applyAccountDelta(db, delta, now);
     });
     return transaction;
   }
@@ -341,10 +349,11 @@ export class TransactionRepository implements ITransactionRepository {
       egpAmount: existing.egp_amount,
       toAmount: existing.to_amount,
       minimumPaymentSnapshot: existing.minimum_payment_snapshot,
+      revolvingBalanceDelta: existing.revolving_balance_delta ?? undefined,
       source,
       destination,
     });
-    const deltas = resolveDeleteDeltas(command);
+    const deltas = resolvePolicy(() => resolveDeleteDeltas(command));
     const now = new Date().toISOString();
 
     await db.withTransactionAsync(async () => {
@@ -391,6 +400,7 @@ export class TransactionRepository implements ITransactionRepository {
       egpAmount: existing.egp_amount,
       toAmount: existing.to_amount,
       minimumPaymentSnapshot: existing.minimum_payment_snapshot,
+      revolvingBalanceDelta: existing.revolving_balance_delta ?? undefined,
       source,
       destination,
     });
@@ -403,7 +413,7 @@ export class TransactionRepository implements ITransactionRepository {
       source,
       destination,
     });
-    const deltas = resolvePolicyDeltas(() => resolveUpdateDeltas(oldCommand, newCommand));
+    const effect = resolvePolicy(() => resolveUpdateEffect(oldCommand, newCommand));
     const now = new Date().toISOString();
 
     await db.withTransactionAsync(async () => {
@@ -412,10 +422,11 @@ export class TransactionRepository implements ITransactionRepository {
         id,
         { ...data, budget_id: assignment.budgetId, category_id: assignment.categoryId },
         minimumPaymentSnapshot,
+        effect.revolvingBalanceDelta,
         now,
       );
       if (changes !== 1) throw new TransactionNotFoundError();
-      for (const delta of deltas) await applyAccountDelta(db, delta, now);
+      for (const delta of effect.deltas) await applyAccountDelta(db, delta, now);
     });
   }
 }

@@ -181,6 +181,7 @@ export class CommitmentRepository implements ICommitmentRepository {
       exchange_rate: amounts.exchangeRate,
       to_amount: null,
       minimum_payment_snapshot: null,
+      revolving_balance_delta: null,
       account_id: details.account_id,
       to_account_id: null,
       category_id: commitment.category_id,
