@@ -33,6 +33,7 @@ export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = { key: string; data: Transaction[] };
 export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals';
 type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
+type ScrollPosition = { queryKey: string | null; offset: number };
 
 export function useTransactions() {
   const router = useRouter();
@@ -42,7 +43,7 @@ export function useTransactions() {
   const scrollRestorePendingRef = useRef(false);
   const scrollRestoreFrameRef = useRef<ReturnType<typeof requestAnimationFrame> | null>(null);
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
-  const currentScrollOffsetRef = useRef(0);
+  const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
 
   const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
     useShallow((s) => ({
@@ -164,7 +165,10 @@ export function useTransactions() {
     const scrollState = useTransactionsState.getState();
     scrollRestorePendingRef.current = false;
     if (scrollState.scrollQueryKey !== activeKey || scrollState.scrollOffset <= 0) return;
-    currentScrollOffsetRef.current = scrollState.scrollOffset;
+    currentScrollPositionRef.current = {
+      queryKey: activeKey,
+      offset: scrollState.scrollOffset,
+    };
     if (scrollRestoreFrameRef.current !== null) {
       cancelAnimationFrame(scrollRestoreFrameRef.current);
     }
@@ -180,7 +184,10 @@ export function useTransactions() {
     const scrollState = useTransactionsState.getState();
     const queryChanged = scrollState.scrollQueryKey !== activeQueryKey;
     activateScrollQuery(activeQueryKey);
-    currentScrollOffsetRef.current = queryChanged ? 0 : scrollState.scrollOffset;
+    currentScrollPositionRef.current = {
+      queryKey: activeQueryKey,
+      offset: queryChanged ? 0 : scrollState.scrollOffset,
+    };
     if (queryChanged) {
       listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
     }
@@ -227,7 +234,7 @@ export function useTransactions() {
       hasFocusedRef.current = true;
       const focusQueryKey = activeQueryKeyRef.current;
       const focusTransactionState = useTransactionStore.getState();
-      const focusTransactions = focusTransactionState.transactions;
+      const focusReplacementRequestId = focusTransactionState.replacementRequestId;
       const shouldRefreshSnapshot =
         focusTransactionState.snapshotKey === focusQueryKey &&
         focusTransactionState.queryKey === focusQueryKey &&
@@ -248,7 +255,7 @@ export function useTransactions() {
           shouldRefreshSnapshot &&
           transactionState.snapshotKey === activeQueryKeyRef.current &&
           transactionState.queryKey === activeQueryKeyRef.current &&
-          transactionState.transactions === focusTransactions;
+          transactionState.replacementRequestId === focusReplacementRequestId;
         if (snapshotIsUnchanged && transactionState.status !== 'refreshing') {
           void refresh().catch((error) =>
             console.error('[transactions] focus refresh failed:', error),
@@ -266,7 +273,10 @@ export function useTransactions() {
         task.cancel();
         isFocusedRef.current = false;
         scrollRestorePendingRef.current = false;
-        setScrollOffset(activeQueryKeyRef.current, currentScrollOffsetRef.current);
+        const scrollPosition = currentScrollPositionRef.current;
+        if (scrollPosition.queryKey === activeQueryKeyRef.current) {
+          setScrollOffset(scrollPosition.queryKey, scrollPosition.offset);
+        }
         if (scrollRestoreFrameRef.current !== null) {
           cancelAnimationFrame(scrollRestoreFrameRef.current);
           scrollRestoreFrameRef.current = null;
@@ -335,16 +345,25 @@ export function useTransactions() {
         ? 'totals'
         : 'none';
 
-  const onListScroll = useCallback((event: ScrollOffsetEvent) => {
-    currentScrollOffsetRef.current = Math.max(0, event.nativeEvent.contentOffset.y);
-  }, []);
+  const onListScroll = useCallback(
+    (event: ScrollOffsetEvent) => {
+      currentScrollPositionRef.current = {
+        queryKey: activeQueryKey,
+        offset: Math.max(0, event.nativeEvent.contentOffset.y),
+      };
+    },
+    [activeQueryKey],
+  );
 
   const onListScrollEnd = useCallback(
     (event: ScrollOffsetEvent) => {
       onListScroll(event);
-      setScrollOffset(activeQueryKey, currentScrollOffsetRef.current);
+      const scrollPosition = currentScrollPositionRef.current;
+      if (scrollPosition.queryKey === activeQueryKeyRef.current) {
+        setScrollOffset(scrollPosition.queryKey, scrollPosition.offset);
+      }
     },
-    [activeQueryKey, onListScroll, setScrollOffset],
+    [onListScroll, setScrollOffset],
   );
 
   const retryTotals = useCallback(

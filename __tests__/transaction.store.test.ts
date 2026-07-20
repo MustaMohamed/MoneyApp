@@ -210,6 +210,18 @@ describe('transactionStore.setQuery', () => {
 });
 
 describe('transactionStore.loadMore', () => {
+  it('does not advance the replacement request id while appending a page', async () => {
+    const txs = Array.from({ length: PAGE_SIZE + 1 }, (_, i) => makeTransaction({ id: `t${i}` }));
+    const useStore = createTransactionStore(makeRepo(txs));
+
+    await useStore.getState().setQuery({});
+    const replacementRequestId = useStore.getState().replacementRequestId;
+
+    expect(replacementRequestId).toBeGreaterThan(0);
+    await useStore.getState().loadMore();
+    expect(useStore.getState().replacementRequestId).toBe(replacementRequestId);
+  });
+
   it('appends the next page and bumps the offset', async () => {
     const txs = Array.from({ length: PAGE_SIZE + 5 }, (_, i) => makeTransaction({ id: `t${i}` }));
     const repo = makeRepo(txs);
@@ -320,6 +332,20 @@ describe('transactionStore.loadMore', () => {
 });
 
 describe('transactionStore.refresh', () => {
+  it('advances the replacement request id when a refresh fails', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'stable' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    const replacementRequestId = useStore.getState().replacementRequestId;
+    repo.getAll = jest.fn().mockRejectedValue(new Error('refresh failed'));
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(useStore.getState().refresh()).rejects.toThrow('refresh failed');
+
+    expect(useStore.getState().replacementRequestId).toBe(replacementRequestId + 1);
+    consoleSpy.mockRestore();
+  });
+
   it('preserves a ready snapshot while refresh is in flight', async () => {
     const repo = makeRepo([makeTransaction({ id: 'before' })]);
     const useStore = createTransactionStore(repo);

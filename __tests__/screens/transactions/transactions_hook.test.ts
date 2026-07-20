@@ -145,6 +145,7 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
     snapshotKey: getTransactionQueryKey(JULY_QUERY),
     status: 'empty',
     mutationVersion: 0,
+    replacementRequestId: 1,
     setQuery,
     loadMore: jest.fn().mockResolvedValue(undefined),
     refresh,
@@ -503,6 +504,7 @@ describe('useTransactions query ownership', () => {
     transactionStoreState = {
       ...transactionStoreState,
       transactions: [{ ...TRANSACTION, note: 'new snapshot' }],
+      replacementRequestId: 2,
     };
     act(() => {
       const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', true);
@@ -518,6 +520,55 @@ describe('useTransactions query ownership', () => {
 
     expect(refresh).not.toHaveBeenCalled();
     expect(getPeriodTotals).not.toHaveBeenCalled();
+  });
+
+  it('still revalidates after pagination changes the rows without replacing the snapshot', async () => {
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION],
+      status: 'ready',
+      replacementRequestId: 3,
+    };
+    renderHook(() => useTransactions());
+
+    act(() => {
+      mockFocusEffectCallback?.();
+    });
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION, { ...TRANSACTION, id: 'tx-page-2' }],
+    };
+
+    await act(async () => {
+      await mockInteractionTasks[0]?.callback();
+    });
+
+    expect(refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not repeat a failed replacement while focus work is pending', async () => {
+    transactionStoreState = {
+      ...transactionStoreState,
+      transactions: [TRANSACTION],
+      status: 'ready',
+      replacementRequestId: 4,
+    };
+    renderHook(() => useTransactions());
+
+    act(() => {
+      mockFocusEffectCallback?.();
+    });
+    transactionStoreState = {
+      ...transactionStoreState,
+      status: 'refreshErrorWithData',
+      replacementRequestId: 5,
+    };
+
+    await act(async () => {
+      await mockInteractionTasks[0]?.callback();
+    });
+
+    expect(refresh).not.toHaveBeenCalled();
   });
 
   it('cancels pending focus revalidation when the screen blurs', async () => {
@@ -577,6 +628,30 @@ describe('useTransactions query ownership', () => {
     expect(useTransactionsState.getState().scrollOffset).toBe(284);
     expect(listener).toHaveBeenCalledTimes(1);
     unsubscribe();
+  });
+
+  it('does not persist a late scroll event under a newly selected query', () => {
+    setupStores({ transactions: [TRANSACTION], status: 'ready' });
+    const { result } = renderHook(() => useTransactions());
+    let cleanup: void | (() => void) = undefined;
+    act(() => {
+      cleanup = mockFocusEffectCallback?.();
+    });
+    const staleScrollHandler = result.current.onListScroll;
+
+    act(() => {
+      staleScrollHandler({ nativeEvent: { contentOffset: { y: 284 } } });
+      result.current.setSelectedMonth('2026-06');
+    });
+    act(() => {
+      staleScrollHandler({ nativeEvent: { contentOffset: { y: 420 } } });
+      cleanup?.();
+    });
+
+    expect(useTransactionsState.getState()).toMatchObject({
+      scrollQueryKey: getTransactionQueryKey(JUNE_QUERY),
+      scrollOffset: 0,
+    });
   });
 
   it('waits for the owning snapshot before restoring its scroll offset', async () => {

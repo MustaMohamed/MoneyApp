@@ -1,4 +1,4 @@
-import { render } from '@testing-library/react-native';
+import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { Currency, TransactionType } from '@/constants/enums';
@@ -256,15 +256,24 @@ describe('TransactionsScreen', () => {
   });
 
   it('tracks list movement separately from its persistence boundaries', () => {
-    mockUseTransactions();
+    const hook = mockUseTransactions();
     const { getByTestId } = render(<TransactionsScreen />);
+    const event = {
+      nativeEvent: {
+        contentOffset: { x: 0, y: 100 },
+        contentSize: { height: 1_000, width: 320 },
+        layoutMeasurement: { height: 640, width: 320 },
+      },
+    };
 
-    expect(getByTestId('transactions-list')).toHaveProp('onScroll', expect.any(Function));
-    expect(getByTestId('transactions-list')).toHaveProp('onScrollEndDrag', expect.any(Function));
-    expect(getByTestId('transactions-list')).toHaveProp(
-      'onMomentumScrollEnd',
-      expect.any(Function),
-    );
+    fireEvent.scroll(getByTestId('transactions-list'), event);
+    fireEvent(getByTestId('transactions-list'), 'scrollEndDrag', event);
+    fireEvent(getByTestId('transactions-list'), 'momentumScrollEnd', event);
+
+    expect(hook.onListScroll).toHaveBeenCalledWith(event);
+    expect(hook.onListScrollEnd).toHaveBeenCalledTimes(2);
+    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(1, event);
+    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(2, event);
     expect(getByTestId('transactions-list')).toHaveProp('scrollEventThrottle', 100);
   });
 

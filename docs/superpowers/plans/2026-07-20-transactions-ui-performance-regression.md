@@ -89,3 +89,6 @@ Confirm there are no financial calculation changes, no new dependencies, no per-
 - [x] Track live list movement in a nonreactive ref while keeping Zustand writes at end/blur boundaries.
 - [x] Add race, burst-scroll, and rendered-list wiring regression tests.
 - [x] Re-run CI parity before the requested remediation push.
+- [x] Replace row-array identity with an explicit replacement request ID that pagination does not advance.
+- [x] Bind in-flight scroll offsets to their owning query and reject stale query events on end/blur.
+- [x] Dispatch rendered list events and assert the application callbacks receive them.
