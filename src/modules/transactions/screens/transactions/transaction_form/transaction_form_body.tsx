@@ -22,6 +22,7 @@ import { ExchangeRateRow } from './components/exchange_rate_row';
 import { TypeTabs } from './components/type_tabs';
 
 interface Props {
+  datePickerOwnerId: string;
   visible: boolean;
   locked: boolean;
   type: TransactionType;
@@ -71,6 +72,7 @@ export const TRANSACTION_FORM_CONTENT_CONTAINER_STYLE = {
 
 export function TransactionFormBody(props: Props): React.ReactElement {
   const {
+    datePickerOwnerId,
     visible,
     locked,
     type,
@@ -323,7 +325,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
           />
         ) : null}
 
-        <DateRow value={date} onChange={setDate} />
+        <DateRow ownerId={datePickerOwnerId} value={date} onChange={setDate} />
 
         {/* Note */}
         <View className="bg-default rounded-md px-3 py-3">

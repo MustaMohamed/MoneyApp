@@ -11,6 +11,7 @@ import { GoldTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 
 import { getAccountTypeIcon } from '../detail.helpers';
+import { DETAIL_TRANSFER_MIN_HEIGHT } from './detail_geometry';
 
 interface Props {
   fromAccount: Account;
@@ -90,7 +91,7 @@ export function TransferFlowCard({
   return (
     <Card
       className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5"
-      style={{ elevation: 0, shadowOpacity: 0 }}
+      style={{ minHeight: DETAIL_TRANSFER_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
     >
       <Cell
         label={Strings.detailFlowFromLabel}

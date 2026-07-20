@@ -11,9 +11,14 @@ function toPickerDate(value: string): Date {
   return new Date(`${value}T12:00:00`);
 }
 
-export function useTransactionDatePicker(value: string, onChange: (next: string) => void) {
-  const { isOpen, showAndroidPicker, draftDate } = useDatePickerSheetState(
+export function useTransactionDatePicker(
+  ownerId: string,
+  value: string,
+  onChange: (next: string) => void,
+) {
+  const { activeOwnerId, isOpen, showAndroidPicker, draftDate } = useDatePickerSheetState(
     useShallow((state) => ({
+      activeOwnerId: state.activeOwnerId,
       isOpen: state.isOpen,
       showAndroidPicker: state.showAndroidPicker,
       draftDate: state.draftDate,
@@ -24,39 +29,44 @@ export function useTransactionDatePicker(value: string, onChange: (next: string)
   const setDraftDate = useDatePickerSheetState.getState().setDraftDate;
   const closeIos = useDatePickerSheetState.getState().closeIos;
   const closeAndroid = useDatePickerSheetState.getState().closeAndroid;
-  const reset = useDatePickerSheetState.getState().reset;
+  const release = useDatePickerSheetState.getState().release;
 
-  useEffect(() => reset, [reset]);
+  useEffect(() => () => release(ownerId), [ownerId, release]);
+
+  const ownsPicker = activeOwnerId === ownerId;
 
   function open() {
-    if (Platform.OS === 'ios') openIos(value);
-    else openAndroid(value);
+    if (Platform.OS === 'ios') openIos(ownerId, value);
+    else openAndroid(ownerId, value);
   }
 
   function changeIos(_event: DateTimePickerEvent, date?: Date) {
-    if (date) setDraftDate(toLocalDateString(date));
+    if (date) setDraftDate(ownerId, toLocalDateString(date));
   }
 
   function cancelIos() {
-    closeIos();
+    closeIos(ownerId);
   }
 
   function commitIos() {
-    const nextDate = useDatePickerSheetState.getState().draftDate;
-    closeIos();
+    const pickerState = useDatePickerSheetState.getState();
+    if (pickerState.activeOwnerId !== ownerId) return;
+    const nextDate = pickerState.draftDate;
+    closeIos(ownerId);
     onChange(nextDate);
   }
 
   function changeAndroid(event: DateTimePickerEvent, date?: Date) {
-    closeAndroid();
+    if (useDatePickerSheetState.getState().activeOwnerId !== ownerId) return;
+    closeAndroid(ownerId);
     if (event.type === 'set' && date) onChange(toLocalDateString(date));
   }
 
   return {
     state: {
-      isOpen,
-      showAndroidPicker,
-      pickerDate: toPickerDate(draftDate || value),
+      isOpen: ownsPicker && isOpen,
+      showAndroidPicker: ownsPicker && showAndroidPicker,
+      pickerDate: toPickerDate(ownsPicker && draftDate ? draftDate : value),
       maximumDate: new Date(),
     },
     open,

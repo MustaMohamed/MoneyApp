@@ -80,6 +80,7 @@ beforeEach(() => {
   (budgetRepository.getById as jest.Mock).mockResolvedValue(undefined);
 
   attachMockSelectorStore(useTransactionStore as unknown as jest.Mock, () => ({
+    transactions: [],
     getById,
     deleteTransaction: jest.fn(),
   }));
@@ -144,16 +145,34 @@ describe('useTransactionDetail loading', () => {
     expect(result.current.state.tx?.note).toBe('updated');
   });
 
-  it('resolves a named budget before publishing the ready detail snapshot', async () => {
+  it('publishes the transaction before ancillary budget metadata resolves', async () => {
     const budget = { id: 'budget-1', name: 'Travel meals' };
+    const pendingBudget = deferred<typeof budget>();
     getById.mockResolvedValue({ ...linkedTransaction, budget_id: budget.id });
-    (budgetRepository.getById as jest.Mock).mockResolvedValue(budget);
+    (budgetRepository.getById as jest.Mock).mockReturnValue(pendingBudget.promise);
 
     const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(budgetRepository.getById).toHaveBeenCalledWith('budget-1');
-    expect(result.current.state.derived?.budgetLabel).toBe('Travel meals');
+    expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
+    expect(result.current.state.derived?.budgetLabel).toBe(Strings.detailBudgetUnavailable);
+
+    pendingBudget.resolve(budget);
+    await waitFor(() => expect(result.current.state.derived?.budgetLabel).toBe('Travel meals'));
+  });
+
+  it('publishes the transaction before ancillary account metadata resolves', async () => {
+    const pendingLookup = deferred<void>();
+    loadAccountLookup.mockReturnValueOnce(pendingLookup.promise);
+
+    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+
+    await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
+    expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
+
+    pendingLookup.resolve();
+    await pendingLookup.promise;
   });
 
   it('keeps a valid transaction visible when its budget metadata cannot load', async () => {

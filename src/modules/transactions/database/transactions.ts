@@ -151,6 +151,50 @@ export async function getTransactions(
   const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
   const numericSearch =
     searchParam !== null ? (parseNonNegativeDecimal(searchParam) ?? null) : null;
+  const searchProjection =
+    searchParam === null
+      ? ''
+      : `
+    CROSS JOIN (SELECT ? AS pattern, ? AS numeric_amount) search
+    LEFT JOIN accounts source_account ON source_account.id = t.account_id
+    LEFT JOIN accounts destination_account ON destination_account.id = t.to_account_id
+    LEFT JOIN categories category ON category.id = t.category_id
+    LEFT JOIN budgets budget ON budget.id = t.budget_id
+    LEFT JOIN commitment_payments payment ON payment.id = t.commitment_payment_id
+    LEFT JOIN commitments commitment ON commitment.id = payment.commitment_id`;
+  const searchPredicate =
+    searchParam === null
+      ? ''
+      : `
+      AND (
+        t.note LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR source_account.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR destination_account.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR category.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR budget.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR commitment.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR payment.notes LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR REPLACE(t.type, '_', ' ') LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR CASE t.type
+             WHEN 'cc_payment' THEN 'Credit Pay Credit Card Payment'
+             WHEN 'expense' THEN 'Expense'
+             WHEN 'income' THEN 'Income'
+             WHEN 'transfer' THEN 'Transfer'
+           END LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR (
+          t.type = 'income'
+          AND source_account.type = 'credit_card'
+          AND 'Card credit' LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        )
+        OR (
+          search.numeric_amount IS NOT NULL
+          AND (
+            t.amount = search.numeric_amount
+            OR t.to_amount = search.numeric_amount
+            OR t.egp_amount = search.numeric_amount
+          )
+        )
+      )`;
 
   const accountIds = query.accountIds ?? [];
   const categoryIds = query.categoryIds ?? [];
@@ -169,65 +213,10 @@ export async function getTransactions(
   const amountCurrency = query.amountCurrency ?? null;
 
   const sql = `
-    WITH search_input(search_text, pattern, numeric_amount) AS (
-      SELECT ?, ?, ?
-    )
     SELECT t.* FROM transactions t
-    CROSS JOIN search_input search
+    ${searchProjection}
     WHERE (? IS NULL OR t.type = ?)
-      AND (
-        search.search_text IS NULL
-        OR t.note LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        OR EXISTS (
-          SELECT 1 FROM accounts a
-          WHERE a.id IN (t.account_id, t.to_account_id)
-            AND a.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        )
-        OR EXISTS (
-          SELECT 1 FROM categories c
-          WHERE c.id = t.category_id
-            AND c.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        )
-        OR EXISTS (
-          SELECT 1 FROM budgets budget
-          WHERE budget.id = t.budget_id
-            AND budget.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        )
-        OR EXISTS (
-          SELECT 1
-          FROM commitment_payments payment
-          JOIN commitments commitment ON commitment.id = payment.commitment_id
-          WHERE payment.id = t.commitment_payment_id
-            AND (
-              commitment.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-              OR payment.notes LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-            )
-        )
-        OR REPLACE(t.type, '_', ' ') LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        OR CASE t.type
-             WHEN 'cc_payment' THEN 'Credit Pay Credit Card Payment'
-             WHEN 'expense' THEN 'Expense'
-             WHEN 'income' THEN 'Income'
-             WHEN 'transfer' THEN 'Transfer'
-           END LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        OR (
-          t.type = 'income'
-          AND EXISTS (
-            SELECT 1 FROM accounts source_account
-            WHERE source_account.id = t.account_id
-              AND source_account.type = 'credit_card'
-          )
-          AND 'Card credit' LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
-        )
-        OR (
-          search.numeric_amount IS NOT NULL
-          AND (
-            t.amount = search.numeric_amount
-            OR t.to_amount = search.numeric_amount
-            OR t.egp_amount = search.numeric_amount
-          )
-        )
-      )
+      ${searchPredicate}
       AND (
         ? = 1
         OR t.account_id    IN (${accountIn})
@@ -248,9 +237,7 @@ export async function getTransactions(
   `;
 
   return db.getAllAsync<Transaction>(sql, [
-    searchParam,
-    likePattern,
-    numericSearch,
+    ...(searchParam === null ? [] : [likePattern, numericSearch]),
     typeParam,
     typeParam,
     accountListEmpty,

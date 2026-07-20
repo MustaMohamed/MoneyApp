@@ -14,14 +14,15 @@ import { DatePickerSheet } from './date_picker_sheet';
 import { useTransactionDatePicker } from './date_picker_sheet.hook';
 
 interface Props {
+  ownerId: string;
   value: string; // YYYY-MM-DD
   onChange: (next: string) => void;
 }
 
 export const DATE_ROW_HEIGHT = ms(54);
 
-export function DateRow({ value, onChange }: Props): React.ReactElement {
-  const picker = useTransactionDatePicker(value, onChange);
+export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement {
+  const picker = useTransactionDatePicker(ownerId, value, onChange);
   const formatted = formatLongDate(value);
 
   return (

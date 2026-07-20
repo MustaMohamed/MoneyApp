@@ -336,6 +336,30 @@ describe('getTransactions — expanded search projection', () => {
       'transfer',
     ]);
   });
+
+  it('uses one joined projection without correlated probes across a sizeable history', async () => {
+    for (let index = 0; index < 600; index += 1) {
+      await insert({
+        id: `history-${index}`,
+        note: index === 599 ? 'Needle merchant' : `History row ${index}`,
+      });
+    }
+
+    const rows = await getTransactions(mockDb, {
+      search: 'needle merchant',
+      dateFrom: '2026-05-01',
+      dateTo: '2026-05-31',
+    });
+    const getAllAsync = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb
+      .getAllAsync;
+    const [sql, params] = getAllAsync.mock.calls.at(-1) as [string, unknown[]];
+    const plan = realDb.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...(params as never[])) as Array<{
+      detail: string;
+    }>;
+
+    expect(rows.map((row) => row.id)).toEqual(['history-599']);
+    expect(plan.map((step) => step.detail).join('\n')).not.toMatch(/CORRELATED SCALAR SUBQUERY/i);
+  });
 });
 
 describe('getTransactions — combined axes', () => {

@@ -69,7 +69,7 @@ describe('transaction date picker', () => {
   it('keeps iOS changes in a draft until Done is pressed', () => {
     setPlatform('ios');
     const onChange = jest.fn();
-    const screen = render(<DateRow value="2026-07-10" onChange={onChange} />);
+    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
 
     fireEvent.press(screen.getByTestId('date-row'));
     expect(screen.getByTestId('date-picker-sheet')).toBeTruthy();
@@ -91,7 +91,7 @@ describe('transaction date picker', () => {
   it('discards the iOS draft when Cancel is pressed', () => {
     setPlatform('ios');
     const onChange = jest.fn();
-    const screen = render(<DateRow value="2026-07-10" onChange={onChange} />);
+    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
 
     fireEvent.press(screen.getByTestId('date-row'));
     fireEvent(
@@ -112,7 +112,7 @@ describe('transaction date picker', () => {
   it('applies an Android selection exactly once and dismisses its native picker', () => {
     setPlatform('android');
     const onChange = jest.fn();
-    const screen = render(<DateRow value="2026-07-10" onChange={onChange} />);
+    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
 
     fireEvent.press(screen.getByTestId('date-row'));
     expect(screen.getByTestId('date-picker-android')).toBeTruthy();
@@ -131,7 +131,7 @@ describe('transaction date picker', () => {
 
   it('keeps a fixed compact trigger while the iOS sheet is open', () => {
     setPlatform('ios');
-    const screen = render(<DateRow value="2026-07-10" onChange={jest.fn()} />);
+    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
     expect(screen.getByTestId('date-row')).toHaveStyle({ height: DATE_ROW_HEIGHT });
 
     fireEvent.press(screen.getByTestId('date-row'));
@@ -145,11 +145,30 @@ describe('transaction date picker', () => {
 
   it('announces the compact date trigger as a button with its selected value', () => {
     setPlatform('ios');
-    const screen = render(<DateRow value="2026-07-10" onChange={jest.fn()} />);
+    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
     expect(screen.getByTestId('date-row')).toHaveProp('accessibilityRole', 'button');
     expect(screen.getByTestId('date-row')).toHaveProp(
       'accessibilityLabel',
       `${Strings.addTxDateLabel}: July 10, 2026`,
     );
+  });
+
+  it('keeps the active owner open when an older form owner unmounts', () => {
+    setPlatform('ios');
+    const OldAndNewOwners = ({ showOld }: { showOld: boolean }) => (
+      <>
+        {showOld ? <DateRow ownerId="add-old" value="2026-07-10" onChange={jest.fn()} /> : null}
+        <DateRow ownerId="edit-new" value="2026-07-11" onChange={jest.fn()} />
+      </>
+    );
+    const screen = render(<OldAndNewOwners showOld />);
+
+    fireEvent.press(screen.getAllByTestId('date-row')[1]);
+    expect(screen.getAllByTestId('date-picker-sheet')).toHaveLength(1);
+
+    screen.rerender(<OldAndNewOwners showOld={false} />);
+
+    expect(screen.getByTestId('date-picker-sheet')).toBeTruthy();
+    expect(useDatePickerSheetState.getState().activeOwnerId).toBe('edit-new');
   });
 });

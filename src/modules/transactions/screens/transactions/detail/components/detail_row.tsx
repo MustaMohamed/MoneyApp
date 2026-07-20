@@ -4,6 +4,8 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 
+import { DETAIL_ROW_HEIGHT } from './detail_geometry';
+
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 /**
@@ -65,6 +67,7 @@ export function DetailRow({
   return (
     <View
       className={`flex-row items-center gap-3 px-4 py-3 ${showDivider ? 'border-separator border-b' : ''}`}
+      style={{ minHeight: DETAIL_ROW_HEIGHT }}
     >
       <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
         <MaterialCommunityIcons name={icon} size={14} color="#F0EEE6" />

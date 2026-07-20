@@ -50,6 +50,7 @@ export function AddTransactionSheet(props: AddTransactionSheetProps): React.Reac
       {state.shouldRenderInner ? (
         <AddTransactionSheetInner
           key={state.sessionId}
+          sessionId={state.sessionId}
           visible={props.visible && state.readyToOpen}
           onClose={props.onClose}
         />
@@ -59,9 +60,10 @@ export function AddTransactionSheet(props: AddTransactionSheetProps): React.Reac
 }
 
 function AddTransactionSheetInner({
+  sessionId,
   visible,
   onClose,
-}: AddTransactionSheetProps): React.ReactElement {
+}: AddTransactionSheetProps & { sessionId: number }): React.ReactElement {
   const completeSave = useAddTransactionState.getState().completeSave;
   const hook = useAddTransaction(completeSave);
   const handleSaveRef = useRef(hook.handleSave);
@@ -97,6 +99,7 @@ function AddTransactionSheetInner({
     <>
       {hook.state.hasAccounts ? (
         <TransactionFormBody
+          datePickerOwnerId={`add:${sessionId}`}
           visible={visible}
           locked={false}
           type={hook.state.type}

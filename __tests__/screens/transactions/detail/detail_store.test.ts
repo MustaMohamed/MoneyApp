@@ -31,6 +31,19 @@ describe('useTxDetailStore', () => {
     expect(useTxDetailStore.getState().txId).toBe('t1');
   });
 
+  it('hydrates budget metadata only for the transaction that still owns the route', () => {
+    const first = { id: 't1', budget_id: 'budget-1' } as Transaction;
+    const second = { id: 't2', budget_id: null } as Transaction;
+    const budget = { id: 'budget-1', name: 'Travel meals' } as Budget;
+    useTxDetailStore.getState().setTx('t1', first);
+    useTxDetailStore.getState().setTx('t2', second);
+
+    useTxDetailStore.getState().setBudget('t1', 'budget-1', budget);
+
+    expect(useTxDetailStore.getState()).toMatchObject({ tx: second, txId: 't2' });
+    expect(useTxDetailStore.getState().budget).toBeUndefined();
+  });
+
   it('clearForId removes stale data and assigns the new route', () => {
     useTxDetailStore.getState().setTx('t1', { id: 't1' } as Transaction);
 

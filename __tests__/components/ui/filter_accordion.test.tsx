@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 import {
   AmountRangeFilterContent,
+  FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
   FilterAccordionShell,
   FilterOptionPillList,
 } from '@/components/ui/filter_accordion';
@@ -197,5 +198,37 @@ describe('AmountRangeFilterContent', () => {
     expect(onChangeMaxText).toHaveBeenCalledWith('500');
     expect(getByText(Strings.filterAmountMinLabel)).toBeTruthy();
     expect(getByText(Strings.filterAmountMaxLabel)).toBeTruthy();
+  });
+
+  it('reserves validation slots while amount errors appear and clear', () => {
+    const baseProps = {
+      amountCurrency: Currency.EGP,
+      minValue: '500',
+      maxValue: '100',
+      onChangeCurrency: jest.fn(),
+      onChangeMinText: jest.fn(),
+      onChangeMaxText: jest.fn(),
+      accessibilityLabel: 'Amount currency',
+    };
+    const screen = render(<AmountRangeFilterContent {...baseProps} />);
+
+    expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
+    expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle({
+      height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
+    });
+
+    screen.rerender(
+      <AmountRangeFilterContent
+        {...baseProps}
+        minError="Enter a valid minimum"
+        rangeError="Minimum cannot exceed maximum"
+      />,
+    );
+
+    expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
+    expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle({
+      height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
+    });
+    expect(screen.getByText('Minimum cannot exceed maximum')).toBeTruthy();
   });
 });

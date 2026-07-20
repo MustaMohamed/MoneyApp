@@ -7,6 +7,7 @@ import { AccountType } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
+import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
 import { ms } from '@/utils/responsive';
 
 interface MockSwipeableRowProps {
@@ -114,7 +115,7 @@ describe('TransactionRow ownership actions', () => {
       created_at: '2026-07-19T12:00:00.000Z',
       updated_at: '2026-07-19T12:00:00.000Z',
     };
-    const { getByTestId } = render(
+    const screen = render(
       <TransactionRow
         tx={transaction(null)}
         account={source}
@@ -124,12 +125,18 @@ describe('TransactionRow ownership actions', () => {
       />,
     );
 
-    expect(getByTestId('transaction-row-icon-track')).toHaveStyle({
+    expect(screen.getByTestId('transaction-row')).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+    expect(screen.getByTestId('transaction-row-icon-track')).toHaveStyle({
       width: ms(36),
       height: ms(36),
     });
-    expect(getByTestId('transaction-row-content-track')).toHaveStyle({ flex: 1, minWidth: 0 });
-    expect(getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
+    expect(screen.getByTestId('transaction-row-content-track')).toHaveStyle({
+      flex: 1,
+      minWidth: 0,
+    });
+    expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
+    expect(screen.getByTestId('transaction-row-note-track')).toBeTruthy();
+    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toBeTruthy();
   });
 
   it('renders the destination native amount for transfers', () => {

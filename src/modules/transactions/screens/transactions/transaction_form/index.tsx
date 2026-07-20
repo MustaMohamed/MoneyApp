@@ -32,6 +32,7 @@ export function EditTransactionSheet(props: EditTransactionSheetProps): React.Re
       onClose={props.onClose}
       onSaved={props.onSaved}
       onCloseComplete={lifecycle.handleCloseComplete}
+      sessionId={lifecycle.sessionId}
     />
   );
 }
@@ -40,6 +41,7 @@ function EditSheetInner(
   props: Omit<EditTransactionSheetProps, 'tx'> & {
     tx: Transaction;
     onCloseComplete: () => void;
+    sessionId: number;
   },
 ) {
   const completeSave = useEditTransactionState.getState().completeSave;
@@ -77,6 +79,7 @@ function EditSheetInner(
         }
       >
         <TransactionFormBody
+          datePickerOwnerId={`edit:${props.sessionId}`}
           visible={props.visible}
           locked
           type={hook.state.type}

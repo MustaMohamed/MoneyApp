@@ -12,6 +12,7 @@ interface TxDetailStoreShape {
 
 type TxDetailStore = TxDetailStoreShape & {
   setTx: (id: string, tx: Transaction, budget?: Budget) => void;
+  setBudget: (id: string, budgetId: string, budget: Budget | undefined) => void;
   clearForId: (id: string) => void;
   reset: () => void;
 };
@@ -25,7 +26,16 @@ const INITIAL_STATE: TxDetailStoreShape = {
 export const useTxDetailStore = createMoneyAppSelectors(
   create<TxDetailStore>((set) => ({
     ...INITIAL_STATE,
-    setTx: (txId, tx, budget) => set({ tx, txId, budget }),
+    setTx: (txId, tx, budget) =>
+      set((state) => ({
+        tx,
+        txId,
+        budget:
+          budget ??
+          (state.txId === txId && state.tx?.budget_id === tx.budget_id ? state.budget : undefined),
+      })),
+    setBudget: (txId, budgetId, budget) =>
+      set((state) => (state.txId === txId && state.tx?.budget_id === budgetId ? { budget } : {})),
     clearForId: (txId) => set({ tx: null, txId, budget: undefined }),
     reset: () => set(INITIAL_STATE),
   })),

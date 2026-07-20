@@ -22,6 +22,7 @@ export function useTransactionDetail(id: string) {
     useShallow((state) => ({ tx: state.tx, txId: state.txId, budget: state.budget })),
   );
   const setTx = useTxDetailStore.getState().setTx;
+  const setBudget = useTxDetailStore.getState().setBudget;
   const clearForId = useTxDetailStore.getState().clearForId;
   const resetData = useTxDetailStore.getState().reset;
   const { activeId, status, revalidating, refreshError, confirmVisible, deleting, reloadKey } =
@@ -53,6 +54,10 @@ export function useTransactionDetail(id: string) {
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
+  const loadingTransactionHint = useMemo(
+    () => useTransactionStore.getState().transactions.find((transaction) => transaction.id === id),
+    [id],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -61,31 +66,41 @@ export function useTransactionDetail(id: string) {
     if (!preserveData) clearForId(id);
     beginLoad(id, preserveData);
     getById(id)
-      .then(async (transaction) => {
+      .then((transaction) => {
         if (cancelled) return;
         if (!transaction) {
           clearForId(id);
           resolveNotFound(id);
           return;
         }
+        setTx(id, transaction);
+        resolve(id);
+
         const accountIds = transaction.to_account_id
           ? [transaction.account_id, transaction.to_account_id]
           : [transaction.account_id];
-        const [, resolvedBudget] = await Promise.all([
-          loadAccountLookup(accountIds).catch((error) => {
+        try {
+          void Promise.resolve(loadAccountLookup(accountIds)).catch((error) => {
             console.error('[transactionDetail] account lookup failed', error);
-          }),
-          transaction.budget_id
-            ? budgetRepository.getById(transaction.budget_id).catch((error) => {
-                console.error('[transactionDetail] budget lookup failed', error);
-                return undefined;
+          });
+        } catch (error) {
+          console.error('[transactionDetail] account lookup failed', error);
+        }
+
+        if (transaction.budget_id) {
+          const budgetId = transaction.budget_id;
+          try {
+            void Promise.resolve(budgetRepository.getById(budgetId))
+              .then((resolvedBudget) => {
+                if (!cancelled) setBudget(id, budgetId, resolvedBudget);
               })
-            : Promise.resolve(undefined),
-        ]);
-        // oxlint-disable-next-line typescript/no-unnecessary-condition -- effect cleanup can flip the flag while metadata awaits
-        if (cancelled) return;
-        setTx(id, transaction, resolvedBudget);
-        resolve(id);
+              .catch((error) => {
+                console.error('[transactionDetail] budget lookup failed', error);
+              });
+          } catch (error) {
+            console.error('[transactionDetail] budget lookup failed', error);
+          }
+        }
       })
       .catch((e) => {
         console.error('[transactionDetail] getById failed', e);
@@ -104,6 +119,7 @@ export function useTransactionDetail(id: string) {
     reloadKey,
     resolve,
     resolveNotFound,
+    setBudget,
     setTx,
   ]);
 
@@ -195,6 +211,7 @@ export function useTransactionDetail(id: string) {
   return {
     state: {
       viewState,
+      loadingTransactionHint,
       tx: currentTx,
       derived,
       revalidating: activeId === id && revalidating,

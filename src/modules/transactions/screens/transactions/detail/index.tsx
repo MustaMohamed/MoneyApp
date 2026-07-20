@@ -56,7 +56,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
       <StackHeader title={Strings.detailHeader} onBack={() => router.back()} />
 
       {state.viewState === 'loading' ? (
-        <TransactionDetailSkeleton />
+        <TransactionDetailSkeleton transaction={state.loadingTransactionHint} />
       ) : state.viewState === 'notFound' ? (
         <NotFoundState />
       ) : state.viewState === 'error' ? (

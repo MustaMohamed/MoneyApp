@@ -17,7 +17,9 @@ import type { Transaction } from '../../../entities/transaction.entity';
 import { useRowPressScale } from './transaction_row.anim';
 import {
   buildTransactionRowPresentation,
+  TRANSACTION_ROW_HEIGHT,
   TRANSACTION_ROW_ICON_SIZE,
+  TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT,
   TRANSACTION_ROW_VALUE_WIDTH,
 } from './transaction_row.helpers';
 
@@ -93,7 +95,11 @@ function TransactionRowComponent({
         onPressOut={onPressOut}
         animation={false}
       >
-        <Animated.View style={[animStyle]} className="border-separator border-b px-4 py-3">
+        <Animated.View
+          testID="transaction-row"
+          style={[animStyle, { height: TRANSACTION_ROW_HEIGHT }]}
+          className="border-separator border-b px-4 py-3"
+        >
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
             <View
               testID="transaction-row-icon-track"
@@ -134,6 +140,17 @@ function TransactionRowComponent({
               >
                 {presentation.context}
               </Text>
+              <View
+                testID="transaction-row-note-track"
+                className="justify-end"
+                style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+              >
+                {presentation.note ? (
+                  <Text className="font-inter text-muted text-[10.5px] italic" numberOfLines={1}>
+                    {presentation.note}
+                  </Text>
+                ) : null}
+              </View>
             </View>
             <View
               testID="transaction-row-value-track"
@@ -147,33 +164,30 @@ function TransactionRowComponent({
               >
                 {presentation.primaryAmount}
               </Text>
-              {presentation.secondaryAmount ? (
-                <Text
-                  className="font-inter text-foreground/60 mt-0.5 text-[10px] font-medium"
-                  numberOfLines={1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.75}
-                >
-                  {presentation.secondaryAmount}
-                  {presentation.rateText ? (
-                    <Text className="opacity-70"> {presentation.rateText}</Text>
-                  ) : null}
-                </Text>
-              ) : null}
+              <View
+                testID="transaction-row-secondary-amount-track"
+                className="items-end justify-end"
+                style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
+              >
+                {presentation.secondaryAmount ? (
+                  <Text
+                    className="font-inter text-foreground/60 text-[10px] font-medium"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}
+                  >
+                    {presentation.secondaryAmount}
+                    {presentation.rateText ? (
+                      <Text className="opacity-70"> {presentation.rateText}</Text>
+                    ) : null}
+                  </Text>
+                ) : null}
+              </View>
               <Text className="font-inter text-foreground/40 mt-0.5 text-[10px]">
                 {presentation.timeText}
               </Text>
             </View>
           </View>
-
-          {presentation.note ? (
-            <Text
-              className="font-inter text-muted mt-1.5 pl-12 text-[11.5px] italic"
-              numberOfLines={2}
-            >
-              {presentation.note}
-            </Text>
-          ) : null}
         </Animated.View>
       </PressableFeedback>
     </SwipeableRow>
