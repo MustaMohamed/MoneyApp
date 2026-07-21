@@ -463,10 +463,43 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
       egp_amount: 50,
       account_id: 'acc-1',
     });
+    await Promise.resolve();
     consoleSpy.mockRestore();
 
     expect(result.id).toBe('tx-new');
     expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+  });
+
+  it('resolves an add after commit without waiting for the list refresh', async () => {
+    const repo = makeRepo();
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    const pendingRefresh = deferred<Transaction[]>();
+    repo.getAll = jest.fn(() => pendingRefresh.promise);
+    let settled = false;
+
+    const operation = useStore
+      .getState()
+      .addTransaction({
+        type: TransactionType.Expense,
+        amount: 50,
+        currency: Currency.EGP,
+        egp_amount: 50,
+        account_id: 'acc-1',
+      })
+      .then(() => {
+        settled = true;
+      });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    try {
+      expect(repo.getAll).toHaveBeenCalledTimes(1);
+      expect(settled).toBe(true);
+    } finally {
+      pendingRefresh.resolve([]);
+      await operation;
+    }
   });
 
   it('deleteTransaction swallows a refresh failure and still resolves', async () => {
@@ -533,8 +566,41 @@ describe('transactionStore.updateTransaction', () => {
         transaction_time: '10:00:00',
       }),
     ).resolves.toBeUndefined();
+    await Promise.resolve();
     consoleSpy.mockRestore();
     expect(useStore.getState().mutationVersion).toBe(beforeVersion + 1);
+  });
+
+  it('resolves an update after commit without waiting for the list refresh', async () => {
+    const repo = makeRepo([makeTransaction({ id: 'tx-upd3' })]);
+    const useStore = createTransactionStore(repo);
+    await useStore.getState().setQuery({});
+    const pendingRefresh = deferred<Transaction[]>();
+    repo.getAll = jest.fn(() => pendingRefresh.promise);
+    let settled = false;
+
+    const operation = useStore
+      .getState()
+      .updateTransaction('tx-upd3', {
+        amount: 125,
+        currency: Currency.EGP,
+        egp_amount: 125,
+        transaction_date: '2026-05-01',
+        transaction_time: '10:00:00',
+      })
+      .then(() => {
+        settled = true;
+      });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    try {
+      expect(repo.getAll).toHaveBeenCalledTimes(1);
+      expect(settled).toBe(true);
+    } finally {
+      pendingRefresh.resolve([]);
+      await operation;
+    }
   });
 });
 

@@ -11,6 +11,7 @@ import {
 } from './components/add_transaction_sheet';
 import { BudgetPickerSheet } from './components/budget_picker_sheet';
 import { TransactionFormDataError } from './components/transaction_form_data_error';
+import { TransactionFormLoading } from './components/transaction_form_loading';
 import { useEditTransaction } from './edit_transaction.hook';
 import { TransactionFormBody } from './transaction_form_body';
 import { useTransactionFormSessionReady } from './transaction_form_session.hook';
@@ -23,11 +24,7 @@ interface EditTransactionSheetProps extends TransactionSheetSessionProps {
 
 export function EditTransactionSheet(props: EditTransactionSheetProps): React.ReactElement {
   const hook = useEditTransaction(props.tx, props.onClose, props.onSaved);
-  useTransactionFormSessionReady(
-    props.sessionId,
-    props.onReady,
-    hook.state.formDataReady || hook.state.formDataLoadError,
-  );
+  useTransactionFormSessionReady(props.sessionId, props.onReady);
 
   return (
     <Sheet
@@ -41,19 +38,18 @@ export function EditTransactionSheet(props: EditTransactionSheetProps): React.Re
       scrollable
       isDismissable={!hook.state.saving}
       footer={
-        hook.state.formDataReady ? (
-          <Button
-            variant="primary"
-            label={Strings.editTxSaveCta}
-            isLoading={hook.state.saving}
-            isDisabled={
-              hook.state.saving ||
-              hook.state.budgetsLoading ||
-              Boolean(hook.state.budgetLookupError)
-            }
-            onPress={() => void hook.handleSave()}
-          />
-        ) : undefined
+        <Button
+          variant="primary"
+          label={Strings.editTxSaveCta}
+          isLoading={hook.state.saving}
+          isDisabled={
+            hook.state.saving ||
+            !hook.state.formDataReady ||
+            hook.state.budgetsLoading ||
+            Boolean(hook.state.budgetLookupError)
+          }
+          onPress={() => void hook.handleSave()}
+        />
       }
     >
       {hook.state.formDataLoadError ? (
@@ -97,11 +93,13 @@ export function EditTransactionSheet(props: EditTransactionSheetProps): React.Re
           setNote={hook.setNote}
           currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
         />
-      ) : null}
+      ) : (
+        <TransactionFormLoading />
+      )}
 
-      {hook.state.showCategoryPicker ? (
+      {hook.state.showCategoryPicker || hook.state.closingPicker === 'category' ? (
         <CategoryPickerSheet
-          isOpen
+          isOpen={hook.state.showCategoryPicker}
           title={Strings.addTxPickCategoryTitle}
           categories={hook.state.visibleCategories}
           selectedId={hook.state.categoryId}
@@ -109,15 +107,17 @@ export function EditTransactionSheet(props: EditTransactionSheetProps): React.Re
           onOpenChange={(open) => {
             if (!open) hook.setShowCategoryPicker(false);
           }}
+          onCloseComplete={() => hook.completePickerClose('category')}
         />
       ) : null}
-      {hook.state.showBudgetPicker ? (
+      {hook.state.showBudgetPicker || hook.state.closingPicker === 'budget' ? (
         <BudgetPickerSheet
-          isOpen
+          isOpen={hook.state.showBudgetPicker}
           budgets={hook.state.availableBudgets}
           selectedId={hook.state.budgetId || undefined}
           onSelect={hook.selectBudget}
           onOpenChange={hook.setShowBudgetPicker}
+          onCloseComplete={() => hook.completePickerClose('budget')}
         />
       ) : null}
     </Sheet>

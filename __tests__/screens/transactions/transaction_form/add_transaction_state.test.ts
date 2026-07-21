@@ -10,6 +10,7 @@ describe('useAddTransactionState', () => {
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
+      closingPicker: undefined,
       budgetsLoading: false,
       budgetLookupVersion: 0,
       budgetLookupError: undefined,
@@ -26,6 +27,19 @@ describe('useAddTransactionState', () => {
       showCategoryPicker: false,
       showBudgetPicker: false,
     });
+  });
+
+  it('retains a closing picker until its sheet transition completes', () => {
+    useAddTransactionState.getState().setShowCategoryPicker(true);
+    useAddTransactionState.getState().setShowCategoryPicker(false);
+
+    expect(useAddTransactionState.getState()).toMatchObject({
+      showCategoryPicker: false,
+      closingPicker: 'category',
+    });
+
+    useAddTransactionState.getState().completePickerClose('category');
+    expect(useAddTransactionState.getState().closingPicker).toBeUndefined();
   });
 
   it('tracks lookup and save errors and clears them for retry or edits', () => {

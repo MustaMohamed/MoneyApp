@@ -5,6 +5,7 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 interface DatePickerSheetStateShape {
   activeOwnerId: string | undefined;
   isOpen: boolean;
+  isIosMounted: boolean;
   showAndroidPicker: boolean;
   initialDate: string;
   draftDate: string;
@@ -15,6 +16,7 @@ type DatePickerSheetState = DatePickerSheetStateShape & {
   openAndroid: (ownerId: string, date: string) => void;
   setDraftDate: (ownerId: string, date: string) => void;
   closeIos: (ownerId: string) => void;
+  completeIosClose: (ownerId: string) => void;
   closeAndroid: (ownerId: string) => void;
   release: (ownerId: string) => void;
   reset: () => void;
@@ -23,6 +25,7 @@ type DatePickerSheetState = DatePickerSheetStateShape & {
 const INITIAL_STATE: DatePickerSheetStateShape = {
   activeOwnerId: undefined,
   isOpen: false,
+  isIosMounted: false,
   showAndroidPicker: false,
   initialDate: '',
   draftDate: '',
@@ -36,6 +39,7 @@ export const useDatePickerSheetState = createMoneyAppSelectors(
       set({
         activeOwnerId,
         isOpen: true,
+        isIosMounted: true,
         showAndroidPicker: false,
         initialDate: date,
         draftDate: date,
@@ -44,6 +48,7 @@ export const useDatePickerSheetState = createMoneyAppSelectors(
       set({
         activeOwnerId,
         isOpen: false,
+        isIosMounted: false,
         showAndroidPicker: true,
         initialDate: date,
         draftDate: date,
@@ -54,9 +59,17 @@ export const useDatePickerSheetState = createMoneyAppSelectors(
       set((state) =>
         state.activeOwnerId === ownerId
           ? {
-              activeOwnerId: undefined,
               isOpen: false,
               draftDate: state.initialDate,
+            }
+          : {},
+      ),
+    completeIosClose: (ownerId) =>
+      set((state) =>
+        state.activeOwnerId === ownerId && !state.isOpen
+          ? {
+              activeOwnerId: undefined,
+              isIosMounted: false,
             }
           : {},
       ),

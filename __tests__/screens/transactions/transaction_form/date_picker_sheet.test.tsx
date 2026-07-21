@@ -20,10 +20,12 @@ jest.mock('@react-native-community/datetimepicker', () => ({
 jest.mock('@/components/ui/sheet', () => ({
   Sheet: ({
     isOpen,
+    onCloseComplete,
     footer,
     children,
   }: {
     isOpen: boolean;
+    onCloseComplete?: () => void;
     footer?: React.ReactNode;
     children: React.ReactNode;
   }) => {
@@ -31,7 +33,10 @@ jest.mock('@/components/ui/sheet', () => ({
     const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return ReactLocal.createElement(
       RNView,
-      { testID: isOpen ? 'date-picker-sheet' : 'date-picker-sheet-closed' },
+      {
+        testID: isOpen ? 'date-picker-sheet' : 'date-picker-sheet-closed',
+        onTouchEnd: onCloseComplete,
+      },
       children,
       isOpen ? footer : null,
     );
@@ -112,6 +117,9 @@ describe('transaction date picker', () => {
       isOpen: false,
       draftDate: '2026-07-10',
     });
+    expect(screen.getByTestId('date-picker-sheet-closed')).toBeTruthy();
+    fireEvent(screen.getByTestId('date-picker-sheet-closed'), 'touchEnd');
+    expect(screen.queryByTestId('date-picker-sheet-closed')).toBeNull();
   });
 
   it('applies an Android selection exactly once and dismisses its native picker', () => {

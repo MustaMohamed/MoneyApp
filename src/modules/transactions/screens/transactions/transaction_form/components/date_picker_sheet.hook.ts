@@ -16,18 +16,21 @@ export function useTransactionDatePicker(
   value: string,
   onChange: (next: string) => void,
 ) {
-  const { activeOwnerId, isOpen, showAndroidPicker, draftDate } = useDatePickerSheetState(
-    useShallow((state) => ({
-      activeOwnerId: state.activeOwnerId,
-      isOpen: state.isOpen,
-      showAndroidPicker: state.showAndroidPicker,
-      draftDate: state.draftDate,
-    })),
-  );
+  const { activeOwnerId, isOpen, isIosMounted, showAndroidPicker, draftDate } =
+    useDatePickerSheetState(
+      useShallow((state) => ({
+        activeOwnerId: state.activeOwnerId,
+        isOpen: state.isOpen,
+        isIosMounted: state.isIosMounted,
+        showAndroidPicker: state.showAndroidPicker,
+        draftDate: state.draftDate,
+      })),
+    );
   const openIos = useDatePickerSheetState.getState().openIos;
   const openAndroid = useDatePickerSheetState.getState().openAndroid;
   const setDraftDate = useDatePickerSheetState.getState().setDraftDate;
   const closeIos = useDatePickerSheetState.getState().closeIos;
+  const completeIosClose = useDatePickerSheetState.getState().completeIosClose;
   const closeAndroid = useDatePickerSheetState.getState().closeAndroid;
   const release = useDatePickerSheetState.getState().release;
 
@@ -65,6 +68,7 @@ export function useTransactionDatePicker(
   return {
     state: {
       isOpen: ownsPicker && isOpen,
+      shouldRenderIos: ownsPicker && isIosMounted,
       showAndroidPicker: ownsPicker && showAndroidPicker,
       pickerDate: toPickerDate(ownsPicker && draftDate ? draftDate : value),
       maximumDate: new Date(),
@@ -73,6 +77,7 @@ export function useTransactionDatePicker(
     changeIos,
     cancelIos,
     commitIos,
+    completeIosClose: () => completeIosClose(ownerId),
     changeAndroid,
   };
 }

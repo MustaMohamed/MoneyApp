@@ -4,12 +4,15 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 import type { TransactionFormDataStatus } from './add_transaction.state';
 
+export type EditTransactionPicker = 'category' | 'budget';
+
 interface EditTransactionStateShape {
   dataStatus: TransactionFormDataStatus;
   dataLoadVersion: number;
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
+  closingPicker: EditTransactionPicker | undefined;
   budgetsLoading: boolean;
   budgetLookupVersion: number;
   budgetLookupError: string | undefined;
@@ -24,6 +27,7 @@ type EditTransactionState = EditTransactionStateShape & {
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
+  completePickerClose: (picker: EditTransactionPicker) => void;
   setBudgetsLoading: (v: boolean) => void;
   setBudgetLookupError: (message: string | undefined) => void;
   setErrorMessage: (message: string | undefined) => void;
@@ -40,6 +44,7 @@ const INITIAL_STATE: EditTransactionStateShape = {
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
+  closingPicker: undefined,
   budgetsLoading: false,
   budgetLookupVersion: 0,
   budgetLookupError: undefined,
@@ -55,8 +60,18 @@ export const useEditTransactionState = createMoneyAppSelectors(
     retryFormData: () =>
       set((state) => ({ dataLoadVersion: state.dataLoadVersion + 1, dataStatus: 'loading' })),
     setSaving: (v) => set({ saving: v }),
-    setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
-    setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
+    setShowCategoryPicker: (v) =>
+      set((state) => ({
+        showCategoryPicker: v,
+        closingPicker: v ? undefined : state.showCategoryPicker ? 'category' : state.closingPicker,
+      })),
+    setShowBudgetPicker: (v) =>
+      set((state) => ({
+        showBudgetPicker: v,
+        closingPicker: v ? undefined : state.showBudgetPicker ? 'budget' : state.closingPicker,
+      })),
+    completePickerClose: (picker) =>
+      set((state) => (state.closingPicker === picker ? { closingPicker: undefined } : {})),
     setBudgetsLoading: (v) => set({ budgetsLoading: v }),
     setBudgetLookupError: (budgetLookupError) => set({ budgetLookupError }),
     setErrorMessage: (errorMessage) => set({ errorMessage }),

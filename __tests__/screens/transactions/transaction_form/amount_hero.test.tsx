@@ -75,4 +75,20 @@ describe('AmountHero', () => {
 
     expect(onChange).toHaveBeenCalledWith('12.34');
   });
+
+  it('normalizes a leading decimal to a value accepted by submission parsing', () => {
+    const onChange = jest.fn();
+    const { getByTestId } = render(
+      <AmountHero
+        onChange={onChange}
+        type={TransactionType.Expense}
+        currency={Currency.EGP}
+        mode="add"
+      />,
+    );
+
+    fireEvent.changeText(getByTestId('amount-hero-value'), '.5');
+
+    expect(onChange).toHaveBeenCalledWith('0.5');
+  });
 });

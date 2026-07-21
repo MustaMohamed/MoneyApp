@@ -27,6 +27,7 @@ import {
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
 } from './transaction_form.helpers';
+import { ensureTransactionFormPrerequisite } from './transaction_form_prerequisites.helpers';
 
 function createEditSchema(
   type: TransactionType,
@@ -89,21 +90,15 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { accounts, accountLookup, accountsHaveLoaded } = useAccountStore(
+  const { accounts, accountLookup } = useAccountStore(
     useShallow((state) => ({
       accounts: state.accounts,
       accountLookup: state.accountLookup,
-      accountsHaveLoaded: state.hasLoaded,
     })),
   );
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
-  const { categories, categoriesHaveLoaded } = useCategoryStore(
-    useShallow((state) => ({
-      categories: state.categories,
-      categoriesHaveLoaded: state.hasLoaded,
-    })),
-  );
+  const categories = useCategoryStore((state) => state.categories);
   const loadCategories = useCategoryStore.getState().loadCategories;
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
@@ -127,6 +122,7 @@ export function useEditTransaction(
     saving,
     showCategoryPicker,
     showBudgetPicker,
+    closingPicker,
     budgetsLoading,
     budgetLookupVersion,
     budgetLookupError,
@@ -140,6 +136,7 @@ export function useEditTransaction(
       saving: s.saving,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
+      closingPicker: s.closingPicker,
       budgetsLoading: s.budgetsLoading,
       budgetLookupVersion: s.budgetLookupVersion,
       budgetLookupError: s.budgetLookupError,
@@ -153,6 +150,7 @@ export function useEditTransaction(
   const setSaving = useEditTransactionState.getState().setSaving;
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useEditTransactionState.getState().setShowBudgetPicker;
+  const completePickerClose = useEditTransactionState.getState().completePickerClose;
   const setBudgetsLoading = useEditTransactionState.getState().setBudgetsLoading;
   const setBudgetLookupError = useEditTransactionState.getState().setBudgetLookupError;
   const setErrorMessage = useEditTransactionState.getState().setErrorMessage;
@@ -174,10 +172,25 @@ export function useEditTransaction(
     const accountIds = [initialTx.account_id, initialTx.to_account_id].filter(
       (id): id is string => id !== null && !knownAccountIds.has(id),
     );
-    const accountRequest = accountsHaveLoaded ? Promise.resolve() : loadAccounts();
-    const categoryRequest = categoriesHaveLoaded ? Promise.resolve() : loadCategories();
-    const lookupRequest =
-      accountIds.length === 0 ? Promise.resolve() : loadAccountLookup(accountIds);
+    const accountRequest = ensureTransactionFormPrerequisite(
+      () => useAccountStore.getState().hasLoaded,
+      loadAccounts,
+    );
+    const categoryRequest = ensureTransactionFormPrerequisite(
+      () => useCategoryStore.getState().hasLoaded,
+      loadCategories,
+    );
+    const missingRequiredAccountIds = () => {
+      const accountState = useAccountStore.getState();
+      const availableIds = new Set(
+        [...accountState.accounts, ...accountState.accountLookup].map((account) => account.id),
+      );
+      return accountIds.filter((id) => !availableIds.has(id));
+    };
+    const lookupRequest = ensureTransactionFormPrerequisite(
+      () => missingRequiredAccountIds().length === 0,
+      () => loadAccountLookup(missingRequiredAccountIds()),
+    );
     void Promise.all([accountRequest, categoryRequest, lookupRequest])
       .then(() => {
         if (active && request === dataRequestRef.current) setDataStatus('ready');
@@ -378,6 +391,23 @@ export function useEditTransaction(
     }
   }
 
+  function invalidateBudgetEligibility(nextCategoryId: string, nextDate: string) {
+    if (
+      !semantics.usesBudget ||
+      !nextCategoryId ||
+      (nextCategoryId === categoryId && nextDate.slice(0, 7) === date.slice(0, 7))
+    ) {
+      return;
+    }
+    budgetRequestRef.current += 1;
+    setBudgetLookupError(undefined);
+    setBudgetsLoading(true);
+    setAvailableBudgets([]);
+    setBudgetId(undefined);
+    setPreserveBudgetNull(false);
+    form.setValue('budgetId', '');
+  }
+
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
@@ -386,6 +416,7 @@ export function useEditTransaction(
 
   function selectCategory(category: Category) {
     clearError();
+    invalidateBudgetEligibility(category.id, date);
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
   }
@@ -424,6 +455,7 @@ export function useEditTransaction(
       visibleCategories,
       showCategoryPicker,
       showBudgetPicker,
+      closingPicker,
       budgetsLoading,
       availableBudgets,
       showBudgetField:
@@ -442,6 +474,7 @@ export function useEditTransaction(
     },
     setDate: (v: string) => {
       clearError();
+      invalidateBudgetEligibility(categoryId, v);
       form.setValue('date', v);
     },
     setNote: (v: string) => {
@@ -455,6 +488,7 @@ export function useEditTransaction(
     toggleRateOverride,
     setShowCategoryPicker,
     setShowBudgetPicker,
+    completePickerClose,
     selectCategory,
     selectBudget,
     retryBudgetLookup,

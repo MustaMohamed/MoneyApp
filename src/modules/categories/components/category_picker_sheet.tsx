@@ -18,6 +18,7 @@ interface Props {
   selectedIds?: string[] | undefined;
   onSelect: (category: Category) => void;
   onOpenChange: (open: boolean) => void;
+  onCloseComplete?: () => void;
 }
 
 // 4-column grid keeps cells tight enough that most phones fit 4-5 rows
@@ -40,6 +41,7 @@ export function CategoryPickerSheet({
   selectedIds,
   onSelect,
   onOpenChange,
+  onCloseComplete,
 }: Props): React.ReactElement {
   // Fixed cell width derived from the actual screen width keeps cells the
   // SAME SIZE across every row. The previous `style={{ flex: 1 }}` approach
@@ -56,7 +58,14 @@ export function CategoryPickerSheet({
   return (
     // scrollable=true: size="lg" fixed snap + bounded h-full container so
     // BottomSheetScrollView's flex:1 has a parent to scroll inside.
-    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={title} size="lg" scrollable>
+    <Sheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      onCloseComplete={onCloseComplete}
+      title={title}
+      size="lg"
+      scrollable
+    >
       <BottomSheetScrollView
         // flex: 1 bounds the scroll view to the sheet height so it scrolls;
         // without it the view sizes to content and can't scroll (same fix as

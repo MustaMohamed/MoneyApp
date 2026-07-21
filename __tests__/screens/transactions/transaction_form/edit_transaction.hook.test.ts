@@ -158,6 +158,24 @@ describe('useEditTransaction', () => {
     expect(result.current.state.selectedAccount).toEqual(mockAccountUSD);
   });
 
+  it('retries an archived-account lookup that resolves without publishing its result', async () => {
+    const archivedTx = { ...mockTxExpense, account_id: mockAccountUSD.id };
+    useAccountStore.setState({ accountLookup: [] });
+    const loadAccountLookup = jest
+      .spyOn(useAccountStore.getState(), 'loadAccountLookup')
+      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(async () => {
+        useAccountStore.setState({ accountLookup: [mockAccountUSD] });
+      });
+    useEditTransactionStore.getState().loadFromTx(archivedTx);
+
+    const { result } = renderHook(() => useEditTransaction(archivedTx, jest.fn(), jest.fn()));
+
+    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
+    expect(loadAccountLookup).toHaveBeenCalledTimes(2);
+    expect(result.current.state.selectedAccount).toEqual(mockAccountUSD);
+  });
+
   it('rejects malformed exchange rates for an archived USD transaction', async () => {
     const usdTx = {
       ...mockTxExpense,
@@ -233,6 +251,27 @@ describe('useEditTransaction', () => {
     expect(updateTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
     expect(result.current.state.showBudgetField).toBe(false);
+  });
+
+  it('blocks an immediate save until a changed month budget is resolved', async () => {
+    const assignedTx = { ...mockTxExpense, budget_id: 'b1' };
+    useEditTransactionStore.getState().loadFromTx(assignedTx);
+    jest
+      .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
+      .mockResolvedValueOnce([mockBudget('b1')])
+      .mockImplementationOnce(() => new Promise<Budget[]>(() => {}));
+    const updateTx = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    const { result } = renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
+    await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
+
+    await act(async () => {
+      result.current.setDate('2026-06-18');
+      await result.current.handleSave();
+    });
+
+    expect(updateTx).not.toHaveBeenCalled();
+    expect(useEditTransactionState.getState().budgetsLoading).toBe(true);
   });
 
   it('blocks save, preserves assignment, and exposes retry when budget lookup fails', async () => {

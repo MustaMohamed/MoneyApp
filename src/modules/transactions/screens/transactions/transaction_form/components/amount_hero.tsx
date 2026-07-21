@@ -33,12 +33,15 @@ function sanitize(text: string): string {
   const cleaned = text.replace(/[^0-9.]/g, '');
   if (cleaned === '') return '';
 
-  const parts = cleaned.split('.');
+  const normalized = cleaned.startsWith('.') ? `0${cleaned}` : cleaned;
+  const parts = normalized.split('.');
   if (parts.length === 1) return parts[0];
 
   const integer = parts[0];
   const decimals = parts.slice(1).join('').slice(0, 2);
-  return decimals.length === 0 && cleaned.endsWith('.') ? `${integer}.` : `${integer}.${decimals}`;
+  return decimals.length === 0 && normalized.endsWith('.')
+    ? `${integer}.`
+    : `${integer}.${decimals}`;
 }
 
 export function AmountHero({ onChange, type, currency, mode }: Props): React.ReactElement {

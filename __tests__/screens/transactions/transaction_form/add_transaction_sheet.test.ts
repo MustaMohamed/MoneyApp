@@ -104,6 +104,17 @@ jest.mock(
   }),
 );
 
+jest.mock(
+  '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading',
+  () => ({
+    TransactionFormLoading: () => {
+      const ReactLocal = require('react');
+      const { View: RNView } = require('react-native');
+      return ReactLocal.createElement(RNView, { testID: 'transaction-form-loading' });
+    },
+  }),
+);
+
 import { Currency, TransactionType } from '@/constants/enums';
 import { AddTransactionSheet } from '@/modules/transactions/screens/transactions/transaction_form';
 
@@ -139,6 +150,7 @@ function createMockAddHookReturn() {
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
+      closingPicker: undefined as 'account' | 'toAccount' | 'category' | 'budget' | undefined,
       budgetsLoading: false,
       availableBudgets: [],
       showBudgetField: false,
@@ -155,6 +167,7 @@ function createMockAddHookReturn() {
     setShowToPicker: jest.fn(),
     setShowCategoryPicker: jest.fn(),
     setShowBudgetPicker: jest.fn(),
+    completePickerClose: jest.fn(),
     selectAccount: jest.fn(),
     selectToAccount: jest.fn(),
     selectCategory: jest.fn(),
@@ -222,19 +235,36 @@ describe('AddTransactionSheet', () => {
     });
   });
 
-  it('mounts only the currently active nested picker', () => {
+  it('keeps the active nested picker mounted until its close completes', () => {
     const hook = createMockAddHookReturn();
     hook.state.showCategoryPicker = true;
     mockUseAddTransaction.mockReturnValue(hook);
 
-    render(React.createElement(AddTransactionSheet, createProps(true)));
+    const props = createProps(true);
+    const { rerender } = render(React.createElement(AddTransactionSheet, props));
 
     expect(mockCategoryPickerSheet).toHaveBeenCalledTimes(1);
     expect(mockAccountPickerSheet).not.toHaveBeenCalled();
     expect(mockBudgetPickerSheet).not.toHaveBeenCalled();
+
+    const openProps = mockCategoryPickerSheet.mock.calls.at(-1)?.[0] as {
+      onOpenChange: (open: boolean) => void;
+    };
+    openProps.onOpenChange(false);
+    hook.state.showCategoryPicker = false;
+    hook.state.closingPicker = 'category';
+    rerender(React.createElement(AddTransactionSheet, props));
+
+    const closingProps = mockCategoryPickerSheet.mock.calls.at(-1)?.[0] as {
+      isOpen: boolean;
+      onCloseComplete: () => void;
+    };
+    expect(closingProps.isOpen).toBe(false);
+    closingProps.onCloseComplete();
+    expect(hook.completePickerClose).toHaveBeenCalledWith('category');
   });
 
-  it('waits for prerequisite data before presenting the prepared shell', () => {
+  it('presents a stable disabled shell while prerequisite data loads', () => {
     const hook = createMockAddHookReturn();
     hook.state.formDataReady = false;
     mockUseAddTransaction.mockReturnValue(hook);
@@ -242,7 +272,27 @@ describe('AddTransactionSheet', () => {
 
     render(React.createElement(AddTransactionSheet, props));
 
-    expect(props.onReady).not.toHaveBeenCalled();
+    expect(props.onReady).toHaveBeenCalledWith(7);
+    expect(mockSheetProps.at(-1)).toMatchObject({ hasFooter: true });
     expect(mockTransactionFormBody).not.toHaveBeenCalled();
+  });
+
+  it('keeps the sheet and footer mounted through error retry loading', () => {
+    const hook = createMockAddHookReturn();
+    hook.state.formDataReady = false;
+    hook.state.formDataLoadError = true;
+    mockUseAddTransaction.mockReturnValue(hook);
+    const props = createProps(true);
+    const { rerender } = render(React.createElement(AddTransactionSheet, props));
+    const errorFrame = mockSheetProps.at(-1);
+
+    hook.state.formDataLoadError = false;
+    rerender(React.createElement(AddTransactionSheet, props));
+
+    expect(mockSheetProps.at(-1)).toMatchObject({
+      isOpen: true,
+      hasFooter: true,
+      instanceId: errorFrame?.instanceId,
+    });
   });
 });

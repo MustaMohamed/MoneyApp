@@ -19,6 +19,7 @@ interface Props {
   excludeId?: string;
   onSelect: (account: Account) => void;
   onOpenChange: (open: boolean) => void;
+  onCloseComplete?: () => void;
 }
 
 export function AccountPickerSheet({
@@ -29,6 +30,7 @@ export function AccountPickerSheet({
   excludeId,
   onSelect,
   onOpenChange,
+  onCloseComplete,
 }: Props): React.ReactElement {
   const data = excludeId ? accounts.filter((a) => a.id !== excludeId) : accounts;
 
@@ -38,7 +40,14 @@ export function AccountPickerSheet({
   // scroll view. size="md" gives a stable mid-height snap and flex:1 lets the
   // list scroll inside it without any manual height calculation.
   return (
-    <Sheet isOpen={isOpen} onOpenChange={onOpenChange} title={title} size="md" scrollable>
+    <Sheet
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      onCloseComplete={onCloseComplete}
+      title={title}
+      size="md"
+      scrollable
+    >
       <BottomSheetScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 24 }}>
         {data.map((item) => {
           const isSelected = item.id === selectedId;

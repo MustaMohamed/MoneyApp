@@ -13,6 +13,7 @@ import { useTransactionFormSessionReady } from '../transaction_form_session.hook
 import { BudgetPickerSheet } from './budget_picker_sheet';
 import { NoAccountsEmpty } from './no_accounts_empty';
 import { TransactionFormDataError } from './transaction_form_data_error';
+import { TransactionFormLoading } from './transaction_form_loading';
 
 export interface TransactionSheetSessionProps {
   visible: boolean;
@@ -25,11 +26,7 @@ export interface TransactionSheetSessionProps {
 
 export function AddTransactionSheet(props: TransactionSheetSessionProps): React.ReactElement {
   const hook = useAddTransaction(props.onSaved);
-  useTransactionFormSessionReady(
-    props.sessionId,
-    props.onReady,
-    hook.state.formDataReady || hook.state.formDataLoadError,
-  );
+  useTransactionFormSessionReady(props.sessionId, props.onReady);
 
   return (
     <Sheet
@@ -43,13 +40,15 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
       scrollable
       isDismissable={!hook.state.saving}
       footer={
-        hook.state.formDataReady && hook.state.hasAccounts ? (
+        !hook.state.formDataReady || hook.state.hasAccounts ? (
           <Button
             variant="primary"
             label={Strings.addTxSaveCta}
             isLoading={hook.state.saving}
             isDisabled={
               hook.state.saving ||
+              !hook.state.formDataReady ||
+              !hook.state.hasAccounts ||
               hook.state.budgetsLoading ||
               Boolean(hook.state.budgetLookupError)
             }
@@ -108,11 +107,13 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
             router.push('/accounts/add_account');
           }}
         />
-      ) : null}
+      ) : (
+        <TransactionFormLoading />
+      )}
 
-      {hook.state.showAccountPicker ? (
+      {hook.state.showAccountPicker || hook.state.closingPicker === 'account' ? (
         <AccountPickerSheet
-          isOpen
+          isOpen={hook.state.showAccountPicker}
           title={
             hook.state.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle
           }
@@ -122,11 +123,12 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           onOpenChange={(open) => {
             if (!open) hook.setShowAccountPicker(false);
           }}
+          onCloseComplete={() => hook.completePickerClose('account')}
         />
       ) : null}
-      {hook.state.showToPicker ? (
+      {hook.state.showToPicker || hook.state.closingPicker === 'toAccount' ? (
         <AccountPickerSheet
-          isOpen
+          isOpen={hook.state.showToPicker}
           title={Strings.addTxPickToTitle}
           accounts={hook.state.accountsForTo}
           selectedId={hook.state.toAccountId}
@@ -135,11 +137,12 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           onOpenChange={(open) => {
             if (!open) hook.setShowToPicker(false);
           }}
+          onCloseComplete={() => hook.completePickerClose('toAccount')}
         />
       ) : null}
-      {hook.state.showCategoryPicker ? (
+      {hook.state.showCategoryPicker || hook.state.closingPicker === 'category' ? (
         <CategoryPickerSheet
-          isOpen
+          isOpen={hook.state.showCategoryPicker}
           title={Strings.addTxPickCategoryTitle}
           categories={hook.state.visibleCategories}
           selectedId={hook.state.categoryId}
@@ -147,15 +150,17 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           onOpenChange={(open) => {
             if (!open) hook.setShowCategoryPicker(false);
           }}
+          onCloseComplete={() => hook.completePickerClose('category')}
         />
       ) : null}
-      {hook.state.showBudgetPicker ? (
+      {hook.state.showBudgetPicker || hook.state.closingPicker === 'budget' ? (
         <BudgetPickerSheet
-          isOpen
+          isOpen={hook.state.showBudgetPicker}
           budgets={hook.state.availableBudgets}
           selectedId={hook.state.budgetId || undefined}
           onSelect={hook.selectBudget}
           onOpenChange={hook.setShowBudgetPicker}
+          onCloseComplete={() => hook.completePickerClose('budget')}
         />
       ) : null}
     </Sheet>

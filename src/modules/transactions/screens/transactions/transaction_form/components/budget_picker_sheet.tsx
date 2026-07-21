@@ -18,6 +18,7 @@ interface BudgetPickerSheetProps {
   selectedId: string | undefined;
   onSelect: (budget: Budget) => void;
   onOpenChange: (open: boolean) => void;
+  onCloseComplete?: () => void;
 }
 
 export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
@@ -25,6 +26,7 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
     <Sheet
       isOpen={props.isOpen}
       onOpenChange={props.onOpenChange}
+      onCloseComplete={props.onCloseComplete}
       title={Strings.addTxPickBudgetTitle}
       size="md"
       scrollable

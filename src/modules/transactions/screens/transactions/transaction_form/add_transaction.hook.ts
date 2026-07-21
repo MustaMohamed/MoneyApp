@@ -24,6 +24,7 @@ import {
   resolveTransactionSaveError,
   toTransactionTimestamp,
 } from './transaction_form.helpers';
+import { ensureTransactionFormPrerequisite } from './transaction_form_prerequisites.helpers';
 
 export type AddTransactionFormValues = {
   amount: number;
@@ -163,19 +164,9 @@ function createSchema(
 }
 
 export function useAddTransaction(onClose: () => void) {
-  const { accounts, accountsHaveLoaded } = useAccountStore(
-    useShallow((state) => ({
-      accounts: state.accounts,
-      accountsHaveLoaded: state.hasLoaded,
-    })),
-  );
+  const accounts = useAccountStore((state) => state.accounts);
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const { categories, categoriesHaveLoaded } = useCategoryStore(
-    useShallow((state) => ({
-      categories: state.categories,
-      categoriesHaveLoaded: state.hasLoaded,
-    })),
-  );
+  const categories = useCategoryStore((state) => state.categories);
   const loadCategories = useCategoryStore.getState().loadCategories;
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
@@ -203,6 +194,7 @@ export function useAddTransaction(onClose: () => void) {
     showToPicker,
     showCategoryPicker,
     showBudgetPicker,
+    closingPicker,
     budgetsLoading,
     budgetLookupVersion,
     budgetLookupError,
@@ -217,6 +209,7 @@ export function useAddTransaction(onClose: () => void) {
       showToPicker: s.showToPicker,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
+      closingPicker: s.closingPicker,
       budgetsLoading: s.budgetsLoading,
       budgetLookupVersion: s.budgetLookupVersion,
       budgetLookupError: s.budgetLookupError,
@@ -231,6 +224,7 @@ export function useAddTransaction(onClose: () => void) {
   const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
   const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useAddTransactionState.getState().setShowBudgetPicker;
+  const completePickerClose = useAddTransactionState.getState().completePickerClose;
   const setBudgetsLoading = useAddTransactionState.getState().setBudgetsLoading;
   const setBudgetLookupError = useAddTransactionState.getState().setBudgetLookupError;
   const setErrorMessage = useAddTransactionState.getState().setErrorMessage;
@@ -247,8 +241,14 @@ export function useAddTransaction(onClose: () => void) {
     let active = true;
     setDataStatus('loading');
 
-    const accountRequest = accountsHaveLoaded ? Promise.resolve() : loadAccounts();
-    const categoryRequest = categoriesHaveLoaded ? Promise.resolve() : loadCategories();
+    const accountRequest = ensureTransactionFormPrerequisite(
+      () => useAccountStore.getState().hasLoaded,
+      loadAccounts,
+    );
+    const categoryRequest = ensureTransactionFormPrerequisite(
+      () => useCategoryStore.getState().hasLoaded,
+      loadCategories,
+    );
     void Promise.all([accountRequest, categoryRequest])
       .then(() => {
         if (active && request === dataRequestRef.current) setDataStatus('ready');
@@ -469,6 +469,22 @@ export function useAddTransaction(onClose: () => void) {
     }
   }
 
+  function invalidateBudgetEligibility(nextCategoryId: string, nextDate: string) {
+    if (
+      !semantics.usesBudget ||
+      !nextCategoryId ||
+      (nextCategoryId === categoryId && nextDate.slice(0, 7) === date.slice(0, 7))
+    ) {
+      return;
+    }
+    budgetRequestRef.current += 1;
+    setBudgetLookupError(undefined);
+    setBudgetsLoading(true);
+    setAvailableBudgets([]);
+    setBudgetId(undefined);
+    form.setValue('budgetId', '');
+  }
+
   function toggleRateOverride() {
     const next = !rateOverride;
     setRateOverride(next);
@@ -504,6 +520,7 @@ export function useAddTransaction(onClose: () => void) {
 
   function selectCategory(category: Category) {
     clearError();
+    invalidateBudgetEligibility(category.id, date);
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
   }
@@ -550,6 +567,7 @@ export function useAddTransaction(onClose: () => void) {
       showToPicker,
       showCategoryPicker,
       showBudgetPicker,
+      closingPicker,
       budgetsLoading,
       availableBudgets,
       showBudgetField:
@@ -569,6 +587,7 @@ export function useAddTransaction(onClose: () => void) {
     },
     setDate: (v: string) => {
       clearError();
+      invalidateBudgetEligibility(categoryId, v);
       form.setValue('date', v);
     },
     setNote: (v: string) => {
@@ -584,6 +603,7 @@ export function useAddTransaction(onClose: () => void) {
     setShowToPicker,
     setShowCategoryPicker,
     setShowBudgetPicker,
+    completePickerClose,
     selectAccount,
     selectToAccount,
     selectCategory,

@@ -13,6 +13,7 @@ interface DatePickerSheetProps {
   onChange: (event: DateTimePickerEvent, date?: Date) => void;
   onCancel: () => void;
   onDone: () => void;
+  onCloseComplete: () => void;
 }
 
 export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement {
@@ -41,6 +42,7 @@ export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement
       onOpenChange={(open) => {
         if (!open) props.onCancel();
       }}
+      onCloseComplete={props.onCloseComplete}
       title={Strings.addTxDatePickerTitle}
       size="sm"
       footer={footer}

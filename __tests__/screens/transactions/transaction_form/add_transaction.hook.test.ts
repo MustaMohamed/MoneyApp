@@ -142,6 +142,26 @@ describe('useAddTransaction — named budget assignment', () => {
     expect(loadCategories).toHaveBeenCalledTimes(1);
   });
 
+  it('retries a prerequisite request that resolves without publishing store data', async () => {
+    useAccountStore.setState({ accounts: [], hasLoaded: false, loadError: false });
+    useCategoryStore.setState({ categories: [], hasLoaded: false, loadError: false });
+    const loadAccounts = jest
+      .spyOn(useAccountStore.getState(), 'loadAccounts')
+      .mockResolvedValueOnce(undefined)
+      .mockImplementationOnce(async () => {
+        useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
+      });
+    jest.spyOn(useCategoryStore.getState(), 'loadCategories').mockImplementation(async () => {
+      useCategoryStore.setState({ categories: [mockCategoryExpense], hasLoaded: true });
+    });
+
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
+    expect(loadAccounts).toHaveBeenCalledTimes(2);
+    expect(result.current.state.accounts).toEqual([mockAccountEGP]);
+  });
+
   it('exposes a retryable prerequisite error', async () => {
     useAccountStore.setState({ accounts: [], hasLoaded: false, loadError: false });
     const loadAccounts = jest
@@ -195,6 +215,24 @@ describe('useAddTransaction — named budget assignment', () => {
     expect(addTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
     expect(result.current.state.showBudgetField).toBe(false);
+  });
+
+  it('blocks an immediate save until the selected category budget is resolved', async () => {
+    const pendingBudgets = new Promise<Budget[]>(() => {});
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.setAmountStr('5'));
+    await act(async () => {
+      result.current.selectCategory(mockCategoryExpense);
+      await result.current.handleSave();
+    });
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(useAddTransactionState.getState().budgetsLoading).toBe(true);
   });
 
   it('blocks save and exposes retry when the budget lookup fails', async () => {

@@ -8,6 +8,7 @@ describe('useEditTransactionState', () => {
       saving: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
+      closingPicker: undefined,
       budgetsLoading: false,
       budgetLookupVersion: 0,
       budgetLookupError: undefined,
@@ -29,6 +30,19 @@ describe('useEditTransactionState', () => {
       budgetLookupError: undefined,
       errorMessage: undefined,
     });
+  });
+
+  it('retains a closing picker until its sheet transition completes', () => {
+    useEditTransactionState.getState().setShowBudgetPicker(true);
+    useEditTransactionState.getState().setShowBudgetPicker(false);
+
+    expect(useEditTransactionState.getState()).toMatchObject({
+      showBudgetPicker: false,
+      closingPicker: 'budget',
+    });
+
+    useEditTransactionState.getState().completePickerClose('budget');
+    expect(useEditTransactionState.getState().closingPicker).toBeUndefined();
   });
 
   it('resets every form-owned flag after the host completes a session', () => {

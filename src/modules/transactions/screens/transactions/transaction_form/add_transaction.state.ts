@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type TransactionFormDataStatus = 'loading' | 'ready' | 'error';
+export type AddTransactionPicker = 'account' | 'toAccount' | 'category' | 'budget';
 
 interface AddTransactionStateShape {
   dataStatus: TransactionFormDataStatus;
@@ -12,6 +13,7 @@ interface AddTransactionStateShape {
   showToPicker: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
+  closingPicker: AddTransactionPicker | undefined;
   budgetsLoading: boolean;
   budgetLookupVersion: number;
   budgetLookupError: string | undefined;
@@ -27,6 +29,7 @@ type AddTransactionState = AddTransactionStateShape & {
   setShowToPicker: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
+  completePickerClose: (picker: AddTransactionPicker) => void;
   setBudgetsLoading: (v: boolean) => void;
   setBudgetLookupError: (message: string | undefined) => void;
   setErrorMessage: (message: string | undefined) => void;
@@ -44,6 +47,7 @@ const INITIAL_STATE: AddTransactionStateShape = {
   showToPicker: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
+  closingPicker: undefined,
   budgetsLoading: false,
   budgetLookupVersion: 0,
   budgetLookupError: undefined,
@@ -58,10 +62,28 @@ export const useAddTransactionState = createMoneyAppSelectors(
     retryFormData: () =>
       set((state) => ({ dataLoadVersion: state.dataLoadVersion + 1, dataStatus: 'loading' })),
     setSaving: (v) => set({ saving: v }),
-    setShowAccountPicker: (v) => set({ showAccountPicker: v }),
-    setShowToPicker: (v) => set({ showToPicker: v }),
-    setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
-    setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
+    setShowAccountPicker: (v) =>
+      set((state) => ({
+        showAccountPicker: v,
+        closingPicker: v ? undefined : state.showAccountPicker ? 'account' : state.closingPicker,
+      })),
+    setShowToPicker: (v) =>
+      set((state) => ({
+        showToPicker: v,
+        closingPicker: v ? undefined : state.showToPicker ? 'toAccount' : state.closingPicker,
+      })),
+    setShowCategoryPicker: (v) =>
+      set((state) => ({
+        showCategoryPicker: v,
+        closingPicker: v ? undefined : state.showCategoryPicker ? 'category' : state.closingPicker,
+      })),
+    setShowBudgetPicker: (v) =>
+      set((state) => ({
+        showBudgetPicker: v,
+        closingPicker: v ? undefined : state.showBudgetPicker ? 'budget' : state.closingPicker,
+      })),
+    completePickerClose: (picker) =>
+      set((state) => (state.closingPicker === picker ? { closingPicker: undefined } : {})),
     setBudgetsLoading: (v) => set({ budgetsLoading: v }),
     setBudgetLookupError: (budgetLookupError) => set({ budgetLookupError }),
     setErrorMessage: (errorMessage) => set({ errorMessage }),
