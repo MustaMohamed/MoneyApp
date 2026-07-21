@@ -10,7 +10,7 @@ describe('useAddTransactionState', () => {
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
-      closingPicker: undefined,
+      closingPickers: [],
       budgetsLoading: false,
       budgetLookupVersion: 0,
       budgetLookupError: undefined,
@@ -35,11 +35,24 @@ describe('useAddTransactionState', () => {
 
     expect(useAddTransactionState.getState()).toMatchObject({
       showCategoryPicker: false,
-      closingPicker: 'category',
+      closingPickers: ['category'],
     });
 
     useAddTransactionState.getState().completePickerClose('category');
-    expect(useAddTransactionState.getState().closingPicker).toBeUndefined();
+    expect(useAddTransactionState.getState().closingPickers).toEqual([]);
+  });
+
+  it('keeps one picker mounted while a different picker opens', () => {
+    useAddTransactionState.getState().setShowCategoryPicker(true);
+    useAddTransactionState.getState().setShowCategoryPicker(false);
+
+    useAddTransactionState.getState().setShowBudgetPicker(true);
+
+    expect(useAddTransactionState.getState()).toMatchObject({
+      showCategoryPicker: false,
+      showBudgetPicker: true,
+      closingPickers: ['category'],
+    });
   });
 
   it('tracks lookup and save errors and clears them for retry or edits', () => {

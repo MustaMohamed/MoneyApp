@@ -7,16 +7,7 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 import { ensureTransactionFormPrerequisite } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 
 import { type TransactionFormV2Mode, useTransactionFormV2State } from './transaction_form_v2.state';
-
-function getMissingAccountIds(tx: Transaction): string[] {
-  const accountState = useAccountStore.getState();
-  const knownIds = new Set(
-    [...accountState.accounts, ...accountState.accountLookup].map((account) => account.id),
-  );
-  return [tx.account_id, tx.to_account_id].filter(
-    (id): id is string => id !== null && !knownIds.has(id),
-  );
-}
+import { getMissingTransactionFormAccountIds } from './transaction_form_v2_prerequisites.helpers';
 
 async function loadPrerequisites(
   mode: TransactionFormV2Mode,
@@ -36,8 +27,9 @@ async function loadPrerequisites(
   if (mode !== 'edit' || editingTx === null) return;
 
   await ensureTransactionFormPrerequisite(
-    () => getMissingAccountIds(editingTx).length === 0,
-    () => useAccountStore.getState().loadAccountLookup(getMissingAccountIds(editingTx)),
+    () => getMissingTransactionFormAccountIds(editingTx).length === 0,
+    () =>
+      useAccountStore.getState().loadAccountLookup(getMissingTransactionFormAccountIds(editingTx)),
   );
 }
 

@@ -2,13 +2,15 @@ import { create } from 'zustand';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { completePickerClose, updateClosingPickers } from './picker_close_lifecycle.helpers';
+
 export type EditTransactionPicker = 'category' | 'budget';
 
 interface EditTransactionStateShape {
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
-  closingPicker: EditTransactionPicker | undefined;
+  closingPickers: EditTransactionPicker[];
   budgetsLoading: boolean;
   budgetLookupVersion: number;
   budgetLookupError: string | undefined;
@@ -36,7 +38,7 @@ const INITIAL_STATE: EditTransactionStateShape = {
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
-  closingPicker: undefined,
+  closingPickers: [],
   budgetsLoading: false,
   budgetLookupVersion: 0,
   budgetLookupError: undefined,
@@ -52,15 +54,27 @@ export const useEditTransactionState = createMoneyAppSelectors(
     setShowCategoryPicker: (v) =>
       set((state) => ({
         showCategoryPicker: v,
-        closingPicker: v ? undefined : state.showCategoryPicker ? 'category' : state.closingPicker,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'category',
+          state.showCategoryPicker,
+          v,
+        ),
       })),
     setShowBudgetPicker: (v) =>
       set((state) => ({
         showBudgetPicker: v,
-        closingPicker: v ? undefined : state.showBudgetPicker ? 'budget' : state.closingPicker,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'budget',
+          state.showBudgetPicker,
+          v,
+        ),
       })),
     completePickerClose: (picker) =>
-      set((state) => (state.closingPicker === picker ? { closingPicker: undefined } : {})),
+      set((state) => ({
+        closingPickers: completePickerClose(state.closingPickers, picker),
+      })),
     setBudgetsLoading: (v) => set({ budgetsLoading: v }),
     setBudgetLookupError: (budgetLookupError) => set({ budgetLookupError }),
     setErrorMessage: (errorMessage) => set({ errorMessage }),

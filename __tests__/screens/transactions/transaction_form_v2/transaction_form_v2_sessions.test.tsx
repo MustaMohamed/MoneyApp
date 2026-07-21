@@ -8,6 +8,7 @@ const mockHandleSave = jest.fn();
 const mockRetry = jest.fn();
 const mockUseAddTransaction = jest.fn();
 const mockUseEditTransaction = jest.fn();
+const mockRequestAccountCreation = jest.fn();
 const mockUsePrerequisites = jest.fn(
   (_sessionId: number, _mode: string, _tx: Transaction | null) => ({
     status: 'loading',
@@ -69,9 +70,9 @@ jest.mock(
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/no_accounts_empty',
   () => ({
-    NoAccountsEmpty: () => {
-      const { View: RNView } = require('react-native');
-      return <RNView testID="transaction-form-no-accounts" />;
+    NoAccountsEmpty: ({ onAddAccount }: { onAddAccount: () => void }) => {
+      const { Pressable: RNPressable } = require('react-native');
+      return <RNPressable testID="transaction-form-no-accounts" onPress={onAddAccount} />;
     },
   }),
 );
@@ -162,7 +163,7 @@ function createHookState(overrides: Record<string, unknown> = {}) {
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
-      closingPicker: undefined,
+      closingPickers: [],
       budgetsLoading: false,
       availableBudgets: [],
       showBudgetField: false,
@@ -196,8 +197,8 @@ function renderAdd(overrides: Record<string, unknown> = {}) {
     <AddTransactionV2Session
       sessionId={1}
       onRegisterSubmit={jest.fn()}
-      onClose={jest.fn()}
       onSaved={jest.fn()}
+      onRequestAccountCreation={mockRequestAccountCreation}
     />,
   );
 }
@@ -223,7 +224,7 @@ describe('Transaction Form V2 sessions', () => {
     const screen = renderAdd({
       formDataReady: true,
       showAccountPicker: true,
-      closingPicker: 'category',
+      closingPickers: ['category'],
     });
 
     expect(screen.getByTestId('transaction-form-body')).toBeTruthy();
@@ -232,7 +233,7 @@ describe('Transaction Form V2 sessions', () => {
   });
 
   it('hides the Add footer when no account exists', async () => {
-    renderAdd({ formDataReady: true, hasAccounts: false });
+    const screen = renderAdd({ formDataReady: true, hasAccounts: false });
 
     await waitFor(() =>
       expect(useTransactionFormV2State.getState().footer).toMatchObject({
@@ -240,6 +241,8 @@ describe('Transaction Form V2 sessions', () => {
         disabled: true,
       }),
     );
+    fireEvent.press(screen.getByTestId('transaction-form-no-accounts'));
+    expect(mockRequestAccountCreation).toHaveBeenCalledWith(1);
   });
 
   it('registers Edit submit and publishes saving footer state', async () => {

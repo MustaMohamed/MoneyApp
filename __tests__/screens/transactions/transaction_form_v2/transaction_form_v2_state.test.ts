@@ -1,4 +1,7 @@
-import { Currency, TransactionType } from '@/constants/enums';
+import { AccountType, Currency, TransactionType } from '@/constants/enums';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
@@ -29,9 +32,34 @@ function createTransaction(id = 'tx-1'): Transaction {
   };
 }
 
+function createAccount(id = 'account-1'): Account {
+  return {
+    id,
+    name: 'Primary',
+    type: AccountType.Bank,
+    currency: Currency.EGP,
+    opening_balance: 1_000,
+    current_balance: 1_000,
+    color: null,
+    credit_limit: null,
+    revolving_balance: null,
+    minimum_payment: null,
+    statement_due_day: null,
+    interest_tracking: 0,
+    apr: null,
+    is_archived: 0,
+    balance_review_required: 0,
+    sort_order: 0,
+    created_at: '2026-07-21T12:00:00.000Z',
+    updated_at: '2026-07-21T12:00:00.000Z',
+  };
+}
+
 describe('useTransactionFormV2State', () => {
   beforeEach(() => {
     useTransactionFormV2State.getState().reset();
+    useAccountStore.setState({ accounts: [], accountLookup: [], hasLoaded: false });
+    useCategoryStore.setState({ categories: [], hasLoaded: false });
   });
 
   it('opens Add atomically without a preparing phase', () => {
@@ -61,6 +89,57 @@ describe('useTransactionFormV2State', () => {
       phase: 'open',
       sessionId: 1,
       editingTx: tx,
+    });
+  });
+
+  it('opens directly into ready state when cached Add prerequisites are available', () => {
+    useAccountStore.setState({ hasLoaded: true });
+    useCategoryStore.setState({ hasLoaded: true });
+
+    useTransactionFormV2State.getState().openAdd();
+
+    expect(useTransactionFormV2State.getState()).toMatchObject({
+      prerequisiteStatus: 'ready',
+      footer: {
+        visible: false,
+        saving: false,
+        disabled: true,
+      },
+    });
+  });
+
+  it('opens directly into ready state when the cached Edit account is in lookup', () => {
+    useAccountStore.setState({
+      hasLoaded: true,
+      accountLookup: [createAccount()],
+    });
+    useCategoryStore.setState({ hasLoaded: true });
+
+    useTransactionFormV2State.getState().openEdit(createTransaction());
+
+    expect(useTransactionFormV2State.getState()).toMatchObject({
+      prerequisiteStatus: 'ready',
+      footer: {
+        visible: true,
+        saving: false,
+        disabled: false,
+      },
+    });
+  });
+
+  it('keeps Edit in prerequisite loading when its account is not cached', () => {
+    useAccountStore.setState({ hasLoaded: true });
+    useCategoryStore.setState({ hasLoaded: true });
+
+    useTransactionFormV2State.getState().openEdit(createTransaction());
+
+    expect(useTransactionFormV2State.getState()).toMatchObject({
+      prerequisiteStatus: 'idle',
+      footer: {
+        visible: true,
+        saving: false,
+        disabled: true,
+      },
     });
   });
 
@@ -108,6 +187,37 @@ describe('useTransactionFormV2State', () => {
       phase: 'open',
       sessionId: editSession + 1,
     });
+  });
+
+  it('ignores save completion from a replaced session', () => {
+    useTransactionFormV2State.getState().openAdd();
+    const addSession = useTransactionFormV2State.getState().sessionId;
+
+    useTransactionFormV2State.getState().openEdit(createTransaction('tx-2'));
+    const editSession = useTransactionFormV2State.getState().sessionId;
+
+    expect(useTransactionFormV2State.getState().completeSave(addSession)).toBe(false);
+    expect(useTransactionFormV2State.getState()).toMatchObject({
+      mode: 'edit',
+      phase: 'open',
+      sessionId: editSession,
+    });
+    expect(useTransactionFormV2State.getState().completeSave(editSession)).toBe(true);
+    expect(useTransactionFormV2State.getState().phase).toBe('closing');
+  });
+
+  it('returns account navigation only after the matching close settles', () => {
+    useTransactionFormV2State.getState().openAdd();
+    const sessionId = useTransactionFormV2State.getState().sessionId;
+
+    expect(useTransactionFormV2State.getState().requestAccountCreation(sessionId)).toBe(true);
+    expect(useTransactionFormV2State.getState()).toMatchObject({
+      phase: 'closing',
+      postCloseAction: 'addAccount',
+    });
+
+    expect(useTransactionFormV2State.getState().completeClose(sessionId)).toBe('addAccount');
+    expect(useTransactionFormV2State.getState().phase).toBe('closed');
   });
 
   it('starts one prerequisite request for each session generation', () => {

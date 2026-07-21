@@ -14,6 +14,7 @@ export function TransactionFormV2Host(): React.ReactElement {
     handleOpenChange,
     handleClose,
     handleSaved,
+    handleRequestAccountCreation,
     handleCloseComplete,
   } = useTransactionFormV2Host();
 
@@ -43,8 +44,8 @@ export function TransactionFormV2Host(): React.ReactElement {
           key={state.sessionId}
           sessionId={state.sessionId}
           onRegisterSubmit={registerSubmit}
-          onClose={handleClose}
           onSaved={handleSaved}
+          onRequestAccountCreation={handleRequestAccountCreation}
         />
       ) : state.mode === 'edit' && state.editingTx ? (
         <EditTransactionV2Session

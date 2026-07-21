@@ -19,6 +19,11 @@ const mockAddSession = jest.fn<React.ReactElement, [Record<string, unknown>]>((p
 const mockEditSession = jest.fn<React.ReactElement, [Record<string, unknown>]>((props) =>
   React.createElement(View, { testID: 'edit-v2-session', ...props }),
 );
+const mockPush = jest.fn();
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: mockPush }),
+}));
 
 jest.mock('@/components/ui/button', () => ({
   Button: (props: object) => {
@@ -107,6 +112,7 @@ describe('TransactionFormV2Host', () => {
     mockNextSheetInstanceId = 1;
     mockAddSession.mockClear();
     mockEditSession.mockClear();
+    mockPush.mockClear();
     useTransactionFormV2State.getState().reset();
   });
 
@@ -199,5 +205,37 @@ describe('TransactionFormV2Host', () => {
     await act(async () => resolveSubmit());
     act(() => result.current.handleSave());
     expect(submit).toHaveBeenCalledTimes(2);
+  });
+
+  it('ignores a stale session save callback after another form opens', () => {
+    const onEditSaved = jest.fn();
+    render(<TransactionFormV2Host />);
+    act(() => useTransactionFormV2State.getState().openEdit(createTransaction(), onEditSaved));
+    const oldSessionId = useTransactionFormV2State.getState().sessionId;
+    const staleOnSaved = mockEditSession.mock.lastCall?.[0].onSaved as
+      | ((sessionId: number) => void)
+      | undefined;
+
+    act(() => useTransactionFormV2State.getState().openAdd());
+    act(() => staleOnSaved?.(oldSessionId));
+
+    expect(useTransactionFormV2State.getState()).toMatchObject({ mode: 'add', phase: 'open' });
+    expect(onEditSaved).not.toHaveBeenCalled();
+  });
+
+  it('navigates to account creation only after the form finishes closing', () => {
+    render(<TransactionFormV2Host />);
+    act(() => useTransactionFormV2State.getState().openAdd());
+    const sessionId = useTransactionFormV2State.getState().sessionId;
+    const requestAccountCreation = mockAddSession.mock.lastCall?.[0].onRequestAccountCreation as
+      | ((sessionId: number) => void)
+      | undefined;
+
+    act(() => requestAccountCreation?.(sessionId));
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(useTransactionFormV2State.getState().phase).toBe('closing');
+
+    act(() => mockSheetFrames.at(-1)?.onCloseComplete());
+    expect(mockPush).toHaveBeenCalledWith('/accounts/add_account');
   });
 });

@@ -1,5 +1,3 @@
-import { router } from 'expo-router';
-
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
@@ -18,13 +16,13 @@ import { useTransactionFormV2Session } from './transaction_form_v2_session.hook'
 export interface AddTransactionV2SessionProps {
   sessionId: number;
   onRegisterSubmit: RegisterTransactionFormV2Submit;
-  onClose: () => void;
-  onSaved: () => void;
+  onSaved: (sessionId: number) => void;
+  onRequestAccountCreation: (sessionId: number) => void;
 }
 
 export function AddTransactionV2Session(props: AddTransactionV2SessionProps): React.ReactElement {
   const prerequisites = useTransactionFormV2Prerequisites(props.sessionId, 'add', null);
-  const hook = useAddTransaction(props.onSaved, prerequisites);
+  const hook = useAddTransaction(() => props.onSaved(props.sessionId), prerequisites);
   const footerVisible = !hook.state.formDataReady || hook.state.hasAccounts;
   const footerDisabled =
     hook.state.saving ||
@@ -90,17 +88,12 @@ export function AddTransactionV2Session(props: AddTransactionV2SessionProps): Re
           currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
         />
       ) : hook.state.formDataReady ? (
-        <NoAccountsEmpty
-          onAddAccount={() => {
-            props.onClose();
-            router.push('/accounts/add_account');
-          }}
-        />
+        <NoAccountsEmpty onAddAccount={() => props.onRequestAccountCreation(props.sessionId)} />
       ) : (
         <TransactionFormLoading />
       )}
 
-      {hook.state.showAccountPicker || hook.state.closingPicker === 'account' ? (
+      {hook.state.showAccountPicker || hook.state.closingPickers.includes('account') ? (
         <AccountPickerSheet
           isOpen={hook.state.showAccountPicker}
           title={
@@ -113,7 +106,7 @@ export function AddTransactionV2Session(props: AddTransactionV2SessionProps): Re
           onCloseComplete={() => hook.completePickerClose('account')}
         />
       ) : null}
-      {hook.state.showToPicker || hook.state.closingPicker === 'toAccount' ? (
+      {hook.state.showToPicker || hook.state.closingPickers.includes('toAccount') ? (
         <AccountPickerSheet
           isOpen={hook.state.showToPicker}
           title={Strings.addTxPickToTitle}
@@ -125,7 +118,7 @@ export function AddTransactionV2Session(props: AddTransactionV2SessionProps): Re
           onCloseComplete={() => hook.completePickerClose('toAccount')}
         />
       ) : null}
-      {hook.state.showCategoryPicker || hook.state.closingPicker === 'category' ? (
+      {hook.state.showCategoryPicker || hook.state.closingPickers.includes('category') ? (
         <CategoryPickerSheet
           isOpen={hook.state.showCategoryPicker}
           title={Strings.addTxPickCategoryTitle}
@@ -136,7 +129,7 @@ export function AddTransactionV2Session(props: AddTransactionV2SessionProps): Re
           onCloseComplete={() => hook.completePickerClose('category')}
         />
       ) : null}
-      {hook.state.showBudgetPicker || hook.state.closingPicker === 'budget' ? (
+      {hook.state.showBudgetPicker || hook.state.closingPickers.includes('budget') ? (
         <BudgetPickerSheet
           isOpen={hook.state.showBudgetPicker}
           budgets={hook.state.availableBudgets}

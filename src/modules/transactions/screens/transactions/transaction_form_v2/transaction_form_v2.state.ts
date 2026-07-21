@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 
+import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
@@ -8,8 +9,11 @@ import { useEditTransactionStore } from '@/modules/transactions/screens/transact
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { areTransactionFormV2PrerequisitesReady } from './transaction_form_v2_prerequisites.helpers';
+
 export type TransactionFormV2Mode = 'add' | 'edit';
 export type TransactionFormV2Phase = 'closed' | 'open' | 'closing';
+export type TransactionFormV2PostCloseAction = 'addAccount';
 
 export interface TransactionFormV2FooterState {
   visible: boolean;
@@ -23,6 +27,7 @@ interface TransactionFormV2StateShape {
   sessionId: number;
   editingTx: Transaction | null;
   onEditSaved: (() => void) | undefined;
+  postCloseAction: TransactionFormV2PostCloseAction | undefined;
   prerequisiteStatus: TransactionFormPrerequisiteStatus;
   prerequisiteGeneration: number;
   footer: TransactionFormV2FooterState;
@@ -32,8 +37,9 @@ type TransactionFormV2State = TransactionFormV2StateShape & {
   openAdd: () => void;
   openEdit: (tx: Transaction, onSaved?: () => void) => void;
   requestClose: () => boolean;
-  completeSave: () => void;
-  completeClose: (sessionId: number) => void;
+  requestAccountCreation: (sessionId: number) => boolean;
+  completeSave: (sessionId: number) => boolean;
+  completeClose: (sessionId: number) => TransactionFormV2PostCloseAction | undefined;
   beginPrerequisites: (sessionId: number, generation: number) => boolean;
   completePrerequisites: (sessionId: number, generation: number) => void;
   failPrerequisites: (sessionId: number, generation: number) => void;
@@ -54,12 +60,19 @@ const LOADING_FOOTER: TransactionFormV2FooterState = {
   disabled: true,
 };
 
+const READY_FOOTER: TransactionFormV2FooterState = {
+  visible: true,
+  saving: false,
+  disabled: false,
+};
+
 const INITIAL_STATE: TransactionFormV2StateShape = {
   mode: null,
   phase: 'closed',
   sessionId: 0,
   editingTx: null,
   onEditSaved: undefined,
+  postCloseAction: undefined,
   prerequisiteStatus: 'idle',
   prerequisiteGeneration: 0,
   footer: CLOSED_FOOTER,
@@ -70,6 +83,19 @@ function resetFormSessions(): void {
   useAddTransactionState.getState().reset();
   useEditTransactionStore.getState().reset();
   useEditTransactionState.getState().reset();
+}
+
+function getOpeningState(mode: TransactionFormV2Mode, editingTx: Transaction | null) {
+  const ready = areTransactionFormV2PrerequisitesReady(mode, editingTx);
+  const hasAccounts = useAccountStore.getState().accounts.length > 0;
+  return {
+    prerequisiteStatus: ready ? ('ready' as const) : ('idle' as const),
+    footer: ready
+      ? mode === 'add' && !hasAccounts
+        ? CLOSED_FOOTER
+        : READY_FOOTER
+      : LOADING_FOOTER,
+  };
 }
 
 export function isTransactionFormSessionSaving(mode: TransactionFormV2Mode | null): boolean {
@@ -96,30 +122,34 @@ export const useTransactionFormV2State = createMoneyAppSelectors(
 
     openAdd: () => {
       resetFormSessions();
+      const opening = getOpeningState('add', null);
       set((state) => ({
         mode: 'add',
         phase: 'open',
         sessionId: state.sessionId + 1,
         editingTx: null,
         onEditSaved: undefined,
-        prerequisiteStatus: 'idle',
+        postCloseAction: undefined,
+        prerequisiteStatus: opening.prerequisiteStatus,
         prerequisiteGeneration: 0,
-        footer: LOADING_FOOTER,
+        footer: opening.footer,
       }));
     },
 
     openEdit: (tx, onEditSaved) => {
       resetFormSessions();
       useEditTransactionStore.getState().loadFromTx(tx);
+      const opening = getOpeningState('edit', tx);
       set((state) => ({
         mode: 'edit',
         phase: 'open',
         sessionId: state.sessionId + 1,
         editingTx: tx,
         onEditSaved,
-        prerequisiteStatus: 'idle',
+        postCloseAction: undefined,
+        prerequisiteStatus: opening.prerequisiteStatus,
         prerequisiteGeneration: 0,
-        footer: LOADING_FOOTER,
+        footer: opening.footer,
       }));
     },
 
@@ -131,18 +161,38 @@ export const useTransactionFormV2State = createMoneyAppSelectors(
       return true;
     },
 
-    completeSave: () => {
-      if (get().phase === 'open') set({ phase: 'closing' });
+    requestAccountCreation: (sessionId) => {
+      const state = get();
+      if (
+        state.mode !== 'add' ||
+        state.phase !== 'open' ||
+        state.sessionId !== sessionId ||
+        state.footer.saving ||
+        isTransactionFormSessionSaving(state.mode)
+      ) {
+        return false;
+      }
+      set({ phase: 'closing', postCloseAction: 'addAccount' });
+      return true;
+    },
+
+    completeSave: (sessionId) => {
+      const state = get();
+      if (state.phase !== 'open' || state.sessionId !== sessionId) return false;
+      set({ phase: 'closing' });
+      return true;
     },
 
     completeClose: (sessionId) => {
       const state = get();
-      if (state.sessionId !== sessionId || state.phase !== 'closing') return;
+      if (state.sessionId !== sessionId || state.phase !== 'closing') return undefined;
+      const postCloseAction = state.postCloseAction;
       resetFormSessions();
       set((current) => ({
         ...INITIAL_STATE,
         sessionId: current.sessionId,
       }));
+      return postCloseAction;
     },
 
     beginPrerequisites: (sessionId, generation) => {

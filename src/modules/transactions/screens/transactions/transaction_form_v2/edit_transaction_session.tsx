@@ -17,12 +17,17 @@ export interface EditTransactionV2SessionProps {
   tx: Transaction;
   onRegisterSubmit: RegisterTransactionFormV2Submit;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (sessionId: number) => void;
 }
 
 export function EditTransactionV2Session(props: EditTransactionV2SessionProps): React.ReactElement {
   const prerequisites = useTransactionFormV2Prerequisites(props.sessionId, 'edit', props.tx);
-  const hook = useEditTransaction(props.tx, props.onClose, props.onSaved, prerequisites);
+  const hook = useEditTransaction(
+    props.tx,
+    props.onClose,
+    () => props.onSaved(props.sessionId),
+    prerequisites,
+  );
   const footerDisabled =
     hook.state.saving ||
     !hook.state.formDataReady ||
@@ -87,7 +92,7 @@ export function EditTransactionV2Session(props: EditTransactionV2SessionProps): 
         <TransactionFormLoading />
       )}
 
-      {hook.state.showCategoryPicker || hook.state.closingPicker === 'category' ? (
+      {hook.state.showCategoryPicker || hook.state.closingPickers.includes('category') ? (
         <CategoryPickerSheet
           isOpen={hook.state.showCategoryPicker}
           title={Strings.addTxPickCategoryTitle}
@@ -98,7 +103,7 @@ export function EditTransactionV2Session(props: EditTransactionV2SessionProps): 
           onCloseComplete={() => hook.completePickerClose('category')}
         />
       ) : null}
-      {hook.state.showBudgetPicker || hook.state.closingPicker === 'budget' ? (
+      {hook.state.showBudgetPicker || hook.state.closingPickers.includes('budget') ? (
         <BudgetPickerSheet
           isOpen={hook.state.showBudgetPicker}
           budgets={hook.state.availableBudgets}

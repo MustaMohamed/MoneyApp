@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
 import { BackHandler } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -23,13 +24,13 @@ interface RegisteredSubmit {
 }
 
 export function useTransactionFormV2Host() {
-  const { mode, phase, sessionId, editingTx, onEditSaved, footer } = useTransactionFormV2State(
+  const router = useRouter();
+  const { mode, phase, sessionId, editingTx, footer } = useTransactionFormV2State(
     useShallow((state) => ({
       mode: state.mode,
       phase: state.phase,
       sessionId: state.sessionId,
       editingTx: state.editingTx,
-      onEditSaved: state.onEditSaved,
       footer: state.footer,
     })),
   );
@@ -41,6 +42,7 @@ export function useTransactionFormV2Host() {
   const requestClose = useTransactionFormV2State.getState().requestClose;
   const completeSave = useTransactionFormV2State.getState().completeSave;
   const completeClose = useTransactionFormV2State.getState().completeClose;
+  const requestAccountCreation = useTransactionFormV2State.getState().requestAccountCreation;
 
   useEffect(() => {
     if (phase === 'closed') {
@@ -111,15 +113,26 @@ export function useTransactionFormV2Host() {
     requestClose();
   }, [requestClose]);
 
-  const handleSaved = useCallback(() => {
-    completeSave();
-    onEditSaved?.();
-  }, [completeSave, onEditSaved]);
-
-  const handleCloseComplete = useCallback(
-    () => completeClose(sessionId),
-    [completeClose, sessionId],
+  const handleSaved = useCallback(
+    (ownerSessionId: number) => {
+      const current = useTransactionFormV2State.getState();
+      if (!completeSave(ownerSessionId)) return;
+      current.onEditSaved?.();
+    },
+    [completeSave],
   );
+
+  const handleRequestAccountCreation = useCallback(
+    (ownerSessionId: number) => {
+      requestAccountCreation(ownerSessionId);
+    },
+    [requestAccountCreation],
+  );
+
+  const handleCloseComplete = useCallback(() => {
+    const postCloseAction = completeClose(sessionId);
+    if (postCloseAction === 'addAccount') router.push('/accounts/add_account');
+  }, [completeClose, router, sessionId]);
 
   return {
     state: {
@@ -137,6 +150,7 @@ export function useTransactionFormV2Host() {
     handleOpenChange,
     handleClose,
     handleSaved,
+    handleRequestAccountCreation,
     handleCloseComplete,
   };
 }

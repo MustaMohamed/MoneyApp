@@ -8,7 +8,7 @@ describe('useEditTransactionState', () => {
       saving: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
-      closingPicker: undefined,
+      closingPickers: [],
       budgetsLoading: false,
       budgetLookupVersion: 0,
       budgetLookupError: undefined,
@@ -38,11 +38,24 @@ describe('useEditTransactionState', () => {
 
     expect(useEditTransactionState.getState()).toMatchObject({
       showBudgetPicker: false,
-      closingPicker: 'budget',
+      closingPickers: ['budget'],
     });
 
     useEditTransactionState.getState().completePickerClose('budget');
-    expect(useEditTransactionState.getState().closingPicker).toBeUndefined();
+    expect(useEditTransactionState.getState().closingPickers).toEqual([]);
+  });
+
+  it('keeps one picker mounted while a different picker opens', () => {
+    useEditTransactionState.getState().setShowCategoryPicker(true);
+    useEditTransactionState.getState().setShowCategoryPicker(false);
+
+    useEditTransactionState.getState().setShowBudgetPicker(true);
+
+    expect(useEditTransactionState.getState()).toMatchObject({
+      showCategoryPicker: false,
+      showBudgetPicker: true,
+      closingPickers: ['category'],
+    });
   });
 
   it('resets every form-owned flag after the host completes a session', () => {
