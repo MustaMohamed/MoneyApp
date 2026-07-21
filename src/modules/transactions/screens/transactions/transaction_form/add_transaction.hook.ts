@@ -13,7 +13,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAddTransactionState } from './add_transaction.state';
@@ -163,9 +163,20 @@ function createSchema(
 }
 
 export function useAddTransaction(onClose: () => void) {
-  const accounts = useAccountStore((s) => s.accounts);
+  const { accounts, accountsHaveLoaded } = useAccountStore(
+    useShallow((state) => ({
+      accounts: state.accounts,
+      accountsHaveLoaded: state.hasLoaded,
+    })),
+  );
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const categories = useCategoryStore.useState.categories();
+  const { categories, categoriesHaveLoaded } = useCategoryStore(
+    useShallow((state) => ({
+      categories: state.categories,
+      categoriesHaveLoaded: state.hasLoaded,
+    })),
+  );
+  const loadCategories = useCategoryStore.getState().loadCategories;
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -173,20 +184,20 @@ export function useAddTransaction(onClose: () => void) {
     })),
   );
   const addTransaction = useTransactionStore.getState().addTransaction;
-  const { type, amountStr, availableBudgets, budgetId } = useAddTransactionStore(
+  const { type, availableBudgets, budgetId } = useAddTransactionStore(
     useShallow((s) => ({
       type: s.type,
-      amountStr: s.amountStr,
       availableBudgets: s.availableBudgets,
       budgetId: s.budgetId,
     })),
   );
   const setType = useAddTransactionStore.getState().setType;
   const setAmountStr = useAddTransactionStore.getState().setAmountStr;
-  const handleNumpad = useAddTransactionStore.getState().handleNumpad;
   const setAvailableBudgets = useAddTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useAddTransactionStore.getState().setBudgetId;
   const {
+    dataStatus,
+    dataLoadVersion,
     saving,
     showAccountPicker,
     showToPicker,
@@ -199,6 +210,8 @@ export function useAddTransaction(onClose: () => void) {
     rateOverride,
   } = useAddTransactionState(
     useShallow((s) => ({
+      dataStatus: s.dataStatus,
+      dataLoadVersion: s.dataLoadVersion,
       saving: s.saving,
       showAccountPicker: s.showAccountPicker,
       showToPicker: s.showToPicker,
@@ -211,6 +224,8 @@ export function useAddTransaction(onClose: () => void) {
       rateOverride: s.rateOverride,
     })),
   );
+  const setDataStatus = useAddTransactionState.getState().setDataStatus;
+  const retryFormData = useAddTransactionState.getState().retryFormData;
   const setSaving = useAddTransactionState.getState().setSaving;
   const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
   const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
@@ -222,6 +237,33 @@ export function useAddTransaction(onClose: () => void) {
   const retryBudgetLookup = useAddTransactionState.getState().retryBudgetLookup;
   const clearError = useAddTransactionState.getState().clearError;
   const setRateOverride = useAddTransactionState.getState().setRateOverride;
+
+  const dataRequestRef = useRef(0);
+  const lastDataLoadVersionRef = useRef(-1);
+  useEffect(() => {
+    if (lastDataLoadVersionRef.current === dataLoadVersion) return undefined;
+    lastDataLoadVersionRef.current = dataLoadVersion;
+    const request = ++dataRequestRef.current;
+    let active = true;
+    setDataStatus('loading');
+
+    const accountRequest = accountsHaveLoaded ? Promise.resolve() : loadAccounts();
+    const categoryRequest = categoriesHaveLoaded ? Promise.resolve() : loadCategories();
+    void Promise.all([accountRequest, categoryRequest])
+      .then(() => {
+        if (active && request === dataRequestRef.current) setDataStatus('ready');
+      })
+      .catch(() => {
+        if (active && request === dataRequestRef.current) setDataStatus('error');
+      });
+
+    return () => {
+      active = false;
+    };
+    // A request owns its initial readiness snapshot. Store updates during that
+    // request must not start duplicate database reads.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLoadVersion, loadAccounts, loadCategories, setDataStatus]);
 
   const schema = useMemo(
     () => createSchema(type, accounts, categories, availableBudgets.length > 1),
@@ -312,13 +354,6 @@ export function useAddTransaction(onClose: () => void) {
     rate: form.formState.errors.exchangeRate?.message,
   };
 
-  // Sync numpad → RHF amount
-  useEffect(() => {
-    const parsed = parseFloat(amountStr);
-    form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [amountStr]);
-
   // Clear type-dependent fields when type changes
   useEffect(() => {
     form.setValue('toAccountId', '');
@@ -387,7 +422,13 @@ export function useAddTransaction(onClose: () => void) {
 
   async function onValid(data: AddTransactionFormValues) {
     const formState = useAddTransactionState.getState();
-    if (formState.saving || formState.budgetsLoading || formState.budgetLookupError) return;
+    if (
+      formState.dataStatus !== 'ready' ||
+      formState.saving ||
+      formState.budgetsLoading ||
+      formState.budgetLookupError
+    )
+      return;
     setErrorMessage(undefined);
     setSaving(true);
     try {
@@ -419,8 +460,8 @@ export function useAddTransaction(onClose: () => void) {
         transaction_date: data.date,
         transaction_time: submittedAt.time,
       });
-      await loadAccounts();
       onClose();
+      void loadAccounts().catch(() => undefined);
     } catch (error) {
       setErrorMessage(resolveTransactionSaveError(error));
     } finally {
@@ -477,7 +518,6 @@ export function useAddTransaction(onClose: () => void) {
   return {
     state: {
       type,
-      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -498,6 +538,8 @@ export function useAddTransaction(onClose: () => void) {
       errors,
       errorMessage,
       budgetLookupError,
+      formDataReady: dataStatus === 'ready',
+      formDataLoadError: dataStatus === 'error',
       saving,
       accounts,
       hasAccounts: accounts.length > 0,
@@ -521,12 +563,9 @@ export function useAddTransaction(onClose: () => void) {
       setType(nextType);
     },
     setAmountStr: (value: string) => {
-      clearError();
+      if (useAddTransactionState.getState().errorMessage) clearError();
+      if (form.formState.errors.amount) form.clearErrors('amount');
       setAmountStr(value);
-    },
-    handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => {
-      clearError();
-      handleNumpad(action, value);
     },
     setDate: (v: string) => {
       clearError();
@@ -550,6 +589,11 @@ export function useAddTransaction(onClose: () => void) {
     selectCategory,
     selectBudget,
     retryBudgetLookup,
-    handleSave: form.handleSubmit(onValid),
+    retryFormData,
+    handleSave: () => {
+      const amountStr = useAddTransactionStore.getState().amountStr;
+      form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);
+      return form.handleSubmit(onValid)();
+    },
   };
 }

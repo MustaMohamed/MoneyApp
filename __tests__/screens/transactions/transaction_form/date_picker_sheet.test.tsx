@@ -29,9 +29,12 @@ jest.mock('@/components/ui/sheet', () => ({
   }) => {
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
     const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
-    return isOpen
-      ? ReactLocal.createElement(RNView, { testID: 'date-picker-sheet' }, children, footer)
-      : null;
+    return ReactLocal.createElement(
+      RNView,
+      { testID: isOpen ? 'date-picker-sheet' : 'date-picker-sheet-closed' },
+      children,
+      isOpen ? footer : null,
+    );
   },
 }));
 
@@ -49,6 +52,7 @@ import {
   DATE_ROW_HEIGHT,
   DateRow,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';
+import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 describe('transaction date picker', () => {
   const originalPlatform = Platform.OS;
@@ -59,6 +63,7 @@ describe('transaction date picker', () => {
 
   beforeEach(() => {
     mockDateTimePicker.mockClear();
+    useTransactionFormHostState.getState().reset();
     useDatePickerSheetState.getState().reset();
   });
 
@@ -129,6 +134,19 @@ describe('transaction date picker', () => {
     expect(screen.queryByTestId('date-picker-android')).toBeNull();
   });
 
+  it('does not mount the iOS sheet picker on Android before the date row is pressed', () => {
+    setPlatform('android');
+    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
+
+    expect(screen.queryByTestId('date-picker-ios')).toBeNull();
+    expect(screen.queryByTestId('date-picker-android')).toBeNull();
+
+    fireEvent.press(screen.getByTestId('date-row'));
+
+    expect(screen.getByTestId('date-picker-android')).toBeTruthy();
+    expect(screen.queryByTestId('date-picker-ios')).toBeNull();
+  });
+
   it('keeps a fixed compact trigger while the iOS sheet is open', () => {
     setPlatform('ios');
     const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
@@ -170,5 +188,23 @@ describe('transaction date picker', () => {
 
     expect(screen.getByTestId('date-picker-sheet')).toBeTruthy();
     expect(useDatePickerSheetState.getState().activeOwnerId).toBe('edit-new');
+  });
+
+  it('keeps a newly opened Add form closed when an older picker session was retained', () => {
+    setPlatform('ios');
+    useTransactionFormHostState.getState().openAdd();
+    const oldSessionId = useTransactionFormHostState.getState().sessionId;
+    useTransactionFormHostState.getState().present(oldSessionId);
+    const oldOwnerId = `add:${oldSessionId}`;
+    useDatePickerSheetState.getState().openIos(oldOwnerId, '2026-07-10');
+    useTransactionFormHostState.getState().requestClose();
+    useTransactionFormHostState.getState().completeClose(oldSessionId);
+    useTransactionFormHostState.getState().openAdd();
+    const newOwnerId = `add:${useTransactionFormHostState.getState().sessionId}`;
+
+    const screen = render(<DateRow ownerId={newOwnerId} value="2026-07-20" onChange={jest.fn()} />);
+
+    expect(newOwnerId).not.toBe(oldOwnerId);
+    expect(screen.queryByTestId('date-picker-sheet')).toBeNull();
   });
 });

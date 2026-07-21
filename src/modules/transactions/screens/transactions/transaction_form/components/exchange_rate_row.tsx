@@ -3,10 +3,13 @@ import { Input, PressableFeedback } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { FormErrorText } from '@/components/ui/form_error_text';
+import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { roundMoney } from '@/utils/money';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { ms } from '@/utils/responsive';
 
 const STALE_THRESHOLD_DAYS = 30;
 
@@ -57,6 +60,7 @@ export function ExchangeRateRow({
   error,
 }: Props): React.ReactElement {
   const stale = isStale(rateUpdatedAt);
+  const { onFocus, onBlur } = useBottomSheetAwareHandlers();
 
   const subtitle = overrideEnabled
     ? Strings.addTxRateSourceCustom
@@ -92,6 +96,9 @@ export function ExchangeRateRow({
               onChangeText={onChange}
               keyboardType="decimal-pad"
               placeholder="0.00"
+              onFocus={onFocus}
+              onBlur={onBlur}
+              variant="secondary"
             />
           </View>
         ) : (
@@ -103,13 +110,22 @@ export function ExchangeRateRow({
         {Strings.addTxEgpPreview.replace('{amount}', formatPreviewAmount(amount, value))}
       </Text>
 
-      {overrideEnabled ? (
-        <PressableFeedback onPress={onToggleOverride} className="mt-2 self-end">
-          <Text className="font-inter text-accent text-[12px]">{Strings.addTxRateReset}</Text>
-        </PressableFeedback>
-      ) : null}
+      <View style={{ minHeight: ms(20) }} className="mt-1 items-end justify-center">
+        {overrideEnabled ? (
+          <PressableFeedback onPress={onToggleOverride}>
+            <Text className="font-inter text-accent text-[12px]">{Strings.addTxRateReset}</Text>
+          </PressableFeedback>
+        ) : null}
+      </View>
 
-      {error ? <Text className="font-inter text-danger mt-1 text-[11px]">{error}</Text> : null}
+      <View
+        testID="exchange-rate-error-slot"
+        style={{ minHeight: ms(16) }}
+        className="justify-center"
+        accessibilityLiveRegion="polite"
+      >
+        <FormErrorText message={error} numberOfLines={1} disableAnimation className="text-[11px]" />
+      </View>
     </View>
   );
 }

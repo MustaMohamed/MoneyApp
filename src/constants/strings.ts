@@ -1,4 +1,10 @@
 export const Strings = {
+  tabHome: 'Home',
+  tabTransactions: 'Transactions',
+  tabCommitments: 'Commitments',
+  tabGoals: 'Goals',
+  tabBudget: 'Budget',
+
   // O1 Welcome
   o1Headline: 'Your money.\nFinally clear.',
   o1Subtext: 'Track everything. Plan with confidence.\nNo bank access needed.',
@@ -596,6 +602,9 @@ export const Strings = {
   addTxTypeCardCredit: 'Card credit',
   addTxTypeTransfer: 'Transfer',
   addTxTypeCCPayment: 'CC Payment',
+  addTxTypeSelectorA11y: 'Transaction type',
+  addTxDataLoadError: 'Could not load the accounts and categories needed for this transaction.',
+  addTxDataLoadRetry: 'Retry',
   cardCreditTitle: 'Card credit',
   addTxSupportExpense: 'Records spending from this account.',
   addTxSupportIncome: 'Adds cash received to this account.',

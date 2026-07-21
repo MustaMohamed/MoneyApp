@@ -1,11 +1,12 @@
 import { create } from 'zustand';
 
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import type { TransactionFormDataStatus } from './add_transaction.state';
+
 interface EditTransactionStateShape {
-  visible: boolean;
-  sessionId: number;
+  dataStatus: TransactionFormDataStatus;
+  dataLoadVersion: number;
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
@@ -18,10 +19,8 @@ interface EditTransactionStateShape {
 }
 
 type EditTransactionState = EditTransactionStateShape & {
-  open: (tx: Transaction) => void;
-  requestClose: () => boolean;
-  completeSave: () => void;
-  completeClose: () => void;
+  setDataStatus: (status: TransactionFormDataStatus) => void;
+  retryFormData: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
@@ -36,8 +35,8 @@ type EditTransactionState = EditTransactionStateShape & {
 };
 
 const INITIAL_STATE: EditTransactionStateShape = {
-  visible: false,
-  sessionId: 0,
+  dataStatus: 'loading',
+  dataLoadVersion: 0,
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
@@ -50,22 +49,11 @@ const INITIAL_STATE: EditTransactionStateShape = {
 };
 
 export const useEditTransactionState = createMoneyAppSelectors(
-  create<EditTransactionState>((set, get) => ({
+  create<EditTransactionState>((set) => ({
     ...INITIAL_STATE,
-
-    open: () =>
-      set((state) => ({
-        ...INITIAL_STATE,
-        visible: true,
-        sessionId: state.sessionId + 1,
-      })),
-    requestClose: () => {
-      if (get().saving) return false;
-      set({ visible: false, showCategoryPicker: false, showBudgetPicker: false });
-      return true;
-    },
-    completeSave: () => set({ visible: false, showCategoryPicker: false, showBudgetPicker: false }),
-    completeClose: () => set(INITIAL_STATE),
+    setDataStatus: (dataStatus) => set({ dataStatus }),
+    retryFormData: () =>
+      set((state) => ({ dataLoadVersion: state.dataLoadVersion + 1, dataStatus: 'loading' })),
     setSaving: (v) => set({ saving: v }),
     setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
     setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
@@ -77,7 +65,8 @@ export const useEditTransactionState = createMoneyAppSelectors(
         budgetLookupVersion: state.budgetLookupVersion + 1,
         budgetLookupError: undefined,
       })),
-    clearError: () => set({ errorMessage: undefined }),
+    clearError: () =>
+      set((state) => (state.errorMessage === undefined ? state : { errorMessage: undefined })),
     setPreserveBudgetNull: (v) => set({ preserveBudgetNull: v }),
     setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),

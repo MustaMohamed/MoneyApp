@@ -98,7 +98,7 @@ function TransactionRowComponent({
         <Animated.View
           testID="transaction-row"
           style={[animStyle, { height: TRANSACTION_ROW_HEIGHT }]}
-          className="border-separator border-b px-4 py-3"
+          className="border-separator border-b px-4 py-1.5"
         >
           <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
             <View
@@ -135,7 +135,7 @@ function TransactionRowComponent({
                 ) : null}
               </View>
               <Text
-                className="font-inter text-foreground/55 mt-1 text-[10.5px] font-medium"
+                className="font-inter text-foreground/55 mt-0.5 text-[10.5px] font-medium"
                 numberOfLines={1}
               >
                 {presentation.context}
@@ -146,7 +146,7 @@ function TransactionRowComponent({
                 style={{ height: TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT }}
               >
                 {presentation.note ? (
-                  <Text className="font-inter text-muted text-[10.5px] italic" numberOfLines={1}>
+                  <Text className="font-inter text-muted text-[9px] italic" numberOfLines={1}>
                     {presentation.note}
                   </Text>
                 ) : null}
@@ -183,7 +183,7 @@ function TransactionRowComponent({
                   </Text>
                 ) : null}
               </View>
-              <Text className="font-inter text-foreground/40 mt-0.5 text-[10px]">
+              <Text className="font-inter text-foreground/40 text-[10px]">
                 {presentation.timeText}
               </Text>
             </View>

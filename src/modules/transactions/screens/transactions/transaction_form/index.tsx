@@ -1,70 +1,47 @@
-import { useCallback } from 'react';
-
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
-import { useEditTransactionSheetLifecycle } from '@/modules/transactions/screens/transactions/transaction_form/components/edit_transaction_sheet.hook';
-import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
-import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
-import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-export { AddTransactionSheet } from './components/add_transaction_sheet';
+import {
+  AddTransactionSheet,
+  type TransactionSheetSessionProps,
+} from './components/add_transaction_sheet';
+import { BudgetPickerSheet } from './components/budget_picker_sheet';
+import { TransactionFormDataError } from './components/transaction_form_data_error';
+import { useEditTransaction } from './edit_transaction.hook';
+import { TransactionFormBody } from './transaction_form_body';
+import { useTransactionFormSessionReady } from './transaction_form_session.hook';
 
-interface EditTransactionSheetProps {
-  visible: boolean;
-  onClose: () => void;
-  onSaved?: () => void;
-  tx: Transaction | null;
+export { AddTransactionSheet };
+
+interface EditTransactionSheetProps extends TransactionSheetSessionProps {
+  tx: Transaction;
 }
 
-export function EditTransactionSheet(props: EditTransactionSheetProps): React.ReactElement | null {
-  const lifecycle = useEditTransactionSheetLifecycle(props.visible);
-  if (!props.tx) return null;
-  return (
-    <EditSheetInner
-      key={lifecycle.sessionId}
-      visible={props.visible}
-      tx={props.tx}
-      onClose={props.onClose}
-      onSaved={props.onSaved}
-      onCloseComplete={lifecycle.handleCloseComplete}
-      sessionId={lifecycle.sessionId}
-    />
+export function EditTransactionSheet(props: EditTransactionSheetProps): React.ReactElement {
+  const hook = useEditTransaction(props.tx, props.onClose, props.onSaved);
+  useTransactionFormSessionReady(
+    props.sessionId,
+    props.onReady,
+    hook.state.formDataReady || hook.state.formDataLoadError,
   );
-}
-
-function EditSheetInner(
-  props: Omit<EditTransactionSheetProps, 'tx'> & {
-    tx: Transaction;
-    onCloseComplete: () => void;
-    sessionId: number;
-  },
-) {
-  const completeSave = useEditTransactionState.getState().completeSave;
-  const onSaved = props.onSaved;
-  const handleSaved = useCallback(() => {
-    completeSave();
-    onSaved?.();
-  }, [completeSave, onSaved]);
-  const hook = useEditTransaction(props.tx, props.onClose, handleSaved);
 
   return (
-    <>
-      <Sheet
-        isOpen={props.visible}
-        onOpenChange={(open) => {
-          if (!open) props.onClose();
-        }}
-        onCloseComplete={props.onCloseComplete}
-        title={Strings.editTxTitle}
-        size="lg"
-        scrollable
-        isDismissable={!hook.state.saving}
-        footer={
+    <Sheet
+      isOpen={props.visible}
+      onOpenChange={(open) => {
+        if (!open) props.onClose();
+      }}
+      onCloseComplete={props.onCloseComplete}
+      title={Strings.editTxTitle}
+      size="lg"
+      scrollable
+      isDismissable={!hook.state.saving}
+      footer={
+        hook.state.formDataReady ? (
           <Button
             variant="primary"
             label={Strings.editTxSaveCta}
@@ -76,17 +53,20 @@ function EditSheetInner(
             }
             onPress={() => void hook.handleSave()}
           />
-        }
-      >
+        ) : undefined
+      }
+    >
+      {hook.state.formDataLoadError ? (
+        <TransactionFormDataError onRetry={hook.retryFormData} />
+      ) : hook.state.formDataReady ? (
         <TransactionFormBody
           datePickerOwnerId={`edit:${props.sessionId}`}
-          visible={props.visible}
+          formMode="edit"
           locked
           type={hook.state.type}
           typeLabel={hook.state.typeLabel}
           typeSupportingText={hook.state.typeSupportingText}
           onSelectType={() => {}}
-          amountStr={hook.state.amountStr}
           setAmountStr={hook.setAmountStr}
           amountError={hook.state.errors.amount}
           selectedAccount={hook.state.selectedAccount}
@@ -117,23 +97,29 @@ function EditSheetInner(
           setNote={hook.setNote}
           currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
         />
-      </Sheet>
+      ) : null}
 
-      <CategoryPickerSheet
-        isOpen={hook.state.showCategoryPicker}
-        title={Strings.addTxPickCategoryTitle}
-        categories={hook.state.visibleCategories}
-        selectedId={hook.state.categoryId}
-        onSelect={hook.selectCategory}
-        onOpenChange={() => hook.setShowCategoryPicker(false)}
-      />
-      <BudgetPickerSheet
-        isOpen={hook.state.showBudgetPicker}
-        budgets={hook.state.availableBudgets}
-        selectedId={hook.state.budgetId || undefined}
-        onSelect={hook.selectBudget}
-        onOpenChange={hook.setShowBudgetPicker}
-      />
-    </>
+      {hook.state.showCategoryPicker ? (
+        <CategoryPickerSheet
+          isOpen
+          title={Strings.addTxPickCategoryTitle}
+          categories={hook.state.visibleCategories}
+          selectedId={hook.state.categoryId}
+          onSelect={hook.selectCategory}
+          onOpenChange={(open) => {
+            if (!open) hook.setShowCategoryPicker(false);
+          }}
+        />
+      ) : null}
+      {hook.state.showBudgetPicker ? (
+        <BudgetPickerSheet
+          isOpen
+          budgets={hook.state.availableBudgets}
+          selectedId={hook.state.budgetId || undefined}
+          onSelect={hook.selectBudget}
+          onOpenChange={hook.setShowBudgetPicker}
+        />
+      ) : null}
+    </Sheet>
   );
 }

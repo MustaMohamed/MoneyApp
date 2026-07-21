@@ -2,7 +2,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { PressableFeedback } from 'heroui-native';
-import { View } from 'react-native';
+import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
@@ -58,14 +58,16 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
         />
       ) : null}
 
-      <DatePickerSheet
-        isOpen={picker.state.isOpen}
-        value={picker.state.pickerDate}
-        maximumDate={picker.state.maximumDate}
-        onChange={picker.changeIos}
-        onCancel={picker.cancelIos}
-        onDone={picker.commitIos}
-      />
+      {Platform.OS === 'ios' && picker.state.isOpen ? (
+        <DatePickerSheet
+          isOpen
+          value={picker.state.pickerDate}
+          maximumDate={picker.state.maximumDate}
+          onChange={picker.changeIos}
+          onCancel={picker.cancelIos}
+          onDone={picker.commitIos}
+        />
+      ) : null}
     </View>
   );
 }

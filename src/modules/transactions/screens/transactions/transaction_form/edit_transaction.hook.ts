@@ -16,7 +16,7 @@ import {
   useTransactionStore,
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
@@ -89,11 +89,22 @@ export function useEditTransaction(
   onClose: () => void,
   onSaved?: () => void,
 ) {
-  const { accounts, accountLookup } = useAccountStore(
-    useShallow((state) => ({ accounts: state.accounts, accountLookup: state.accountLookup })),
+  const { accounts, accountLookup, accountsHaveLoaded } = useAccountStore(
+    useShallow((state) => ({
+      accounts: state.accounts,
+      accountLookup: state.accountLookup,
+      accountsHaveLoaded: state.hasLoaded,
+    })),
   );
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const categories = useCategoryStore.useState.categories();
+  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
+  const { categories, categoriesHaveLoaded } = useCategoryStore(
+    useShallow((state) => ({
+      categories: state.categories,
+      categoriesHaveLoaded: state.hasLoaded,
+    })),
+  );
+  const loadCategories = useCategoryStore.getState().loadCategories;
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -101,18 +112,18 @@ export function useEditTransaction(
     })),
   );
   const updateTransaction = useTransactionStore.getState().updateTransaction;
-  const { amountStr, availableBudgets, budgetId } = useEditTransactionStore(
+  const { availableBudgets, budgetId } = useEditTransactionStore(
     useShallow((state) => ({
-      amountStr: state.amountStr,
       availableBudgets: state.availableBudgets,
       budgetId: state.budgetId,
     })),
   );
   const setAmountStr = useEditTransactionStore.getState().setAmountStr;
-  const handleNumpad = useEditTransactionStore.getState().handleNumpad;
   const setAvailableBudgets = useEditTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useEditTransactionStore.getState().setBudgetId;
   const {
+    dataStatus,
+    dataLoadVersion,
     saving,
     showCategoryPicker,
     showBudgetPicker,
@@ -124,6 +135,8 @@ export function useEditTransaction(
     rateOverride,
   } = useEditTransactionState(
     useShallow((s) => ({
+      dataStatus: s.dataStatus,
+      dataLoadVersion: s.dataLoadVersion,
       saving: s.saving,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
@@ -135,6 +148,8 @@ export function useEditTransaction(
       rateOverride: s.rateOverride,
     })),
   );
+  const setDataStatus = useEditTransactionState.getState().setDataStatus;
+  const retryFormData = useEditTransactionState.getState().retryFormData;
   const setSaving = useEditTransactionState.getState().setSaving;
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useEditTransactionState.getState().setShowBudgetPicker;
@@ -145,6 +160,39 @@ export function useEditTransaction(
   const clearError = useEditTransactionState.getState().clearError;
   const setPreserveBudgetNull = useEditTransactionState.getState().setPreserveBudgetNull;
   const setRateOverride = useEditTransactionState.getState().setRateOverride;
+
+  const dataRequestRef = useRef(0);
+  const lastDataLoadVersionRef = useRef(-1);
+  useEffect(() => {
+    if (lastDataLoadVersionRef.current === dataLoadVersion) return undefined;
+    lastDataLoadVersionRef.current = dataLoadVersion;
+    const request = ++dataRequestRef.current;
+    let active = true;
+    setDataStatus('loading');
+
+    const knownAccountIds = new Set([...accounts, ...accountLookup].map((account) => account.id));
+    const accountIds = [initialTx.account_id, initialTx.to_account_id].filter(
+      (id): id is string => id !== null && !knownAccountIds.has(id),
+    );
+    const accountRequest = accountsHaveLoaded ? Promise.resolve() : loadAccounts();
+    const categoryRequest = categoriesHaveLoaded ? Promise.resolve() : loadCategories();
+    const lookupRequest =
+      accountIds.length === 0 ? Promise.resolve() : loadAccountLookup(accountIds);
+    void Promise.all([accountRequest, categoryRequest, lookupRequest])
+      .then(() => {
+        if (active && request === dataRequestRef.current) setDataStatus('ready');
+      })
+      .catch(() => {
+        if (active && request === dataRequestRef.current) setDataStatus('error');
+      });
+
+    return () => {
+      active = false;
+    };
+    // A request owns its initial readiness snapshot. Store updates during that
+    // request must not start duplicate database reads.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataLoadVersion, initialTx.account_id, initialTx.to_account_id]);
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -211,12 +259,6 @@ export function useEditTransaction(
     budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
   };
-
-  useEffect(() => {
-    const parsed = parseFloat(amountStr);
-    form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
-  }, [amountStr]);
 
   const budgetRequestRef = useRef(0);
   useEffect(() => {
@@ -288,7 +330,13 @@ export function useEditTransaction(
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
-    if (formState.saving || formState.budgetsLoading || formState.budgetLookupError) return;
+    if (
+      formState.dataStatus !== 'ready' ||
+      formState.saving ||
+      formState.budgetsLoading ||
+      formState.budgetLookupError
+    )
+      return;
     setErrorMessage(undefined);
     setSaving(true);
     try {
@@ -317,12 +365,12 @@ export function useEditTransaction(
         transaction_time: initialTx.transaction_time, // preserved — no time UI
       };
       await updateTransaction(initialTx.id, update);
-      await loadAccounts();
       if (onSaved) {
         onSaved();
       } else {
         onClose();
       }
+      void loadAccounts().catch(() => undefined);
     } catch (error) {
       setErrorMessage(resolveTransactionSaveError(error));
     } finally {
@@ -352,7 +400,6 @@ export function useEditTransaction(
   return {
     state: {
       type,
-      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -371,6 +418,8 @@ export function useEditTransaction(
       errors,
       errorMessage,
       budgetLookupError,
+      formDataReady: dataStatus === 'ready',
+      formDataLoadError: dataStatus === 'error',
       saving,
       visibleCategories,
       showCategoryPicker,
@@ -387,12 +436,9 @@ export function useEditTransaction(
       rateUpdatedAt,
     },
     setAmountStr: (value: string) => {
-      clearError();
+      if (useEditTransactionState.getState().errorMessage) clearError();
+      if (form.formState.errors.amount) form.clearErrors('amount');
       setAmountStr(value);
-    },
-    handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => {
-      clearError();
-      handleNumpad(action, value);
     },
     setDate: (v: string) => {
       clearError();
@@ -412,6 +458,11 @@ export function useEditTransaction(
     selectCategory,
     selectBudget,
     retryBudgetLookup,
-    handleSave: form.handleSubmit(onValid),
+    retryFormData,
+    handleSave: () => {
+      const amountStr = useEditTransactionStore.getState().amountStr;
+      form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);
+      return form.handleSubmit(onValid)();
+    },
   };
 }

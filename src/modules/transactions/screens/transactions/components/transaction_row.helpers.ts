@@ -14,8 +14,8 @@ type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
 export const TRANSACTION_ROW_ICON_SIZE = ms(36);
 export const TRANSACTION_ROW_VALUE_WIDTH = ms(120);
-export const TRANSACTION_ROW_HEIGHT = ms(84);
-export const TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT = ms(13);
+export const TRANSACTION_ROW_HEIGHT = ms(60);
+export const TRANSACTION_ROW_OPTIONAL_TRACK_HEIGHT = ms(8);
 
 const FALLBACK_ICON: IconName = 'shape-outline';
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });

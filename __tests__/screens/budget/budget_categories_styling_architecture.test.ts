@@ -82,11 +82,17 @@ describe('budget categories presentation architecture', () => {
   });
 
   it('keeps lifecycle and save orchestration out of state stores', () => {
-    const addSheetState = source(
-      'src/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state.ts',
+    const transactionHostState = source(
+      'src/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state.ts',
     );
-    const addSheetHook = source(
-      'src/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.hook.ts',
+    const transactionHostHook = source(
+      'src/modules/transactions/screens/transactions/transaction_form/transaction_form_host.hook.ts',
+    );
+    const addTransactionState = source(
+      'src/modules/transactions/screens/transactions/transaction_form/add_transaction.state.ts',
+    );
+    const addTransactionHook = source(
+      'src/modules/transactions/screens/transactions/transaction_form/add_transaction.hook.ts',
     );
     const setBudgetState = source(
       'src/modules/budget/screens/budget/components/set_budget_sheet.state.ts',
@@ -95,8 +101,11 @@ describe('budget categories presentation architecture', () => {
       'src/modules/budget/screens/budget/components/set_budget_sheet.hook.ts',
     );
 
-    expect(addSheetState).not.toMatch(/useEffect|setTimeout/);
-    expect(addSheetHook).toMatch(/useEffect|setTimeout/);
+    expect(transactionHostState).not.toMatch(/useEffect|setTimeout/);
+    expect(transactionHostHook).toContain('useEffect');
+    expect(transactionHostHook).not.toContain('setTimeout');
+    expect(addTransactionState).not.toMatch(/async|Promise|useEffect/);
+    expect(addTransactionHook).toContain('form.handleSubmit(onValid)');
     expect(setBudgetState).not.toMatch(/async|Promise|Strings/);
     expect(setBudgetHook).toContain('runSave');
     expect(source('src/modules/budget/screens/budget/components/set_budget_sheet.tsx')).not.toMatch(

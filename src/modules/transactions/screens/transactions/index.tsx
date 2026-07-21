@@ -1,9 +1,7 @@
-import { useFocusEffect } from 'expo-router';
 import { Separator, Surface, Text as HeroText } from 'heroui-native';
-import React, { useCallback, useEffect, useMemo } from 'react';
-import { BackHandler, RefreshControl, SectionList, View } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
-import { useShallow } from 'zustand/react/shallow';
 
 import { EmptyState } from '@/components/ui/empty_state';
 import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
@@ -26,11 +24,7 @@ import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { FilterSheet } from './filter';
-import { useFilterState } from './filter/filter.state';
-import { AddTransactionSheet, EditTransactionSheet } from './transaction_form';
-import { useAddTransactionState } from './transaction_form/add_transaction.state';
-import { useEditTransactionState } from './transaction_form/edit_transaction.state';
-import { useEditTransactionStore } from './transaction_form/edit_transaction.store';
+import { useTransactionFormHostState } from './transaction_form/transaction_form_host.state';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
@@ -84,16 +78,7 @@ export default function TransactionsScreen(): React.ReactElement {
     onListScrollEnd,
     retryFailedLoads,
   } = t;
-  const { addTxVisible, addTxPendingOpen } = useAddTransactionState(
-    useShallow((s) => ({
-      addTxVisible: s.visible,
-      addTxPendingOpen: s.pendingOpen,
-    })),
-  );
-  const openAddTx = useAddTransactionState.getState().open;
-
-  const editTxVisible = useEditTransactionState.useState.visible();
-  const editingTx = useEditTransactionStore.useState.editingTx();
+  const openAddTx = useTransactionFormHostState.getState().openAdd;
 
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
   const {
@@ -104,35 +89,6 @@ export default function TransactionsScreen(): React.ReactElement {
     confirm: confirmDelete,
     cancel: cancelDelete,
   } = useConfirmAction<string>((id) => deleteTransaction(id));
-
-  // Global FAB taps set pendingOpen; same-tab taps do not fire focus.
-  // Delay keeps cross-tab sheet presentation after the tab transition settles.
-  useEffect(() => {
-    if (!addTxPendingOpen) return undefined;
-    const timer = setTimeout(() => openAddTx(), 250);
-    return () => clearTimeout(timer);
-  }, [addTxPendingOpen, openAddTx]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-        if (useAddTransactionState.getState().visible) {
-          useAddTransactionState.getState().requestClose();
-          return true;
-        }
-        if (useEditTransactionState.getState().visible) {
-          useEditTransactionState.getState().requestClose();
-          return true;
-        }
-        if (useFilterState.getState().visible) {
-          useFilterState.getState().close();
-          return true;
-        }
-        return false;
-      });
-      return () => sub.remove();
-    }, []),
-  );
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<Transaction, TransactionSection> }) => (
@@ -283,15 +239,6 @@ export default function TransactionsScreen(): React.ReactElement {
         ) : null}
       </View>
 
-      <AddTransactionSheet
-        visible={addTxVisible}
-        onClose={() => useAddTransactionState.getState().requestClose()}
-      />
-      <EditTransactionSheet
-        visible={editTxVisible}
-        tx={editingTx}
-        onClose={() => useEditTransactionState.getState().requestClose()}
-      />
       <TxDeleteConfirmSheet
         isOpen={pendingDeleteId !== null}
         busy={deleteBusy}

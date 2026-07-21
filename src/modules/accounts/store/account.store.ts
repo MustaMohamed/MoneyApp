@@ -22,6 +22,7 @@ const INITIAL_STATE = {
   accounts: EMPTY_ACCOUNTS,
   accountLookup: EMPTY_ACCOUNT_LOOKUP,
   hasLoaded: false,
+  loadError: false,
 };
 
 export type AccountStore = typeof INITIAL_STATE & {
@@ -45,13 +46,15 @@ export function createAccountStore(repo: IAccountRepository) {
 
       loadAccounts: async () => {
         const requestId = ++loadRequestId;
+        set({ loadError: false });
 
         try {
           const accounts = await repo.getAll();
           if (requestId === loadRequestId) {
-            set({ accounts, hasLoaded: true });
+            set({ accounts, hasLoaded: true, loadError: false });
           }
         } catch (err) {
+          if (requestId === loadRequestId) set({ loadError: true });
           console.error('[accountStore] loadAccounts failed:', err);
           throw err;
         }

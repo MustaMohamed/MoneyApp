@@ -1,13 +1,11 @@
-import { router, useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useEffect } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import React from 'react';
 
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 
-import { EditTransactionSheet } from '../transaction_form';
-import { useEditTransactionState } from '../transaction_form/edit_transaction.state';
-import { useEditTransactionStore } from '../transaction_form/edit_transaction.store';
+import { useTransactionFormHostState } from '../transaction_form/transaction_form_host.state';
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
 import { DetailHero } from './components/detail_hero';
@@ -22,32 +20,12 @@ import { useTransactionDetail } from './detail.hook';
 
 export default function TransactionDetailScreen(): React.ReactElement {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const navigation = useNavigation();
   const { state, openDeleteConfirm, closeDeleteConfirm, confirmDelete, openCommitment, reload } =
     useTransactionDetail(id);
 
-  const editTxVisible = useEditTransactionState.useState.visible();
-
-  useEffect(() => {
-    return () => {
-      useEditTransactionStore.getState().reset();
-      useEditTransactionState.getState().reset();
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('beforeRemove', (e) => {
-      if (!useEditTransactionState.getState().visible) return;
-      e.preventDefault();
-      useEditTransactionState.getState().requestClose();
-    });
-    return unsubscribe;
-  }, [navigation]);
-
   function handleEdit() {
     if (state.tx && state.isEditable) {
-      useEditTransactionStore.getState().loadFromTx(state.tx);
-      useEditTransactionState.getState().open(state.tx);
+      useTransactionFormHostState.getState().openEdit(state.tx, reload);
     }
   }
 
@@ -175,14 +153,6 @@ export default function TransactionDetailScreen(): React.ReactElement {
             />
           ) : null}
 
-          {state.isEditable ? (
-            <EditTransactionSheet
-              visible={editTxVisible}
-              onClose={() => useEditTransactionState.getState().requestClose()}
-              onSaved={reload}
-              tx={state.tx}
-            />
-          ) : null}
           {state.refreshError ? <DetailLoadError floating onRetry={reload} /> : null}
         </>
       ) : null}

@@ -104,46 +104,11 @@ jest.mock('@/modules/transactions/screens/transactions/filter', () => ({
 jest.mock('@/modules/transactions/screens/transactions/filter/filter.state', () => ({
   useFilterState: { getState: () => ({ visible: false, close: jest.fn() }) },
 }));
-jest.mock('@/modules/transactions/screens/transactions/transaction_form', () => ({
-  AddTransactionSheet: () => null,
-  EditTransactionSheet: () => null,
-}));
 jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state',
-  () => {
-    return {
-      useAddTransactionState: Object.assign(
-        jest.fn((selector: (state: { visible: boolean; pendingOpen: boolean }) => unknown) =>
-          selector({ visible: false, pendingOpen: false }),
-        ),
-        {
-          getState: () => ({ visible: false, open: jest.fn(), requestClose: jest.fn() }),
-        },
-      ),
-    };
-  },
-);
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store',
+  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
   () => ({
-    useAddTransactionStore: { getState: () => ({ reset: jest.fn() }) },
-  }),
-);
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state',
-  () => ({
-    useEditTransactionState: {
-      useState: { visible: () => false },
-      getState: () => ({ visible: false, requestClose: jest.fn() }),
-    },
-  }),
-);
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store',
-  () => ({
-    useEditTransactionStore: {
-      useState: { editingTx: () => null },
-      getState: () => ({ reset: jest.fn() }),
+    useTransactionFormHostState: {
+      getState: () => ({ openAdd: jest.fn() }),
     },
   }),
 );

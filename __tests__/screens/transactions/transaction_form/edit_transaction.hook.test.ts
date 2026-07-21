@@ -10,6 +10,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
+import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/store/transaction.store';
 
 const mockTxExpense: Transaction = {
@@ -112,8 +113,12 @@ const mockBudget = (id: string, categoryId = 'c1'): Budget => ({
   updated_at: 'now',
 });
 
+const originalLoadAccountLookup = useAccountStore.getState().loadAccountLookup;
+
 beforeEach(() => {
   jest.restoreAllMocks();
+  useTransactionFormHostState.getState().reset();
+  useAccountStore.setState({ loadAccountLookup: originalLoadAccountLookup });
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
   useAccountStore.setState({
@@ -123,6 +128,8 @@ beforeEach(() => {
   });
   useCategoryStore.setState({
     categories: [mockCategoryFood, mockCategoryShop],
+    hasLoaded: true,
+    loadError: false,
     loading: false,
     error: undefined,
   } as any);
@@ -133,6 +140,24 @@ beforeEach(() => {
 });
 
 describe('useEditTransaction', () => {
+  it('hydrates an archived account before declaring the edit form ready', async () => {
+    const archivedTx = { ...mockTxExpense, account_id: mockAccountUSD.id };
+    useAccountStore.setState({ accountLookup: [] });
+    const loadAccountLookup = jest
+      .spyOn(useAccountStore.getState(), 'loadAccountLookup')
+      .mockImplementation(async () => {
+        useAccountStore.setState({ accountLookup: [mockAccountUSD] });
+      });
+    useEditTransactionStore.getState().loadFromTx(archivedTx);
+
+    const { result } = renderHook(() => useEditTransaction(archivedTx, jest.fn(), jest.fn()));
+
+    expect(result.current.state.formDataReady).toBe(false);
+    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
+    expect(loadAccountLookup).toHaveBeenCalledWith([mockAccountUSD.id]);
+    expect(result.current.state.selectedAccount).toEqual(mockAccountUSD);
+  });
+
   it('rejects malformed exchange rates for an archived USD transaction', async () => {
     const usdTx = {
       ...mockTxExpense,
@@ -252,13 +277,16 @@ describe('useEditTransaction', () => {
   });
 
   it('preserves edits while the sheet close animation is running', async () => {
-    useEditTransactionState.getState().open(mockTxExpense);
+    useTransactionFormHostState.getState().openEdit(mockTxExpense);
+    useTransactionFormHostState
+      .getState()
+      .present(useTransactionFormHostState.getState().sessionId);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     act(() => result.current.setNote('keep through close'));
 
     act(() => {
-      useEditTransactionState.getState().requestClose();
+      useTransactionFormHostState.getState().requestClose();
     });
 
     expect(result.current.state.note).toBe('keep through close');
@@ -293,10 +321,26 @@ describe('useEditTransaction', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
   });
 
+  it('completes a committed update even when account revalidation fails', async () => {
+    const updateTx = jest.fn().mockResolvedValue(undefined);
+    const loadAccounts = jest.fn().mockRejectedValue(new Error('refresh failed'));
+    const onSaved = jest.fn();
+    useTransactionStore.setState({ updateTransaction: updateTx } as any);
+    useAccountStore.setState({ loadAccounts });
+    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), onSaved));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+
+    await act(async () => result.current.handleSave());
+
+    expect(updateTx).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(result.current.state.errorMessage).toBeUndefined();
+  });
+
   it('initializes amount, category, note, date from the loaded tx', async () => {
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    expect(result.current.state.amountStr).toBe('50');
+    expect(useEditTransactionStore.getState().amountStr).toBe('50');
     expect(result.current.state.categoryId).toBe('c1');
     expect(result.current.state.note).toBe('lunch');
     expect(result.current.state.date).toBe('2026-05-18');
@@ -325,11 +369,7 @@ describe('useEditTransaction', () => {
     useTransactionStore.setState({ updateTransaction: updateTx } as any);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    // Update amount via numpad
-    act(() => result.current.handleNumpad('backspace'));
-    act(() => result.current.handleNumpad('backspace'));
-    act(() => result.current.handleNumpad('digit', '7'));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('75'));
     await act(async () => {
       await result.current.handleSave();
     });

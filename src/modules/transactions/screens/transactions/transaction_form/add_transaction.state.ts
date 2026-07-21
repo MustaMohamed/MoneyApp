@@ -2,17 +2,11 @@ import { create } from 'zustand';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+export type TransactionFormDataStatus = 'loading' | 'ready' | 'error';
+
 interface AddTransactionStateShape {
-  visible: boolean;
-  sessionId: number;
-  /**
-   * Cross-tab open request. The global FAB (mounted outside the transactions
-   * tab) sets this and navigates here; the transactions screen consumes it once
-   * mounted, flipping `visible` false→true so the sheet actually presents. (The
-   * FAB can't set `visible` directly: the sheet would mount already-true and
-   * skip the open animation while still hiding the FAB.)
-   */
-  pendingOpen: boolean;
+  dataStatus: TransactionFormDataStatus;
+  dataLoadVersion: number;
   saving: boolean;
   showAccountPicker: boolean;
   showToPicker: boolean;
@@ -26,11 +20,8 @@ interface AddTransactionStateShape {
 }
 
 type AddTransactionState = AddTransactionStateShape & {
-  open: () => void;
-  requestOpen: () => void;
-  requestClose: () => boolean;
-  completeSave: () => void;
-  completeClose: () => void;
+  setDataStatus: (status: TransactionFormDataStatus) => void;
+  retryFormData: () => void;
   setSaving: (v: boolean) => void;
   setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
@@ -46,9 +37,8 @@ type AddTransactionState = AddTransactionStateShape & {
 };
 
 const INITIAL_STATE: AddTransactionStateShape = {
-  visible: false,
-  sessionId: 0,
-  pendingOpen: false,
+  dataStatus: 'loading',
+  dataLoadVersion: 0,
   saving: false,
   showAccountPicker: false,
   showToPicker: false,
@@ -62,38 +52,11 @@ const INITIAL_STATE: AddTransactionStateShape = {
 };
 
 export const useAddTransactionState = createMoneyAppSelectors(
-  create<AddTransactionState>((set, get) => ({
+  create<AddTransactionState>((set) => ({
     ...INITIAL_STATE,
-
-    open: () =>
-      set((state) => ({
-        ...INITIAL_STATE,
-        visible: true,
-        sessionId: state.sessionId + 1,
-      })),
-    requestOpen: () => set({ pendingOpen: true }),
-    requestClose: () => {
-      if (get().saving) return false;
-      set({
-        visible: false,
-        pendingOpen: false,
-        showAccountPicker: false,
-        showToPicker: false,
-        showCategoryPicker: false,
-        showBudgetPicker: false,
-      });
-      return true;
-    },
-    completeSave: () =>
-      set({
-        visible: false,
-        pendingOpen: false,
-        showAccountPicker: false,
-        showToPicker: false,
-        showCategoryPicker: false,
-        showBudgetPicker: false,
-      }),
-    completeClose: () => set(INITIAL_STATE),
+    setDataStatus: (dataStatus) => set({ dataStatus }),
+    retryFormData: () =>
+      set((state) => ({ dataLoadVersion: state.dataLoadVersion + 1, dataStatus: 'loading' })),
     setSaving: (v) => set({ saving: v }),
     setShowAccountPicker: (v) => set({ showAccountPicker: v }),
     setShowToPicker: (v) => set({ showToPicker: v }),
@@ -107,7 +70,8 @@ export const useAddTransactionState = createMoneyAppSelectors(
         budgetLookupVersion: state.budgetLookupVersion + 1,
         budgetLookupError: undefined,
       })),
-    clearError: () => set({ errorMessage: undefined }),
+    clearError: () =>
+      set((state) => (state.errorMessage === undefined ? state : { errorMessage: undefined })),
     setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),

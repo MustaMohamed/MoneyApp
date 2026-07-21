@@ -137,6 +137,7 @@ describe('TransactionRow ownership actions', () => {
     expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
     expect(screen.getByTestId('transaction-row-note-track')).toBeTruthy();
     expect(screen.getByTestId('transaction-row-secondary-amount-track')).toBeTruthy();
+    expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
   });
 
   it('renders the destination native amount for transfers', () => {

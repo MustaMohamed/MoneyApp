@@ -8,8 +8,7 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
-import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
+import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
@@ -398,8 +397,7 @@ export function useTransactions() {
         return;
       }
       if (tx.commitment_payment_id !== null) return;
-      useEditTransactionStore.getState().loadFromTx(tx);
-      useEditTransactionState.getState().open(tx);
+      useTransactionFormHostState.getState().openEdit(tx);
     },
     [currentTransactions],
   );

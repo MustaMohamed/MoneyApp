@@ -23,7 +23,7 @@ export function TransactionRowsSkeleton(): React.ReactElement {
           <View
             key={row}
             testID="transaction-row-skeleton"
-            className="border-separator border-b px-4 py-3"
+            className="border-separator border-b px-4 py-1.5"
             style={{ height: TRANSACTION_ROW_HEIGHT }}
           >
             <View style={{ flexDirection: 'row', alignItems: 'flex-start' }} className="gap-3">
@@ -32,7 +32,7 @@ export function TransactionRowsSkeleton(): React.ReactElement {
                 className="mt-0.5 rounded-lg"
                 style={{ width: TRANSACTION_ROW_ICON_SIZE, height: TRANSACTION_ROW_ICON_SIZE }}
               />
-              <View style={{ flex: 1 }} className="gap-1">
+              <View style={{ flex: 1 }} className="gap-0.5">
                 <SkeletonGroup.Item
                   className={row % 2 === 0 ? 'h-4 w-32 rounded-md' : 'h-4 w-24 rounded-md'}
                 />
@@ -46,7 +46,7 @@ export function TransactionRowsSkeleton(): React.ReactElement {
               <View
                 testID="transaction-row-skeleton-value"
                 style={{ width: TRANSACTION_ROW_VALUE_WIDTH, alignItems: 'flex-end' }}
-                className="gap-1"
+                className="gap-0.5"
               >
                 <SkeletonGroup.Item
                   className={row % 2 === 0 ? 'h-4 w-24 rounded-md' : 'h-4 w-20 rounded-md'}
