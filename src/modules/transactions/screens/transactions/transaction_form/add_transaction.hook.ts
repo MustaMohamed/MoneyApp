@@ -24,7 +24,7 @@ import {
   resolveTransactionSaveError,
   toTransactionTimestamp,
 } from './transaction_form.helpers';
-import { ensureTransactionFormPrerequisite } from './transaction_form_prerequisites.helpers';
+import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
 
 export type AddTransactionFormValues = {
   amount: number;
@@ -36,6 +36,8 @@ export type AddTransactionFormValues = {
   date: string;
   exchangeRate: string;
 };
+
+const ignorePrerequisiteRetry = () => {};
 
 function createSchema(
   type: TransactionType,
@@ -163,11 +165,15 @@ function createSchema(
     });
 }
 
-export function useAddTransaction(onClose: () => void) {
+export function useAddTransaction(
+  onClose: () => void,
+  prerequisites?: TransactionFormPrerequisiteController,
+) {
   const accounts = useAccountStore((state) => state.accounts);
+  const accountsLoaded = useAccountStore((state) => state.hasLoaded);
   const loadAccounts = useAccountStore.getState().loadAccounts;
   const categories = useCategoryStore((state) => state.categories);
-  const loadCategories = useCategoryStore.getState().loadCategories;
+  const categoriesLoaded = useCategoryStore((state) => state.hasLoaded);
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -187,8 +193,6 @@ export function useAddTransaction(onClose: () => void) {
   const setAvailableBudgets = useAddTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useAddTransactionStore.getState().setBudgetId;
   const {
-    dataStatus,
-    dataLoadVersion,
     saving,
     showAccountPicker,
     showToPicker,
@@ -202,8 +206,6 @@ export function useAddTransaction(onClose: () => void) {
     rateOverride,
   } = useAddTransactionState(
     useShallow((s) => ({
-      dataStatus: s.dataStatus,
-      dataLoadVersion: s.dataLoadVersion,
       saving: s.saving,
       showAccountPicker: s.showAccountPicker,
       showToPicker: s.showToPicker,
@@ -217,8 +219,6 @@ export function useAddTransaction(onClose: () => void) {
       rateOverride: s.rateOverride,
     })),
   );
-  const setDataStatus = useAddTransactionState.getState().setDataStatus;
-  const retryFormData = useAddTransactionState.getState().retryFormData;
   const setSaving = useAddTransactionState.getState().setSaving;
   const setShowAccountPicker = useAddTransactionState.getState().setShowAccountPicker;
   const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
@@ -232,38 +232,8 @@ export function useAddTransaction(onClose: () => void) {
   const clearError = useAddTransactionState.getState().clearError;
   const setRateOverride = useAddTransactionState.getState().setRateOverride;
 
-  const dataRequestRef = useRef(0);
-  const lastDataLoadVersionRef = useRef(-1);
-  useEffect(() => {
-    if (lastDataLoadVersionRef.current === dataLoadVersion) return undefined;
-    lastDataLoadVersionRef.current = dataLoadVersion;
-    const request = ++dataRequestRef.current;
-    let active = true;
-    setDataStatus('loading');
-
-    const accountRequest = ensureTransactionFormPrerequisite(
-      () => useAccountStore.getState().hasLoaded,
-      loadAccounts,
-    );
-    const categoryRequest = ensureTransactionFormPrerequisite(
-      () => useCategoryStore.getState().hasLoaded,
-      loadCategories,
-    );
-    void Promise.all([accountRequest, categoryRequest])
-      .then(() => {
-        if (active && request === dataRequestRef.current) setDataStatus('ready');
-      })
-      .catch(() => {
-        if (active && request === dataRequestRef.current) setDataStatus('error');
-      });
-
-    return () => {
-      active = false;
-    };
-    // A request owns its initial readiness snapshot. Store updates during that
-    // request must not start duplicate database reads.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataLoadVersion, loadAccounts, loadCategories, setDataStatus]);
+  const effectiveDataStatus =
+    prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
 
   const schema = useMemo(
     () => createSchema(type, accounts, categories, availableBudgets.length > 1),
@@ -423,7 +393,7 @@ export function useAddTransaction(onClose: () => void) {
   async function onValid(data: AddTransactionFormValues) {
     const formState = useAddTransactionState.getState();
     if (
-      formState.dataStatus !== 'ready' ||
+      effectiveDataStatus !== 'ready' ||
       formState.saving ||
       formState.budgetsLoading ||
       formState.budgetLookupError
@@ -555,8 +525,8 @@ export function useAddTransaction(onClose: () => void) {
       errors,
       errorMessage,
       budgetLookupError,
-      formDataReady: dataStatus === 'ready',
-      formDataLoadError: dataStatus === 'error',
+      formDataReady: effectiveDataStatus === 'ready',
+      formDataLoadError: effectiveDataStatus === 'error',
       saving,
       accounts,
       hasAccounts: accounts.length > 0,
@@ -609,7 +579,7 @@ export function useAddTransaction(onClose: () => void) {
     selectCategory,
     selectBudget,
     retryBudgetLookup,
-    retryFormData,
+    retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
     handleSave: () => {
       const amountStr = useAddTransactionStore.getState().amountStr;
       form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);

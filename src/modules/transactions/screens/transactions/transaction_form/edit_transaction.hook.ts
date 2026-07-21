@@ -27,7 +27,9 @@ import {
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
 } from './transaction_form.helpers';
-import { ensureTransactionFormPrerequisite } from './transaction_form_prerequisites.helpers';
+import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
+
+const ignorePrerequisiteRetry = () => {};
 
 function createEditSchema(
   type: TransactionType,
@@ -89,6 +91,7 @@ export function useEditTransaction(
   initialTx: Transaction,
   onClose: () => void,
   onSaved?: () => void,
+  prerequisites?: TransactionFormPrerequisiteController,
 ) {
   const { accounts, accountLookup } = useAccountStore(
     useShallow((state) => ({
@@ -96,10 +99,10 @@ export function useEditTransaction(
       accountLookup: state.accountLookup,
     })),
   );
+  const accountsLoaded = useAccountStore((state) => state.hasLoaded);
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore((state) => state.categories);
-  const loadCategories = useCategoryStore.getState().loadCategories;
+  const categoriesLoaded = useCategoryStore((state) => state.hasLoaded);
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -117,8 +120,6 @@ export function useEditTransaction(
   const setAvailableBudgets = useEditTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useEditTransactionStore.getState().setBudgetId;
   const {
-    dataStatus,
-    dataLoadVersion,
     saving,
     showCategoryPicker,
     showBudgetPicker,
@@ -131,8 +132,6 @@ export function useEditTransaction(
     rateOverride,
   } = useEditTransactionState(
     useShallow((s) => ({
-      dataStatus: s.dataStatus,
-      dataLoadVersion: s.dataLoadVersion,
       saving: s.saving,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
@@ -145,8 +144,6 @@ export function useEditTransaction(
       rateOverride: s.rateOverride,
     })),
   );
-  const setDataStatus = useEditTransactionState.getState().setDataStatus;
-  const retryFormData = useEditTransactionState.getState().retryFormData;
   const setSaving = useEditTransactionState.getState().setSaving;
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useEditTransactionState.getState().setShowBudgetPicker;
@@ -159,53 +156,8 @@ export function useEditTransaction(
   const setPreserveBudgetNull = useEditTransactionState.getState().setPreserveBudgetNull;
   const setRateOverride = useEditTransactionState.getState().setRateOverride;
 
-  const dataRequestRef = useRef(0);
-  const lastDataLoadVersionRef = useRef(-1);
-  useEffect(() => {
-    if (lastDataLoadVersionRef.current === dataLoadVersion) return undefined;
-    lastDataLoadVersionRef.current = dataLoadVersion;
-    const request = ++dataRequestRef.current;
-    let active = true;
-    setDataStatus('loading');
-
-    const knownAccountIds = new Set([...accounts, ...accountLookup].map((account) => account.id));
-    const accountIds = [initialTx.account_id, initialTx.to_account_id].filter(
-      (id): id is string => id !== null && !knownAccountIds.has(id),
-    );
-    const accountRequest = ensureTransactionFormPrerequisite(
-      () => useAccountStore.getState().hasLoaded,
-      loadAccounts,
-    );
-    const categoryRequest = ensureTransactionFormPrerequisite(
-      () => useCategoryStore.getState().hasLoaded,
-      loadCategories,
-    );
-    const missingRequiredAccountIds = () => {
-      const accountState = useAccountStore.getState();
-      const availableIds = new Set(
-        [...accountState.accounts, ...accountState.accountLookup].map((account) => account.id),
-      );
-      return accountIds.filter((id) => !availableIds.has(id));
-    };
-    const lookupRequest = ensureTransactionFormPrerequisite(
-      () => missingRequiredAccountIds().length === 0,
-      () => loadAccountLookup(missingRequiredAccountIds()),
-    );
-    void Promise.all([accountRequest, categoryRequest, lookupRequest])
-      .then(() => {
-        if (active && request === dataRequestRef.current) setDataStatus('ready');
-      })
-      .catch(() => {
-        if (active && request === dataRequestRef.current) setDataStatus('error');
-      });
-
-    return () => {
-      active = false;
-    };
-    // A request owns its initial readiness snapshot. Store updates during that
-    // request must not start duplicate database reads.
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [dataLoadVersion, initialTx.account_id, initialTx.to_account_id]);
+  const effectiveDataStatus =
+    prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -344,7 +296,7 @@ export function useEditTransaction(
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
     if (
-      formState.dataStatus !== 'ready' ||
+      effectiveDataStatus !== 'ready' ||
       formState.saving ||
       formState.budgetsLoading ||
       formState.budgetLookupError
@@ -449,8 +401,8 @@ export function useEditTransaction(
       errors,
       errorMessage,
       budgetLookupError,
-      formDataReady: dataStatus === 'ready',
-      formDataLoadError: dataStatus === 'error',
+      formDataReady: effectiveDataStatus === 'ready',
+      formDataLoadError: effectiveDataStatus === 'error',
       saving,
       visibleCategories,
       showCategoryPicker,
@@ -492,7 +444,7 @@ export function useEditTransaction(
     selectCategory,
     selectBudget,
     retryBudgetLookup,
-    retryFormData,
+    retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
     handleSave: () => {
       const amountStr = useEditTransactionStore.getState().amountStr;
       form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);

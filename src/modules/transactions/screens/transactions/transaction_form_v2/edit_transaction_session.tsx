@@ -1,57 +1,47 @@
-import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
+import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
+import { TransactionFormDataError } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_data_error';
+import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
+import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-import {
-  AddTransactionSheet,
-  type TransactionSheetSessionProps,
-} from './components/add_transaction_sheet';
-import { BudgetPickerSheet } from './components/budget_picker_sheet';
-import { TransactionFormDataError } from './components/transaction_form_data_error';
-import { TransactionFormLoading } from './components/transaction_form_loading';
-import { useEditTransaction } from './edit_transaction.hook';
-import { TransactionFormBody } from './transaction_form_body';
-import { useTransactionFormSessionReady } from './transaction_form_session.hook';
+import type { RegisterTransactionFormV2Submit } from './transaction_form_v2.hook';
+import { useTransactionFormV2Prerequisites } from './transaction_form_v2_prerequisites.hook';
+import { useTransactionFormV2Session } from './transaction_form_v2_session.hook';
 
-export { AddTransactionSheet };
-
-interface EditTransactionSheetProps extends TransactionSheetSessionProps {
+export interface EditTransactionV2SessionProps {
+  sessionId: number;
   tx: Transaction;
+  onRegisterSubmit: RegisterTransactionFormV2Submit;
+  onClose: () => void;
+  onSaved: () => void;
 }
 
-export function EditTransactionSheet(props: EditTransactionSheetProps): React.ReactElement {
-  const hook = useEditTransaction(props.tx, props.onClose, props.onSaved);
-  useTransactionFormSessionReady(props.sessionId, props.onReady);
+export function EditTransactionV2Session(props: EditTransactionV2SessionProps): React.ReactElement {
+  const prerequisites = useTransactionFormV2Prerequisites(props.sessionId, 'edit', props.tx);
+  const hook = useEditTransaction(props.tx, props.onClose, props.onSaved, prerequisites);
+  const footerDisabled =
+    hook.state.saving ||
+    !hook.state.formDataReady ||
+    hook.state.budgetsLoading ||
+    Boolean(hook.state.budgetLookupError);
+
+  useTransactionFormV2Session({
+    sessionId: props.sessionId,
+    submit: hook.handleSave,
+    footer: {
+      visible: true,
+      saving: hook.state.saving,
+      disabled: footerDisabled,
+    },
+    onRegisterSubmit: props.onRegisterSubmit,
+  });
 
   return (
-    <Sheet
-      isOpen={props.visible}
-      onOpenChange={(open) => {
-        if (!open) props.onClose();
-      }}
-      onCloseComplete={props.onCloseComplete}
-      title={Strings.editTxTitle}
-      size="lg"
-      scrollable
-      isDismissable={!hook.state.saving}
-      footer={
-        <Button
-          variant="primary"
-          label={Strings.editTxSaveCta}
-          isLoading={hook.state.saving}
-          isDisabled={
-            hook.state.saving ||
-            !hook.state.formDataReady ||
-            hook.state.budgetsLoading ||
-            Boolean(hook.state.budgetLookupError)
-          }
-          onPress={() => void hook.handleSave()}
-        />
-      }
-    >
+    <>
       {hook.state.formDataLoadError ? (
         <TransactionFormDataError onRetry={hook.retryFormData} />
       ) : hook.state.formDataReady ? (
@@ -104,9 +94,7 @@ export function EditTransactionSheet(props: EditTransactionSheetProps): React.Re
           categories={hook.state.visibleCategories}
           selectedId={hook.state.categoryId}
           onSelect={hook.selectCategory}
-          onOpenChange={(open) => {
-            if (!open) hook.setShowCategoryPicker(false);
-          }}
+          onOpenChange={hook.setShowCategoryPicker}
           onCloseComplete={() => hook.completePickerClose('category')}
         />
       ) : null}
@@ -120,6 +108,6 @@ export function EditTransactionSheet(props: EditTransactionSheetProps): React.Re
           onCloseComplete={() => hook.completePickerClose('budget')}
         />
       ) : null}
-    </Sheet>
+    </>
   );
 }

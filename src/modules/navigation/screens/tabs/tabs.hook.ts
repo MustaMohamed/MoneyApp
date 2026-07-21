@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { shouldHideGlobalFab } from '@/components/ui/fab_visibility';
 import { Size } from '@/constants/theme';
-import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
 import { useAnySheetOpen } from '@/store/sheet_visibility.store';
 import { ms } from '@/utils/responsive';
 
@@ -13,7 +13,9 @@ export function useTabsLayout() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const anySheetOpen = useAnySheetOpen();
-  const transactionFormActive = useTransactionFormHostState((state) => state.phase !== 'closed');
+  const transactionFormVisible = useTransactionFormV2State(
+    (state) => state.phase === 'open' || state.phase === 'closing',
+  );
 
   const handleAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
   const handleAddCommitment = useCallback(
@@ -23,10 +25,10 @@ export function useTabsLayout() {
 
   return {
     state: {
-      fabHidden: transactionFormActive || shouldHideGlobalFab(pathname, anySheetOpen),
+      fabHidden: transactionFormVisible || shouldHideGlobalFab(pathname, anySheetOpen),
       fabBottomOffset: insets.bottom + Size.tabBarHeight + ms(16),
     },
-    handleAddTransaction: useTransactionFormHostState.getState().openAdd,
+    handleAddTransaction: useTransactionFormV2State.getState().openAdd,
     handleAddAccount,
     handleAddCommitment,
   };

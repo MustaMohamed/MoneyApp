@@ -12,7 +12,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
 import { useTransactionStore } from '@/store/transaction.store';
 
 const mockAccountEGP: Account = {
@@ -95,7 +95,7 @@ const originalLoadCategories = useCategoryStore.getState().loadCategories;
 
 beforeEach(() => {
   jest.restoreAllMocks();
-  useTransactionFormHostState.getState().reset();
+  useTransactionFormV2State.getState().reset();
   useAccountStore.setState({ loadAccounts: originalLoadAccounts });
   useCategoryStore.setState({ loadCategories: originalLoadCategories });
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
@@ -120,63 +120,21 @@ beforeEach(() => {
 });
 
 describe('useAddTransaction — named budget assignment', () => {
-  it('loads accounts and categories before declaring the form ready', async () => {
-    useAccountStore.setState({ accounts: [], hasLoaded: false, loadError: false });
-    useCategoryStore.setState({ categories: [], hasLoaded: false, loadError: false });
-    const loadAccounts = jest
-      .spyOn(useAccountStore.getState(), 'loadAccounts')
-      .mockImplementation(async () => {
-        useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
-      });
-    const loadCategories = jest
-      .spyOn(useCategoryStore.getState(), 'loadCategories')
-      .mockImplementation(async () => {
-        useCategoryStore.setState({ categories: [mockCategoryExpense], hasLoaded: true });
-      });
+  it('uses an injected prerequisite controller without starting its legacy loader', () => {
+    const loadAccounts = jest.fn();
+    const loadCategories = jest.fn();
+    const retry = jest.fn();
+    useAccountStore.setState({ loadAccounts });
+    useCategoryStore.setState({ loadCategories });
 
-    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+    const { result } = renderHook(() => useAddTransaction(jest.fn(), { status: 'ready', retry }));
 
-    expect(result.current.state.formDataReady).toBe(false);
-    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
-    expect(loadAccounts).toHaveBeenCalledTimes(1);
-    expect(loadCategories).toHaveBeenCalledTimes(1);
-  });
+    expect(result.current.state.formDataReady).toBe(true);
+    expect(loadAccounts).not.toHaveBeenCalled();
+    expect(loadCategories).not.toHaveBeenCalled();
 
-  it('retries a prerequisite request that resolves without publishing store data', async () => {
-    useAccountStore.setState({ accounts: [], hasLoaded: false, loadError: false });
-    useCategoryStore.setState({ categories: [], hasLoaded: false, loadError: false });
-    const loadAccounts = jest
-      .spyOn(useAccountStore.getState(), 'loadAccounts')
-      .mockResolvedValueOnce(undefined)
-      .mockImplementationOnce(async () => {
-        useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
-      });
-    jest.spyOn(useCategoryStore.getState(), 'loadCategories').mockImplementation(async () => {
-      useCategoryStore.setState({ categories: [mockCategoryExpense], hasLoaded: true });
-    });
-
-    const { result } = renderHook(() => useAddTransaction(jest.fn()));
-
-    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
-    expect(loadAccounts).toHaveBeenCalledTimes(2);
-    expect(result.current.state.accounts).toEqual([mockAccountEGP]);
-  });
-
-  it('exposes a retryable prerequisite error', async () => {
-    useAccountStore.setState({ accounts: [], hasLoaded: false, loadError: false });
-    const loadAccounts = jest
-      .spyOn(useAccountStore.getState(), 'loadAccounts')
-      .mockRejectedValueOnce(new Error('load failed'))
-      .mockImplementationOnce(async () => {
-        useAccountStore.setState({ accounts: [mockAccountEGP], hasLoaded: true });
-      });
-
-    const { result } = renderHook(() => useAddTransaction(jest.fn()));
-
-    await waitFor(() => expect(result.current.state.formDataLoadError).toBe(true));
     act(() => result.current.retryFormData());
-    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
-    expect(loadAccounts).toHaveBeenCalledTimes(2);
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 
   it('does not republish the full form hook for ordinary amount typing', async () => {
@@ -466,10 +424,7 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('preserves entered values while the sheet close animation is running', async () => {
-    useTransactionFormHostState.getState().openAdd();
-    useTransactionFormHostState
-      .getState()
-      .present(useTransactionFormHostState.getState().sessionId);
+    useTransactionFormV2State.getState().openAdd();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.selectAccount(mockAccountEGP));
@@ -478,7 +433,7 @@ describe('useAddTransaction — validation', () => {
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
     act(() => {
-      useTransactionFormHostState.getState().requestClose();
+      useTransactionFormV2State.getState().requestClose();
     });
 
     expect(result.current.state.accountId).toBe(mockAccountEGP.id);

@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import { FAB } from '@/components/ui/fab';
 import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
-import { TransactionFormHost } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host';
+import { TransactionFormV2Host } from '@/modules/transactions/screens/transactions/transaction_form_v2';
 
 import { useTabsLayout } from './tabs.hook';
 
@@ -82,7 +82,7 @@ export default function TabsLayout(): React.ReactElement {
         />
       </Tabs>
       <FABOverlay />
-      <TransactionFormHost />
+      <TransactionFormV2Host />
     </>
   );
 }

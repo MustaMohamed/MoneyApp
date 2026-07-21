@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react';
 
-import type { TransactionFormMode } from '../transaction_form_host.state';
+import type { TransactionFormMode } from '../transaction_form.types';
 import { ExchangeRateRow } from './exchange_rate_row';
 import { useTransactionAmount } from './transaction_amount.hook';
 

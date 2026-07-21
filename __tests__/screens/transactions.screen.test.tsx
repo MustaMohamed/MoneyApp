@@ -105,9 +105,9 @@ jest.mock('@/modules/transactions/screens/transactions/filter/filter.state', () 
   useFilterState: { getState: () => ({ visible: false, close: jest.fn() }) },
 }));
 jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
+  '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state',
   () => ({
-    useTransactionFormHostState: {
+    useTransactionFormV2State: {
       getState: () => ({ openAdd: jest.fn() }),
     },
   }),

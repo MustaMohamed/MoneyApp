@@ -2,13 +2,9 @@ import { create } from 'zustand';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-import type { TransactionFormDataStatus } from './add_transaction.state';
-
 export type EditTransactionPicker = 'category' | 'budget';
 
 interface EditTransactionStateShape {
-  dataStatus: TransactionFormDataStatus;
-  dataLoadVersion: number;
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
@@ -22,8 +18,6 @@ interface EditTransactionStateShape {
 }
 
 type EditTransactionState = EditTransactionStateShape & {
-  setDataStatus: (status: TransactionFormDataStatus) => void;
-  retryFormData: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
@@ -39,8 +33,6 @@ type EditTransactionState = EditTransactionStateShape & {
 };
 
 const INITIAL_STATE: EditTransactionStateShape = {
-  dataStatus: 'loading',
-  dataLoadVersion: 0,
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
@@ -56,9 +48,6 @@ const INITIAL_STATE: EditTransactionStateShape = {
 export const useEditTransactionState = createMoneyAppSelectors(
   create<EditTransactionState>((set) => ({
     ...INITIAL_STATE,
-    setDataStatus: (dataStatus) => set({ dataStatus }),
-    retryFormData: () =>
-      set((state) => ({ dataLoadVersion: state.dataLoadVersion + 1, dataStatus: 'loading' })),
     setSaving: (v) => set({ saving: v }),
     setShowCategoryPicker: (v) =>
       set((state) => ({

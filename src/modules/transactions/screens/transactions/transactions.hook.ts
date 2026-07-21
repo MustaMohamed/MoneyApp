@@ -8,7 +8,7 @@ import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import type { TransactionListStatus } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
@@ -389,15 +389,14 @@ export function useTransactions() {
   const goToEdit = useCallback(
     (id: string) => {
       // Find the full tx object from the already-loaded sections data.
-      // Edit is done via the shared EditTransactionSheet (same sheet used by detail screen),
-      // so we open it imperatively from the list without any navigation.
+      // Edit uses the global transaction form host without changing routes.
       const tx = currentTransactions.find((t) => t.id === id);
       if (!tx) {
         console.warn('[goToEdit] tx not in loaded window:', id);
         return;
       }
       if (tx.commitment_payment_id !== null) return;
-      useTransactionFormHostState.getState().openEdit(tx);
+      useTransactionFormV2State.getState().openEdit(tx);
     },
     [currentTransactions],
   );

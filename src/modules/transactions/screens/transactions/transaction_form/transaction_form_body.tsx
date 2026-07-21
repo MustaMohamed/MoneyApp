@@ -21,7 +21,7 @@ import { AmountHero } from './components/amount_hero';
 import { DateRow } from './components/date_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import { TypeTabs } from './components/type_tabs';
-import type { TransactionFormMode } from './transaction_form_host.state';
+import type { TransactionFormMode } from './transaction_form.types';
 
 interface Props {
   datePickerOwnerId: string;

@@ -10,7 +10,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
-import { useTransactionFormHostState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
 import { useTransactionStore } from '@/store/transaction.store';
 
 const mockTxExpense: Transaction = {
@@ -117,7 +117,7 @@ const originalLoadAccountLookup = useAccountStore.getState().loadAccountLookup;
 
 beforeEach(() => {
   jest.restoreAllMocks();
-  useTransactionFormHostState.getState().reset();
+  useTransactionFormV2State.getState().reset();
   useAccountStore.setState({ loadAccountLookup: originalLoadAccountLookup });
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
@@ -140,40 +140,29 @@ beforeEach(() => {
 });
 
 describe('useEditTransaction', () => {
-  it('hydrates an archived account before declaring the edit form ready', async () => {
-    const archivedTx = { ...mockTxExpense, account_id: mockAccountUSD.id };
-    useAccountStore.setState({ accountLookup: [] });
-    const loadAccountLookup = jest
-      .spyOn(useAccountStore.getState(), 'loadAccountLookup')
-      .mockImplementation(async () => {
-        useAccountStore.setState({ accountLookup: [mockAccountUSD] });
-      });
-    useEditTransactionStore.getState().loadFromTx(archivedTx);
+  it('uses an injected prerequisite controller without starting its legacy loader', async () => {
+    const loadAccounts = jest.fn();
+    const loadCategories = jest.fn();
+    const loadAccountLookup = jest.fn();
+    const retry = jest.fn();
+    useAccountStore.setState({ loadAccounts, loadAccountLookup });
+    useCategoryStore.setState({ loadCategories });
 
-    const { result } = renderHook(() => useEditTransaction(archivedTx, jest.fn(), jest.fn()));
+    const { result } = renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn(), {
+        status: 'ready',
+        retry,
+      }),
+    );
 
-    expect(result.current.state.formDataReady).toBe(false);
-    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
-    expect(loadAccountLookup).toHaveBeenCalledWith([mockAccountUSD.id]);
-    expect(result.current.state.selectedAccount).toEqual(mockAccountUSD);
-  });
+    expect(result.current.state.formDataReady).toBe(true);
+    expect(loadAccounts).not.toHaveBeenCalled();
+    expect(loadCategories).not.toHaveBeenCalled();
+    expect(loadAccountLookup).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
-  it('retries an archived-account lookup that resolves without publishing its result', async () => {
-    const archivedTx = { ...mockTxExpense, account_id: mockAccountUSD.id };
-    useAccountStore.setState({ accountLookup: [] });
-    const loadAccountLookup = jest
-      .spyOn(useAccountStore.getState(), 'loadAccountLookup')
-      .mockResolvedValueOnce(undefined)
-      .mockImplementationOnce(async () => {
-        useAccountStore.setState({ accountLookup: [mockAccountUSD] });
-      });
-    useEditTransactionStore.getState().loadFromTx(archivedTx);
-
-    const { result } = renderHook(() => useEditTransaction(archivedTx, jest.fn(), jest.fn()));
-
-    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
-    expect(loadAccountLookup).toHaveBeenCalledTimes(2);
-    expect(result.current.state.selectedAccount).toEqual(mockAccountUSD);
+    act(() => result.current.retryFormData());
+    expect(retry).toHaveBeenCalledTimes(1);
   });
 
   it('rejects malformed exchange rates for an archived USD transaction', async () => {
@@ -316,16 +305,13 @@ describe('useEditTransaction', () => {
   });
 
   it('preserves edits while the sheet close animation is running', async () => {
-    useTransactionFormHostState.getState().openEdit(mockTxExpense);
-    useTransactionFormHostState
-      .getState()
-      .present(useTransactionFormHostState.getState().sessionId);
+    useTransactionFormV2State.getState().openEdit(mockTxExpense);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     act(() => result.current.setNote('keep through close'));
 
     act(() => {
-      useTransactionFormHostState.getState().requestClose();
+      useTransactionFormV2State.getState().requestClose();
     });
 
     expect(result.current.state.note).toBe('keep through close');

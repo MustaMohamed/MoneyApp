@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import type { TransactionFormMode } from '../transaction_form_host.state';
+import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 
 const amountClass = tv({

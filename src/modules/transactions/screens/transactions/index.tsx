@@ -24,7 +24,7 @@ import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { FilterSheet } from './filter';
-import { useTransactionFormHostState } from './transaction_form/transaction_form_host.state';
+import { useTransactionFormV2State } from './transaction_form_v2/transaction_form_v2.state';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
@@ -78,7 +78,7 @@ export default function TransactionsScreen(): React.ReactElement {
     onListScrollEnd,
     retryFailedLoads,
   } = t;
-  const openAddTx = useTransactionFormHostState.getState().openAdd;
+  const openAddTx = useTransactionFormV2State.getState().openAdd;
 
   const deleteTransaction = useTransactionStore.getState().deleteTransaction;
   const {

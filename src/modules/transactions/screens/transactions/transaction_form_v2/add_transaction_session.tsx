@@ -1,62 +1,51 @@
 import { router } from 'expo-router';
 
-import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
+import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
+import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
+import { NoAccountsEmpty } from '@/modules/transactions/screens/transactions/transaction_form/components/no_accounts_empty';
+import { TransactionFormDataError } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_data_error';
+import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
+import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-import { useAddTransaction } from '../add_transaction.hook';
-import { TransactionFormBody } from '../transaction_form_body';
-import { useTransactionFormSessionReady } from '../transaction_form_session.hook';
-import { BudgetPickerSheet } from './budget_picker_sheet';
-import { NoAccountsEmpty } from './no_accounts_empty';
-import { TransactionFormDataError } from './transaction_form_data_error';
-import { TransactionFormLoading } from './transaction_form_loading';
+import type { RegisterTransactionFormV2Submit } from './transaction_form_v2.hook';
+import { useTransactionFormV2Prerequisites } from './transaction_form_v2_prerequisites.hook';
+import { useTransactionFormV2Session } from './transaction_form_v2_session.hook';
 
-export interface TransactionSheetSessionProps {
-  visible: boolean;
+export interface AddTransactionV2SessionProps {
   sessionId: number;
-  onReady: (sessionId: number) => void;
+  onRegisterSubmit: RegisterTransactionFormV2Submit;
   onClose: () => void;
   onSaved: () => void;
-  onCloseComplete: () => void;
 }
 
-export function AddTransactionSheet(props: TransactionSheetSessionProps): React.ReactElement {
-  const hook = useAddTransaction(props.onSaved);
-  useTransactionFormSessionReady(props.sessionId, props.onReady);
+export function AddTransactionV2Session(props: AddTransactionV2SessionProps): React.ReactElement {
+  const prerequisites = useTransactionFormV2Prerequisites(props.sessionId, 'add', null);
+  const hook = useAddTransaction(props.onSaved, prerequisites);
+  const footerVisible = !hook.state.formDataReady || hook.state.hasAccounts;
+  const footerDisabled =
+    hook.state.saving ||
+    !hook.state.formDataReady ||
+    !hook.state.hasAccounts ||
+    hook.state.budgetsLoading ||
+    Boolean(hook.state.budgetLookupError);
+
+  useTransactionFormV2Session({
+    sessionId: props.sessionId,
+    submit: hook.handleSave,
+    footer: {
+      visible: footerVisible,
+      saving: hook.state.saving,
+      disabled: footerDisabled,
+    },
+    onRegisterSubmit: props.onRegisterSubmit,
+  });
 
   return (
-    <Sheet
-      isOpen={props.visible}
-      onOpenChange={(open) => {
-        if (!open) props.onClose();
-      }}
-      onCloseComplete={props.onCloseComplete}
-      title={Strings.addTxTitle}
-      size="lg"
-      scrollable
-      isDismissable={!hook.state.saving}
-      footer={
-        !hook.state.formDataReady || hook.state.hasAccounts ? (
-          <Button
-            variant="primary"
-            label={Strings.addTxSaveCta}
-            isLoading={hook.state.saving}
-            isDisabled={
-              hook.state.saving ||
-              !hook.state.formDataReady ||
-              !hook.state.hasAccounts ||
-              hook.state.budgetsLoading ||
-              Boolean(hook.state.budgetLookupError)
-            }
-            onPress={() => void hook.handleSave()}
-          />
-        ) : undefined
-      }
-    >
+    <>
       {hook.state.formDataLoadError ? (
         <TransactionFormDataError onRetry={hook.retryFormData} />
       ) : hook.state.formDataReady && hook.state.hasAccounts ? (
@@ -120,9 +109,7 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           accounts={hook.state.accountsForFrom}
           selectedId={hook.state.accountId}
           onSelect={hook.selectAccount}
-          onOpenChange={(open) => {
-            if (!open) hook.setShowAccountPicker(false);
-          }}
+          onOpenChange={hook.setShowAccountPicker}
           onCloseComplete={() => hook.completePickerClose('account')}
         />
       ) : null}
@@ -134,9 +121,7 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           selectedId={hook.state.toAccountId}
           excludeId={hook.state.accountId}
           onSelect={hook.selectToAccount}
-          onOpenChange={(open) => {
-            if (!open) hook.setShowToPicker(false);
-          }}
+          onOpenChange={hook.setShowToPicker}
           onCloseComplete={() => hook.completePickerClose('toAccount')}
         />
       ) : null}
@@ -147,9 +132,7 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           categories={hook.state.visibleCategories}
           selectedId={hook.state.categoryId}
           onSelect={hook.selectCategory}
-          onOpenChange={(open) => {
-            if (!open) hook.setShowCategoryPicker(false);
-          }}
+          onOpenChange={hook.setShowCategoryPicker}
           onCloseComplete={() => hook.completePickerClose('category')}
         />
       ) : null}
@@ -163,6 +146,6 @@ export function AddTransactionSheet(props: TransactionSheetSessionProps): React.
           onCloseComplete={() => hook.completePickerClose('budget')}
         />
       ) : null}
-    </Sheet>
+    </>
   );
 }
