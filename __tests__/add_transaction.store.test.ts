@@ -1,10 +1,10 @@
 import { TransactionType } from '@/constants/enums';
-import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
+import { makeTestBudget } from '@/test_helpers/transaction';
 
 beforeEach(() => useAddTransactionStore.getState().reset());
 
-const budget = { id: 'budget-food' } as Budget;
+const budget = makeTestBudget({ id: 'budget-food' });
 
 describe('useAddTransactionStore', () => {
   it('starts with an empty amount for placeholder-based entry', () => {

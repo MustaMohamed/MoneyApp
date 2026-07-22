@@ -8,7 +8,9 @@ import {
   buildTransactionDetailPresentation,
   getAccountTypeIcon,
   getCommitmentPaymentRoute,
+  resolveDetailViewState,
 } from '@/modules/transactions/screens/transactions/detail/detail.helpers';
+import type { TransactionDetailStatus } from '@/modules/transactions/screens/transactions/detail/detail.state';
 
 const now = '2026-07-20T12:00:00.000Z';
 
@@ -99,6 +101,31 @@ describe('getAccountTypeIcon', () => {
 describe('getCommitmentPaymentRoute', () => {
   it('uses the payment id expected by the commitment detail route', () => {
     expect(getCommitmentPaymentRoute('payment-1')).toBe('/commitments/payment-1');
+  });
+});
+
+describe('resolveDetailViewState', () => {
+  it.each<
+    [
+      string,
+      TransactionDetailStatus,
+      boolean,
+      boolean,
+      boolean,
+      ReturnType<typeof resolveDetailViewState>,
+    ]
+  >([
+    ['idle', 'idle', false, false, false, 'loading'],
+    ['initial loading', 'initialLoading', false, false, false, 'loading'],
+    ['not found', 'notFound', false, false, false, 'notFound'],
+    ['first-load failure', 'firstLoadError', false, false, false, 'firstLoadError'],
+    ['ready', 'ready', true, false, false, 'ready'],
+    ['refreshing with data', 'ready', true, true, false, 'refreshing'],
+    ['refresh failure with data', 'ready', true, false, true, 'refreshErrorWithData'],
+  ])('%s', (_name, status, hasTransaction, revalidating, refreshError, expected) => {
+    expect(resolveDetailViewState(status, hasTransaction, revalidating, refreshError)).toBe(
+      expected,
+    );
   });
 });
 

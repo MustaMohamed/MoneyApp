@@ -1,12 +1,12 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
 
 import { Currency, TransactionType } from '@/constants/enums';
-import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
 import { getTransactions, insertTransactionRow } from '@/database/transactions';
+import { getExpoSQLiteTestDatabase, getSQLiteParams, isQueryPlanRow } from '@/test_helpers/sqlite';
+import { makeTestTransaction } from '@/test_helpers/transaction';
 
-const sqlite = SQLite as unknown as { __reset: () => void };
+const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -42,25 +42,17 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   seed();
 
-  const mocked = (
-    SQLite as unknown as {
-      __fakeDb: {
-        runAsync: jest.Mock;
-        getAllAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
-      };
-    }
-  ).__fakeDb;
+  const mocked = sqlite;
 
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    realDb.prepare(sql).run(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    realDb.prepare(sql).run(...params);
     return { changes: 1, lastInsertRowId: 1 };
   });
 
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).all(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    return realDb.prepare(sql).all(...params);
   });
 
   mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
@@ -78,37 +70,22 @@ beforeEach(() => {
 
 afterAll(() => {
   realDb.close();
-  sqlite.__reset();
+  sqlite.reset();
 });
 
-const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
-  typeof getTransactions
->[0];
+const mockDb = sqlite.database;
 
-async function insert(overrides: Partial<Transaction> = {}) {
-  const tx: Transaction = {
+async function insert(overrides: Parameters<typeof makeTestTransaction>[0] = {}) {
+  const tx = makeTestTransaction({
     id: overrides.id ?? `tx-${Math.random().toString(36).slice(2, 9)}`,
-    type: TransactionType.Expense,
-    amount: 50,
-    currency: Currency.EGP,
-    egp_amount: 50,
-    exchange_rate: null,
-    to_amount: null,
-    minimum_payment_snapshot: null,
     account_id: 'acc_a',
-    to_account_id: null,
     category_id: 'cat_food',
-    budget_id: null,
-    note: null,
     transaction_date: DATE,
     transaction_time: TIME,
-    commitment_payment_id: null,
-    installment_id: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-    revolving_balance_delta: overrides.revolving_balance_delta ?? null,
-  };
+  });
   await insertTransactionRow(mockDb, tx);
   return tx;
 }
@@ -350,12 +327,15 @@ describe('getTransactions — expanded search projection', () => {
       dateFrom: '2026-05-01',
       dateTo: '2026-05-31',
     });
-    const getAllAsync = (SQLite as unknown as { __fakeDb: { getAllAsync: jest.Mock } }).__fakeDb
-      .getAllAsync;
-    const [sql, params] = getAllAsync.mock.calls.at(-1) as [string, unknown[]];
-    const plan = realDb.prepare(`EXPLAIN QUERY PLAN ${sql}`).all(...(params as never[])) as Array<{
-      detail: string;
-    }>;
+    const call = sqlite.getAllAsync.mock.calls.at(-1);
+    expect(call).toBeDefined();
+    if (!call) throw new Error('Expected a transaction search query');
+    const [sql, ...rest] = call;
+    const params = getSQLiteParams(rest);
+    const plan = realDb
+      .prepare(`EXPLAIN QUERY PLAN ${sql}`)
+      .all(...params)
+      .filter(isQueryPlanRow);
 
     expect(rows.map((row) => row.id)).toEqual(['history-599']);
     expect(plan.map((step) => step.detail).join('\n')).not.toMatch(/CORRELATED SCALAR SUBQUERY/i);

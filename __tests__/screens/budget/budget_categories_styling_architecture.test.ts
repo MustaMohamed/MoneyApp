@@ -285,7 +285,7 @@ describe('budget categories presentation architecture', () => {
     );
 
     expect(form).not.toMatch(/size=\{18\}|gap: 8|padding: 16|paddingBottom: 24/);
-    expect(form).toContain('size={ms(18)}');
+    expect(form).toContain('size={Size.iconSm}');
     expect(form).toContain('gap: ms(8)');
   });
 });

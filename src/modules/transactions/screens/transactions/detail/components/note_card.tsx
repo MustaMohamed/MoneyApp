@@ -20,6 +20,8 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Size, Type } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 
 import { DETAIL_NOTE_MIN_HEIGHT } from './detail_geometry';
 
@@ -39,13 +41,22 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
     >
       <View className="mb-2 flex-row items-center gap-2">
         <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
-          <MaterialCommunityIcons name="text" size={14} color="#F0EEE6" />
+          <MaterialCommunityIcons
+            name="text"
+            size={Size.filterSegmentIcon}
+            color={CoreTokens.text1}
+          />
         </View>
-        <Text className="font-inter text-foreground/55 text-[10.5px] font-semibold tracking-wide uppercase">
+        <Text
+          className="font-inter text-foreground/55 font-semibold tracking-wide uppercase"
+          style={{ fontSize: Type.overline }}
+        >
           {Strings.detailNote}
         </Text>
       </View>
-      <Text className="font-inter text-foreground text-[13px] font-medium">{trimmed}</Text>
+      <Text className="font-inter text-foreground font-medium" style={{ fontSize: Type.meta }}>
+        {trimmed}
+      </Text>
     </Card>
   );
 }

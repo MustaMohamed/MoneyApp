@@ -5,13 +5,15 @@ import { tv } from 'tailwind-variants';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import type { TransactionFormMode } from '../transaction_form.types';
 import { useTransactionAmount } from './transaction_amount.hook';
 
 const amountClass = tv({
-  base: 'font-sora min-h-0 rounded-none border-0 bg-transparent px-0 py-0 text-[40px]',
+  base: 'font-sora min-h-0 rounded-none border-0 bg-transparent px-0 py-0',
   variants: {
     type: {
       expense: 'text-danger',
@@ -53,7 +55,9 @@ export function AmountHero({ onChange, type, currency, mode }: Props): React.Rea
       style={{ flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center' }}
       className="border-separator gap-2 border-b py-4"
     >
-      <Text className="font-inter text-muted text-[15px]">{currency}</Text>
+      <Text className="font-inter text-muted" style={{ fontSize: Type.bodyStrong }}>
+        {currency}
+      </Text>
       <Input
         testID="amount-hero-value"
         value={amountStr}
@@ -61,9 +65,10 @@ export function AmountHero({ onChange, type, currency, mode }: Props): React.Rea
         onFocus={onFocus}
         onBlur={onBlur}
         keyboardType="decimal-pad"
+        accessibilityLabel={Strings.addTxAmountInputAccessibility}
         className={amountClass({ type })}
-        style={{ minWidth: 80, textAlign: 'center', padding: 0 }}
-        placeholder="0"
+        style={{ minWidth: 80, textAlign: 'center', padding: 0, fontSize: Type.amountEntry }}
+        placeholder={Strings.addTxAmountPlaceholder}
         placeholderTextColor={CoreTokens.text2}
       />
     </View>

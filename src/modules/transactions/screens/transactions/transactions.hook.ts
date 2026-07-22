@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { SectionList } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
+import { Strings } from '@/constants/strings';
 import { getDb } from '@/database/client';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -15,6 +16,7 @@ import { getTransactionQueryKey } from '@/modules/transactions/store/transaction
 import { formatMonthYear } from '@/utils/format_date';
 import { groupTransactionsByDate } from '@/utils/group_transactions_by_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
+import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 import { useDebouncedValue } from '@/utils/use_debounced_value.hook';
 
 import {
@@ -23,14 +25,14 @@ import {
   toQueryFilters,
 } from './filter/filter.helpers';
 import { useFilterState } from './filter/filter.state';
-import { EMPTY_FILTERS_V2, useFilterStore } from './filter/filter.store';
+import { EMPTY_FILTERS, useFilterStore } from './filter/filter.store';
 import { previousPeriod, resolvePeriod } from './transactions.helpers';
+import { buildTransactionsPresentation } from './transactions.presentation';
 import { useTransactionsState } from './transactions.state';
 import { useTransactionsScreenStore } from './transactions.store';
 
 export type EmptyVariant = 'none' | 'noData' | 'noResults';
 export type TransactionSection = { key: string; data: Transaction[] };
-export type TransactionLoadErrorVariant = 'none' | 'refresh' | 'totals';
 type ScrollOffsetEvent = { nativeEvent: { contentOffset: { y: number } } };
 type ScrollPosition = { queryKey: string | null; offset: number };
 
@@ -44,18 +46,25 @@ export function useTransactions() {
   const attemptScrollRestoreRef = useRef<() => void>(() => {});
   const currentScrollPositionRef = useRef<ScrollPosition>({ queryKey: null, offset: 0 });
 
-  const { searchQuery, activeFilter, period, appliedFilters } = useTransactionsScreenStore(
-    useShallow((s) => ({
-      searchQuery: s.searchQuery,
-      activeFilter: s.activeFilter,
-      period: s.period,
-      appliedFilters: s.appliedFilters,
-    })),
-  );
+  const { searchQuery, activeFilter, period, appliedFilters, totals, totalsYearMonth } =
+    useTransactionsScreenStore(
+      useShallow((s) => ({
+        searchQuery: s.searchQuery,
+        activeFilter: s.activeFilter,
+        period: s.period,
+        appliedFilters: s.appliedFilters,
+        totals: s.totals,
+        totalsYearMonth: s.totalsYearMonth,
+      })),
+    );
   const setSearchQuery = useTransactionsScreenStore.getState().setSearchQuery;
   const setActiveFilter = useTransactionsScreenStore.getState().setActiveFilter;
   const setSelectedMonth = useTransactionsScreenStore.getState().setSelectedMonth;
   const clearSearch = useTransactionsScreenStore.getState().clearSearch;
+  const beginTotalsRequest = useTransactionsScreenStore.getState().beginTotalsRequest;
+  const resolveTotals = useTransactionsScreenStore.getState().resolveTotals;
+  const failTotals = useTransactionsScreenStore.getState().failTotals;
+  const hasTotalsForMonth = useTransactionsScreenStore.getState().hasTotalsForMonth;
   const { transactions, hasMore, paginationError, queryKey, snapshotKey, status, mutationVersion } =
     useTransactionStore(
       useShallow((s) => ({
@@ -72,6 +81,12 @@ export function useTransactions() {
   const loadMore = useTransactionStore.getState().loadMore;
   const refresh = useTransactionStore.getState().refresh;
   const retry = useTransactionStore.getState().retry;
+  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
+  const runDeleteTransaction = useCallback(
+    (transactionId: string) => deleteTransaction(transactionId),
+    [deleteTransaction],
+  );
+  const deleteAction = useConfirmAction(runDeleteTransaction);
 
   const { accounts, accountLookup } = useAccountStore(
     useShallow((s) => ({ accounts: s.accounts, accountLookup: s.accountLookup })),
@@ -82,16 +97,10 @@ export function useTransactions() {
   const openFilter = useFilterState.getState().open;
   const setDraft = useFilterStore.getState().setDraft;
 
-  const { totals, totalsYearMonth, totalsStatus } = useTransactionsState(
-    useShallow((s) => ({
-      totals: s.totals,
-      totalsYearMonth: s.totalsYearMonth,
-      totalsStatus: s.totalsStatus,
-    })),
-  );
+  const totalsStatus = useTransactionsState.useState.totalsStatus();
   const beginTotalsLoad = useTransactionsState.getState().beginTotalsLoad;
-  const resolveTotals = useTransactionsState.getState().resolveTotals;
-  const failTotals = useTransactionsState.getState().failTotals;
+  const resolveTotalsLoad = useTransactionsState.getState().resolveTotalsLoad;
+  const failTotalsLoad = useTransactionsState.getState().failTotalsLoad;
   const activateScrollQuery = useTransactionsState.getState().activateScrollQuery;
   const setScrollOffset = useTransactionsState.getState().setScrollOffset;
 
@@ -103,24 +112,34 @@ export function useTransactions() {
     async (preserveData = false, shouldApply: () => boolean = () => true) => {
       const targetYearMonth = period.yearMonth;
       if (!shouldApply()) return;
-      const requestId = beginTotalsLoad(targetYearMonth, preserveData);
+      const hasPreservedData = preserveData && hasTotalsForMonth(targetYearMonth);
+      const requestId = beginTotalsRequest(targetYearMonth, preserveData);
+      beginTotalsLoad(hasPreservedData);
       try {
         const db = await getDb();
         const current = await getPeriodTotals(db, periodRange);
         const previous = await getPeriodTotals(db, previousPeriodRange);
-        if (shouldApply()) resolveTotals(targetYearMonth, requestId, { current, previous });
+        if (shouldApply() && resolveTotals(targetYearMonth, requestId, { current, previous })) {
+          resolveTotalsLoad();
+        }
       } catch (err) {
         console.error('[transactions] loadTotals failed:', err);
-        if (shouldApply()) failTotals(targetYearMonth, requestId);
+        if (shouldApply() && failTotals(targetYearMonth, requestId)) {
+          failTotalsLoad(hasTotalsForMonth(targetYearMonth));
+        }
       }
     },
     [
+      beginTotalsRequest,
       beginTotalsLoad,
       failTotals,
+      failTotalsLoad,
+      hasTotalsForMonth,
       period.yearMonth,
       periodRange,
       previousPeriodRange,
       resolveTotals,
+      resolveTotalsLoad,
     ],
   );
   const loadTotalsRef = useRef(loadTotals);
@@ -216,7 +235,7 @@ export function useTransactions() {
 
   useEffect(() => {
     let cancelled = false;
-    const totalsState = useTransactionsState.getState();
+    const totalsState = useTransactionsScreenStore.getState();
     const preserveData =
       totalsState.totalsYearMonth === period.yearMonth && totalsState.totals !== null;
     void loadTotals(preserveData, () => !cancelled);
@@ -239,13 +258,14 @@ export function useTransactions() {
         focusTransactionState.queryKey === focusQueryKey &&
         focusTransactionState.status !== 'refreshing';
       const focusYearMonth = useTransactionsScreenStore.getState().period.yearMonth;
-      const focusTotalsState = useTransactionsState.getState();
+      const focusTotalsState = useTransactionsScreenStore.getState();
+      const focusTotalsUiState = useTransactionsState.getState();
       const focusTotalsRequestId = focusTotalsState.totalsRequestId;
       const shouldRefreshTotals =
         !isFirstFocus &&
         focusTotalsState.totalsYearMonth === focusYearMonth &&
-        focusTotalsState.totalsStatus !== 'initialLoading' &&
-        focusTotalsState.totalsStatus !== 'refreshing';
+        focusTotalsUiState.totalsStatus !== 'initialLoading' &&
+        focusTotalsUiState.totalsStatus !== 'refreshing';
       attemptScrollRestoreRef.current();
       const task = runAfterInteractions(() => {
         if (activeQueryKeyRef.current !== focusQueryKey) return;
@@ -260,7 +280,7 @@ export function useTransactions() {
             console.error('[transactions] focus refresh failed:', error),
           );
         }
-        const totalsState = useTransactionsState.getState();
+        const totalsState = useTransactionsScreenStore.getState();
         const totalsAreUnchanged =
           shouldRefreshTotals &&
           totalsState.totalsYearMonth === focusYearMonth &&
@@ -299,15 +319,6 @@ export function useTransactions() {
     [accountsById, appliedFilters, categoriesById],
   );
   const hasAdvancedFilters = activeFilterCount > 0;
-  const hasCurrentEmptySnapshot =
-    hasCurrentSnapshot && currentTransactions.length === 0 && listStatus !== 'initialLoading';
-
-  const emptyVariant: EmptyVariant =
-    !hasCurrentEmptySnapshot || listStatus === 'firstLoadError'
-      ? 'none'
-      : debouncedSearch.trim() || activeFilter !== 'all' || hasAdvancedFilters
-        ? 'noResults'
-        : 'noData';
 
   const handleOpenFilter = useCallback(() => {
     setDraft(appliedFilters);
@@ -318,7 +329,7 @@ export function useTransactions() {
     const screenStore = useTransactionsScreenStore.getState();
     screenStore.clearSearch();
     screenStore.setActiveFilter('all');
-    screenStore.setAppliedFilters(EMPTY_FILTERS_V2);
+    screenStore.setAppliedFilters(EMPTY_FILTERS);
   }, []);
 
   const onRefresh = useCallback(async () => {
@@ -335,14 +346,18 @@ export function useTransactions() {
   const displayTotals = totalsYearMonth === period.yearMonth ? totals : null;
   const displayTotalsStatus =
     totalsYearMonth === period.yearMonth ? totalsStatus : 'initialLoading';
-  const showFirstLoadError = listStatus === 'firstLoadError';
-  const loadErrorVariant: TransactionLoadErrorVariant = showFirstLoadError
+  const presentation = buildTransactionsPresentation({
+    listStatus,
+    totalsStatus: displayTotalsStatus,
+    rowCount: currentTransactions.length,
+    hasLoadedOnce: hasCurrentSnapshot,
+    paginationError: hasCurrentSnapshot && paginationError,
+  });
+  const emptyVariant: EmptyVariant = !presentation.showEmptyState
     ? 'none'
-    : listStatus === 'refreshErrorWithData' || displayTotalsStatus === 'refreshErrorWithData'
-      ? 'refresh'
-      : displayTotalsStatus === 'firstLoadError'
-        ? 'totals'
-        : 'none';
+    : debouncedSearch.trim() || activeFilter !== 'all' || hasAdvancedFilters
+      ? 'noResults'
+      : 'noData';
 
   const onListScroll = useCallback(
     (event: ScrollOffsetEvent) => {
@@ -401,17 +416,20 @@ export function useTransactions() {
     [currentTransactions],
   );
 
+  const openAddTransaction = useCallback(() => {
+    useTransactionFormState.getState().openAdd();
+  }, []);
+
   return {
     state: {
       sections,
       hasMore: hasCurrentSnapshot ? hasMore : false,
       listStatus,
-      showInitialSkeleton:
-        (listStatus === 'idle' || listStatus === 'initialLoading') && sections.length === 0,
-      showFirstLoadError,
-      loadErrorVariant,
-      paginationError: hasCurrentSnapshot ? paginationError : false,
-      refreshing: listStatus === 'refreshing',
+      showInitialSkeleton: presentation.showInitialSkeleton,
+      showFirstLoadError: presentation.showFirstLoadError,
+      loadErrorVariant: presentation.loadErrorVariant,
+      paginationError: presentation.showPaginationRetry,
+      refreshing: presentation.showRefreshIndicator,
       emptyVariant,
       searchQuery,
       activeFilter,
@@ -425,6 +443,9 @@ export function useTransactions() {
       totalsStatus: displayTotalsStatus,
       previousLabel,
       listRef,
+      pendingDeleteId: deleteAction.pendingPayload,
+      deleteBusy: deleteAction.busy,
+      deleteErrorMessage: deleteAction.error ? Strings.errDeleteFailed : undefined,
     },
     setSearchQuery,
     setActiveFilter,
@@ -441,5 +462,9 @@ export function useTransactions() {
     resetFilters,
     goToDetail,
     goToEdit,
+    openAddTransaction,
+    requestDelete: deleteAction.request,
+    confirmDelete: deleteAction.confirm,
+    cancelDelete: deleteAction.cancel,
   };
 }

@@ -144,4 +144,49 @@ describe('buildTransactionRowPresentation', () => {
       }).ownershipLabel,
     ).toBe(Strings.transactionBudgetAssigned);
   });
+
+  it('normalizes notes and formats large values without changing the row contract', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({ amount: 1_250_000, egp_amount: 1_250_000, note: '  Annual rent  ' }),
+        account: account({}),
+        category,
+      }),
+    ).toMatchObject({
+      primaryAmount: '−1,250,000 EGP',
+      note: 'Annual rent',
+    });
+  });
+
+  it('shows the EGP equivalent and captured rate for a USD expense', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({
+          amount: 20,
+          currency: Currency.USD,
+          egp_amount: 1_000,
+          exchange_rate: 50,
+        }),
+        account: account({ currency: Currency.USD }),
+        category,
+      }),
+    ).toMatchObject({
+      primaryAmount: '−20 USD',
+      secondaryAmount: '≈ 1,000 EGP',
+      rateText: '@ 50',
+    });
+  });
+
+  it('gives commitment ownership precedence over a named budget', () => {
+    expect(
+      buildTransactionRowPresentation({
+        tx: transaction({ commitment_payment_id: 'payment-1', budget_id: 'budget-1' }),
+        account: account({}),
+        category,
+      }),
+    ).toMatchObject({
+      ownershipLabel: Strings.typeBadgeCommitment,
+      isCommitmentOwned: true,
+    });
+  });
 });

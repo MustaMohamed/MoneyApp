@@ -13,9 +13,32 @@ import { formatTime12h } from '@/utils/format_time_12h';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
 import type { BadgeTone } from './components/detail_row';
+import type { TransactionDetailStatus } from './detail.state';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
+
+export type TransactionDetailViewState =
+  | 'loading'
+  | 'refreshing'
+  | 'ready'
+  | 'notFound'
+  | 'firstLoadError'
+  | 'refreshErrorWithData';
+
+export function resolveDetailViewState(
+  status: TransactionDetailStatus,
+  hasTransaction: boolean,
+  revalidating: boolean,
+  refreshError: boolean,
+): TransactionDetailViewState {
+  if ((status === 'idle' || status === 'initialLoading') && !hasTransaction) return 'loading';
+  if (status === 'notFound') return 'notFound';
+  if (status === 'firstLoadError' && !hasTransaction) return 'firstLoadError';
+  if (revalidating && hasTransaction) return 'refreshing';
+  if (refreshError && hasTransaction) return 'refreshErrorWithData';
+  return hasTransaction ? 'ready' : 'loading';
+}
 
 const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = {
   [AccountType.Bank]: Strings.typeBank,

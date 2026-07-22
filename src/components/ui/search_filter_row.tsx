@@ -1,21 +1,19 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
+import { PressableFeedback, SearchField } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Radius } from '@/constants/theme';
+import { Radius, Size, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
-import { Input } from './input';
 import { Text } from './text';
 
 interface SearchFilterRowProps {
   value: string;
   placeholder: string;
   onChangeText: (value: string) => void;
-  onClear: () => void;
   onOpenFilter: () => void;
   activeFilterCount: number;
   filterBadgeTestID: string;
@@ -24,8 +22,6 @@ interface SearchFilterRowProps {
 }
 
 const COMPACT_CONTROL_SIZE = ms(36);
-const SEARCH_INPUT_HORIZONTAL_PADDING = ms(12);
-const SEARCH_INPUT_CLEAR_PADDING = ms(40);
 const FILTER_BADGE_SIZE = ms(16);
 
 export const SEARCH_INPUT_COMPACT_STYLE = {
@@ -33,13 +29,6 @@ export const SEARCH_INPUT_COMPACT_STYLE = {
   minHeight: COMPACT_CONTROL_SIZE,
   paddingTop: 0,
   paddingBottom: 0,
-  paddingLeft: SEARCH_INPUT_HORIZONTAL_PADDING,
-  paddingRight: SEARCH_INPUT_HORIZONTAL_PADDING,
-} as const;
-
-export const SEARCH_INPUT_WITH_CLEAR_STYLE = {
-  ...SEARCH_INPUT_COMPACT_STYLE,
-  paddingRight: SEARCH_INPUT_CLEAR_PADDING,
 } as const;
 
 export const FILTER_BUTTON_COMPACT_STYLE = {
@@ -57,6 +46,7 @@ export const FILTER_BADGE_STYLE = {
 } as const;
 
 const FILTER_BADGE_TEXT_STYLE = {
+  fontSize: Type.chip,
   lineHeight: FILTER_BADGE_SIZE,
 } as const;
 
@@ -64,14 +54,12 @@ export function SearchFilterRow({
   value,
   placeholder,
   onChangeText,
-  onClear,
   onOpenFilter,
   activeFilterCount,
   filterBadgeTestID,
   clearAccessibilityLabel = Strings.filterSearchClearAccessibility,
   filterAccessibilityLabel = Strings.filterSearchButtonAccessibility,
 }: SearchFilterRowProps): React.ReactElement {
-  const hasValue = value.length > 0;
   const hasFilters = activeFilterCount > 0;
   const filterLabel = hasFilters
     ? Strings.filterAccessibilityWithActiveCount(filterAccessibilityLabel, activeFilterCount)
@@ -79,27 +67,19 @@ export function SearchFilterRow({
 
   return (
     <View className="mb-2 flex-row items-center gap-2 px-4">
-      <View className="flex-1">
-        <Input
-          value={value}
-          onChangeText={onChangeText}
-          placeholder={placeholder}
-          returnKeyType="search"
-          autoCorrect={false}
-          accessibilityLabel={placeholder}
-          style={hasValue ? SEARCH_INPUT_WITH_CLEAR_STYLE : SEARCH_INPUT_COMPACT_STYLE}
-        />
-        {hasValue ? (
-          <PressableFeedback
-            onPress={onClear}
-            hitSlop={8}
-            accessibilityLabel={clearAccessibilityLabel}
-            className="absolute top-1.5 right-2 h-7 w-7 items-center justify-center"
-          >
-            <MaterialCommunityIcons name="close-circle" size={16} color={CoreTokens.text2} />
-          </PressableFeedback>
-        ) : null}
-      </View>
+      <SearchField value={value} onChange={onChangeText} className="flex-1">
+        <SearchField.Group style={SEARCH_INPUT_COMPACT_STYLE}>
+          <SearchField.SearchIcon iconProps={{ size: Size.iconXs, color: CoreTokens.text2 }} />
+          <SearchField.Input
+            placeholder={placeholder}
+            returnKeyType="search"
+            autoCorrect={false}
+            accessibilityLabel={placeholder}
+            style={SEARCH_INPUT_COMPACT_STYLE}
+          />
+          <SearchField.ClearButton accessibilityLabel={clearAccessibilityLabel} />
+        </SearchField.Group>
+      </SearchField>
       <PressableFeedback
         onPress={onOpenFilter}
         hitSlop={8}
@@ -108,7 +88,7 @@ export function SearchFilterRow({
         className="bg-default/40 relative items-center justify-center"
         style={FILTER_BUTTON_COMPACT_STYLE}
       >
-        <MaterialCommunityIcons name="tune-variant" size={18} color={CoreTokens.text1} />
+        <MaterialCommunityIcons name="tune-variant" size={Size.iconSm} color={CoreTokens.text1} />
         {hasFilters ? (
           <View
             testID={filterBadgeTestID}
@@ -116,7 +96,7 @@ export function SearchFilterRow({
             style={FILTER_BADGE_STYLE}
           >
             <Text
-              className="font-inter text-accent-foreground text-[9px] font-bold"
+              className="font-inter text-accent-foreground font-bold"
               style={FILTER_BADGE_TEXT_STYLE}
             >
               {activeFilterCount}

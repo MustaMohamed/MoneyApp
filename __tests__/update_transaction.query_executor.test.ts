@@ -1,12 +1,12 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
 
-import { Currency, TransactionType } from '@/constants/enums';
-import type { Transaction } from '@/database/entities/transaction.entity';
+import { Currency } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
 import { insertTransactionRow, updateTransactionRow } from '@/database/transactions';
+import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { makeTestTransaction } from '@/test_helpers/transaction';
 
-const sqlite = SQLite as unknown as { __reset: () => void };
+const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -23,14 +23,10 @@ beforeAll(() => {
     )
     .run(NOW, NOW);
 
-  const mocked = (
-    SQLite as unknown as {
-      __fakeDb: { runAsync: jest.Mock };
-    }
-  ).__fakeDb;
+  const mocked = sqlite;
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    const result = realDb.prepare(sql).run(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    const result = realDb.prepare(sql).run(...params);
     return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
 });
@@ -42,36 +38,21 @@ beforeEach(() => {
 
 afterAll(() => {
   realDb.close();
-  sqlite.__reset();
+  sqlite.reset();
 });
 
-const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
-  typeof updateTransactionRow
->[0];
+const mockDb = sqlite.database;
 
-function makeTx(): Transaction {
-  return {
+function makeTx() {
+  return makeTestTransaction({
     id: 'tx-1',
-    type: TransactionType.Expense,
-    amount: 100,
-    currency: Currency.EGP,
-    egp_amount: 100,
-    exchange_rate: null,
-    to_amount: null,
-    minimum_payment_snapshot: null,
-    revolving_balance_delta: null,
     account_id: 'acc_asset',
-    to_account_id: null,
     category_id: 'cat_food',
-    budget_id: null,
-    note: null,
     transaction_date: '2026-05-01',
     transaction_time: '12:00:00',
-    commitment_payment_id: null,
-    installment_id: null,
     created_at: NOW,
     updated_at: NOW,
-  };
+  });
 }
 
 describe('updateTransactionRow', () => {

@@ -1,8 +1,6 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
 
 import { Currency, TransactionType } from '@/constants/enums';
-import type { Transaction } from '@/database/entities/transaction.entity';
 import { MIGRATIONS } from '@/database/migrations';
 import {
   deleteTransactionRow,
@@ -12,8 +10,10 @@ import {
   getTransactionsByAccount,
   insertTransactionRow,
 } from '@/database/transactions';
+import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
+import { makeTestTransaction } from '@/test_helpers/transaction';
 
-const sqlite = SQLite as unknown as { __reset: () => void };
+const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
 
 const NOW = '2026-05-01T12:00:00.000Z';
@@ -35,27 +35,19 @@ beforeAll(() => {
     )
     .run(NOW, NOW, NOW, NOW, NOW, NOW);
 
-  const mocked = (
-    SQLite as unknown as {
-      __fakeDb: {
-        runAsync: jest.Mock;
-        getAllAsync: jest.Mock;
-        getFirstAsync: jest.Mock;
-      };
-    }
-  ).__fakeDb;
+  const mocked = sqlite;
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    const result = realDb.prepare(sql).run(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    const result = realDb.prepare(sql).run(...params);
     return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).all(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    return realDb.prepare(sql).all(...params);
   });
   mocked.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).get(...(params as never[])) ?? null;
+    const params = getSQLiteParams(rest);
+    return realDb.prepare(sql).get(...params) ?? null;
   });
 });
 
@@ -67,37 +59,22 @@ beforeEach(() => {
 
 afterAll(() => {
   realDb.close();
-  sqlite.__reset();
+  sqlite.reset();
 });
 
-const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
-  typeof getTransactions
->[0];
+const mockDb = sqlite.database;
 
-function makeTx(overrides: Partial<Transaction> = {}): Transaction {
-  return {
+function makeTx(overrides: Parameters<typeof makeTestTransaction>[0] = {}) {
+  return makeTestTransaction({
     id: 'tx-1',
-    type: TransactionType.Expense,
-    amount: 100,
-    currency: Currency.EGP,
-    egp_amount: 100,
-    exchange_rate: null,
-    to_amount: null,
-    minimum_payment_snapshot: null,
     account_id: 'acc_asset',
-    to_account_id: null,
     category_id: 'cat_food',
-    budget_id: null,
-    note: null,
     transaction_date: DATE,
     transaction_time: TIME,
-    commitment_payment_id: null,
-    installment_id: null,
     created_at: NOW,
     updated_at: NOW,
     ...overrides,
-    revolving_balance_delta: overrides.revolving_balance_delta ?? null,
-  };
+  });
 }
 
 describe('transaction row primitives', () => {

@@ -5,7 +5,7 @@ import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { FilterAccordionShell, FilterOptionPillList } from '@/components/ui/filter_accordion';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/database/entities/account.entity';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import { ms } from '@/utils/responsive';
 
 interface Props {

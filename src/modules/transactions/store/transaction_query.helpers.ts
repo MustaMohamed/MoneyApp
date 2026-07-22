@@ -6,9 +6,10 @@ function normalizeIds(ids: string[] | undefined): string[] | null {
 }
 
 export function getTransactionQueryKey(filters: TransactionListFilters): string {
+  const normalizedSearch = filters.search?.trim() ?? '';
   return JSON.stringify({
     type: filters.type ?? null,
-    search: filters.search?.trim() || null,
+    search: normalizedSearch.length > 0 ? normalizedSearch : null,
     accountIds: normalizeIds(filters.accountIds),
     categoryIds: normalizeIds(filters.categoryIds),
     dateFrom: filters.dateFrom ?? null,

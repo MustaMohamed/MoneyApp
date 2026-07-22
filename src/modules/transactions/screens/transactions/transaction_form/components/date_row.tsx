@@ -6,6 +6,7 @@ import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Size, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { formatLongDate } from '@/utils/format_date';
 import { ms } from '@/utils/responsive';
@@ -41,10 +42,17 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
         }}
       >
         <View>
-          <Text className="font-inter text-muted text-[11px]">{Strings.addTxDateLabel}</Text>
-          <Text className="font-sora text-foreground text-[15px] font-semibold">{formatted}</Text>
+          <Text className="font-inter text-muted" style={{ fontSize: Type.micro }}>
+            {Strings.addTxDateLabel}
+          </Text>
+          <Text
+            className="font-sora text-foreground font-semibold"
+            style={{ fontSize: Type.bodyStrong }}
+          >
+            {formatted}
+          </Text>
         </View>
-        <MaterialCommunityIcons name="calendar" size={18} color={CoreTokens.text2} />
+        <MaterialCommunityIcons name="calendar" size={Size.iconSm} color={CoreTokens.text2} />
       </PressableFeedback>
 
       {picker.state.showAndroidPicker ? (

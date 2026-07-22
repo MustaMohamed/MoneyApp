@@ -1,9 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { AccountType, CategoryType, Currency, TransactionType } from '@/constants/enums';
-// AccountType.Cash does not exist in the enum; PhysicalWallet is a non-CC
-// asset type that satisfies all "non-credit-card" rules in the schema.
-import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
@@ -13,28 +10,19 @@ import { useAddTransaction } from '@/modules/transactions/screens/transactions/t
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
-import { useTransactionStore } from '@/store/transaction.store';
+import {
+  installMockAddTransaction,
+  makeTestAccount,
+  makeTestBudget,
+  makeTestCategory,
+  makeTestTransaction,
+} from '@/test_helpers/transaction';
 
-const mockAccountEGP: Account = {
+const mockAccountEGP = makeTestAccount({
   id: 'a1',
   name: 'Cash',
-  type: AccountType.PhysicalWallet,
-  currency: Currency.EGP,
-  opening_balance: 0,
   current_balance: 1000,
-  color: '#fff',
-  credit_limit: null,
-  revolving_balance: null,
-  minimum_payment: null,
-  statement_due_day: null,
-  interest_tracking: 0,
-  apr: null,
-  balance_review_required: 0,
-  is_archived: 0,
-  sort_order: 0,
-  created_at: 'now',
-  updated_at: 'now',
-};
+});
 const mockAccountUSD = { ...mockAccountEGP, id: 'a2', name: 'USD Bank', currency: Currency.USD };
 const mockAccountCC = {
   ...mockAccountEGP,
@@ -55,40 +43,27 @@ const mockAccountCCUSD = {
   currency: Currency.USD,
 };
 
-const mockCategoryExpense = {
+const mockCategoryExpense = makeTestCategory({
   id: 'c1',
   name: 'Food',
   type: CategoryType.Expense,
-  icon: 'food',
-  color: '#fff',
-  is_default: 0 as const,
-  sort_order: 0,
   budget_group: null,
-  created_at: 'now',
-  updated_at: 'now',
-};
-const mockCategoryIncome = {
+});
+const mockCategoryIncome = makeTestCategory({
   id: 'c2',
   name: 'Salary',
   type: CategoryType.Income,
   icon: 'cash',
-  color: '#fff',
-  is_default: 0 as const,
   sort_order: 1,
   budget_group: null,
-  created_at: 'now',
-  updated_at: 'now',
-};
-
-const mockBudget = (id: string, name: string): Budget => ({
-  id,
-  category_id: mockCategoryExpense.id,
-  name,
-  limit_amount: 500,
-  effective_from: '2026-07',
-  created_at: 'now',
-  updated_at: 'now',
 });
+
+const mockBudget = (id: string, name: string): Budget =>
+  makeTestBudget({
+    id,
+    category_id: mockCategoryExpense.id,
+    name,
+  });
 
 const originalLoadAccounts = useAccountStore.getState().loadAccounts;
 const originalLoadCategories = useCategoryStore.getState().loadCategories;
@@ -108,13 +83,11 @@ beforeEach(() => {
     categories: [mockCategoryExpense, mockCategoryIncome],
     hasLoaded: true,
     loadError: false,
-    loading: false,
-    error: undefined,
-  } as any);
+  });
   useCurrencyStore.setState({
     rate: 50,
     rate_updated_at: new Date().toISOString(),
-  } as any);
+  });
   useAddTransactionState.getState().reset();
   useAddTransactionStore.getState().reset();
 });
@@ -158,8 +131,7 @@ describe('useAddTransaction — named budget assignment', () => {
       resolveBudgets = resolve;
     });
     jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.setDate('2026-07-10'));
@@ -178,8 +150,7 @@ describe('useAddTransaction — named budget assignment', () => {
   it('blocks an immediate save until the selected category budget is resolved', async () => {
     const pendingBudgets = new Promise<Budget[]>(() => {});
     jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.selectAccount(mockAccountEGP));
@@ -194,12 +165,11 @@ describe('useAddTransaction — named budget assignment', () => {
   });
 
   it('blocks save and exposes retry when the budget lookup fails', async () => {
-    jest
+    const budgetLookupSpy = jest
       .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
       .mockRejectedValueOnce(new Error('database unavailable'))
       .mockResolvedValueOnce([]);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.setDate('2026-07-10'));
@@ -214,9 +184,7 @@ describe('useAddTransaction — named budget assignment', () => {
 
     act(() => result.current.retryBudgetLookup());
     expect(result.current.state.errors.budget).toBeUndefined();
-    await waitFor(() =>
-      expect(budgetRepository.getBudgetsForCategoryMonth).toHaveBeenCalledTimes(2),
-    );
+    await waitFor(() => expect(budgetLookupSpy).toHaveBeenCalledTimes(2));
   });
 
   it('does not write a completed budget lookup after unmount', async () => {
@@ -270,8 +238,7 @@ describe('useAddTransaction — named budget assignment', () => {
   it('auto-selects one matching budget and saves its id', async () => {
     const budget = mockBudget('b1', 'Monthly meals');
     jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([budget]);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.setDate('2026-07-10'));
@@ -288,8 +255,7 @@ describe('useAddTransaction — named budget assignment', () => {
     jest
       .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
       .mockResolvedValue([mockBudget('b1', 'Monthly meals'), mockBudget('b2', 'Dining out')]);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.setDate('2026-07-10'));
@@ -306,8 +272,7 @@ describe('useAddTransaction — named budget assignment', () => {
 
 describe('useAddTransaction — validation', () => {
   it('rejects a malformed exchange-rate prefix', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountUSD));
@@ -323,8 +288,7 @@ describe('useAddTransaction — validation', () => {
   it('uses expense categories and budgets for a Card credit', async () => {
     const budget = mockBudget('credit-budget', 'Refunded meal');
     jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([budget]);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Income));
     act(() => result.current.selectAccount(mockAccountCC));
@@ -348,8 +312,7 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('rejects an income category for a Card credit', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Income));
     act(() => result.current.selectAccount(mockAccountCC));
@@ -363,11 +326,10 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('keeps an over-credit draft open and shows the balance error', async () => {
-    const addTx = jest.fn().mockRejectedValue({
-      issues: [{ code: 'card_credit_exceeds_liability' }],
-    });
+    installMockAddTransaction(() =>
+      Promise.reject({ issues: [{ code: 'card_credit_exceeds_liability' }] }),
+    );
     const onClose = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(onClose));
     act(() => result.current.setType(TransactionType.Income));
     act(() => result.current.selectAccount(mockAccountCC));
@@ -385,9 +347,8 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('shows a save error and preserves entered values after save rejection', async () => {
-    const addTx = jest.fn().mockRejectedValue(new Error('write failed'));
+    installMockAddTransaction(() => Promise.reject(new Error('write failed')));
     const onClose = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(onClose));
 
     act(() => result.current.setAmountStr('5'));
@@ -405,10 +366,9 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('completes a committed save even when account revalidation fails', async () => {
-    const addTx = jest.fn().mockResolvedValue(undefined);
+    const addTx = installMockAddTransaction(() => Promise.resolve(makeTestTransaction()));
     const loadAccounts = jest.fn().mockRejectedValue(new Error('refresh failed'));
     const onSaved = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
     useAccountStore.setState({ loadAccounts });
     const { result } = renderHook(() => useAddTransaction(onSaved));
 
@@ -442,15 +402,14 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('submits once and completes once when save is pressed twice', async () => {
-    let resolveSave: () => void = () => {};
-    const pendingSave = new Promise<void>((resolve) => {
+    let resolveSave: (transaction: ReturnType<typeof makeTestTransaction>) => void = () => {};
+    const pendingSave = new Promise<ReturnType<typeof makeTestTransaction>>((resolve) => {
       resolveSave = resolve;
     });
-    const addTx = jest.fn().mockReturnValue(pendingSave);
+    const addTx = installMockAddTransaction(() => pendingSave);
     const onSaved = jest.fn(() => {
       expect(useAddTransactionState.getState().saving).toBe(true);
     });
-    useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(onSaved));
 
     act(() => result.current.setAmountStr('5'));
@@ -467,7 +426,7 @@ describe('useAddTransaction — validation', () => {
     await waitFor(() => expect(addTx).toHaveBeenCalledTimes(1));
 
     await act(async () => {
-      resolveSave();
+      resolveSave(makeTestTransaction());
       await Promise.all([firstSave!, secondSave!]);
     });
 
@@ -557,8 +516,7 @@ describe('useAddTransaction — validation', () => {
 
 describe('useAddTransaction — cross-currency math', () => {
   it('non-transfer USD source: egp_amount = amount × rate (rounded)', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setAmountStr('10'));
     act(() => result.current.selectAccount(mockAccountUSD));
@@ -577,8 +535,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('transfer EGP → USD: to_amount = amount / rate (rounded)', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.setAmountStr('100'));
@@ -598,8 +555,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('transfer USD → EGP: to_amount = egp_amount = amount × rate', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.setAmountStr('5'));
@@ -623,8 +579,7 @@ describe('useAddTransaction — cross-currency math', () => {
     useAccountStore.setState({
       accounts: [...useAccountStore.getState().accounts, mockAccountUSD2],
     });
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
     act(() => result.current.setAmountStr('5'));
@@ -644,8 +599,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('cc_payment: stores the amount in the EGP card destination currency', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
     act(() => result.current.setAmountStr('20'));
@@ -665,8 +619,7 @@ describe('useAddTransaction — cross-currency math', () => {
   });
 
   it('cc_payment: converts an EGP payment to the USD card destination currency', async () => {
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
     act(() => result.current.setAmountStr('500'));
@@ -698,9 +651,8 @@ describe('useAddTransaction — rounding', () => {
     useCurrencyStore.setState({
       rate: 30.005,
       rate_updated_at: null,
-    } as any);
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    });
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setAmountStr('1'));
     act(() => result.current.selectAccount(mockAccountUSD));
@@ -723,8 +675,7 @@ describe('useAddTransaction — auto-now time', () => {
   it('sets transaction_time from the submit clock and never exposes a setter', async () => {
     jest.useFakeTimers();
     jest.setSystemTime(new Date(2026, 6, 1, 9, 0, 0));
-    const addTx = jest.fn();
-    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const addTx = installMockAddTransaction();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     jest.setSystemTime(new Date(2026, 6, 1, 9, 5, 30));
     act(() => result.current.setAmountStr('5'));
@@ -737,6 +688,6 @@ describe('useAddTransaction — auto-now time', () => {
     const arg = addTx.mock.calls[0][0];
     expect(arg.transaction_time).toBe('09:05:30');
     // No setTime exposed
-    expect((result.current as any).setTime).toBeUndefined();
+    expect(result.current).not.toHaveProperty('setTime');
   });
 });

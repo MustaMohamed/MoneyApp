@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
@@ -55,18 +58,6 @@ jest.mock('@/components/ui/empty_state', () => ({
   },
 }));
 jest.mock('@/components/ui/swipeable_row', () => ({ closeAllRows: jest.fn() }));
-jest.mock('@/utils/use_confirm_action.hook', () => ({
-  useConfirmAction: () => ({
-    pendingPayload: null,
-    busy: false,
-    request: jest.fn(),
-    confirm: jest.fn(),
-    cancel: jest.fn(),
-  }),
-}));
-jest.mock('@/modules/transactions/store/transaction.store', () => ({
-  useTransactionStore: { getState: () => ({ deleteTransaction: jest.fn() }) },
-}));
 jest.mock('@/modules/transactions/screens/transactions/components/totals_strip', () => ({
   TotalsStrip: ({ isLoading }: { isLoading?: boolean }) => {
     const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -104,15 +95,6 @@ jest.mock('@/modules/transactions/screens/transactions/filter', () => ({
 jest.mock('@/modules/transactions/screens/transactions/filter/filter.state', () => ({
   useFilterState: { getState: () => ({ visible: false, close: jest.fn() }) },
 }));
-jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
-  () => ({
-    useTransactionFormState: {
-      getState: () => ({ openAdd: jest.fn() }),
-    },
-  }),
-);
-
 type TransactionsScreenHook = ReturnType<typeof useTransactions>;
 type TransactionsScreenState = TransactionsScreenHook['state'];
 
@@ -138,6 +120,9 @@ const baseTransactionsState: TransactionsScreenState = {
   totalsStatus: 'initialLoading',
   previousLabel: 'July 2026',
   listRef: { current: null },
+  pendingDeleteId: null,
+  deleteBusy: false,
+  deleteErrorMessage: undefined,
 };
 
 const mockedUseTransactions = jest.mocked(useTransactions);
@@ -160,6 +145,10 @@ function mockUseTransactions(state: Partial<TransactionsScreenState> = {}) {
     resetFilters: jest.fn(),
     goToDetail: jest.fn(),
     goToEdit: jest.fn(),
+    openAddTransaction: jest.fn(),
+    requestDelete: jest.fn(),
+    confirmDelete: jest.fn(),
+    cancelDelete: jest.fn(),
   };
   mockedUseTransactions.mockReturnValue(hook);
   return hook;
@@ -169,6 +158,17 @@ describe('TransactionsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseTransactions();
+  });
+
+  it('keeps form and delete orchestration out of the screen template', () => {
+    const template = readFileSync(
+      resolve(process.cwd(), 'src/modules/transactions/screens/transactions/index.tsx'),
+      'utf8',
+    );
+
+    expect(template).not.toContain('useConfirmAction');
+    expect(template).not.toContain('useTransactionFormState');
+    expect(template).not.toContain('useTransactionStore');
   });
 
   it('shows row skeletons instead of the list spinner during first load', () => {

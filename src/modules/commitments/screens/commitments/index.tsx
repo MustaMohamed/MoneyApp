@@ -90,7 +90,6 @@ export default function CommitmentsScreen() {
     deactivateCommitment,
     setStatusFilter,
     setSearchQuery,
-    clearSearch,
     openFilter,
     resetFilters,
   } = t;
@@ -164,14 +163,12 @@ export default function CommitmentsScreen() {
         <CommitmentSearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
-          onClear={clearSearch}
           onOpenFilter={openFilter}
           activeFilterCount={state.activeFilterCount}
         />
       </>
     ),
     [
-      clearSearch,
       openFilter,
       setSearchQuery,
       state.activeFilterCount,

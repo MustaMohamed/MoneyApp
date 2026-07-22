@@ -9,11 +9,10 @@ describe('confirmation action consumers', () => {
   it('shows transaction delete failures in the pending confirmation sheet', () => {
     const screen = source('src/modules/transactions/screens/transactions/index.tsx');
     const sheet = source(
-      'src/modules/transactions/screens/transactions/detail/components/delete_confirm_dialog.tsx',
+      'src/modules/transactions/screens/transactions/components/tx_delete_confirm_sheet.tsx',
     );
 
-    expect(screen).toContain('error: deleteError');
-    expect(screen).toContain('errorMessage={deleteError ? Strings.errDeleteFailed : undefined}');
+    expect(screen).toContain('errorMessage={state.deleteErrorMessage}');
     expect(sheet).toContain('errorMessage?: string');
     expect(sheet).toContain('errorMessage={errorMessage}');
   });

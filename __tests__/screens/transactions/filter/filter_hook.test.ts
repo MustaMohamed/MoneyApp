@@ -3,7 +3,7 @@ import { act, renderHook } from '@testing-library/react-native';
 import { Currency } from '@/constants/enums';
 import { useFilterSheet } from '@/modules/transactions/screens/transactions/filter/filter.hook';
 import {
-  EMPTY_FILTERS_V2,
+  EMPTY_FILTERS,
   useFilterStore,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
@@ -32,19 +32,19 @@ describe('useFilterSheet apply/reset behavior', () => {
   it('allows Reset then Apply to clear already-applied filters', () => {
     useTransactionsScreenStore
       .getState()
-      .setAppliedFilters({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] });
-    useFilterStore.getState().setDraft({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] });
+      .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['a1'] });
+    useFilterStore.getState().setDraft({ ...EMPTY_FILTERS, accountIds: ['a1'] });
 
     const { result } = renderHook(() => useFilterSheet());
     expect(result.current.state.canApply).toBe(false);
 
     act(() => result.current.resetDraft());
-    expect(result.current.state.draft).toEqual(EMPTY_FILTERS_V2);
+    expect(result.current.state.draft).toEqual(EMPTY_FILTERS);
     expect(result.current.state.draftCount).toBe(0);
     expect(result.current.state.canApply).toBe(true);
 
     act(() => result.current.applyDraft());
-    expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS_V2);
+    expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS);
   });
 
   it('tracks amount-currency changes only when an amount range is active', () => {
@@ -90,6 +90,6 @@ describe('useFilterSheet apply/reset behavior', () => {
     act(() => result.current.setAmountMaxText('-1'));
     act(() => result.current.applyDraft());
 
-    expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS_V2);
+    expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS);
   });
 });

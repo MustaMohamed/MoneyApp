@@ -2,7 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { createElement, StrictMode, type PropsWithChildren } from 'react';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
-import type { Account } from '@/database/entities/account.entity';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';

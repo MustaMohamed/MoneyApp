@@ -79,13 +79,11 @@ jest.mock('@/modules/commitments/screens/commitments/components/search_row', () 
     value,
     activeFilterCount,
     onChange,
-    onClear,
     onOpenFilter,
   }: {
     value: string;
     activeFilterCount: number;
     onChange: (value: string) => void;
-    onClear: () => void;
     onOpenFilter: () => void;
   }) => {
     const { Pressable, Text, View } =
@@ -97,7 +95,7 @@ jest.mock('@/modules/commitments/screens/commitments/components/search_row', () 
         <Pressable accessibilityRole="button" onPress={() => onChange('rent')}>
           <Text>change search</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={onClear}>
+        <Pressable accessibilityRole="button" onPress={() => onChange('')}>
           <Text>clear search</Text>
         </Pressable>
         <Pressable accessibilityRole="button" onPress={onOpenFilter}>
@@ -301,7 +299,7 @@ describe('CommitmentsScreen', () => {
     expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });
 
-  it('wires search, clear, and open filter actions from the search row', () => {
+  it('wires controlled search changes and open filter actions from the search row', () => {
     mockUseCommitments({ hasCommitments: true, isEmpty: true });
 
     const { getByText } = render(<CommitmentsScreen />);
@@ -311,7 +309,8 @@ describe('CommitmentsScreen', () => {
     fireEvent.press(getByText('open filters'));
 
     expect(setSearchQueryMock).toHaveBeenCalledWith('rent');
-    expect(clearSearchMock).toHaveBeenCalledTimes(1);
+    expect(setSearchQueryMock).toHaveBeenLastCalledWith('');
+    expect(clearSearchMock).not.toHaveBeenCalled();
     expect(openFilterMock).toHaveBeenCalledTimes(1);
   });
 

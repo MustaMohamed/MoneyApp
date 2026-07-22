@@ -2,12 +2,15 @@ import { render } from '@testing-library/react-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import type { SegmentedTabsProps } from '@/components/ui/tabs';
 import { TransactionType } from '@/constants/enums';
 
-const mockSegmentedTabs = jest.fn((props: object) => <View testID="segmented-tabs" {...props} />);
+const mockSegmentedTabs = jest.fn((props: SegmentedTabsProps<TransactionType>) => (
+  <View testID="segmented-tabs" {...props} />
+));
 
 jest.mock('@/components/ui/tabs', () => ({
-  SegmentedTabs: (props: object) => mockSegmentedTabs(props),
+  SegmentedTabs: (props: SegmentedTabsProps<TransactionType>) => mockSegmentedTabs(props),
 }));
 
 import { TypeTabs } from '@/modules/transactions/screens/transactions/transaction_form/components/type_tabs';
@@ -26,14 +29,8 @@ describe('TypeTabs', () => {
       />,
     );
 
-    const props = mockSegmentedTabs.mock.calls[0][0] as {
-      segments: Array<{ value: TransactionType; label: string }>;
-      onValueChange: (value: TransactionType) => void;
-      variant: string;
-      density: string;
-      listClassName: string;
-      accessibilityLabel: string;
-    };
+    const props = mockSegmentedTabs.mock.calls[0]?.[0];
+    expect(props).toBeDefined();
 
     expect(props.segments.map(({ value }) => value)).toEqual([
       TransactionType.Expense,

@@ -1,6 +1,6 @@
 import { Currency } from '@/constants/enums';
 import {
-  EMPTY_FILTERS_V2,
+  EMPTY_FILTERS,
   useFilterStore,
   type AdvancedFilters,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
@@ -11,7 +11,7 @@ beforeEach(() => {
 
 describe('useFilterStore initial state', () => {
   it('starts with the empty-filters draft', () => {
-    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS_V2);
+    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS);
   });
 });
 
@@ -29,9 +29,9 @@ describe('useFilterStore setDraft / resetDraft', () => {
   });
 
   it('resetDraft restores the empty-filters draft', () => {
-    useFilterStore.getState().setDraft({ ...EMPTY_FILTERS_V2, accountIds: ['a1'] });
+    useFilterStore.getState().setDraft({ ...EMPTY_FILTERS, accountIds: ['a1'] });
     useFilterStore.getState().resetDraft();
-    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS_V2);
+    expect(useFilterStore.getState().draft).toEqual(EMPTY_FILTERS);
   });
 });
 

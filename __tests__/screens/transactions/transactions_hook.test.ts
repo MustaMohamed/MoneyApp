@@ -1,30 +1,46 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { getPeriodTotals } from '@/modules/transactions/database/transactions';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useFilterState } from '@/modules/transactions/screens/transactions/filter/filter.state';
 import {
-  EMPTY_FILTERS_V2,
+  EMPTY_FILTERS,
   useFilterStore,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 import { useTransactions } from '@/modules/transactions/screens/transactions/transactions.hook';
 import { useTransactionsState } from '@/modules/transactions/screens/transactions/transactions.state';
 import { useTransactionsScreenStore } from '@/modules/transactions/screens/transactions/transactions.store';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 let mockFocusEffectCallback: (() => void | (() => void)) | undefined;
+const mockPush = jest.fn();
+const mockOpenAdd = jest.fn();
+const mockOpenEdit = jest.fn();
 const mockInteractionTasks: Array<{
   callback: () => void | Promise<void>;
   cancel: jest.Mock;
 }> = [];
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn() }),
+  useRouter: () => ({ push: mockPush }),
   useFocusEffect: jest.fn((callback: () => void | (() => void)) => {
     mockFocusEffectCallback = callback;
   }),
 }));
+
+jest.mock(
+  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state',
+  () => ({
+    useTransactionFormState: {
+      getState: () => ({ openAdd: mockOpenAdd, openEdit: mockOpenEdit }),
+    },
+  }),
+);
 
 jest.mock('@/utils/run_after_interactions', () => ({
   runAfterInteractions: jest.fn((callback: () => void | Promise<void>) => {
@@ -65,15 +81,12 @@ jest.mock('@/modules/transactions/store/transaction.store', () => ({
   useTransactionStore: jest.fn(),
 }));
 
-const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
-const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
-const { useTransactionStore } = jest.requireMock('@/modules/transactions/store/transaction.store');
-
 const EMPTY_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
 
 let setQuery: jest.Mock;
 let refresh: jest.Mock;
 let retry: jest.Mock;
+let deleteTransaction: jest.Mock;
 let transactionStoreState: Record<string, unknown>;
 
 const JULY_QUERY = {
@@ -121,18 +134,18 @@ const JUNE_TRANSACTION: Transaction = {
 };
 
 function setupStores(transactionOverrides: Record<string, unknown> = {}) {
-  const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
   setQuery = jest.fn().mockResolvedValue(undefined);
   refresh = jest.fn().mockResolvedValue(undefined);
   retry = jest.fn().mockResolvedValue(undefined);
+  deleteTransaction = jest.fn().mockResolvedValue(undefined);
   const loadAccountLookup = jest.fn().mockResolvedValue(undefined);
 
-  attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
+  attachMockSelectorStore(useAccountStore, () => ({
     accounts: [],
     accountLookup: [],
     loadAccountLookup,
   }));
-  attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
+  attachMockSelectorStore(useCategoryStore, () => ({
     categories: [],
   }));
   transactionStoreState = {
@@ -150,15 +163,19 @@ function setupStores(transactionOverrides: Record<string, unknown> = {}) {
     loadMore: jest.fn().mockResolvedValue(undefined),
     refresh,
     retry,
+    deleteTransaction,
     reset: jest.fn(),
     ...transactionOverrides,
   };
-  attachMockSelectorStore(useTransactionStore as jest.Mock, () => transactionStoreState);
+  attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
 }
 
 beforeEach(() => {
   mockFocusEffectCallback = undefined;
   mockInteractionTasks.length = 0;
+  mockPush.mockClear();
+  mockOpenAdd.mockClear();
+  mockOpenEdit.mockClear();
   setupStores();
   useTransactionsScreenStore.getState().reset();
   useTransactionsScreenStore.getState().setSelectedMonth('2026-07');
@@ -167,6 +184,32 @@ beforeEach(() => {
   useFilterStore.getState().resetDraft();
   jest.mocked(getPeriodTotals).mockReset();
   jest.mocked(getPeriodTotals).mockResolvedValue(EMPTY_TOTALS);
+});
+
+describe('useTransactions screen orchestration', () => {
+  beforeEach(() => {
+    jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
+  });
+
+  it('owns opening the global add transaction form', () => {
+    const { result } = renderHook(() => useTransactions());
+
+    act(() => result.current.openAddTransaction());
+
+    expect(mockOpenAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('owns the delete confirmation lifecycle', async () => {
+    const { result } = renderHook(() => useTransactions());
+
+    act(() => result.current.requestDelete('tx-1'));
+    expect(result.current.state.pendingDeleteId).toBe('tx-1');
+
+    await act(async () => result.current.confirmDelete());
+
+    expect(deleteTransaction).toHaveBeenCalledWith('tx-1');
+    expect(result.current.state.pendingDeleteId).toBeNull();
+  });
 });
 
 describe('useTransactions monthly totals', () => {
@@ -183,7 +226,7 @@ describe('useTransactions monthly totals', () => {
       useTransactionsScreenStore.getState().setSearchQuery('coffee');
       useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
       useTransactionsScreenStore.getState().setAppliedFilters({
-        ...EMPTY_FILTERS_V2,
+        ...EMPTY_FILTERS,
         accountIds: ['acc-1'],
         amountCurrency: Currency.EGP,
         amountMin: 100,
@@ -507,11 +550,14 @@ describe('useTransactions query ownership', () => {
       replacementRequestId: 2,
     };
     act(() => {
-      const requestId = useTransactionsState.getState().beginTotalsLoad('2026-07', true);
-      useTransactionsState.getState().resolveTotals('2026-07', requestId, {
+      const totalsStore = useTransactionsScreenStore.getState();
+      const requestId = totalsStore.beginTotalsRequest('2026-07', true);
+      useTransactionsState.getState().beginTotalsLoad(true);
+      totalsStore.resolveTotals('2026-07', requestId, {
         current: EMPTY_TOTALS,
         previous: EMPTY_TOTALS,
       });
+      useTransactionsState.getState().resolveTotalsLoad();
     });
 
     await act(async () => {
@@ -667,9 +713,10 @@ describe('useTransactions query ownership', () => {
     const { result, rerender } = renderHook((_props: Record<string, never>) => useTransactions(), {
       initialProps: {},
     });
-    result.current.state.listRef.current = {
-      getScrollResponder: () => ({ scrollTo }),
-    } as never;
+    Object.defineProperty(result.current.state.listRef, 'current', {
+      configurable: true,
+      value: { getScrollResponder: () => ({ scrollTo }) },
+    });
 
     act(() => {
       mockFocusEffectCallback?.();

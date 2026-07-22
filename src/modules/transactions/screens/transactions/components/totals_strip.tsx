@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Radius, Size, Type } from '@/constants/theme';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { PeriodTotals } from '@/modules/transactions/database/transactions';
 import { ms } from '@/utils/responsive';
@@ -43,14 +44,15 @@ const METRICS: Array<{
 export const TRANSACTIONS_TOTALS_CARD_CLASS_NAME =
   'bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-4 py-2';
 
-export const TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME =
-  'bg-default h-[3px] overflow-hidden rounded-[2px]';
+export const TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME = 'bg-default overflow-hidden';
 
 const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
-const TOTALS_VALUE_ROW_HEIGHT = ms(15);
-const TOTALS_PROGRESS_HEIGHT = ms(3);
-const TOTALS_DELTA_ROW_HEIGHT = ms(12);
-const TOTALS_PREVIOUS_LABEL_HEIGHT = ms(9);
+export const TRANSACTIONS_TOTALS_GEOMETRY = {
+  values: ms(18),
+  progress: Size.progressThin,
+  deltas: ms(14),
+  caption: ms(12),
+} as const;
 
 function currentValue(current: PeriodTotals, metric: TotalsMetric): number {
   if (metric === 'income') return current.incomeEgp;
@@ -89,8 +91,13 @@ function MetricValue({
 }): React.ReactElement {
   return (
     <Text
-      className={`font-sora text-[14px] font-bold ${className}`}
-      style={{ flex: 1, textAlign: align }}
+      className={`font-sora font-bold ${className}`}
+      style={{
+        flex: 1,
+        textAlign: align,
+        fontSize: Type.body,
+        lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.values,
+      }}
       numberOfLines={1}
       adjustsFontSizeToFit
       minimumFontScale={0.75}
@@ -122,7 +129,12 @@ function DeltaValue({
           alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
         }}
       >
-        <Text className="font-sora text-foreground/40 text-[11px] font-bold">—</Text>
+        <Text
+          className="font-sora text-foreground/40 font-bold"
+          style={{ fontSize: Type.micro, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas }}
+        >
+          —
+        </Text>
       </View>
     );
   }
@@ -131,10 +143,13 @@ function DeltaValue({
     <View style={{ flex: 1, flexDirection: 'row', justifyContent, alignItems: 'center' }}>
       <MaterialCommunityIcons
         name={directionIcon(delta.direction)}
-        size={12}
+        size={Size.iconMicro}
         color={polarityColor(delta.polarity)}
       />
-      <Text className={`font-sora ml-0.5 text-[11px] font-bold ${polarityClass(delta.polarity)}`}>
+      <Text
+        className={`font-sora ml-0.5 font-bold ${polarityClass(delta.polarity)}`}
+        style={{ fontSize: Type.micro, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas }}
+      >
         {delta.label}
       </Text>
     </View>
@@ -150,21 +165,21 @@ function TotalsSkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           gap: ms(8),
-          minHeight: TOTALS_VALUE_ROW_HEIGHT,
+          height: TRANSACTIONS_TOTALS_GEOMETRY.values,
         }}
       >
         {METRICS.map((metric) => (
           <Skeleton
             key={metric.key}
             className="rounded-md"
-            style={{ flex: 1, height: TOTALS_VALUE_ROW_HEIGHT }}
+            style={{ flex: 1, height: TRANSACTIONS_TOTALS_GEOMETRY.values }}
           />
         ))}
       </View>
       <Skeleton
         testID="transactions-totals-skeleton-progress"
-        className="w-full rounded-[2px]"
-        style={{ height: TOTALS_PROGRESS_HEIGHT }}
+        className="w-full"
+        style={{ height: TRANSACTIONS_TOTALS_GEOMETRY.progress, borderRadius: Radius.xs }}
       />
       <View
         testID="transactions-totals-skeleton-deltas-row"
@@ -172,7 +187,7 @@ function TotalsSkeleton(): React.ReactElement {
           flexDirection: 'row',
           alignItems: 'center',
           gap: ms(8),
-          minHeight: TOTALS_DELTA_ROW_HEIGHT,
+          height: TRANSACTIONS_TOTALS_GEOMETRY.deltas,
         }}
       >
         {METRICS.map((metric) => (
@@ -200,7 +215,7 @@ function TotalsSkeleton(): React.ReactElement {
       <Skeleton
         testID="transactions-totals-skeleton-previous-label"
         className="mx-auto w-24 rounded-md"
-        style={{ height: TOTALS_PREVIOUS_LABEL_HEIGHT }}
+        style={{ height: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
       />
     </>
   );
@@ -234,7 +249,7 @@ export function TotalsStrip({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              minHeight: TOTALS_VALUE_ROW_HEIGHT,
+              height: TRANSACTIONS_TOTALS_GEOMETRY.values,
             }}
             className="gap-2"
           >
@@ -252,7 +267,7 @@ export function TotalsStrip({
           <View
             testID="transactions-totals-progress"
             className={TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME}
-            style={{ height: TOTALS_PROGRESS_HEIGHT }}
+            style={{ height: TRANSACTIONS_TOTALS_GEOMETRY.progress, borderRadius: Radius.xs }}
             accessibilityRole="progressbar"
             accessibilityLabel={presentation.accessibilityLabel}
             accessibilityValue={{
@@ -263,13 +278,14 @@ export function TotalsStrip({
             }}
           >
             <View
-              className={`${presentation.railClassName} h-full rounded-[2px]`}
-              style={{ width: `${presentation.railPct}%` }}
+              className={`${presentation.railClassName} h-full`}
+              style={{ width: `${presentation.railPct}%`, borderRadius: Radius.xs }}
             />
             {presentation.hasOverflow ? (
               <View
                 testID="transactions-totals-overflow-marker"
-                className="bg-danger absolute top-0 right-0 h-full w-1 rounded-[2px]"
+                className="bg-danger absolute top-0 right-0 h-full w-1"
+                style={{ borderRadius: Radius.xs }}
               />
             ) : null}
           </View>
@@ -279,7 +295,7 @@ export function TotalsStrip({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              minHeight: TOTALS_DELTA_ROW_HEIGHT,
+              height: TRANSACTIONS_TOTALS_GEOMETRY.deltas,
             }}
             className="gap-2"
             accessibilityLabel={previousLabel ? Strings.totalsVsPrev(previousLabel) : undefined}
@@ -297,20 +313,24 @@ export function TotalsStrip({
           <View
             testID="transactions-totals-caption"
             style={{
-              minHeight: TOTALS_PREVIOUS_LABEL_HEIGHT,
+              height: TRANSACTIONS_TOTALS_GEOMETRY.caption,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
             }}
           >
             <Text
-              className={`font-inter text-[9px] font-bold ${presentation.captionClassName}`}
+              className={`font-inter font-bold ${presentation.captionClassName}`}
+              style={{ fontSize: Type.chip, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
               numberOfLines={1}
             >
               {presentation.caption}
             </Text>
             {deltas && previousLabel ? (
-              <Text className="font-inter text-foreground/45 text-[9px] font-bold uppercase">
+              <Text
+                className="font-inter text-foreground/45 font-bold uppercase"
+                style={{ fontSize: Type.chip, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
+              >
                 {Strings.totalsVsPrev(previousLabel)}
               </Text>
             ) : null}

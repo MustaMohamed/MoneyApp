@@ -2,8 +2,10 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 
-import { TotalsStrip } from '@/modules/transactions/screens/transactions/components/totals_strip';
-import { ms } from '@/utils/responsive';
+import {
+  TRANSACTIONS_TOTALS_GEOMETRY,
+  TotalsStrip,
+} from '@/modules/transactions/screens/transactions/components/totals_strip';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('heroui-native', () => {
@@ -73,17 +75,17 @@ describe('TotalsStrip skeleton loading', () => {
     );
 
     expect(getByTestId('transactions-totals-skeleton-values-row')).toHaveStyle({
-      minHeight: ms(15),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.values,
     });
     expect(getByTestId('transactions-totals-skeleton-progress')).toHaveStyle({
-      height: ms(3),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.progress,
     });
     expect(getByTestId('transactions-totals-skeleton-deltas-row')).toHaveStyle({
-      minHeight: ms(12),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.deltas,
     });
     expect(getAllByTestId('transactions-totals-skeleton-delta-pill')).toHaveLength(3);
     expect(getByTestId('transactions-totals-skeleton-previous-label')).toHaveStyle({
-      height: ms(9),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.caption,
     });
   });
 
@@ -100,16 +102,16 @@ describe('TotalsStrip skeleton loading', () => {
     );
 
     expect(loaded.getByTestId('transactions-totals-values-row')).toHaveStyle({
-      minHeight: ms(15),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.values,
     });
     expect(loaded.getByTestId('transactions-totals-progress')).toHaveStyle({
-      height: ms(3),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.progress,
     });
     expect(loaded.getByTestId('transactions-totals-comparison-row')).toHaveStyle({
-      minHeight: ms(12),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.deltas,
     });
     expect(loaded.getByTestId('transactions-totals-caption')).toHaveStyle({
-      minHeight: ms(9),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.caption,
     });
 
     expect(loading.getByTestId('transactions-totals-skeleton-values-row')).toBeTruthy();
@@ -124,7 +126,7 @@ describe('TotalsStrip skeleton loading', () => {
     );
 
     expect(getByTestId('transactions-totals-skeleton-previous-label')).toHaveStyle({
-      height: ms(9),
+      height: TRANSACTIONS_TOTALS_GEOMETRY.caption,
     });
   });
 });

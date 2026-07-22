@@ -1,28 +1,15 @@
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
 import { AccountType, Currency, TransactionType } from '@/constants/enums';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 jest.mock('@gorhom/bottom-sheet', () => {
-  const ReactLocal = require('react');
-  const { View: RNView } = require('react-native');
+  const ReactLocal = jest.requireActual<typeof import('react')>('react');
+  const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     BottomSheetScrollView: ({ children, ...props }: React.PropsWithChildren<object>) =>
       ReactLocal.createElement(RNView, props, children),
-  };
-});
-jest.mock('heroui-native', () => {
-  const ReactLocal = require('react');
-  const { Text: RNText, TextInput: RNTextInput, View: RNView } = require('react-native');
-  return {
-    cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(' '),
-    FieldError: ({ children, ...props }: React.PropsWithChildren<object>) =>
-      ReactLocal.createElement(RNText, props, children),
-    Input: (props: object) => ReactLocal.createElement(RNTextInput, props),
-    PressableFeedback: ({ children, ...props }: React.PropsWithChildren<object>) =>
-      ReactLocal.createElement(RNView, props, children),
-    Spinner: () => null,
   };
 });
 jest.mock('@/components/account_type_pill', () => ({ TYPE_OPTIONS: [] }));
@@ -33,8 +20,8 @@ jest.mock('@/components/ui/sheet', () => ({
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/amount_hero',
   () => {
-    const ReactLocal = require('react');
-    const { View: RNView } = require('react-native');
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return { AmountHero: () => ReactLocal.createElement(RNView, { testID: 'amount-hero' }) };
   },
 );
@@ -154,5 +141,26 @@ describe('TransactionFormBody geometry', () => {
       'numberOfLines',
       1,
     );
+  });
+
+  it('exposes stable picker-row semantics and delegates presses', () => {
+    const onOpenAccountPicker = jest.fn();
+    const onOpenCategoryPicker = jest.fn();
+    render(
+      <TransactionFormBody
+        {...baseProps}
+        onOpenAccountPicker={onOpenAccountPicker}
+        onOpenCategoryPicker={onOpenCategoryPicker}
+      />,
+    );
+
+    expect(screen.getByTestId('from-account-row')).toHaveProp('accessibilityRole', 'button');
+    expect(screen.getByTestId('from-account-row')).toHaveProp('accessibilityState', {
+      disabled: false,
+    });
+    fireEvent.press(screen.getByTestId('from-account-row'));
+    fireEvent.press(screen.getByTestId('category-row'));
+    expect(onOpenAccountPicker).toHaveBeenCalledTimes(1);
+    expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
   });
 });

@@ -4,7 +4,8 @@ import { PressableFeedback, Text } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
-import { Size } from '@/constants/theme';
+import { Strings } from '@/constants/strings';
+import { Radius, Size, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 export interface StackHeaderProps {
@@ -25,14 +26,16 @@ export function StackHeader({ title, onBack, right }: StackHeaderProps) {
       <PressableFeedback
         onPress={handleBack}
         hitSlop={8}
-        className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
+        className="bg-surface border-border h-9 w-9 items-center justify-center border"
+        style={{ borderRadius: Radius.sm }}
         accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityLabel={Strings.goBackAccessibility}
       >
         <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
       </PressableFeedback>
       <Text
-        className="font-sora text-foreground flex-1 text-center text-[18px] font-semibold"
+        className="font-sora text-foreground flex-1 text-center font-semibold"
+        style={{ fontSize: Type.title }}
         numberOfLines={1}
       >
         {title}

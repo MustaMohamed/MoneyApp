@@ -2,6 +2,7 @@ import { render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
 
 import { Strings } from '@/constants/strings';
+import { Radius, Size } from '@/constants/theme';
 import {
   TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME,
   TRANSACTIONS_TOTALS_CARD_CLASS_NAME,
@@ -33,8 +34,7 @@ describe('TotalsStrip', () => {
     expect(TRANSACTIONS_TOTALS_CARD_CLASS_NAME).toBe(
       'bg-surface border-border mx-4 mb-2 gap-1 rounded-2xl border px-4 py-2',
     );
-    expect(TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME).toContain('h-[3px]');
-    expect(TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME).not.toContain('h-[5px]');
+    expect(TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME).toBe('bg-default overflow-hidden');
   });
 
   it('shows the previous-period comparison caption', () => {
@@ -68,6 +68,10 @@ describe('TotalsStrip', () => {
       max: 100,
       now: 100,
       text: Strings.totalsExpenseShareA11y(150),
+    });
+    expect(getByTestId('transactions-totals-progress')).toHaveStyle({
+      height: Size.progressThin,
+      borderRadius: Radius.xs,
     });
   });
 

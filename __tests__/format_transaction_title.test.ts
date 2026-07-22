@@ -1,36 +1,23 @@
-import { Currency, TransactionType } from '@/constants/enums';
+import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/database/entities/account.entity';
-import type { Category } from '@/database/entities/category.entity';
-import type { Transaction } from '@/database/entities/transaction.entity';
+import { makeTestAccount, makeTestCategory, makeTestTransaction } from '@/test_helpers/transaction';
 import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
-const baseTx: Transaction = {
+const baseTx = makeTestTransaction({
   id: 'tx-1',
-  type: TransactionType.Expense,
   amount: 50,
-  currency: Currency.EGP,
   egp_amount: 50,
-  exchange_rate: null,
-  to_amount: null,
-  minimum_payment_snapshot: null,
-  revolving_balance_delta: null,
   account_id: 'acc-cib',
-  to_account_id: null,
   category_id: 'cat_food',
-  budget_id: null,
-  note: null,
   transaction_date: '2026-05-01',
   transaction_time: '14:30:00',
-  commitment_payment_id: null,
-  installment_id: null,
   created_at: '2026-05-01T14:30:00.000Z',
   updated_at: '2026-05-01T14:30:00.000Z',
-};
+});
 
-const accCib: Account = { id: 'acc-cib', name: 'CIB Savings' } as Account;
-const accVf: Account = { id: 'acc-vf', name: 'Vodafone Cash' } as Account;
-const catFood: Category = { id: 'cat_food', name: 'Food & Dining' } as Category;
+const accCib = makeTestAccount({ id: 'acc-cib', name: 'CIB Savings' });
+const accVf = makeTestAccount({ id: 'acc-vf', name: 'Vodafone Cash' });
+const catFood = makeTestCategory({ id: 'cat_food', name: 'Food & Dining' });
 
 describe('formatTransactionTitle — expense / income', () => {
   it('uses note when present', () => {
@@ -72,7 +59,7 @@ describe('formatTransactionTitle — expense / income', () => {
     const out = formatTransactionTitle({
       tx: { ...baseTx, type: TransactionType.Income, note: 'Monthly salary' },
       account: accCib,
-      category: { id: 'cat_salary', name: 'Salary' } as Category,
+      category: makeTestCategory({ id: 'cat_salary', name: 'Salary' }),
     });
     expect(out.title).toBe('Monthly salary');
     expect(out.subtitle).toBe('CIB Savings');
@@ -80,12 +67,12 @@ describe('formatTransactionTitle — expense / income', () => {
 });
 
 describe('formatTransactionTitle — transfer', () => {
-  const transferTx: Transaction = {
+  const transferTx = makeTestTransaction({
     ...baseTx,
     type: TransactionType.Transfer,
     category_id: null,
     to_account_id: 'acc-vf',
-  };
+  });
 
   it('uses note when present and shows source → target', () => {
     const out = formatTransactionTitle({
@@ -116,13 +103,13 @@ describe('formatTransactionTitle — transfer', () => {
 });
 
 describe('formatTransactionTitle — cc_payment', () => {
-  const ccPaymentTx: Transaction = {
+  const ccPaymentTx = makeTestTransaction({
     ...baseTx,
     type: TransactionType.CCPayment,
     category_id: null,
     to_account_id: 'acc-cc',
-  };
-  const accCc: Account = { id: 'acc-cc', name: 'CIB Credit' } as Account;
+  });
+  const accCc = makeTestAccount({ id: 'acc-cc', name: 'CIB Credit' });
 
   it('uses note when present', () => {
     const out = formatTransactionTitle({

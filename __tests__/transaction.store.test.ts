@@ -1,14 +1,17 @@
 import { Currency, TransactionType } from '@/constants/enums';
-import type { Transaction } from '@/database/entities/transaction.entity';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import type {
   ITransactionRepository,
   NewTransactionInput,
   TransactionListQuery,
   UpdateTransactionInput,
 } from '@/modules/transactions/repositories/transaction.repository';
+import {
+  createTransactionStore,
+  PAGE_SIZE,
+  useTransactionStore,
+} from '@/modules/transactions/store/transaction.store';
 import { getTransactionQueryKey } from '@/modules/transactions/store/transaction_query.helpers';
-import { useTransactionStore } from '@/store/transaction.store';
-import { createTransactionStore, PAGE_SIZE } from '@/store/transaction.store';
 
 const NOW = '2026-05-01T12:00:00.000Z';
 
@@ -48,7 +51,16 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function makeRepo(initial: Transaction[] = []): ITransactionRepository {
+interface MockTransactionRepository {
+  getAll: jest.MockedFunction<ITransactionRepository['getAll']>;
+  getByAccount: jest.MockedFunction<ITransactionRepository['getByAccount']>;
+  getById: jest.MockedFunction<ITransactionRepository['getById']>;
+  add: jest.MockedFunction<ITransactionRepository['add']>;
+  delete: jest.MockedFunction<ITransactionRepository['delete']>;
+  update: jest.MockedFunction<ITransactionRepository['update']>;
+}
+
+function makeRepo(initial: Transaction[] = []): MockTransactionRepository {
   let store = [...initial];
   return {
     getAll: jest.fn(async (query: TransactionListQuery = {}) => {
@@ -58,7 +70,7 @@ function makeRepo(initial: Transaction[] = []): ITransactionRepository {
       const offset = query.offset ?? 0;
       return rows.slice(offset, offset + limit);
     }),
-    getByAccount: jest.fn(async () => []),
+    getByAccount: jest.fn<Promise<Transaction[]>, [string, number?, number?]>(async () => []),
     getById: jest.fn(async (id) => store.find((t) => t.id === id) ?? null),
     add: jest.fn(async (data: NewTransactionInput) => {
       const tx = makeTransaction({ id: 'tx-new', ...data });
@@ -240,7 +252,7 @@ describe('transactionStore.loadMore', () => {
     const useStore = createTransactionStore(repo);
 
     await useStore.getState().setQuery({});
-    (repo.getAll as jest.Mock).mockClear();
+    repo.getAll.mockClear();
     await useStore.getState().loadMore();
     expect(repo.getAll).not.toHaveBeenCalled();
   });
@@ -291,7 +303,7 @@ describe('transactionStore.loadMore', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await useStore.getState().setQuery({});
-    (repo.getAll as jest.Mock).mockRejectedValueOnce(new Error('page failed'));
+    repo.getAll.mockRejectedValueOnce(new Error('page failed'));
 
     await expect(useStore.getState().loadMore()).resolves.toBeUndefined();
     expect(useStore.getState()).toMatchObject({
@@ -316,9 +328,9 @@ describe('transactionStore.loadMore', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await useStore.getState().setQuery({});
-    (repo.getAll as jest.Mock).mockRejectedValueOnce(new Error('refresh failed'));
+    repo.getAll.mockRejectedValueOnce(new Error('refresh failed'));
     await expect(useStore.getState().refresh()).rejects.toThrow('refresh failed');
-    (repo.getAll as jest.Mock).mockClear();
+    repo.getAll.mockClear();
 
     await useStore.getState().loadMore();
 
@@ -397,7 +409,7 @@ describe('transactionStore.refresh', () => {
     const useStore = createTransactionStore(repo);
 
     await useStore.getState().setQuery({ type: TransactionType.Income });
-    (repo.getAll as jest.Mock).mockClear();
+    repo.getAll.mockClear();
     await useStore.getState().refresh();
     expect(repo.getAll).toHaveBeenCalledWith({
       type: TransactionType.Income,
@@ -444,7 +456,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
   it('addTransaction swallows a refresh failure and still returns the new transaction', async () => {
     const repo = makeRepo();
     const tx = makeTransaction({ id: 'tx-new' });
-    repo.add = jest.fn(async () => tx);
+    repo.add = jest.fn<Promise<Transaction>, [NewTransactionInput]>(async () => tx);
     // First call (setQuery) succeeds; subsequent calls (post-add refresh) reject.
     let callCount = 0;
     repo.getAll = jest.fn(async () => {
@@ -505,7 +517,7 @@ describe('transactionStore.addTransaction / deleteTransaction', () => {
   it('deleteTransaction swallows a refresh failure and still resolves', async () => {
     const repo = makeRepo([makeTransaction({ id: 'tx-del2' })]);
     let callCount = 0;
-    const originalGetAll = repo.getAll as jest.Mock;
+    const originalGetAll = repo.getAll;
     repo.getAll = jest.fn(async (query: TransactionListQuery = {}) => {
       if (callCount++ === 0) return originalGetAll(query);
       throw new Error('refresh failed after delete');
@@ -547,7 +559,7 @@ describe('transactionStore.updateTransaction', () => {
     const tx = makeTransaction({ id: 'tx-upd2' });
     const repo = makeRepo([tx]);
     let callCount = 0;
-    const originalGetAll = repo.getAll as jest.Mock;
+    const originalGetAll = repo.getAll;
     repo.getAll = jest.fn(async (query: TransactionListQuery = {}) => {
       if (callCount++ === 0) return originalGetAll(query);
       throw new Error('refresh failed after update');

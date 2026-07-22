@@ -1,5 +1,21 @@
+import type {
+  BottomSheetBackdropProps,
+  BottomSheetFooterProps,
+  BottomSheetProps as GorhomBottomSheetProps,
+} from '@gorhom/bottom-sheet';
 import React from 'react';
-import { View, type ViewProps } from 'react-native';
+import {
+  FlatList,
+  Pressable,
+  ScrollView,
+  TextInput,
+  View,
+  type FlatListProps,
+  type ScrollViewProps,
+  type TextInputProps,
+  type ViewProps,
+} from 'react-native';
+import type { SharedValue } from 'react-native-reanimated';
 
 /**
  * Jest mock for @gorhom/bottom-sheet.
@@ -16,18 +32,19 @@ import { View, type ViewProps } from 'react-native';
  * - BottomSheetFooter: passthrough View wrapper for sticky footer content.
  */
 
-interface BottomSheetProps {
-  index: number;
-  snapPoints: string[];
-  enablePanDownToClose?: boolean;
-  onClose?: () => void;
-  backdropComponent?: React.ComponentType<any>;
-  handleComponent?: React.ComponentType<any>;
-  footerComponent?: React.ComponentType<any>;
-  children?: React.ReactNode;
-  style?: ViewProps['style'];
-  backgroundStyle?: ViewProps['style'];
-}
+type BottomSheetProps = Pick<
+  GorhomBottomSheetProps,
+  | 'index'
+  | 'snapPoints'
+  | 'enablePanDownToClose'
+  | 'onClose'
+  | 'backdropComponent'
+  | 'handleComponent'
+  | 'footerComponent'
+  | 'children'
+  | 'style'
+  | 'backgroundStyle'
+>;
 
 export interface BottomSheetMockRef {
   close: jest.Mock;
@@ -47,6 +64,22 @@ export const bottomSheetMockMethods: BottomSheetMockRef = {
   snapToIndex: jest.fn(),
 };
 
+function createSharedValue(value: number): SharedValue<number> {
+  const shared: SharedValue<number> = {
+    value,
+    get: () => shared.value,
+    set: (next) => {
+      shared.value = typeof next === 'function' ? next(shared.value) : next;
+    },
+    addListener: () => {},
+    removeListener: () => {},
+    modify: (modifier) => {
+      if (modifier) shared.value = modifier(shared.value);
+    },
+  };
+  return shared;
+}
+
 const BottomSheet = React.forwardRef<BottomSheetMockRef, BottomSheetProps>(
   (
     {
@@ -61,7 +94,8 @@ const BottomSheet = React.forwardRef<BottomSheetMockRef, BottomSheetProps>(
   ) => {
     // Track open/closed state internally.
     // `initialIndex` is the initial value only — imperative methods drive state.
-    const [isOpen, setIsOpen] = React.useState(initialIndex >= 0);
+    const numericInitialIndex = initialIndex ?? -1;
+    const [isOpen, setIsOpen] = React.useState(numericInitialIndex >= 0);
     // Stable ref so useImperativeHandle doesn't recreate functions every render.
     const setOpenRef = React.useRef(setIsOpen);
     setOpenRef.current = setIsOpen;
@@ -82,34 +116,32 @@ const BottomSheet = React.forwardRef<BottomSheetMockRef, BottomSheetProps>(
     );
 
     if (!isOpen) return null;
+    const animatedIndex = createSharedValue(numericInitialIndex);
+    const animatedPosition = createSharedValue(0);
     return (
       <View testID="bottom-sheet">
         {BackdropComponent && (
-          <BackdropComponent
-            animatedIndex={{ value: initialIndex }}
-            animatedPosition={{ value: 0 }}
-          />
+          <BackdropComponent animatedIndex={animatedIndex} animatedPosition={animatedPosition} />
         )}
-        {HandleComponent && <HandleComponent />}
+        {HandleComponent && (
+          <HandleComponent animatedIndex={animatedIndex} animatedPosition={animatedPosition} />
+        )}
         {children}
-        {FooterComponent && <FooterComponent animatedFooterPosition={{ value: 0 }} />}
+        {FooterComponent && <FooterComponent animatedFooterPosition={animatedPosition} />}
       </View>
     );
   },
 );
 BottomSheet.displayName = 'BottomSheet';
 
-interface BottomSheetBackdropProps {
-  animatedIndex: { value: number };
-  animatedPosition: { value: number };
+interface MockBottomSheetBackdropProps extends BottomSheetBackdropProps {
   appearsOnIndex?: number;
   disappearsOnIndex?: number;
   opacity?: number;
   onPress?: () => void;
 }
 
-function BottomSheetBackdrop({ onPress }: BottomSheetBackdropProps) {
-  const { Pressable } = require('react-native');
+function BottomSheetBackdrop({ onPress }: MockBottomSheetBackdropProps) {
   return (
     <Pressable
       testID="bottom-sheet-backdrop"
@@ -119,13 +151,11 @@ function BottomSheetBackdrop({ onPress }: BottomSheetBackdropProps) {
   );
 }
 
-function BottomSheetScrollView({ children, ...props }: any) {
-  const { ScrollView } = require('react-native');
+function BottomSheetScrollView({ children, ...props }: ScrollViewProps) {
   return <ScrollView {...props}>{children}</ScrollView>;
 }
 
-function BottomSheetFlatList(props: any) {
-  const { FlatList } = require('react-native');
+function BottomSheetFlatList<ItemT>(props: FlatListProps<ItemT>) {
   return <FlatList {...props} />;
 }
 
@@ -137,12 +167,11 @@ function BottomSheetView({ children, ...props }: ViewProps & { children?: React.
   );
 }
 
-function BottomSheetFooter({ children }: { children?: React.ReactNode }) {
+function BottomSheetFooter({ children }: BottomSheetFooterProps & { children?: React.ReactNode }) {
   return <View>{children}</View>;
 }
 
-function BottomSheetTextInput(props: any) {
-  const { TextInput } = require('react-native');
+function BottomSheetTextInput(props: TextInputProps) {
   return <TextInput {...props} />;
 }
 

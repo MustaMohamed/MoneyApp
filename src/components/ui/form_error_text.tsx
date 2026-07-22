@@ -7,6 +7,7 @@ export interface FormErrorTextProps {
   className?: string;
   numberOfLines?: TextProps['numberOfLines'];
   disableAnimation?: boolean;
+  style?: TextProps['style'];
 }
 
 export function FormErrorText({
@@ -14,12 +15,13 @@ export function FormErrorText({
   className,
   numberOfLines,
   disableAnimation = false,
+  style,
 }: FormErrorTextProps) {
   return (
     <FieldError
       isInvalid={!!message}
       className={className}
-      textProps={{ numberOfLines }}
+      textProps={{ numberOfLines, style }}
       animation={disableAnimation ? 'disabled' : undefined}
     >
       {message}
