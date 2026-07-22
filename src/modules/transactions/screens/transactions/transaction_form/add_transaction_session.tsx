@@ -9,19 +9,19 @@ import { TransactionFormDataError } from '@/modules/transactions/screens/transac
 import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-import type { RegisterTransactionFormV2Submit } from './transaction_form_v2.hook';
-import { useTransactionFormV2Prerequisites } from './transaction_form_v2_prerequisites.hook';
-import { useTransactionFormV2Session } from './transaction_form_v2_session.hook';
+import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
+import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
+import { useTransactionFormSession } from './transaction_form_session.hook';
 
-export interface AddTransactionV2SessionProps {
+export interface AddTransactionSessionProps {
   sessionId: number;
-  onRegisterSubmit: RegisterTransactionFormV2Submit;
+  onRegisterSubmit: RegisterTransactionFormSubmit;
   onSaved: (sessionId: number) => void;
   onRequestAccountCreation: (sessionId: number) => void;
 }
 
-export function AddTransactionV2Session(props: AddTransactionV2SessionProps): React.ReactElement {
-  const prerequisites = useTransactionFormV2Prerequisites(props.sessionId, 'add', null);
+export function AddTransactionSession(props: AddTransactionSessionProps): React.ReactElement {
+  const prerequisites = useTransactionFormPrerequisites(props.sessionId, 'add', null);
   const hook = useAddTransaction(() => props.onSaved(props.sessionId), prerequisites);
   const footerVisible = !hook.state.formDataReady || hook.state.hasAccounts;
   const footerDisabled =
@@ -31,7 +31,7 @@ export function AddTransactionV2Session(props: AddTransactionV2SessionProps): Re
     hook.state.budgetsLoading ||
     Boolean(hook.state.budgetLookupError);
 
-  useTransactionFormV2Session({
+  useTransactionFormSession({
     sessionId: props.sessionId,
     submit: hook.handleSave,
     footer: {

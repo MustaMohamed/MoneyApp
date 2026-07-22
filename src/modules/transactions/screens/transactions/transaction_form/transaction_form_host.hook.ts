@@ -9,23 +9,23 @@ import { useEditTransactionState } from '@/modules/transactions/screens/transact
 
 import {
   isTransactionFormSessionSaving,
-  useTransactionFormV2State,
-} from './transaction_form_v2.state';
+  useTransactionFormState,
+} from './transaction_form_host.state';
 
-export type TransactionFormV2Submit = () => Promise<void>;
-export type RegisterTransactionFormV2Submit = (
+export type TransactionFormSubmit = () => Promise<void>;
+export type RegisterTransactionFormSubmit = (
   sessionId: number,
-  submit: TransactionFormV2Submit | undefined,
+  submit: TransactionFormSubmit | undefined,
 ) => void;
 
 interface RegisteredSubmit {
   sessionId: number;
-  submit: TransactionFormV2Submit;
+  submit: TransactionFormSubmit;
 }
 
-export function useTransactionFormV2Host() {
+export function useTransactionFormHost() {
   const router = useRouter();
-  const { mode, phase, sessionId, editingTx, footer } = useTransactionFormV2State(
+  const { mode, phase, sessionId, editingTx, footer } = useTransactionFormState(
     useShallow((state) => ({
       mode: state.mode,
       phase: state.phase,
@@ -39,10 +39,10 @@ export function useTransactionFormV2Host() {
   const addSaving = useAddTransactionState((state) => state.saving);
   const editSaving = useEditTransactionState((state) => state.saving);
   const activeFormSaving = mode === 'add' ? addSaving : mode === 'edit' ? editSaving : false;
-  const requestClose = useTransactionFormV2State.getState().requestClose;
-  const completeSave = useTransactionFormV2State.getState().completeSave;
-  const completeClose = useTransactionFormV2State.getState().completeClose;
-  const requestAccountCreation = useTransactionFormV2State.getState().requestAccountCreation;
+  const requestClose = useTransactionFormState.getState().requestClose;
+  const completeSave = useTransactionFormState.getState().completeSave;
+  const completeClose = useTransactionFormState.getState().completeClose;
+  const requestAccountCreation = useTransactionFormState.getState().requestAccountCreation;
 
   useEffect(() => {
     if (phase === 'closed') {
@@ -61,13 +61,13 @@ export function useTransactionFormV2Host() {
     return () => subscription.remove();
   }, [phase, requestClose]);
 
-  const registerSubmit = useCallback<RegisterTransactionFormV2Submit>((ownerSessionId, submit) => {
-    if (ownerSessionId !== useTransactionFormV2State.getState().sessionId) return;
+  const registerSubmit = useCallback<RegisterTransactionFormSubmit>((ownerSessionId, submit) => {
+    if (ownerSessionId !== useTransactionFormState.getState().sessionId) return;
     submitRef.current = submit ? { sessionId: ownerSessionId, submit } : undefined;
   }, []);
 
   const handleSave = useCallback(() => {
-    const current = useTransactionFormV2State.getState();
+    const current = useTransactionFormState.getState();
     const registered = submitRef.current;
     if (
       current.phase !== 'open' ||
@@ -115,7 +115,7 @@ export function useTransactionFormV2Host() {
 
   const handleSaved = useCallback(
     (ownerSessionId: number) => {
-      const current = useTransactionFormV2State.getState();
+      const current = useTransactionFormState.getState();
       if (!completeSave(ownerSessionId)) return;
       current.onEditSaved?.();
     },

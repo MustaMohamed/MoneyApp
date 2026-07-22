@@ -20,12 +20,12 @@ jest.mock('@/store/sheet_visibility.store', () => ({
 }));
 
 import { useTabsLayout } from '@/modules/navigation/screens/tabs/tabs.hook';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 describe('useTabsLayout', () => {
   beforeEach(() => {
     mockPush.mockClear();
-    useTransactionFormV2State.getState().reset();
+    useTransactionFormState.getState().reset();
   });
 
   it('opens Add globally without navigating away from the current tab', () => {
@@ -34,7 +34,7 @@ describe('useTabsLayout', () => {
     act(() => result.current.handleAddTransaction());
 
     expect(mockPush).not.toHaveBeenCalled();
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'add',
       phase: 'open',
     });

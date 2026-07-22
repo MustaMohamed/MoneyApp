@@ -27,9 +27,9 @@ jest.mock(
 );
 
 jest.mock(
-  '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2_prerequisites.hook',
+  '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.hook',
   () => ({
-    useTransactionFormV2Prerequisites: (
+    useTransactionFormPrerequisites: (
       sessionId: number,
       mode: string,
       transaction: Transaction | null,
@@ -101,9 +101,9 @@ jest.mock(
   }),
 );
 
-import { AddTransactionV2Session } from '@/modules/transactions/screens/transactions/transaction_form_v2/add_transaction_session';
-import { EditTransactionV2Session } from '@/modules/transactions/screens/transactions/transaction_form_v2/edit_transaction_session';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
+import { AddTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction_session';
+import { EditTransactionSession } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction_session';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 const tx: Transaction = {
   id: 'tx-1',
@@ -194,7 +194,7 @@ function createHookState(overrides: Record<string, unknown> = {}) {
 function renderAdd(overrides: Record<string, unknown> = {}) {
   mockUseAddTransaction.mockReturnValue(createHookState(overrides));
   return render(
-    <AddTransactionV2Session
+    <AddTransactionSession
       sessionId={1}
       onRegisterSubmit={jest.fn()}
       onSaved={jest.fn()}
@@ -203,11 +203,11 @@ function renderAdd(overrides: Record<string, unknown> = {}) {
   );
 }
 
-describe('Transaction Form V2 sessions', () => {
+describe('transaction form sessions', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    useTransactionFormV2State.getState().reset();
-    useTransactionFormV2State.getState().openAdd();
+    useTransactionFormState.getState().reset();
+    useTransactionFormState.getState().openAdd();
   });
 
   it('keeps stable loading and error bodies with a retry action', () => {
@@ -244,7 +244,7 @@ describe('Transaction Form V2 sessions', () => {
     const screen = renderAdd({ formDataReady: true, hasAccounts: false });
 
     await waitFor(() =>
-      expect(useTransactionFormV2State.getState().footer).toMatchObject({
+      expect(useTransactionFormState.getState().footer).toMatchObject({
         visible: false,
         disabled: true,
       }),
@@ -254,12 +254,12 @@ describe('Transaction Form V2 sessions', () => {
   });
 
   it('registers Edit submit and publishes saving footer state', async () => {
-    useTransactionFormV2State.getState().openEdit(tx);
+    useTransactionFormState.getState().openEdit(tx);
     mockUseEditTransaction.mockReturnValue(createHookState({ formDataReady: true, saving: true }));
     const registerSubmit = jest.fn();
 
     const screen = render(
-      <EditTransactionV2Session
+      <EditTransactionSession
         sessionId={2}
         tx={tx}
         onRegisterSubmit={registerSubmit}
@@ -271,7 +271,7 @@ describe('Transaction Form V2 sessions', () => {
     expect(screen.getByTestId('transaction-form-body')).toBeTruthy();
     await waitFor(() => {
       expect(registerSubmit).toHaveBeenCalledWith(2, expect.any(Function));
-      expect(useTransactionFormV2State.getState().footer).toMatchObject({
+      expect(useTransactionFormState.getState().footer).toMatchObject({
         visible: true,
         saving: true,
         disabled: true,
@@ -286,11 +286,11 @@ describe('Transaction Form V2 sessions', () => {
   });
 
   it('mounts Edit pickers closed so the first press can open an existing HeroUI sheet', () => {
-    useTransactionFormV2State.getState().openEdit(tx);
+    useTransactionFormState.getState().openEdit(tx);
     mockUseEditTransaction.mockReturnValue(createHookState({ formDataReady: true }));
 
     const screen = render(
-      <EditTransactionV2Session
+      <EditTransactionSession
         sessionId={2}
         tx={tx}
         onRegisterSubmit={jest.fn()}

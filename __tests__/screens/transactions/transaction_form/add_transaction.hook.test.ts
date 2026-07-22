@@ -12,7 +12,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/store/transaction.store';
 
 const mockAccountEGP: Account = {
@@ -95,7 +95,7 @@ const originalLoadCategories = useCategoryStore.getState().loadCategories;
 
 beforeEach(() => {
   jest.restoreAllMocks();
-  useTransactionFormV2State.getState().reset();
+  useTransactionFormState.getState().reset();
   useAccountStore.setState({ loadAccounts: originalLoadAccounts });
   useCategoryStore.setState({ loadCategories: originalLoadCategories });
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
@@ -424,7 +424,7 @@ describe('useAddTransaction — validation', () => {
   });
 
   it('preserves entered values while the sheet close animation is running', async () => {
-    useTransactionFormV2State.getState().openAdd();
+    useTransactionFormState.getState().openAdd();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.selectAccount(mockAccountEGP));
@@ -433,7 +433,7 @@ describe('useAddTransaction — validation', () => {
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
     act(() => {
-      useTransactionFormV2State.getState().requestClose();
+      useTransactionFormState.getState().requestClose();
     });
 
     expect(result.current.state.accountId).toBe(mockAccountEGP.id);

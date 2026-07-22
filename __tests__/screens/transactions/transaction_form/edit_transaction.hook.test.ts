@@ -10,7 +10,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
 import { useEditTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.store';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/store/transaction.store';
 
 const mockTxExpense: Transaction = {
@@ -117,7 +117,7 @@ const originalLoadAccountLookup = useAccountStore.getState().loadAccountLookup;
 
 beforeEach(() => {
   jest.restoreAllMocks();
-  useTransactionFormV2State.getState().reset();
+  useTransactionFormState.getState().reset();
   useAccountStore.setState({ loadAccountLookup: originalLoadAccountLookup });
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
@@ -305,13 +305,13 @@ describe('useEditTransaction', () => {
   });
 
   it('preserves edits while the sheet close animation is running', async () => {
-    useTransactionFormV2State.getState().openEdit(mockTxExpense);
+    useTransactionFormState.getState().openEdit(mockTxExpense);
     const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     act(() => result.current.setNote('keep through close'));
 
     act(() => {
-      useTransactionFormV2State.getState().requestClose();
+      useTransactionFormState.getState().requestClose();
     });
 
     expect(result.current.state.note).toBe('keep through close');

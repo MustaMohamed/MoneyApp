@@ -6,8 +6,8 @@ import type { Account } from '@/database/entities/account.entity';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
-import { useTransactionFormV2Prerequisites } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2_prerequisites.hook';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
+import { useTransactionFormPrerequisites } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.hook';
 
 const account: Account = {
   id: 'account-1',
@@ -59,10 +59,10 @@ function StrictModeWrapper({ children }: PropsWithChildren): React.ReactElement 
   return createElement(StrictMode, null, children);
 }
 
-describe('useTransactionFormV2Prerequisites', () => {
+describe('useTransactionFormPrerequisites', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
-    useTransactionFormV2State.getState().reset();
+    useTransactionFormState.getState().reset();
     useAccountStore.setState({ accounts: [], accountLookup: [], hasLoaded: false });
     useCategoryStore.setState({ categories: [], hasLoaded: false, loadError: false });
   });
@@ -76,10 +76,10 @@ describe('useTransactionFormV2Prerequisites', () => {
     });
     useAccountStore.setState({ loadAccounts });
     useCategoryStore.setState({ loadCategories });
-    useTransactionFormV2State.getState().openAdd();
-    const sessionId = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
 
-    const { result } = renderHook(() => useTransactionFormV2Prerequisites(sessionId, 'add', null), {
+    const { result } = renderHook(() => useTransactionFormPrerequisites(sessionId, 'add', null), {
       wrapper: StrictModeWrapper,
     });
 
@@ -100,10 +100,10 @@ describe('useTransactionFormV2Prerequisites', () => {
     });
     useAccountStore.setState({ loadAccounts });
     useCategoryStore.setState({ loadCategories });
-    useTransactionFormV2State.getState().openAdd();
-    const sessionId = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
 
-    const { result } = renderHook(() => useTransactionFormV2Prerequisites(sessionId, 'add', null));
+    const { result } = renderHook(() => useTransactionFormPrerequisites(sessionId, 'add', null));
 
     await waitFor(() => expect(result.current.status).toBe('error'));
     act(() => result.current.retry());
@@ -124,17 +124,17 @@ describe('useTransactionFormV2Prerequisites', () => {
     );
     useAccountStore.setState({ loadAccounts });
     useCategoryStore.setState({ hasLoaded: true });
-    useTransactionFormV2State.getState().openAdd();
-    const firstSessionId = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openAdd();
+    const firstSessionId = useTransactionFormState.getState().sessionId;
 
-    renderHook(() => useTransactionFormV2Prerequisites(firstSessionId, 'add', null));
+    renderHook(() => useTransactionFormPrerequisites(firstSessionId, 'add', null));
     await waitFor(() => expect(loadAccounts).toHaveBeenCalledTimes(1));
 
-    act(() => useTransactionFormV2State.getState().openEdit(createTransaction()));
+    act(() => useTransactionFormState.getState().openEdit(createTransaction()));
     act(resolveAccounts);
     await act(async () => Promise.resolve());
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'edit',
       prerequisiteStatus: 'idle',
     });
@@ -148,10 +148,10 @@ describe('useTransactionFormV2Prerequisites', () => {
     useAccountStore.setState({ hasLoaded: true, loadAccountLookup });
     useCategoryStore.setState({ hasLoaded: true });
     const tx = createTransaction(archived.id);
-    useTransactionFormV2State.getState().openEdit(tx);
-    const sessionId = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openEdit(tx);
+    const sessionId = useTransactionFormState.getState().sessionId;
 
-    const { result } = renderHook(() => useTransactionFormV2Prerequisites(sessionId, 'edit', tx));
+    const { result } = renderHook(() => useTransactionFormPrerequisites(sessionId, 'edit', tx));
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(loadAccountLookup).toHaveBeenCalledWith([archived.id]);

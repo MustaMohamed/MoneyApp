@@ -5,7 +5,7 @@ import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 
-import { useTransactionFormV2State } from '../transaction_form_v2/transaction_form_v2.state';
+import { useTransactionFormState } from '../transaction_form/transaction_form_host.state';
 import { ActionRow } from './components/action_row';
 import { DeleteConfirmDialog } from './components/delete_confirm_dialog';
 import { DetailHero } from './components/detail_hero';
@@ -25,7 +25,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
 
   function handleEdit() {
     if (state.tx && state.isEditable) {
-      useTransactionFormV2State.getState().openEdit(state.tx, reload);
+      useTransactionFormState.getState().openEdit(state.tx, reload);
     }
   }
 

@@ -18,7 +18,7 @@ const PRESENTATION_FILES = [
   'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_bucket_row.tsx',
   'src/modules/budget/screens/budget/components/fifty_thirty_twenty/rule_contributor_row.tsx',
   'src/modules/budget/screens/budget/components/fifty_thirty_twenty/not_grouped_row.tsx',
-  'src/modules/transactions/screens/transactions/transaction_form_v2/index.tsx',
+  'src/modules/transactions/screens/transactions/transaction_form/index.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx',
   'src/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet.tsx',
 ];
@@ -52,7 +52,7 @@ describe('budget categories presentation architecture', () => {
       /useState|useSharedValue/,
     );
     expect(
-      source('src/modules/transactions/screens/transactions/transaction_form_v2/index.tsx'),
+      source('src/modules/transactions/screens/transactions/transaction_form/index.tsx'),
     ).not.toMatch(/useState|useSharedValue/);
     expect(
       source('src/modules/budget/screens/budget/category_detail/category_detail.hook.ts'),
@@ -83,10 +83,10 @@ describe('budget categories presentation architecture', () => {
 
   it('keeps lifecycle and save orchestration out of state stores', () => {
     const transactionHostState = source(
-      'src/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state.ts',
+      'src/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state.ts',
     );
     const transactionHostHook = source(
-      'src/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.hook.ts',
+      'src/modules/transactions/screens/transactions/transaction_form/transaction_form_host.hook.ts',
     );
     const addTransactionState = source(
       'src/modules/transactions/screens/transactions/transaction_form/add_transaction.state.ts',

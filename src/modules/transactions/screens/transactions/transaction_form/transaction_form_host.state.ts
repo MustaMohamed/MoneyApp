@@ -9,64 +9,64 @@ import { useEditTransactionStore } from '@/modules/transactions/screens/transact
 import type { TransactionFormPrerequisiteStatus } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-import { areTransactionFormV2PrerequisitesReady } from './transaction_form_v2_prerequisites.helpers';
+import type { TransactionFormMode } from './transaction_form.types';
+import { areTransactionFormPrerequisitesReady } from './transaction_form_prerequisites.helpers';
 
-export type TransactionFormV2Mode = 'add' | 'edit';
-export type TransactionFormV2Phase = 'closed' | 'open' | 'closing';
-export type TransactionFormV2PostCloseAction = 'addAccount';
+export type TransactionFormPhase = 'closed' | 'open' | 'closing';
+export type TransactionFormPostCloseAction = 'addAccount';
 
-export interface TransactionFormV2FooterState {
+export interface TransactionFormFooterState {
   visible: boolean;
   saving: boolean;
   disabled: boolean;
 }
 
-interface TransactionFormV2StateShape {
-  mode: TransactionFormV2Mode | null;
-  phase: TransactionFormV2Phase;
+interface TransactionFormStateShape {
+  mode: TransactionFormMode | null;
+  phase: TransactionFormPhase;
   sessionId: number;
   editingTx: Transaction | null;
   onEditSaved: (() => void) | undefined;
-  postCloseAction: TransactionFormV2PostCloseAction | undefined;
+  postCloseAction: TransactionFormPostCloseAction | undefined;
   prerequisiteStatus: TransactionFormPrerequisiteStatus;
   prerequisiteGeneration: number;
-  footer: TransactionFormV2FooterState;
+  footer: TransactionFormFooterState;
 }
 
-type TransactionFormV2State = TransactionFormV2StateShape & {
+type TransactionFormState = TransactionFormStateShape & {
   openAdd: () => void;
   openEdit: (tx: Transaction, onSaved?: () => void) => void;
   requestClose: () => boolean;
   requestAccountCreation: (sessionId: number) => boolean;
   completeSave: (sessionId: number) => boolean;
-  completeClose: (sessionId: number) => TransactionFormV2PostCloseAction | undefined;
+  completeClose: (sessionId: number) => TransactionFormPostCloseAction | undefined;
   beginPrerequisites: (sessionId: number, generation: number) => boolean;
   completePrerequisites: (sessionId: number, generation: number) => void;
   failPrerequisites: (sessionId: number, generation: number) => void;
   retryPrerequisites: () => void;
-  publishFooter: (sessionId: number, footer: TransactionFormV2FooterState) => void;
+  publishFooter: (sessionId: number, footer: TransactionFormFooterState) => void;
   reset: () => void;
 };
 
-const CLOSED_FOOTER: TransactionFormV2FooterState = {
+const CLOSED_FOOTER: TransactionFormFooterState = {
   visible: false,
   saving: false,
   disabled: true,
 };
 
-const LOADING_FOOTER: TransactionFormV2FooterState = {
+const LOADING_FOOTER: TransactionFormFooterState = {
   visible: true,
   saving: false,
   disabled: true,
 };
 
-const READY_FOOTER: TransactionFormV2FooterState = {
+const READY_FOOTER: TransactionFormFooterState = {
   visible: true,
   saving: false,
   disabled: false,
 };
 
-const INITIAL_STATE: TransactionFormV2StateShape = {
+const INITIAL_STATE: TransactionFormStateShape = {
   mode: null,
   phase: 'closed',
   sessionId: 0,
@@ -85,8 +85,8 @@ function resetFormSessions(): void {
   useEditTransactionState.getState().reset();
 }
 
-function getOpeningState(mode: TransactionFormV2Mode, editingTx: Transaction | null) {
-  const ready = areTransactionFormV2PrerequisitesReady(mode, editingTx);
+function getOpeningState(mode: TransactionFormMode, editingTx: Transaction | null) {
+  const ready = areTransactionFormPrerequisitesReady(mode, editingTx);
   const hasAccounts = useAccountStore.getState().accounts.length > 0;
   return {
     prerequisiteStatus: ready ? ('ready' as const) : ('idle' as const),
@@ -98,14 +98,14 @@ function getOpeningState(mode: TransactionFormV2Mode, editingTx: Transaction | n
   };
 }
 
-export function isTransactionFormSessionSaving(mode: TransactionFormV2Mode | null): boolean {
+export function isTransactionFormSessionSaving(mode: TransactionFormMode | null): boolean {
   if (mode === 'add') return useAddTransactionState.getState().saving;
   if (mode === 'edit') return useEditTransactionState.getState().saving;
   return false;
 }
 
 function isOwnedRequest(
-  state: TransactionFormV2StateShape,
+  state: TransactionFormStateShape,
   sessionId: number,
   generation: number,
 ): boolean {
@@ -116,8 +116,8 @@ function isOwnedRequest(
   );
 }
 
-export const useTransactionFormV2State = createMoneyAppSelectors(
-  create<TransactionFormV2State>((set, get) => ({
+export const useTransactionFormState = createMoneyAppSelectors(
+  create<TransactionFormState>((set, get) => ({
     ...INITIAL_STATE,
 
     openAdd: () => {

@@ -8,20 +8,20 @@ import { TransactionFormLoading } from '@/modules/transactions/screens/transacti
 import { useEditTransaction } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-import type { RegisterTransactionFormV2Submit } from './transaction_form_v2.hook';
-import { useTransactionFormV2Prerequisites } from './transaction_form_v2_prerequisites.hook';
-import { useTransactionFormV2Session } from './transaction_form_v2_session.hook';
+import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
+import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
+import { useTransactionFormSession } from './transaction_form_session.hook';
 
-export interface EditTransactionV2SessionProps {
+export interface EditTransactionSessionProps {
   sessionId: number;
   tx: Transaction;
-  onRegisterSubmit: RegisterTransactionFormV2Submit;
+  onRegisterSubmit: RegisterTransactionFormSubmit;
   onClose: () => void;
   onSaved: (sessionId: number) => void;
 }
 
-export function EditTransactionV2Session(props: EditTransactionV2SessionProps): React.ReactElement {
-  const prerequisites = useTransactionFormV2Prerequisites(props.sessionId, 'edit', props.tx);
+export function EditTransactionSession(props: EditTransactionSessionProps): React.ReactElement {
+  const prerequisites = useTransactionFormPrerequisites(props.sessionId, 'edit', props.tx);
   const hook = useEditTransaction(
     props.tx,
     props.onClose,
@@ -34,7 +34,7 @@ export function EditTransactionV2Session(props: EditTransactionV2SessionProps): 
     hook.state.budgetsLoading ||
     Boolean(hook.state.budgetLookupError);
 
-  useTransactionFormV2Session({
+  useTransactionFormSession({
     sessionId: props.sessionId,
     submit: hook.handleSave,
     footer: {

@@ -5,7 +5,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useEditTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.state';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 function createTransaction(id = 'tx-1'): Transaction {
   return {
@@ -55,17 +55,17 @@ function createAccount(id = 'account-1'): Account {
   };
 }
 
-describe('useTransactionFormV2State', () => {
+describe('useTransactionFormState', () => {
   beforeEach(() => {
-    useTransactionFormV2State.getState().reset();
+    useTransactionFormState.getState().reset();
     useAccountStore.setState({ accounts: [], accountLookup: [], hasLoaded: false });
     useCategoryStore.setState({ categories: [], hasLoaded: false });
   });
 
   it('opens Add atomically without a preparing phase', () => {
-    useTransactionFormV2State.getState().openAdd();
+    useTransactionFormState.getState().openAdd();
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'add',
       phase: 'open',
       sessionId: 1,
@@ -82,9 +82,9 @@ describe('useTransactionFormV2State', () => {
   it('opens Edit with its target in the same state update', () => {
     const tx = createTransaction();
 
-    useTransactionFormV2State.getState().openEdit(tx);
+    useTransactionFormState.getState().openEdit(tx);
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'edit',
       phase: 'open',
       sessionId: 1,
@@ -96,9 +96,9 @@ describe('useTransactionFormV2State', () => {
     useAccountStore.setState({ hasLoaded: true });
     useCategoryStore.setState({ hasLoaded: true });
 
-    useTransactionFormV2State.getState().openAdd();
+    useTransactionFormState.getState().openAdd();
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       prerequisiteStatus: 'ready',
       footer: {
         visible: false,
@@ -115,9 +115,9 @@ describe('useTransactionFormV2State', () => {
     });
     useCategoryStore.setState({ hasLoaded: true });
 
-    useTransactionFormV2State.getState().openEdit(createTransaction());
+    useTransactionFormState.getState().openEdit(createTransaction());
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       prerequisiteStatus: 'ready',
       footer: {
         visible: true,
@@ -131,9 +131,9 @@ describe('useTransactionFormV2State', () => {
     useAccountStore.setState({ hasLoaded: true });
     useCategoryStore.setState({ hasLoaded: true });
 
-    useTransactionFormV2State.getState().openEdit(createTransaction());
+    useTransactionFormState.getState().openEdit(createTransaction());
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       prerequisiteStatus: 'idle',
       footer: {
         visible: true,
@@ -144,16 +144,16 @@ describe('useTransactionFormV2State', () => {
   });
 
   it('blocks dismissal while the matching session is saving', () => {
-    useTransactionFormV2State.getState().openAdd();
-    const sessionId = useTransactionFormV2State.getState().sessionId;
-    useTransactionFormV2State.getState().publishFooter(sessionId, {
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
+    useTransactionFormState.getState().publishFooter(sessionId, {
       visible: true,
       saving: true,
       disabled: true,
     });
 
-    expect(useTransactionFormV2State.getState().requestClose()).toBe(false);
-    expect(useTransactionFormV2State.getState().phase).toBe('open');
+    expect(useTransactionFormState.getState().requestClose()).toBe(false);
+    expect(useTransactionFormState.getState().phase).toBe('open');
   });
 
   it.each([
@@ -161,28 +161,28 @@ describe('useTransactionFormV2State', () => {
     ['edit', () => useEditTransactionState.setState({ saving: true })],
   ] as const)('blocks %s dismissal before footer publication catches up', (mode, beginSaving) => {
     if (mode === 'add') {
-      useTransactionFormV2State.getState().openAdd();
+      useTransactionFormState.getState().openAdd();
     } else {
-      useTransactionFormV2State.getState().openEdit(createTransaction());
+      useTransactionFormState.getState().openEdit(createTransaction());
     }
     beginSaving();
 
-    expect(useTransactionFormV2State.getState().footer.saving).toBe(false);
-    expect(useTransactionFormV2State.getState().requestClose()).toBe(false);
-    expect(useTransactionFormV2State.getState().phase).toBe('open');
+    expect(useTransactionFormState.getState().footer.saving).toBe(false);
+    expect(useTransactionFormState.getState().requestClose()).toBe(false);
+    expect(useTransactionFormState.getState().phase).toBe('open');
   });
 
   it('retains closing content and ignores stale close completion', () => {
-    useTransactionFormV2State.getState().openEdit(createTransaction());
-    const editSession = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openEdit(createTransaction());
+    const editSession = useTransactionFormState.getState().sessionId;
 
-    expect(useTransactionFormV2State.getState().requestClose()).toBe(true);
-    expect(useTransactionFormV2State.getState().phase).toBe('closing');
+    expect(useTransactionFormState.getState().requestClose()).toBe(true);
+    expect(useTransactionFormState.getState().phase).toBe('closing');
 
-    useTransactionFormV2State.getState().openAdd();
-    useTransactionFormV2State.getState().completeClose(editSession);
+    useTransactionFormState.getState().openAdd();
+    useTransactionFormState.getState().completeClose(editSession);
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'add',
       phase: 'open',
       sessionId: editSession + 1,
@@ -190,77 +190,77 @@ describe('useTransactionFormV2State', () => {
   });
 
   it('ignores save completion from a replaced session', () => {
-    useTransactionFormV2State.getState().openAdd();
-    const addSession = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openAdd();
+    const addSession = useTransactionFormState.getState().sessionId;
 
-    useTransactionFormV2State.getState().openEdit(createTransaction('tx-2'));
-    const editSession = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openEdit(createTransaction('tx-2'));
+    const editSession = useTransactionFormState.getState().sessionId;
 
-    expect(useTransactionFormV2State.getState().completeSave(addSession)).toBe(false);
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState().completeSave(addSession)).toBe(false);
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'edit',
       phase: 'open',
       sessionId: editSession,
     });
-    expect(useTransactionFormV2State.getState().completeSave(editSession)).toBe(true);
-    expect(useTransactionFormV2State.getState().phase).toBe('closing');
+    expect(useTransactionFormState.getState().completeSave(editSession)).toBe(true);
+    expect(useTransactionFormState.getState().phase).toBe('closing');
   });
 
   it('returns account navigation only after the matching close settles', () => {
-    useTransactionFormV2State.getState().openAdd();
-    const sessionId = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
 
-    expect(useTransactionFormV2State.getState().requestAccountCreation(sessionId)).toBe(true);
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState().requestAccountCreation(sessionId)).toBe(true);
+    expect(useTransactionFormState.getState()).toMatchObject({
       phase: 'closing',
       postCloseAction: 'addAccount',
     });
 
-    expect(useTransactionFormV2State.getState().completeClose(sessionId)).toBe('addAccount');
-    expect(useTransactionFormV2State.getState().phase).toBe('closed');
+    expect(useTransactionFormState.getState().completeClose(sessionId)).toBe('addAccount');
+    expect(useTransactionFormState.getState().phase).toBe('closed');
   });
 
   it('starts one prerequisite request for each session generation', () => {
-    useTransactionFormV2State.getState().openAdd();
-    const { sessionId, prerequisiteGeneration } = useTransactionFormV2State.getState();
+    useTransactionFormState.getState().openAdd();
+    const { sessionId, prerequisiteGeneration } = useTransactionFormState.getState();
 
     expect(
-      useTransactionFormV2State.getState().beginPrerequisites(sessionId, prerequisiteGeneration),
+      useTransactionFormState.getState().beginPrerequisites(sessionId, prerequisiteGeneration),
     ).toBe(true);
     expect(
-      useTransactionFormV2State.getState().beginPrerequisites(sessionId, prerequisiteGeneration),
+      useTransactionFormState.getState().beginPrerequisites(sessionId, prerequisiteGeneration),
     ).toBe(false);
 
-    useTransactionFormV2State.getState().completePrerequisites(sessionId, prerequisiteGeneration);
-    expect(useTransactionFormV2State.getState().prerequisiteStatus).toBe('ready');
+    useTransactionFormState.getState().completePrerequisites(sessionId, prerequisiteGeneration);
+    expect(useTransactionFormState.getState().prerequisiteStatus).toBe('ready');
   });
 
   it('ignores stale prerequisite completion after retry or session replacement', () => {
-    useTransactionFormV2State.getState().openAdd();
-    const first = useTransactionFormV2State.getState();
-    useTransactionFormV2State
+    useTransactionFormState.getState().openAdd();
+    const first = useTransactionFormState.getState();
+    useTransactionFormState
       .getState()
       .beginPrerequisites(first.sessionId, first.prerequisiteGeneration);
-    useTransactionFormV2State
+    useTransactionFormState
       .getState()
       .failPrerequisites(first.sessionId, first.prerequisiteGeneration);
-    useTransactionFormV2State.getState().retryPrerequisites();
+    useTransactionFormState.getState().retryPrerequisites();
 
-    useTransactionFormV2State
+    useTransactionFormState
       .getState()
       .completePrerequisites(first.sessionId, first.prerequisiteGeneration);
-    expect(useTransactionFormV2State.getState().prerequisiteStatus).toBe('idle');
+    expect(useTransactionFormState.getState().prerequisiteStatus).toBe('idle');
 
-    const retry = useTransactionFormV2State.getState();
-    useTransactionFormV2State
+    const retry = useTransactionFormState.getState();
+    useTransactionFormState
       .getState()
       .beginPrerequisites(retry.sessionId, retry.prerequisiteGeneration);
-    useTransactionFormV2State.getState().openEdit(createTransaction('tx-2'));
-    useTransactionFormV2State
+    useTransactionFormState.getState().openEdit(createTransaction('tx-2'));
+    useTransactionFormState
       .getState()
       .failPrerequisites(retry.sessionId, retry.prerequisiteGeneration);
 
-    expect(useTransactionFormV2State.getState()).toMatchObject({
+    expect(useTransactionFormState.getState()).toMatchObject({
       mode: 'edit',
       prerequisiteStatus: 'idle',
     });

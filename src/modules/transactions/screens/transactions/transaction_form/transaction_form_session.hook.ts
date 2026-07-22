@@ -1,28 +1,28 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 import type {
-  RegisterTransactionFormV2Submit,
-  TransactionFormV2Submit,
-} from './transaction_form_v2.hook';
+  RegisterTransactionFormSubmit,
+  TransactionFormSubmit,
+} from './transaction_form_host.hook';
 import {
-  type TransactionFormV2FooterState,
-  useTransactionFormV2State,
-} from './transaction_form_v2.state';
+  type TransactionFormFooterState,
+  useTransactionFormState,
+} from './transaction_form_host.state';
 
-interface TransactionFormV2SessionOptions {
+interface TransactionFormSessionOptions {
   sessionId: number;
-  submit: TransactionFormV2Submit;
-  footer: TransactionFormV2FooterState;
-  onRegisterSubmit: RegisterTransactionFormV2Submit;
+  submit: TransactionFormSubmit;
+  footer: TransactionFormFooterState;
+  onRegisterSubmit: RegisterTransactionFormSubmit;
 }
 
-export function useTransactionFormV2Session({
+export function useTransactionFormSession({
   sessionId,
   submit,
   footer,
   onRegisterSubmit,
-}: TransactionFormV2SessionOptions): void {
-  const publishFooter = useTransactionFormV2State.getState().publishFooter;
+}: TransactionFormSessionOptions): void {
+  const publishFooter = useTransactionFormState.getState().publishFooter;
   const submitRef = useRef(submit);
   submitRef.current = submit;
   const handleSubmit = useCallback(() => submitRef.current(), []);

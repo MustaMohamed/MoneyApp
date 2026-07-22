@@ -6,11 +6,12 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { ensureTransactionFormPrerequisite } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.helpers';
 
-import { type TransactionFormV2Mode, useTransactionFormV2State } from './transaction_form_v2.state';
-import { getMissingTransactionFormAccountIds } from './transaction_form_v2_prerequisites.helpers';
+import type { TransactionFormMode } from './transaction_form.types';
+import { useTransactionFormState } from './transaction_form_host.state';
+import { getMissingTransactionFormAccountIds } from './transaction_form_prerequisites.helpers';
 
 async function loadPrerequisites(
-  mode: TransactionFormV2Mode,
+  mode: TransactionFormMode,
   editingTx: Transaction | null,
 ): Promise<void> {
   await Promise.all([
@@ -33,21 +34,21 @@ async function loadPrerequisites(
   );
 }
 
-export function useTransactionFormV2Prerequisites(
+export function useTransactionFormPrerequisites(
   sessionId: number,
-  mode: TransactionFormV2Mode,
+  mode: TransactionFormMode,
   editingTx: Transaction | null,
 ) {
-  const { prerequisiteGeneration, prerequisiteStatus } = useTransactionFormV2State(
+  const { prerequisiteGeneration, prerequisiteStatus } = useTransactionFormState(
     useShallow((state) => ({
       prerequisiteGeneration: state.prerequisiteGeneration,
       prerequisiteStatus: state.prerequisiteStatus,
     })),
   );
-  const beginPrerequisites = useTransactionFormV2State.getState().beginPrerequisites;
-  const completePrerequisites = useTransactionFormV2State.getState().completePrerequisites;
-  const failPrerequisites = useTransactionFormV2State.getState().failPrerequisites;
-  const retryPrerequisites = useTransactionFormV2State.getState().retryPrerequisites;
+  const beginPrerequisites = useTransactionFormState.getState().beginPrerequisites;
+  const completePrerequisites = useTransactionFormState.getState().completePrerequisites;
+  const failPrerequisites = useTransactionFormState.getState().failPrerequisites;
+  const retryPrerequisites = useTransactionFormState.getState().retryPrerequisites;
 
   useEffect(() => {
     if (!beginPrerequisites(sessionId, prerequisiteGeneration)) return;

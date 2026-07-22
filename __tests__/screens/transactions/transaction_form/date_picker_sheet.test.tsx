@@ -57,7 +57,7 @@ import {
   DATE_ROW_HEIGHT,
   DateRow,
 } from '@/modules/transactions/screens/transactions/transaction_form/components/date_row';
-import { useTransactionFormV2State } from '@/modules/transactions/screens/transactions/transaction_form_v2/transaction_form_v2.state';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 
 describe('transaction date picker', () => {
   const originalPlatform = Platform.OS;
@@ -68,7 +68,7 @@ describe('transaction date picker', () => {
 
   beforeEach(() => {
     mockDateTimePicker.mockClear();
-    useTransactionFormV2State.getState().reset();
+    useTransactionFormState.getState().reset();
     useDatePickerSheetState.getState().reset();
   });
 
@@ -200,14 +200,14 @@ describe('transaction date picker', () => {
 
   it('keeps a newly opened Add form closed when an older picker session was retained', () => {
     setPlatform('ios');
-    useTransactionFormV2State.getState().openAdd();
-    const oldSessionId = useTransactionFormV2State.getState().sessionId;
+    useTransactionFormState.getState().openAdd();
+    const oldSessionId = useTransactionFormState.getState().sessionId;
     const oldOwnerId = `add:${oldSessionId}`;
     useDatePickerSheetState.getState().openIos(oldOwnerId, '2026-07-10');
-    useTransactionFormV2State.getState().requestClose();
-    useTransactionFormV2State.getState().completeClose(oldSessionId);
-    useTransactionFormV2State.getState().openAdd();
-    const newOwnerId = `add:${useTransactionFormV2State.getState().sessionId}`;
+    useTransactionFormState.getState().requestClose();
+    useTransactionFormState.getState().completeClose(oldSessionId);
+    useTransactionFormState.getState().openAdd();
+    const newOwnerId = `add:${useTransactionFormState.getState().sessionId}`;
 
     const screen = render(<DateRow ownerId={newOwnerId} value="2026-07-20" onChange={jest.fn()} />);
 
