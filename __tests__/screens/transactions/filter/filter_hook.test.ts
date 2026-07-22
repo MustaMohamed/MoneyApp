@@ -56,4 +56,40 @@ describe('useFilterSheet apply/reset behavior', () => {
     act(() => result.current.setAmountMin(100));
     expect(result.current.state.canApply).toBe(true);
   });
+
+  it('preserves malformed amount text, shows an error, and blocks Apply', () => {
+    const { result } = renderHook(() => useFilterSheet());
+
+    act(() => result.current.setAmountMinText('50abc'));
+
+    expect(result.current.state.amountMinText).toBe('50abc');
+    expect(result.current.state.amountMinError).toBeTruthy();
+    expect(result.current.state.canApply).toBe(false);
+    expect(result.current.state.canReset).toBe(true);
+  });
+
+  it('blocks a reversed range until the bounds are ordered', () => {
+    const { result } = renderHook(() => useFilterSheet());
+
+    act(() => {
+      result.current.setAmountMinText('500');
+      result.current.setAmountMaxText('100');
+    });
+
+    expect(result.current.state.amountRangeError).toBeTruthy();
+    expect(result.current.state.canApply).toBe(false);
+
+    act(() => result.current.setAmountMaxText('600'));
+    expect(result.current.state.amountRangeError).toBeUndefined();
+    expect(result.current.state.canApply).toBe(true);
+  });
+
+  it('does not publish an invalid draft when apply is invoked defensively', () => {
+    const { result } = renderHook(() => useFilterSheet());
+
+    act(() => result.current.setAmountMaxText('-1'));
+    act(() => result.current.applyDraft());
+
+    expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS_V2);
+  });
 });

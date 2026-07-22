@@ -2,22 +2,17 @@ import { create } from 'zustand';
 
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { completePickerClose, updateClosingPickers } from './picker_close_lifecycle.helpers';
+
+export type AddTransactionPicker = 'account' | 'toAccount' | 'category' | 'budget';
+
 interface AddTransactionStateShape {
-  visible: boolean;
-  sessionId: number;
-  /**
-   * Cross-tab open request. The global FAB (mounted outside the transactions
-   * tab) sets this and navigates here; the transactions screen consumes it once
-   * mounted, flipping `visible` false→true so the sheet actually presents. (The
-   * FAB can't set `visible` directly: the sheet would mount already-true and
-   * skip the open animation while still hiding the FAB.)
-   */
-  pendingOpen: boolean;
   saving: boolean;
   showAccountPicker: boolean;
   showToPicker: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
+  closingPickers: AddTransactionPicker[];
   budgetsLoading: boolean;
   budgetLookupVersion: number;
   budgetLookupError: string | undefined;
@@ -26,16 +21,12 @@ interface AddTransactionStateShape {
 }
 
 type AddTransactionState = AddTransactionStateShape & {
-  open: () => void;
-  requestOpen: () => void;
-  requestClose: () => boolean;
-  completeSave: () => void;
-  completeClose: () => void;
   setSaving: (v: boolean) => void;
   setShowAccountPicker: (v: boolean) => void;
   setShowToPicker: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
+  completePickerClose: (picker: AddTransactionPicker) => void;
   setBudgetsLoading: (v: boolean) => void;
   setBudgetLookupError: (message: string | undefined) => void;
   setErrorMessage: (message: string | undefined) => void;
@@ -46,14 +37,12 @@ type AddTransactionState = AddTransactionStateShape & {
 };
 
 const INITIAL_STATE: AddTransactionStateShape = {
-  visible: false,
-  sessionId: 0,
-  pendingOpen: false,
   saving: false,
   showAccountPicker: false,
   showToPicker: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
+  closingPickers: [],
   budgetsLoading: false,
   budgetLookupVersion: 0,
   budgetLookupError: undefined,
@@ -62,43 +51,53 @@ const INITIAL_STATE: AddTransactionStateShape = {
 };
 
 export const useAddTransactionState = createMoneyAppSelectors(
-  create<AddTransactionState>((set, get) => ({
+  create<AddTransactionState>((set) => ({
     ...INITIAL_STATE,
-
-    open: () =>
-      set((state) => ({
-        ...INITIAL_STATE,
-        visible: true,
-        sessionId: state.sessionId + 1,
-      })),
-    requestOpen: () => set({ pendingOpen: true }),
-    requestClose: () => {
-      if (get().saving) return false;
-      set({
-        visible: false,
-        pendingOpen: false,
-        showAccountPicker: false,
-        showToPicker: false,
-        showCategoryPicker: false,
-        showBudgetPicker: false,
-      });
-      return true;
-    },
-    completeSave: () =>
-      set({
-        visible: false,
-        pendingOpen: false,
-        showAccountPicker: false,
-        showToPicker: false,
-        showCategoryPicker: false,
-        showBudgetPicker: false,
-      }),
-    completeClose: () => set(INITIAL_STATE),
     setSaving: (v) => set({ saving: v }),
-    setShowAccountPicker: (v) => set({ showAccountPicker: v }),
-    setShowToPicker: (v) => set({ showToPicker: v }),
-    setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
-    setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
+    setShowAccountPicker: (v) =>
+      set((state) => ({
+        showAccountPicker: v,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'account',
+          state.showAccountPicker,
+          v,
+        ),
+      })),
+    setShowToPicker: (v) =>
+      set((state) => ({
+        showToPicker: v,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'toAccount',
+          state.showToPicker,
+          v,
+        ),
+      })),
+    setShowCategoryPicker: (v) =>
+      set((state) => ({
+        showCategoryPicker: v,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'category',
+          state.showCategoryPicker,
+          v,
+        ),
+      })),
+    setShowBudgetPicker: (v) =>
+      set((state) => ({
+        showBudgetPicker: v,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'budget',
+          state.showBudgetPicker,
+          v,
+        ),
+      })),
+    completePickerClose: (picker) =>
+      set((state) => ({
+        closingPickers: completePickerClose(state.closingPickers, picker),
+      })),
     setBudgetsLoading: (v) => set({ budgetsLoading: v }),
     setBudgetLookupError: (budgetLookupError) => set({ budgetLookupError }),
     setErrorMessage: (errorMessage) => set({ errorMessage }),
@@ -107,7 +106,8 @@ export const useAddTransactionState = createMoneyAppSelectors(
         budgetLookupVersion: state.budgetLookupVersion + 1,
         budgetLookupError: undefined,
       })),
-    clearError: () => set({ errorMessage: undefined }),
+    clearError: () =>
+      set((state) => (state.errorMessage === undefined ? state : { errorMessage: undefined })),
     setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),
   })),

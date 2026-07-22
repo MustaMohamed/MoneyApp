@@ -1,109 +1,60 @@
-import { router } from 'expo-router';
-import { useCallback, useLayoutEffect, useRef } from 'react';
-
-import { Button } from '@/components/ui/button';
-import { Sheet } from '@/components/ui/sheet';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { AccountPickerSheet } from '@/modules/accounts/components/account_picker_sheet';
 import { CategoryPickerSheet } from '@/modules/categories/components/category_picker_sheet';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
-import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
-import { useAddTransactionSheetLifecycle } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.hook';
-import { useAddTransactionSheetState } from '@/modules/transactions/screens/transactions/transaction_form/components/add_transaction_sheet.state';
 import { BudgetPickerSheet } from '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet';
 import { NoAccountsEmpty } from '@/modules/transactions/screens/transactions/transaction_form/components/no_accounts_empty';
+import { TransactionFormDataError } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_data_error';
+import { TransactionFormLoading } from '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading';
 import { TransactionFormBody } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body';
 
-interface AddTransactionSheetProps {
-  visible: boolean;
-  onClose: () => void;
+import type { RegisterTransactionFormSubmit } from './transaction_form_host.hook';
+import { useTransactionFormPrerequisites } from './transaction_form_prerequisites.hook';
+import { useTransactionFormSession } from './transaction_form_session.hook';
+
+export interface AddTransactionSessionProps {
+  sessionId: number;
+  onRegisterSubmit: RegisterTransactionFormSubmit;
+  onSaved: (sessionId: number) => void;
+  onRequestAccountCreation: (sessionId: number) => void;
 }
 
-export function AddTransactionSheet(props: AddTransactionSheetProps): React.ReactElement | null {
-  const state = useAddTransactionSheetLifecycle(props.visible);
-  if (!props.visible && !state.readyToOpen && !state.shouldRenderInner) return null;
+export function AddTransactionSession(props: AddTransactionSessionProps): React.ReactElement {
+  const prerequisites = useTransactionFormPrerequisites(props.sessionId, 'add', null);
+  const hook = useAddTransaction(() => props.onSaved(props.sessionId), prerequisites);
+  const footerVisible = !hook.state.formDataReady || hook.state.hasAccounts;
+  const footerDisabled =
+    hook.state.saving ||
+    !hook.state.formDataReady ||
+    !hook.state.hasAccounts ||
+    hook.state.budgetsLoading ||
+    Boolean(hook.state.budgetLookupError);
 
-  return (
-    <Sheet
-      isOpen={props.visible && state.readyToOpen}
-      onOpenChange={(open) => {
-        if (!open) props.onClose();
-      }}
-      onCloseComplete={state.handleCloseComplete}
-      title={Strings.addTxTitle}
-      size="lg"
-      scrollable
-      isDismissable={!state.saving}
-      footer={
-        state.hasFooter ? (
-          <Button
-            variant="primary"
-            label={Strings.addTxSaveCta}
-            isLoading={state.saving}
-            isDisabled={state.saveDisabled}
-            onPress={state.saveAction}
-          />
-        ) : undefined
-      }
-    >
-      {state.shouldRenderInner ? (
-        <AddTransactionSheetInner
-          key={state.sessionId}
-          visible={props.visible && state.readyToOpen}
-          onClose={props.onClose}
-        />
-      ) : null}
-    </Sheet>
-  );
-}
-
-function AddTransactionSheetInner({
-  visible,
-  onClose,
-}: AddTransactionSheetProps): React.ReactElement {
-  const completeSave = useAddTransactionState.getState().completeSave;
-  const hook = useAddTransaction(completeSave);
-  const handleSaveRef = useRef(hook.handleSave);
-  handleSaveRef.current = hook.handleSave;
-  const publishFooter = useAddTransactionSheetState.getState().publishFooter;
-  const clearFooter = useAddTransactionSheetState.getState().clearFooter;
-  const invokeSave = useCallback(() => void handleSaveRef.current(), []);
-
-  useLayoutEffect(() => {
-    publishFooter(
-      hook.state.hasAccounts,
-      hook.state.saving,
-      hook.state.saving || hook.state.budgetsLoading || Boolean(hook.state.budgetLookupError),
-      invokeSave,
-    );
-    return clearFooter;
-  }, [
-    clearFooter,
-    hook.state.budgetsLoading,
-    hook.state.budgetLookupError,
-    hook.state.hasAccounts,
-    hook.state.saving,
-    invokeSave,
-    publishFooter,
-  ]);
-
-  const handleAddAccount = useCallback(() => {
-    onClose();
-    router.push('/accounts/add_account');
-  }, [onClose]);
+  useTransactionFormSession({
+    sessionId: props.sessionId,
+    submit: hook.handleSave,
+    footer: {
+      visible: footerVisible,
+      saving: hook.state.saving,
+      disabled: footerDisabled,
+    },
+    onRegisterSubmit: props.onRegisterSubmit,
+  });
 
   return (
     <>
-      {hook.state.hasAccounts ? (
+      {hook.state.formDataLoadError ? (
+        <TransactionFormDataError onRetry={hook.retryFormData} />
+      ) : hook.state.formDataReady && hook.state.hasAccounts ? (
         <TransactionFormBody
-          visible={visible}
+          datePickerOwnerId={`add:${props.sessionId}`}
+          formMode="add"
           locked={false}
           type={hook.state.type}
           typeLabel={hook.state.typeLabel}
           typeSupportingText={hook.state.typeSupportingText}
           onSelectType={hook.setType}
-          amountStr={hook.state.amountStr}
           setAmountStr={hook.setAmountStr}
           amountError={hook.state.errors.amount}
           selectedAccount={hook.state.selectedAccount}
@@ -136,8 +87,10 @@ function AddTransactionSheetInner({
           setNote={hook.setNote}
           currency={hook.state.selectedAccount?.currency ?? Currency.EGP}
         />
+      ) : hook.state.formDataReady ? (
+        <NoAccountsEmpty onAddAccount={() => props.onRequestAccountCreation(props.sessionId)} />
       ) : (
-        <NoAccountsEmpty onAddAccount={handleAddAccount} />
+        <TransactionFormLoading />
       )}
 
       <AccountPickerSheet
@@ -148,7 +101,8 @@ function AddTransactionSheetInner({
         accounts={hook.state.accountsForFrom}
         selectedId={hook.state.accountId}
         onSelect={hook.selectAccount}
-        onOpenChange={() => hook.setShowAccountPicker(false)}
+        onOpenChange={hook.setShowAccountPicker}
+        onCloseComplete={() => hook.completePickerClose('account')}
       />
       <AccountPickerSheet
         isOpen={hook.state.showToPicker}
@@ -157,7 +111,8 @@ function AddTransactionSheetInner({
         selectedId={hook.state.toAccountId}
         excludeId={hook.state.accountId}
         onSelect={hook.selectToAccount}
-        onOpenChange={() => hook.setShowToPicker(false)}
+        onOpenChange={hook.setShowToPicker}
+        onCloseComplete={() => hook.completePickerClose('toAccount')}
       />
       <CategoryPickerSheet
         isOpen={hook.state.showCategoryPicker}
@@ -165,7 +120,8 @@ function AddTransactionSheetInner({
         categories={hook.state.visibleCategories}
         selectedId={hook.state.categoryId}
         onSelect={hook.selectCategory}
-        onOpenChange={() => hook.setShowCategoryPicker(false)}
+        onOpenChange={hook.setShowCategoryPicker}
+        onCloseComplete={() => hook.completePickerClose('category')}
       />
       <BudgetPickerSheet
         isOpen={hook.state.showBudgetPicker}
@@ -173,6 +129,7 @@ function AddTransactionSheetInner({
         selectedId={hook.state.budgetId || undefined}
         onSelect={hook.selectBudget}
         onOpenChange={hook.setShowBudgetPicker}
+        onCloseComplete={() => hook.completePickerClose('budget')}
       />
     </>
   );

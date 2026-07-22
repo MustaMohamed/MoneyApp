@@ -5,11 +5,11 @@ import { View } from 'react-native';
 import { HeroShell } from '@/components/ui/hero_shell';
 import { Text } from '@/components/ui/text';
 import { TypeBadge } from '@/components/ui/type_badge';
-import { TransactionType } from '@/constants/enums';
-import { AccentCCTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Category } from '@/database/entities/category.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { toIconName } from '@/utils/icon_name_guard';
+
+import { DETAIL_HERO_MIN_HEIGHT } from './detail_geometry';
 
 interface Props {
   tx: Transaction;
@@ -17,52 +17,8 @@ interface Props {
   amountText: string;
   title: string;
   dateTimeText: string;
-}
-
-/**
- * Type-color mapping — aligned with §7's four-type colour system so the
- * detail hero (badge tint, amount text, badge border) visually mirrors
- * the Add Transaction tabs / AmountHero / list-row amount:
- *   Expense     → SemanticTokens.negative (#E05A42 red)
- *   Income      → SemanticTokens.positive (#4CAF82 green)
- *   Transfer    → InfoTokens[500]          (#4A9EE0 blue)
- *   CC Payment  → AccentCCTokens[500]      (#9B73D4 purple)
- *
- * The previous mapping had Income at a brighter mint green that didn't
- * match the theme `--success` token, Transfer at gold (the accent
- * colour, conflicting with `--info`), CC Payment at light lavender
- * instead of the §7 purple, and Expense at off-white (no colour
- * signal at all). The detail screen now matches the rest of the app.
- *
- * Inline hex values are used here (not `text-danger` / `bg-info`)
- * because the badge/amount mix opacity-tinted strings (`${color}1A`,
- * `${color}55`) with the base hex — Tailwind classes would lose the
- * computed-opacity capability.
- */
-function typeColor(type: TransactionType): string {
-  switch (type) {
-    case TransactionType.Income:
-      return SemanticTokens.positive;
-    case TransactionType.Expense:
-      return SemanticTokens.negative;
-    case TransactionType.Transfer:
-      return InfoTokens[500];
-    case TransactionType.CCPayment:
-      return AccentCCTokens[500];
-  }
-}
-
-function typeLabel(type: TransactionType): string {
-  switch (type) {
-    case TransactionType.Income:
-      return 'Income';
-    case TransactionType.Transfer:
-      return 'Transfer';
-    case TransactionType.CCPayment:
-      return 'CC Payment';
-    default:
-      return 'Expense';
-  }
+  badgeLabel: string;
+  heroColor: string;
 }
 
 export function DetailHero({
@@ -71,30 +27,33 @@ export function DetailHero({
   amountText,
   title,
   dateTimeText,
+  badgeLabel,
+  heroColor,
 }: Props): React.ReactElement {
   return (
-    <HeroShell glowColor={typeColor(tx.type)}>
-      <View className="items-center px-4 pt-6 pb-5">
+    <HeroShell glowColor={heroColor}>
+      <View
+        testID="transaction-detail-hero"
+        className="items-center px-4 py-4"
+        style={{ minHeight: DETAIL_HERO_MIN_HEIGHT, justifyContent: 'center' }}
+      >
         <View className="mb-3 flex-row gap-2">
           <View
             className="rounded-full border px-2.5 py-0.5"
             style={{
-              borderColor: `${typeColor(tx.type)}55`,
-              backgroundColor: `${typeColor(tx.type)}1A`,
+              borderColor: `${heroColor}55`,
+              backgroundColor: `${heroColor}1A`,
             }}
           >
-            <Text
-              className="font-inter text-[10.5px] font-semibold"
-              style={{ color: typeColor(tx.type) }}
-            >
-              {typeLabel(tx.type)}
+            <Text className="font-inter text-[10.5px] font-semibold" style={{ color: heroColor }}>
+              {badgeLabel}
             </Text>
           </View>
           {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
         </View>
         <Text
-          className="font-sora text-[36px] leading-none font-extrabold"
-          style={{ color: typeColor(tx.type), letterSpacing: -0.5 }}
+          className="font-sora text-[30px] leading-none font-extrabold"
+          style={{ color: heroColor }}
         >
           {amountText}
         </Text>
@@ -125,7 +84,9 @@ export function DetailHero({
             </Text>
           </View>
         ) : null}
-        <Text className="font-inter text-foreground/55 mt-2 text-center text-[18px]">{title}</Text>
+        <Text className="font-inter text-foreground/70 mt-2 text-center text-[15px] font-medium">
+          {title}
+        </Text>
         <Text className="font-inter text-foreground/55 mt-2 text-[11px]">{dateTimeText}</Text>
       </View>
     </HeroShell>

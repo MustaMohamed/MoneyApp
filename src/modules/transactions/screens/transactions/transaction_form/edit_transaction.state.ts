@@ -1,14 +1,16 @@
 import { create } from 'zustand';
 
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { completePickerClose, updateClosingPickers } from './picker_close_lifecycle.helpers';
+
+export type EditTransactionPicker = 'category' | 'budget';
+
 interface EditTransactionStateShape {
-  visible: boolean;
-  sessionId: number;
   saving: boolean;
   showCategoryPicker: boolean;
   showBudgetPicker: boolean;
+  closingPickers: EditTransactionPicker[];
   budgetsLoading: boolean;
   budgetLookupVersion: number;
   budgetLookupError: string | undefined;
@@ -18,13 +20,10 @@ interface EditTransactionStateShape {
 }
 
 type EditTransactionState = EditTransactionStateShape & {
-  open: (tx: Transaction) => void;
-  requestClose: () => boolean;
-  completeSave: () => void;
-  completeClose: () => void;
   setSaving: (v: boolean) => void;
   setShowCategoryPicker: (v: boolean) => void;
   setShowBudgetPicker: (v: boolean) => void;
+  completePickerClose: (picker: EditTransactionPicker) => void;
   setBudgetsLoading: (v: boolean) => void;
   setBudgetLookupError: (message: string | undefined) => void;
   setErrorMessage: (message: string | undefined) => void;
@@ -36,11 +35,10 @@ type EditTransactionState = EditTransactionStateShape & {
 };
 
 const INITIAL_STATE: EditTransactionStateShape = {
-  visible: false,
-  sessionId: 0,
   saving: false,
   showCategoryPicker: false,
   showBudgetPicker: false,
+  closingPickers: [],
   budgetsLoading: false,
   budgetLookupVersion: 0,
   budgetLookupError: undefined,
@@ -50,25 +48,33 @@ const INITIAL_STATE: EditTransactionStateShape = {
 };
 
 export const useEditTransactionState = createMoneyAppSelectors(
-  create<EditTransactionState>((set, get) => ({
+  create<EditTransactionState>((set) => ({
     ...INITIAL_STATE,
-
-    open: () =>
-      set((state) => ({
-        ...INITIAL_STATE,
-        visible: true,
-        sessionId: state.sessionId + 1,
-      })),
-    requestClose: () => {
-      if (get().saving) return false;
-      set({ visible: false, showCategoryPicker: false, showBudgetPicker: false });
-      return true;
-    },
-    completeSave: () => set({ visible: false, showCategoryPicker: false, showBudgetPicker: false }),
-    completeClose: () => set(INITIAL_STATE),
     setSaving: (v) => set({ saving: v }),
-    setShowCategoryPicker: (v) => set({ showCategoryPicker: v }),
-    setShowBudgetPicker: (v) => set({ showBudgetPicker: v }),
+    setShowCategoryPicker: (v) =>
+      set((state) => ({
+        showCategoryPicker: v,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'category',
+          state.showCategoryPicker,
+          v,
+        ),
+      })),
+    setShowBudgetPicker: (v) =>
+      set((state) => ({
+        showBudgetPicker: v,
+        closingPickers: updateClosingPickers(
+          state.closingPickers,
+          'budget',
+          state.showBudgetPicker,
+          v,
+        ),
+      })),
+    completePickerClose: (picker) =>
+      set((state) => ({
+        closingPickers: completePickerClose(state.closingPickers, picker),
+      })),
     setBudgetsLoading: (v) => set({ budgetsLoading: v }),
     setBudgetLookupError: (budgetLookupError) => set({ budgetLookupError }),
     setErrorMessage: (errorMessage) => set({ errorMessage }),
@@ -77,7 +83,8 @@ export const useEditTransactionState = createMoneyAppSelectors(
         budgetLookupVersion: state.budgetLookupVersion + 1,
         budgetLookupError: undefined,
       })),
-    clearError: () => set({ errorMessage: undefined }),
+    clearError: () =>
+      set((state) => (state.errorMessage === undefined ? state : { errorMessage: undefined })),
     setPreserveBudgetNull: (v) => set({ preserveBudgetNull: v }),
     setRateOverride: (v) => set({ rateOverride: v }),
     reset: () => set(INITIAL_STATE),

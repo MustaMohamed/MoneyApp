@@ -33,110 +33,45 @@ function makeTx(overrides: Partial<Transaction> = {}): Transaction {
 
 beforeEach(() => useEditTransactionStore.getState().reset());
 
-describe('useEditTransactionStore initial state', () => {
-  it('starts with editingTx=null and amountStr="0"', () => {
-    const s = useEditTransactionStore.getState();
-    expect(s.editingTx).toBeNull();
-    expect(s.amountStr).toBe('0');
-  });
-});
-
-describe('useEditTransactionStore.loadFromTx', () => {
-  it('stores the transaction', () => {
-    const tx = makeTx();
-    useEditTransactionStore.getState().loadFromTx(tx);
-    expect(useEditTransactionStore.getState().editingTx).toBe(tx);
+describe('useEditTransactionStore', () => {
+  it('starts with an empty inactive draft', () => {
+    expect(useEditTransactionStore.getState()).toMatchObject({
+      amountStr: '',
+      availableBudgets: [],
+      budgetId: undefined,
+    });
   });
 
-  it('loads the existing named budget assignment', () => {
-    useEditTransactionStore.getState().loadFromTx(makeTx({ budget_id: 'budget-food' }));
-    expect(useEditTransactionStore.getState().budgetId).toBe('budget-food');
+  it('loads the amount and named-budget assignment from the edit target', () => {
+    useEditTransactionStore
+      .getState()
+      .loadFromTx(makeTx({ amount: 99.5, budget_id: 'budget-food' }));
+
+    expect(useEditTransactionStore.getState()).toMatchObject({
+      amountStr: '99.5',
+      budgetId: 'budget-food',
+    });
   });
 
   it('stores available budgets and a selected budget', () => {
     const budget = { id: 'budget-food' } as Budget;
     useEditTransactionStore.getState().setAvailableBudgets([budget]);
     useEditTransactionStore.getState().setBudgetId(budget.id);
-    expect(useEditTransactionStore.getState().availableBudgets).toEqual([budget]);
-    expect(useEditTransactionStore.getState().budgetId).toBe(budget.id);
+
+    expect(useEditTransactionStore.getState()).toMatchObject({
+      availableBudgets: [budget],
+      budgetId: budget.id,
+    });
   });
 
-  it('formats integer amount without decimal for integer amounts', () => {
-    useEditTransactionStore.getState().loadFromTx(makeTx({ amount: 200 }));
-    expect(useEditTransactionStore.getState().amountStr).toBe('200');
-  });
-
-  it('formats fractional amount as a string with decimal', () => {
-    useEditTransactionStore.getState().loadFromTx(makeTx({ amount: 99.5 }));
-    expect(useEditTransactionStore.getState().amountStr).toBe('99.5');
-  });
-});
-
-describe('useEditTransactionStore.handleNumpad', () => {
-  it('digit replaces "0" with the digit (leading-zero guard)', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '7');
-    expect(useEditTransactionStore.getState().amountStr).toBe('7');
-  });
-
-  it('pressing "0" when amountStr is "0" keeps it "0"', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '0');
-    expect(useEditTransactionStore.getState().amountStr).toBe('0');
-  });
-
-  it('digit appends to a non-zero string', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '4');
-    useEditTransactionStore.getState().handleNumpad('digit', '2');
-    expect(useEditTransactionStore.getState().amountStr).toBe('42');
-  });
-
-  it('decimal appends "." when not already present', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.');
-  });
-
-  it('decimal is a no-op when "." is already present', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.');
-  });
-
-  it('backspace removes the last character', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('digit', '3');
-    useEditTransactionStore.getState().handleNumpad('backspace');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5');
-  });
-
-  it('backspace on a single character resets to "0"', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('backspace');
-    expect(useEditTransactionStore.getState().amountStr).toBe('0');
-  });
-
-  it('limits decimal digits to 2', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('decimal');
-    useEditTransactionStore.getState().handleNumpad('digit', '1');
-    useEditTransactionStore.getState().handleNumpad('digit', '2');
-    useEditTransactionStore.getState().handleNumpad('digit', '3');
-    expect(useEditTransactionStore.getState().amountStr).toBe('5.12');
-  });
-
-  it('digit action without value argument defaults to empty string (covers ?? "" branch)', () => {
-    useEditTransactionStore.getState().handleNumpad('digit', '5');
-    useEditTransactionStore.getState().handleNumpad('digit'); // value = undefined → digit = ''
-    expect(useEditTransactionStore.getState().amountStr).toBe('5'); // '' appended → '5'
-  });
-});
-
-describe('useEditTransactionStore.reset', () => {
-  it('clears editingTx and amountStr', () => {
+  it('clears the inactive draft on reset', () => {
     useEditTransactionStore.getState().loadFromTx(makeTx());
     useEditTransactionStore.getState().reset();
-    const s = useEditTransactionStore.getState();
-    expect(s.editingTx).toBeNull();
-    expect(s.amountStr).toBe('0');
+
+    expect(useEditTransactionStore.getState()).toMatchObject({
+      amountStr: '',
+      availableBudgets: [],
+      budgetId: undefined,
+    });
   });
 });

@@ -21,6 +21,8 @@ import { View } from 'react-native';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 
+import { DETAIL_NOTE_MIN_HEIGHT } from './detail_geometry';
+
 interface Props {
   note: string | null;
 }
@@ -33,7 +35,7 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
     <Card
       testID="detail-note-card"
       className="border-separator mx-4 mt-4 rounded-2xl border p-4"
-      style={{ elevation: 0, shadowOpacity: 0 }}
+      style={{ minHeight: DETAIL_NOTE_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
     >
       <View className="mb-2 flex-row items-center gap-2">
         <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">

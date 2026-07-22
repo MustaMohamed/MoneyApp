@@ -49,4 +49,54 @@ describe('TotalsStrip', () => {
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
   });
+
+  it('exposes the bounded expense share as a progress value', () => {
+    const { getByTestId } = render(
+      <TotalsStrip
+        current={{ incomeEgp: 1_000, expenseEgp: 1_500, netEgp: -500 }}
+        previous={null}
+        previousLabel={null}
+      />,
+    );
+
+    expect(getByTestId('transactions-totals-progress')).toHaveProp(
+      'accessibilityRole',
+      'progressbar',
+    );
+    expect(getByTestId('transactions-totals-progress')).toHaveProp('accessibilityValue', {
+      min: 0,
+      max: 100,
+      now: 100,
+      text: Strings.totalsExpenseShareA11y(150),
+    });
+  });
+
+  it.each([
+    {
+      totals: { incomeEgp: 0, expenseEgp: 500, netEgp: -500 },
+      label: Strings.totalsNoIncome,
+    },
+    {
+      totals: { incomeEgp: 1_000, expenseEgp: 650, netEgp: 350 },
+      label: Strings.totalsWithinIncome,
+    },
+    {
+      totals: { incomeEgp: 100, expenseEgp: 350, netEgp: -250 },
+      label: Strings.totalsOverIncome(350),
+    },
+    {
+      totals: { incomeEgp: 100, expenseEgp: -50, netEgp: 150 },
+      label: Strings.totalsNetCredit,
+    },
+  ])('renders the $label edge state in the shared caption slot', ({ totals, label }) => {
+    const { getByTestId, getByText } = render(
+      <TotalsStrip current={totals} previous={null} previousLabel="June 2026" />,
+    );
+
+    expect(getByTestId('transactions-totals-values-row')).toBeTruthy();
+    expect(getByTestId('transactions-totals-progress')).toBeTruthy();
+    expect(getByTestId('transactions-totals-comparison-row')).toBeTruthy();
+    expect(getByTestId('transactions-totals-caption')).toBeTruthy();
+    expect(getByText(label)).toBeTruthy();
+  });
 });

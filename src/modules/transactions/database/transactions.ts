@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { Currency } from '@/constants/enums';
 import { TransactionType } from '@/constants/enums';
+import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 import type { Transaction } from '../entities/transaction.entity';
 
@@ -148,6 +149,52 @@ export async function getTransactions(
   const trimmed = query.search?.trim();
   const searchParam: string | null = trimmed && trimmed.length > 0 ? trimmed : null;
   const likePattern = searchParam !== null ? `%${escapeLike(searchParam)}%` : null;
+  const numericSearch =
+    searchParam !== null ? (parseNonNegativeDecimal(searchParam) ?? null) : null;
+  const searchProjection =
+    searchParam === null
+      ? ''
+      : `
+    CROSS JOIN (SELECT ? AS pattern, ? AS numeric_amount) search
+    LEFT JOIN accounts source_account ON source_account.id = t.account_id
+    LEFT JOIN accounts destination_account ON destination_account.id = t.to_account_id
+    LEFT JOIN categories category ON category.id = t.category_id
+    LEFT JOIN budgets budget ON budget.id = t.budget_id
+    LEFT JOIN commitment_payments payment ON payment.id = t.commitment_payment_id
+    LEFT JOIN commitments commitment ON commitment.id = payment.commitment_id`;
+  const searchPredicate =
+    searchParam === null
+      ? ''
+      : `
+      AND (
+        t.note LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR source_account.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR destination_account.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR category.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR budget.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR commitment.name LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR payment.notes LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR REPLACE(t.type, '_', ' ') LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR CASE t.type
+             WHEN 'cc_payment' THEN 'Credit Pay Credit Card Payment'
+             WHEN 'expense' THEN 'Expense'
+             WHEN 'income' THEN 'Income'
+             WHEN 'transfer' THEN 'Transfer'
+           END LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        OR (
+          t.type = 'income'
+          AND source_account.type = 'credit_card'
+          AND 'Card credit' LIKE search.pattern ESCAPE '\\' COLLATE NOCASE
+        )
+        OR (
+          search.numeric_amount IS NOT NULL
+          AND (
+            t.amount = search.numeric_amount
+            OR t.to_amount = search.numeric_amount
+            OR t.egp_amount = search.numeric_amount
+          )
+        )
+      )`;
 
   const accountIds = query.accountIds ?? [];
   const categoryIds = query.categoryIds ?? [];
@@ -167,21 +214,9 @@ export async function getTransactions(
 
   const sql = `
     SELECT t.* FROM transactions t
+    ${searchProjection}
     WHERE (? IS NULL OR t.type = ?)
-      AND (
-        ? IS NULL
-        OR t.note LIKE ? ESCAPE '\\' COLLATE NOCASE
-        OR EXISTS (
-          SELECT 1 FROM accounts a
-          WHERE a.id IN (t.account_id, t.to_account_id)
-            AND a.name LIKE ? ESCAPE '\\' COLLATE NOCASE
-        )
-        OR EXISTS (
-          SELECT 1 FROM categories c
-          WHERE c.id = t.category_id
-            AND c.name LIKE ? ESCAPE '\\' COLLATE NOCASE
-        )
-      )
+      ${searchPredicate}
       AND (
         ? = 1
         OR t.account_id    IN (${accountIn})
@@ -202,12 +237,9 @@ export async function getTransactions(
   `;
 
   return db.getAllAsync<Transaction>(sql, [
+    ...(searchParam === null ? [] : [likePattern, numericSearch]),
     typeParam,
     typeParam,
-    searchParam,
-    likePattern,
-    likePattern,
-    likePattern,
     accountListEmpty,
     ...accountParams,
     ...accountParams,

@@ -1,10 +1,13 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ListGroup, Separator } from 'heroui-native';
-import { Fragment } from 'react';
+import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
+import { PressableFeedback } from 'heroui-native';
+import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
+import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors } from '@/constants/theme';
+import { Spacing } from '@/constants/theme';
+import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
@@ -15,6 +18,7 @@ interface BudgetPickerSheetProps {
   selectedId: string | undefined;
   onSelect: (budget: Budget) => void;
   onOpenChange: (open: boolean) => void;
+  onCloseComplete?: () => void;
 }
 
 export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
@@ -22,46 +26,74 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
     <Sheet
       isOpen={props.isOpen}
       onOpenChange={props.onOpenChange}
+      onCloseComplete={props.onCloseComplete}
       title={Strings.addTxPickBudgetTitle}
-      size="xs"
+      size="md"
+      scrollable
     >
-      <ListGroup variant="transparent" className="mx-4">
-        {props.budgets.map((budget, index) => (
-          <Fragment key={budget.id}>
-            <ListGroup.Item onPress={() => props.onSelect(budget)}>
-              <ListGroup.ItemPrefix>
-                <MaterialCommunityIcons
-                  name="wallet-outline"
-                  size={ms(18)}
-                  color={Colors.dark.gold}
-                />
-              </ListGroup.ItemPrefix>
-              <ListGroup.ItemContent>
-                <ListGroup.ItemTitle>{budget.name}</ListGroup.ItemTitle>
-                <ListGroup.ItemDescription>
-                  {`${formatAmount(budget.limit_amount)} ${Strings.currencyEgp}`}
-                </ListGroup.ItemDescription>
-              </ListGroup.ItemContent>
-              <ListGroup.ItemSuffix>
-                {props.selectedId === budget.id ? (
+      {props.budgets.length === 0 ? (
+        <View testID="budget-picker-empty" className="flex-1 items-center justify-center px-8">
+          <View className="bg-default mb-3 h-12 w-12 items-center justify-center rounded-full">
+            <MaterialCommunityIcons name="wallet-outline" size={ms(22)} color={CoreTokens.text2} />
+          </View>
+          <Text className="font-sora text-foreground text-center text-[15px] font-semibold">
+            {Strings.addTxBudgetEmptyTitle}
+          </Text>
+          <Text className="font-inter text-muted mt-1 text-center text-[12px] leading-5">
+            {Strings.addTxBudgetEmptyBody}
+          </Text>
+        </View>
+      ) : (
+        <BottomSheetFlatList
+          testID="budget-picker-list"
+          data={props.budgets}
+          keyExtractor={(budget) => budget.id}
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingBottom: Spacing.lg }}
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item: budget }) => {
+            const selected = props.selectedId === budget.id;
+            return (
+              <PressableFeedback
+                testID={`budget-picker-row-${budget.id}`}
+                onPress={() => props.onSelect(budget)}
+                accessibilityRole="radio"
+                accessibilityState={{ selected }}
+                accessibilityLabel={`${budget.name}, ${formatAmount(budget.limit_amount)} ${Strings.currencyEgp}`}
+                className="border-separator min-h-14 gap-3 border-b px-4 py-2.5"
+                style={{ flexDirection: 'row', alignItems: 'center' }}
+              >
+                <View className="bg-default h-8 w-8 items-center justify-center rounded-md">
                   <MaterialCommunityIcons
+                    name="wallet-outline"
+                    size={ms(17)}
+                    color={selected ? GoldTokens[500] : CoreTokens.text2}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text
+                    className="font-sora text-foreground text-[14px] font-semibold"
+                    numberOfLines={1}
+                  >
+                    {budget.name}
+                  </Text>
+                  <Text className="font-inter text-muted text-[11px]">
+                    {`${formatAmount(budget.limit_amount)} ${Strings.currencyEgp}`}
+                  </Text>
+                </View>
+                {selected ? (
+                  <MaterialCommunityIcons
+                    testID={`budget-picker-row-${budget.id}-selected`}
                     name="check-circle"
                     size={ms(18)}
-                    color={Colors.dark.positive}
+                    color={GoldTokens[500]}
                   />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={ms(18)}
-                    color={Colors.dark.text2}
-                  />
-                )}
-              </ListGroup.ItemSuffix>
-            </ListGroup.Item>
-            {index < props.budgets.length - 1 ? <Separator className="mx-4" /> : null}
-          </Fragment>
-        ))}
-      </ListGroup>
+                ) : null}
+              </PressableFeedback>
+            );
+          }}
+        />
+      )}
     </Sheet>
   );
 }

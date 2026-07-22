@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
+import { ms } from '@/utils/responsive';
 
 import { SelectablePill } from './chip';
 import { Input } from './input';
@@ -42,7 +43,13 @@ interface AmountRangeFilterContentProps {
   onChangeMinText: (value: string) => void;
   onChangeMaxText: (value: string) => void;
   accessibilityLabel: string;
+  minError?: string;
+  maxError?: string;
+  rangeError?: string;
 }
+
+export const FILTER_AMOUNT_FIELD_SLOT_HEIGHT = ms(76);
+export const FILTER_AMOUNT_ERROR_SLOT_HEIGHT = ms(16);
 
 export function FilterAccordionShell({
   title,
@@ -122,6 +129,9 @@ export function AmountRangeFilterContent({
   onChangeMinText,
   onChangeMaxText,
   accessibilityLabel,
+  minError,
+  maxError,
+  rangeError,
 }: AmountRangeFilterContentProps): React.ReactElement {
   return (
     <View className="mt-3">
@@ -141,24 +151,53 @@ export function AmountRangeFilterContent({
           <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
             {Strings.filterAmountMinLabel}
           </Text>
-          <Input
-            value={minValue}
-            onChangeText={onChangeMinText}
-            keyboardType="decimal-pad"
-            placeholder={Strings.filterAmountMinPlaceholder}
-          />
+          <View
+            testID="amount-field-error-slot"
+            style={{ height: FILTER_AMOUNT_FIELD_SLOT_HEIGHT }}
+          >
+            <Input
+              value={minValue}
+              onChangeText={onChangeMinText}
+              keyboardType="decimal-pad"
+              placeholder={Strings.filterAmountMinPlaceholder}
+              isInvalid={minError !== undefined}
+              errorMessage={minError}
+            />
+          </View>
         </View>
         <View className="flex-1">
           <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
             {Strings.filterAmountMaxLabel}
           </Text>
-          <Input
-            value={maxValue}
-            onChangeText={onChangeMaxText}
-            keyboardType="decimal-pad"
-            placeholder={Strings.filterAmountMaxPlaceholder}
-          />
+          <View
+            testID="amount-field-error-slot"
+            style={{ height: FILTER_AMOUNT_FIELD_SLOT_HEIGHT }}
+          >
+            <Input
+              value={maxValue}
+              onChangeText={onChangeMaxText}
+              keyboardType="decimal-pad"
+              placeholder={Strings.filterAmountMaxPlaceholder}
+              isInvalid={maxError !== undefined}
+              errorMessage={maxError}
+            />
+          </View>
         </View>
+      </View>
+      <View
+        testID="amount-range-error-slot"
+        className="mt-1.5 justify-center"
+        style={{ height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT }}
+      >
+        {rangeError ? (
+          <Text
+            accessibilityRole="alert"
+            className="font-inter text-danger text-[11px] font-medium"
+            numberOfLines={1}
+          >
+            {rangeError}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

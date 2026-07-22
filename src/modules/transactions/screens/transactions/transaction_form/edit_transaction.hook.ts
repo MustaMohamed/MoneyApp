@@ -16,7 +16,7 @@ import {
   useTransactionStore,
   type UpdateTransactionInput,
 } from '@/modules/transactions/store/transaction.store';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { isSameBudgetEligibility, resolveBudgetAssignment } from './budget_assignment.helpers';
@@ -27,6 +27,9 @@ import {
   resolveTransactionFormSemantics,
   resolveTransactionSaveError,
 } from './transaction_form.helpers';
+import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
+
+const ignorePrerequisiteRetry = () => {};
 
 function createEditSchema(
   type: TransactionType,
@@ -88,12 +91,18 @@ export function useEditTransaction(
   initialTx: Transaction,
   onClose: () => void,
   onSaved?: () => void,
+  prerequisites?: TransactionFormPrerequisiteController,
 ) {
   const { accounts, accountLookup } = useAccountStore(
-    useShallow((state) => ({ accounts: state.accounts, accountLookup: state.accountLookup })),
+    useShallow((state) => ({
+      accounts: state.accounts,
+      accountLookup: state.accountLookup,
+    })),
   );
+  const accountsLoaded = useAccountStore((state) => state.hasLoaded);
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore((state) => state.categories);
+  const categoriesLoaded = useCategoryStore((state) => state.hasLoaded);
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -101,21 +110,20 @@ export function useEditTransaction(
     })),
   );
   const updateTransaction = useTransactionStore.getState().updateTransaction;
-  const { amountStr, availableBudgets, budgetId } = useEditTransactionStore(
+  const { availableBudgets, budgetId } = useEditTransactionStore(
     useShallow((state) => ({
-      amountStr: state.amountStr,
       availableBudgets: state.availableBudgets,
       budgetId: state.budgetId,
     })),
   );
   const setAmountStr = useEditTransactionStore.getState().setAmountStr;
-  const handleNumpad = useEditTransactionStore.getState().handleNumpad;
   const setAvailableBudgets = useEditTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useEditTransactionStore.getState().setBudgetId;
   const {
     saving,
     showCategoryPicker,
     showBudgetPicker,
+    closingPickers,
     budgetsLoading,
     budgetLookupVersion,
     budgetLookupError,
@@ -127,6 +135,7 @@ export function useEditTransaction(
       saving: s.saving,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
+      closingPickers: s.closingPickers,
       budgetsLoading: s.budgetsLoading,
       budgetLookupVersion: s.budgetLookupVersion,
       budgetLookupError: s.budgetLookupError,
@@ -138,6 +147,7 @@ export function useEditTransaction(
   const setSaving = useEditTransactionState.getState().setSaving;
   const setShowCategoryPicker = useEditTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useEditTransactionState.getState().setShowBudgetPicker;
+  const completePickerClose = useEditTransactionState.getState().completePickerClose;
   const setBudgetsLoading = useEditTransactionState.getState().setBudgetsLoading;
   const setBudgetLookupError = useEditTransactionState.getState().setBudgetLookupError;
   const setErrorMessage = useEditTransactionState.getState().setErrorMessage;
@@ -145,6 +155,9 @@ export function useEditTransaction(
   const clearError = useEditTransactionState.getState().clearError;
   const setPreserveBudgetNull = useEditTransactionState.getState().setPreserveBudgetNull;
   const setRateOverride = useEditTransactionState.getState().setRateOverride;
+
+  const effectiveDataStatus =
+    prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
 
   const type = initialTx.type;
   const isTransferOrCC = type === TransactionType.Transfer || type === TransactionType.CCPayment;
@@ -211,12 +224,6 @@ export function useEditTransaction(
     budget: budgetLookupError ?? form.formState.errors.budgetId?.message,
     rate: form.formState.errors.exchangeRate?.message,
   };
-
-  useEffect(() => {
-    const parsed = parseFloat(amountStr);
-    form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps -- form is RHF's stable object; identity never changes
-  }, [amountStr]);
 
   const budgetRequestRef = useRef(0);
   useEffect(() => {
@@ -288,7 +295,13 @@ export function useEditTransaction(
 
   async function onValid(data: EditTransactionFormValues) {
     const formState = useEditTransactionState.getState();
-    if (formState.saving || formState.budgetsLoading || formState.budgetLookupError) return;
+    if (
+      effectiveDataStatus !== 'ready' ||
+      formState.saving ||
+      formState.budgetsLoading ||
+      formState.budgetLookupError
+    )
+      return;
     setErrorMessage(undefined);
     setSaving(true);
     try {
@@ -317,17 +330,34 @@ export function useEditTransaction(
         transaction_time: initialTx.transaction_time, // preserved — no time UI
       };
       await updateTransaction(initialTx.id, update);
-      await loadAccounts();
       if (onSaved) {
         onSaved();
       } else {
         onClose();
       }
+      void loadAccounts().catch(() => undefined);
     } catch (error) {
       setErrorMessage(resolveTransactionSaveError(error));
     } finally {
       setSaving(false);
     }
+  }
+
+  function invalidateBudgetEligibility(nextCategoryId: string, nextDate: string) {
+    if (
+      !semantics.usesBudget ||
+      !nextCategoryId ||
+      (nextCategoryId === categoryId && nextDate.slice(0, 7) === date.slice(0, 7))
+    ) {
+      return;
+    }
+    budgetRequestRef.current += 1;
+    setBudgetLookupError(undefined);
+    setBudgetsLoading(true);
+    setAvailableBudgets([]);
+    setBudgetId(undefined);
+    setPreserveBudgetNull(false);
+    form.setValue('budgetId', '');
   }
 
   function toggleRateOverride() {
@@ -338,6 +368,7 @@ export function useEditTransaction(
 
   function selectCategory(category: Category) {
     clearError();
+    invalidateBudgetEligibility(category.id, date);
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
   }
@@ -352,7 +383,6 @@ export function useEditTransaction(
   return {
     state: {
       type,
-      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -371,10 +401,13 @@ export function useEditTransaction(
       errors,
       errorMessage,
       budgetLookupError,
+      formDataReady: effectiveDataStatus === 'ready',
+      formDataLoadError: effectiveDataStatus === 'error',
       saving,
       visibleCategories,
       showCategoryPicker,
       showBudgetPicker,
+      closingPickers,
       budgetsLoading,
       availableBudgets,
       showBudgetField:
@@ -387,15 +420,13 @@ export function useEditTransaction(
       rateUpdatedAt,
     },
     setAmountStr: (value: string) => {
-      clearError();
+      if (useEditTransactionState.getState().errorMessage) clearError();
+      if (form.formState.errors.amount) form.clearErrors('amount');
       setAmountStr(value);
-    },
-    handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => {
-      clearError();
-      handleNumpad(action, value);
     },
     setDate: (v: string) => {
       clearError();
+      invalidateBudgetEligibility(categoryId, v);
       form.setValue('date', v);
     },
     setNote: (v: string) => {
@@ -409,9 +440,15 @@ export function useEditTransaction(
     toggleRateOverride,
     setShowCategoryPicker,
     setShowBudgetPicker,
+    completePickerClose,
     selectCategory,
     selectBudget,
     retryBudgetLookup,
-    handleSave: form.handleSubmit(onValid),
+    retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
+    handleSave: () => {
+      const amountStr = useEditTransactionStore.getState().amountStr;
+      form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);
+      return form.handleSubmit(onValid)();
+    },
   };
 }

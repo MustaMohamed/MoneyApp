@@ -13,7 +13,7 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { resolveTransactionAmounts } from '@/modules/transactions/domain/transaction_amounts';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { parsePositiveDecimal } from '@/utils/parse_decimal';
+import { parseNonNegativeDecimal, parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAddTransactionState } from './add_transaction.state';
@@ -24,6 +24,7 @@ import {
   resolveTransactionSaveError,
   toTransactionTimestamp,
 } from './transaction_form.helpers';
+import { type TransactionFormPrerequisiteController } from './transaction_form_prerequisites.helpers';
 
 export type AddTransactionFormValues = {
   amount: number;
@@ -35,6 +36,8 @@ export type AddTransactionFormValues = {
   date: string;
   exchangeRate: string;
 };
+
+const ignorePrerequisiteRetry = () => {};
 
 function createSchema(
   type: TransactionType,
@@ -162,10 +165,15 @@ function createSchema(
     });
 }
 
-export function useAddTransaction(onClose: () => void) {
-  const accounts = useAccountStore((s) => s.accounts);
+export function useAddTransaction(
+  onClose: () => void,
+  prerequisites?: TransactionFormPrerequisiteController,
+) {
+  const accounts = useAccountStore((state) => state.accounts);
+  const accountsLoaded = useAccountStore((state) => state.hasLoaded);
   const loadAccounts = useAccountStore.getState().loadAccounts;
-  const categories = useCategoryStore.useState.categories();
+  const categories = useCategoryStore((state) => state.categories);
+  const categoriesLoaded = useCategoryStore((state) => state.hasLoaded);
   const { rate, rateUpdatedAt } = useCurrencyStore(
     useShallow((s) => ({
       rate: s.rate,
@@ -173,17 +181,15 @@ export function useAddTransaction(onClose: () => void) {
     })),
   );
   const addTransaction = useTransactionStore.getState().addTransaction;
-  const { type, amountStr, availableBudgets, budgetId } = useAddTransactionStore(
+  const { type, availableBudgets, budgetId } = useAddTransactionStore(
     useShallow((s) => ({
       type: s.type,
-      amountStr: s.amountStr,
       availableBudgets: s.availableBudgets,
       budgetId: s.budgetId,
     })),
   );
   const setType = useAddTransactionStore.getState().setType;
   const setAmountStr = useAddTransactionStore.getState().setAmountStr;
-  const handleNumpad = useAddTransactionStore.getState().handleNumpad;
   const setAvailableBudgets = useAddTransactionStore.getState().setAvailableBudgets;
   const setBudgetId = useAddTransactionStore.getState().setBudgetId;
   const {
@@ -192,6 +198,7 @@ export function useAddTransaction(onClose: () => void) {
     showToPicker,
     showCategoryPicker,
     showBudgetPicker,
+    closingPickers,
     budgetsLoading,
     budgetLookupVersion,
     budgetLookupError,
@@ -204,6 +211,7 @@ export function useAddTransaction(onClose: () => void) {
       showToPicker: s.showToPicker,
       showCategoryPicker: s.showCategoryPicker,
       showBudgetPicker: s.showBudgetPicker,
+      closingPickers: s.closingPickers,
       budgetsLoading: s.budgetsLoading,
       budgetLookupVersion: s.budgetLookupVersion,
       budgetLookupError: s.budgetLookupError,
@@ -216,12 +224,16 @@ export function useAddTransaction(onClose: () => void) {
   const setShowToPicker = useAddTransactionState.getState().setShowToPicker;
   const setShowCategoryPicker = useAddTransactionState.getState().setShowCategoryPicker;
   const setShowBudgetPicker = useAddTransactionState.getState().setShowBudgetPicker;
+  const completePickerClose = useAddTransactionState.getState().completePickerClose;
   const setBudgetsLoading = useAddTransactionState.getState().setBudgetsLoading;
   const setBudgetLookupError = useAddTransactionState.getState().setBudgetLookupError;
   const setErrorMessage = useAddTransactionState.getState().setErrorMessage;
   const retryBudgetLookup = useAddTransactionState.getState().retryBudgetLookup;
   const clearError = useAddTransactionState.getState().clearError;
   const setRateOverride = useAddTransactionState.getState().setRateOverride;
+
+  const effectiveDataStatus =
+    prerequisites?.status ?? (accountsLoaded && categoriesLoaded ? 'ready' : 'loading');
 
   const schema = useMemo(
     () => createSchema(type, accounts, categories, availableBudgets.length > 1),
@@ -312,13 +324,6 @@ export function useAddTransaction(onClose: () => void) {
     rate: form.formState.errors.exchangeRate?.message,
   };
 
-  // Sync numpad → RHF amount
-  useEffect(() => {
-    const parsed = parseFloat(amountStr);
-    form.setValue('amount', isNaN(parsed) ? 0 : parsed);
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [amountStr]);
-
   // Clear type-dependent fields when type changes
   useEffect(() => {
     form.setValue('toAccountId', '');
@@ -387,7 +392,13 @@ export function useAddTransaction(onClose: () => void) {
 
   async function onValid(data: AddTransactionFormValues) {
     const formState = useAddTransactionState.getState();
-    if (formState.saving || formState.budgetsLoading || formState.budgetLookupError) return;
+    if (
+      effectiveDataStatus !== 'ready' ||
+      formState.saving ||
+      formState.budgetsLoading ||
+      formState.budgetLookupError
+    )
+      return;
     setErrorMessage(undefined);
     setSaving(true);
     try {
@@ -419,13 +430,29 @@ export function useAddTransaction(onClose: () => void) {
         transaction_date: data.date,
         transaction_time: submittedAt.time,
       });
-      await loadAccounts();
       onClose();
+      void loadAccounts().catch(() => undefined);
     } catch (error) {
       setErrorMessage(resolveTransactionSaveError(error));
     } finally {
       setSaving(false);
     }
+  }
+
+  function invalidateBudgetEligibility(nextCategoryId: string, nextDate: string) {
+    if (
+      !semantics.usesBudget ||
+      !nextCategoryId ||
+      (nextCategoryId === categoryId && nextDate.slice(0, 7) === date.slice(0, 7))
+    ) {
+      return;
+    }
+    budgetRequestRef.current += 1;
+    setBudgetLookupError(undefined);
+    setBudgetsLoading(true);
+    setAvailableBudgets([]);
+    setBudgetId(undefined);
+    form.setValue('budgetId', '');
   }
 
   function toggleRateOverride() {
@@ -463,6 +490,7 @@ export function useAddTransaction(onClose: () => void) {
 
   function selectCategory(category: Category) {
     clearError();
+    invalidateBudgetEligibility(category.id, date);
     form.setValue('categoryId', category.id);
     setShowCategoryPicker(false);
   }
@@ -477,7 +505,6 @@ export function useAddTransaction(onClose: () => void) {
   return {
     state: {
       type,
-      amountStr,
       selectedAccount,
       selectedToAccount,
       selectedCategory,
@@ -498,6 +525,8 @@ export function useAddTransaction(onClose: () => void) {
       errors,
       errorMessage,
       budgetLookupError,
+      formDataReady: effectiveDataStatus === 'ready',
+      formDataLoadError: effectiveDataStatus === 'error',
       saving,
       accounts,
       hasAccounts: accounts.length > 0,
@@ -508,6 +537,7 @@ export function useAddTransaction(onClose: () => void) {
       showToPicker,
       showCategoryPicker,
       showBudgetPicker,
+      closingPickers,
       budgetsLoading,
       availableBudgets,
       showBudgetField:
@@ -521,15 +551,13 @@ export function useAddTransaction(onClose: () => void) {
       setType(nextType);
     },
     setAmountStr: (value: string) => {
-      clearError();
+      if (useAddTransactionState.getState().errorMessage) clearError();
+      if (form.formState.errors.amount) form.clearErrors('amount');
       setAmountStr(value);
-    },
-    handleNumpad: (action: 'digit' | 'decimal' | 'backspace', value?: string) => {
-      clearError();
-      handleNumpad(action, value);
     },
     setDate: (v: string) => {
       clearError();
+      invalidateBudgetEligibility(categoryId, v);
       form.setValue('date', v);
     },
     setNote: (v: string) => {
@@ -545,11 +573,17 @@ export function useAddTransaction(onClose: () => void) {
     setShowToPicker,
     setShowCategoryPicker,
     setShowBudgetPicker,
+    completePickerClose,
     selectAccount,
     selectToAccount,
     selectCategory,
     selectBudget,
     retryBudgetLookup,
-    handleSave: form.handleSubmit(onValid),
+    retryFormData: prerequisites?.retry ?? ignorePrerequisiteRetry,
+    handleSave: () => {
+      const amountStr = useAddTransactionStore.getState().amountStr;
+      form.setValue('amount', parseNonNegativeDecimal(amountStr) ?? Number.NaN);
+      return form.handleSubmit(onValid)();
+    },
   };
 }

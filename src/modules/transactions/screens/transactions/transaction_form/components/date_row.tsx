@@ -1,44 +1,44 @@
 // modules/transactions/screens/transactions/transaction_form/components/date_row.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { PressableFeedback } from 'heroui-native';
-import { useState } from 'react';
 import { Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
-import { formatLongDate, toLocalDateString } from '@/utils/format_date';
+import { formatLongDate } from '@/utils/format_date';
+import { ms } from '@/utils/responsive';
+
+import { DatePickerSheet } from './date_picker_sheet';
+import { useTransactionDatePicker } from './date_picker_sheet.hook';
 
 interface Props {
+  ownerId: string;
   value: string; // YYYY-MM-DD
   onChange: (next: string) => void;
 }
 
-export function DateRow({ value, onChange }: Props): React.ReactElement {
-  const [showPicker, setShowPicker] = useState(false);
-  const dateAsDate = new Date(`${value}T12:00:00`);
+export const DATE_ROW_HEIGHT = ms(54);
+
+export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement {
+  const picker = useTransactionDatePicker(ownerId, value, onChange);
   const formatted = formatLongDate(value);
-  const maximumDate = new Date();
-
-  const handlePress = () => setShowPicker(true);
-
-  const handleAndroidChange = (event: DateTimePickerEvent, d?: Date) => {
-    setShowPicker(false);
-    if (event.type === 'set' && d) onChange(toLocalDateString(d));
-  };
-
-  const handleIosChange = (_event: DateTimePickerEvent, d?: Date) => {
-    if (d) onChange(toLocalDateString(d));
-  };
 
   return (
-    <View className="mt-3">
+    <View className="mt-2">
       <PressableFeedback
         testID="date-row"
-        onPress={handlePress}
-        className="bg-default rounded-md px-3 py-3"
-        style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
+        onPress={picker.open}
+        accessibilityRole="button"
+        accessibilityLabel={`${Strings.addTxDateLabel}: ${formatted}`}
+        className="bg-default rounded-md px-3"
+        style={{
+          height: DATE_ROW_HEIGHT,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
       >
         <View>
           <Text className="font-inter text-muted text-[11px]">{Strings.addTxDateLabel}</Text>
@@ -47,26 +47,26 @@ export function DateRow({ value, onChange }: Props): React.ReactElement {
         <MaterialCommunityIcons name="calendar" size={18} color={CoreTokens.text2} />
       </PressableFeedback>
 
-      {Platform.OS === 'android' && showPicker ? (
+      {picker.state.showAndroidPicker ? (
         <DateTimePicker
           testID="date-picker-android"
-          value={dateAsDate}
+          value={picker.state.pickerDate}
           mode="date"
           display="default"
-          maximumDate={maximumDate}
-          onChange={handleAndroidChange}
+          maximumDate={picker.state.maximumDate}
+          onChange={picker.changeAndroid}
         />
       ) : null}
 
-      {Platform.OS === 'ios' && showPicker ? (
-        <DateTimePicker
-          testID="date-picker-ios"
-          value={dateAsDate}
-          mode="date"
-          display="spinner"
-          themeVariant="dark"
-          maximumDate={maximumDate}
-          onChange={handleIosChange}
+      {Platform.OS === 'ios' && picker.state.shouldRenderIos ? (
+        <DatePickerSheet
+          isOpen={picker.state.isOpen}
+          value={picker.state.pickerDate}
+          maximumDate={picker.state.maximumDate}
+          onChange={picker.changeIos}
+          onCancel={picker.cancelIos}
+          onDone={picker.commitIos}
+          onCloseComplete={picker.completeIosClose}
         />
       ) : null}
     </View>

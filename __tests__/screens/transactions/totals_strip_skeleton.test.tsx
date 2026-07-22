@@ -86,4 +86,45 @@ describe('TotalsStrip skeleton loading', () => {
       height: ms(9),
     });
   });
+
+  it('uses the same four geometry slots as loaded totals', () => {
+    const loaded = render(
+      <TotalsStrip
+        current={{ incomeEgp: 1_000, expenseEgp: 500, netEgp: 500 }}
+        previous={null}
+        previousLabel="June 2026"
+      />,
+    );
+    const loading = render(
+      <TotalsStrip current={null} previous={null} previousLabel="June 2026" isLoading />,
+    );
+
+    expect(loaded.getByTestId('transactions-totals-values-row')).toHaveStyle({
+      minHeight: ms(15),
+    });
+    expect(loaded.getByTestId('transactions-totals-progress')).toHaveStyle({
+      height: ms(3),
+    });
+    expect(loaded.getByTestId('transactions-totals-comparison-row')).toHaveStyle({
+      minHeight: ms(12),
+    });
+    expect(loaded.getByTestId('transactions-totals-caption')).toHaveStyle({
+      minHeight: ms(9),
+    });
+
+    expect(loading.getByTestId('transactions-totals-skeleton-values-row')).toBeTruthy();
+    expect(loading.getByTestId('transactions-totals-skeleton-progress')).toBeTruthy();
+    expect(loading.getByTestId('transactions-totals-skeleton-deltas-row')).toBeTruthy();
+    expect(loading.getByTestId('transactions-totals-skeleton-previous-label')).toBeTruthy();
+  });
+
+  it('reserves the caption slot even before the previous month label resolves', () => {
+    const { getByTestId } = render(
+      <TotalsStrip current={null} previous={null} previousLabel={null} isLoading />,
+    );
+
+    expect(getByTestId('transactions-totals-skeleton-previous-label')).toHaveStyle({
+      height: ms(9),
+    });
+  });
 });

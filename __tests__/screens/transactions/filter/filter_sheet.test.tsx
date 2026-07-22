@@ -71,6 +71,7 @@ jest.mock('@/modules/transactions/screens/transactions/filter/filter.hook', () =
       },
       draftCount: 2,
       canApply: true,
+      canReset: true,
       accounts: [],
       categories: [],
     },
@@ -127,8 +128,8 @@ describe('FilterSheet', () => {
     expect(FILTER_SHEET_ACTION_STYLE).toEqual({ flex: 1 });
     expect(getByText(`secondary:${Strings.filterReset}`)).toBeTruthy();
     expect(getByText(`primary:${Strings.filterApplyWithCount(2)}`)).toBeTruthy();
-    expect(getByTestId('filter-reset-action').props.style).toEqual(FILTER_SHEET_ACTION_STYLE);
-    expect(getByTestId('filter-apply-action').props.style).toEqual(FILTER_SHEET_ACTION_STYLE);
+    expect(getByTestId('filter-reset-action')).toHaveStyle(FILTER_SHEET_ACTION_STYLE);
+    expect(getByTestId('filter-apply-action')).toHaveStyle(FILTER_SHEET_ACTION_STYLE);
   });
 
   it('wires Reset and Apply actions from the footer', () => {

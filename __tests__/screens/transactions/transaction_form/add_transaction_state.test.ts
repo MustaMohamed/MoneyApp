@@ -1,20 +1,16 @@
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 
 describe('useAddTransactionState', () => {
-  beforeEach(() => {
-    useAddTransactionState.getState().reset();
-  });
+  beforeEach(() => useAddTransactionState.getState().reset());
 
-  it('initializes with all UI booleans false', () => {
-    const s = useAddTransactionState.getState();
-    expect(s).toMatchObject({
-      visible: false,
-      pendingOpen: false,
+  it('starts with only form-owned UI state', () => {
+    expect(useAddTransactionState.getState()).toMatchObject({
       saving: false,
       showAccountPicker: false,
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
+      closingPickers: [],
       budgetsLoading: false,
       budgetLookupVersion: 0,
       budgetLookupError: undefined,
@@ -23,108 +19,67 @@ describe('useAddTransactionState', () => {
     });
   });
 
-  it('open() sets visible=true', () => {
-    useAddTransactionState.getState().open();
-    expect(useAddTransactionState.getState().visible).toBe(true);
-  });
-
-  it('requestOpen() sets pendingOpen=true without showing the sheet', () => {
-    useAddTransactionState.getState().requestOpen();
-    const s = useAddTransactionState.getState();
-    expect(s.pendingOpen).toBe(true);
-    expect(s.visible).toBe(false);
-  });
-
-  it('open() consumes a pending request (visible=true, pendingOpen=false)', () => {
-    useAddTransactionState.getState().requestOpen();
-    useAddTransactionState.getState().open();
-    const s = useAddTransactionState.getState();
-    expect(s.visible).toBe(true);
-    expect(s.pendingOpen).toBe(false);
-  });
-
-  it('requestClose() hides the sheet without clearing the closing draft state', () => {
-    useAddTransactionState.getState().open();
-    useAddTransactionState.getState().setRateOverride(true);
-
-    expect(useAddTransactionState.getState().requestClose()).toBe(true);
+  it('keeps picker flags independent', () => {
+    useAddTransactionState.getState().setShowAccountPicker(true);
     expect(useAddTransactionState.getState()).toMatchObject({
-      visible: false,
-      pendingOpen: false,
-      saving: false,
-      showAccountPicker: false,
+      showAccountPicker: true,
       showToPicker: false,
       showCategoryPicker: false,
       showBudgetPicker: false,
-      rateOverride: true,
     });
   });
 
-  it('requestClose() is ignored while saving', () => {
-    useAddTransactionState.getState().open();
-    useAddTransactionState.getState().setSaving(true);
-
-    expect(useAddTransactionState.getState().requestClose()).toBe(false);
-    expect(useAddTransactionState.getState()).toMatchObject({
-      visible: true,
-      saving: true,
-    });
-  });
-
-  it('completeSave() bypasses the dismissal lock but preserves saving until the request settles', () => {
-    useAddTransactionState.getState().open();
-    useAddTransactionState.getState().setSaving(true);
+  it('retains a closing picker until its sheet transition completes', () => {
     useAddTransactionState.getState().setShowCategoryPicker(true);
-
-    useAddTransactionState.getState().completeSave();
+    useAddTransactionState.getState().setShowCategoryPicker(false);
 
     expect(useAddTransactionState.getState()).toMatchObject({
-      visible: false,
-      saving: true,
       showCategoryPicker: false,
+      closingPickers: ['category'],
     });
+
+    useAddTransactionState.getState().completePickerClose('category');
+    expect(useAddTransactionState.getState().closingPickers).toEqual([]);
   });
 
-  it('completeClose() clears retained state after the close animation', () => {
-    useAddTransactionState.getState().open();
-    useAddTransactionState.getState().setRateOverride(true);
-    useAddTransactionState.getState().requestClose();
+  it('keeps one picker mounted while a different picker opens', () => {
+    useAddTransactionState.getState().setShowCategoryPicker(true);
+    useAddTransactionState.getState().setShowCategoryPicker(false);
 
-    useAddTransactionState.getState().completeClose();
+    useAddTransactionState.getState().setShowBudgetPicker(true);
 
     expect(useAddTransactionState.getState()).toMatchObject({
-      visible: false,
-      saving: false,
-      rateOverride: false,
+      showCategoryPicker: false,
+      showBudgetPicker: true,
+      closingPickers: ['category'],
     });
-  });
-
-  it('setShowAccountPicker(true) flips only that flag', () => {
-    useAddTransactionState.getState().setShowAccountPicker(true);
-    const s = useAddTransactionState.getState();
-    expect(s.showAccountPicker).toBe(true);
-    expect(s.showToPicker).toBe(false);
-  });
-
-  it('setRateOverride toggles independently of other flags', () => {
-    useAddTransactionState.getState().setRateOverride(true);
-    expect(useAddTransactionState.getState().rateOverride).toBe(true);
-    useAddTransactionState.getState().setRateOverride(false);
-    expect(useAddTransactionState.getState().rateOverride).toBe(false);
   });
 
   it('tracks lookup and save errors and clears them for retry or edits', () => {
     useAddTransactionState.getState().setBudgetLookupError('Lookup failed');
     useAddTransactionState.getState().setErrorMessage('Save failed');
-    expect(useAddTransactionState.getState()).toMatchObject({
-      budgetLookupError: 'Lookup failed',
-      errorMessage: 'Save failed',
-    });
 
     useAddTransactionState.getState().retryBudgetLookup();
-    expect(useAddTransactionState.getState().budgetLookupVersion).toBe(1);
-    expect(useAddTransactionState.getState().budgetLookupError).toBeUndefined();
     useAddTransactionState.getState().clearError();
-    expect(useAddTransactionState.getState().errorMessage).toBeUndefined();
+
+    expect(useAddTransactionState.getState()).toMatchObject({
+      budgetLookupVersion: 1,
+      budgetLookupError: undefined,
+      errorMessage: undefined,
+    });
+  });
+
+  it('resets every form-owned flag after the host completes a session', () => {
+    useAddTransactionState.getState().setSaving(true);
+    useAddTransactionState.getState().setShowCategoryPicker(true);
+    useAddTransactionState.getState().setRateOverride(true);
+
+    useAddTransactionState.getState().reset();
+
+    expect(useAddTransactionState.getState()).toMatchObject({
+      saving: false,
+      showCategoryPicker: false,
+      rateOverride: false,
+    });
   });
 });

@@ -138,6 +138,7 @@ describe('accountStore.loadAccounts', () => {
     expect(store.getState().accounts).toBe(EMPTY_ACCOUNTS);
     expect(store.getState().accountLookup).toBe(EMPTY_ACCOUNT_LOOKUP);
     expect(store.getState().hasLoaded).toBe(false);
+    expect(store.getState().loadError).toBe(false);
   });
 
   it('calls repo.getAll and sets accounts in state', async () => {
@@ -153,6 +154,26 @@ describe('accountStore.loadAccounts', () => {
     const repo = makeRepo({ getAll: jest.fn().mockRejectedValue(new Error('db error')) });
     const store = createAccountStore(repo);
     await expect(store.getState().loadAccounts()).rejects.toThrow('db error');
+    expect(store.getState().loadError).toBe(true);
+  });
+
+  it('clears a previous load error when retry succeeds', async () => {
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockRejectedValueOnce(new Error('db error'))
+        .mockResolvedValueOnce([mockAccount]),
+    });
+    const store = createAccountStore(repo);
+
+    await expect(store.getState().loadAccounts()).rejects.toThrow('db error');
+    await store.getState().loadAccounts();
+
+    expect(store.getState()).toMatchObject({
+      accounts: [mockAccount],
+      hasLoaded: true,
+      loadError: false,
+    });
   });
 
   it('does not let an older load overwrite a newer load result', async () => {

@@ -3,72 +3,26 @@ import { useCallback, useEffect, useMemo } from 'react';
 import { Alert } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
-import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
-import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
-import { formatTime12h } from '@/utils/format_time_12h';
-import { formatTransactionTitle } from '@/utils/format_transaction_title';
 
-import type { BadgeTone } from './components/detail_row';
-import { getAccountTypeIcon, getCommitmentPaymentRoute } from './detail.helpers';
+import { buildTransactionDetailPresentation, getCommitmentPaymentRoute } from './detail.helpers';
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
 
-const numberFmt = new Intl.NumberFormat('en-US', { style: 'decimal' });
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
 export type DetailViewState = 'loading' | 'notFound' | 'error' | 'ready';
 
-const ACCOUNT_TYPE_LABELS: Record<string, string> = {
-  bank: Strings.typeBank,
-  smart_wallet: Strings.typeSmartWallet,
-  physical_wallet: Strings.typePhysicalWallet,
-  physical_savings: Strings.typePhysicalSavings,
-  credit_card: Strings.typeCreditCard,
-};
-
-const TYPE_BADGE: Record<TransactionType, string> = {
-  [TransactionType.Expense]: Strings.typeBadgeExpense,
-  [TransactionType.Income]: Strings.typeBadgeIncome,
-  [TransactionType.Transfer]: Strings.typeBadgeTransfer,
-  [TransactionType.CCPayment]: Strings.typeBadgeCcPayment,
-};
-
-/**
- * Maps each transaction type to its §7 four-type colour tone. Drives the
- * category row's badge tint (Expense=red, Income=green, Transfer=blue,
- * CCPayment=purple) so the detail screen tells the same colour story as
- * the list rows and the Add Transaction form.
- */
-const TYPE_BADGE_TONE: Record<TransactionType, BadgeTone> = {
-  [TransactionType.Expense]: 'danger',
-  [TransactionType.Income]: 'success',
-  [TransactionType.Transfer]: 'info',
-  [TransactionType.CCPayment]: 'accent-cc',
-};
-
-function formatLongDate(ymd: string): string {
-  const [y, m, d] = ymd.split('-').map(Number);
-  return `${MONTHS[m - 1]} ${d}, ${y}`;
-}
-
-function signedAmount(tx: Transaction): string {
-  const num = numberFmt.format(tx.egp_amount);
-  if (tx.type === TransactionType.Expense) return `−${num} EGP`;
-  if (tx.type === TransactionType.Income) return `+${num} EGP`;
-  return `${num} EGP`;
-}
-
 export function useTransactionDetail(id: string) {
-  const { tx, txId } = useTxDetailStore(
-    useShallow((state) => ({ tx: state.tx, txId: state.txId })),
+  const { tx, txId, budget } = useTxDetailStore(
+    useShallow((state) => ({ tx: state.tx, txId: state.txId, budget: state.budget })),
   );
   const setTx = useTxDetailStore.getState().setTx;
+  const setBudget = useTxDetailStore.getState().setBudget;
   const clearForId = useTxDetailStore.getState().clearForId;
   const resetData = useTxDetailStore.getState().reset;
   const { activeId, status, revalidating, refreshError, confirmVisible, deleting, reloadKey } =
@@ -100,6 +54,10 @@ export function useTransactionDetail(id: string) {
   );
   const loadAccountLookup = useAccountStore.getState().loadAccountLookup;
   const categories = useCategoryStore.useState.categories();
+  const loadingTransactionHint = useMemo(
+    () => useTransactionStore.getState().transactions.find((transaction) => transaction.id === id),
+    [id],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -117,6 +75,32 @@ export function useTransactionDetail(id: string) {
         }
         setTx(id, transaction);
         resolve(id);
+
+        const accountIds = transaction.to_account_id
+          ? [transaction.account_id, transaction.to_account_id]
+          : [transaction.account_id];
+        try {
+          void Promise.resolve(loadAccountLookup(accountIds)).catch((error) => {
+            console.error('[transactionDetail] account lookup failed', error);
+          });
+        } catch (error) {
+          console.error('[transactionDetail] account lookup failed', error);
+        }
+
+        if (transaction.budget_id) {
+          const budgetId = transaction.budget_id;
+          try {
+            void Promise.resolve(budgetRepository.getById(budgetId))
+              .then((resolvedBudget) => {
+                if (!cancelled) setBudget(id, budgetId, resolvedBudget);
+              })
+              .catch((error) => {
+                console.error('[transactionDetail] budget lookup failed', error);
+              });
+          } catch (error) {
+            console.error('[transactionDetail] budget lookup failed', error);
+          }
+        }
       })
       .catch((e) => {
         console.error('[transactionDetail] getById failed', e);
@@ -125,20 +109,23 @@ export function useTransactionDetail(id: string) {
     return () => {
       cancelled = true;
     };
-  }, [beginLoad, clearForId, failLoad, getById, id, reloadKey, resolve, resolveNotFound, setTx]);
+  }, [
+    beginLoad,
+    clearForId,
+    failLoad,
+    getById,
+    id,
+    loadAccountLookup,
+    reloadKey,
+    resolve,
+    resolveNotFound,
+    setBudget,
+    setTx,
+  ]);
 
   const ownsRoute = txId === id;
   const currentTx = ownsRoute ? tx : null;
   const currentStatus = activeId === id ? status : 'initialLoading';
-
-  useEffect(() => {
-    const ids = currentTx
-      ? currentTx.to_account_id
-        ? [currentTx.account_id, currentTx.to_account_id]
-        : [currentTx.account_id]
-      : [];
-    void loadAccountLookup(ids).catch(() => {});
-  }, [currentTx, loadAccountLookup]);
 
   useEffect(() => {
     return () => {
@@ -171,61 +158,14 @@ export function useTransactionDetail(id: string) {
       ? accountsById.get(currentTx.to_account_id)
       : undefined;
     const category = currentTx.category_id ? categoriesById.get(currentTx.category_id) : undefined;
-    const { title } = formatTransactionTitle({
+    return buildTransactionDetailPresentation({
       tx: currentTx,
       account,
       toAccount,
       category,
+      budget,
     });
-
-    const time = formatTime12h(currentTx.transaction_time);
-    const dateLong = formatLongDate(currentTx.transaction_date);
-
-    return {
-      title,
-      amountText: signedAmount(currentTx),
-      dateTimeText: `${dateLong} · ${time}`,
-      categoryLabel:
-        category?.name ??
-        (currentTx.type === TransactionType.Transfer || currentTx.type === TransactionType.CCPayment
-          ? TYPE_BADGE[currentTx.type]
-          : Strings.uncategorized),
-      categoryBadge: TYPE_BADGE[currentTx.type],
-      categoryBadgeTone: TYPE_BADGE_TONE[currentTx.type],
-      accountLabel: toAccount
-        ? `${account?.name ?? Strings.unknownAccount} → ${toAccount.name}`
-        : (account?.name ?? Strings.unknownAccount),
-      accountTypeLabel: account ? ACCOUNT_TYPE_LABELS[account.type] : undefined,
-      accountIcon: getAccountTypeIcon(account?.type),
-      originalAmountText:
-        currentTx.currency === Currency.USD
-          ? `${numberFmt.format(currentTx.amount)} USD`
-          : undefined,
-      exchangeRateText:
-        currentTx.exchange_rate !== null
-          ? `1 USD = ${numberFmt.format(currentTx.exchange_rate)} EGP`
-          : undefined,
-      // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string falls back to the 'No note' label
-      noteText: currentTx.note?.trim() || Strings.detailNoteEmpty,
-      category,
-      isTransferLike:
-        currentTx.type === TransactionType.Transfer || currentTx.type === TransactionType.CCPayment,
-      transferFlow:
-        (currentTx.type === TransactionType.Transfer ||
-          currentTx.type === TransactionType.CCPayment) &&
-        account &&
-        toAccount
-          ? {
-              fromAccount: account,
-              toAccount,
-              fromAmount: currentTx.amount,
-              fromCurrency: currentTx.currency,
-              toAmount: currentTx.to_amount ?? currentTx.egp_amount,
-              toCurrency: toAccount.currency,
-            }
-          : null,
-    };
-  }, [accountsById, categoriesById, currentTx]);
+  }, [accountsById, budget, categoriesById, currentTx]);
 
   const openDeleteConfirm = useCallback(() => {
     if (!isCommitmentOwned) setConfirmVisible(true);
@@ -271,6 +211,7 @@ export function useTransactionDetail(id: string) {
   return {
     state: {
       viewState,
+      loadingTransactionHint,
       tx: currentTx,
       derived,
       revalidating: activeId === id && revalidating,

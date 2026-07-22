@@ -1,5 +1,6 @@
 import { Strings } from '@/constants/strings';
 import type { TransactionListFilters } from '@/modules/transactions/store/transaction.store';
+import { parseNonNegativeDecimal } from '@/utils/parse_decimal';
 
 import type { AdvancedFilters } from './filter.store';
 
@@ -26,10 +27,42 @@ export function toQueryFilters(applied: AdvancedFilters): Partial<TransactionLis
 export function parseAmountInput(s: string): number | undefined {
   const trimmed = s.trim();
   if (!trimmed) return undefined;
-  const cleaned = trimmed.replace(/,/g, '');
-  const n = parseFloat(cleaned);
-  if (!Number.isFinite(n) || n < 0) return undefined;
-  return n;
+  return parseNonNegativeDecimal(trimmed);
+}
+
+export interface AmountRangeValidation {
+  isValid: boolean;
+  min: number | undefined;
+  max: number | undefined;
+  minError: string | undefined;
+  maxError: string | undefined;
+  rangeError: string | undefined;
+}
+
+export function validateAmountRange(minText: string, maxText: string): AmountRangeValidation {
+  const normalizedMin = minText.trim();
+  const normalizedMax = maxText.trim();
+  const min = parseAmountInput(normalizedMin);
+  const max = parseAmountInput(normalizedMax);
+  const minError = normalizedMin && min === undefined ? Strings.filterAmountInvalid : undefined;
+  const maxError = normalizedMax && max === undefined ? Strings.filterAmountInvalid : undefined;
+  const rangeError =
+    minError === undefined &&
+    maxError === undefined &&
+    min !== undefined &&
+    max !== undefined &&
+    min > max
+      ? Strings.filterAmountRangeInvalid
+      : undefined;
+
+  return {
+    isValid: minError === undefined && maxError === undefined && rangeError === undefined,
+    min,
+    max,
+    minError,
+    maxError,
+    rangeError,
+  };
 }
 
 export function formatSelectionSummary(names: string[], allLabel: string): string {

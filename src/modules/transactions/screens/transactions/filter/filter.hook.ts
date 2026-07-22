@@ -12,6 +12,7 @@ import {
   countActiveFilters,
   formatAmountSummary,
   formatSelectionSummary,
+  validateAmountRange,
 } from './filter.helpers';
 import { useFilterState } from './filter.state';
 import { useFilterStore } from './filter.store';
@@ -53,13 +54,18 @@ export function useFilterSheet() {
     }
   }, [visible, appliedFilters, setDraft]);
 
+  const amountValidation = validateAmountRange(amountMinText, amountMaxText);
+
   const applyDraft = useCallback(() => {
+    if (!amountValidation.isValid) return;
     setAppliedFilters(draft);
     close();
-  }, [draft, setAppliedFilters, close]);
+  }, [amountValidation.isValid, close, draft, setAppliedFilters]);
 
   const draftCount = countActiveFilters(draft);
-  const canApply = !advancedFiltersEqual(draft, appliedFilters);
+  const hasAmountText = amountMinText.trim().length > 0 || amountMaxText.trim().length > 0;
+  const canApply = amountValidation.isValid && !advancedFiltersEqual(draft, appliedFilters);
+  const canReset = draftCount > 0 || hasAmountText;
   const accountSummary = formatSelectionSummary(
     accounts
       .filter((account) => draft.accountIds.includes(account.id))
@@ -72,8 +78,10 @@ export function useFilterSheet() {
       .map((category) => category.name),
     Strings.filterSummaryCategoriesEmpty,
   );
-  const amountActive = draft.amountMin !== undefined || draft.amountMax !== undefined;
-  const amountSummary = formatAmountSummary(draft);
+  const amountActive = hasAmountText;
+  const amountSummary = amountValidation.isValid
+    ? formatAmountSummary(draft)
+    : Strings.filterSummaryAmountInvalid;
 
   return {
     state: {
@@ -90,6 +98,10 @@ export function useFilterSheet() {
       amountSummary,
       amountMinText,
       amountMaxText,
+      amountMinError: amountValidation.minError,
+      amountMaxError: amountValidation.maxError,
+      amountRangeError: amountValidation.rangeError,
+      canReset,
     },
     close,
     toggleSection,

@@ -3,8 +3,12 @@ import React from 'react';
 import { View } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
+import { AccountType } from '@/constants/enums';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import { TransactionRow } from '@/modules/transactions/screens/transactions/components/transaction_row';
+import { TRANSACTION_ROW_HEIGHT } from '@/modules/transactions/screens/transactions/components/transaction_row.helpers';
+import { ms } from '@/utils/responsive';
 
 interface MockSwipeableRowProps {
   actions: unknown[];
@@ -88,5 +92,97 @@ describe('TransactionRow ownership actions', () => {
     );
 
     expect(mockSwipeableRow.mock.calls[0][0].actions).toHaveLength(2);
+  });
+
+  it('uses stable icon, content, and value tracks for long row content', () => {
+    const source: Account = {
+      id: 'account',
+      name: 'A very long source account name that must truncate',
+      type: AccountType.Bank,
+      currency: Currency.USD,
+      opening_balance: 0,
+      current_balance: 0,
+      color: null,
+      credit_limit: null,
+      revolving_balance: null,
+      minimum_payment: null,
+      statement_due_day: null,
+      interest_tracking: 0,
+      apr: null,
+      is_archived: 0,
+      balance_review_required: 0,
+      sort_order: 0,
+      created_at: '2026-07-19T12:00:00.000Z',
+      updated_at: '2026-07-19T12:00:00.000Z',
+    };
+    const screen = render(
+      <TransactionRow
+        tx={transaction(null)}
+        account={source}
+        onPress={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('transaction-row')).toHaveStyle({ height: TRANSACTION_ROW_HEIGHT });
+    expect(screen.getByTestId('transaction-row-icon-track')).toHaveStyle({
+      width: ms(36),
+      height: ms(36),
+    });
+    expect(screen.getByTestId('transaction-row-content-track')).toHaveStyle({
+      flex: 1,
+      minWidth: 0,
+    });
+    expect(screen.getByTestId('transaction-row-value-track')).toHaveStyle({ width: ms(120) });
+    expect(screen.getByTestId('transaction-row-note-track')).toBeTruthy();
+    expect(screen.getByTestId('transaction-row-secondary-amount-track')).toBeTruthy();
+    expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
+  });
+
+  it('renders the destination native amount for transfers', () => {
+    const source = {
+      id: 'account',
+      name: 'USD wallet',
+      type: AccountType.Bank,
+      currency: Currency.USD,
+      opening_balance: 0,
+      current_balance: 0,
+      color: null,
+      credit_limit: null,
+      revolving_balance: null,
+      minimum_payment: null,
+      statement_due_day: null,
+      interest_tracking: 0 as const,
+      apr: null,
+      is_archived: 0 as const,
+      balance_review_required: 0 as const,
+      sort_order: 0,
+      created_at: '2026-07-19T12:00:00.000Z',
+      updated_at: '2026-07-19T12:00:00.000Z',
+    };
+    const destination = { ...source, id: 'destination', name: 'CIB', currency: Currency.EGP };
+    const transfer = transaction(null);
+    transfer.type = TransactionType.Transfer;
+    transfer.currency = Currency.USD;
+    transfer.amount = 100;
+    transfer.egp_amount = 4_850;
+    transfer.to_amount = 4_850;
+    transfer.to_account_id = destination.id;
+    transfer.category_id = null;
+
+    const { getByText } = render(
+      <TransactionRow
+        tx={transfer}
+        account={source}
+        toAccount={destination}
+        onPress={jest.fn()}
+        onEdit={jest.fn()}
+        onDelete={jest.fn()}
+      />,
+    );
+
+    expect(getByText('100 USD')).toBeTruthy();
+    expect(getByText('→ 4,850 EGP')).toBeTruthy();
   });
 });

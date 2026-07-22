@@ -12,6 +12,7 @@ import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import { useAddTransaction } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook';
 import { useAddTransactionState } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.state';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/store/transaction.store';
 
 const mockAccountEGP: Account = {
@@ -89,8 +90,14 @@ const mockBudget = (id: string, name: string): Budget => ({
   updated_at: 'now',
 });
 
+const originalLoadAccounts = useAccountStore.getState().loadAccounts;
+const originalLoadCategories = useCategoryStore.getState().loadCategories;
+
 beforeEach(() => {
   jest.restoreAllMocks();
+  useTransactionFormState.getState().reset();
+  useAccountStore.setState({ loadAccounts: originalLoadAccounts });
+  useCategoryStore.setState({ loadCategories: originalLoadCategories });
   jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([]);
   useAccountStore.getState().reset();
   useAccountStore.setState({
@@ -99,6 +106,8 @@ beforeEach(() => {
   });
   useCategoryStore.setState({
     categories: [mockCategoryExpense, mockCategoryIncome],
+    hasLoaded: true,
+    loadError: false,
     loading: false,
     error: undefined,
   } as any);
@@ -111,6 +120,38 @@ beforeEach(() => {
 });
 
 describe('useAddTransaction — named budget assignment', () => {
+  it('uses an injected prerequisite controller without starting its legacy loader', () => {
+    const loadAccounts = jest.fn();
+    const loadCategories = jest.fn();
+    const retry = jest.fn();
+    useAccountStore.setState({ loadAccounts });
+    useCategoryStore.setState({ loadCategories });
+
+    const { result } = renderHook(() => useAddTransaction(jest.fn(), { status: 'ready', retry }));
+
+    expect(result.current.state.formDataReady).toBe(true);
+    expect(loadAccounts).not.toHaveBeenCalled();
+    expect(loadCategories).not.toHaveBeenCalled();
+
+    act(() => result.current.retryFormData());
+    expect(retry).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not republish the full form hook for ordinary amount typing', async () => {
+    let renderCount = 0;
+    const { result } = renderHook(() => {
+      renderCount += 1;
+      return useAddTransaction(jest.fn());
+    });
+    await waitFor(() => expect(result.current.state.formDataReady).toBe(true));
+    const beforeTyping = renderCount;
+
+    act(() => result.current.setAmountStr('125'));
+
+    expect(useAddTransactionStore.getState().amountStr).toBe('125');
+    expect(renderCount).toBe(beforeTyping);
+  });
+
   it('does not save while matching budgets are still loading', async () => {
     let resolveBudgets: (budgets: Budget[]) => void = () => {};
     const pendingBudgets = new Promise<Budget[]>((resolve) => {
@@ -125,13 +166,31 @@ describe('useAddTransaction — named budget assignment', () => {
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
     expect(result.current.state.showBudgetField).toBe(true);
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());
 
     expect(addTx).not.toHaveBeenCalled();
     await act(async () => resolveBudgets([]));
     expect(result.current.state.showBudgetField).toBe(false);
+  });
+
+  it('blocks an immediate save until the selected category budget is resolved', async () => {
+    const pendingBudgets = new Promise<Budget[]>(() => {});
+    jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
+    const addTx = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    const { result } = renderHook(() => useAddTransaction(jest.fn()));
+
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.setAmountStr('5'));
+    await act(async () => {
+      result.current.selectCategory(mockCategoryExpense);
+      await result.current.handleSave();
+    });
+
+    expect(addTx).not.toHaveBeenCalled();
+    expect(useAddTransactionState.getState().budgetsLoading).toBe(true);
   });
 
   it('blocks save and exposes retry when the budget lookup fails', async () => {
@@ -148,7 +207,7 @@ describe('useAddTransaction — named budget assignment', () => {
     await waitFor(() => expect(result.current.state.errors.budget).toBeDefined());
 
     expect(result.current.state.showBudgetField).toBe(true);
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());
     expect(addTx).not.toHaveBeenCalled();
@@ -218,7 +277,7 @@ describe('useAddTransaction — named budget assignment', () => {
     act(() => result.current.setDate('2026-07-10'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());
 
@@ -236,7 +295,7 @@ describe('useAddTransaction — named budget assignment', () => {
     act(() => result.current.setDate('2026-07-10'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(2));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => result.current.handleSave());
 
@@ -250,7 +309,7 @@ describe('useAddTransaction — validation', () => {
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountUSD));
     act(() => result.current.selectCategory(mockCategoryExpense));
     act(() => result.current.setExchangeRate('50abc'));
@@ -274,7 +333,7 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.typeLabel).toBe('Card credit');
     expect(result.current.state.visibleCategories).toEqual([mockCategoryExpense]);
 
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('credit-budget'));
     await act(async () => result.current.handleSave());
@@ -294,7 +353,7 @@ describe('useAddTransaction — validation', () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Income));
     act(() => result.current.selectAccount(mockAccountCC));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectCategory(mockCategoryIncome));
 
     await act(async () => result.current.handleSave());
@@ -312,7 +371,7 @@ describe('useAddTransaction — validation', () => {
     const { result } = renderHook(() => useAddTransaction(onClose));
     act(() => result.current.setType(TransactionType.Income));
     act(() => result.current.selectAccount(mockAccountCC));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
@@ -331,7 +390,7 @@ describe('useAddTransaction — validation', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(onClose));
 
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
@@ -340,13 +399,32 @@ describe('useAddTransaction — validation', () => {
     expect(result.current.state.errorMessage).toBe(
       'Could not save this transaction. Please try again.',
     );
-    expect(result.current.state.amountStr).toBe('5');
+    expect(useAddTransactionStore.getState().amountStr).toBe('5');
     expect(result.current.state.categoryId).toBe('c1');
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('completes a committed save even when account revalidation fails', async () => {
+    const addTx = jest.fn().mockResolvedValue(undefined);
+    const loadAccounts = jest.fn().mockRejectedValue(new Error('refresh failed'));
+    const onSaved = jest.fn();
+    useTransactionStore.setState({ addTransaction: addTx } as any);
+    useAccountStore.setState({ loadAccounts });
+    const { result } = renderHook(() => useAddTransaction(onSaved));
+
+    act(() => result.current.setAmountStr('5'));
+    act(() => result.current.selectAccount(mockAccountEGP));
+    act(() => result.current.selectCategory(mockCategoryExpense));
+    await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
+    await act(async () => result.current.handleSave());
+
+    expect(addTx).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(1);
+    expect(result.current.state.errorMessage).toBeUndefined();
+  });
+
   it('preserves entered values while the sheet close animation is running', async () => {
-    useAddTransactionState.getState().open();
+    useTransactionFormState.getState().openAdd();
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
 
     act(() => result.current.selectAccount(mockAccountEGP));
@@ -355,7 +433,7 @@ describe('useAddTransaction — validation', () => {
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
     act(() => {
-      useAddTransactionState.getState().requestClose();
+      useTransactionFormState.getState().requestClose();
     });
 
     expect(result.current.state.accountId).toBe(mockAccountEGP.id);
@@ -375,7 +453,7 @@ describe('useAddTransaction — validation', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(onSaved));
 
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
@@ -410,8 +488,7 @@ describe('useAddTransaction — validation', () => {
 
   it('rejects expense without an account', async () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
-    act(() => result.current.handleNumpad('digit', '5'));
-    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.setAmountStr('50'));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
       await result.current.handleSave();
@@ -421,7 +498,7 @@ describe('useAddTransaction — validation', () => {
 
   it('rejects expense without a category', async () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     await act(async () => {
       await result.current.handleSave();
@@ -432,7 +509,7 @@ describe('useAddTransaction — validation', () => {
   it('rejects transfer with same from/to', async () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectToAccount(mockAccountEGP));
     await act(async () => {
@@ -444,7 +521,7 @@ describe('useAddTransaction — validation', () => {
   it('rejects transfer with CC source', async () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountCC));
     act(() => result.current.selectToAccount(mockAccountEGP));
     await act(async () => {
@@ -456,7 +533,7 @@ describe('useAddTransaction — validation', () => {
   it('rejects CC payment with CC source (must be a non-CC asset)', async () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountCC));
     act(() => result.current.selectToAccount(mockAccountCC2));
     await act(async () => {
@@ -468,7 +545,7 @@ describe('useAddTransaction — validation', () => {
   it('rejects CC payment with non-CC target', async () => {
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectToAccount(mockAccountUSD));
     await act(async () => {
@@ -483,8 +560,7 @@ describe('useAddTransaction — cross-currency math', () => {
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
-    act(() => result.current.handleNumpad('digit', '1'));
-    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.setAmountStr('10'));
     act(() => result.current.selectAccount(mockAccountUSD));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
@@ -505,9 +581,7 @@ describe('useAddTransaction — cross-currency math', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
-    act(() => result.current.handleNumpad('digit', '1'));
-    act(() => result.current.handleNumpad('digit', '0'));
-    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.setAmountStr('100'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectToAccount(mockAccountUSD));
     await act(async () => {
@@ -528,7 +602,7 @@ describe('useAddTransaction — cross-currency math', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountUSD));
     act(() => result.current.selectToAccount(mockAccountEGP));
     await act(async () => {
@@ -553,7 +627,7 @@ describe('useAddTransaction — cross-currency math', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.Transfer));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountUSD));
     act(() => result.current.selectToAccount(mockAccountUSD2));
     await act(async () => {
@@ -574,8 +648,7 @@ describe('useAddTransaction — cross-currency math', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
-    act(() => result.current.handleNumpad('digit', '2'));
-    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.setAmountStr('20'));
     act(() => result.current.selectAccount(mockAccountUSD));
     act(() => result.current.selectToAccount(mockAccountCC));
     await act(async () => {
@@ -596,9 +669,7 @@ describe('useAddTransaction — cross-currency math', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     act(() => result.current.setType(TransactionType.CCPayment));
-    act(() => result.current.handleNumpad('digit', '5'));
-    act(() => result.current.handleNumpad('digit', '0'));
-    act(() => result.current.handleNumpad('digit', '0'));
+    act(() => result.current.setAmountStr('500'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectToAccount(mockAccountCCUSD));
     await act(async () => {
@@ -631,7 +702,7 @@ describe('useAddTransaction — rounding', () => {
     const addTx = jest.fn();
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
-    act(() => result.current.handleNumpad('digit', '1'));
+    act(() => result.current.setAmountStr('1'));
     act(() => result.current.selectAccount(mockAccountUSD));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {
@@ -656,7 +727,7 @@ describe('useAddTransaction — auto-now time', () => {
     useTransactionStore.setState({ addTransaction: addTx } as any);
     const { result } = renderHook(() => useAddTransaction(jest.fn()));
     jest.setSystemTime(new Date(2026, 6, 1, 9, 5, 30));
-    act(() => result.current.handleNumpad('digit', '5'));
+    act(() => result.current.setAmountStr('5'));
     act(() => result.current.selectAccount(mockAccountEGP));
     act(() => result.current.selectCategory(mockCategoryExpense));
     await act(async () => {

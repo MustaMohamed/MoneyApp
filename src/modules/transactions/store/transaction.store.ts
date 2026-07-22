@@ -128,6 +128,14 @@ export function createTransactionStore(repo: ITransactionRepository) {
         }));
       }
 
+      function refreshAfterMutation(label: string) {
+        void get()
+          .refresh()
+          .catch((error) =>
+            console.error(`[transactionStore] post-${label} refresh failed:`, error),
+          );
+      }
+
       return {
         ...INITIAL_STATE,
 
@@ -183,9 +191,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
         addTransaction: async (data) => {
           const tx = await repo.add(data);
           bumpMutationVersion();
-          await get()
-            .refresh()
-            .catch((err) => console.error('[transactionStore] post-add refresh failed:', err));
+          refreshAfterMutation('add');
           return tx;
         },
 
@@ -200,9 +206,7 @@ export function createTransactionStore(repo: ITransactionRepository) {
         updateTransaction: async (id, data) => {
           await repo.update(id, data);
           bumpMutationVersion();
-          await get()
-            .refresh()
-            .catch((err) => console.error('[transactionStore] post-update refresh failed:', err));
+          refreshAfterMutation('update');
         },
 
         reset: () => {

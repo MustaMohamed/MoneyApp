@@ -195,11 +195,11 @@ export function SegmentedTabs<T extends string>({
           // HeroUI's tv() applies text-segment-foreground/text-muted via
           // TriggerContext.isSelected — the style prop wins over className in RN.
           numberOfLines={1}
-          adjustsFontSizeToFit={segmentWidth != null}
+          adjustsFontSizeToFit={isCompact || segmentWidth != null}
           minimumFontScale={0.85}
           className={isCompact ? (isSelected ? 'text-[11px] font-bold' : 'text-[11px]') : undefined}
           style={[
-            segmentWidth != null ? { flexShrink: 1 } : undefined,
+            isCompact || segmentWidth != null ? { flexShrink: 1 } : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,
           ]}
         >
