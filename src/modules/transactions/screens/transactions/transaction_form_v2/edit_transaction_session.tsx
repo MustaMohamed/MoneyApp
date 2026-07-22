@@ -92,27 +92,23 @@ export function EditTransactionV2Session(props: EditTransactionV2SessionProps): 
         <TransactionFormLoading />
       )}
 
-      {hook.state.showCategoryPicker || hook.state.closingPickers.includes('category') ? (
-        <CategoryPickerSheet
-          isOpen={hook.state.showCategoryPicker}
-          title={Strings.addTxPickCategoryTitle}
-          categories={hook.state.visibleCategories}
-          selectedId={hook.state.categoryId}
-          onSelect={hook.selectCategory}
-          onOpenChange={hook.setShowCategoryPicker}
-          onCloseComplete={() => hook.completePickerClose('category')}
-        />
-      ) : null}
-      {hook.state.showBudgetPicker || hook.state.closingPickers.includes('budget') ? (
-        <BudgetPickerSheet
-          isOpen={hook.state.showBudgetPicker}
-          budgets={hook.state.availableBudgets}
-          selectedId={hook.state.budgetId || undefined}
-          onSelect={hook.selectBudget}
-          onOpenChange={hook.setShowBudgetPicker}
-          onCloseComplete={() => hook.completePickerClose('budget')}
-        />
-      ) : null}
+      <CategoryPickerSheet
+        isOpen={hook.state.showCategoryPicker}
+        title={Strings.addTxPickCategoryTitle}
+        categories={hook.state.visibleCategories}
+        selectedId={hook.state.categoryId}
+        onSelect={hook.selectCategory}
+        onOpenChange={hook.setShowCategoryPicker}
+        onCloseComplete={() => hook.completePickerClose('category')}
+      />
+      <BudgetPickerSheet
+        isOpen={hook.state.showBudgetPicker}
+        budgets={hook.state.availableBudgets}
+        selectedId={hook.state.budgetId || undefined}
+        onSelect={hook.selectBudget}
+        onOpenChange={hook.setShowBudgetPicker}
+        onCloseComplete={() => hook.completePickerClose('budget')}
+      />
     </>
   );
 }

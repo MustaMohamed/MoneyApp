@@ -93,52 +93,44 @@ export function AddTransactionV2Session(props: AddTransactionV2SessionProps): Re
         <TransactionFormLoading />
       )}
 
-      {hook.state.showAccountPicker || hook.state.closingPickers.includes('account') ? (
-        <AccountPickerSheet
-          isOpen={hook.state.showAccountPicker}
-          title={
-            hook.state.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle
-          }
-          accounts={hook.state.accountsForFrom}
-          selectedId={hook.state.accountId}
-          onSelect={hook.selectAccount}
-          onOpenChange={hook.setShowAccountPicker}
-          onCloseComplete={() => hook.completePickerClose('account')}
-        />
-      ) : null}
-      {hook.state.showToPicker || hook.state.closingPickers.includes('toAccount') ? (
-        <AccountPickerSheet
-          isOpen={hook.state.showToPicker}
-          title={Strings.addTxPickToTitle}
-          accounts={hook.state.accountsForTo}
-          selectedId={hook.state.toAccountId}
-          excludeId={hook.state.accountId}
-          onSelect={hook.selectToAccount}
-          onOpenChange={hook.setShowToPicker}
-          onCloseComplete={() => hook.completePickerClose('toAccount')}
-        />
-      ) : null}
-      {hook.state.showCategoryPicker || hook.state.closingPickers.includes('category') ? (
-        <CategoryPickerSheet
-          isOpen={hook.state.showCategoryPicker}
-          title={Strings.addTxPickCategoryTitle}
-          categories={hook.state.visibleCategories}
-          selectedId={hook.state.categoryId}
-          onSelect={hook.selectCategory}
-          onOpenChange={hook.setShowCategoryPicker}
-          onCloseComplete={() => hook.completePickerClose('category')}
-        />
-      ) : null}
-      {hook.state.showBudgetPicker || hook.state.closingPickers.includes('budget') ? (
-        <BudgetPickerSheet
-          isOpen={hook.state.showBudgetPicker}
-          budgets={hook.state.availableBudgets}
-          selectedId={hook.state.budgetId || undefined}
-          onSelect={hook.selectBudget}
-          onOpenChange={hook.setShowBudgetPicker}
-          onCloseComplete={() => hook.completePickerClose('budget')}
-        />
-      ) : null}
+      <AccountPickerSheet
+        isOpen={hook.state.showAccountPicker}
+        title={
+          hook.state.isTransferOrCC ? Strings.addTxPickFromTitle : Strings.addTxPickAccountTitle
+        }
+        accounts={hook.state.accountsForFrom}
+        selectedId={hook.state.accountId}
+        onSelect={hook.selectAccount}
+        onOpenChange={hook.setShowAccountPicker}
+        onCloseComplete={() => hook.completePickerClose('account')}
+      />
+      <AccountPickerSheet
+        isOpen={hook.state.showToPicker}
+        title={Strings.addTxPickToTitle}
+        accounts={hook.state.accountsForTo}
+        selectedId={hook.state.toAccountId}
+        excludeId={hook.state.accountId}
+        onSelect={hook.selectToAccount}
+        onOpenChange={hook.setShowToPicker}
+        onCloseComplete={() => hook.completePickerClose('toAccount')}
+      />
+      <CategoryPickerSheet
+        isOpen={hook.state.showCategoryPicker}
+        title={Strings.addTxPickCategoryTitle}
+        categories={hook.state.visibleCategories}
+        selectedId={hook.state.categoryId}
+        onSelect={hook.selectCategory}
+        onOpenChange={hook.setShowCategoryPicker}
+        onCloseComplete={() => hook.completePickerClose('category')}
+      />
+      <BudgetPickerSheet
+        isOpen={hook.state.showBudgetPicker}
+        budgets={hook.state.availableBudgets}
+        selectedId={hook.state.budgetId || undefined}
+        onSelect={hook.selectBudget}
+        onOpenChange={hook.setShowBudgetPicker}
+        onCloseComplete={() => hook.completePickerClose('budget')}
+      />
     </>
   );
 }

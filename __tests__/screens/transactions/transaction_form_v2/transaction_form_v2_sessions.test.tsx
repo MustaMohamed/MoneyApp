@@ -220,7 +220,15 @@ describe('Transaction Form V2 sessions', () => {
     expect(mockRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the ready Add form and owned nested pickers', () => {
+  it('mounts Add pickers closed so the first press can open an existing HeroUI sheet', () => {
+    const screen = renderAdd({ formDataReady: true });
+
+    expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
+    expect(screen.getByTestId('category-picker')).toBeTruthy();
+    expect(screen.getByTestId('budget-picker')).toBeTruthy();
+  });
+
+  it('renders the ready Add form and keeps its nested pickers mounted', () => {
     const screen = renderAdd({
       formDataReady: true,
       showAccountPicker: true,
@@ -228,7 +236,7 @@ describe('Transaction Form V2 sessions', () => {
     });
 
     expect(screen.getByTestId('transaction-form-body')).toBeTruthy();
-    expect(screen.getByTestId('account-picker')).toBeTruthy();
+    expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
     expect(screen.getByTestId('category-picker')).toBeTruthy();
   });
 
@@ -275,5 +283,23 @@ describe('Transaction Form V2 sessions', () => {
     )?.[1] as (() => Promise<void>) | undefined;
     await registeredSubmit?.();
     expect(mockHandleSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('mounts Edit pickers closed so the first press can open an existing HeroUI sheet', () => {
+    useTransactionFormV2State.getState().openEdit(tx);
+    mockUseEditTransaction.mockReturnValue(createHookState({ formDataReady: true }));
+
+    const screen = render(
+      <EditTransactionV2Session
+        sessionId={2}
+        tx={tx}
+        onRegisterSubmit={jest.fn()}
+        onClose={jest.fn()}
+        onSaved={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('category-picker')).toBeTruthy();
+    expect(screen.getByTestId('budget-picker')).toBeTruthy();
   });
 });
