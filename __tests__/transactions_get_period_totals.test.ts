@@ -1,21 +1,10 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
+import type { SQLiteBindValue } from 'expo-sqlite';
 
 import { getPeriodTotals } from '@/database/transactions';
+import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
 
-type FakeDb = {
-  execAsync: jest.Mock;
-  runAsync: jest.Mock;
-  getAllAsync: jest.Mock;
-  getFirstAsync: jest.Mock;
-  withTransactionAsync: jest.Mock;
-};
-
-const sqlite = SQLite as unknown as {
-  __fakeDb: FakeDb;
-  __reset: () => void;
-  openDatabaseAsync: jest.Mock;
-};
+const sqlite = getExpoSQLiteTestDatabase();
 
 let realDb: ReturnType<typeof Database>;
 
@@ -49,24 +38,22 @@ beforeAll(() => {
   realDb = new Database(':memory:');
   realDb.exec(CREATE_TABLE);
 
-  const fakeDb = sqlite.__fakeDb;
+  const fakeDb = sqlite;
 
   fakeDb.execAsync.mockImplementation(async (sql: string) => {
     realDb.exec(sql);
   });
 
   fakeDb.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    realDb.prepare(sql).run(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    realDb.prepare(sql).run(...params);
     return { changes: 1, lastInsertRowId: 1 };
   });
 
   fakeDb.getFirstAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).get(...(params as never[])) ?? null;
+    const params = getSQLiteParams(rest);
+    return realDb.prepare(sql).get(...params) ?? null;
   });
-
-  sqlite.openDatabaseAsync.mockImplementation(async () => fakeDb);
 });
 
 beforeEach(() => {
@@ -82,24 +69,24 @@ beforeEach(() => {
 
 afterAll(() => {
   realDb.close();
-  sqlite.__reset();
+  sqlite.reset();
 });
 
 async function insertRow(
   db: Parameters<typeof getPeriodTotals>[0],
-  row: Record<string, unknown>,
+  row: Record<string, SQLiteBindValue>,
 ): Promise<void> {
   const keys = Object.keys(row);
   const placeholders = keys.map(() => '?').join(',');
   await db.runAsync(
     `INSERT INTO transactions (${keys.join(',')}) VALUES (${placeholders})`,
-    Object.values(row) as never,
+    Object.values(row),
   );
 }
 
 describe('getPeriodTotals', () => {
   it('sums income and expense egp_amounts within the date range', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
+    const db = sqlite.database;
     await insertRow(db, {
       id: 't1',
       type: 'income',
@@ -142,7 +129,7 @@ describe('getPeriodTotals', () => {
   });
 
   it('subtracts card credits from expense without counting them as cash income', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
+    const db = sqlite.database;
     await insertRow(db, {
       id: 'income',
       type: 'income',
@@ -188,7 +175,7 @@ describe('getPeriodTotals', () => {
   });
 
   it('preserves negative expense when card credits exceed gross expense', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
+    const db = sqlite.database;
     await insertRow(db, {
       id: 'credit',
       type: 'income',
@@ -210,7 +197,7 @@ describe('getPeriodTotals', () => {
   });
 
   it('excludes transfer and cc_payment rows', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
+    const db = sqlite.database;
     await insertRow(db, {
       id: 't1',
       type: 'transfer',
@@ -242,7 +229,7 @@ describe('getPeriodTotals', () => {
   });
 
   it('excludes rows outside the date range', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
+    const db = sqlite.database;
     await insertRow(db, {
       id: 't1',
       type: 'expense',
@@ -272,14 +259,14 @@ describe('getPeriodTotals', () => {
   });
 
   it('returns all zeros for an empty range', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
+    const db = sqlite.database;
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
     expect(result).toEqual({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 });
   });
 
   it('falls back to zeros when the aggregate row is null', async () => {
-    const db = await sqlite.openDatabaseAsync(':memory:');
-    sqlite.__fakeDb.getFirstAsync.mockResolvedValueOnce(null);
+    const db = sqlite.database;
+    sqlite.getFirstAsync.mockResolvedValueOnce(null);
     const result = await getPeriodTotals(db, { from: '2026-05-01', to: '2026-05-31' });
     expect(result).toEqual({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 });
   });

@@ -156,6 +156,28 @@ describe('useTransactionFormState', () => {
     expect(useTransactionFormState.getState().phase).toBe('open');
   });
 
+  it('keeps the session open and restores actions after a recoverable save failure', () => {
+    useTransactionFormState.getState().openAdd();
+    const sessionId = useTransactionFormState.getState().sessionId;
+    useTransactionFormState.getState().publishFooter(sessionId, {
+      visible: true,
+      saving: true,
+      disabled: true,
+    });
+
+    useTransactionFormState.getState().publishFooter(sessionId, {
+      visible: true,
+      saving: false,
+      disabled: false,
+    });
+
+    expect(useTransactionFormState.getState()).toMatchObject({
+      phase: 'open',
+      sessionId,
+      footer: { visible: true, saving: false, disabled: false },
+    });
+  });
+
   it.each([
     ['add', () => useAddTransactionState.setState({ saving: true })],
     ['edit', () => useEditTransactionState.setState({ saving: true })],

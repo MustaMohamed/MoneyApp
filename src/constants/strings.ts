@@ -603,6 +603,9 @@ export const Strings = {
   addTxTypeTransfer: 'Transfer',
   addTxTypeCCPayment: 'CC Payment',
   addTxTypeSelectorA11y: 'Transaction type',
+  addTxPickerAccessibility: (label: string, value: string) => `${label}, ${value}`,
+  addTxAmountInputAccessibility: 'Transaction amount',
+  addTxAmountPlaceholder: '0',
   addTxDataLoadError: 'Could not load the accounts and categories needed for this transaction.',
   addTxDataLoadRetry: 'Retry',
   cardCreditTitle: 'Card credit',
@@ -623,6 +626,10 @@ export const Strings = {
   addTxRateSubGlobal: 'EGP per 1 USD · global rate',
   addTxRateSubCustom: 'EGP per 1 USD · custom rate',
   addTxRateOverrideLabel: 'Override',
+  addTxRateEditAccessibility: 'Use a custom exchange rate',
+  addTxRateInputAccessibility: 'Exchange rate in EGP per 1 USD',
+  addTxRateResetAccessibility: 'Reset exchange rate to the global rate',
+  addTxRatePlaceholder: '0.00',
   addTxSaveCta: 'Save',
   editTxSaveCta: 'Save Changes',
   addTxErrAmountRequired: 'Enter an amount',
@@ -666,7 +673,9 @@ export const Strings = {
   yesterdayLabel: 'YESTERDAY',
 
   // U7 Transaction Detail
+  goBackAccessibility: 'Go back',
   detailHeader: 'Transaction',
+  detailEditAccessibility: 'Edit transaction',
   detailCategory: 'CATEGORY',
   detailAccount: 'ACCOUNT',
   detailDateTime: 'DATE & TIME',
@@ -969,12 +978,15 @@ export const Strings = {
   commitmentFilterRecurrenceAccessibility: (label: string) =>
     `${label}, commitment recurrence filter`,
   commitmentFilterAmountCurrencyAccessibility: 'Commitment amount currency',
+  transactionTypeFilterAccessibility: 'Transaction type filter',
 
   // §6 Transactions — Detail flow (TransferFlowCard labels)
   detailFlowFromLabel: 'From',
   detailFlowToLabel: 'To',
   detailFlowCategoryLabel: 'Category',
   detailFlowSourceLabel: 'Source',
+  detailOpenAccountAccessibility: (name: string, amount: string, currency: string) =>
+    `${name}, ${amount} ${currency}, open account detail`,
 
   // §6 Transactions — Detail screen V2 actions + states
   detailDeleteButton: 'Delete',
@@ -995,6 +1007,7 @@ export const Strings = {
   addTxRateReset: 'Reset to global',
   addTxRateStale: 'Rate may be stale',
   addTxEgpPreview: '≈ {amount} EGP',
+  addTxBudgetOptionAccessibility: (name: string, amount: string) => `${name}, ${amount} EGP`,
 
   // Swipe actions — shared labels
   swipeEdit: 'Edit',
@@ -1008,12 +1021,4 @@ export const Strings = {
   budgetDeleteConfirmConfirm: 'Remove',
   budgetDeleteConfirmCancel: 'Cancel',
   budgetDeleteError: 'Could not remove this budget. Please try again.',
-
-  // Transactions — swipe/list delete confirm
-  // Note: deleteConfirmTitle, deleteConfirmBody, deleteTransaction, deleteCancel already exist
-  // for the detail screen. Reuse them for the list-delete ConfirmSheet (same copy, consistent).
-
-  // Commitments — swipe delete confirm
-  // Note: commitmentsDeactivateTitle, commitmentsDeactivateBody, commitmentsDeactivateConfirm,
-  // commitmentsDeactivateCancel already exist. Reuse them — same action, same copy.
 } as const;

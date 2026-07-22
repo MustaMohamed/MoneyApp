@@ -12,12 +12,22 @@ const mockSheetFrames: Array<{
   onOpenChange: (open: boolean) => void;
   onCloseComplete: () => void;
 }> = [];
+interface AddSessionMockProps {
+  sessionId: number;
+  onRequestAccountCreation: (sessionId: number) => void;
+}
+
+interface EditSessionMockProps {
+  sessionId: number;
+  onSaved: (sessionId: number) => void;
+}
+
 let mockNextSheetInstanceId = 1;
-const mockAddSession = jest.fn<React.ReactElement, [Record<string, unknown>]>((props) =>
-  React.createElement(View, { testID: 'add-session', ...props }),
+const mockAddSession = jest.fn<React.ReactElement, [AddSessionMockProps]>(() =>
+  React.createElement(View, { testID: 'add-session' }),
 );
-const mockEditSession = jest.fn<React.ReactElement, [Record<string, unknown>]>((props) =>
-  React.createElement(View, { testID: 'edit-session', ...props }),
+const mockEditSession = jest.fn<React.ReactElement, [EditSessionMockProps]>(() =>
+  React.createElement(View, { testID: 'edit-session' }),
 );
 const mockPush = jest.fn();
 
@@ -27,8 +37,8 @@ jest.mock('expo-router', () => ({
 
 jest.mock('@/components/ui/button', () => ({
   Button: (props: object) => {
-    const ReactLocal = require('react');
-    const { View: RNView } = require('react-native');
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return ReactLocal.createElement(RNView, { testID: 'save-button', ...props });
   },
 }));
@@ -47,8 +57,8 @@ jest.mock('@/components/ui/sheet', () => ({
     onCloseComplete: () => void;
     children: React.ReactNode;
   }) => {
-    const ReactLocal = require('react');
-    const { View: RNView } = require('react-native');
+    const ReactLocal = jest.requireActual<typeof import('react')>('react');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     const instanceId = ReactLocal.useRef(mockNextSheetInstanceId++).current;
     mockSheetFrames.push({
       instanceId,
@@ -64,7 +74,7 @@ jest.mock('@/components/ui/sheet', () => ({
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/add_transaction_session',
   () => ({
-    AddTransactionSession: (props: Record<string, unknown>) => mockAddSession(props),
+    AddTransactionSession: (props: AddSessionMockProps) => mockAddSession(props),
   }),
   { virtual: true },
 );
@@ -72,7 +82,7 @@ jest.mock(
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/edit_transaction_session',
   () => ({
-    EditTransactionSession: (props: Record<string, unknown>) => mockEditSession(props),
+    EditTransactionSession: (props: EditSessionMockProps) => mockEditSession(props),
   }),
   { virtual: true },
 );
@@ -212,9 +222,7 @@ describe('TransactionFormHost', () => {
     render(<TransactionFormHost />);
     act(() => useTransactionFormState.getState().openEdit(createTransaction(), onEditSaved));
     const oldSessionId = useTransactionFormState.getState().sessionId;
-    const staleOnSaved = mockEditSession.mock.lastCall?.[0].onSaved as
-      | ((sessionId: number) => void)
-      | undefined;
+    const staleOnSaved = mockEditSession.mock.lastCall?.[0].onSaved;
 
     act(() => useTransactionFormState.getState().openAdd());
     act(() => staleOnSaved?.(oldSessionId));
@@ -227,9 +235,7 @@ describe('TransactionFormHost', () => {
     render(<TransactionFormHost />);
     act(() => useTransactionFormState.getState().openAdd());
     const sessionId = useTransactionFormState.getState().sessionId;
-    const requestAccountCreation = mockAddSession.mock.lastCall?.[0].onRequestAccountCreation as
-      | ((sessionId: number) => void)
-      | undefined;
+    const requestAccountCreation = mockAddSession.mock.lastCall?.[0].onRequestAccountCreation;
 
     act(() => requestAccountCreation?.(sessionId));
     expect(mockPush).not.toHaveBeenCalled();

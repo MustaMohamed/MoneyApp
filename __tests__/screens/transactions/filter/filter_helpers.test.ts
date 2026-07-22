@@ -7,23 +7,23 @@ import {
   validateAmountRange,
 } from '@/modules/transactions/screens/transactions/filter/filter.helpers';
 import {
-  EMPTY_FILTERS_V2,
+  EMPTY_FILTERS,
   type AdvancedFilters,
 } from '@/modules/transactions/screens/transactions/filter/filter.store';
 
 describe('advancedFiltersEqual', () => {
   it('treats empty filters as equal', () => {
-    expect(advancedFiltersEqual(EMPTY_FILTERS_V2, { ...EMPTY_FILTERS_V2 })).toBe(true);
+    expect(advancedFiltersEqual(EMPTY_FILTERS, { ...EMPTY_FILTERS })).toBe(true);
   });
 
   it('ignores id order for account and category selections', () => {
     const a: AdvancedFilters = {
-      ...EMPTY_FILTERS_V2,
+      ...EMPTY_FILTERS,
       accountIds: ['a2', 'a1'],
       categoryIds: ['c2', 'c1'],
     };
     const b: AdvancedFilters = {
-      ...EMPTY_FILTERS_V2,
+      ...EMPTY_FILTERS,
       accountIds: ['a1', 'a2'],
       categoryIds: ['c1', 'c2'],
     };
@@ -33,8 +33,8 @@ describe('advancedFiltersEqual', () => {
   it('detects amount range differences', () => {
     expect(
       advancedFiltersEqual(
-        { ...EMPTY_FILTERS_V2, amountMin: 100 },
-        { ...EMPTY_FILTERS_V2, amountMin: 101 },
+        { ...EMPTY_FILTERS, amountMin: 100 },
+        { ...EMPTY_FILTERS, amountMin: 101 },
       ),
     ).toBe(false);
   });
@@ -42,8 +42,8 @@ describe('advancedFiltersEqual', () => {
   it('ignores amount currency when neither side has an amount range', () => {
     expect(
       advancedFiltersEqual(
-        { ...EMPTY_FILTERS_V2, amountCurrency: Currency.EGP },
-        { ...EMPTY_FILTERS_V2, amountCurrency: Currency.USD },
+        { ...EMPTY_FILTERS, amountCurrency: Currency.EGP },
+        { ...EMPTY_FILTERS, amountCurrency: Currency.USD },
       ),
     ).toBe(true);
   });
@@ -51,8 +51,8 @@ describe('advancedFiltersEqual', () => {
   it('compares amount currency when an amount range is active', () => {
     expect(
       advancedFiltersEqual(
-        { ...EMPTY_FILTERS_V2, amountCurrency: Currency.EGP, amountMin: 100 },
-        { ...EMPTY_FILTERS_V2, amountCurrency: Currency.USD, amountMin: 100 },
+        { ...EMPTY_FILTERS, amountCurrency: Currency.EGP, amountMin: 100 },
+        { ...EMPTY_FILTERS, amountCurrency: Currency.USD, amountMin: 100 },
       ),
     ).toBe(false);
   });
@@ -69,13 +69,13 @@ describe('formatAppliedFilterSummary', () => {
   ]);
 
   it('returns null when there are no applied filters', () => {
-    expect(formatAppliedFilterSummary(EMPTY_FILTERS_V2, accounts, categories)).toBeNull();
+    expect(formatAppliedFilterSummary(EMPTY_FILTERS, accounts, categories)).toBeNull();
   });
 
   it('combines account and category names for concise list-header context', () => {
     expect(
       formatAppliedFilterSummary(
-        { ...EMPTY_FILTERS_V2, accountIds: ['a1'], categoryIds: ['c1'] },
+        { ...EMPTY_FILTERS, accountIds: ['a1'], categoryIds: ['c1'] },
         accounts,
         categories,
       ),
@@ -85,7 +85,7 @@ describe('formatAppliedFilterSummary', () => {
   it('uses existing selection summary formatting for multiple selected names', () => {
     expect(
       formatAppliedFilterSummary(
-        { ...EMPTY_FILTERS_V2, accountIds: ['a1', 'a2'], categoryIds: ['c1', 'c2'] },
+        { ...EMPTY_FILTERS, accountIds: ['a1', 'a2'], categoryIds: ['c1', 'c2'] },
         accounts,
         categories,
       ),
@@ -95,7 +95,7 @@ describe('formatAppliedFilterSummary', () => {
   it('includes amount summary when amount filters are active', () => {
     expect(
       formatAppliedFilterSummary(
-        { ...EMPTY_FILTERS_V2, amountCurrency: Currency.EGP, amountMin: 500 },
+        { ...EMPTY_FILTERS, amountCurrency: Currency.EGP, amountMin: 500 },
         accounts,
         categories,
       ),
@@ -107,7 +107,7 @@ describe('countActiveFilters', () => {
   it('keeps existing active-filter counting behavior', () => {
     expect(
       countActiveFilters({
-        ...EMPTY_FILTERS_V2,
+        ...EMPTY_FILTERS,
         accountIds: ['a1'],
         categoryIds: ['c1'],
         amountMin: 100,
@@ -140,21 +140,23 @@ describe('amount range validation', () => {
   });
 
   it('returns field errors without discarding malformed input', () => {
-    expect(validateAmountRange('50abc', '-2')).toMatchObject({
+    const validation = validateAmountRange('50abc', '-2');
+    expect(validation).toMatchObject({
       isValid: false,
       min: undefined,
       max: undefined,
-      minError: expect.any(String),
-      maxError: expect.any(String),
     });
+    expect(typeof validation.minError).toBe('string');
+    expect(typeof validation.maxError).toBe('string');
   });
 
   it('rejects a minimum above the maximum', () => {
-    expect(validateAmountRange('500', '100')).toMatchObject({
+    const validation = validateAmountRange('500', '100');
+    expect(validation).toMatchObject({
       isValid: false,
       min: 500,
       max: 100,
-      rangeError: expect.any(String),
     });
+    expect(typeof validation.rangeError).toBe('string');
   });
 });

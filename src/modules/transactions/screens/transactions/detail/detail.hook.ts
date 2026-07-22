@@ -9,13 +9,16 @@ import { budgetRepository } from '@/modules/budget/repositories/budget.repositor
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
+import { useTransactionFormState } from '@/modules/transactions/screens/transactions/transaction_form/transaction_form_host.state';
 import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 
-import { buildTransactionDetailPresentation, getCommitmentPaymentRoute } from './detail.helpers';
+import {
+  buildTransactionDetailPresentation,
+  getCommitmentPaymentRoute,
+  resolveDetailViewState,
+} from './detail.helpers';
 import { useTxDetailState } from './detail.state';
 import { useTxDetailStore } from './detail.store';
-
-export type DetailViewState = 'loading' | 'notFound' | 'error' | 'ready';
 
 export function useTransactionDetail(id: string) {
   const { tx, txId, budget } = useTxDetailStore(
@@ -140,14 +143,14 @@ export function useTransactionDetail(id: string) {
   );
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
-  const viewState: DetailViewState =
-    currentStatus === 'notFound'
-      ? 'notFound'
-      : currentStatus === 'firstLoadError'
-        ? 'error'
-        : currentStatus === 'ready' && currentTx
-          ? 'ready'
-          : 'loading';
+  const currentRevalidating = activeId === id && revalidating;
+  const currentRefreshError = activeId === id && refreshError;
+  const viewState = resolveDetailViewState(
+    currentStatus,
+    currentTx !== null,
+    currentRevalidating,
+    currentRefreshError,
+  );
   const commitmentPaymentId = currentTx?.commitment_payment_id ?? undefined;
   const isCommitmentOwned = commitmentPaymentId !== undefined;
 
@@ -197,8 +200,11 @@ export function useTransactionDetail(id: string) {
         Alert.alert(Strings.commitmentsDetailNotFound);
         return;
       }
-      const { loadCommitments, setSelectedMonth } = useCommitmentStore.getState();
-      await Promise.all([loadCommitments(), setSelectedMonth(payment.due_date.slice(0, 7))]);
+      const commitmentState = useCommitmentStore.getState();
+      await Promise.all([
+        commitmentState.loadCommitments(),
+        commitmentState.setSelectedMonth(payment.due_date.slice(0, 7)),
+      ]);
       router.push(getCommitmentPaymentRoute(commitmentPaymentId));
     } catch (error) {
       console.error('[transactionDetail] open commitment failed', error);
@@ -207,6 +213,14 @@ export function useTransactionDetail(id: string) {
   }, [commitmentPaymentId]);
 
   const reload = useCallback(() => bumpReload(), [bumpReload]);
+  const goBack = useCallback(() => router.back(), []);
+  const openAccount = useCallback((accountId: string) => {
+    router.push(`/accounts/${accountId}`);
+  }, []);
+  const openEdit = useCallback(() => {
+    if (!currentTx || isCommitmentOwned) return;
+    useTransactionFormState.getState().openEdit(currentTx, reload);
+  }, [currentTx, isCommitmentOwned, reload]);
 
   return {
     state: {
@@ -214,8 +228,8 @@ export function useTransactionDetail(id: string) {
       loadingTransactionHint,
       tx: currentTx,
       derived,
-      revalidating: activeId === id && revalidating,
-      refreshError: activeId === id && refreshError,
+      revalidating: currentRevalidating,
+      refreshError: currentRefreshError,
       confirmVisible,
       deleting,
       isCommitmentOwned,
@@ -226,6 +240,9 @@ export function useTransactionDetail(id: string) {
     closeDeleteConfirm,
     confirmDelete,
     openCommitment,
+    goBack,
+    openAccount,
+    openEdit,
     reload,
   };
 }

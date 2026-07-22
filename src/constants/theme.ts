@@ -78,6 +78,8 @@ export const FontFamily = {
 export const Type = {
   chipMeta: msFont(7.5),
   chip: msFont(9),
+  compactBadge: msFont(9.5),
+  overline: msFont(10.5),
   micro: msFont(11),
   detail: msFont(11.5),
   caption: msFont(12),
@@ -85,10 +87,13 @@ export const Type = {
   body: msFont(14),
   bodyStrong: msFont(15),
   subhead: msFont(16),
+  emptyTitle: msFont(17),
   title: msFont(18),
   headline: msFont(22),
   hero: msFont(28),
   summary: msFont(31),
+  detailHero: msFont(30),
+  amountEntry: msFont(40),
 } as const;
 
 /** Tracking values for compact labels and eyebrow copy. */
@@ -111,6 +116,7 @@ export const Spacing = {
 
 /** Border radius scale. */
 export const Radius = {
+  xs: ms(2),
   sm: ms(8),
   md: ms(12),
   lg: ms(16),
@@ -164,6 +170,7 @@ export const Size = {
   iconSm: ms(18),
   iconMd: ms(22),
   iconLg: ms(26),
+  emptyStateIcon: ms(56),
   iconHero: ms(64),
   filterSegmentWidth: ms(96),
   filterSegmentCompactWidth: ms(72),
@@ -174,6 +181,7 @@ export const Size = {
   shieldBox: ms(48),
   colorDot: ms(20),
   progressTrack: ms(8),
+  progressThin: ms(3),
   progressDot: ms(4),
   checkCircle: ms(20),
   illustration: ms(120),

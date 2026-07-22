@@ -4,10 +4,25 @@ import React from 'react';
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
+type AddTransactionHook =
+  typeof import('@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook').useAddTransaction;
+type EditTransactionHook =
+  typeof import('@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook').useEditTransaction;
+type PrerequisitesHook =
+  typeof import('@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.hook').useTransactionFormPrerequisites;
+type TransactionFormHookResult = ReturnType<AddTransactionHook>;
+type EditTransactionHookResult = ReturnType<EditTransactionHook>;
+
 const mockHandleSave = jest.fn();
 const mockRetry = jest.fn();
-const mockUseAddTransaction = jest.fn();
-const mockUseEditTransaction = jest.fn();
+const mockUseAddTransaction = jest.fn<
+  ReturnType<AddTransactionHook>,
+  Parameters<AddTransactionHook>
+>();
+const mockUseEditTransaction = jest.fn<
+  ReturnType<EditTransactionHook>,
+  Parameters<EditTransactionHook>
+>();
 const mockRequestAccountCreation = jest.fn();
 const mockUsePrerequisites = jest.fn(
   (_sessionId: number, _mode: string, _tx: Transaction | null) => ({
@@ -18,22 +33,24 @@ const mockUsePrerequisites = jest.fn(
 
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/add_transaction.hook',
-  () => ({ useAddTransaction: (...args: unknown[]) => mockUseAddTransaction(...args) }),
+  () => ({
+    useAddTransaction: (...args: Parameters<AddTransactionHook>) => mockUseAddTransaction(...args),
+  }),
 );
 
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/edit_transaction.hook',
-  () => ({ useEditTransaction: (...args: unknown[]) => mockUseEditTransaction(...args) }),
+  () => ({
+    useEditTransaction: (...args: Parameters<EditTransactionHook>) =>
+      mockUseEditTransaction(...args),
+  }),
 );
 
 jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/transaction_form_prerequisites.hook',
   () => ({
-    useTransactionFormPrerequisites: (
-      sessionId: number,
-      mode: string,
-      transaction: Transaction | null,
-    ) => mockUsePrerequisites(sessionId, mode, transaction),
+    useTransactionFormPrerequisites: (...args: Parameters<PrerequisitesHook>) =>
+      mockUsePrerequisites(...args),
   }),
 );
 
@@ -41,7 +58,7 @@ jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/transaction_form_body',
   () => ({
     TransactionFormBody: () => {
-      const { View: RNView } = require('react-native');
+      const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
       return <RNView testID="transaction-form-body" />;
     },
   }),
@@ -51,7 +68,7 @@ jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_loading',
   () => ({
     TransactionFormLoading: () => {
-      const { View: RNView } = require('react-native');
+      const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
       return <RNView testID="transaction-form-loading" />;
     },
   }),
@@ -61,7 +78,8 @@ jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/transaction_form_data_error',
   () => ({
     TransactionFormDataError: ({ onRetry }: { onRetry: () => void }) => {
-      const { Pressable: RNPressable } = require('react-native');
+      const { Pressable: RNPressable } =
+        jest.requireActual<typeof import('react-native')>('react-native');
       return <RNPressable testID="transaction-form-retry" onPress={onRetry} />;
     },
   }),
@@ -71,7 +89,8 @@ jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/no_accounts_empty',
   () => ({
     NoAccountsEmpty: ({ onAddAccount }: { onAddAccount: () => void }) => {
-      const { Pressable: RNPressable } = require('react-native');
+      const { Pressable: RNPressable } =
+        jest.requireActual<typeof import('react-native')>('react-native');
       return <RNPressable testID="transaction-form-no-accounts" onPress={onAddAccount} />;
     },
   }),
@@ -79,14 +98,14 @@ jest.mock(
 
 jest.mock('@/modules/accounts/components/account_picker_sheet', () => ({
   AccountPickerSheet: () => {
-    const { View: RNView } = require('react-native');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return <RNView testID="account-picker" />;
   },
 }));
 
 jest.mock('@/modules/categories/components/category_picker_sheet', () => ({
   CategoryPickerSheet: () => {
-    const { View: RNView } = require('react-native');
+    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
     return <RNView testID="category-picker" />;
   },
 }));
@@ -95,7 +114,7 @@ jest.mock(
   '@/modules/transactions/screens/transactions/transaction_form/components/budget_picker_sheet',
   () => ({
     BudgetPickerSheet: () => {
-      const { View: RNView } = require('react-native');
+      const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
       return <RNView testID="budget-picker" />;
     },
   }),
@@ -128,7 +147,9 @@ const tx: Transaction = {
   updated_at: 'now',
 };
 
-function createHookState(overrides: Record<string, unknown> = {}) {
+function createHookState(
+  overrides: Partial<TransactionFormHookResult['state']> = {},
+): TransactionFormHookResult {
   return {
     state: {
       type: TransactionType.Expense,
@@ -146,9 +167,17 @@ function createHookState(overrides: Record<string, unknown> = {}) {
       note: '',
       exchangeRate: '50',
       rateOverride: false,
+      isCardCredit: false,
       isUSD: false,
       isTransferOrCC: false,
-      errors: {},
+      errors: {
+        amount: undefined,
+        account: undefined,
+        toAccount: undefined,
+        category: undefined,
+        budget: undefined,
+        rate: undefined,
+      },
       errorMessage: undefined,
       budgetLookupError: undefined,
       formDataReady: false,
@@ -191,7 +220,65 @@ function createHookState(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function renderAdd(overrides: Record<string, unknown> = {}) {
+function createEditHookState(
+  overrides: Partial<EditTransactionHookResult['state']> = {},
+): EditTransactionHookResult {
+  return {
+    state: {
+      type: TransactionType.Expense,
+      typeLabel: 'Expense',
+      typeSupportingText: 'Money spent',
+      selectedAccount: null,
+      selectedToAccount: null,
+      selectedCategory: null,
+      selectedBudget: null,
+      categoryId: '',
+      budgetId: '',
+      date: '2026-07-21',
+      note: '',
+      exchangeRate: '50',
+      rateOverride: false,
+      isCardCredit: false,
+      isUSD: false,
+      isTransferOrCC: false,
+      errors: {
+        amount: undefined,
+        category: undefined,
+        budget: undefined,
+        rate: undefined,
+      },
+      errorMessage: undefined,
+      budgetLookupError: undefined,
+      formDataReady: false,
+      formDataLoadError: false,
+      saving: false,
+      visibleCategories: [],
+      showCategoryPicker: false,
+      showBudgetPicker: false,
+      closingPickers: [],
+      budgetsLoading: false,
+      availableBudgets: [],
+      showBudgetField: false,
+      rateUpdatedAt: null,
+      ...overrides,
+    },
+    setAmountStr: jest.fn(),
+    setDate: jest.fn(),
+    setNote: jest.fn(),
+    setExchangeRate: jest.fn(),
+    toggleRateOverride: jest.fn(),
+    setShowCategoryPicker: jest.fn(),
+    setShowBudgetPicker: jest.fn(),
+    completePickerClose: jest.fn(),
+    selectCategory: jest.fn(),
+    selectBudget: jest.fn(),
+    retryBudgetLookup: jest.fn(),
+    retryFormData: mockRetry,
+    handleSave: mockHandleSave,
+  };
+}
+
+function renderAdd(overrides: Partial<TransactionFormHookResult['state']> = {}) {
   mockUseAddTransaction.mockReturnValue(createHookState(overrides));
   return render(
     <AddTransactionSession
@@ -255,8 +342,10 @@ describe('transaction form sessions', () => {
 
   it('registers Edit submit and publishes saving footer state', async () => {
     useTransactionFormState.getState().openEdit(tx);
-    mockUseEditTransaction.mockReturnValue(createHookState({ formDataReady: true, saving: true }));
-    const registerSubmit = jest.fn();
+    mockUseEditTransaction.mockReturnValue(
+      createEditHookState({ formDataReady: true, saving: true }),
+    );
+    const registerSubmit = jest.fn<void, [number, (() => Promise<void>) | undefined]>();
 
     const screen = render(
       <EditTransactionSession
@@ -278,16 +367,19 @@ describe('transaction form sessions', () => {
       });
     });
 
-    const registeredSubmit = registerSubmit.mock.calls.find(
+    const registration = registerSubmit.mock.calls.find(
       ([ownerSessionId, submit]) => ownerSessionId === 2 && typeof submit === 'function',
-    )?.[1] as (() => Promise<void>) | undefined;
-    await registeredSubmit?.();
+    );
+    const registeredSubmit = registration?.[1];
+    expect(registeredSubmit).toBeDefined();
+    if (!registeredSubmit) throw new Error('Edit submit was not registered');
+    await registeredSubmit();
     expect(mockHandleSave).toHaveBeenCalledTimes(1);
   });
 
   it('mounts Edit pickers closed so the first press can open an existing HeroUI sheet', () => {
     useTransactionFormState.getState().openEdit(tx);
-    mockUseEditTransaction.mockReturnValue(createHookState({ formDataReady: true }));
+    mockUseEditTransaction.mockReturnValue(createEditHookState({ formDataReady: true }));
 
     const screen = render(
       <EditTransactionSession

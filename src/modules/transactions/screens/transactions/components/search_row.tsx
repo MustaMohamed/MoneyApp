@@ -4,7 +4,6 @@ import {
   FILTER_BADGE_STYLE,
   FILTER_BUTTON_COMPACT_STYLE,
   SEARCH_INPUT_COMPACT_STYLE,
-  SEARCH_INPUT_WITH_CLEAR_STYLE,
   SearchFilterRow,
 } from '@/components/ui/search_filter_row';
 import { Strings } from '@/constants/strings';
@@ -17,12 +16,7 @@ interface Props {
   activeFilterCount: number;
 }
 
-export {
-  FILTER_BADGE_STYLE,
-  FILTER_BUTTON_COMPACT_STYLE,
-  SEARCH_INPUT_COMPACT_STYLE,
-  SEARCH_INPUT_WITH_CLEAR_STYLE,
-};
+export { FILTER_BADGE_STYLE, FILTER_BUTTON_COMPACT_STYLE, SEARCH_INPUT_COMPACT_STYLE };
 
 export function SearchRow({
   value,

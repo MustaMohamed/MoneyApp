@@ -1,32 +1,13 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import type { ReactNode } from 'react';
-import type { PressableProps } from 'react-native';
 
 import {
   FILTER_BADGE_STYLE,
   FILTER_BUTTON_COMPACT_STYLE,
   SEARCH_INPUT_COMPACT_STYLE,
-  SEARCH_INPUT_WITH_CLEAR_STYLE,
   SearchRow,
 } from '@/modules/transactions/screens/transactions/components/search_row';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
-jest.mock('heroui-native', () => {
-  const { Pressable } = jest.requireActual<typeof import('react-native')>('react-native');
-  return {
-    PressableFeedback: ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
-      <Pressable {...props}>{children}</Pressable>
-    ),
-    cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
-  };
-});
-jest.mock('@/components/ui/input', () => {
-  const ReactLocal = jest.requireActual<typeof import('react')>('react');
-  const { TextInput } = jest.requireActual<typeof import('react-native')>('react-native');
-  return {
-    Input: (props: object) => ReactLocal.createElement(TextInput, props),
-  };
-});
 
 describe('SearchRow', () => {
   it('renders the compact search input and trailing filter button', () => {
@@ -40,16 +21,15 @@ describe('SearchRow', () => {
       />,
     );
 
-    expect(SEARCH_INPUT_COMPACT_STYLE).toMatchObject({ height: expect.any(Number) });
+    expect(typeof SEARCH_INPUT_COMPACT_STYLE.height).toBe('number');
     expect(SEARCH_INPUT_COMPACT_STYLE).toMatchObject({
       height: FILTER_BUTTON_COMPACT_STYLE.height,
       minHeight: FILTER_BUTTON_COMPACT_STYLE.height,
     });
-    expect(FILTER_BUTTON_COMPACT_STYLE).toMatchObject({
-      height: expect.any(Number),
-      width: expect.any(Number),
-      borderRadius: expect.any(Number),
-    });
+    expect(typeof FILTER_BUTTON_COMPACT_STYLE.height).toBe('number');
+    expect(typeof FILTER_BUTTON_COMPACT_STYLE.width).toBe('number');
+    expect(typeof FILTER_BUTTON_COMPACT_STYLE.borderRadius).toBe('number');
+    expect(getByLabelText('Search transactions…')).toHaveProp('accessibilityRole', 'search');
     expect(getByLabelText('Search transactions…')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
     expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
   });
@@ -82,7 +62,7 @@ describe('SearchRow', () => {
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
   });
 
-  it('reserves input space for the clear action when search has text', () => {
+  it('keeps stable search geometry when search has text', () => {
     const active = render(
       <SearchRow
         value="coffee"
@@ -93,12 +73,9 @@ describe('SearchRow', () => {
       />,
     );
 
-    expect(SEARCH_INPUT_COMPACT_STYLE.paddingRight).toBeLessThan(
-      SEARCH_INPUT_WITH_CLEAR_STYLE.paddingRight,
-    );
     expect(active.getByLabelText('Search transactions…')).toHaveProp(
       'style',
-      SEARCH_INPUT_WITH_CLEAR_STYLE,
+      SEARCH_INPUT_COMPACT_STYLE,
     );
   });
 

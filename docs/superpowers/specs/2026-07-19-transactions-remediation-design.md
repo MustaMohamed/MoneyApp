@@ -1,7 +1,7 @@
 # Transactions Remediation Program Design
 
 - **Date:** 2026-07-19
-- **Status:** Approved direction; awaiting written-spec review
+- **Status:** Approved by the product owner; PR1-PR3 merged and PR4 execution requested
 - **Scope:** Transactions list, summary, search/filter, detail, add/edit flows, transaction persistence, linked commitment ownership, credit-card effects, historical account resolution, UI state, and transaction test architecture
 - **Source audit:** `docs/superpowers/reviews/2026-07-19-transactions-section-audit.md`
 - **Delivery:** Four ordered pull requests

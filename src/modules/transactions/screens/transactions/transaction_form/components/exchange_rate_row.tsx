@@ -7,6 +7,7 @@ import { FormErrorText } from '@/components/ui/form_error_text';
 import { useBottomSheetAwareHandlers } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { roundMoney } from '@/utils/money';
 import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { ms } from '@/utils/responsive';
@@ -72,18 +73,20 @@ export function ExchangeRateRow({
     <View className="border-accent/30 bg-accent/10 mt-3 rounded-md border px-3 py-3">
       <PressableFeedback
         testID="exchange-rate-row"
-        onPress={() => {
-          if (!overrideEnabled) onToggleOverride();
-        }}
+        onPress={overrideEnabled ? undefined : onToggleOverride}
+        accessibilityRole={overrideEnabled ? undefined : 'button'}
+        accessibilityLabel={overrideEnabled ? undefined : Strings.addTxRateEditAccessibility}
         style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}
       >
         <View style={{ flex: 1 }}>
-          <Text className="font-sora text-foreground text-[14px] font-semibold">
+          <Text className="font-sora text-foreground font-semibold" style={{ fontSize: Type.body }}>
             {Strings.currencyRateLabel}
           </Text>
-          <Text className="font-inter text-muted mt-0.5 text-[11px]">{subtitle}</Text>
+          <Text className="font-inter text-muted mt-0.5" style={{ fontSize: Type.micro }}>
+            {subtitle}
+          </Text>
           {stale ? (
-            <Text className="font-inter text-warning mt-0.5 text-[11px]">
+            <Text className="font-inter text-warning mt-0.5" style={{ fontSize: Type.micro }}>
               {Strings.addTxRateStale}
             </Text>
           ) : null}
@@ -95,25 +98,38 @@ export function ExchangeRateRow({
               value={value}
               onChangeText={onChange}
               keyboardType="decimal-pad"
-              placeholder="0.00"
+              placeholder={Strings.addTxRatePlaceholder}
+              accessibilityLabel={Strings.addTxRateInputAccessibility}
+              isInvalid={error !== undefined}
               onFocus={onFocus}
               onBlur={onBlur}
               variant="secondary"
             />
           </View>
         ) : (
-          <Text className="font-sora text-foreground text-[15px] font-semibold">{value}</Text>
+          <Text
+            className="font-sora text-foreground font-semibold"
+            style={{ fontSize: Type.bodyStrong }}
+          >
+            {value}
+          </Text>
         )}
       </PressableFeedback>
 
-      <Text className="font-inter text-muted mt-2 text-[12px]">
+      <Text className="font-inter text-muted mt-2" style={{ fontSize: Type.caption }}>
         {Strings.addTxEgpPreview.replace('{amount}', formatPreviewAmount(amount, value))}
       </Text>
 
       <View style={{ minHeight: ms(20) }} className="mt-1 items-end justify-center">
         {overrideEnabled ? (
-          <PressableFeedback onPress={onToggleOverride}>
-            <Text className="font-inter text-accent text-[12px]">{Strings.addTxRateReset}</Text>
+          <PressableFeedback
+            onPress={onToggleOverride}
+            accessibilityRole="button"
+            accessibilityLabel={Strings.addTxRateResetAccessibility}
+          >
+            <Text className="font-inter text-accent" style={{ fontSize: Type.caption }}>
+              {Strings.addTxRateReset}
+            </Text>
           </PressableFeedback>
         ) : null}
       </View>
@@ -124,7 +140,12 @@ export function ExchangeRateRow({
         className="justify-center"
         accessibilityLiveRegion="polite"
       >
-        <FormErrorText message={error} numberOfLines={1} disableAnimation className="text-[11px]" />
+        <FormErrorText
+          message={error}
+          numberOfLines={1}
+          disableAnimation
+          style={{ fontSize: Type.micro }}
+        />
       </View>
     </View>
   );

@@ -13,7 +13,7 @@ export interface AdvancedFilters {
   amountMax?: number;
 }
 
-export const EMPTY_FILTERS_V2: AdvancedFilters = {
+export const EMPTY_FILTERS: AdvancedFilters = {
   accountIds: [],
   categoryIds: [],
   amountCurrency: Currency.EGP,
@@ -42,7 +42,7 @@ function amountText(value?: number): string {
 }
 
 const INITIAL_STATE: DraftShape = {
-  draft: EMPTY_FILTERS_V2,
+  draft: EMPTY_FILTERS,
   amountMinText: '',
   amountMaxText: '',
 };

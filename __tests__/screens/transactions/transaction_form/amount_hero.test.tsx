@@ -6,13 +6,15 @@ import { Currency, TransactionType } from '@/constants/enums';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
 
 jest.mock('heroui-native', () => {
-  const ReactLocal = require('react');
-  const { TextInput: RNTextInput } = require('react-native');
+  const ReactLocal = jest.requireActual<typeof import('react')>('react');
+  const { TextInput: RNTextInput } =
+    jest.requireActual<typeof import('react-native')>('react-native');
   return {
     cn: (...classes: Array<string | undefined>) => classes.filter(Boolean).join(' '),
-    Input: ReactLocal.forwardRef((props: object, ref: React.Ref<unknown>) =>
-      ReactLocal.createElement(RNTextInput, { ...props, ref }),
-    ),
+    Input: ReactLocal.forwardRef<
+      React.ComponentRef<typeof RNTextInput>,
+      React.ComponentProps<typeof RNTextInput>
+    >((props, ref) => ReactLocal.createElement(RNTextInput, { ...props, ref })),
   };
 });
 
@@ -35,8 +37,8 @@ describe('AmountHero', () => {
       />,
     );
 
-    expect(getByTestId('amount-hero-value').props.autoFocus).not.toBe(true);
-    expect(getByTestId('amount-hero-value').props.selectTextOnFocus).not.toBe(true);
+    expect(getByTestId('amount-hero-value')).not.toHaveProp('autoFocus', true);
+    expect(getByTestId('amount-hero-value')).not.toHaveProp('selectTextOnFocus', true);
   });
 
   it('allows the amount to remain empty while the user edits', () => {

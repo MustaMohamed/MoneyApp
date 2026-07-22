@@ -1,5 +1,4 @@
 import Database from 'better-sqlite3';
-import * as SQLite from 'expo-sqlite';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { MIGRATIONS } from '@/database/migrations';
@@ -14,6 +13,7 @@ import {
   TransactionRepository,
   type NewTransactionInput,
 } from '@/modules/transactions/repositories/transaction.repository';
+import { getExpoSQLiteTestDatabase, getSQLiteParams } from '@/test_helpers/sqlite';
 import { toLocalDateString } from '@/utils/format_date';
 
 // Override global UUID mock with a counter so each add() gets a unique id
@@ -25,13 +25,9 @@ jest.mock('react-native-uuid', () => ({
 
 const getTransactions = jest.spyOn(transactionsModule, 'getTransactions');
 
-const sqlite = SQLite as unknown as { __reset: () => void };
+const sqlite = getExpoSQLiteTestDatabase();
 let realDb: ReturnType<typeof Database>;
-let mocked: {
-  runAsync: jest.Mock;
-  getAllAsync: jest.Mock;
-  withTransactionAsync: jest.Mock;
-};
+const mocked = sqlite;
 
 const NOW = '2026-05-01T12:00:00.000Z';
 
@@ -59,25 +55,15 @@ beforeAll(() => {
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   seedAccount();
 
-  mocked = (
-    SQLite as unknown as {
-      __fakeDb: {
-        runAsync: jest.Mock;
-        getAllAsync: jest.Mock;
-        withTransactionAsync: jest.Mock;
-      };
-    }
-  ).__fakeDb;
-
   mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    const result = realDb.prepare(sql).run(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    const result = realDb.prepare(sql).run(...params);
     return { changes: result.changes, lastInsertRowId: Number(result.lastInsertRowid) };
   });
 
   mocked.getAllAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
-    const params = (Array.isArray(rest[0]) ? rest[0] : rest) as unknown[];
-    return realDb.prepare(sql).all(...(params as never[]));
+    const params = getSQLiteParams(rest);
+    return realDb.prepare(sql).all(...params);
   });
 
   mocked.withTransactionAsync.mockImplementation(async (fn: () => Promise<void>) => {
@@ -122,7 +108,7 @@ beforeEach(() => {
 
 afterAll(() => {
   realDb.close();
-  sqlite.__reset();
+  sqlite.reset();
 });
 
 const repo = new TransactionRepository();
@@ -861,9 +847,10 @@ describe('credit-card ledger policy', () => {
 
   it('rolls back the row when an account write fails', async () => {
     const originalRunAsync = mocked.runAsync.getMockImplementation();
+    if (!originalRunAsync) throw new Error('Expected the SQLite run adapter');
     mocked.runAsync.mockImplementation(async (sql: string, ...rest: unknown[]) => {
       if (sql.includes('UPDATE accounts')) throw new Error('Injected account write failure');
-      return originalRunAsync?.(sql, ...rest);
+      return originalRunAsync(sql, ...rest);
     });
 
     try {

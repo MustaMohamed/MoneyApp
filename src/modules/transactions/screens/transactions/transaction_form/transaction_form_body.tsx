@@ -1,7 +1,7 @@
 // modules/transactions/screens/transactions/transaction_form/transaction_form_body.tsx
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Input, PressableFeedback, Spinner } from 'heroui-native';
+import { Input, Spinner } from 'heroui-native';
 import { View } from 'react-native';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
@@ -10,15 +10,17 @@ import { SHEET_FOOTER_CLEARANCE, useBottomSheetAwareHandlers } from '@/component
 import { Text } from '@/components/ui/text';
 import { Currency, TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Size, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
-import type { Account } from '@/database/entities/account.entity';
-import type { Category } from '@/database/entities/category.entity';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import type { Budget } from '@/modules/budget/entities/budget.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
 import { AmountHero } from './components/amount_hero';
 import { DateRow } from './components/date_row';
+import { FormPickerRow } from './components/form_picker_row';
 import { TransactionExchangeRateRow } from './components/transaction_exchange_rate_row';
 import { TypeTabs } from './components/type_tabs';
 import type { TransactionFormMode } from './transaction_form.types';
@@ -90,7 +92,8 @@ function ValidationSlot({ testID, message, centered = false }: ValidationSlotPro
         message={message}
         numberOfLines={1}
         disableAnimation
-        className={centered ? 'text-center text-[11px]' : 'text-[11px]'}
+        className={centered ? 'text-center' : undefined}
+        style={{ fontSize: Type.micro }}
       />
     </View>
   );
@@ -150,7 +153,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         isDisabled={locked}
       />
       <View className="border-separator min-h-8 justify-center border-b px-4 py-1.5">
-        <Text className="font-inter text-muted text-[11px]" numberOfLines={1}>
+        <Text className="font-inter text-muted" style={{ fontSize: Type.micro }} numberOfLines={1}>
           {typeSupportingText}
         </Text>
       </View>
@@ -166,40 +169,32 @@ export function TransactionFormBody(props: Props): React.ReactElement {
       >
         {/* From account */}
         <View>
-          <PressableFeedback
+          <FormPickerRow
             testID="from-account-row"
             onPress={locked ? undefined : onOpenAccountPicker}
-            isDisabled={locked}
-            className="bg-default rounded-md px-3 py-3"
-            style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
-          >
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Text className="font-inter text-muted text-[11px]">
-                {isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
-                {selectedAccount ? (
-                  <MaterialCommunityIcons
-                    name={TYPE_OPTIONS.find((o) => o.type === selectedAccount.type)?.icon ?? 'bank'}
-                    size={ms(16)}
-                    color={selectedAccount.color ?? CoreTokens.text2}
-                  />
-                ) : null}
-                <Text
-                  numberOfLines={1}
-                  style={{ flex: 1, minWidth: 0 }}
-                  className="font-sora text-foreground text-[15px] font-semibold"
-                >
-                  {selectedAccount?.name ?? Strings.addTxPickAccountTitle}
-                </Text>
-              </View>
-            </View>
-            <MaterialCommunityIcons
-              name={locked ? 'lock-outline' : 'chevron-right'}
-              size={ms(18)}
-              color={CoreTokens.text2}
-            />
-          </PressableFeedback>
+            disabled={locked}
+            label={isTransferOrCC ? Strings.addTxFromLabel : Strings.addTxAccountLabel}
+            value={selectedAccount?.name ?? Strings.addTxPickAccountTitle}
+            prefix={
+              <MaterialCommunityIcons
+                name={
+                  selectedAccount
+                    ? (TYPE_OPTIONS.find((option) => option.type === selectedAccount.type)?.icon ??
+                      'bank')
+                    : 'bank-outline'
+                }
+                size={Size.iconXs}
+                color={selectedAccount?.color ?? CoreTokens.text2}
+              />
+            }
+            suffix={
+              <MaterialCommunityIcons
+                name={locked ? 'lock-outline' : 'chevron-right'}
+                size={Size.iconSm}
+                color={CoreTokens.text2}
+              />
+            }
+          />
           <ValidationSlot testID="account-error-slot" message={accountError} />
         </View>
 
@@ -207,41 +202,32 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         {isTransferOrCC ? (
           <>
             <View>
-              <PressableFeedback
+              <FormPickerRow
                 testID="to-account-row"
                 onPress={locked ? undefined : onOpenToPicker}
-                isDisabled={locked}
-                className="bg-default rounded-md px-3 py-3"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text className="font-inter text-muted text-[11px]">{Strings.addTxToLabel}</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}>
-                    {selectedToAccount ? (
-                      <MaterialCommunityIcons
-                        name={
-                          TYPE_OPTIONS.find((o) => o.type === selectedToAccount.type)?.icon ??
-                          'bank'
-                        }
-                        size={ms(16)}
-                        color={selectedToAccount.color ?? CoreTokens.text2}
-                      />
-                    ) : null}
-                    <Text
-                      numberOfLines={1}
-                      style={{ flex: 1, minWidth: 0 }}
-                      className="font-sora text-foreground text-[15px] font-semibold"
-                    >
-                      {selectedToAccount?.name ?? Strings.addTxPickToTitle}
-                    </Text>
-                  </View>
-                </View>
-                <MaterialCommunityIcons
-                  name={locked ? 'lock-outline' : 'chevron-right'}
-                  size={ms(18)}
-                  color={CoreTokens.text2}
-                />
-              </PressableFeedback>
+                disabled={locked}
+                label={Strings.addTxToLabel}
+                value={selectedToAccount?.name ?? Strings.addTxPickToTitle}
+                prefix={
+                  <MaterialCommunityIcons
+                    name={
+                      selectedToAccount
+                        ? (TYPE_OPTIONS.find((option) => option.type === selectedToAccount.type)
+                            ?.icon ?? 'bank')
+                        : 'bank-outline'
+                    }
+                    size={Size.iconXs}
+                    color={selectedToAccount?.color ?? CoreTokens.text2}
+                  />
+                }
+                suffix={
+                  <MaterialCommunityIcons
+                    name={locked ? 'lock-outline' : 'chevron-right'}
+                    size={Size.iconSm}
+                    color={CoreTokens.text2}
+                  />
+                }
+              />
               <ValidationSlot testID="to-account-error-slot" message={toAccountError} />
             </View>
           </>
@@ -251,40 +237,28 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         {!isTransferOrCC ? (
           <>
             <View>
-              <PressableFeedback
+              <FormPickerRow
                 testID="category-row"
                 onPress={onOpenCategoryPicker}
-                className="bg-default rounded-md px-3 py-3"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text className="font-inter text-muted text-[11px]">
-                    {Strings.addTxCategoryLabel}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
-                    {selectedCategory ? (
-                      <MaterialCommunityIcons
-                        name={toIconName(selectedCategory.icon, 'tag')}
-                        size={ms(15)}
-                        // oxlint-disable-next-line typescript/no-unnecessary-condition -- category color can be null despite the string type
-                        color={selectedCategory.color ?? CoreTokens.text1}
-                      />
-                    ) : null}
-                    <Text
-                      numberOfLines={1}
-                      style={{ flex: 1, minWidth: 0 }}
-                      className="font-sora text-foreground text-[15px] font-semibold"
-                    >
-                      {selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
-                    </Text>
-                  </View>
-                </View>
-                <MaterialCommunityIcons
-                  name="chevron-right"
-                  size={ms(18)}
-                  color={CoreTokens.text2}
-                />
-              </PressableFeedback>
+                label={Strings.addTxCategoryLabel}
+                value={selectedCategory?.name ?? Strings.addTxPickCategoryTitle}
+                prefix={
+                  <MaterialCommunityIcons
+                    name={
+                      selectedCategory ? toIconName(selectedCategory.icon, 'tag') : 'tag-outline'
+                    }
+                    size={Size.filterSegmentIcon}
+                    color={selectedCategory?.color ?? CoreTokens.text1}
+                  />
+                }
+                suffix={
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={Size.iconSm}
+                    color={CoreTokens.text2}
+                  />
+                }
+              />
               <ValidationSlot testID="category-error-slot" message={categoryError} />
             </View>
           </>
@@ -293,7 +267,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
         {showBudgetField ? (
           <>
             <View>
-              <PressableFeedback
+              <FormPickerRow
                 testID="budget-row"
                 onPress={
                   budgetsLoading
@@ -302,51 +276,39 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                       ? onRetryBudgetLookup
                       : onOpenBudgetPicker
                 }
-                isDisabled={budgetsLoading}
+                disabled={budgetsLoading}
                 accessibilityLabel={
                   budgetLookupError ? Strings.addTxBudgetRetryA11y : Strings.addTxBudgetLabel
                 }
-                accessibilityHint={budgetLookupError}
-                className="bg-default rounded-md px-3 py-2.5"
-                style={{ flexDirection: 'row', alignItems: 'center', gap: ms(8) }}
-              >
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text className="font-inter text-muted text-[11px]">
-                    {Strings.addTxBudgetLabel}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: ms(6) }}>
-                    <MaterialCommunityIcons
-                      name="wallet-outline"
-                      size={ms(15)}
-                      color={CoreTokens.text2}
-                    />
-                    <Text
-                      numberOfLines={1}
-                      style={{ flex: 1, minWidth: 0 }}
-                      className={
-                        budgetLookupError
-                          ? 'font-inter text-danger text-[12px] font-medium'
-                          : 'font-sora text-foreground text-[14px] font-semibold'
-                      }
-                    >
-                      {budgetsLoading
-                        ? Strings.addTxBudgetLoading
-                        : (budgetLookupError ??
-                          selectedBudget?.name ??
-                          Strings.addTxPickBudgetTitle)}
-                    </Text>
-                  </View>
-                </View>
-                {budgetsLoading ? (
-                  <Spinner size="sm" />
-                ) : (
+                label={Strings.addTxBudgetLabel}
+                value={
+                  budgetsLoading
+                    ? Strings.addTxBudgetLoading
+                    : (budgetLookupError ?? selectedBudget?.name ?? Strings.addTxPickBudgetTitle)
+                }
+                valueClassName={
+                  budgetLookupError ? 'font-inter text-danger font-medium' : 'text-foreground'
+                }
+                valueStyle={{ fontSize: budgetLookupError ? Type.caption : Type.body }}
+                prefix={
                   <MaterialCommunityIcons
-                    name={budgetLookupError ? 'reload' : 'chevron-right'}
-                    size={ms(18)}
+                    name="wallet-outline"
+                    size={Size.filterSegmentIcon}
                     color={CoreTokens.text2}
                   />
-                )}
-              </PressableFeedback>
+                }
+                suffix={
+                  budgetsLoading ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <MaterialCommunityIcons
+                      name={budgetLookupError ? 'reload' : 'chevron-right'}
+                      size={Size.iconSm}
+                      color={CoreTokens.text2}
+                    />
+                  )
+                }
+              />
               <ValidationSlot
                 testID="budget-error-slot"
                 message={budgetLookupError ? undefined : budgetError}
@@ -371,7 +333,9 @@ export function TransactionFormBody(props: Props): React.ReactElement {
 
         {/* Note */}
         <View className="bg-default rounded-md px-3 py-3">
-          <Text className="font-inter text-muted text-[11px]">{Strings.addTxNoteLabel}</Text>
+          <Text className="font-inter text-muted" style={{ fontSize: Type.micro }}>
+            {Strings.addTxNoteLabel}
+          </Text>
           <Input
             value={note}
             onChangeText={setNote}
@@ -380,7 +344,8 @@ export function TransactionFormBody(props: Props): React.ReactElement {
             onFocus={onInputFocus}
             onBlur={onInputBlur}
             variant="secondary"
-            className="font-inter text-foreground min-h-8 rounded-none border-0 bg-transparent p-0 text-[14px]"
+            className="font-inter text-foreground min-h-8 rounded-none border-0 bg-transparent p-0"
+            style={{ fontSize: Type.body }}
           />
         </View>
         <ValidationSlot testID="form-error-slot" message={errorMessage} />

@@ -1,8 +1,11 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { ListGroup } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/text';
+import { Size, Type } from '@/constants/theme';
+import { CoreTokens } from '@/constants/theme_tokens';
 
 import { DETAIL_ROW_HEIGHT } from './detail_geometry';
 
@@ -65,32 +68,54 @@ export function DetailRow({
 }: Props): React.ReactElement {
   const tone = BADGE_STYLES[badgeTone];
   return (
-    <View
+    <ListGroup.Item
       className={`flex-row items-center gap-3 px-4 py-3 ${showDivider ? 'border-separator border-b' : ''}`}
       style={{ minHeight: DETAIL_ROW_HEIGHT }}
     >
-      <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
-        <MaterialCommunityIcons name={icon} size={14} color="#F0EEE6" />
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-inter text-foreground/55 text-[10.5px] font-semibold tracking-wide uppercase">
+      <ListGroup.ItemPrefix>
+        <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
+          <MaterialCommunityIcons
+            name={icon}
+            size={Size.filterSegmentIcon}
+            color={CoreTokens.text1}
+          />
+        </View>
+      </ListGroup.ItemPrefix>
+      <ListGroup.ItemContent className="min-w-0">
+        <ListGroup.ItemDescription
+          className="font-inter text-foreground/55 font-semibold tracking-wide uppercase"
+          style={{ fontSize: Type.overline }}
+        >
           {label}
-        </Text>
-        <Text
-          className={`font-inter mt-0.5 text-[13px] ${muted ? 'text-foreground/60 italic' : 'font-medium'}`}
+        </ListGroup.ItemDescription>
+        <ListGroup.ItemTitle
+          className={`font-inter mt-0.5 ${muted ? 'text-foreground/60 italic' : 'font-medium'}`}
+          style={{ fontSize: Type.meta }}
           numberOfLines={2}
         >
           {value}
-        </Text>
+        </ListGroup.ItemTitle>
         {sublabel ? (
-          <Text className="font-inter text-foreground/55 mt-0.5 text-[10.5px]">{sublabel}</Text>
+          <ListGroup.ItemDescription
+            className="font-inter text-foreground/55 mt-0.5"
+            style={{ fontSize: Type.overline }}
+          >
+            {sublabel}
+          </ListGroup.ItemDescription>
         ) : null}
-      </View>
+      </ListGroup.ItemContent>
       {badge ? (
-        <View className={`rounded-full border px-2 py-0.5 ${tone.bg} ${tone.border}`}>
-          <Text className={`font-inter text-[9.5px] font-semibold ${tone.text}`}>{badge}</Text>
-        </View>
+        <ListGroup.ItemSuffix>
+          <View className={`rounded-full border px-2 py-0.5 ${tone.bg} ${tone.border}`}>
+            <Text
+              className={`font-inter font-semibold ${tone.text}`}
+              style={{ fontSize: Type.compactBadge }}
+            >
+              {badge}
+            </Text>
+          </View>
+        </ListGroup.ItemSuffix>
       ) : null}
-    </View>
+    </ListGroup.Item>
   );
 }

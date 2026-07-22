@@ -4,7 +4,7 @@ import React from 'react';
 import { FilterAccordionShell, FilterOptionPillList } from '@/components/ui/filter_accordion';
 import { Strings } from '@/constants/strings';
 import { CoreTokens } from '@/constants/theme_tokens';
-import type { Category } from '@/database/entities/category.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 

@@ -1,32 +1,13 @@
 import { fireEvent, render } from '@testing-library/react-native';
-import type { ReactNode } from 'react';
-import type { PressableProps } from 'react-native';
 
 import {
   FILTER_BADGE_STYLE,
   FILTER_BUTTON_COMPACT_STYLE,
   SEARCH_INPUT_COMPACT_STYLE,
-  SEARCH_INPUT_WITH_CLEAR_STYLE,
   SearchFilterRow,
 } from '@/components/ui/search_filter_row';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
-jest.mock('heroui-native', () => {
-  const { Pressable } = jest.requireActual<typeof import('react-native')>('react-native');
-  return {
-    PressableFeedback: ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
-      <Pressable {...props}>{children}</Pressable>
-    ),
-    cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
-  };
-});
-jest.mock('@/components/ui/input', () => {
-  const ReactLocal = jest.requireActual<typeof import('react')>('react');
-  const { TextInput } = jest.requireActual<typeof import('react-native')>('react-native');
-  return {
-    Input: (props: object) => ReactLocal.createElement(TextInput, props),
-  };
-});
 
 describe('SearchFilterRow', () => {
   it('renders compact input and trailing filter button', () => {
@@ -46,6 +27,8 @@ describe('SearchFilterRow', () => {
       height: FILTER_BUTTON_COMPACT_STYLE.height,
       minHeight: FILTER_BUTTON_COMPACT_STYLE.height,
     });
+    expect(getByLabelText('Search items...')).toHaveProp('accessibilityRole', 'search');
+    expect(getByLabelText('Search items...')).toHaveProp('value', '');
     expect(getByLabelText('Search items...')).toHaveProp('style', SEARCH_INPUT_COMPACT_STYLE);
     expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
   });
@@ -80,7 +63,7 @@ describe('SearchFilterRow', () => {
     expect(active.getByLabelText('Filter, 3 active')).toBeTruthy();
   });
 
-  it('reserves clear-action space only when text is present', () => {
+  it('keeps stable search geometry when the clear action is present', () => {
     const active = render(
       <SearchFilterRow
         value="rent"
@@ -93,12 +76,9 @@ describe('SearchFilterRow', () => {
       />,
     );
 
-    expect(SEARCH_INPUT_COMPACT_STYLE.paddingRight).toBeLessThan(
-      SEARCH_INPUT_WITH_CLEAR_STYLE.paddingRight,
-    );
     expect(active.getByLabelText('Search items...')).toHaveProp(
       'style',
-      SEARCH_INPUT_WITH_CLEAR_STYLE,
+      SEARCH_INPUT_COMPACT_STYLE,
     );
     expect(active.getByLabelText('Clear search')).toBeTruthy();
   });

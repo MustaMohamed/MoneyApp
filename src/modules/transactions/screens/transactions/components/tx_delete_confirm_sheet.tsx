@@ -1,6 +1,38 @@
-/**
- * Re-exports the transaction delete confirm sheet for use from the
- * transactions list swipe action. Both list and detail now use the same
- * underlying ConfirmSheet so the UI is identical on both surfaces.
- */
-export { DeleteConfirmDialog as TxDeleteConfirmSheet } from '../detail/components/delete_confirm_dialog';
+import React from 'react';
+
+import { ConfirmSheet } from '@/components/ui/confirm_sheet';
+import { Strings } from '@/constants/strings';
+
+interface Props {
+  isOpen: boolean;
+  busy: boolean;
+  errorMessage?: string;
+  onCancel: () => void;
+  onConfirm: () => void;
+}
+
+export function TxDeleteConfirmSheet({
+  isOpen,
+  busy,
+  errorMessage,
+  onCancel,
+  onConfirm,
+}: Props): React.ReactElement {
+  return (
+    <ConfirmSheet
+      isOpen={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onCancel();
+      }}
+      busy={busy}
+      errorMessage={errorMessage}
+      destructive
+      title={Strings.deleteConfirmTitle}
+      body={Strings.deleteConfirmBody}
+      confirmLabel={Strings.deleteTransaction}
+      cancelLabel={Strings.deleteCancel}
+      onCancel={onCancel}
+      onConfirm={onConfirm}
+    />
+  );
+}

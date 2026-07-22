@@ -79,9 +79,10 @@ describe('BudgetPickerSheet', () => {
     expect(mockSheet).toHaveBeenLastCalledWith(
       expect.objectContaining({ size: 'md', scrollable: true }),
     );
+    expect(screen.UNSAFE_getByProps({ role: 'radiogroup' })).toBeTruthy();
     expect(screen.getByTestId('budget-picker-list')).toBeTruthy();
     expect(screen.getByTestId('budget-picker-row-budget-12')).toHaveProp('accessibilityState', {
-      selected: true,
+      checked: true,
     });
 
     fireEvent.press(screen.getByTestId('budget-picker-row-budget-29'));

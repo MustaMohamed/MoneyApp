@@ -78,6 +78,86 @@ jest.mock('heroui-native', () => {
   Text.Paragraph = passThrough(RNText);
   Text.Code = passThrough(RNText);
   const PressableFeedback = passThrough(View);
+  const Spinner = passThrough(View);
+
+  const ListGroup = passThrough(View);
+  ListGroup.Item = passThrough(View);
+  ListGroup.ItemPrefix = passThrough(View);
+  ListGroup.ItemContent = passThrough(View);
+  ListGroup.ItemTitle = passThrough(RNText);
+  ListGroup.ItemDescription = passThrough(RNText);
+  ListGroup.ItemSuffix = passThrough(View);
+
+  const RadioGroupContext = React.createContext({
+    value: undefined,
+    onValueChange: undefined,
+  });
+  function RadioGroup({ value, onValueChange, children, ...props }) {
+    return React.createElement(
+      RadioGroupContext.Provider,
+      { value: { value, onValueChange } },
+      React.createElement(View, { role: 'radiogroup', ...props }, children),
+    );
+  }
+  RadioGroup.Item = ({ value, children, accessibilityState, ...props }) => {
+    const group = React.useContext(RadioGroupContext);
+    return React.createElement(
+      View,
+      {
+        role: 'radio',
+        accessibilityState: {
+          ...accessibilityState,
+          checked: group.value === value,
+        },
+        onPress: () => group.onValueChange?.(value),
+        ...props,
+      },
+      typeof children === 'function'
+        ? children({
+            isSelected: group.value === value,
+            isDisabled: false,
+            isInvalid: false,
+          })
+        : children,
+    );
+  };
+  const Radio = passThrough(View);
+  Radio.Indicator = passThrough(View);
+  Radio.IndicatorThumb = passThrough(View);
+
+  const SearchFieldContext = React.createContext({ value: undefined, onChange: undefined });
+  function SearchField({ value, onChange, children, ...props }) {
+    return React.createElement(
+      SearchFieldContext.Provider,
+      { value: { value, onChange } },
+      React.createElement(View, props, children),
+    );
+  }
+  SearchField.Group = passThrough(View);
+  SearchField.SearchIcon = passThrough(View);
+  SearchField.Input = React.forwardRef((props, ref) => {
+    const searchField = React.useContext(SearchFieldContext);
+    return React.createElement(TextInput, {
+      ref,
+      accessibilityRole: 'search',
+      value: searchField.value,
+      onChangeText: searchField.onChange,
+      ...props,
+    });
+  });
+  SearchField.ClearButton = ({ onPress, accessibilityLabel = 'Clear search', ...props }) => {
+    const searchField = React.useContext(SearchFieldContext);
+    if (!searchField.value) return null;
+    return React.createElement(View, {
+      accessibilityRole: 'button',
+      accessibilityLabel,
+      onPress: (event) => {
+        searchField.onChange?.('');
+        onPress?.(event);
+      },
+      ...props,
+    });
+  };
 
   const Button = passThrough(View);
   Button.Label = passThrough(RNText);
@@ -135,6 +215,11 @@ jest.mock('heroui-native', () => {
     Description,
     FieldError,
     PressableFeedback,
+    Radio,
+    RadioGroup,
+    SearchField,
+    Spinner,
+    ListGroup,
     Separator,
     Surface,
     Text,

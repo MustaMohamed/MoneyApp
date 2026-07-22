@@ -18,6 +18,8 @@ Run this matrix on one Android device and one iOS device before merge. Repeat th
 
 ## Search And Filters
 
+- [ ] Transactions and Commitments use the same compact SearchField height, clear action, trailing filter button, and active-filter badge geometry.
+- [ ] SearchField clear is announced and clears the query on the first press without moving the filter button.
 - [ ] Search finds note, category, budget, source account, destination account, transaction type, and exact formatted amount values.
 - [ ] Monthly totals remain month-owned and do not change when search or filters change.
 - [ ] Invalid, negative, malformed, and reversed amount ranges keep the typed text, show inline errors, and disable Apply.
@@ -26,26 +28,32 @@ Run this matrix on one Android device and one iOS device before merge. Repeat th
 
 ## Add And Edit
 
+- [ ] Account, destination account, category, and budget ListGroup rows open on the first press and keep their icon/content/value/chevron columns aligned.
+- [ ] Budget RadioGroup selection is announced, updates exactly one checked row, and returns the selected budget without a layout jump.
 - [ ] The date trigger stays compact when opened.
 - [ ] On iOS, changing the date does not update the form until Done; Cancel preserves the original date.
 - [ ] On Android, a selected date applies once and the native picker closes.
 - [ ] A long budget list scrolls inside the sheet, selected state is visible, and the empty state is clear.
 - [ ] The keyboard and sticky Save footer do not cover the note, validation message, or final form row.
 - [ ] Saving locks dismissal and shows the existing loading state until completion.
+- [ ] A failed Add or Edit save keeps the entered values, restores the Save action, and does not close or remount the form.
 
 ## Detail
 
+- [ ] The standard header shows one Edit action for editable transactions and no Edit action for commitment-owned transactions.
 - [ ] Initial detail load uses a geometry-matched skeleton; refresh keeps the existing detail visible.
 - [ ] Standard, transfer, card credit, budget-owned, and commitment-owned details show the correct source and amounts.
 - [ ] Missing budget or account metadata degrades to unavailable/unknown labels without replacing a valid transaction with an error screen.
 - [ ] Transfer account buttons open the correct source and destination accounts.
 - [ ] Back navigation restores the ledger query and scroll position without a visible jump.
+- [ ] First-load failure, retry, background refresh, and refresh failure each preserve the approved detail geometry and expose only the relevant error action.
 
 ## Accessibility
 
 - [ ] Screen reader announces the summary expense share as progress.
 - [ ] Transaction rows announce title, account path, amounts, and ownership.
 - [ ] Date and budget rows announce button/selected states.
+- [ ] Exchange-rate edit, input, and reset controls have distinct labels and invalid state is announced without using the error as a hint.
 - [ ] All touch targets remain usable with large text and no text clips or overlaps.
 
 Record device models, OS versions, and any failed step in the PR before approval.

@@ -12,9 +12,7 @@ import { Strings } from '@/constants/strings';
 import { Colors, Size } from '@/constants/theme';
 import { AccentCCTokens, GoldTokens, InfoTokens, SemanticTokens } from '@/constants/theme_tokens';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
-import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { ms } from '@/utils/responsive';
-import { useConfirmAction } from '@/utils/use_confirm_action.hook';
 
 import { DateHeader } from './components/date_header';
 import { SearchRow } from './components/search_row';
@@ -24,7 +22,6 @@ import { TransactionRow } from './components/transaction_row';
 import { TransactionRowsSkeleton } from './components/transaction_rows_skeleton';
 import { TxDeleteConfirmSheet } from './components/tx_delete_confirm_sheet';
 import { FilterSheet } from './filter';
-import { useTransactionFormState } from './transaction_form/transaction_form_host.state';
 import { useTransactions } from './transactions.hook';
 import type { TransactionSection } from './transactions.hook';
 import type { TransactionFilter } from './transactions.store';
@@ -77,18 +74,11 @@ export default function TransactionsScreen(): React.ReactElement {
     onListScroll,
     onListScrollEnd,
     retryFailedLoads,
+    openAddTransaction,
+    requestDelete,
+    confirmDelete,
+    cancelDelete,
   } = t;
-  const openAddTx = useTransactionFormState.getState().openAdd;
-
-  const deleteTransaction = useTransactionStore.getState().deleteTransaction;
-  const {
-    pendingPayload: pendingDeleteId,
-    busy: deleteBusy,
-    error: deleteError,
-    request: requestDelete,
-    confirm: confirmDelete,
-    cancel: cancelDelete,
-  } = useConfirmAction<string>((id) => deleteTransaction(id));
 
   const renderSectionHeader = useCallback(
     ({ section }: { section: SectionListData<Transaction, TransactionSection> }) => (
@@ -153,11 +143,11 @@ export default function TransactionsScreen(): React.ReactElement {
       ) : state.emptyVariant === 'none' ? null : (
         <EmptyState
           variant={state.emptyVariant === 'noData' ? 'transactions' : 'filtered'}
-          onAction={state.emptyVariant === 'noData' ? openAddTx : resetFilters}
+          onAction={state.emptyVariant === 'noData' ? openAddTransaction : resetFilters}
         />
       ),
     [
-      openAddTx,
+      openAddTransaction,
       resetFilters,
       retryFailedLoads,
       showRowsSkeleton,
@@ -199,7 +189,7 @@ export default function TransactionsScreen(): React.ReactElement {
         selectedFilter={state.activeFilter}
         onSelectedFilterChange={setActiveFilter}
         filters={TRANSACTION_FILTERS}
-        filterAccessibilityLabel="Transaction type filter"
+        filterAccessibilityLabel={Strings.transactionTypeFilterAccessibility}
       />
 
       <View style={{ flex: 1 }}>
@@ -240,9 +230,9 @@ export default function TransactionsScreen(): React.ReactElement {
       </View>
 
       <TxDeleteConfirmSheet
-        isOpen={pendingDeleteId !== null}
-        busy={deleteBusy}
-        errorMessage={deleteError ? Strings.errDeleteFailed : undefined}
+        isOpen={state.pendingDeleteId !== null}
+        busy={state.deleteBusy}
+        errorMessage={state.deleteErrorMessage}
         onCancel={cancelDelete}
         onConfirm={() => {
           void confirmDelete();

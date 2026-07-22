@@ -1,8 +1,8 @@
 import { TransactionType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/database/entities/account.entity';
-import type { Category } from '@/database/entities/category.entity';
-import type { Transaction } from '@/database/entities/transaction.entity';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import type { Category } from '@/modules/categories/entities/category.entity';
+import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 
 export interface FormatTitleArgs {
   tx: Transaction;
