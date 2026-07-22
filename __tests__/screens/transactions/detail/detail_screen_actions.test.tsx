@@ -37,7 +37,9 @@ describe('transaction detail actions', () => {
   it('puts edit in the standard header for an ordinary transaction', () => {
     const onBack = jest.fn();
     const onEdit = jest.fn();
-    const screen = render(<DetailHeader editable onBack={onBack} onEdit={onEdit} />);
+    const screen = render(
+      <DetailHeader editable refreshing={false} onBack={onBack} onEdit={onEdit} />,
+    );
 
     fireEvent.press(screen.getByLabelText(Strings.detailEditAccessibility));
     expect(onEdit).toHaveBeenCalledTimes(1);
@@ -46,8 +48,19 @@ describe('transaction detail actions', () => {
   });
 
   it('reserves the header action slot without exposing edit for owned transactions', () => {
-    const screen = render(<DetailHeader editable={false} onBack={jest.fn()} onEdit={jest.fn()} />);
+    const screen = render(
+      <DetailHeader editable={false} refreshing={false} onBack={jest.fn()} onEdit={jest.fn()} />,
+    );
 
+    expect(screen.queryByLabelText(Strings.detailEditAccessibility)).toBeNull();
+  });
+
+  it('uses the reserved header action slot for refresh progress', () => {
+    const screen = render(
+      <DetailHeader editable refreshing onBack={jest.fn()} onEdit={jest.fn()} />,
+    );
+
+    expect(screen.getByLabelText(Strings.detailRefreshingAccessibility)).toBeTruthy();
     expect(screen.queryByLabelText(Strings.detailEditAccessibility)).toBeNull();
   });
 

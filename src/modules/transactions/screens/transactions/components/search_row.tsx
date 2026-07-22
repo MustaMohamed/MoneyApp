@@ -11,7 +11,6 @@ import { Strings } from '@/constants/strings';
 interface Props {
   value: string;
   onChange: (s: string) => void;
-  onClear: () => void;
   onOpenFilter: () => void;
   activeFilterCount: number;
 }
@@ -21,7 +20,6 @@ export { FILTER_BADGE_STYLE, FILTER_BUTTON_COMPACT_STYLE, SEARCH_INPUT_COMPACT_S
 export function SearchRow({
   value,
   onChange,
-  onClear,
   onOpenFilter,
   activeFilterCount,
 }: Props): React.ReactElement {
@@ -30,7 +28,6 @@ export function SearchRow({
       value={value}
       placeholder={Strings.searchTransactionsPlaceholder}
       onChangeText={onChange}
-      onClear={onClear}
       onOpenFilter={onOpenFilter}
       activeFilterCount={activeFilterCount}
       filterBadgeTestID="filter-badge"

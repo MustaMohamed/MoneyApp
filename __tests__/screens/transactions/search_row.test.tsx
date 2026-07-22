@@ -12,13 +12,7 @@ jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 describe('SearchRow', () => {
   it('renders the compact search input and trailing filter button', () => {
     const { getByLabelText } = render(
-      <SearchRow
-        value=""
-        onChange={jest.fn()}
-        onClear={jest.fn()}
-        onOpenFilter={jest.fn()}
-        activeFilterCount={0}
-      />,
+      <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={0} />,
     );
 
     expect(typeof SEARCH_INPUT_COMPACT_STYLE.height).toBe('number');
@@ -36,24 +30,12 @@ describe('SearchRow', () => {
 
   it('shows the active-filter badge only when advanced filters are applied', () => {
     const empty = render(
-      <SearchRow
-        value=""
-        onChange={jest.fn()}
-        onClear={jest.fn()}
-        onOpenFilter={jest.fn()}
-        activeFilterCount={0}
-      />,
+      <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={0} />,
     );
     expect(empty.queryByText('2')).toBeNull();
 
     const active = render(
-      <SearchRow
-        value=""
-        onChange={jest.fn()}
-        onClear={jest.fn()}
-        onOpenFilter={jest.fn()}
-        activeFilterCount={2}
-      />,
+      <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={2} />,
     );
     expect(active.getByText('2')).toBeTruthy();
     expect(FILTER_BADGE_STYLE.top).toBeGreaterThanOrEqual(0);
@@ -67,7 +49,6 @@ describe('SearchRow', () => {
       <SearchRow
         value="coffee"
         onChange={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
       />,
@@ -79,15 +60,13 @@ describe('SearchRow', () => {
     );
   });
 
-  it('calls search, clear, and open-filter handlers', () => {
+  it('routes search changes and clearing through the controlled handler', () => {
     const onChange = jest.fn();
-    const onClear = jest.fn();
     const onOpenFilter = jest.fn();
     const { getByLabelText } = render(
       <SearchRow
         value="coffee"
         onChange={onChange}
-        onClear={onClear}
         onOpenFilter={onOpenFilter}
         activeFilterCount={1}
       />,
@@ -97,7 +76,7 @@ describe('SearchRow', () => {
     expect(onChange).toHaveBeenCalledWith('rent');
 
     fireEvent.press(getByLabelText('Clear search'));
-    expect(onClear).toHaveBeenCalled();
+    expect(onChange).toHaveBeenLastCalledWith('');
 
     fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();

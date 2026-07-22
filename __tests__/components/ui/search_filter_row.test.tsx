@@ -16,7 +16,6 @@ describe('SearchFilterRow', () => {
         value=""
         placeholder="Search items..."
         onChangeText={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
         filterBadgeTestID="shared-filter-badge"
@@ -39,7 +38,6 @@ describe('SearchFilterRow', () => {
         value=""
         placeholder="Search items..."
         onChangeText={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
         filterBadgeTestID="shared-filter-badge"
@@ -52,7 +50,6 @@ describe('SearchFilterRow', () => {
         value=""
         placeholder="Search items..."
         onChangeText={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={3}
         filterBadgeTestID="shared-filter-badge"
@@ -69,7 +66,6 @@ describe('SearchFilterRow', () => {
         value="rent"
         placeholder="Search items..."
         onChangeText={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
         filterBadgeTestID="shared-filter-badge"
@@ -83,16 +79,14 @@ describe('SearchFilterRow', () => {
     expect(active.getByLabelText('Clear search')).toBeTruthy();
   });
 
-  it('calls search, clear, and filter callbacks', () => {
+  it('routes typing and clearing through the controlled change callback', () => {
     const onChangeText = jest.fn();
-    const onClear = jest.fn();
     const onOpenFilter = jest.fn();
     const { getByLabelText } = render(
       <SearchFilterRow
         value="rent"
         placeholder="Search items..."
         onChangeText={onChangeText}
-        onClear={onClear}
         onOpenFilter={onOpenFilter}
         activeFilterCount={1}
         filterBadgeTestID="shared-filter-badge"
@@ -103,7 +97,7 @@ describe('SearchFilterRow', () => {
     expect(onChangeText).toHaveBeenCalledWith('gym');
 
     fireEvent.press(getByLabelText('Clear search'));
-    expect(onClear).toHaveBeenCalled();
+    expect(onChangeText).toHaveBeenLastCalledWith('');
 
     fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();

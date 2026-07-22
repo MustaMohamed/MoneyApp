@@ -11,7 +11,7 @@ import { DetailHero } from './components/detail_hero';
 import { DetailLoadError } from './components/detail_load_error';
 import { DetailRow } from './components/detail_row';
 import { DetailRowsCard } from './components/detail_rows_card';
-import { TransactionDetailSkeleton } from './components/detail_skeleton';
+import { TransactionDetailSkeleton, TransferFlowSkeletonCard } from './components/detail_skeleton';
 import { NotFoundState } from './components/not_found_state';
 import { NoteCard } from './components/note_card';
 import { TransferFlowCard } from './components/transfer_flow_card';
@@ -39,6 +39,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
     <Screen edges={['top', 'bottom']}>
       <DetailHeader
         editable={hasDetailContent && !state.isCommitmentOwned}
+        refreshing={state.viewState === 'refreshing'}
         onBack={goBack}
         onEdit={openEdit}
       />
@@ -62,17 +63,21 @@ export default function TransactionDetailScreen(): React.ReactElement {
               heroColor={detail.heroColor}
             />
 
-            {detail.isTransferLike && transferFlow ? (
-              <TransferFlowCard
-                fromAccount={transferFlow.fromAccount}
-                toAccount={transferFlow.toAccount}
-                fromAmount={transferFlow.fromAmount}
-                fromCurrency={transferFlow.fromCurrency}
-                toAmount={transferFlow.toAmount}
-                toCurrency={transferFlow.toCurrency}
-                onPressFrom={() => openAccount(transferFlow.fromAccount.id)}
-                onPressTo={() => openAccount(transferFlow.toAccount.id)}
-              />
+            {detail.isTransferLike ? (
+              transferFlow ? (
+                <TransferFlowCard
+                  fromAccount={transferFlow.fromAccount}
+                  toAccount={transferFlow.toAccount}
+                  fromAmount={transferFlow.fromAmount}
+                  fromCurrency={transferFlow.fromCurrency}
+                  toAmount={transferFlow.toAmount}
+                  toCurrency={transferFlow.toCurrency}
+                  onPressFrom={() => openAccount(transferFlow.fromAccount.id)}
+                  onPressTo={() => openAccount(transferFlow.toAccount.id)}
+                />
+              ) : (
+                <TransferFlowSkeletonCard />
+              )
             ) : null}
 
             <DetailRowsCard>
@@ -88,6 +93,7 @@ export default function TransactionDetailScreen(): React.ReactElement {
                 label={Strings.detailAccount}
                 value={detail.accountLabel}
                 sublabel={detail.accountTypeLabel}
+                reserveSublabel
               />
               {detail.budgetLabel ? (
                 <DetailRow

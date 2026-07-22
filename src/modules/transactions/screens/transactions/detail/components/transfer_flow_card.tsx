@@ -60,12 +60,14 @@ function Cell({
       <Text
         className="font-inter text-foreground mt-1 font-semibold"
         style={{ fontSize: Type.detail }}
+        numberOfLines={1}
       >
         {account.name}
       </Text>
       <Text
         className="font-sora text-foreground/85 mt-0.5 font-semibold"
         style={{ fontSize: Type.micro }}
+        numberOfLines={1}
       >
         {signPrefix}
         {numberFmt.format(amount)} {currency}
@@ -105,7 +107,7 @@ export function TransferFlowCard({
   return (
     <Card
       className="border-accent/18 mx-4 mt-4 flex-row items-center gap-2 rounded-2xl border p-3.5"
-      style={{ minHeight: DETAIL_TRANSFER_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
+      style={{ height: DETAIL_TRANSFER_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
     >
       <Cell
         label={Strings.detailFlowFromLabel}

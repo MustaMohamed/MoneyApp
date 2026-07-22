@@ -10,7 +10,6 @@ import {
   DETAIL_ACTION_MIN_HEIGHT,
   DETAIL_HERO_MIN_HEIGHT,
   DETAIL_NOTE_MIN_HEIGHT,
-  DETAIL_ROW_HEIGHT,
   DETAIL_TRANSFER_MIN_HEIGHT,
 } from './detail_geometry';
 
@@ -18,9 +17,44 @@ interface Props {
   transaction?: Transaction | null;
 }
 
+export function TransferFlowSkeletonCard(): React.ReactElement {
+  return (
+    <Card
+      testID="transaction-detail-skeleton-transfer"
+      className="border-separator mx-4 mt-4 rounded-2xl border p-3.5"
+      style={{ height: DETAIL_TRANSFER_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
+    >
+      <SkeletonGroup isLoading isSkeletonOnly>
+        <View className="flex-row items-center justify-between">
+          <SkeletonGroup.Item className="h-20 w-[42%] rounded-lg" />
+          <SkeletonGroup.Item className="h-5 w-5 rounded-md" />
+          <SkeletonGroup.Item className="h-20 w-[42%] rounded-lg" />
+        </View>
+      </SkeletonGroup>
+    </Card>
+  );
+}
+
 export function TransactionDetailSkeleton({ transaction }: Props): React.ReactElement {
+  if (!transaction) {
+    return (
+      <ScreenScroll
+        testID="transaction-detail-skeleton"
+        accessibilityLabel={Strings.loadingTransactionA11y}
+      >
+        <SkeletonGroup isLoading isSkeletonOnly>
+          <View
+            testID="transaction-detail-neutral-loading"
+            className="flex-1 items-center justify-center"
+          >
+            <SkeletonGroup.Item className="h-10 w-10 rounded-full" />
+          </View>
+        </SkeletonGroup>
+      </ScreenScroll>
+    );
+  }
+
   const geometry = buildDetailSkeletonGeometry(transaction);
-  const rows = Array.from({ length: geometry.rowCount }, (_, index) => index);
   return (
     <ScreenScroll
       testID="transaction-detail-skeleton"
@@ -37,29 +71,19 @@ export function TransactionDetailSkeleton({ transaction }: Props): React.ReactEl
           <SkeletonGroup.Item className="mt-3 h-4 w-32 rounded-md" />
           <SkeletonGroup.Item className="mt-2 h-3 w-28 rounded-md" />
         </View>
-        {geometry.showTransfer ? (
-          <Card
-            testID="transaction-detail-skeleton-transfer"
-            className="border-separator mx-4 mt-4 rounded-2xl border p-3.5"
-            style={{ minHeight: DETAIL_TRANSFER_MIN_HEIGHT, elevation: 0, shadowOpacity: 0 }}
-          >
-            <View className="flex-row items-center justify-between">
-              <SkeletonGroup.Item className="h-20 w-[42%] rounded-lg" />
-              <SkeletonGroup.Item className="h-5 w-5 rounded-md" />
-              <SkeletonGroup.Item className="h-20 w-[42%] rounded-lg" />
-            </View>
-          </Card>
-        ) : null}
+        {geometry.showTransfer ? <TransferFlowSkeletonCard /> : null}
         <Card
           testID="transaction-detail-skeleton-rows"
           className="border-separator mx-4 mt-4 overflow-hidden rounded-2xl border p-0"
         >
-          {rows.map((row) => (
+          {geometry.rowHeights.map((height, row) => (
             <View
               key={row}
               testID="transaction-detail-skeleton-row"
-              className={row < rows.length - 1 ? 'border-separator border-b px-4' : 'px-4'}
-              style={{ height: DETAIL_ROW_HEIGHT, flexDirection: 'row', alignItems: 'center' }}
+              className={
+                row < geometry.rowHeights.length - 1 ? 'border-separator border-b px-4' : 'px-4'
+              }
+              style={{ height, flexDirection: 'row', alignItems: 'center' }}
             >
               <SkeletonGroup.Item className="h-7 w-7 rounded-md" />
               <View className="ml-3 flex-1 gap-1.5">

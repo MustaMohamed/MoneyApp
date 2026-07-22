@@ -11,7 +11,6 @@ import { Strings } from '@/constants/strings';
 interface Props {
   value: string;
   onChange: (value: string) => void;
-  onClear: () => void;
   onOpenFilter: () => void;
   activeFilterCount: number;
 }
@@ -25,7 +24,6 @@ export {
 export function CommitmentSearchRow({
   value,
   onChange,
-  onClear,
   onOpenFilter,
   activeFilterCount,
 }: Props): React.ReactElement {
@@ -34,7 +32,6 @@ export function CommitmentSearchRow({
       value={value}
       placeholder={Strings.searchCommitmentsPlaceholder}
       onChangeText={onChange}
-      onClear={onClear}
       onOpenFilter={onOpenFilter}
       activeFilterCount={activeFilterCount}
       filterBadgeTestID="commitment-filter-badge"

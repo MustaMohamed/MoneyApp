@@ -14,7 +14,6 @@ interface SearchFilterRowProps {
   value: string;
   placeholder: string;
   onChangeText: (value: string) => void;
-  onClear: () => void;
   onOpenFilter: () => void;
   activeFilterCount: number;
   filterBadgeTestID: string;
@@ -55,7 +54,6 @@ export function SearchFilterRow({
   value,
   placeholder,
   onChangeText,
-  onClear,
   onOpenFilter,
   activeFilterCount,
   filterBadgeTestID,
@@ -79,7 +77,7 @@ export function SearchFilterRow({
             accessibilityLabel={placeholder}
             style={SEARCH_INPUT_COMPACT_STYLE}
           />
-          <SearchField.ClearButton onPress={onClear} accessibilityLabel={clearAccessibilityLabel} />
+          <SearchField.ClearButton accessibilityLabel={clearAccessibilityLabel} />
         </SearchField.Group>
       </SearchField>
       <PressableFeedback

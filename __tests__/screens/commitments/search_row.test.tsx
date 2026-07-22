@@ -15,7 +15,6 @@ describe('CommitmentSearchRow', () => {
       <CommitmentSearchRow
         value=""
         onChange={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
       />,
@@ -38,7 +37,6 @@ describe('CommitmentSearchRow', () => {
       <CommitmentSearchRow
         value=""
         onChange={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
       />,
@@ -49,7 +47,6 @@ describe('CommitmentSearchRow', () => {
       <CommitmentSearchRow
         value=""
         onChange={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={2}
       />,
@@ -66,7 +63,6 @@ describe('CommitmentSearchRow', () => {
       <CommitmentSearchRow
         value="rent"
         onChange={jest.fn()}
-        onClear={jest.fn()}
         onOpenFilter={jest.fn()}
         activeFilterCount={0}
       />,
@@ -78,15 +74,13 @@ describe('CommitmentSearchRow', () => {
     );
   });
 
-  it('calls search, clear, and open-filter handlers', () => {
+  it('routes search changes and clearing through the controlled handler', () => {
     const onChange = jest.fn();
-    const onClear = jest.fn();
     const onOpenFilter = jest.fn();
     const { getByLabelText } = render(
       <CommitmentSearchRow
         value="rent"
         onChange={onChange}
-        onClear={onClear}
         onOpenFilter={onOpenFilter}
         activeFilterCount={1}
       />,
@@ -96,7 +90,7 @@ describe('CommitmentSearchRow', () => {
     expect(onChange).toHaveBeenCalledWith('gym');
 
     fireEvent.press(getByLabelText('Clear search'));
-    expect(onClear).toHaveBeenCalled();
+    expect(onChange).toHaveBeenLastCalledWith('');
 
     fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();

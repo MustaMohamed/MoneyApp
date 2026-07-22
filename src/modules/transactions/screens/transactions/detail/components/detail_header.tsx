@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback } from 'heroui-native';
+import { PressableFeedback, Spinner } from 'heroui-native';
 import React from 'react';
 
 import { StackHeader } from '@/components/ui/stack_header';
@@ -9,17 +9,24 @@ import { GoldTokens } from '@/constants/theme_tokens';
 
 interface DetailHeaderProps {
   editable: boolean;
+  refreshing: boolean;
   onBack: () => void;
   onEdit: () => void;
 }
 
-export function DetailHeader({ editable, onBack, onEdit }: DetailHeaderProps) {
+export function DetailHeader({ editable, refreshing, onBack, onEdit }: DetailHeaderProps) {
   return (
     <StackHeader
       title={Strings.detailHeader}
       onBack={onBack}
       right={
-        editable ? (
+        refreshing ? (
+          <Spinner
+            size="sm"
+            accessibilityLabel={Strings.detailRefreshingAccessibility}
+            className="h-9 w-9"
+          />
+        ) : editable ? (
           <PressableFeedback
             onPress={onEdit}
             hitSlop={8}

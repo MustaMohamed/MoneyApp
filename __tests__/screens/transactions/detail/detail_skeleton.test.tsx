@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { Currency, TransactionType } from '@/constants/enums';
 import type { Transaction } from '@/modules/transactions/entities/transaction.entity';
 import {
+  DETAIL_ACCOUNT_ROW_HEIGHT,
   DETAIL_HERO_MIN_HEIGHT,
   DETAIL_ROW_HEIGHT,
 } from '@/modules/transactions/screens/transactions/detail/components/detail_geometry';
@@ -24,13 +25,11 @@ jest.mock('heroui-native', () => {
 });
 
 describe('TransactionDetailSkeleton', () => {
-  it('reserves the loaded hero and detail-card geometry', () => {
-    const { getByTestId } = render(<TransactionDetailSkeleton />);
+  it('uses a neutral loading surface when transaction geometry is unknown', () => {
+    const { getByTestId, queryByTestId } = render(<TransactionDetailSkeleton />);
 
-    expect(getByTestId('transaction-detail-skeleton-hero')).toHaveStyle({
-      minHeight: DETAIL_HERO_MIN_HEIGHT,
-    });
-    expect(getByTestId('transaction-detail-skeleton-rows')).toBeTruthy();
+    expect(getByTestId('transaction-detail-neutral-loading')).toBeTruthy();
+    expect(queryByTestId('transaction-detail-skeleton-rows')).toBeNull();
   });
 
   it('matches the optional transfer, metadata, note, and action sections', () => {
@@ -61,11 +60,15 @@ describe('TransactionDetailSkeleton', () => {
     );
 
     expect(getByTestId('transaction-detail-skeleton-transfer')).toBeTruthy();
+    expect(getByTestId('transaction-detail-skeleton-hero')).toHaveStyle({
+      minHeight: DETAIL_HERO_MIN_HEIGHT,
+    });
     expect(getByTestId('transaction-detail-skeleton-note')).toBeTruthy();
     expect(getByTestId('transaction-detail-skeleton-actions')).toBeTruthy();
     expect(getAllByTestId('transaction-detail-skeleton-row')).toHaveLength(7);
-    for (const row of getAllByTestId('transaction-detail-skeleton-row')) {
-      expect(row).toHaveStyle({ height: DETAIL_ROW_HEIGHT });
-    }
+    const rows = getAllByTestId('transaction-detail-skeleton-row');
+    expect(rows[0]).toHaveStyle({ height: DETAIL_ROW_HEIGHT });
+    expect(rows[1]).toHaveStyle({ height: DETAIL_ACCOUNT_ROW_HEIGHT });
+    for (const row of rows.slice(2)) expect(row).toHaveStyle({ height: DETAIL_ROW_HEIGHT });
   });
 });

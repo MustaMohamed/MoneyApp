@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/text';
 import { Size, Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
-import { DETAIL_ROW_HEIGHT } from './detail_geometry';
+import { DETAIL_ACCOUNT_ROW_HEIGHT, DETAIL_ROW_HEIGHT } from './detail_geometry';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -52,6 +52,7 @@ interface Props {
   badge?: string;
   badgeTone?: BadgeTone;
   sublabel?: string;
+  reserveSublabel?: boolean;
   muted?: boolean;
   showDivider?: boolean;
 }
@@ -63,6 +64,7 @@ export function DetailRow({
   badge,
   badgeTone = 'accent',
   sublabel,
+  reserveSublabel = false,
   muted = false,
   showDivider = true,
 }: Props): React.ReactElement {
@@ -70,7 +72,7 @@ export function DetailRow({
   return (
     <ListGroup.Item
       className={`flex-row items-center gap-3 px-4 py-3 ${showDivider ? 'border-separator border-b' : ''}`}
-      style={{ minHeight: DETAIL_ROW_HEIGHT }}
+      style={{ height: reserveSublabel ? DETAIL_ACCOUNT_ROW_HEIGHT : DETAIL_ROW_HEIGHT }}
     >
       <ListGroup.ItemPrefix>
         <View className="bg-foreground/5 h-7 w-7 items-center justify-center rounded-md">
@@ -91,16 +93,17 @@ export function DetailRow({
         <ListGroup.ItemTitle
           className={`font-inter mt-0.5 ${muted ? 'text-foreground/60 italic' : 'font-medium'}`}
           style={{ fontSize: Type.meta }}
-          numberOfLines={2}
+          numberOfLines={1}
         >
           {value}
         </ListGroup.ItemTitle>
-        {sublabel ? (
+        {sublabel || reserveSublabel ? (
           <ListGroup.ItemDescription
             className="font-inter text-foreground/55 mt-0.5"
             style={{ fontSize: Type.overline }}
+            numberOfLines={1}
           >
-            {sublabel}
+            {sublabel ?? ' '}
           </ListGroup.ItemDescription>
         ) : null}
       </ListGroup.ItemContent>

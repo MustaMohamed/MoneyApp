@@ -63,7 +63,6 @@ export default function TransactionsScreen(): React.ReactElement {
     state,
     setSelectedMonth,
     setSearchQuery,
-    clearSearch,
     openFilter,
     setActiveFilter,
     goToDetail,
@@ -117,14 +116,12 @@ export default function TransactionsScreen(): React.ReactElement {
         <SearchRow
           value={state.searchQuery}
           onChange={setSearchQuery}
-          onClear={clearSearch}
           onOpenFilter={openFilter}
           activeFilterCount={state.activeFilterCount}
         />
       </View>
     ),
     [
-      clearSearch,
       openFilter,
       setSearchQuery,
       state.activeFilterCount,
