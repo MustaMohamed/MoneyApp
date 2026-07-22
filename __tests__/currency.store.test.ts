@@ -11,6 +11,23 @@ function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function rateResponse(rate: number): Response {
+  return {
+    ok: true,
+    json: jest.fn().mockResolvedValue({ rates: { EGP: rate } }),
+  } as unknown as Response;
+}
+
 describe('currencyStore initial state', () => {
   it('starts with rate=50, lastFetched=null, isManualOverride=false, rate_updated_at=null', () => {
     const store = createCurrencyStore(makeRepo());
@@ -41,6 +58,15 @@ describe('currencyStore.loadRate', () => {
     expect(store.getState().rate).toBe(57.5);
     expect(store.getState().lastFetched).toBe('2026-05-01T10:00:00.000Z');
     expect(store.getState().isManualOverride).toBe(false);
+    expect(store.getState().hasLoaded).toBe(true);
+  });
+
+  it('marks invalid persisted data loaded without publishing it', async () => {
+    const store = createCurrencyStore(makeRepo({ usd_rate: '50abc' }));
+
+    await store.getState().loadRate();
+
+    expect(store.getState()).toMatchObject({ rate: 50, hasLoaded: true });
   });
 
   it('sets isManualOverride=true when stored as "true"', async () => {
@@ -65,6 +91,7 @@ describe('currencyStore.fetchRate', () => {
   beforeEach(() => {
     originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.25 } }),
     } as unknown as Response);
   });
@@ -95,10 +122,112 @@ describe('currencyStore.fetchRate', () => {
 
   it('throws when EGP is missing from response', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: {} }),
     } as unknown as Response);
     const store = createCurrencyStore(makeRepo());
     await expect(store.getState().fetchRate()).rejects.toThrow();
+  });
+
+  it('throws on an unsuccessful HTTP response', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 } as Response);
+    const store = createCurrencyStore(makeRepo());
+
+    await expect(store.getState().fetchRate()).rejects.toThrow();
+  });
+
+  it('does not let an older fetch overwrite a newer manual save', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const repo = makeRepo();
+    const store = createCurrencyStore(repo);
+
+    const staleFetch = store.getState().fetchRate();
+    await store.getState().setManualRate(48.5);
+    response.resolve(rateResponse(55.25));
+    await staleFetch;
+
+    expect(store.getState()).toMatchObject({ rate: 48.5, isManualOverride: true });
+    expect(repo.set).not.toHaveBeenCalledWith('usd_rate_manual_override', 'false');
+  });
+
+  it('publishes only the newest concurrent fetch', async () => {
+    const first = deferred<Response>();
+    const second = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const store = createCurrencyStore(makeRepo());
+
+    const older = store.getState().fetchRate();
+    const newer = store.getState().fetchRate();
+    second.resolve(rateResponse(56));
+    await newer;
+    first.resolve(rateResponse(54));
+    await older;
+
+    expect(store.getState().rate).toBe(56);
+  });
+
+  it('invalidates pending fetch work when reset', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+
+    const pending = store.getState().fetchRate();
+    store.getState().reset();
+    response.resolve(rateResponse(57));
+    await pending;
+
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      isManualOverride: false,
+      hasLoaded: false,
+    });
+  });
+});
+
+describe('currencyStore.refreshRateIfStale', () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue(rateResponse(55));
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('does not fetch before persisted state has loaded', async () => {
+    const store = createCurrencyStore(makeRepo());
+
+    await store.getState().refreshRateIfStale(Date.now());
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch a manual override', async () => {
+    const store = createCurrencyStore(
+      makeRepo({ usd_rate: '48', usd_rate_manual_override: 'true' }),
+    );
+    await store.getState().loadRate();
+
+    await store.getState().refreshRateIfStale(Date.now());
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates concurrent stale refreshes', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+    await store.getState().loadRate();
+
+    const first = store.getState().refreshRateIfStale(Date.now());
+    const second = store.getState().refreshRateIfStale(Date.now());
+    response.resolve(rateResponse(55));
+    await Promise.all([first, second]);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -166,6 +295,7 @@ describe('currencyStore — rate_updated_at', () => {
   it('sets rate_updated_at to current ISO timestamp when fetchRate is called', async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.5 } }),
     } as unknown as Response);
     const before = new Date().toISOString();
@@ -193,6 +323,7 @@ describe('currencyStore — rate_updated_at', () => {
   it('persists rate_updated_at to repo on fetchRate', async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.5 } }),
     } as unknown as Response);
     const repo = makeRepo();

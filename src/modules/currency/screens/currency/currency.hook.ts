@@ -4,9 +4,16 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useCurrencyScreenState } from './currency.state';
+
+const manualRateSchema = z.object({
+  rate: z.string().refine((value) => parsePositiveDecimal(value) !== undefined, {
+    message: Strings.errBalanceInvalid,
+  }),
+});
 
 export function useCurrencyScreen() {
   const { rate, lastFetched, isManualOverride } = useCurrencyStore(
@@ -41,17 +48,7 @@ export function useCurrencyScreen() {
       })
     : Strings.currencyNeverFetched;
 
-  const manualSchema = z.object({
-    rate: z.string().refine(
-      (v) => {
-        const n = parseFloat(v);
-        return Number.isFinite(n) && n > 0;
-      },
-      { message: Strings.errBalanceInvalid },
-    ),
-  });
-
-  const form = useZodForm(manualSchema, {
+  const form = useZodForm(manualRateSchema, {
     defaultValues: { rate: String(rate) },
   });
 
@@ -68,9 +65,12 @@ export function useCurrencyScreen() {
   };
 
   const handleSaveManualRate = form.handleSubmit(async (data) => {
+    const rate = parsePositiveDecimal(data.rate);
+    if (rate === undefined) return;
+
     setSaving(true);
     try {
-      await setManualRate(parseFloat(data.rate));
+      await setManualRate(rate);
     } finally {
       setSaving(false);
     }

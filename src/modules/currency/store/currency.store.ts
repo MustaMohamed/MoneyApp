@@ -7,6 +7,8 @@ import {
 } from '@/repositories/app_settings.repository';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
+import { parsePersistedRate, parseRemoteRate, shouldRefreshRate } from './currency.helpers';
+
 const RATE_KEY = 'usd_rate';
 const FETCHED_AT_KEY = 'usd_rate_fetched_at';
 const MANUAL_KEY = 'usd_rate_manual_override';
@@ -18,21 +20,45 @@ const INITIAL_STATE = {
   lastFetched: null as string | null,
   isManualOverride: false,
   rate_updated_at: null as string | null,
+  hasLoaded: false,
 };
 
 type CurrencyStore = typeof INITIAL_STATE & {
   loadRate: () => Promise<void>;
   fetchRate: () => Promise<void>;
+  refreshRateIfStale: (now?: number) => Promise<void>;
   setManualRate: (rate: number) => Promise<void>;
   reset: () => void;
 };
 
 export function createCurrencyStore(repo: IAppSettingsRepository) {
+  let operationGeneration = 0;
+  let persistenceQueue = Promise.resolve();
+  let backgroundRefreshPromise: Promise<void> | undefined;
+
+  const persistIfCurrent = (
+    ownerGeneration: number,
+    persist: () => Promise<unknown>,
+  ): Promise<boolean> => {
+    const queued = persistenceQueue.then(async () => {
+      if (ownerGeneration !== operationGeneration) return false;
+
+      await persist();
+      return ownerGeneration === operationGeneration;
+    });
+    persistenceQueue = queued.then(
+      () => undefined,
+      () => undefined,
+    );
+    return queued;
+  };
+
   return createMoneyAppSelectors(
-    create<CurrencyStore>((set) => ({
+    create<CurrencyStore>((set, get) => ({
       ...INITIAL_STATE,
 
       loadRate: async () => {
+        const ownerGeneration = ++operationGeneration;
         try {
           const [rateStr, fetchedAt, manualStr, rateUpdatedAt] = await Promise.all([
             repo.get(RATE_KEY),
@@ -40,14 +66,16 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             repo.get(MANUAL_KEY),
             repo.get(RATE_UPDATED_AT_KEY),
           ]);
-          if (rateStr !== null) {
-            set({
-              rate: parseFloat(rateStr),
-              lastFetched: fetchedAt,
-              isManualOverride: manualStr === 'true',
-              rate_updated_at: rateUpdatedAt,
-            });
-          }
+          if (ownerGeneration !== operationGeneration) return;
+
+          const rate = parsePersistedRate(rateStr);
+          set({
+            ...(rate === undefined ? {} : { rate }),
+            lastFetched: fetchedAt,
+            isManualOverride: manualStr === 'true',
+            rate_updated_at: rateUpdatedAt,
+            hasLoaded: true,
+          });
         } catch (err) {
           console.error('[currencyStore] loadRate failed:', err);
           throw err;
@@ -55,24 +83,31 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
       },
 
       fetchRate: async () => {
+        const ownerGeneration = ++operationGeneration;
         try {
           const res = await fetch(Config.currencyRateUrl);
-          // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- API response shape validated by upstream; full Zod parse deferred
-          const json = (await res.json()) as { rates: Record<string, number> };
-          const rate = json.rates['EGP'];
-          if (!rate) throw new Error('[currencyStore] EGP not in API response');
+          if (!res.ok) {
+            throw new Error(`[currencyStore] Rate request failed with ${res.status}`);
+          }
+
+          const rate = parseRemoteRate(await res.json());
           const now = new Date().toISOString();
-          await Promise.all([
-            repo.set(RATE_KEY, String(rate)),
-            repo.set(FETCHED_AT_KEY, now),
-            repo.set(MANUAL_KEY, 'false'),
-            repo.set(RATE_UPDATED_AT_KEY, now),
-          ]);
+          const didPersist = await persistIfCurrent(ownerGeneration, () =>
+            Promise.all([
+              repo.set(RATE_KEY, String(rate)),
+              repo.set(FETCHED_AT_KEY, now),
+              repo.set(MANUAL_KEY, 'false'),
+              repo.set(RATE_UPDATED_AT_KEY, now),
+            ]),
+          );
+          if (!didPersist || ownerGeneration !== operationGeneration) return;
+
           set({
             rate,
             lastFetched: now,
             isManualOverride: false,
             rate_updated_at: now,
+            hasLoaded: true,
           });
         } catch (err) {
           console.error('[currencyStore] fetchRate failed:', err);
@@ -80,18 +115,46 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
         }
       },
 
+      refreshRateIfStale: (now = Date.now()) => {
+        const { hasLoaded, isManualOverride, lastFetched } = get();
+        if (!hasLoaded || !shouldRefreshRate({ isManualOverride, lastFetched, now })) {
+          return Promise.resolve();
+        }
+        if (backgroundRefreshPromise) return backgroundRefreshPromise;
+
+        const refresh = get()
+          .fetchRate()
+          .finally(() => {
+            if (backgroundRefreshPromise === refresh) {
+              backgroundRefreshPromise = undefined;
+            }
+          });
+        backgroundRefreshPromise = refresh;
+        return refresh;
+      },
+
       setManualRate: async (rate: number) => {
+        if (!Number.isFinite(rate) || rate <= 0) {
+          throw new Error('[currencyStore] Manual rate must be a positive number');
+        }
+
+        const ownerGeneration = ++operationGeneration;
         try {
           const now = new Date().toISOString();
-          await Promise.all([
-            repo.set(RATE_KEY, String(rate)),
-            repo.set(MANUAL_KEY, 'true'),
-            repo.set(RATE_UPDATED_AT_KEY, now),
-          ]);
+          const didPersist = await persistIfCurrent(ownerGeneration, () =>
+            Promise.all([
+              repo.set(RATE_KEY, String(rate)),
+              repo.set(MANUAL_KEY, 'true'),
+              repo.set(RATE_UPDATED_AT_KEY, now),
+            ]),
+          );
+          if (!didPersist || ownerGeneration !== operationGeneration) return;
+
           set({
             rate,
             isManualOverride: true,
             rate_updated_at: now,
+            hasLoaded: true,
           });
         } catch (err) {
           console.error('[currencyStore] setManualRate failed:', err);
@@ -99,7 +162,11 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
         }
       },
 
-      reset: () => set(INITIAL_STATE),
+      reset: () => {
+        operationGeneration += 1;
+        backgroundRefreshPromise = undefined;
+        set(INITIAL_STATE);
+      },
     })),
   );
 }

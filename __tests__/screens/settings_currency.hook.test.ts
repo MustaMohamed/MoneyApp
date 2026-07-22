@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
 import { useCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
@@ -126,5 +126,39 @@ describe('useCurrencyScreen', () => {
     await result.current.handleFetchRate();
     // First call should clear the error
     expect(setFetchErrorMock).toHaveBeenCalledWith('');
+  });
+
+  it('rejects malformed manual rate prefixes without saving', async () => {
+    const setManualRate = jest.fn().mockResolvedValue(undefined);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = renderHook(() => useCurrencyScreen());
+
+    act(() => result.current.form.setValue('rate', '50abc'));
+    await act(async () => result.current.handleSaveManualRate());
+
+    expect(setManualRate).not.toHaveBeenCalled();
+  });
+
+  it('normalizes a formatted manual rate before saving', async () => {
+    const setManualRate = jest.fn().mockResolvedValue(undefined);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = renderHook(() => useCurrencyScreen());
+
+    act(() => result.current.form.setValue('rate', '5,000'));
+    await act(async () => result.current.handleSaveManualRate());
+
+    expect(setManualRate).toHaveBeenCalledWith(5000);
   });
 });
