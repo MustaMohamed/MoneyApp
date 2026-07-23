@@ -26,6 +26,7 @@ import {
 import { selectDashboardPresentation } from './dashboard.presentation';
 import { useDashboardState } from './dashboard.state';
 import { useDashboardStore } from './dashboard.store';
+import type { DashboardSegment } from './types';
 
 const EMPTY_ACCOUNTS: Account[] = [];
 const EMPTY_STATS_MAP: Record<string, AccountStats> = {};
@@ -70,14 +71,14 @@ export function useDashboard() {
       selectedSegment: state.selectedSegment,
     })),
   );
-  const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
-  const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
+  const setBreakdownVisibleState = useDashboardState.getState().setBreakdownVisible;
+  const setSelectedSegmentState = useDashboardState.getState().setSelectedSegment;
 
   useFocusEffect(
     useCallback(() => {
       isFocusedRef.current = true;
       handledTransactionMutationVersionRef.current = useTransactionStore.getState().mutationVersion;
-      setSelectedSegment('overview');
+      setSelectedSegmentState('overview');
       const task = runAfterInteractions(() =>
         useDashboardStore.getState().ensureSnapshot(createDashboardLoadInput()),
       );
@@ -87,7 +88,7 @@ export function useDashboard() {
         task.cancel();
         useDashboardStore.getState().invalidate();
       };
-    }, [setSelectedSegment]),
+    }, [setSelectedSegmentState]),
   );
 
   useEffect(() => {
@@ -111,6 +112,27 @@ export function useDashboard() {
     () => selectDashboardPresentation({ status, snapshot, requestedKey }),
     [requestedKey, snapshot, status],
   );
+  const setBreakdownVisible = useCallback(
+    (visible: boolean) => {
+      if (visible && !presentation.hasSnapshot) return;
+      setBreakdownVisibleState(visible);
+    },
+    [presentation.hasSnapshot, setBreakdownVisibleState],
+  );
+  const setSelectedSegment = useCallback(
+    (segment: DashboardSegment) => {
+      if (!presentation.hasSnapshot) return;
+      setSelectedSegmentState(segment);
+    },
+    [presentation.hasSnapshot, setSelectedSegmentState],
+  );
+
+  useEffect(() => {
+    if (!presentation.hasSnapshot && isBreakdownVisible) {
+      setBreakdownVisibleState(false);
+    }
+  }, [isBreakdownVisible, presentation.hasSnapshot, setBreakdownVisibleState]);
+
   const matchingSnapshot = snapshot?.key === requestedKey ? snapshot : undefined;
   const accounts = matchingSnapshot?.accounts ?? EMPTY_ACCOUNTS;
   const statsMap = matchingSnapshot?.statsMap ?? EMPTY_STATS_MAP;
@@ -153,8 +175,8 @@ export function useDashboard() {
       liabilities,
       groupedAccounts,
       statsMap,
-      isBreakdownVisible,
-      selectedSegment,
+      isBreakdownVisible: presentation.hasSnapshot && isBreakdownVisible,
+      selectedSegment: presentation.hasSnapshot ? selectedSegment : 'overview',
       monthSpend: {
         currentEgp: currentMonth.spend.totalEgp,
         currentUsdNative: currentMonth.spend.usdNative,

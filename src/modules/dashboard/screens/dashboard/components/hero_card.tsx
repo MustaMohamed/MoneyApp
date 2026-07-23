@@ -23,7 +23,7 @@ interface HeroCardProps {
   assetsCount: number;
   liabilitiesCount: number;
   isLoading: boolean;
-  onPress: () => void;
+  onPress?: () => void;
 }
 
 function HeroCardSkeleton(): React.ReactElement {

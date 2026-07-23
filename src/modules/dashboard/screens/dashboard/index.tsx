@@ -66,6 +66,7 @@ export default function DashboardScreen() {
   const visibleTypes = TYPE_ORDER.filter((type) => state.groupedAccounts[type]?.length);
   const segment = state.selectedSegment;
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
+  const openBreakdown = useCallback(() => setBreakdownVisible(true), [setBreakdownVisible]);
 
   const onTabChange = useCallback(
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Tabs.onValueChange is string; tab values are always 'overview'|'accounts' per JSX
@@ -170,7 +171,7 @@ export default function DashboardScreen() {
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}
                         isLoading={presentation.cardLoading}
-                        onPress={() => setBreakdownVisible(true)}
+                        onPress={presentation.hasSnapshot ? openBreakdown : undefined}
                       />
                     </Animated.View>
 

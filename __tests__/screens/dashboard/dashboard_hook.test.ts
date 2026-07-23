@@ -400,6 +400,36 @@ describe('useDashboard', () => {
     expect(result.current.state.transactions.previous).toBeNull();
   });
 
+  it('projects non-interactive overview state while a matching snapshot is unavailable', () => {
+    dashboardStoreState.snapshot = undefined;
+    dashboardStoreState.status = 'initialLoading';
+    dashboardStoreState.requestedKey = '2026-08';
+    dashboardUiState.selectedSegment = 'accounts';
+    dashboardUiState.isBreakdownVisible = true;
+
+    const { result } = renderHook(() => useDashboard());
+
+    expect(result.current.state.selectedSegment).toBe('overview');
+    expect(result.current.state.isBreakdownVisible).toBe(false);
+    expect(setBreakdownVisible).toHaveBeenCalledWith(false);
+  });
+
+  it('ignores financial interaction requests while a matching snapshot is unavailable', () => {
+    dashboardStoreState.snapshot = undefined;
+    dashboardStoreState.status = 'initialLoading';
+    dashboardStoreState.requestedKey = '2026-08';
+
+    const { result } = renderHook(() => useDashboard());
+
+    act(() => {
+      result.current.setSelectedSegment('accounts');
+      result.current.setBreakdownVisible(true);
+    });
+
+    expect(setSelectedSegment).not.toHaveBeenCalled();
+    expect(setBreakdownVisible).not.toHaveBeenCalled();
+  });
+
   it('re-derives currency values without starting a snapshot request', () => {
     const { result, rerender } = renderHook(() => useDashboard());
 
