@@ -195,6 +195,10 @@ export default function CommitmentsScreen() {
     [resetFilters, showRowsSkeleton, state.hasListFilters],
   );
 
+  const handleSelectedMonthChange = useCallback(
+    (month: string) => void selectMonth(month),
+    [selectMonth],
+  );
   const handleRefresh = useCallback(() => void onRefresh(), [onRefresh]);
   const showCommitmentsEmptyState = state.hasLoaded && !state.hasCommitments;
 
@@ -210,7 +214,7 @@ export default function CommitmentsScreen() {
       <Separator />
       <FilterRail
         selectedMonth={state.selectedMonth}
-        onSelectedMonthChange={selectMonth}
+        onSelectedMonthChange={handleSelectedMonthChange}
         selectedFilter={state.statusFilter}
         onSelectedFilterChange={setStatusFilter}
         filters={COMMITMENT_FILTERS}
