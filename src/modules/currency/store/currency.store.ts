@@ -7,7 +7,12 @@ import {
 } from '@/repositories/app_settings.repository';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-import { parsePersistedRate, parseRemoteRate, shouldRefreshRate } from './currency.helpers';
+import {
+  parsePersistedRate,
+  parsePersistedTimestamp,
+  parseRemoteRate,
+  shouldRefreshRate,
+} from './currency.helpers';
 
 const RATE_KEY = 'usd_rate';
 const FETCHED_AT_KEY = 'usd_rate_fetched_at';
@@ -81,10 +86,10 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
           const rate = parsePersistedRate(rateStr);
           set({
-            ...(rate === undefined ? {} : { rate }),
-            lastFetched: rate === undefined ? null : fetchedAt,
+            rate: rate ?? INITIAL_STATE.rate,
+            lastFetched: rate === undefined ? null : parsePersistedTimestamp(fetchedAt),
             isManualOverride: rate !== undefined && manualStr === 'true',
-            rate_updated_at: rate === undefined ? null : rateUpdatedAt,
+            rate_updated_at: rate === undefined ? null : parsePersistedTimestamp(rateUpdatedAt),
             hasLoaded: true,
           });
         } catch (err) {

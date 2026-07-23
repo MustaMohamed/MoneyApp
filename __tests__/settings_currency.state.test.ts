@@ -15,6 +15,11 @@ describe('currencyScreenState initial state', () => {
     expect(store.getState().fetchError).toBe('');
   });
 
+  it('starts with saveError as empty string', () => {
+    const store = createCurrencyScreenState();
+    expect(store.getState().saveError).toBe('');
+  });
+
   it('does not expose isManualPanelOpen (Accordion owns expansion state)', () => {
     const store = createCurrencyScreenState();
     expect(
@@ -53,6 +58,15 @@ describe('currencyScreenState setters', () => {
     expect(store.getState().fetchError).toBe('');
   });
 
+  it('setSaveError stores and clears the error message', () => {
+    const store = createCurrencyScreenState();
+    store.getState().setSaveError('Could not save rate. Try again.');
+    expect(store.getState().saveError).toBe('Could not save rate. Try again.');
+
+    store.getState().setSaveError('');
+    expect(store.getState().saveError).toBe('');
+  });
+
   it('does not expose setManualPanelOpen (Accordion owns expansion state)', () => {
     const store = createCurrencyScreenState();
     expect(
@@ -72,10 +86,12 @@ describe('currencyScreenState reset', () => {
     expect(s.isSaving).toBe(false);
   });
 
-  it('clears fetchError on reset', () => {
+  it('clears fetch and save errors on reset', () => {
     const store = createCurrencyScreenState();
     store.getState().setFetchError('Some error');
+    store.getState().setSaveError('Save error');
     store.getState().reset();
     expect(store.getState().fetchError).toBe('');
+    expect(store.getState().saveError).toBe('');
   });
 });

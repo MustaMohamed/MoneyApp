@@ -111,8 +111,8 @@ export default function CurrencyScreen() {
                     isLoading={isSaving}
                   />
                 </View>
-                <View className="min-h-5">
-                  <FormErrorText message={saveError} className="mt-1" />
+                <View className="min-h-6 pt-1">
+                  <FormErrorText message={saveError} />
                 </View>
               </Accordion.Content>
             </Accordion.Item>

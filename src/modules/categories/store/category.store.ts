@@ -43,7 +43,8 @@ export function createCategoryStore(repo: ICategoryRepository) {
             if (ownerGeneration !== requestGeneration) return;
             set({ categories, hasLoaded: true, loadError: false });
           } catch (error) {
-            if (ownerGeneration === requestGeneration) set({ loadError: true });
+            if (ownerGeneration !== requestGeneration) return;
+            set({ loadError: true });
             console.error('[categoryStore] loadCategories failed:', error);
             throw error;
           } finally {

@@ -96,6 +96,48 @@ describe('currencyStore.loadRate', () => {
     });
   });
 
+  it('restores the fallback rate when a later hydration is invalid', async () => {
+    const { db, repo } = makeTrackedRepo({
+      usd_rate: '57.5',
+      usd_rate_fetched_at: '2026-05-01T10:00:00.000Z',
+      usd_rate_manual_override: 'true',
+      usd_rate_updated_at: '2026-05-01T10:00:00.000Z',
+    });
+    const store = createCurrencyStore(repo);
+    await store.getState().loadRate();
+    db.usd_rate = 'invalid';
+
+    await store.getState().loadRate();
+
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      rate_updated_at: null,
+      hasLoaded: true,
+    });
+  });
+
+  it('drops corrupt persisted timestamps', async () => {
+    const store = createCurrencyStore(
+      makeRepo({
+        usd_rate: '57.5',
+        usd_rate_fetched_at: 'not-a-date',
+        usd_rate_manual_override: 'false',
+        usd_rate_updated_at: 'also-not-a-date',
+      }),
+    );
+
+    await store.getState().loadRate();
+
+    expect(store.getState()).toMatchObject({
+      rate: 57.5,
+      lastFetched: null,
+      rate_updated_at: null,
+      hasLoaded: true,
+    });
+  });
+
   it('sets isManualOverride=true when stored as "true"', async () => {
     const store = createCurrencyStore(
       makeRepo({ usd_rate: '48', usd_rate_manual_override: 'true' }),

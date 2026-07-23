@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const RATE_REFRESH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 const persistedRatePattern = /^(?:\d+(?:\.\d+)?|\.\d+)$/;
+const persistedTimestampSchema = z.iso.datetime();
 const remoteRateSchema = z.object({
   rates: z.object({
     EGP: z.number().positive(),
@@ -15,6 +16,10 @@ export function parsePersistedRate(value: string | null): number | undefined {
 
   const rate = Number(normalized);
   return Number.isFinite(rate) && rate > 0 ? rate : undefined;
+}
+
+export function parsePersistedTimestamp(value: string | null): string | null {
+  return value && persistedTimestampSchema.safeParse(value).success ? value : null;
 }
 
 export function parseRemoteRate(payload: unknown): number {

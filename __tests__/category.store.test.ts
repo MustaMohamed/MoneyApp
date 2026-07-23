@@ -116,7 +116,7 @@ describe('categoryStore.loadCategories', () => {
     expect(useStore.getState().categories).toEqual([after]);
   });
 
-  it('does not publish an error from a superseded preload', async () => {
+  it('contains an error from a superseded preload', async () => {
     const preload = deferred<Category[]>();
     const after = mockCategory({ name: 'After' });
     const repo = makeRepo({
@@ -132,13 +132,14 @@ describe('categoryStore.loadCategories', () => {
       color: after.color,
     });
     preload.reject(new Error('stale failure'));
-    await expect(staleLoad).rejects.toThrow('stale failure');
+    await expect(staleLoad).resolves.toBeUndefined();
 
     expect(useStore.getState()).toMatchObject({
       categories: [after],
       hasLoaded: true,
       loadError: false,
     });
+    expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
   });
 
@@ -179,6 +180,26 @@ describe('categoryStore.loadCategories', () => {
       hasLoaded: false,
       loadError: false,
     });
+  });
+
+  it('contains a pending load failure after reset', async () => {
+    const pending = deferred<Category[]>();
+    const repo = makeRepo({ getAll: jest.fn().mockReturnValue(pending.promise) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const load = useStore.getState().loadCategories();
+    useStore.getState().reset();
+    pending.reject(new Error('stale load failure'));
+
+    await expect(load).resolves.toBeUndefined();
+    expect(useStore.getState()).toMatchObject({
+      categories: [],
+      hasLoaded: false,
+      loadError: false,
+    });
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
   });
 });
 

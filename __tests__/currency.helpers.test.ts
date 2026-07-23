@@ -1,6 +1,7 @@
 import {
   RATE_REFRESH_MAX_AGE_MS,
   parsePersistedRate,
+  parsePersistedTimestamp,
   parseRemoteRate,
   shouldRefreshRate,
 } from '@/modules/currency/store/currency.helpers';
@@ -19,6 +20,19 @@ describe('currency rate policy', () => {
       'rejects an invalid persisted value %s',
       (value) => {
         expect(parsePersistedRate(value)).toBeUndefined();
+      },
+    );
+  });
+
+  describe('parsePersistedTimestamp', () => {
+    it('preserves a valid timestamp', () => {
+      expect(parsePersistedTimestamp('2026-07-23T10:30:00.000Z')).toBe('2026-07-23T10:30:00.000Z');
+    });
+
+    it.each([null, '', 'not-a-date', '2026-07-23', '57'])(
+      'drops an invalid timestamp %s',
+      (value) => {
+        expect(parsePersistedTimestamp(value)).toBeNull();
       },
     );
   });
