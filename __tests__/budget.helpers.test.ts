@@ -15,6 +15,7 @@ import {
   computeStatus,
   previousYearMonth,
   remainingLabel,
+  resolveBudgetPresentation,
   resolveLimitForMonth,
   type MonthResultVM,
 } from '@/modules/budget/screens/budget/budget.helpers';
@@ -277,6 +278,17 @@ describe('previousYearMonth', () => {
 
   it('wraps January to previous December', () => {
     expect(previousYearMonth('2026-01')).toBe('2025-12');
+  });
+});
+
+describe('resolveBudgetPresentation', () => {
+  it.each([
+    [false, false, 'coldLoading'],
+    [false, true, 'coldError'],
+    [true, false, 'content'],
+    [true, true, 'contentWithError'],
+  ] as const)('maps matching=%s and error=%s to %s', (hasMatchingSnapshot, loadError, expected) => {
+    expect(resolveBudgetPresentation({ hasMatchingSnapshot, loadError })).toBe(expected);
   });
 });
 

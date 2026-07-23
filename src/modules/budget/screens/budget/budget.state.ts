@@ -23,7 +23,8 @@ interface BudgetStateShape {
   copySourceMonth: string;
   copySheetVisible: boolean;
   copySelectedBudgetIds: string[];
-  incomeSuggestion: number | null;
+  copyBusy: boolean;
+  copyError: boolean;
   refreshing: boolean;
   expandedCategoryId: string | undefined;
   expandedBudgetGroup: BudgetGroup | undefined;
@@ -46,7 +47,8 @@ type BudgetState = BudgetStateShape & {
   setCopySelectedBudgetIds: (budgetIds: string[]) => void;
   toggleCopyBudgetId: (budgetId: string) => void;
   clearCopySelection: () => void;
-  setIncomeSuggestion: (suggestion: number | null) => void;
+  setCopyBusy: (busy: boolean) => void;
+  setCopyError: (error: boolean) => void;
   setRefreshing: (refreshing: boolean) => void;
   setExpandedCategoryId: (categoryId: string | undefined) => void;
   setExpandedBudgetGroup: (group: BudgetGroup | undefined) => void;
@@ -69,7 +71,8 @@ function initialState(): BudgetStateShape {
     copySourceMonth: previousYearMonth(selectedMonth),
     copySheetVisible: false,
     copySelectedBudgetIds: [],
-    incomeSuggestion: null,
+    copyBusy: false,
+    copyError: false,
     refreshing: false,
     expandedCategoryId: undefined,
     expandedBudgetGroup: undefined,
@@ -135,12 +138,20 @@ export const useBudgetState = createMoneyAppSelectors(
         expandedBudgetGroup: undefined,
       });
     },
-    openCopy: (budgetIds = []) => set({ copySheetVisible: true, copySelectedBudgetIds: budgetIds }),
+    openCopy: (budgetIds = []) =>
+      set({
+        copySheetVisible: true,
+        copySelectedBudgetIds: budgetIds,
+        copyBusy: false,
+        copyError: false,
+      }),
     closeCopy: () =>
       set((state) => ({
         copySheetVisible: false,
         copySelectedBudgetIds: [],
         copySourceMonth: previousYearMonth(state.selectedMonth),
+        copyBusy: false,
+        copyError: false,
       })),
     setCopySelectedBudgetIds: (budgetIds) => set({ copySelectedBudgetIds: budgetIds }),
     toggleCopyBudgetId: (budgetId) =>
@@ -153,7 +164,8 @@ export const useBudgetState = createMoneyAppSelectors(
         };
       }),
     clearCopySelection: () => set({ copySelectedBudgetIds: [] }),
-    setIncomeSuggestion: (suggestion) => set({ incomeSuggestion: suggestion }),
+    setCopyBusy: (busy) => set({ copyBusy: busy }),
+    setCopyError: (error) => set({ copyError: error }),
     setRefreshing: (refreshing) => set({ refreshing }),
     setExpandedCategoryId: (categoryId) => set({ expandedCategoryId: categoryId }),
     setExpandedBudgetGroup: (group) =>

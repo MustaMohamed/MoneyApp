@@ -49,6 +49,7 @@ export default function BudgetScreen() {
     selectAllCopyBudgets,
     clearCopySelection,
     setCopySourceMonth,
+    retryCopyPreview,
     copySelectedBudgets,
     removeBudgetForMonth,
     removeSpendingPlanForMonth,
@@ -123,8 +124,11 @@ export default function BudgetScreen() {
         listClassName="mx-4 mt-2 mb-2 self-stretch"
       />
 
-      {state.loadError && state.hasLoaded && !state.refreshing ? (
-        <View className="absolute right-4 bottom-24 left-4 z-50">
+      {state.presentation === 'contentWithError' ? (
+        <View
+          className="absolute right-4 bottom-24 left-4 z-50"
+          style={{ minHeight: Size.statusRailMinHeight }}
+        >
           <Alert status="danger" className="w-full">
             <Alert.Indicator />
             <Alert.Content>
@@ -141,27 +145,30 @@ export default function BudgetScreen() {
         </View>
       ) : null}
 
-      {state.loadError && !state.hasLoaded ? (
-        <View className="flex-1 items-center justify-center gap-3 px-6">
-          <HeroText className="font-inter text-muted text-center text-[14px] font-medium">
-            {Strings.budgetLoadError}
-          </HeroText>
-          <Button
-            variant="secondary"
-            size="sm"
-            label={Strings.budgetLoadRetry}
-            accessibilityLabel={Strings.budgetLoadRetry}
-            onPress={() => void refresh()}
-          />
+      {state.presentation === 'coldError' ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Alert status="danger" className="w-full">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{Strings.budgetLoadError}</Alert.Title>
+            </Alert.Content>
+            <Button
+              variant="secondary"
+              size="sm"
+              label={Strings.budgetLoadRetry}
+              accessibilityLabel={Strings.budgetLoadRetry}
+              onPress={() => void refresh()}
+            />
+          </Alert>
         </View>
-      ) : !state.hasLoaded || state.refreshing ? (
+      ) : state.presentation === 'coldLoading' ? (
         <ScreenScroll
           contentContainerStyle={{ paddingBottom: ms(96) }}
           refreshControl={refreshControl}
         >
           <BudgetScreenSkeleton
             variant={state.lensTab}
-            preserveLayout={state.refreshing}
+            preserveLayout={false}
             categorySummaryHasPlan={state.categoriesSummary.hasPlan}
             categoryRows={state.rows}
             expandedCategoryId={state.expandedCategoryId}
@@ -257,13 +264,18 @@ export default function BudgetScreen() {
         targetMonthLabel={formatMonthYear(state.month)}
         rows={state.copyRows}
         selectedBudgetIds={state.copySelectedBudgetIds}
+        previewLoading={state.copyPreviewLoading}
+        previewError={state.copyPreviewError}
+        copyBusy={state.copyBusy}
+        copyError={state.copyError}
         onSourceMonthChange={setCopySourceMonth}
         onOpenChange={(open) => {
-          if (!open) closeCopy();
+          if (!open && !state.copyBusy) closeCopy();
         }}
         onToggleBudget={toggleCopyBudgetId}
         onSelectAll={selectAllCopyBudgets}
         onClearSelection={clearCopySelection}
+        onRetryPreview={retryCopyPreview}
         onApply={() => {
           void copySelectedBudgets();
         }}

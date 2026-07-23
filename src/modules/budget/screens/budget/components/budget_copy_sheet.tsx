@@ -1,14 +1,15 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { Checkbox, PressableFeedback } from 'heroui-native';
+import { Alert, Checkbox, PressableFeedback, SkeletonGroup } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { MonthFilter } from '@/components/ui/month_filter';
 import { Sheet, SHEET_FOOTER_CLEARANCE } from '@/components/ui/sheet';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
-import { Colors, FontFamily, Radius, Spacing, Type } from '@/constants/theme';
+import { Colors, FontFamily, Radius, Size, Spacing, Type } from '@/constants/theme';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { formatAmount } from '@/utils/format_amount';
 import { toIconName } from '@/utils/icon_name_guard';
@@ -20,11 +21,16 @@ interface BudgetCopySheetProps {
   targetMonthLabel: string;
   rows: BudgetCopyRowVM[];
   selectedBudgetIds: string[];
+  previewLoading: boolean;
+  previewError: boolean;
+  copyBusy: boolean;
+  copyError: boolean;
   onSourceMonthChange: (month: string) => void;
   onOpenChange: (open: boolean) => void;
   onToggleBudget: (budgetId: string) => void;
   onSelectAll: () => void;
   onClearSelection: () => void;
+  onRetryPreview: () => void;
   onApply: () => void;
 }
 
@@ -38,44 +44,51 @@ export function BudgetCopySheet({
   targetMonthLabel,
   rows,
   selectedBudgetIds,
+  previewLoading,
+  previewError,
+  copyBusy,
+  copyError,
   onSourceMonthChange,
   onOpenChange,
   onToggleBudget,
   onSelectAll,
   onClearSelection,
+  onRetryPreview,
   onApply,
 }: BudgetCopySheetProps) {
   const selectedCount = selectedBudgetIds.length;
-  const canApply = rows.length > 0 && selectedCount > 0;
+  const canApply = rows.length > 0 && selectedCount > 0 && !previewLoading && !previewError;
 
   return (
     <Sheet
       isOpen={isOpen}
-      onOpenChange={onOpenChange}
+      onOpenChange={(open) => {
+        if (!copyBusy || open) onOpenChange(open);
+      }}
       title={Strings.budgetCopyTitle}
       size="md"
       scrollable
+      isDismissable={!copyBusy}
       footer={
         <View style={styles.footer}>
-          <PressableFeedback
-            accessibilityRole="button"
-            accessibilityLabel={Strings.budgetCopyClear}
-            onPress={onClearSelection}
-            style={styles.secondaryButton}
-          >
-            <Text style={styles.secondaryButtonText}>{Strings.budgetCopyClear}</Text>
-          </PressableFeedback>
-          <PressableFeedback
-            accessibilityRole="button"
+          <Button
+            variant="secondary"
+            className="flex-1"
+            label={Strings.budgetCopyCancel}
+            accessibilityLabel={Strings.budgetCopyCancel}
+            isDisabled={copyBusy}
+            onPress={() => onOpenChange(false)}
+          />
+          <Button
+            className="flex-1"
+            label={Strings.budgetCopyApply}
             accessibilityLabel={Strings.budgetCopyApply}
-            accessibilityState={{ disabled: !canApply }}
+            isLoading={copyBusy}
+            isDisabled={!canApply || copyBusy}
             onPress={() => {
-              if (canApply) onApply();
+              if (canApply && !copyBusy) onApply();
             }}
-            style={[styles.primaryButton, !canApply && styles.disabledButton]}
-          >
-            <Text style={styles.primaryButtonText}>{Strings.budgetCopyApply}</Text>
-          </PressableFeedback>
+          />
         </View>
       }
     >
@@ -85,11 +98,17 @@ export function BudgetCopySheet({
       >
         <View style={styles.sourceBlock}>
           <Text style={styles.sourceLabel}>{Strings.budgetCopySourceLabel}</Text>
-          <View style={styles.sourceRow}>
+          <View
+            style={[styles.sourceRow, copyBusy && styles.disabledControl]}
+            pointerEvents={copyBusy ? 'none' : 'auto'}
+            accessibilityState={{ disabled: copyBusy }}
+          >
             <View style={styles.sourceFilter}>
               <MonthFilter
                 selectedMonth={sourceMonth}
-                onSelectedMonthChange={onSourceMonthChange}
+                onSelectedMonthChange={(month) => {
+                  if (!copyBusy) onSourceMonthChange(month);
+                }}
                 showStepButtons={false}
               />
             </View>
@@ -98,16 +117,60 @@ export function BudgetCopySheet({
           </View>
         </View>
 
-        {rows.length > 0 ? (
+        <View style={styles.statusTrack}>
+          {previewError ? (
+            <Alert status="danger" className="w-full">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{Strings.budgetCopyPreviewError}</Alert.Title>
+              </Alert.Content>
+              <Button
+                variant="secondary"
+                size="sm"
+                label={Strings.budgetCopyRetry}
+                accessibilityLabel={Strings.budgetCopyRetry}
+                isDisabled={copyBusy}
+                onPress={onRetryPreview}
+              />
+            </Alert>
+          ) : copyError ? (
+            <Alert status="danger" className="w-full">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title>{Strings.budgetCopyError}</Alert.Title>
+              </Alert.Content>
+            </Alert>
+          ) : null}
+        </View>
+
+        {previewLoading ? (
+          <SkeletonGroup isLoading isSkeletonOnly>
+            <View style={styles.list}>
+              {[0, 1, 2].map((row) => (
+                <SkeletonGroup.Item key={row} style={styles.skeletonRow} />
+              ))}
+            </View>
+          </SkeletonGroup>
+        ) : rows.length > 0 && !previewError ? (
           <>
             <View style={styles.actionsRow}>
               <PressableFeedback
                 accessibilityRole="button"
                 accessibilityLabel={Strings.budgetCopySelectAll}
+                isDisabled={copyBusy}
                 onPress={onSelectAll}
                 style={styles.textAction}
               >
                 <Text style={styles.textActionLabel}>{Strings.budgetCopySelectAll}</Text>
+              </PressableFeedback>
+              <PressableFeedback
+                accessibilityRole="button"
+                accessibilityLabel={Strings.budgetCopyClear}
+                isDisabled={copyBusy}
+                onPress={onClearSelection}
+                style={styles.textAction}
+              >
+                <Text style={styles.textActionLabel}>{Strings.budgetCopyClear}</Text>
               </PressableFeedback>
               <Text style={styles.selectedLabel}>{`${selectedCount}/${rows.length}`}</Text>
             </View>
@@ -119,14 +182,16 @@ export function BudgetCopySheet({
                   <PressableFeedback
                     key={row.id}
                     accessibilityRole="checkbox"
-                    accessibilityState={{ checked: selected }}
+                    accessibilityState={{ checked: selected, disabled: copyBusy }}
                     accessibilityLabel={Strings.budgetCopyToggleA11y(row.name)}
+                    isDisabled={copyBusy}
                     onPress={() => onToggleBudget(row.id)}
                     style={styles.row}
                   >
                     <View pointerEvents="none">
                       <Checkbox
                         isSelected={selected}
+                        isDisabled={copyBusy}
                         className="border-accent/70 bg-surface size-5 border"
                       />
                     </View>
@@ -149,13 +214,13 @@ export function BudgetCopySheet({
               })}
             </View>
           </>
-        ) : (
+        ) : !previewError ? (
           <View style={styles.empty}>
             <MaterialCommunityIcons name="content-copy" size={ms(32)} color={Colors.dark.text3} />
             <Text style={styles.emptyTitle}>{Strings.budgetCopyEmptyTitle}</Text>
             <Text style={styles.emptyBody}>{Strings.budgetCopyEmptyBody}</Text>
           </View>
-        )}
+        ) : null}
       </BottomSheetScrollView>
     </Sheet>
   );
@@ -217,6 +282,14 @@ const styles = StyleSheet.create({
   list: {
     gap: Spacing.xs,
   },
+  statusTrack: {
+    minHeight: Size.statusRailMinHeight,
+    justifyContent: 'center',
+  },
+  skeletonRow: {
+    minHeight: ms(54),
+    borderRadius: Radius.md,
+  },
   row: {
     minHeight: ms(54),
     flexDirection: 'row',
@@ -276,35 +349,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: Spacing.sm,
   },
-  secondaryButton: {
-    flex: 1,
-    height: ms(44),
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.md,
-    backgroundColor: Colors.dark.surfaceEl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: Colors.dark.border,
-  },
-  secondaryButtonText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    color: Colors.dark.text1,
-  },
-  primaryButton: {
-    flex: 1,
-    height: ms(44),
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: Radius.md,
-    backgroundColor: Colors.dark.gold,
-  },
-  disabledButton: {
+  disabledControl: {
     opacity: 0.45,
-  },
-  primaryButtonText: {
-    fontFamily: FontFamily.interSemi,
-    fontSize: Type.body,
-    color: Colors.shared.midnightBlue,
   },
 });

@@ -491,6 +491,11 @@ const baseState: BudgetScreenState = {
   copyRows: [],
   copySheetVisible: false,
   copySelectedBudgetIds: [],
+  copyPreviewLoading: false,
+  copyPreviewError: false,
+  copyBusy: false,
+  copyError: false,
+  presentation: 'coldLoading',
   hasLoaded: false,
   refreshing: false,
   loadError: false,
@@ -551,8 +556,17 @@ function categoryRow(
 }
 
 function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
+  const presentation =
+    state.presentation ??
+    (state.hasLoaded
+      ? state.loadError
+        ? 'contentWithError'
+        : 'content'
+      : state.loadError
+        ? 'coldError'
+        : 'coldLoading');
   const value: BudgetHook = {
-    state: { ...baseState, ...state },
+    state: { ...baseState, ...state, presentation },
     openAdd: jest.fn(),
     openEdit: jest.fn(),
     openAddPlan: jest.fn(),
@@ -572,6 +586,7 @@ function mockUseBudget(state: Partial<BudgetScreenState> = {}) {
     selectAllCopyBudgets: jest.fn(),
     clearCopySelection: jest.fn(),
     setCopySourceMonth: jest.fn(),
+    retryCopyPreview: jest.fn(),
     copySelectedBudgets: jest.fn(),
     removeBudgetForMonth: jest.fn(),
     removeSpendingPlanForMonth: jest.fn(),
@@ -706,7 +721,8 @@ describe('BudgetScreen', () => {
 
     render(<BudgetScreen />);
 
-    expect(screen.getByTestId('budget-screen-skeleton')).toBeTruthy();
+    expect(screen.queryByTestId('budget-screen-skeleton')).toBeNull();
+    expect(screen.getByText('summary-card')).toBeTruthy();
     expect(latestRefreshControl).toBeTruthy();
     expect(latestRefreshControl?.props.refreshing).toBe(true);
     latestRefreshControl?.props.onRefresh();
@@ -754,6 +770,7 @@ describe('BudgetScreen', () => {
       state: {
         ...baseState,
         hasLoaded: true,
+        presentation: 'content',
         budgetableCategories: [
           {
             id: 'car',
@@ -868,6 +885,7 @@ describe('BudgetScreen', () => {
       state: {
         ...baseState,
         hasLoaded: true,
+        presentation: 'content',
         lensTab: 'plans',
       },
       openAdd: jest.fn(),
@@ -906,6 +924,7 @@ describe('BudgetScreen', () => {
       state: {
         ...baseState,
         hasLoaded: true,
+        presentation: 'content',
         lensTab: 'plans',
         spendingPlanRows: [{ id: 'plan_trip', name: 'Alexandria weekend' } as never],
       },
@@ -945,6 +964,7 @@ describe('BudgetScreen', () => {
       state: {
         ...baseState,
         hasLoaded: true,
+        presentation: 'content',
         lensTab: 'plans',
         spendingPlanRows: [{ id: 'plan_trip', name: 'Alexandria weekend' } as never],
       },
@@ -1008,6 +1028,7 @@ describe('BudgetScreen', () => {
       state: {
         ...baseState,
         hasLoaded: true,
+        presentation: 'content',
         copySheetVisible: true,
       },
       openAdd: jest.fn(),

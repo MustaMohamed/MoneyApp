@@ -16,15 +16,10 @@ jest.mock('expo-router', () => ({
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
 jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
-jest.mock('@/modules/budget/database/budget_stats', () => ({
-  getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
-}));
-jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
 
 const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
 const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
 const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
-const { getTrailingIncomeSuggestion } = jest.requireMock('@/modules/budget/database/budget_stats');
 
 import { useBudget } from '@/modules/budget/screens/budget/budget.hook';
 
@@ -81,23 +76,18 @@ let setSelectedMonthMock: jest.Mock;
 let setRefreshingMock: jest.Mock;
 let setCopySourceMonthMock: jest.Mock;
 let setCopySelectedBudgetIdsMock: jest.Mock;
+let clearCopySelectionMock: jest.Mock;
 let openCopyMock: jest.Mock;
 let closeCopyMock: jest.Mock;
+let loadCopyPreviewMock: jest.Mock;
 let copyBudgetsToMonthMock: jest.Mock;
 let removeBudgetMock: jest.Mock;
 let setLensTabMock: jest.Mock;
 let setExpandedCategoryIdMock: jest.Mock;
 let setExpandedBudgetGroupMock: jest.Mock;
 let openAddWithContextMock: jest.Mock;
-let setIncomeSuggestionMock: jest.Mock;
-
-function deferredValue<T>() {
-  let resolve: ((value: T) => void) | undefined;
-  const promise = new Promise<T>((resolvePromise) => {
-    resolve = resolvePromise;
-  });
-  return { promise, resolve: (value: T) => resolve?.(value) };
-}
+let setCopyBusyMock: jest.Mock;
+let setCopyErrorMock: jest.Mock;
 
 function setupStores(
   selectedMonth = '2026-07',
@@ -107,6 +97,16 @@ function setupStores(
     car: BudgetGroup.Want,
   },
   targetBudgetId?: string,
+  options: {
+    categoriesLoaded?: boolean;
+    loadedMonth?: string;
+    copySheetVisible?: boolean;
+    copyBusy?: boolean;
+    copyError?: boolean;
+    copyPreviewLoaded?: boolean;
+    copyPreviewError?: boolean;
+    incomeSuggestion?: number | null;
+  } = {},
 ) {
   loadBudgetMock = jest.fn().mockResolvedValue(undefined);
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
@@ -116,17 +116,20 @@ function setupStores(
   setRefreshingMock = jest.fn();
   setCopySourceMonthMock = jest.fn();
   setCopySelectedBudgetIdsMock = jest.fn();
+  clearCopySelectionMock = jest.fn();
   openCopyMock = jest.fn();
   closeCopyMock = jest.fn();
+  loadCopyPreviewMock = jest.fn().mockResolvedValue(undefined);
   setLensTabMock = jest.fn();
   setExpandedCategoryIdMock = jest.fn();
   setExpandedBudgetGroupMock = jest.fn();
   openAddWithContextMock = jest.fn();
-  setIncomeSuggestionMock = jest.fn();
+  setCopyBusyMock = jest.fn();
+  setCopyErrorMock = jest.fn();
 
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories,
-    hasLoaded: true,
+    hasLoaded: options.categoriesLoaded ?? true,
     loadCategories: loadCategoriesMock,
   }));
   attachMockSelectorStore(useBudgetStore as jest.Mock, () => ({
@@ -136,9 +139,18 @@ function setupStores(
     spendingPlans: [],
     spendingPlanSpendById: {},
     loaded: true,
+    loadedMonth: options.loadedMonth ?? selectedMonth,
     expectedIncome,
+    incomeSuggestion: options.incomeSuggestion ?? null,
     budgetGroupByCategoryId: groupMap,
+    copyPreviewRows: budgetRows,
+    copyPreviewSourceMonth: '2026-06',
+    copyPreviewTargetMonth: selectedMonth,
+    copyPreviewLoaded: options.copyPreviewLoaded ?? true,
+    copyPreviewLoading: false,
+    copyPreviewError: options.copyPreviewError ?? false,
     load: loadBudgetMock,
+    loadCopyPreview: loadCopyPreviewMock,
     copyBudgetsToMonth: copyBudgetsToMonthMock,
     removeBudget: removeBudgetMock,
     setSpendingPlan: jest.fn(),
@@ -148,10 +160,11 @@ function setupStores(
     selectedMonth,
     copySourceMonth: '2026-06',
     lensTab: 'categories',
-    copySheetVisible: false,
+    copySheetVisible: options.copySheetVisible ?? false,
     copySelectedBudgetIds: ['budget-food-jun'],
+    copyBusy: options.copyBusy ?? false,
+    copyError: options.copyError ?? false,
     targetBudgetId,
-    incomeSuggestion: null,
     refreshing: false,
     expandedCategoryId: undefined,
     expandedBudgetGroup: BudgetGroup.Need,
@@ -166,7 +179,9 @@ function setupStores(
     openCopy: openCopyMock,
     closeCopy: closeCopyMock,
     setCopySelectedBudgetIds: setCopySelectedBudgetIdsMock,
-    setIncomeSuggestion: setIncomeSuggestionMock,
+    clearCopySelection: clearCopySelectionMock,
+    setCopyBusy: setCopyBusyMock,
+    setCopyError: setCopyErrorMock,
     setExpandedCategoryId: setExpandedCategoryIdMock,
     setExpandedBudgetGroup: setExpandedBudgetGroupMock,
   }));
@@ -174,7 +189,6 @@ function setupStores(
 
 beforeEach(() => {
   useIncomeSheetState.getState().reset();
-  getTrailingIncomeSuggestion.mockReset().mockResolvedValue(null);
   setupStores();
 });
 
@@ -248,34 +262,16 @@ describe('useBudget month actions', () => {
     });
   });
 
-  it('selects a month through Budget state and reloads that month', () => {
+  it('changes only UI selection and leaves loading to the focused effect', () => {
     const { result } = renderHook(() => useBudget());
 
     act(() => result.current.setSelectedMonth('2026-06'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-06');
-    expect(loadBudgetMock).toHaveBeenCalledWith('2026-06');
+    expect(loadBudgetMock).not.toHaveBeenCalled();
   });
 
-  it('ignores an older income suggestion that resolves after the latest month request', async () => {
-    const older = deferredValue<number | null>();
-    const latest = deferredValue<number | null>();
-    getTrailingIncomeSuggestion
-      .mockReturnValueOnce(older.promise)
-      .mockReturnValueOnce(latest.promise);
-    const { result } = renderHook(() => useBudget());
-
-    act(() => result.current.setSelectedMonth('2026-06'));
-    act(() => result.current.setSelectedMonth('2026-05'));
-
-    await act(async () => latest.resolve(22_000));
-    expect(setIncomeSuggestionMock).toHaveBeenLastCalledWith(22_000);
-
-    await act(async () => older.resolve(11_000));
-    expect(setIncomeSuggestionMock).toHaveBeenLastCalledWith(22_000);
-  });
-
-  it('refreshes categories and budget data for the selected month', async () => {
+  it('refreshes the selected month without reloading successful category data', async () => {
     const { result } = renderHook(() => useBudget());
 
     await act(async () => {
@@ -283,9 +279,34 @@ describe('useBudget month actions', () => {
     });
 
     expect(setRefreshingMock).toHaveBeenNthCalledWith(1, true);
-    expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
     expect(loadBudgetMock).toHaveBeenCalledWith('2026-07');
     expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('reloads categories during refresh only when no successful category data exists', async () => {
+    setupStores('2026-07', 10000, undefined, undefined, { categoriesLoaded: false });
+    const { result } = renderHook(() => useBudget());
+
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses income suggestion and formulas only from a matching month snapshot', () => {
+    setupStores('2026-07', 10000, undefined, undefined, {
+      loadedMonth: '2026-06',
+      incomeSuggestion: 22000,
+    });
+
+    const { result } = renderHook(() => useBudget());
+
+    expect(result.current.state.rows).toEqual([]);
+    expect(result.current.state.ruleLens.summary.hasIncome).toBe(false);
+    expect(result.current.state.suggestion).toBeNull();
+    expect(result.current.state.presentation).toBe('coldLoading');
   });
 
   it('groups multiple named budgets under one category and counts category spend once', () => {
@@ -320,12 +341,14 @@ describe('useBudget month actions', () => {
     ]);
   });
 
-  it('opens copy sheet with all copyable source-month categories selected', () => {
+  it('opens copy with cleared selection and requests the targeted preview', () => {
     const { result } = renderHook(() => useBudget());
 
     act(() => result.current.openCopy());
 
-    expect(openCopyMock).toHaveBeenCalledWith(['budget-food-jun', 'budget-car-jun']);
+    expect(clearCopySelectionMock).toHaveBeenCalledTimes(1);
+    expect(openCopyMock).toHaveBeenCalledWith();
+    expect(loadCopyPreviewMock).toHaveBeenCalledWith('2026-06', '2026-07');
   });
 
   it('copies selected source-month budgets into the selected month', async () => {
@@ -339,13 +362,71 @@ describe('useBudget month actions', () => {
     expect(closeCopyMock).toHaveBeenCalledTimes(1);
   });
 
-  it('changes the source month from the picker and selects all copyable rows for that source', () => {
+  it('changes source month by clearing selection and requesting only the new preview', () => {
     const { result } = renderHook(() => useBudget());
 
     act(() => result.current.setCopySourceMonth('2026-05'));
 
     expect(setCopySourceMonthMock).toHaveBeenCalledWith('2026-05');
-    expect(setCopySelectedBudgetIdsMock).toHaveBeenCalledWith(['budget-car-may']);
+    expect(clearCopySelectionMock).toHaveBeenCalledTimes(1);
+    expect(loadCopyPreviewMock).toHaveBeenCalledWith('2026-05', '2026-07');
+  });
+
+  it('retries only the current copy preview', () => {
+    setupStores('2026-07', 10000, undefined, undefined, {
+      copySheetVisible: true,
+      copyPreviewError: true,
+    });
+    const { result } = renderHook(() => useBudget());
+
+    act(() => result.current.retryCopyPreview());
+
+    expect(loadCopyPreviewMock).toHaveBeenCalledWith('2026-06', '2026-07');
+    expect(loadBudgetMock).not.toHaveBeenCalled();
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
+  });
+
+  it('ignores Apply while copy persistence is busy', async () => {
+    setupStores('2026-07', 10000, undefined, undefined, {
+      copySheetVisible: true,
+      copyBusy: true,
+    });
+    const { result } = renderHook(() => useBudget());
+
+    await act(async () => {
+      await result.current.copySelectedBudgets(['budget-food-jun']);
+    });
+
+    expect(copyBudgetsToMonthMock).not.toHaveBeenCalled();
+    expect(closeCopyMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps copy state open and reports an operational error when persistence fails', async () => {
+    setupStores('2026-07', 10000, undefined, undefined, { copySheetVisible: true });
+    copyBudgetsToMonthMock.mockRejectedValueOnce(new Error('copy failed'));
+    const { result } = renderHook(() => useBudget());
+
+    await act(async () => {
+      await result.current.copySelectedBudgets(['budget-food-jun']);
+    });
+
+    expect(setCopyBusyMock).toHaveBeenNthCalledWith(1, true);
+    expect(setCopyErrorMock).toHaveBeenNthCalledWith(1, false);
+    expect(setCopyErrorMock).toHaveBeenLastCalledWith(true);
+    expect(setCopyBusyMock).toHaveBeenLastCalledWith(false);
+    expect(closeCopyMock).not.toHaveBeenCalled();
+  });
+
+  it('closes once after committed copy even when its snapshot reload records a read failure', async () => {
+    copyBudgetsToMonthMock.mockResolvedValueOnce(undefined);
+    const { result } = renderHook(() => useBudget());
+
+    await act(async () => {
+      await result.current.copySelectedBudgets(['budget-food-jun']);
+    });
+
+    expect(copyBudgetsToMonthMock).toHaveBeenCalledTimes(1);
+    expect(closeCopyMock).toHaveBeenCalledTimes(1);
   });
 
   it('removes a budget from the selected month', async () => {

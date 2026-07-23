@@ -67,6 +67,19 @@ export interface BudgetCopyRowVM {
   status: BudgetCopyStatus;
 }
 
+export type BudgetPresentation = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
+
+export function resolveBudgetPresentation({
+  hasMatchingSnapshot,
+  loadError,
+}: {
+  hasMatchingSnapshot: boolean;
+  loadError: boolean;
+}): BudgetPresentation {
+  if (!hasMatchingSnapshot) return loadError ? 'coldError' : 'coldLoading';
+  return loadError ? 'contentWithError' : 'content';
+}
+
 export function getBudgetsForCategoryMonth(
   rows: Budget[],
   categoryId: string,

@@ -7,6 +7,24 @@ import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.hel
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
 
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
+jest.mock('@/components/ui/button', () => ({
+  Button: ({
+    label,
+    onPress,
+    isDisabled,
+  }: {
+    label: string;
+    onPress: () => void;
+    isDisabled?: boolean;
+  }) => {
+    const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <Pressable accessibilityRole="button" disabled={isDisabled} onPress={onPress}>
+        <Text>{label}</Text>
+      </Pressable>
+    );
+  },
+}));
 jest.mock('@gorhom/bottom-sheet', () => {
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
@@ -60,11 +78,25 @@ jest.mock('heroui-native', () => {
     </Pressable>
   );
   Checkbox.Indicator = () => <View testID="checkbox-indicator" />;
+  const Alert = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
+  Alert.Indicator = () => null;
+  Alert.Content = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
+  Alert.Title = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
+  const SkeletonGroup = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
+  SkeletonGroup.Item = () => <View testID="copy-preview-skeleton" />;
   return {
+    Alert,
     Checkbox,
-    PressableFeedback: ({ children, ...props }: PressableProps & { children?: ReactNode }) => (
-      <Pressable {...props}>{children}</Pressable>
+    PressableFeedback: ({
+      children,
+      isDisabled,
+      ...props
+    }: PressableProps & { children?: ReactNode; isDisabled?: boolean }) => (
+      <Pressable {...props} disabled={isDisabled}>
+        {children}
+      </Pressable>
     ),
+    SkeletonGroup,
     Text: { Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text> },
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
@@ -107,11 +139,16 @@ describe('BudgetCopySheet', () => {
         targetMonthLabel="July 2026"
         rows={rows}
         selectedBudgetIds={['budget-food']}
+        previewLoading={false}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleBudget={onToggleBudget}
         onSelectAll={onSelectAll}
         onClearSelection={onClearSelection}
+        onRetryPreview={jest.fn()}
         onApply={onApply}
       />,
     );
@@ -146,11 +183,16 @@ describe('BudgetCopySheet', () => {
         targetMonthLabel="July 2026"
         rows={rows}
         selectedBudgetIds={['budget-food', 'budget-car']}
+        previewLoading={false}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
+        onRetryPreview={jest.fn()}
         onApply={jest.fn()}
       />,
     );
@@ -169,11 +211,16 @@ describe('BudgetCopySheet', () => {
         targetMonthLabel="July 2026"
         rows={rows}
         selectedBudgetIds={[]}
+        previewLoading={false}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
+        onRetryPreview={jest.fn()}
         onApply={jest.fn()}
       />,
     );
@@ -193,11 +240,16 @@ describe('BudgetCopySheet', () => {
         targetMonthLabel="July 2026"
         rows={rows}
         selectedBudgetIds={['budget-food']}
+        previewLoading={false}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
         onSourceMonthChange={onSourceMonthChange}
         onOpenChange={jest.fn()}
         onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
+        onRetryPreview={jest.fn()}
         onApply={jest.fn()}
       />,
     );
@@ -220,11 +272,16 @@ describe('BudgetCopySheet', () => {
         targetMonthLabel="July 2026"
         rows={rows}
         selectedBudgetIds={[]}
+        previewLoading={false}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
+        onRetryPreview={jest.fn()}
         onApply={onApply}
       />,
     );
@@ -241,11 +298,16 @@ describe('BudgetCopySheet', () => {
         targetMonthLabel="July 2026"
         rows={[]}
         selectedBudgetIds={[]}
+        previewLoading={false}
+        previewError={false}
+        copyBusy={false}
+        copyError={false}
         onSourceMonthChange={jest.fn()}
         onOpenChange={jest.fn()}
         onToggleBudget={jest.fn()}
         onSelectAll={jest.fn()}
         onClearSelection={jest.fn()}
+        onRetryPreview={jest.fn()}
         onApply={jest.fn()}
       />,
     );
