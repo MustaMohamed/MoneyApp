@@ -25,16 +25,18 @@ export function useCurrencyScreen() {
   );
   const fetchRate = useCurrencyStore.getState().fetchRate;
   const setManualRate = useCurrencyStore.getState().setManualRate;
-  const { isFetching, isSaving, fetchError } = useCurrencyScreenState(
+  const { isFetching, isSaving, fetchError, saveError } = useCurrencyScreenState(
     useShallow((s) => ({
       isFetching: s.isFetching,
       isSaving: s.isSaving,
       fetchError: s.fetchError,
+      saveError: s.saveError,
     })),
   );
   const setFetching = useCurrencyScreenState.getState().setFetching;
   const setSaving = useCurrencyScreenState.getState().setSaving;
   const setFetchError = useCurrencyScreenState.getState().setFetchError;
+  const setSaveError = useCurrencyScreenState.getState().setSaveError;
   const resetState = useCurrencyScreenState.getState().reset;
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -69,8 +71,11 @@ export function useCurrencyScreen() {
     if (rate === undefined) return;
 
     setSaving(true);
+    setSaveError('');
     try {
       await setManualRate(rate);
+    } catch {
+      setSaveError(Strings.currencySaveError);
     } finally {
       setSaving(false);
     }
@@ -83,6 +88,7 @@ export function useCurrencyScreen() {
       isFetching,
       isSaving,
       fetchError,
+      saveError,
       formattedDate,
     },
     form,

@@ -156,7 +156,31 @@ describe('onboardingStore.init — TC-02 / TC-03 resume', () => {
   });
 });
 
+describe('onboardingStore.reset', () => {
+  it('restores the initial onboarding state', async () => {
+    await store.getState().setStep(OnboardingStep.N3);
+    await store.getState().setBaseCurrency(Currency.USD);
+    await store.getState().completeOnboarding();
+
+    store.getState().reset();
+
+    expect(store.getState()).toMatchObject({
+      complete: false,
+      currentStep: OnboardingStep.N1,
+      baseCurrency: Currency.EGP,
+    });
+  });
+});
+
 describe('useOnboardingStore', () => {
+  it('creates an unloaded store with the default repository', () => {
+    expect(createOnboardingStore().getState()).toMatchObject({
+      complete: false,
+      currentStep: OnboardingStep.N1,
+      baseCurrency: Currency.EGP,
+    });
+  });
+
   it('exposes the shared Zustand singleton API', () => {
     expect(typeof useOnboardingStore.getState).toBe('function');
     expect(useOnboardingStore.getState().currentStep).toBe(OnboardingStep.N1);

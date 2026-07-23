@@ -25,6 +25,7 @@ type CategoryStore = typeof INITIAL_STATE & {
 
 export function createCategoryStore(repo: ICategoryRepository) {
   let requestGeneration = 0;
+  let lifecycleGeneration = 0;
   let sharedLoadPromise: Promise<void> | undefined;
 
   return createMoneyAppSelectors(
@@ -54,55 +55,39 @@ export function createCategoryStore(repo: ICategoryRepository) {
         return request;
       };
 
+      const mutateAndReload = async (operation: () => Promise<unknown>, label: string) => {
+        const ownerLifecycle = lifecycleGeneration;
+        try {
+          await operation();
+          if (ownerLifecycle !== lifecycleGeneration) return;
+          await loadOwned(true);
+        } catch (error) {
+          if (ownerLifecycle !== lifecycleGeneration) return;
+          console.error(`[categoryStore] ${label} failed:`, error);
+          throw error;
+        }
+      };
+
       return {
         ...INITIAL_STATE,
 
         loadCategories: () => loadOwned(false),
 
-        addCategory: async (data) => {
-          try {
-            await repo.add(data);
-            await loadOwned(true);
-          } catch (err) {
-            console.error('[categoryStore] addCategory failed:', err);
-            throw err;
-          }
-        },
+        addCategory: (data) => mutateAndReload(() => repo.add(data), 'addCategory'),
 
-        updateCategory: async (id, data) => {
-          try {
-            await repo.update(id, data);
-            await loadOwned(true);
-          } catch (err) {
-            console.error('[categoryStore] updateCategory failed:', err);
-            throw err;
-          }
-        },
+        updateCategory: (id, data) =>
+          mutateAndReload(() => repo.update(id, data), 'updateCategory'),
 
-        deleteCategory: async (id) => {
-          try {
-            await repo.delete(id);
-            await loadOwned(true);
-          } catch (err) {
-            console.error('[categoryStore] deleteCategory failed:', err);
-            throw err;
-          }
-        },
+        deleteCategory: (id) => mutateAndReload(() => repo.delete(id), 'deleteCategory'),
 
-        reassignAndDelete: async (fromId, toId) => {
-          try {
-            await repo.reassignAndDelete(fromId, toId);
-            await loadOwned(true);
-          } catch (err) {
-            console.error('[categoryStore] reassignAndDelete failed:', err);
-            throw err;
-          }
-        },
+        reassignAndDelete: (fromId, toId) =>
+          mutateAndReload(() => repo.reassignAndDelete(fromId, toId), 'reassignAndDelete'),
 
         getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
 
         reset: () => {
           requestGeneration += 1;
+          lifecycleGeneration += 1;
           sharedLoadPromise = undefined;
           set(INITIAL_STATE);
         },

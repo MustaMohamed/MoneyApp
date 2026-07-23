@@ -33,18 +33,29 @@ type CurrencyStore = typeof INITIAL_STATE & {
 
 export function createCurrencyStore(repo: IAppSettingsRepository) {
   let operationGeneration = 0;
+  let lifecycleGeneration = 0;
   let persistenceQueue = Promise.resolve();
   let backgroundRefreshPromise: Promise<void> | undefined;
 
-  const persistIfCurrent = (
+  const persistIfOwned = (
     ownerGeneration: number,
-    persist: () => Promise<unknown>,
+    ownerLifecycle: number,
+    entries: ReadonlyArray<readonly [string, string]>,
+    publish: () => void,
   ): Promise<boolean> => {
     const queued = persistenceQueue.then(async () => {
-      if (ownerGeneration !== operationGeneration) return false;
+      if (ownerGeneration !== operationGeneration || ownerLifecycle !== lifecycleGeneration) {
+        return false;
+      }
 
-      await persist();
-      return ownerGeneration === operationGeneration;
+      await repo.setMany(entries);
+      if (ownerLifecycle !== lifecycleGeneration) return false;
+
+      // The latest successfully committed rate remains authoritative. A newer
+      // operation may replace it later, but a newer failure cannot hide a
+      // durable commit from the current session.
+      publish();
+      return true;
     });
     persistenceQueue = queued.then(
       () => undefined,
@@ -85,6 +96,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
       fetchRate: async () => {
         const ownerGeneration = ++operationGeneration;
+        const ownerLifecycle = lifecycleGeneration;
         try {
           const res = await fetch(Config.currencyRateUrl);
           if (!res.ok) {
@@ -93,25 +105,28 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
           const rate = parseRemoteRate(await res.json());
           const now = new Date().toISOString();
-          const didPersist = await persistIfCurrent(ownerGeneration, () =>
-            Promise.all([
-              repo.set(RATE_KEY, String(rate)),
-              repo.set(FETCHED_AT_KEY, now),
-              repo.set(MANUAL_KEY, 'false'),
-              repo.set(RATE_UPDATED_AT_KEY, now),
-            ]),
+          await persistIfOwned(
+            ownerGeneration,
+            ownerLifecycle,
+            [
+              [RATE_KEY, String(rate)],
+              [FETCHED_AT_KEY, now],
+              [MANUAL_KEY, 'false'],
+              [RATE_UPDATED_AT_KEY, now],
+            ],
+            () =>
+              set({
+                rate,
+                lastFetched: now,
+                isManualOverride: false,
+                rate_updated_at: now,
+                hasLoaded: true,
+              }),
           );
-          if (!didPersist || ownerGeneration !== operationGeneration) return;
-
-          set({
-            rate,
-            lastFetched: now,
-            isManualOverride: false,
-            rate_updated_at: now,
-            hasLoaded: true,
-          });
         } catch (err) {
-          if (ownerGeneration !== operationGeneration) return;
+          if (ownerGeneration !== operationGeneration || ownerLifecycle !== lifecycleGeneration) {
+            return;
+          }
           console.error('[currencyStore] fetchRate failed:', err);
           throw err;
         }
@@ -141,25 +156,29 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
         }
 
         const ownerGeneration = ++operationGeneration;
+        const ownerLifecycle = lifecycleGeneration;
         try {
           const now = new Date().toISOString();
-          const didPersist = await persistIfCurrent(ownerGeneration, () =>
-            Promise.all([
-              repo.set(RATE_KEY, String(rate)),
-              repo.set(MANUAL_KEY, 'true'),
-              repo.set(RATE_UPDATED_AT_KEY, now),
-            ]),
+          await persistIfOwned(
+            ownerGeneration,
+            ownerLifecycle,
+            [
+              [RATE_KEY, String(rate)],
+              [MANUAL_KEY, 'true'],
+              [RATE_UPDATED_AT_KEY, now],
+            ],
+            () =>
+              set({
+                rate,
+                isManualOverride: true,
+                rate_updated_at: now,
+                hasLoaded: true,
+              }),
           );
-          if (!didPersist || ownerGeneration !== operationGeneration) return;
-
-          set({
-            rate,
-            isManualOverride: true,
-            rate_updated_at: now,
-            hasLoaded: true,
-          });
         } catch (err) {
-          if (ownerGeneration !== operationGeneration) return;
+          if (ownerGeneration !== operationGeneration || ownerLifecycle !== lifecycleGeneration) {
+            return;
+          }
           console.error('[currencyStore] setManualRate failed:', err);
           throw err;
         }
@@ -167,6 +186,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
 
       reset: () => {
         operationGeneration += 1;
+        lifecycleGeneration += 1;
         backgroundRefreshPromise = undefined;
         set(INITIAL_STATE);
       },

@@ -332,4 +332,42 @@ describe('categoryStore.reset', () => {
 
     expect(useStore.getState()).toMatchObject({ categories: [], hasLoaded: false });
   });
+
+  it('does not let a pending mutation reload state after reset', async () => {
+    const pendingAdd = deferred<Category>();
+    const repo = makeRepo({ add: jest.fn().mockReturnValue(pendingAdd.promise) });
+    const useStore = createCategoryStore(repo);
+
+    const add = useStore
+      .getState()
+      .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' });
+    useStore.getState().reset();
+    pendingAdd.resolve(mockCategory());
+    await add;
+
+    expect(repo.getAll).not.toHaveBeenCalled();
+    expect(useStore.getState()).toMatchObject({
+      categories: [],
+      hasLoaded: false,
+      loadError: false,
+    });
+  });
+
+  it('contains a pending mutation failure after reset', async () => {
+    const pendingAdd = deferred<Category>();
+    const repo = makeRepo({ add: jest.fn().mockReturnValue(pendingAdd.promise) });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const add = useStore
+      .getState()
+      .addCategory({ name: 'X', type: CategoryType.Expense, icon: 'star', color: '#fff' });
+    useStore.getState().reset();
+    pendingAdd.reject(new Error('stale add failure'));
+
+    await expect(add).resolves.toBeUndefined();
+    expect(repo.getAll).not.toHaveBeenCalled();
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 });

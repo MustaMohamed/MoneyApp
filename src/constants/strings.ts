@@ -12,6 +12,7 @@ export const Strings = {
   categoriesLoadError: 'Could not load categories.',
   categoriesRefreshError: 'Could not refresh categories.',
   categoriesLoadRetry: 'Retry',
+  currencySaveError: 'Could not save rate. Try again.',
 
   // O1 Welcome
   o1Headline: 'Your money.\nFinally clear.',

@@ -33,6 +33,9 @@ module.exports = {
   // See: docs/superpowers/plans/2026-05-10-pre-m2-hardening.md Task 4.8 note.
   collectCoverageFrom: [
     'src/store/**/*.ts',
+    'src/modules/categories/store/category.store.ts',
+    'src/modules/currency/store/currency.store.ts',
+    'src/modules/onboarding/store/onboarding.store.ts',
     'src/repositories/**/*.ts',
     'src/database/**/*.ts',
     'src/utils/responsive.ts',
