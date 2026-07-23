@@ -12,18 +12,21 @@ import { TransactionValidationError } from '@/modules/transactions/repositories/
 import {
   addPayments,
   deleteUnpaidPaymentsByCommitment,
+  getActiveCommitmentDueDates,
   getExistingDueDates,
   getLastPaidPayment,
   getPaidCountByCommitment,
   getPaymentById,
   getPaymentsByCommitment,
   getPaymentsByMonth,
+  insertPaymentRows,
   markCommitmentAsPaid,
   updatePaymentStatus,
 } from '../database/commitment_payments';
 import {
   addCommitment,
   deactivateCommitment,
+  deactivateExpiredCommitments,
   getCommitmentById,
   getCommitments,
   updateCommitment,
@@ -31,6 +34,7 @@ import {
 } from '../database/commitments';
 import type { Commitment } from '../entities/commitment.entity';
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
+import { planMissingCommitmentPayments } from './commitment_housekeeping.helpers';
 
 export type NewCommitmentInput = Omit<Commitment, 'id' | 'created_at' | 'updated_at' | 'is_active'>;
 export type UpdateCommitmentInput = Pick<
@@ -58,6 +62,12 @@ export type PaymentDetails = {
   notes?: string;
 };
 
+export interface CommitmentMonthSnapshot {
+  loadedMonth: string;
+  commitments: Commitment[];
+  payments: CommitmentPayment[];
+}
+
 export interface ICommitmentRepository {
   getAll(): Promise<Commitment[]>;
   getById(id: string): Promise<Commitment | undefined>;
@@ -77,6 +87,8 @@ export interface ICommitmentRepository {
 
   markAsPaid(paymentId: string, details: PaymentDetails, commitment: Commitment): Promise<void>;
   markAsSkipped(paymentId: string): Promise<void>;
+  runHousekeeping(now: Date): Promise<void>;
+  getMonthSnapshot(yearMonth: string): Promise<CommitmentMonthSnapshot>;
 }
 
 export class CommitmentRepository implements ICommitmentRepository {
@@ -117,6 +129,31 @@ export class CommitmentRepository implements ICommitmentRepository {
   async getPaymentsForMonth(yearMonth: string): Promise<CommitmentPayment[]> {
     const db = await getDb();
     return getPaymentsByMonth(db, yearMonth);
+  }
+
+  async getMonthSnapshot(yearMonth: string): Promise<CommitmentMonthSnapshot> {
+    const db = await getDb();
+    const commitments = await getCommitments(db);
+    const payments = await getPaymentsByMonth(db, yearMonth);
+    return { loadedMonth: yearMonth, commitments, payments };
+  }
+
+  async runHousekeeping(now: Date): Promise<void> {
+    const db = await getDb();
+    const timestamp = now.toISOString();
+    const asOfDate = timestamp.slice(0, 10);
+    await db.withExclusiveTransactionAsync(async (transactionDb) => {
+      const commitments = await getCommitments(transactionDb);
+      const dueDates = await getActiveCommitmentDueDates(transactionDb);
+      const payments = planMissingCommitmentPayments({
+        commitments,
+        dueDates,
+        now,
+        createId: () => String(uuid.v4()),
+      });
+      await insertPaymentRows(transactionDb, payments);
+      await deactivateExpiredCommitments(transactionDb, asOfDate, timestamp);
+    });
   }
 
   async getPaymentsByCommitment(commitmentId: string): Promise<CommitmentPayment[]> {
