@@ -77,6 +77,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             hasLoaded: true,
           });
         } catch (err) {
+          if (ownerGeneration !== operationGeneration) return;
           console.error('[currencyStore] loadRate failed:', err);
           throw err;
         }
@@ -110,6 +111,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             hasLoaded: true,
           });
         } catch (err) {
+          if (ownerGeneration !== operationGeneration) return;
           console.error('[currencyStore] fetchRate failed:', err);
           throw err;
         }
@@ -157,6 +159,7 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
             hasLoaded: true,
           });
         } catch (err) {
+          if (ownerGeneration !== operationGeneration) return;
           console.error('[currencyStore] setManualRate failed:', err);
           throw err;
         }

@@ -15,6 +15,14 @@ function makeRepo(): jest.Mocked<IOnboardingRepository> {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((res) => {
+    resolve = res;
+  });
+  return { promise, resolve };
+}
+
 let repo: jest.Mocked<IOnboardingRepository>;
 let store: ReturnType<typeof createOnboardingStore>;
 
@@ -117,6 +125,34 @@ describe('onboardingStore.init — TC-02 / TC-03 resume', () => {
     expect(result.step).toBe(OnboardingStep.N1);
     expect(state.currentStep).toBe(OnboardingStep.N1);
     expect(state.baseCurrency).toBe(Currency.EGP);
+  });
+
+  it('ignores an older initialization result after a retry succeeds', async () => {
+    const staleLoad = deferred<{
+      complete: boolean;
+      step: OnboardingStep;
+      baseCurrency: Currency;
+    }>();
+    repo.load.mockReturnValueOnce(staleLoad.promise).mockResolvedValueOnce({
+      complete: true,
+      step: OnboardingStep.N4,
+      baseCurrency: Currency.USD,
+    });
+
+    const staleInit = store.getState().init();
+    await store.getState().init();
+    staleLoad.resolve({
+      complete: false,
+      step: OnboardingStep.N2,
+      baseCurrency: Currency.EGP,
+    });
+    await staleInit;
+
+    expect(store.getState()).toMatchObject({
+      complete: true,
+      currentStep: OnboardingStep.N4,
+      baseCurrency: Currency.USD,
+    });
   });
 });
 

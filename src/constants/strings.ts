@@ -1,4 +1,5 @@
 export const Strings = {
+  loading: 'Loading...',
   tabHome: 'Home',
   tabTransactions: 'Transactions',
   tabCommitments: 'Commitments',

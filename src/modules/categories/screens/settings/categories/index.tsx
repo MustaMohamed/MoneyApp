@@ -13,6 +13,7 @@ import { Strings } from '@/constants/strings';
 import { Spacing } from '@/constants/theme';
 import type { Category } from '@/modules/categories/store/category.store';
 
+import { resolveCategoriesPresentation } from './categories.helpers';
 import { useCategories } from './categories.hook';
 import { AddEditCategorySheet } from './components/add_edit_category_sheet';
 import { CategoryLoadError } from './components/category_load_error';
@@ -53,6 +54,11 @@ export default function CategoriesScreen() {
   } = useCategories();
 
   const isEmpty = state.defaultCategories.length === 0 && state.customCategories.length === 0;
+  const presentation = resolveCategoriesPresentation({
+    hasLoaded: state.hasLoaded,
+    loadError: state.loadError,
+    isEmpty,
+  });
   const listData = useMemo(
     () => buildListEntries(state.defaultCategories, state.customCategories),
     [state.customCategories, state.defaultCategories],
@@ -97,13 +103,13 @@ export default function CategoriesScreen() {
 
       {/* List or EmptyState — flex:1 via style (not className) per CLAUDE.md Android Fabric rule */}
       <View style={{ flex: 1 }}>
-        {!state.hasLoaded && state.loadError ? (
+        {presentation.content === 'initialError' ? (
           <CategoryLoadError onRetry={() => void retryLoad()} />
-        ) : !state.hasLoaded ? (
+        ) : presentation.content === 'loading' ? (
           <View className="items-center justify-center py-12">
             <Spinner />
           </View>
-        ) : isEmpty ? (
+        ) : presentation.content === 'empty' ? (
           <EmptyState variant="categories" />
         ) : (
           <FlashList<ListEntry>
@@ -118,7 +124,7 @@ export default function CategoriesScreen() {
             renderItem={renderItem}
           />
         )}
-        {state.hasLoaded && state.loadError ? (
+        {presentation.showRefreshError ? (
           <CategoryLoadError floating onRetry={() => void retryLoad()} />
         ) : null}
       </View>

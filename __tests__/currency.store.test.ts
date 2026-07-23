@@ -162,6 +162,19 @@ describe('currencyStore.fetchRate', () => {
     expect(repo.set).not.toHaveBeenCalledWith('usd_rate_manual_override', 'false');
   });
 
+  it('ignores a rejected fetch after a newer manual save owns the rate', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+
+    const staleFetch = store.getState().fetchRate();
+    await store.getState().setManualRate(48.5);
+    response.reject(new Error('stale network failure'));
+
+    await expect(staleFetch).resolves.toBeUndefined();
+    expect(store.getState()).toMatchObject({ rate: 48.5, isManualOverride: true });
+  });
+
   it('publishes only the newest concurrent fetch', async () => {
     const first = deferred<Response>();
     const second = deferred<Response>();
@@ -271,6 +284,25 @@ describe('currencyStore.setManualRate', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.getState().setManualRate(48.5)).rejects.toThrow('set fail');
     consoleSpy.mockRestore();
+  });
+
+  it('ignores a rejected manual save after a newer operation owns the rate', async () => {
+    const firstWrite = deferred<void>();
+    const repo = makeRepo();
+    (repo.set as jest.Mock).mockReturnValueOnce(firstWrite.promise).mockResolvedValue(undefined);
+    const store = createCurrencyStore(repo);
+
+    const staleManualSave = store.getState().setManualRate(48.5);
+    await Promise.resolve();
+    store.getState().reset();
+    firstWrite.reject(new Error('stale persistence failure'));
+
+    await expect(staleManualSave).resolves.toBeUndefined();
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      isManualOverride: false,
+      hasLoaded: false,
+    });
   });
 });
 

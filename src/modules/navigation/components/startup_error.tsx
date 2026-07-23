@@ -8,12 +8,16 @@ import { Strings } from '@/constants/strings';
 import { Colors } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+import { resolveStartupRetryPresentation } from './startup_error.helpers';
+
 interface StartupErrorProps {
   isRetrying?: boolean;
   onRetry: () => void;
 }
 
 export function StartupError({ isRetrying = false, onRetry }: StartupErrorProps) {
+  const retryPresentation = resolveStartupRetryPresentation(isRetrying);
+
   return (
     <Screen testID="startup-error">
       <View style={{ flex: 1 }} className="items-center justify-center px-6">
@@ -31,11 +35,11 @@ export function StartupError({ isRetrying = false, onRetry }: StartupErrorProps)
           {Strings.startupErrorDescription}
         </Text>
         <Button
-          label={Strings.startupErrorRetry}
+          label={retryPresentation.label}
           accessibilityLabel={Strings.startupErrorRetry}
           className="mt-6 w-full max-w-80"
           isLoading={isRetrying}
-          isDisabled={isRetrying}
+          isDisabled={retryPresentation.isDisabled}
           onPress={onRetry}
         />
       </View>
