@@ -15,6 +15,7 @@ function makeSettingsRepo(): jest.Mocked<IAppSettingsRepository> {
   return {
     get: jest.fn().mockResolvedValue(null),
     set: jest.fn().mockResolvedValue(undefined),
+    setMany: jest.fn().mockResolvedValue(undefined),
   };
 }
 

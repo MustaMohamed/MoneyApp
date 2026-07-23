@@ -65,3 +65,15 @@ describe('AppSettingsRepository.set', () => {
     expect(await repo.get('base_currency')).toBe('EGP');
   });
 });
+
+describe('AppSettingsRepository.setMany', () => {
+  it('persists a related settings batch together', async () => {
+    await repo.setMany([
+      ['usd_rate', '49'],
+      ['usd_rate_manual_override', 'true'],
+    ]);
+
+    expect(await repo.get('usd_rate')).toBe('49');
+    expect(await repo.get('usd_rate_manual_override')).toBe('true');
+  });
+});

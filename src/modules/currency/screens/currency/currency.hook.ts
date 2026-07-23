@@ -4,9 +4,16 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import { parsePositiveDecimal } from '@/utils/parse_decimal';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useCurrencyScreenState } from './currency.state';
+
+const manualRateSchema = z.object({
+  rate: z.string().refine((value) => parsePositiveDecimal(value) !== undefined, {
+    message: Strings.errBalanceInvalid,
+  }),
+});
 
 export function useCurrencyScreen() {
   const { rate, lastFetched, isManualOverride } = useCurrencyStore(
@@ -18,16 +25,18 @@ export function useCurrencyScreen() {
   );
   const fetchRate = useCurrencyStore.getState().fetchRate;
   const setManualRate = useCurrencyStore.getState().setManualRate;
-  const { isFetching, isSaving, fetchError } = useCurrencyScreenState(
+  const { isFetching, isSaving, fetchError, saveError } = useCurrencyScreenState(
     useShallow((s) => ({
       isFetching: s.isFetching,
       isSaving: s.isSaving,
       fetchError: s.fetchError,
+      saveError: s.saveError,
     })),
   );
   const setFetching = useCurrencyScreenState.getState().setFetching;
   const setSaving = useCurrencyScreenState.getState().setSaving;
   const setFetchError = useCurrencyScreenState.getState().setFetchError;
+  const setSaveError = useCurrencyScreenState.getState().setSaveError;
   const resetState = useCurrencyScreenState.getState().reset;
 
   // oxlint-disable-next-line react-hooks/exhaustive-deps
@@ -41,17 +50,7 @@ export function useCurrencyScreen() {
       })
     : Strings.currencyNeverFetched;
 
-  const manualSchema = z.object({
-    rate: z.string().refine(
-      (v) => {
-        const n = parseFloat(v);
-        return Number.isFinite(n) && n > 0;
-      },
-      { message: Strings.errBalanceInvalid },
-    ),
-  });
-
-  const form = useZodForm(manualSchema, {
+  const form = useZodForm(manualRateSchema, {
     defaultValues: { rate: String(rate) },
   });
 
@@ -68,9 +67,15 @@ export function useCurrencyScreen() {
   };
 
   const handleSaveManualRate = form.handleSubmit(async (data) => {
+    const rate = parsePositiveDecimal(data.rate);
+    if (rate === undefined) return;
+
     setSaving(true);
+    setSaveError('');
     try {
-      await setManualRate(parseFloat(data.rate));
+      await setManualRate(rate);
+    } catch {
+      setSaveError(Strings.currencySaveError);
     } finally {
       setSaving(false);
     }
@@ -83,6 +88,7 @@ export function useCurrencyScreen() {
       isFetching,
       isSaving,
       fetchError,
+      saveError,
       formattedDate,
     },
     form,

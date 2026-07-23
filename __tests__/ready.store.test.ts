@@ -1,38 +1,82 @@
-import { act, renderHook } from '@testing-library/react-native';
+import { act } from '@testing-library/react-native';
 
 import { useAppReadyStore } from '@/store/ready.store';
 
 describe('useAppReadyStore', () => {
   beforeEach(() => {
-    act(() => {
-      useAppReadyStore.getState().reset();
+    act(() => useAppReadyStore.getState().reset());
+  });
+
+  it('starts in the initializing state', () => {
+    expect(useAppReadyStore.getState()).toMatchObject({
+      status: 'initializing',
+      error: null,
     });
   });
 
-  it('initialises with ready = false', () => {
-    const { result } = renderHook(() => useAppReadyStore.useState.ready());
+  it('begins a new owned startup generation', () => {
+    const initialGeneration = useAppReadyStore.getState().generation;
+    const first = useAppReadyStore.getState().begin();
+    const second = useAppReadyStore.getState().begin();
 
-    expect(result.current).toBe(false);
+    expect(first).toBe(initialGeneration + 1);
+    expect(second).toBe(initialGeneration + 2);
+    expect(useAppReadyStore.getState()).toMatchObject({
+      status: 'initializing',
+      generation: second,
+      error: null,
+    });
   });
 
-  it('markReady sets state.ready to true', () => {
-    const { result } = renderHook(() => useAppReadyStore((s) => s.ready));
+  it('publishes ready only for the current generation', () => {
+    const stale = useAppReadyStore.getState().begin();
+    const current = useAppReadyStore.getState().begin();
 
-    act(() => {
-      useAppReadyStore.getState().markReady();
-    });
+    useAppReadyStore.getState().resolveReady(stale);
+    expect(useAppReadyStore.getState().status).toBe('initializing');
 
-    expect(result.current).toBe(true);
+    useAppReadyStore.getState().resolveReady(current);
+    expect(useAppReadyStore.getState()).toMatchObject({ status: 'ready', error: null });
   });
 
-  it('reset sets state.ready to false', () => {
-    const { result } = renderHook(() => useAppReadyStore.useState.ready());
+  it('publishes a fatal error only for the current generation', () => {
+    const stale = useAppReadyStore.getState().begin();
+    const current = useAppReadyStore.getState().begin();
+    const error = new Error('migration failed');
 
-    act(() => {
-      useAppReadyStore.getState().markReady();
-      useAppReadyStore.getState().reset();
+    useAppReadyStore.getState().rejectFatal(stale, new Error('stale'));
+    expect(useAppReadyStore.getState().status).toBe('initializing');
+
+    useAppReadyStore.getState().rejectFatal(current, error);
+    expect(useAppReadyStore.getState()).toMatchObject({
+      status: 'fatalError',
+      error,
     });
+  });
 
-    expect(result.current).toBe(false);
+  it('keeps the failure context mounted while a retry initializes', () => {
+    const failed = useAppReadyStore.getState().begin();
+    const error = new Error('database failed');
+    useAppReadyStore.getState().rejectFatal(failed, error);
+
+    useAppReadyStore.getState().begin();
+
+    expect(useAppReadyStore.getState()).toMatchObject({
+      status: 'initializing',
+      error,
+    });
+  });
+
+  it('reset invalidates outstanding generations', () => {
+    const stale = useAppReadyStore.getState().begin();
+    useAppReadyStore.getState().reset();
+    const resetGeneration = useAppReadyStore.getState().generation;
+    useAppReadyStore.getState().resolveReady(stale);
+
+    expect(useAppReadyStore.getState()).toMatchObject({
+      status: 'initializing',
+      generation: resetGeneration,
+      error: null,
+    });
   });
 });

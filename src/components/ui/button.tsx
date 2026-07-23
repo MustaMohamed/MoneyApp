@@ -3,6 +3,7 @@ import { Button as HButton, cn, type ButtonSize, type ButtonVariant } from 'hero
 import React from 'react';
 import { StyleSheet, type PressableProps } from 'react-native';
 
+import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled'> {
@@ -27,7 +28,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const disabledState = isDisabled ?? disabled;
-  const content = isLoading ? 'Loading...' : label;
+  const content = isLoading ? Strings.loading : label;
 
   if (variant === 'primary') {
     return (

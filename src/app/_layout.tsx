@@ -20,6 +20,7 @@ import { initialWindowMetrics, SafeAreaProvider } from 'react-native-safe-area-c
 import { enableFreeze } from 'react-native-screens';
 
 import { Colors } from '@/constants/theme';
+import { StartupError } from '@/modules/navigation/components/startup_error';
 import { useAppInit } from '@/utils/use_layout_init.hook';
 
 void SplashScreen.preventAutoHideAsync();
@@ -48,16 +49,19 @@ export default function RootLayout() {
   });
 
   const {
-    state: { ready },
+    state: { status, error },
+    retry,
   } = useAppInit();
 
   useEffect(() => {
-    if (fontsLoaded && ready) {
+    if (fontsLoaded && status !== 'initializing') {
       void SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, ready]);
+  }, [fontsLoaded, status]);
 
-  if (!fontsLoaded || !ready) return null;
+  if (!fontsLoaded) return null;
+
+  const showStartupError = status === 'fatalError' || (status === 'initializing' && error !== null);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: Colors.dark.bg }}>
@@ -65,13 +69,17 @@ export default function RootLayout() {
         <HeroUINativeProviderRaw>
           <ThemeProvider value={AppTheme}>
             <StatusBar style="light" />
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                freezeOnBlur: true,
-                contentStyle: { backgroundColor: Colors.dark.bg },
-              }}
-            />
+            {showStartupError ? (
+              <StartupError isRetrying={status === 'initializing'} onRetry={retry} />
+            ) : status === 'ready' ? (
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                  freezeOnBlur: true,
+                  contentStyle: { backgroundColor: Colors.dark.bg },
+                }}
+              />
+            ) : null}
           </ThemeProvider>
           {/* HeroUINativeProviderRaw omits the PortalHost; HeroUI BottomSheet
               (and any portal-based overlay) renders into this host. */}

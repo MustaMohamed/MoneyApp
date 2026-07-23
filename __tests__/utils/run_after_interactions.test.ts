@@ -46,4 +46,90 @@ describe('runAfterInteractions', () => {
     expect(mockNativeCancel).toHaveBeenCalledTimes(1);
     expect(callback).not.toHaveBeenCalled();
   });
+
+  it('delivers async rejection to the owned error handler without a timer throw', async () => {
+    const error = new Error('load failed');
+    const onError = jest.fn();
+    const timeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(() => 0 as never);
+
+    runAfterInteractions(() => Promise.reject(error), { onError });
+    mockScheduledCallbacks[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(error);
+    expect(timeoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('delivers synchronous failures through the same handler', () => {
+    const error = new Error('sync failed');
+    const onError = jest.fn();
+    const timeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(() => 0 as never);
+
+    runAfterInteractions(
+      () => {
+        throw error;
+      },
+      { onError },
+    );
+    mockScheduledCallbacks[0]?.();
+
+    expect(onError).toHaveBeenCalledWith(error);
+    expect(timeoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('logs an unhandled deferred failure without throwing it', async () => {
+    const error = new Error('unhandled');
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const timeoutSpy = jest.spyOn(global, 'setTimeout').mockImplementation(() => 0 as never);
+
+    runAfterInteractions(() => Promise.reject(error));
+    mockScheduledCallbacks[0]?.();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(consoleErrorSpy).toHaveBeenCalledWith('[runAfterInteractions] task failed:', error);
+    expect(timeoutSpy).not.toHaveBeenCalled();
+  });
+
+  it('contains failures thrown by the supplied error handler', () => {
+    const taskError = new Error('task failed');
+    const handlerError = new Error('handler failed');
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    runAfterInteractions(
+      () => {
+        throw taskError;
+      },
+      {
+        onError: () => {
+          throw handlerError;
+        },
+      },
+    );
+
+    expect(() => mockScheduledCallbacks[0]?.()).not.toThrow();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[runAfterInteractions] error handler failed:',
+      handlerError,
+    );
+  });
+
+  it('suppresses rejection delivery after cancellation', async () => {
+    let reject!: (error: unknown) => void;
+    const promise = new Promise<void>((_, rejectPromise) => {
+      reject = rejectPromise;
+    });
+    const onError = jest.fn();
+    const task = runAfterInteractions(() => promise, { onError });
+    mockScheduledCallbacks[0]?.();
+
+    task.cancel();
+    reject(new Error('late failure'));
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onError).not.toHaveBeenCalled();
+  });
 });

@@ -24,66 +24,76 @@ type CategoryStore = typeof INITIAL_STATE & {
 };
 
 export function createCategoryStore(repo: ICategoryRepository) {
+  let requestGeneration = 0;
+  let lifecycleGeneration = 0;
+  let sharedLoadPromise: Promise<void> | undefined;
+
   return createMoneyAppSelectors(
-    create<CategoryStore>((set, get) => ({
-      ...INITIAL_STATE,
+    create<CategoryStore>((set) => {
+      const loadOwned = (force: boolean): Promise<void> => {
+        if (!force && sharedLoadPromise) return sharedLoadPromise;
 
-      loadCategories: async () => {
+        const ownerGeneration = ++requestGeneration;
         set({ loadError: false });
+
+        let request!: Promise<void>;
+        request = (async () => {
+          try {
+            const categories = await repo.getAll();
+            if (ownerGeneration !== requestGeneration) return;
+            set({ categories, hasLoaded: true, loadError: false });
+          } catch (error) {
+            if (ownerGeneration !== requestGeneration) return;
+            set({ loadError: true });
+            console.error('[categoryStore] loadCategories failed:', error);
+            throw error;
+          } finally {
+            if (sharedLoadPromise === request) sharedLoadPromise = undefined;
+          }
+        })();
+
+        sharedLoadPromise = request;
+        return request;
+      };
+
+      const mutateAndReload = async (operation: () => Promise<unknown>, label: string) => {
+        const ownerLifecycle = lifecycleGeneration;
         try {
-          const categories = await repo.getAll();
-          set({ categories, hasLoaded: true, loadError: false });
-        } catch (err) {
-          set({ loadError: true });
-          console.error('[categoryStore] loadCategories failed:', err);
-          throw err;
+          await operation();
+          if (ownerLifecycle !== lifecycleGeneration) return;
+          await loadOwned(true);
+        } catch (error) {
+          if (ownerLifecycle !== lifecycleGeneration) return;
+          console.error(`[categoryStore] ${label} failed:`, error);
+          throw error;
         }
-      },
+      };
 
-      addCategory: async (data) => {
-        try {
-          await repo.add(data);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] addCategory failed:', err);
-          throw err;
-        }
-      },
+      return {
+        ...INITIAL_STATE,
 
-      updateCategory: async (id, data) => {
-        try {
-          await repo.update(id, data);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] updateCategory failed:', err);
-          throw err;
-        }
-      },
+        loadCategories: () => loadOwned(false),
 
-      deleteCategory: async (id) => {
-        try {
-          await repo.delete(id);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] deleteCategory failed:', err);
-          throw err;
-        }
-      },
+        addCategory: (data) => mutateAndReload(() => repo.add(data), 'addCategory'),
 
-      reassignAndDelete: async (fromId, toId) => {
-        try {
-          await repo.reassignAndDelete(fromId, toId);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] reassignAndDelete failed:', err);
-          throw err;
-        }
-      },
+        updateCategory: (id, data) =>
+          mutateAndReload(() => repo.update(id, data), 'updateCategory'),
 
-      getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
+        deleteCategory: (id) => mutateAndReload(() => repo.delete(id), 'deleteCategory'),
 
-      reset: () => set(INITIAL_STATE),
-    })),
+        reassignAndDelete: (fromId, toId) =>
+          mutateAndReload(() => repo.reassignAndDelete(fromId, toId), 'reassignAndDelete'),
+
+        getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
+
+        reset: () => {
+          requestGeneration += 1;
+          lifecycleGeneration += 1;
+          sharedLoadPromise = undefined;
+          set(INITIAL_STATE);
+        },
+      };
+    }),
   );
 }
 

@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 
 import { useCurrencyScreen } from '@/modules/currency/screens/currency/currency.hook';
 import { useCurrencyScreenState } from '@/modules/currency/screens/currency/currency.state';
@@ -26,9 +26,11 @@ function setup() {
     isFetching: false,
     isSaving: false,
     fetchError: '',
+    saveError: '',
     setFetching: jest.fn(),
     setSaving: jest.fn(),
     setFetchError: jest.fn(),
+    setSaveError: jest.fn(),
     reset: jest.fn(),
   }));
 }
@@ -84,9 +86,11 @@ describe('useCurrencyScreen', () => {
       isFetching: false,
       isSaving: false,
       fetchError: '',
+      saveError: '',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: setFetchErrorMock,
+      setSaveError: jest.fn(),
       reset: jest.fn(),
     }));
     attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -110,9 +114,11 @@ describe('useCurrencyScreen', () => {
       isFetching: false,
       isSaving: false,
       fetchError: 'old error',
+      saveError: '',
       setFetching: jest.fn(),
       setSaving: jest.fn(),
       setFetchError: setFetchErrorMock,
+      setSaveError: jest.fn(),
       reset: jest.fn(),
     }));
     attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
@@ -126,5 +132,73 @@ describe('useCurrencyScreen', () => {
     await result.current.handleFetchRate();
     // First call should clear the error
     expect(setFetchErrorMock).toHaveBeenCalledWith('');
+  });
+
+  it('rejects malformed manual rate prefixes without saving', async () => {
+    const setManualRate = jest.fn().mockResolvedValue(undefined);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = renderHook(() => useCurrencyScreen());
+
+    act(() => result.current.form.setValue('rate', '50abc'));
+    await act(async () => result.current.handleSaveManualRate());
+
+    expect(setManualRate).not.toHaveBeenCalled();
+  });
+
+  it('normalizes a formatted manual rate before saving', async () => {
+    const setManualRate = jest.fn().mockResolvedValue(undefined);
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = renderHook(() => useCurrencyScreen());
+
+    act(() => result.current.form.setValue('rate', '5,000'));
+    await act(async () => result.current.handleSaveManualRate());
+
+    expect(setManualRate).toHaveBeenCalledWith(5000);
+  });
+
+  it('contains a manual-rate save failure and exposes a stable error', async () => {
+    const setSaveError = jest.fn();
+    const setManualRate = jest.fn().mockRejectedValue(new Error('disk failed'));
+    attachMockSelectorStore(useCurrencyScreenState as unknown as jest.Mock, () => ({
+      isFetching: false,
+      isSaving: false,
+      fetchError: '',
+      saveError: '',
+      setFetching: jest.fn(),
+      setSaving: jest.fn(),
+      setFetchError: jest.fn(),
+      setSaveError,
+      reset: jest.fn(),
+    }));
+    attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      fetchRate: jest.fn().mockResolvedValue(undefined),
+      setManualRate,
+    }));
+    const { result } = renderHook(() => useCurrencyScreen());
+
+    act(() => result.current.form.setValue('rate', '48.5'));
+    await act(async () => {
+      await result.current.handleSaveManualRate();
+    });
+
+    expect(setManualRate).toHaveBeenCalledWith(48.5);
+    await waitFor(() =>
+      expect(setSaveError).toHaveBeenCalledWith('Could not save rate. Try again.'),
+    );
   });
 });

@@ -1,9 +1,18 @@
 export const Strings = {
+  loading: 'Loading...',
   tabHome: 'Home',
   tabTransactions: 'Transactions',
   tabCommitments: 'Commitments',
   tabGoals: 'Goals',
   tabBudget: 'Budget',
+
+  startupErrorTitle: 'MoneyApp could not start',
+  startupErrorDescription: 'Your data is still safe. Check the app again to finish loading it.',
+  startupErrorRetry: 'Retry',
+  categoriesLoadError: 'Could not load categories.',
+  categoriesRefreshError: 'Could not refresh categories.',
+  categoriesLoadRetry: 'Retry',
+  currencySaveError: 'Could not save rate. Try again.',
 
   // O1 Welcome
   o1Headline: 'Your money.\nFinally clear.',

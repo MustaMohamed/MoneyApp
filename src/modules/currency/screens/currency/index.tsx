@@ -13,7 +13,8 @@ import { useCurrencyScreen } from './currency.hook';
 
 export default function CurrencyScreen() {
   const { state, form, handleFetchRate, handleSaveManualRate } = useCurrencyScreen();
-  const { rate, isManualOverride, isFetching, isSaving, fetchError, formattedDate } = state;
+  const { rate, isManualOverride, isFetching, isSaving, fetchError, saveError, formattedDate } =
+    state;
   const {
     control,
     formState: { errors },
@@ -109,6 +110,9 @@ export default function CurrencyScreen() {
                     isDisabled={isSaving}
                     isLoading={isSaving}
                   />
+                </View>
+                <View className="min-h-6 pt-1">
+                  <FormErrorText message={saveError} />
                 </View>
               </Accordion.Content>
             </Accordion.Item>

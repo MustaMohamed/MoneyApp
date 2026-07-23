@@ -27,6 +27,8 @@ export type OnboardingStoreState = typeof INITIAL_STATE & {
 };
 
 export function createOnboardingStore(repository: IOnboardingRepository = onboardingRepository) {
+  let initGeneration = 0;
+
   return createMoneyAppSelectors(
     create<OnboardingStoreState>((set) => ({
       ...INITIAL_STATE,
@@ -62,17 +64,23 @@ export function createOnboardingStore(repository: IOnboardingRepository = onboar
       },
 
       init: async (): Promise<OnboardingInitResult> => {
+        const ownerGeneration = ++initGeneration;
         const nextState = await repository.load();
-        set({
-          complete: nextState.complete,
-          currentStep: nextState.step,
-          baseCurrency: nextState.baseCurrency,
-        });
+        if (ownerGeneration === initGeneration) {
+          set({
+            complete: nextState.complete,
+            currentStep: nextState.step,
+            baseCurrency: nextState.baseCurrency,
+          });
+        }
 
         return { complete: nextState.complete, step: nextState.step };
       },
 
-      reset: () => set(INITIAL_STATE),
+      reset: () => {
+        initGeneration += 1;
+        set(INITIAL_STATE);
+      },
     })),
   );
 }

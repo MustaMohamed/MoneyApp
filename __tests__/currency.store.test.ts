@@ -1,14 +1,47 @@
 import { createCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { IAppSettingsRepository } from '@/repositories/app_settings.repository';
 
-function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
+const INITIAL_EXPECTATION = {
+  rate: 50,
+  lastFetched: null,
+  isManualOverride: false,
+  rate_updated_at: null,
+  hasLoaded: false,
+};
+
+function makeTrackedRepo(seed: Record<string, string> = {}) {
   const db: Record<string, string> = { ...seed };
-  return {
+  const repo: IAppSettingsRepository = {
     get: jest.fn(async (key: string) => db[key] ?? null),
     set: jest.fn(async (key: string, value: string) => {
       db[key] = value;
     }),
+    setMany: jest.fn(async (entries: ReadonlyArray<readonly [string, string]>) => {
+      for (const [key, value] of entries) db[key] = value;
+    }),
   };
+  return { db, repo };
+}
+
+function makeRepo(seed: Record<string, string> = {}): IAppSettingsRepository {
+  return makeTrackedRepo(seed).repo;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function rateResponse(rate: number): Response {
+  return {
+    ok: true,
+    json: jest.fn().mockResolvedValue({ rates: { EGP: rate } }),
+  } as unknown as Response;
 }
 
 describe('currencyStore initial state', () => {
@@ -41,6 +74,68 @@ describe('currencyStore.loadRate', () => {
     expect(store.getState().rate).toBe(57.5);
     expect(store.getState().lastFetched).toBe('2026-05-01T10:00:00.000Z');
     expect(store.getState().isManualOverride).toBe(false);
+    expect(store.getState().hasLoaded).toBe(true);
+  });
+
+  it('marks invalid persisted data loaded without retaining stale ownership metadata', async () => {
+    const store = createCurrencyStore(
+      makeRepo({
+        usd_rate: '50abc',
+        usd_rate_fetched_at: '2026-05-01T10:00:00.000Z',
+        usd_rate_manual_override: 'true',
+      }),
+    );
+
+    await store.getState().loadRate();
+
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      hasLoaded: true,
+      lastFetched: null,
+      isManualOverride: false,
+    });
+  });
+
+  it('restores the fallback rate when a later hydration is invalid', async () => {
+    const { db, repo } = makeTrackedRepo({
+      usd_rate: '57.5',
+      usd_rate_fetched_at: '2026-05-01T10:00:00.000Z',
+      usd_rate_manual_override: 'true',
+      usd_rate_updated_at: '2026-05-01T10:00:00.000Z',
+    });
+    const store = createCurrencyStore(repo);
+    await store.getState().loadRate();
+    db.usd_rate = 'invalid';
+
+    await store.getState().loadRate();
+
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      lastFetched: null,
+      isManualOverride: false,
+      rate_updated_at: null,
+      hasLoaded: true,
+    });
+  });
+
+  it('drops corrupt persisted timestamps', async () => {
+    const store = createCurrencyStore(
+      makeRepo({
+        usd_rate: '57.5',
+        usd_rate_fetched_at: 'not-a-date',
+        usd_rate_manual_override: 'false',
+        usd_rate_updated_at: 'also-not-a-date',
+      }),
+    );
+
+    await store.getState().loadRate();
+
+    expect(store.getState()).toMatchObject({
+      rate: 57.5,
+      lastFetched: null,
+      rate_updated_at: null,
+      hasLoaded: true,
+    });
   });
 
   it('sets isManualOverride=true when stored as "true"', async () => {
@@ -57,6 +152,36 @@ describe('currencyStore.loadRate', () => {
     const store = createCurrencyStore(repo);
     await expect(store.getState().loadRate()).rejects.toThrow('db error');
   });
+
+  it('ignores a stale load result after reset', async () => {
+    const pending = deferred<string | null>();
+    const repo = makeRepo();
+    (repo.get as jest.Mock).mockReturnValue(pending.promise);
+    const store = createCurrencyStore(repo);
+
+    const load = store.getState().loadRate();
+    store.getState().reset();
+    pending.resolve('57');
+    await load;
+
+    expect(store.getState()).toMatchObject(INITIAL_EXPECTATION);
+  });
+
+  it('contains a stale load failure after reset', async () => {
+    const pending = deferred<string | null>();
+    const repo = makeRepo();
+    (repo.get as jest.Mock).mockReturnValue(pending.promise);
+    const store = createCurrencyStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const load = store.getState().loadRate();
+    store.getState().reset();
+    pending.reject(new Error('stale load failure'));
+
+    await expect(load).resolves.toBeUndefined();
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+  });
 });
 
 describe('currencyStore.fetchRate', () => {
@@ -65,6 +190,7 @@ describe('currencyStore.fetchRate', () => {
   beforeEach(() => {
     originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.25 } }),
     } as unknown as Response);
   });
@@ -85,24 +211,205 @@ describe('currencyStore.fetchRate', () => {
     const repo = makeRepo();
     const store = createCurrencyStore(repo);
     await store.getState().fetchRate();
-    expect(repo.set).toHaveBeenCalledWith('usd_rate', '55.25');
-    expect(repo.set).toHaveBeenCalledWith('usd_rate_manual_override', 'false');
-    expect(repo.set).toHaveBeenCalledWith(
-      'usd_rate_fetched_at',
-      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    expect(repo.setMany).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        ['usd_rate', '55.25'],
+        ['usd_rate_manual_override', 'false'],
+        ['usd_rate_fetched_at', expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)],
+      ]),
     );
   });
 
   it('throws when EGP is missing from response', async () => {
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: {} }),
     } as unknown as Response);
     const store = createCurrencyStore(makeRepo());
     await expect(store.getState().fetchRate()).rejects.toThrow();
   });
+
+  it('throws on an unsuccessful HTTP response', async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 503 } as Response);
+    const store = createCurrencyStore(makeRepo());
+
+    await expect(store.getState().fetchRate()).rejects.toThrow();
+  });
+
+  it('does not let an older fetch overwrite a newer manual save', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const repo = makeRepo();
+    const store = createCurrencyStore(repo);
+
+    const staleFetch = store.getState().fetchRate();
+    await store.getState().setManualRate(48.5);
+    response.resolve(rateResponse(55.25));
+    await staleFetch;
+
+    expect(store.getState()).toMatchObject({ rate: 48.5, isManualOverride: true });
+    expect(repo.setMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores a rejected fetch after a newer manual save owns the rate', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+
+    const staleFetch = store.getState().fetchRate();
+    await store.getState().setManualRate(48.5);
+    response.reject(new Error('stale network failure'));
+
+    await expect(staleFetch).resolves.toBeUndefined();
+    expect(store.getState()).toMatchObject({ rate: 48.5, isManualOverride: true });
+  });
+
+  it('publishes only the newest concurrent fetch', async () => {
+    const first = deferred<Response>();
+    const second = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const store = createCurrencyStore(makeRepo());
+
+    const older = store.getState().fetchRate();
+    const newer = store.getState().fetchRate();
+    second.resolve(rateResponse(56));
+    await newer;
+    first.resolve(rateResponse(54));
+    await older;
+
+    expect(store.getState().rate).toBe(56);
+  });
+
+  it('keeps an older successful commit authoritative when a newer fetch fails', async () => {
+    const commitStarted = deferred<void>();
+    const releaseCommit = deferred<void>();
+    const { db, repo } = makeTrackedRepo();
+    (repo.setMany as jest.Mock).mockImplementationOnce(
+      async (entries: ReadonlyArray<readonly [string, string]>) => {
+        commitStarted.resolve();
+        await releaseCommit.promise;
+        for (const [key, value] of entries) db[key] = value;
+      },
+    );
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce(rateResponse(55))
+      .mockRejectedValueOnce(new Error('newer request failed'));
+    const store = createCurrencyStore(repo);
+
+    const older = store.getState().fetchRate();
+    await commitStarted.promise;
+    const newer = store.getState().fetchRate();
+    await expect(newer).rejects.toThrow('newer request failed');
+    releaseCommit.resolve();
+    await older;
+
+    expect(store.getState().rate).toBe(55);
+    expect(await repo.get('usd_rate')).toBe('55');
+  });
+
+  it('invalidates pending fetch work when reset', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+
+    const pending = store.getState().fetchRate();
+    store.getState().reset();
+    response.resolve(rateResponse(57));
+    await pending;
+
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      isManualOverride: false,
+      hasLoaded: false,
+    });
+  });
+
+  it('does not publish a persistence commit after reset', async () => {
+    const pendingWrite = deferred<void>();
+    const repo = makeRepo();
+    (repo.setMany as jest.Mock).mockReturnValueOnce(pendingWrite.promise);
+    const store = createCurrencyStore(repo);
+
+    const save = store.getState().setManualRate(48.5);
+    await Promise.resolve();
+    store.getState().reset();
+    pendingWrite.resolve();
+    await save;
+
+    expect(store.getState()).toMatchObject(INITIAL_EXPECTATION);
+  });
+});
+
+describe('currencyStore.refreshRateIfStale', () => {
+  let originalFetch: typeof global.fetch;
+
+  beforeEach(() => {
+    originalFetch = global.fetch;
+    global.fetch = jest.fn().mockResolvedValue(rateResponse(55));
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it('does not fetch before persisted state has loaded', async () => {
+    const store = createCurrencyStore(makeRepo());
+
+    await store.getState().refreshRateIfStale(Date.now());
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('does not fetch a manual override', async () => {
+    const store = createCurrencyStore(
+      makeRepo({ usd_rate: '48', usd_rate_manual_override: 'true' }),
+    );
+    await store.getState().loadRate();
+
+    await store.getState().refreshRateIfStale(Date.now());
+
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
+  it('deduplicates concurrent stale refreshes', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+    await store.getState().loadRate();
+
+    const first = store.getState().refreshRateIfStale(Date.now());
+    const second = store.getState().refreshRateIfStale(Date.now());
+    response.resolve(rateResponse(55));
+    await Promise.all([first, second]);
+
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps reset state when a default-timed refresh finishes later', async () => {
+    const response = deferred<Response>();
+    global.fetch = jest.fn().mockReturnValue(response.promise);
+    const store = createCurrencyStore(makeRepo());
+    await store.getState().loadRate();
+
+    const refresh = store.getState().refreshRateIfStale();
+    store.getState().reset();
+    response.resolve(rateResponse(55));
+    await refresh;
+
+    expect(store.getState()).toMatchObject(INITIAL_EXPECTATION);
+  });
 });
 
 describe('currencyStore.setManualRate', () => {
+  it.each([Number.NaN, 0])('rejects invalid rate %s', async (rate) => {
+    const store = createCurrencyStore(makeRepo());
+
+    await expect(store.getState().setManualRate(rate)).rejects.toThrow(
+      'Manual rate must be a positive number',
+    );
+  });
+
   it('sets rate in state and marks isManualOverride=true', async () => {
     const store = createCurrencyStore(makeRepo());
     await store.getState().setManualRate(48.5);
@@ -114,8 +421,12 @@ describe('currencyStore.setManualRate', () => {
     const repo = makeRepo();
     const store = createCurrencyStore(repo);
     await store.getState().setManualRate(48.5);
-    expect(repo.set).toHaveBeenCalledWith('usd_rate', '48.5');
-    expect(repo.set).toHaveBeenCalledWith('usd_rate_manual_override', 'true');
+    expect(repo.setMany).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        ['usd_rate', '48.5'],
+        ['usd_rate_manual_override', 'true'],
+      ]),
+    );
   });
 
   it('does not update lastFetched', async () => {
@@ -126,11 +437,32 @@ describe('currencyStore.setManualRate', () => {
 
   it('propagates repo errors', async () => {
     const repo = makeRepo();
-    (repo.set as jest.Mock).mockRejectedValue(new Error('set fail'));
+    (repo.setMany as jest.Mock).mockRejectedValue(new Error('set fail'));
     const store = createCurrencyStore(repo);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     await expect(store.getState().setManualRate(48.5)).rejects.toThrow('set fail');
     consoleSpy.mockRestore();
+  });
+
+  it('ignores a rejected manual save after a newer operation owns the rate', async () => {
+    const firstWrite = deferred<void>();
+    const repo = makeRepo();
+    (repo.setMany as jest.Mock)
+      .mockReturnValueOnce(firstWrite.promise)
+      .mockResolvedValue(undefined);
+    const store = createCurrencyStore(repo);
+
+    const staleManualSave = store.getState().setManualRate(48.5);
+    await Promise.resolve();
+    store.getState().reset();
+    firstWrite.reject(new Error('stale persistence failure'));
+
+    await expect(staleManualSave).resolves.toBeUndefined();
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      isManualOverride: false,
+      hasLoaded: false,
+    });
   });
 });
 
@@ -166,6 +498,7 @@ describe('currencyStore — rate_updated_at', () => {
   it('sets rate_updated_at to current ISO timestamp when fetchRate is called', async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.5 } }),
     } as unknown as Response);
     const before = new Date().toISOString();
@@ -193,14 +526,16 @@ describe('currencyStore — rate_updated_at', () => {
   it('persists rate_updated_at to repo on fetchRate', async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
       json: jest.fn().mockResolvedValue({ rates: { EGP: 55.5 } }),
     } as unknown as Response);
     const repo = makeRepo();
     const store = createCurrencyStore(repo);
     await store.getState().fetchRate();
-    expect(repo.set).toHaveBeenCalledWith(
-      'usd_rate_updated_at',
-      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    expect(repo.setMany).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        ['usd_rate_updated_at', expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)],
+      ]),
     );
     global.fetch = originalFetch;
   });
@@ -209,9 +544,10 @@ describe('currencyStore — rate_updated_at', () => {
     const repo = makeRepo();
     const store = createCurrencyStore(repo);
     await store.getState().setManualRate(48.5);
-    expect(repo.set).toHaveBeenCalledWith(
-      'usd_rate_updated_at',
-      expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+    expect(repo.setMany).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        ['usd_rate_updated_at', expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/)],
+      ]),
     );
   });
 
