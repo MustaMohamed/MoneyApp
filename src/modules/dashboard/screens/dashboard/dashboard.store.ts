@@ -20,6 +20,7 @@ interface DashboardStoreActions {
   ensureSnapshot: (input: DashboardLoadInput) => Promise<void>;
   refresh: (input: DashboardLoadInput) => Promise<void>;
   retry: (input: DashboardLoadInput) => Promise<void>;
+  revalidateAfterMutation: (input: DashboardLoadInput) => Promise<void>;
   invalidate: () => void;
   reset: () => void;
 }
@@ -118,6 +119,12 @@ export function createDashboardStore(repository: IDashboardRepository) {
         ensureSnapshot: (input) => startRequest(input, false),
         refresh: (input) => startRequest(input, true),
         retry: (input) => startRequest(input, true),
+        revalidateAfterMutation: (input) => {
+          generation += 1;
+          freshKey = undefined;
+          inFlight = undefined;
+          return startRequest(input, true);
+        },
         invalidate: () => {
           generation += 1;
           freshKey = undefined;

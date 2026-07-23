@@ -9,6 +9,7 @@ import type {
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
 import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
 import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
@@ -53,10 +54,14 @@ jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
 jest.mock('@/modules/currency/store/currency.store', () => ({
   useCurrencyStore: jest.fn(),
 }));
+jest.mock('@/modules/transactions/store/transaction.store', () => ({
+  useTransactionStore: jest.fn(),
+}));
 
 const ensureSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const refreshSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const retrySnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
+const revalidateAfterMutation = jest.fn<Promise<void>, [DashboardLoadInput]>();
 const invalidate = jest.fn();
 const setBreakdownVisible = jest.fn();
 const setSelectedSegment = jest.fn();
@@ -163,6 +168,7 @@ let dashboardStoreState: {
   ensureSnapshot: typeof ensureSnapshot;
   refresh: typeof refreshSnapshot;
   retry: typeof retrySnapshot;
+  revalidateAfterMutation: typeof revalidateAfterMutation;
   invalidate: typeof invalidate;
   reset: jest.MockedFunction<() => void>;
 };
@@ -180,6 +186,10 @@ let currencyState: {
   isManualOverride: boolean;
 };
 
+let transactionStoreState: {
+  mutationVersion: number;
+};
+
 beforeEach(() => {
   jest.useFakeTimers({ now: new Date('2026-07-23T10:00:00.000Z') });
   mockCapturedFocusCallback = undefined;
@@ -189,6 +199,7 @@ beforeEach(() => {
   ensureSnapshot.mockResolvedValue(undefined);
   refreshSnapshot.mockResolvedValue(undefined);
   retrySnapshot.mockResolvedValue(undefined);
+  revalidateAfterMutation.mockResolvedValue(undefined);
   dashboardStoreState = {
     snapshot: populatedSnapshot(),
     status: 'ready',
@@ -197,6 +208,7 @@ beforeEach(() => {
     ensureSnapshot,
     refresh: refreshSnapshot,
     retry: retrySnapshot,
+    revalidateAfterMutation,
     invalidate,
     reset: jest.fn(),
   };
@@ -211,10 +223,14 @@ beforeEach(() => {
     rate: 50,
     isManualOverride: false,
   };
+  transactionStoreState = {
+    mutationVersion: 0,
+  };
 
   attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
   attachMockSelectorStore(useDashboardState, () => dashboardUiState);
   attachMockSelectorStore(useCurrencyStore, () => currencyState);
+  attachMockSelectorStore(useTransactionStore, () => transactionStoreState);
 });
 
 afterEach(() => {
@@ -265,6 +281,41 @@ describe('useDashboard', () => {
       yearMonth: '2026-08',
       now: expect.any(Date),
     });
+  });
+
+  it('supersedes and revalidates after a transaction mutation while Dashboard stays focused', () => {
+    const { rerender } = renderHook(() => useDashboard());
+
+    act(() => {
+      mockCapturedFocusCallback?.();
+    });
+    expect(revalidateAfterMutation).not.toHaveBeenCalled();
+
+    transactionStoreState.mutationVersion += 1;
+    rerender({});
+
+    expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
+    expect(revalidateAfterMutation).toHaveBeenCalledWith({
+      yearMonth: '2026-07',
+      now: new Date('2026-07-23T10:00:00.000Z'),
+    });
+  });
+
+  it('leaves an unfocused mutation for the next focus snapshot request', () => {
+    const { rerender } = renderHook(() => useDashboard());
+
+    transactionStoreState.mutationVersion += 1;
+    rerender({});
+
+    expect(revalidateAfterMutation).not.toHaveBeenCalled();
+
+    act(() => {
+      mockCapturedFocusCallback?.();
+      void mockScheduledTasks[0].callback();
+    });
+
+    expect(ensureSnapshot).toHaveBeenCalledTimes(1);
+    expect(revalidateAfterMutation).not.toHaveBeenCalled();
   });
 
   it('derives every Dashboard section from one matching snapshot', () => {

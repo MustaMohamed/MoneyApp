@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import type { AccountStats } from '@/modules/accounts/database/account_stats';
@@ -8,6 +8,7 @@ import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/b
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
 import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
 import { formatMonthYear } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
@@ -47,6 +48,9 @@ function createDashboardLoadInput(now = new Date()): DashboardLoadInput {
 
 export function useDashboard() {
   const router = useRouter();
+  const transactionMutationVersion = useTransactionStore.useState.mutationVersion();
+  const isFocusedRef = useRef(false);
+  const handledTransactionMutationVersionRef = useRef(transactionMutationVersion);
   const { snapshot, status, requestedKey } = useDashboardStore(
     useShallow((state) => ({
       snapshot: state.snapshot,
@@ -71,17 +75,28 @@ export function useDashboard() {
 
   useFocusEffect(
     useCallback(() => {
+      isFocusedRef.current = true;
+      handledTransactionMutationVersionRef.current = useTransactionStore.getState().mutationVersion;
       setSelectedSegment('overview');
       const task = runAfterInteractions(() =>
         useDashboardStore.getState().ensureSnapshot(createDashboardLoadInput()),
       );
 
       return () => {
+        isFocusedRef.current = false;
         task.cancel();
         useDashboardStore.getState().invalidate();
       };
     }, [setSelectedSegment]),
   );
+
+  useEffect(() => {
+    if (handledTransactionMutationVersionRef.current === transactionMutationVersion) return;
+    handledTransactionMutationVersionRef.current = transactionMutationVersion;
+    if (!isFocusedRef.current) return;
+
+    void useDashboardStore.getState().revalidateAfterMutation(createDashboardLoadInput());
+  }, [transactionMutationVersion]);
 
   const refresh = useCallback(
     () => useDashboardStore.getState().refresh(createDashboardLoadInput()),

@@ -230,6 +230,44 @@ describe('createDashboardStore', () => {
     expect(store.getState().status).toBe('refreshing');
   });
 
+  it('publishes only the post-mutation snapshot when a same-key request finishes late', async () => {
+    const beforeMutation = deferred<DashboardSnapshot>();
+    const afterMutation = deferred<DashboardSnapshot>();
+    const repo = repository(() =>
+      repo.getSnapshot.mock.calls.length === 1 ? beforeMutation.promise : afterMutation.promise,
+    );
+    const store = createDashboardStore(repo);
+    const warmSnapshot = snapshot('2026-07');
+    const staleSnapshot = snapshot('2026-07');
+    const freshSnapshot = snapshot('2026-07');
+    const publishedSnapshots: DashboardSnapshot[] = [];
+    store.setState({
+      snapshot: warmSnapshot,
+      status: 'ready',
+      requestedKey: '2026-07',
+    });
+    const unsubscribe = store.subscribe((state) => {
+      if (state.snapshot !== warmSnapshot) publishedSnapshots.push(state.snapshot!);
+    });
+
+    const staleRequest = store.getState().refresh(input('2026-07'));
+    const freshRequest = store.getState().revalidateAfterMutation(input('2026-07'));
+
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(2);
+    afterMutation.resolve(freshSnapshot);
+    await freshRequest;
+    beforeMutation.resolve(staleSnapshot);
+    await staleRequest;
+
+    expect(store.getState()).toMatchObject({
+      snapshot: freshSnapshot,
+      status: 'ready',
+      requestedKey: '2026-07',
+    });
+    expect(publishedSnapshots).toEqual([freshSnapshot]);
+    unsubscribe();
+  });
+
   it('reset restores idle state and blocks a pre-reset completion', async () => {
     const load = deferred<DashboardSnapshot>();
     const store = createDashboardStore(repository(() => load.promise));
