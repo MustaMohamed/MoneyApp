@@ -1,5 +1,11 @@
-import { AccountType, Currency } from '@/constants/enums';
-import type { Account } from '@/modules/accounts/store/account.store';
+import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
+import type {
+  DashboardBudgetLimitRow,
+  DashboardTransactionFactRow,
+} from '@/modules/dashboard/database/dashboard_snapshot';
 
 export interface NetWorthResult {
   assetsEgp: number;
@@ -110,4 +116,157 @@ export function computeLiabilitiesBreakdown(accounts: Account[], rate: number): 
   }
   rows.sort((a, b) => b.balanceEgp - a.balanceEgp);
   return rows;
+}
+
+export interface DashboardMonthFacts {
+  totals: { incomeEgp: number; expenseEgp: number; netEgp: number };
+  spend: { totalEgp: number; usdNative: number; count: number };
+}
+
+export interface ReducedDashboardTransactionFacts {
+  currentMonth: DashboardMonthFacts;
+  previousMonth: DashboardMonthFacts;
+  currentCategorySpendEgp: Record<string, number>;
+}
+
+export function emptyDashboardMonthFacts(): DashboardMonthFacts {
+  return {
+    totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+    spend: { totalEgp: 0, usdNative: 0, count: 0 },
+  };
+}
+
+function addTransactionFact(target: DashboardMonthFacts, row: DashboardTransactionFactRow): void {
+  target.totals.incomeEgp += row.income_egp;
+  target.totals.expenseEgp += row.expense_egp;
+  target.spend.usdNative += row.usd_native;
+  target.spend.count += row.transaction_count;
+}
+
+function finishTransactionFacts(facts: DashboardMonthFacts): void {
+  facts.totals.netEgp = facts.totals.incomeEgp - facts.totals.expenseEgp;
+  facts.spend.totalEgp = facts.totals.expenseEgp;
+}
+
+export function reduceDashboardTransactionFacts(
+  rows: DashboardTransactionFactRow[],
+  currentYearMonth: string,
+  previousYearMonth: string,
+): ReducedDashboardTransactionFacts {
+  const currentMonth = emptyDashboardMonthFacts();
+  const previousMonth = emptyDashboardMonthFacts();
+  const currentCategorySpendEgp: Record<string, number> = {};
+
+  for (const row of rows) {
+    if (row.year_month === currentYearMonth) {
+      addTransactionFact(currentMonth, row);
+      if (row.category_id !== null) {
+        currentCategorySpendEgp[row.category_id] =
+          (currentCategorySpendEgp[row.category_id] ?? 0) + row.expense_egp;
+      }
+    } else if (row.year_month === previousYearMonth) {
+      addTransactionFact(previousMonth, row);
+    }
+  }
+
+  finishTransactionFacts(currentMonth);
+  finishTransactionFacts(previousMonth);
+
+  return { currentMonth, previousMonth, currentCategorySpendEgp };
+}
+
+export function buildDashboardBudgetSummary(
+  limits: DashboardBudgetLimitRow[],
+  categorySpendEgp: Record<string, number>,
+): BudgetDashboardSummaryVM {
+  let budgeted = 0;
+  let spent = 0;
+  const categories = new Set<string>();
+
+  for (const limit of limits) {
+    budgeted += limit.limit_amount;
+    spent += Math.max(categorySpendEgp[limit.category_id] ?? 0, 0);
+    categories.add(limit.category_id);
+  }
+
+  return {
+    budgeted,
+    spent,
+    left: budgeted - spent,
+    pct: budgeted > 0 ? spent / budgeted : 0,
+    categoryCount: categories.size,
+  };
+}
+
+export function computeDashboardAccountCounts(accounts: Account[]): {
+  assets: number;
+  liabilities: number;
+} {
+  let assets = 0;
+  let liabilities = 0;
+
+  for (const account of accounts) {
+    if (account.is_archived) continue;
+    if (account.type === AccountType.CreditCard) liabilities++;
+    else assets++;
+  }
+
+  return { assets, liabilities };
+}
+
+export function computeDashboardSpendDeltaPct(
+  currentEgp: number,
+  previousEgp: number,
+): number | null {
+  if (previousEgp <= 0) return null;
+  return Math.round(((currentEgp - previousEgp) / previousEgp) * 100);
+}
+
+export function computeDashboardCommitmentSummary(payments: CommitmentPayment[]): {
+  counts: {
+    paid: number;
+    overdue: number;
+    due: number;
+    upcoming: number;
+    skipped: number;
+    total: number;
+  };
+  totalsByCurrency: Map<string, number>;
+} {
+  const counts = { paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 };
+  const totalsByCurrency = new Map<string, number>();
+
+  for (const payment of payments) {
+    switch (payment.status) {
+      case CommitmentPaymentStatus.Paid:
+        counts.paid++;
+        break;
+      case CommitmentPaymentStatus.Overdue:
+        counts.overdue++;
+        break;
+      case CommitmentPaymentStatus.Due:
+        counts.due++;
+        break;
+      case CommitmentPaymentStatus.Upcoming:
+        counts.upcoming++;
+        break;
+      case CommitmentPaymentStatus.Skipped:
+        counts.skipped++;
+        continue;
+    }
+
+    counts.total++;
+    const amount =
+      payment.status === CommitmentPaymentStatus.Paid
+        ? (payment.amount_paid ?? payment.amount_due)
+        : payment.amount_due;
+    if (amount !== null) {
+      totalsByCurrency.set(
+        payment.currency,
+        (totalsByCurrency.get(payment.currency) ?? 0) + amount,
+      );
+    }
+  }
+
+  return { counts, totalsByCurrency };
 }

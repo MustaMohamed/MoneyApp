@@ -15,6 +15,7 @@ import { Colors, Size, Spacing } from '@/constants/theme';
 import { AccountCarousel } from './components/account_carousel';
 import { BudgetCard } from './components/budget_card';
 import { CommitmentsCard } from './components/commitments_card';
+import { DashboardLoadError } from './components/dashboard_load_error';
 import { HeroCard } from './components/hero_card';
 import { NetWorthBreakdownSheet } from './components/net_worth_breakdown_sheet';
 import { SectionHeader } from './components/section_header';
@@ -47,6 +48,7 @@ export default function DashboardScreen() {
     setBreakdownVisible,
     setSelectedSegment,
     refresh,
+    retry,
     goToAccount,
     goToAddAccount,
     goToSettings,
@@ -60,13 +62,11 @@ export default function DashboardScreen() {
     startEntrance();
   }, [startEntrance]);
 
-  const hasAccounts = state.accounts.length > 0;
-  const isRefreshing = state.refreshing;
-  const accountTotalsLoading = !state.accountsLoaded || isRefreshing;
-  const showAccountsEmptyState = state.accountsLoaded && !hasAccounts;
-  const visibleTypes = TYPE_ORDER.filter((t) => state.groupedAccounts[t]?.length);
+  const presentation = state.presentation;
+  const visibleTypes = TYPE_ORDER.filter((type) => state.groupedAccounts[type]?.length);
   const segment = state.selectedSegment;
   const totalAccountsCount = state.accountCounts.assets + state.accountCounts.liabilities;
+  const openBreakdown = useCallback(() => setBreakdownVisible(true), [setBreakdownVisible]);
 
   const onTabChange = useCallback(
     // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- Tabs.onValueChange is string; tab values are always 'overview'|'accounts' per JSX
@@ -124,7 +124,14 @@ export default function DashboardScreen() {
       </Surface>
       <Separator />
 
-      {showAccountsEmptyState ? (
+      {presentation.showInitialError ? (
+        <DashboardLoadError
+          variant="initial"
+          onRetry={() => {
+            void retry();
+          }}
+        />
+      ) : presentation.showAccountsEmptyState ? (
         <EmptyState variant="accounts" onAction={goToAddAccount} />
       ) : (
         <>
@@ -144,7 +151,7 @@ export default function DashboardScreen() {
             <ScreenScroll
               refreshControl={
                 <RefreshControl
-                  refreshing={state.refreshing}
+                  refreshing={presentation.isRefreshing}
                   onRefresh={() => {
                     void refresh();
                   }}
@@ -163,8 +170,8 @@ export default function DashboardScreen() {
                         isManualOverride={state.isManualOverride}
                         assetsCount={state.accountCounts.assets}
                         liabilitiesCount={state.accountCounts.liabilities}
-                        isLoading={accountTotalsLoading}
-                        onPress={() => setBreakdownVisible(true)}
+                        isLoading={presentation.cardLoading}
+                        onPress={presentation.hasSnapshot ? openBreakdown : undefined}
                       />
                     </Animated.View>
 
@@ -180,8 +187,8 @@ export default function DashboardScreen() {
                         monthSpendDeltaPct={state.monthSpend.deltaPct}
                         monthSpendCount={state.monthSpend.currentCount}
                         spendYearMonth={state.monthSpend.yearMonth}
-                        netWorthLoading={accountTotalsLoading}
-                        monthSpendLoading={state.monthSpend.loading || isRefreshing}
+                        netWorthLoading={presentation.cardLoading}
+                        monthSpendLoading={state.monthSpend.loading}
                       />
                     </Animated.View>
 
@@ -190,14 +197,14 @@ export default function DashboardScreen() {
                       previous={state.transactions.previous}
                       previousLabel={state.transactions.previousLabel}
                       yearMonth={state.transactions.yearMonth}
-                      isLoading={state.transactions.loading || isRefreshing}
+                      isLoading={state.transactions.loading}
                       onPress={goToTransactions}
                     />
 
                     <BudgetCard
                       summary={state.budget.summary}
                       yearMonth={state.budget.yearMonth}
-                      isLoading={state.budget.loading || isRefreshing}
+                      isLoading={state.budget.loading}
                       onPress={goToBudget}
                     />
 
@@ -205,7 +212,7 @@ export default function DashboardScreen() {
                       counts={state.commitments.counts}
                       totalsByCurrency={state.commitments.totalsByCurrency}
                       yearMonth={state.commitments.yearMonth}
-                      isLoading={state.commitments.loading || isRefreshing}
+                      isLoading={state.commitments.loading}
                       onPress={goToCommitments}
                     />
 
@@ -241,6 +248,15 @@ export default function DashboardScreen() {
           </GestureDetector>
         </>
       )}
+
+      {presentation.showRefreshError ? (
+        <DashboardLoadError
+          variant="refresh"
+          onRetry={() => {
+            void retry();
+          }}
+        />
+      ) : null}
 
       <NetWorthBreakdownSheet
         isOpen={state.isBreakdownVisible}

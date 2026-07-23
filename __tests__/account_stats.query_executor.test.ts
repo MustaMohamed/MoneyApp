@@ -10,6 +10,96 @@ let realDb: ReturnType<typeof Database>;
 const NOW = '2026-05-01T12:00:00.000Z';
 const DATE = '2026-05-01';
 const TIME = '12:00:00';
+const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+const CAIRO_DATE_FORMATTER = new Intl.DateTimeFormat('en-US-u-ca-gregory-nu-latn', {
+  timeZone: 'Africa/Cairo',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  weekday: 'short',
+});
+const WEEKDAY_INDEX: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
+
+interface CairoDateParts {
+  year: number;
+  monthIndex: number;
+  date: number;
+  day: number;
+}
+
+function getCairoDateParts(date: Date): CairoDateParts {
+  const parts = new Map<string, string>();
+  for (const part of CAIRO_DATE_FORMATTER.formatToParts(date)) {
+    parts.set(part.type, part.value);
+  }
+
+  const weekday = parts.get('weekday');
+  const day = weekday === undefined ? undefined : WEEKDAY_INDEX[weekday];
+  if (day === undefined) throw new Error(`Unexpected Cairo weekday: ${String(weekday)}`);
+
+  return {
+    year: Number(parts.get('year')),
+    monthIndex: Number(parts.get('month')) - 1,
+    date: Number(parts.get('day')),
+    day,
+  };
+}
+
+function installCairoDateHarness(): () => void {
+  const nativeSetTime = Date.prototype.setTime;
+  const getFullYear = jest
+    .spyOn(Date.prototype, 'getFullYear')
+    .mockImplementation(function getCairoFullYear(this: Date) {
+      return getCairoDateParts(this).year;
+    });
+  const getMonth = jest
+    .spyOn(Date.prototype, 'getMonth')
+    .mockImplementation(function getCairoMonth(this: Date) {
+      return getCairoDateParts(this).monthIndex;
+    });
+  const getDate = jest
+    .spyOn(Date.prototype, 'getDate')
+    .mockImplementation(function getCairoDate(this: Date) {
+      return getCairoDateParts(this).date;
+    });
+  const getDay = jest
+    .spyOn(Date.prototype, 'getDay')
+    .mockImplementation(function getCairoDay(this: Date) {
+      return getCairoDateParts(this).day;
+    });
+  const setDate = jest.spyOn(Date.prototype, 'setDate').mockImplementation(function setCairoDate(
+    this: Date,
+    date: number,
+  ) {
+    const currentDate = getCairoDateParts(this).date;
+    return nativeSetTime.call(this, this.getTime() + (date - currentDate) * MILLISECONDS_PER_DAY);
+  });
+
+  return () => {
+    setDate.mockRestore();
+    getDay.mockRestore();
+    getDate.mockRestore();
+    getMonth.mockRestore();
+    getFullYear.mockRestore();
+  };
+}
+
+async function withCairoDateHarness(run: () => Promise<void>): Promise<void> {
+  const restore = installCairoDateHarness();
+  try {
+    await run();
+  } finally {
+    restore();
+  }
+}
 
 function seedAccounts() {
   realDb
@@ -115,6 +205,93 @@ describe('getAccountsStats — Sunday week-start branch', () => {
     // Should return a zero-stats entry for acc_bank (no transactions in that week)
     expect(stats['acc_bank']).toBeDefined();
     expect(stats['acc_bank'].month_in).toBe(0);
+  });
+});
+
+describe('getAccountsStats — captured clock', () => {
+  it('uses the supplied month and week boundaries instead of the process clock', async () => {
+    jest.setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
+    insertTx({
+      id: 'may-income',
+      type: 'income',
+      amount: 500,
+      egp_amount: 500,
+      transaction_date: '2026-05-04',
+    });
+    insertTx({
+      id: 'may-expense',
+      amount: 200,
+      egp_amount: 200,
+      transaction_date: '2026-05-10',
+    });
+    insertTx({
+      id: 'july-income',
+      type: 'income',
+      amount: 900,
+      egp_amount: 900,
+      transaction_date: '2026-07-05',
+    });
+    insertTx({
+      id: 'july-expense',
+      amount: 800,
+      egp_amount: 800,
+      transaction_date: '2026-07-06',
+    });
+
+    const stats = await getAccountsStats(
+      mockDb,
+      ['acc_bank'],
+      new Date('2026-05-10T12:00:00.000Z'),
+    );
+
+    expect(stats.acc_bank).toEqual({
+      month_in: 500,
+      month_out: 200,
+      week_in: 500,
+      week_out: 200,
+    });
+  });
+});
+
+describe('getAccountsStats — Cairo local-calendar boundaries', () => {
+  it('includes the Cairo current day just after local midnight', async () => {
+    await withCairoDateHarness(async () => {
+      const cairoJustAfterMidnight = new Date('2026-05-04T21:30:00.000Z');
+      insertTx({
+        id: 'cairo-current-day-expense',
+        amount: 125,
+        egp_amount: 125,
+        transaction_date: '2026-05-05',
+      });
+
+      const stats = await getAccountsStats(mockDb, ['acc_bank'], cairoJustAfterMidnight);
+
+      expect(stats.acc_bank.month_out).toBe(125);
+    });
+  });
+
+  it('starts the week on Cairo Monday during early local Monday', async () => {
+    await withCairoDateHarness(async () => {
+      const cairoEarlyMonday = new Date('2026-05-03T21:30:00.000Z');
+      insertTx({
+        id: 'cairo-sunday-expense',
+        amount: 70,
+        egp_amount: 70,
+        transaction_date: '2026-05-03',
+      });
+      insertTx({
+        id: 'cairo-monday-income',
+        type: 'income',
+        amount: 90,
+        egp_amount: 90,
+        transaction_date: '2026-05-04',
+      });
+
+      const stats = await getAccountsStats(mockDb, ['acc_bank'], cairoEarlyMonday);
+
+      expect(stats.acc_bank.week_in).toBe(90);
+      expect(stats.acc_bank.week_out).toBe(0);
+    });
   });
 });
 

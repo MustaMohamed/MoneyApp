@@ -1,51 +1,40 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
-import { AccountType, CommitmentPaymentStatus } from '@/constants/enums';
-import { getDb } from '@/database/client';
-import { getAccountsStats } from '@/modules/accounts/database/account_stats';
-import { useAccountStore } from '@/modules/accounts/store/account.store';
-import { budgetRepository } from '@/modules/budget/repositories/budget.repository';
-import {
-  type BudgetDashboardSummaryVM,
-  computeBudgetSummaryForMonth,
-} from '@/modules/budget/screens/budget/budget.helpers';
-import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
+import type { AccountStats } from '@/modules/accounts/database/account_stats';
+import type { Account } from '@/modules/accounts/entities/account.entity';
+import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import { useCurrencyStore } from '@/modules/currency/store/currency.store';
-import {
-  getMonthExpenseStats,
-  getPeriodTotals,
-} from '@/modules/transactions/database/transactions';
-import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
+import type { DashboardLoadInput } from '@/modules/dashboard/repositories/dashboard.repository';
+import { useTransactionStore } from '@/modules/transactions/store/transaction.store';
+import { formatMonthYear } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
+import { currentYearMonth, shiftYearMonth } from '@/utils/year_month';
 
 import {
+  computeDashboardAccountCounts,
+  computeDashboardCommitmentSummary,
+  computeDashboardSpendDeltaPct,
   computeLiabilitiesBreakdown,
   computeLiquidityBreakdown,
   computeNetWorth,
   groupAccountsByType,
+  type DashboardMonthFacts,
 } from './dashboard.helpers';
+import { selectDashboardPresentation } from './dashboard.presentation';
 import { useDashboardState } from './dashboard.state';
 import { useDashboardStore } from './dashboard.store';
+import type { DashboardSegment } from './types';
 
-function getCurrentYearMonth(): string {
-  return toLocalDateString(new Date()).slice(0, 7);
-}
-
-function resolveMonthRange(yearMonth: string): { from: string; to: string } {
-  const [year, month] = yearMonth.split('-').map(Number);
-  const lastDay = new Date(year, month, 0);
-  return {
-    from: `${yearMonth}-01`,
-    to: `${lastDay.getFullYear()}-${String(lastDay.getMonth() + 1).padStart(2, '0')}-${String(
-      lastDay.getDate(),
-    ).padStart(2, '0')}`,
-  };
-}
-
-const EMPTY_MONTH_SPEND = { totalEgp: 0, usdNative: 0, count: 0 };
-const EMPTY_TRANSACTION_TOTALS = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+const EMPTY_ACCOUNTS: Account[] = [];
+const EMPTY_STATS_MAP: Record<string, AccountStats> = {};
+const EMPTY_COMMITMENT_PAYMENTS: CommitmentPayment[] = [];
+const EMPTY_MONTH_FACTS: DashboardMonthFacts = {
+  totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+  spend: { totalEgp: 0, usdNative: 0, count: 0 },
+};
 const EMPTY_BUDGET_SUMMARY: BudgetDashboardSummaryVM = {
   budgeted: 0,
   spent: 0,
@@ -54,246 +43,119 @@ const EMPTY_BUDGET_SUMMARY: BudgetDashboardSummaryVM = {
   categoryCount: 0,
 };
 
+function createDashboardLoadInput(now = new Date()): DashboardLoadInput {
+  return { yearMonth: currentYearMonth(now), now };
+}
+
 export function useDashboard() {
   const router = useRouter();
-
-  const { accounts, accountsLoaded } = useAccountStore(
-    useShallow((s) => ({ accounts: s.accounts, accountsLoaded: s.hasLoaded })),
+  const transactionMutationVersion = useTransactionStore.useState.mutationVersion();
+  const isFocusedRef = useRef(false);
+  const handledTransactionMutationVersionRef = useRef(transactionMutationVersion);
+  const { snapshot, status, requestedKey } = useDashboardStore(
+    useShallow((state) => ({
+      snapshot: state.snapshot,
+      status: state.status,
+      requestedKey: state.requestedKey,
+    })),
   );
-  const loadAccounts = useAccountStore.getState().loadAccounts;
   const { rate, isManualOverride } = useCurrencyStore(
-    useShallow((s) => ({
-      rate: s.rate,
-      isManualOverride: s.isManualOverride,
+    useShallow((state) => ({
+      rate: state.rate,
+      isManualOverride: state.isManualOverride,
     })),
   );
-  const currentYearMonth = useMemo(() => getCurrentYearMonth(), []);
-  const { isBreakdownVisible, refreshing, selectedSegment } = useDashboardState(
-    useShallow((s) => ({
-      isBreakdownVisible: s.isBreakdownVisible,
-      refreshing: s.refreshing,
-      selectedSegment: s.selectedSegment,
+  const { isBreakdownVisible, selectedSegment } = useDashboardState(
+    useShallow((state) => ({
+      isBreakdownVisible: state.isBreakdownVisible,
+      selectedSegment: state.selectedSegment,
     })),
   );
-  const setBreakdownVisible = useDashboardState.getState().setBreakdownVisible;
-  const setRefreshing = useDashboardState.getState().setRefreshing;
-  const setSelectedSegment = useDashboardState.getState().setSelectedSegment;
-  const {
-    statsMap,
-    currentMonthCommitmentPayments,
-    currentMonthSpend,
-    previousMonthSpend,
-    currentTransactionTotals,
-    previousTransactionTotals,
-    currentBudgetSummary,
-    commitmentPaymentsLoaded,
-    monthSpendLoaded,
-    transactionTotalsLoaded,
-    budgetSummaryLoaded,
-  } = useDashboardStore(
-    useShallow((s) => ({
-      statsMap: s.statsMap,
-      currentMonthCommitmentPayments: s.currentMonthCommitmentPayments,
-      currentMonthSpend: s.currentMonthSpend,
-      previousMonthSpend: s.previousMonthSpend,
-      currentTransactionTotals: s.currentTransactionTotals,
-      previousTransactionTotals: s.previousTransactionTotals,
-      currentBudgetSummary: s.currentBudgetSummary,
-      commitmentPaymentsLoaded: s.commitmentPaymentsLoaded,
-      monthSpendLoaded: s.monthSpendLoaded,
-      transactionTotalsLoaded: s.transactionTotalsLoaded,
-      budgetSummaryLoaded: s.budgetSummaryLoaded,
-    })),
-  );
-  const setStatsMap = useDashboardStore.getState().setStatsMap;
-  const setCurrentMonthCommitmentPayments =
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments;
-  const setMonthSpendStats = useDashboardStore.getState().setMonthSpendStats;
-  const setTransactionTotals = useDashboardStore.getState().setTransactionTotals;
-  const setBudgetSummary = useDashboardStore.getState().setBudgetSummary;
-
-  const previousYearMonth = useMemo(() => {
-    const [y, m] = currentYearMonth.split('-').map(Number);
-    const prevM = m === 1 ? 12 : m - 1;
-    const prevY = m === 1 ? y - 1 : y;
-    return `${prevY}-${String(prevM).padStart(2, '0')}`;
-  }, [currentYearMonth]);
-
-  const loadMonthSpend = useCallback(async () => {
-    try {
-      const db = await getDb();
-      const [current, previous] = await Promise.all([
-        getMonthExpenseStats(db, currentYearMonth),
-        getMonthExpenseStats(db, previousYearMonth),
-      ]);
-      setMonthSpendStats(current, previous);
-    } catch (err) {
-      console.error('[dashboard] loadMonthSpend failed:', err);
-      setMonthSpendStats(EMPTY_MONTH_SPEND, EMPTY_MONTH_SPEND);
-    }
-  }, [currentYearMonth, previousYearMonth, setMonthSpendStats]);
-
-  const loadTransactionTotals = useCallback(async () => {
-    try {
-      const db = await getDb();
-      const [current, previous] = await Promise.all([
-        getPeriodTotals(db, resolveMonthRange(currentYearMonth)),
-        getPeriodTotals(db, resolveMonthRange(previousYearMonth)),
-      ]);
-      setTransactionTotals(current, previous);
-    } catch (err) {
-      console.error('[dashboard] loadTransactionTotals failed:', err);
-      setTransactionTotals(EMPTY_TRANSACTION_TOTALS, EMPTY_TRANSACTION_TOTALS);
-    }
-  }, [currentYearMonth, previousYearMonth, setTransactionTotals]);
-
-  const loadBudgetSummary = useCallback(async () => {
-    try {
-      const [rows, spendByMonth] = await Promise.all([
-        budgetRepository.getRows(),
-        budgetRepository.getSpendByMonth([currentYearMonth]),
-      ]);
-      setBudgetSummary(computeBudgetSummaryForMonth(rows, spendByMonth, currentYearMonth));
-    } catch (err) {
-      console.error('[dashboard] loadBudgetSummary failed:', err);
-      setBudgetSummary(EMPTY_BUDGET_SUMMARY);
-    }
-  }, [currentYearMonth, setBudgetSummary]);
-
-  const loadCurrentMonthCommitmentPayments = useCallback(async () => {
-    try {
-      const payments = await commitmentRepository.getPaymentsForMonth(currentYearMonth);
-      setCurrentMonthCommitmentPayments(payments);
-    } catch (err) {
-      console.error('[dashboard] loadCurrentMonthCommitmentPayments failed:', err);
-      setCurrentMonthCommitmentPayments([]);
-    }
-  }, [currentYearMonth, setCurrentMonthCommitmentPayments]);
+  const setBreakdownVisibleState = useDashboardState.getState().setBreakdownVisible;
+  const setSelectedSegmentState = useDashboardState.getState().setSelectedSegment;
 
   useFocusEffect(
     useCallback(() => {
-      setSelectedSegment('overview');
-      const task = runAfterInteractions(() => {
-        void loadCurrentMonthCommitmentPayments();
-        void loadMonthSpend();
-        void loadTransactionTotals();
-        void loadBudgetSummary();
-      });
-      return () => task.cancel();
-    }, [
-      loadCurrentMonthCommitmentPayments,
-      loadBudgetSummary,
-      loadMonthSpend,
-      loadTransactionTotals,
-      setSelectedSegment,
-    ]),
-  );
+      isFocusedRef.current = true;
+      handledTransactionMutationVersionRef.current = useTransactionStore.getState().mutationVersion;
+      setSelectedSegmentState('overview');
+      const task = runAfterInteractions(() =>
+        useDashboardStore.getState().ensureSnapshot(createDashboardLoadInput()),
+      );
 
-  const loadStats = useCallback(
-    async (ids: string[]) => {
-      if (ids.length === 0) {
-        setStatsMap({});
-        return;
-      }
-      try {
-        const db = await getDb();
-        const result = await getAccountsStats(db, ids);
-        setStatsMap(result);
-      } catch (err) {
-        console.error('[dashboard] loadStats failed:', err);
-      }
-    },
-    [setStatsMap],
+      return () => {
+        isFocusedRef.current = false;
+        task.cancel();
+        useDashboardStore.getState().invalidate();
+      };
+    }, [setSelectedSegmentState]),
   );
 
   useEffect(() => {
-    void loadStats(accounts.map((a) => a.id));
-  }, [accounts, loadStats]);
+    if (handledTransactionMutationVersionRef.current === transactionMutationVersion) return;
+    handledTransactionMutationVersionRef.current = transactionMutationVersion;
+    if (!isFocusedRef.current) return;
 
-  const refresh = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      await Promise.all([
-        loadAccounts(),
-        loadCurrentMonthCommitmentPayments(),
-        loadBudgetSummary(),
-        loadMonthSpend(),
-        loadTransactionTotals(),
-      ]);
-    } finally {
-      setRefreshing(false);
+    void useDashboardStore.getState().revalidateAfterMutation(createDashboardLoadInput());
+  }, [transactionMutationVersion]);
+
+  const refresh = useCallback(
+    () => useDashboardStore.getState().refresh(createDashboardLoadInput()),
+    [],
+  );
+  const retry = useCallback(
+    () => useDashboardStore.getState().retry(createDashboardLoadInput()),
+    [],
+  );
+
+  const presentation = useMemo(
+    () => selectDashboardPresentation({ status, snapshot, requestedKey }),
+    [requestedKey, snapshot, status],
+  );
+  const setBreakdownVisible = useCallback(
+    (visible: boolean) => {
+      if (visible && !presentation.hasSnapshot) return;
+      setBreakdownVisibleState(visible);
+    },
+    [presentation.hasSnapshot, setBreakdownVisibleState],
+  );
+  const setSelectedSegment = useCallback(
+    (segment: DashboardSegment) => {
+      if (!presentation.hasSnapshot) return;
+      setSelectedSegmentState(segment);
+    },
+    [presentation.hasSnapshot, setSelectedSegmentState],
+  );
+
+  useEffect(() => {
+    if (!presentation.hasSnapshot && isBreakdownVisible) {
+      setBreakdownVisibleState(false);
     }
-  }, [
-    loadAccounts,
-    loadCurrentMonthCommitmentPayments,
-    loadBudgetSummary,
-    loadMonthSpend,
-    loadTransactionTotals,
-    setRefreshing,
-  ]);
+  }, [isBreakdownVisible, presentation.hasSnapshot, setBreakdownVisibleState]);
+
+  const matchingSnapshot = snapshot?.key === requestedKey ? snapshot : undefined;
+  const accounts = matchingSnapshot?.accounts ?? EMPTY_ACCOUNTS;
+  const statsMap = matchingSnapshot?.statsMap ?? EMPTY_STATS_MAP;
+  const currentMonth = matchingSnapshot?.currentMonth ?? EMPTY_MONTH_FACTS;
+  const previousMonth = matchingSnapshot?.previousMonth ?? EMPTY_MONTH_FACTS;
+  const budgetSummary = matchingSnapshot?.budgetSummary ?? EMPTY_BUDGET_SUMMARY;
+  const commitmentPayments = matchingSnapshot?.commitmentPayments ?? EMPTY_COMMITMENT_PAYMENTS;
+  const yearMonth = matchingSnapshot?.yearMonth ?? currentYearMonth();
+  const previousYearMonth = matchingSnapshot?.previousYearMonth ?? shiftYearMonth(yearMonth, -1);
 
   const netWorth = useMemo(() => computeNetWorth(accounts, rate), [accounts, rate]);
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
   const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);
-
-  const spendDeltaPct = useMemo(() => {
-    const prev = previousMonthSpend.totalEgp;
-    const curr = currentMonthSpend.totalEgp;
-    if (prev <= 0) return null;
-    return Math.round(((curr - prev) / prev) * 100);
-  }, [currentMonthSpend, previousMonthSpend]);
-
-  const accountCounts = useMemo(() => {
-    let assets = 0;
-    let liabilitiesCount = 0;
-    for (const a of accounts) {
-      if (a.is_archived) continue;
-      if (a.type === AccountType.CreditCard) liabilitiesCount++;
-      else assets++;
-    }
-    return { assets, liabilities: liabilitiesCount };
-  }, [accounts]);
-
-  const commitmentCounts = useMemo(() => {
-    let paid = 0;
-    let overdue = 0;
-    let due = 0;
-    let upcoming = 0;
-    let skipped = 0;
-    for (const p of currentMonthCommitmentPayments) {
-      switch (p.status) {
-        case CommitmentPaymentStatus.Paid:
-          paid++;
-          break;
-        case CommitmentPaymentStatus.Overdue:
-          overdue++;
-          break;
-        case CommitmentPaymentStatus.Due:
-          due++;
-          break;
-        case CommitmentPaymentStatus.Upcoming:
-          upcoming++;
-          break;
-        case CommitmentPaymentStatus.Skipped:
-          skipped++;
-          break;
-      }
-    }
-    return { paid, overdue, due, upcoming, skipped, total: paid + overdue + due + upcoming };
-  }, [currentMonthCommitmentPayments]);
-
-  const commitmentTotalsByCurrency = useMemo(() => {
-    const totals = new Map<string, number>();
-    for (const p of currentMonthCommitmentPayments) {
-      if (p.status === CommitmentPaymentStatus.Skipped) continue;
-      const isPaid = p.status === CommitmentPaymentStatus.Paid;
-      const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
-      if (value == null) continue;
-      totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
-    }
-    return totals;
-  }, [currentMonthCommitmentPayments]);
+  const accountCounts = useMemo(() => computeDashboardAccountCounts(accounts), [accounts]);
+  const commitments = useMemo(
+    () => computeDashboardCommitmentSummary(commitmentPayments),
+    [commitmentPayments],
+  );
+  const spendDeltaPct = useMemo(
+    () => computeDashboardSpendDeltaPct(currentMonth.spend.totalEgp, previousMonth.spend.totalEgp),
+    [currentMonth, previousMonth],
+  );
 
   const goToAccount = useCallback((id: string) => router.push(`/accounts/${id}`), [router]);
   const goToAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
@@ -304,8 +166,8 @@ export function useDashboard() {
 
   return {
     state: {
+      presentation,
       accounts,
-      accountsLoaded,
       rate,
       isManualOverride,
       netWorth,
@@ -313,41 +175,40 @@ export function useDashboard() {
       liabilities,
       groupedAccounts,
       statsMap,
-      isBreakdownVisible,
-      refreshing,
-      selectedSegment,
+      isBreakdownVisible: presentation.hasSnapshot && isBreakdownVisible,
+      selectedSegment: presentation.hasSnapshot ? selectedSegment : 'overview',
       monthSpend: {
-        currentEgp: currentMonthSpend.totalEgp,
-        currentUsdNative: currentMonthSpend.usdNative,
-        currentCount: currentMonthSpend.count,
-        previousEgp: previousMonthSpend.totalEgp,
+        currentEgp: currentMonth.spend.totalEgp,
+        currentUsdNative: currentMonth.spend.usdNative,
+        currentCount: currentMonth.spend.count,
+        previousEgp: previousMonth.spend.totalEgp,
         deltaPct: spendDeltaPct,
-        yearMonth: currentYearMonth,
-        loading: !monthSpendLoaded,
+        yearMonth,
+        loading: presentation.cardLoading,
       },
       accountCounts,
       commitments: {
-        counts: commitmentCounts,
-        totalsByCurrency: commitmentTotalsByCurrency,
-        yearMonth: currentYearMonth,
-        loading: !commitmentPaymentsLoaded,
+        ...commitments,
+        yearMonth,
+        loading: presentation.cardLoading,
       },
       transactions: {
-        current: currentTransactionTotals,
-        previous: previousTransactionTotals,
+        current: currentMonth.totals,
+        previous: matchingSnapshot ? previousMonth.totals : null,
         previousLabel: formatMonthYear(previousYearMonth),
-        yearMonth: currentYearMonth,
-        loading: !transactionTotalsLoaded,
+        yearMonth,
+        loading: presentation.cardLoading,
       },
       budget: {
-        summary: currentBudgetSummary,
-        yearMonth: currentYearMonth,
-        loading: !budgetSummaryLoaded,
+        summary: budgetSummary,
+        yearMonth,
+        loading: presentation.cardLoading,
       },
     },
     setBreakdownVisible,
     setSelectedSegment,
     refresh,
+    retry,
     goToAccount,
     goToAddAccount,
     goToSettings,

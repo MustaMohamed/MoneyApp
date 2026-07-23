@@ -1,5 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { toLocalDateString } from '@/utils/format_date';
+
 export interface AccountStats {
   month_in: number;
   month_out: number;
@@ -7,28 +9,25 @@ export interface AccountStats {
   week_out: number;
 }
 
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function computeDates(): { monthStart: string; weekStart: string } {
-  const today = new Date();
-  const monthStart = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`;
-  const day = today.getDay(); // 0=Sun
+function computeDates(now: Date): { monthStart: string; weekStart: string } {
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const day = now.getDay(); // 0=Sun
   const diffToMonday = day === 0 ? -6 : 1 - day;
-  const monday = new Date(today);
-  monday.setDate(today.getDate() + diffToMonday);
-  return { monthStart, weekStart: toISODate(monday) };
+  const monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday);
+  return { monthStart, weekStart: toLocalDateString(monday) };
 }
 
 export async function getAccountsStats(
   db: SQLiteDatabase,
   accountIds: string[],
+  now: Date = new Date(),
 ): Promise<Record<string, AccountStats>> {
   if (accountIds.length === 0) return {};
 
-  const { monthStart, weekStart } = computeDates();
+  const { monthStart, weekStart } = computeDates(now);
   const earliest = monthStart <= weekStart ? monthStart : weekStart;
+  const throughDate = toLocalDateString(now);
   const placeholders = accountIds.map(() => '?').join(',');
 
   const rows = await db.getAllAsync<{
@@ -54,6 +53,7 @@ export async function getAccountsStats(
        FROM transactions
        WHERE account_id IN (${placeholders})
          AND transaction_date >= ?
+         AND transaction_date <= ?
        GROUP BY account_id
 
        UNION ALL
@@ -69,6 +69,7 @@ export async function getAccountsStats(
        WHERE to_account_id IN (${placeholders})
          AND type IN ('transfer', 'cc_payment')
          AND transaction_date >= ?
+         AND transaction_date <= ?
        GROUP BY to_account_id
      )
      GROUP BY account_id`,
@@ -80,11 +81,13 @@ export async function getAccountsStats(
       weekStart,
       ...accountIds,
       earliest,
+      throughDate,
       /* Leg 2 params */
       monthStart,
       weekStart,
       ...accountIds,
       earliest,
+      throughDate,
     ],
   );
 

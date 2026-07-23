@@ -135,6 +135,9 @@ export const Strings = {
   // §5 Dashboard v2 — segments + breakdown sheet
   dashboardSegmentOverview: 'Overview',
   dashboardSegmentAccounts: 'Accounts',
+  dashboardLoadError: 'Could not load dashboard.',
+  dashboardRefreshError: 'Could not refresh dashboard.',
+  dashboardLoadRetry: 'Retry',
   dashboardTotalBalance: 'Total balance',
   dashboardAccountsLabel: 'Accounts',
   dashboardBreakdownTitle: 'Net Worth',

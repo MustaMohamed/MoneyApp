@@ -1,9 +1,15 @@
-import { AccountType, Currency } from '@/constants/enums';
+import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 import {
+  buildDashboardBudgetSummary,
+  computeDashboardAccountCounts,
+  computeDashboardCommitmentSummary,
+  computeDashboardSpendDeltaPct,
   computeLiabilitiesBreakdown,
   computeLiquidityBreakdown,
   computeNetWorth,
   groupAccountsByType,
+  reduceDashboardTransactionFacts,
 } from '@/modules/dashboard/screens/dashboard/dashboard.helpers';
 import type { Account } from '@/store/account.store';
 
@@ -24,6 +30,25 @@ const makeAccount = (overrides: Partial<Account> = {}): Account => ({
   balance_review_required: 0,
   is_archived: 0,
   sort_order: 0,
+  created_at: '2026-01-01T00:00:00.000Z',
+  updated_at: '2026-01-01T00:00:00.000Z',
+  ...overrides,
+});
+
+const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPayment => ({
+  id: 'payment-1',
+  commitment_id: 'commitment-1',
+  due_date: '2026-07-10',
+  paid_date: null,
+  skipped_date: null,
+  amount_due: 100,
+  amount_paid: null,
+  currency: Currency.EGP,
+  exchange_rate_snapshot: null,
+  account_id: null,
+  transaction_id: null,
+  status: CommitmentPaymentStatus.Upcoming,
+  notes: null,
   created_at: '2026-01-01T00:00:00.000Z',
   updated_at: '2026-01-01T00:00:00.000Z',
   ...overrides,
@@ -280,5 +305,171 @@ describe('computeLiabilitiesBreakdown', () => {
     ];
     const [row] = computeLiabilitiesBreakdown(accounts, 48.85);
     expect(row.balanceEgp).toBe(1000);
+  });
+});
+
+describe('reduceDashboardTransactionFacts', () => {
+  it('builds current and previous month facts without clamping card credits', () => {
+    const reduced = reduceDashboardTransactionFacts(
+      [
+        {
+          year_month: '2026-07',
+          category_id: 'food',
+          income_egp: 0,
+          expense_egp: 600,
+          usd_native: 10,
+          transaction_count: 2,
+        },
+        {
+          year_month: '2026-07',
+          category_id: 'food',
+          income_egp: 0,
+          expense_egp: -750,
+          usd_native: -15,
+          transaction_count: 1,
+        },
+        {
+          year_month: '2026-07',
+          category_id: null,
+          income_egp: 1000,
+          expense_egp: 0,
+          usd_native: 0,
+          transaction_count: 0,
+        },
+        {
+          year_month: '2026-06',
+          category_id: null,
+          income_egp: 500,
+          expense_egp: 200,
+          usd_native: 4,
+          transaction_count: 1,
+        },
+      ],
+      '2026-07',
+      '2026-06',
+    );
+
+    expect(reduced.currentMonth).toEqual({
+      totals: { incomeEgp: 1000, expenseEgp: -150, netEgp: 1150 },
+      spend: { totalEgp: -150, usdNative: -5, count: 3 },
+    });
+    expect(reduced.previousMonth.totals).toEqual({
+      incomeEgp: 500,
+      expenseEgp: 200,
+      netEgp: 300,
+    });
+    expect(reduced.currentCategorySpendEgp).toEqual({ food: -150 });
+  });
+
+  it('returns legitimate zero facts for empty rows', () => {
+    expect(reduceDashboardTransactionFacts([], '2026-07', '2026-06')).toEqual({
+      currentMonth: {
+        totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+        spend: { totalEgp: 0, usdNative: 0, count: 0 },
+      },
+      previousMonth: {
+        totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+        spend: { totalEgp: 0, usdNative: 0, count: 0 },
+      },
+      currentCategorySpendEgp: {},
+    });
+  });
+});
+
+describe('buildDashboardBudgetSummary', () => {
+  it('clamps category credits and excludes unbudgeted categories', () => {
+    expect(
+      buildDashboardBudgetSummary(
+        [
+          { category_id: 'food', limit_amount: 7000 },
+          { category_id: 'transport', limit_amount: 3000 },
+        ],
+        { food: -150, transport: 500, unbudgeted: 900 },
+      ),
+    ).toEqual({
+      budgeted: 10000,
+      spent: 500,
+      left: 9500,
+      pct: 0.05,
+      categoryCount: 2,
+    });
+  });
+
+  it('returns zero progress when no budget limits exist', () => {
+    expect(buildDashboardBudgetSummary([], { food: 500 })).toEqual({
+      budgeted: 0,
+      spent: 0,
+      left: 0,
+      pct: 0,
+      categoryCount: 0,
+    });
+  });
+});
+
+describe('computeDashboardAccountCounts', () => {
+  it('counts active assets and liabilities', () => {
+    expect(
+      computeDashboardAccountCounts([
+        makeAccount({ id: 'bank' }),
+        makeAccount({ id: 'card', type: AccountType.CreditCard }),
+        makeAccount({ id: 'archived', is_archived: 1 }),
+      ]),
+    ).toEqual({ assets: 1, liabilities: 1 });
+  });
+});
+
+describe('computeDashboardSpendDeltaPct', () => {
+  it('rounds the percentage change from the previous month', () => {
+    expect(computeDashboardSpendDeltaPct(151, 100)).toBe(51);
+  });
+
+  it.each([0, -100])('returns null when the previous spend is %s', (previousEgp) => {
+    expect(computeDashboardSpendDeltaPct(100, previousEgp)).toBeNull();
+  });
+});
+
+describe('computeDashboardCommitmentSummary', () => {
+  it('counts statuses and totals non-skipped amounts by native currency', () => {
+    const summary = computeDashboardCommitmentSummary([
+      makePayment({
+        id: 'paid',
+        status: CommitmentPaymentStatus.Paid,
+        amount_due: 100,
+        amount_paid: 90,
+      }),
+      makePayment({
+        id: 'paid-fallback',
+        status: CommitmentPaymentStatus.Paid,
+        amount_due: 70,
+      }),
+      makePayment({
+        id: 'overdue-usd',
+        status: CommitmentPaymentStatus.Overdue,
+        currency: Currency.USD,
+        amount_due: 20,
+      }),
+      makePayment({ id: 'due', status: CommitmentPaymentStatus.Due, amount_due: 40 }),
+      makePayment({ id: 'upcoming', amount_due: null }),
+      makePayment({
+        id: 'skipped',
+        status: CommitmentPaymentStatus.Skipped,
+        amount_due: 500,
+      }),
+    ]);
+
+    expect(summary.counts).toEqual({
+      paid: 2,
+      overdue: 1,
+      due: 1,
+      upcoming: 1,
+      skipped: 1,
+      total: 5,
+    });
+    expect(summary.totalsByCurrency).toEqual(
+      new Map([
+        [Currency.EGP, 200],
+        [Currency.USD, 20],
+      ]),
+    );
   });
 });

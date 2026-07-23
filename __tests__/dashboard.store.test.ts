@@ -1,114 +1,332 @@
-import type { AccountStats } from '@/database/account_stats';
-import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
-import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import type {
+  DashboardLoadInput,
+  DashboardSnapshot,
+  DashboardSnapshotStatus,
+  IDashboardRepository,
+} from '@/modules/dashboard/repositories/dashboard.repository';
+import { createDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
 
-beforeEach(() => useDashboardStore.getState().reset());
+function deferred<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
 
-describe('useDashboardStore', () => {
-  it('starts async numeric dashboard sections as not loaded', () => {
-    const state = useDashboardStore.getState();
+function input(yearMonth: string): DashboardLoadInput {
+  return { yearMonth, now: new Date(`${yearMonth}-15T12:00:00.000Z`) };
+}
 
-    expect(state.monthSpendLoaded).toBe(false);
-    expect(state.transactionTotalsLoaded).toBe(false);
-    expect(state.commitmentPaymentsLoaded).toBe(false);
+function snapshot(key: string): DashboardSnapshot {
+  const [year, month] = key.split('-').map(Number);
+  const previousDate = new Date(year, month - 2, 1);
+  const previousYearMonth = `${previousDate.getFullYear()}-${String(
+    previousDate.getMonth() + 1,
+  ).padStart(2, '0')}`;
+
+  return {
+    key,
+    yearMonth: key,
+    previousYearMonth,
+    accounts: [],
+    statsMap: {},
+    currentMonth: {
+      totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+      spend: { totalEgp: 0, usdNative: 0, count: 0 },
+    },
+    previousMonth: {
+      totals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
+      spend: { totalEgp: 0, usdNative: 0, count: 0 },
+    },
+    budgetSummary: {
+      budgeted: 0,
+      spent: 0,
+      left: 0,
+      pct: 0,
+      categoryCount: 0,
+    },
+    commitmentPayments: [],
+    loadedAt: new Date(`${key}-15T12:00:00.000Z`).getTime(),
+  };
+}
+
+function repository(getSnapshot: IDashboardRepository['getSnapshot']): IDashboardRepository & {
+  getSnapshot: jest.MockedFunction<IDashboardRepository['getSnapshot']>;
+} {
+  return { getSnapshot: jest.fn(getSnapshot) };
+}
+
+describe('createDashboardStore', () => {
+  it('publishes one complete snapshot across the initial load lifecycle', async () => {
+    const load = deferred<DashboardSnapshot>();
+    const repo = repository(() => load.promise);
+    const store = createDashboardStore(repo);
+    const publications: Array<{
+      status: DashboardSnapshotStatus;
+      snapshot: DashboardSnapshot | undefined;
+    }> = [];
+    const unsubscribe = store.subscribe((state) => {
+      publications.push({ status: state.status, snapshot: state.snapshot });
+    });
+    const result = snapshot('2026-07');
+
+    const request = store.getState().ensureSnapshot(input('2026-07'));
+
+    expect(store.getState()).toMatchObject({
+      status: 'initialLoading',
+      snapshot: undefined,
+      requestedKey: '2026-07',
+      requestGeneration: 1,
+    });
+
+    load.resolve(result);
+    await request;
+
+    expect(store.getState()).toMatchObject({
+      status: 'ready',
+      snapshot: result,
+      requestedKey: '2026-07',
+      requestGeneration: 1,
+    });
+    expect(publications.filter((entry) => entry.snapshot !== undefined)).toEqual([
+      { status: 'ready', snapshot: result },
+    ]);
+    unsubscribe();
   });
 
-  it('starts with empty statsMap', () => {
-    expect(useDashboardStore.getState().statsMap).toEqual({});
+  it('preserves the exact warm snapshot through refresh failure', async () => {
+    const load = deferred<DashboardSnapshot>();
+    const repo = repository(() => load.promise);
+    const store = createDashboardStore(repo);
+    const warmSnapshot = snapshot('2026-07');
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+    store.setState({
+      snapshot: warmSnapshot,
+      status: 'ready',
+      requestedKey: warmSnapshot.key,
+    });
+
+    const refresh = store.getState().refresh(input('2026-07'));
+
+    expect(store.getState().status).toBe('refreshing');
+    expect(store.getState().snapshot).toBe(warmSnapshot);
+
+    load.reject(new Error('db unavailable'));
+    await expect(refresh).resolves.toBeUndefined();
+
+    expect(store.getState().status).toBe('refreshErrorWithData');
+    expect(store.getState().snapshot).toBe(warmSnapshot);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
   });
 
-  it('setStatsMap replaces the map', () => {
-    const fakeStats: AccountStats = {
-      month_in: 100,
-      month_out: 50,
-      week_in: 25,
-      week_out: 10,
-    };
-    const next: Record<string, AccountStats> = { 'acc-1': fakeStats };
-    useDashboardStore.getState().setStatsMap(next);
-    expect(useDashboardStore.getState().statsMap).toEqual(next);
+  it('publishes initialError without fabricating a zero snapshot', async () => {
+    const repo = repository(() => Promise.reject(new Error('db unavailable')));
+    const store = createDashboardStore(repo);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+    await expect(store.getState().ensureSnapshot(input('2026-07'))).resolves.toBeUndefined();
+
+    expect(store.getState()).toMatchObject({
+      status: 'initialError',
+      snapshot: undefined,
+      requestedKey: '2026-07',
+    });
+    expect(errorSpy).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
   });
 
-  it('reset returns to empty map', () => {
-    const fakeStats: AccountStats = {
-      month_in: 0,
-      month_out: 0,
-      week_in: 0,
-      week_out: 0,
-    };
-    useDashboardStore.getState().setStatsMap({ 'acc-1': fakeStats });
-    useDashboardStore.getState().reset();
-    expect(useDashboardStore.getState().statsMap).toEqual({});
+  it('shares one repository promise for same-key focus and refresh requests', async () => {
+    const load = deferred<DashboardSnapshot>();
+    const repo = repository(() => load.promise);
+    const store = createDashboardStore(repo);
+
+    const focusRequest = store.getState().ensureSnapshot(input('2026-07'));
+    const refreshRequest = store.getState().refresh(input('2026-07'));
+
+    expect(refreshRequest).toBe(focusRequest);
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(1);
+
+    load.resolve(snapshot('2026-07'));
+    await Promise.all([focusRequest, refreshRequest]);
   });
 
-  it('setCurrentMonthCommitmentPayments updates the list', () => {
-    const payments = [{ id: 'p1' } as any];
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments(payments);
-    expect(useDashboardStore.getState().currentMonthCommitmentPayments).toEqual(payments);
+  it('lets a newer month generation win when requests resolve out of order', async () => {
+    const july = deferred<DashboardSnapshot>();
+    const august = deferred<DashboardSnapshot>();
+    const repo = repository(({ yearMonth }) =>
+      yearMonth === '2026-07' ? july.promise : august.promise,
+    );
+    const store = createDashboardStore(repo);
+    const augustSnapshot = snapshot('2026-08');
+
+    const julyRequest = store.getState().ensureSnapshot(input('2026-07'));
+    const augustRequest = store.getState().ensureSnapshot(input('2026-08'));
+    august.resolve(augustSnapshot);
+    await augustRequest;
+    july.resolve(snapshot('2026-07'));
+    await julyRequest;
+
+    expect(store.getState()).toMatchObject({
+      status: 'ready',
+      snapshot: augustSnapshot,
+      requestedKey: '2026-08',
+      requestGeneration: 2,
+    });
   });
 
-  it('marks commitment payments loaded when current month payments update', () => {
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments([]);
+  it('clears an old-month snapshot while a new month loads', async () => {
+    const load = deferred<DashboardSnapshot>();
+    const store = createDashboardStore(repository(() => load.promise));
+    store.setState({
+      snapshot: snapshot('2026-07'),
+      status: 'ready',
+      requestedKey: '2026-07',
+    });
 
-    expect(useDashboardStore.getState().commitmentPaymentsLoaded).toBe(true);
+    const request = store.getState().ensureSnapshot(input('2026-08'));
+
+    expect(store.getState()).toMatchObject({
+      snapshot: undefined,
+      status: 'initialLoading',
+      requestedKey: '2026-08',
+    });
+
+    load.resolve(snapshot('2026-08'));
+    await request;
   });
 
-  it('setMonthSpendStats updates current and previous spend', () => {
-    const current = { totalEgp: 1000, usdNative: 20, count: 5 };
-    const previous = { totalEgp: 800, usdNative: 16, count: 4 };
-    useDashboardStore.getState().setMonthSpendStats(current, previous);
-    expect(useDashboardStore.getState().currentMonthSpend).toEqual(current);
-    expect(useDashboardStore.getState().previousMonthSpend).toEqual(previous);
+  it('invalidates freshness and blocks late publication without clearing warm data', async () => {
+    const load = deferred<DashboardSnapshot>();
+    const repo = repository(() => load.promise);
+    const store = createDashboardStore(repo);
+    const warmSnapshot = snapshot('2026-07');
+    store.setState({
+      snapshot: warmSnapshot,
+      status: 'ready',
+      requestedKey: '2026-07',
+    });
+
+    const request = store.getState().refresh(input('2026-07'));
+    store.getState().invalidate();
+
+    expect(store.getState().snapshot).toBe(warmSnapshot);
+    expect(store.getState()).toMatchObject({
+      status: 'refreshing',
+      requestGeneration: 2,
+    });
+
+    load.resolve(snapshot('2026-07'));
+    await request;
+
+    expect(store.getState().snapshot).toBe(warmSnapshot);
+    expect(store.getState().status).toBe('refreshing');
   });
 
-  it('marks month spend loaded when current and previous spend update', () => {
-    const current = { totalEgp: 0, usdNative: 0, count: 0 };
-    const previous = { totalEgp: 0, usdNative: 0, count: 0 };
+  it('publishes only the post-mutation snapshot when a same-key request finishes late', async () => {
+    const beforeMutation = deferred<DashboardSnapshot>();
+    const afterMutation = deferred<DashboardSnapshot>();
+    const repo = repository(() =>
+      repo.getSnapshot.mock.calls.length === 1 ? beforeMutation.promise : afterMutation.promise,
+    );
+    const store = createDashboardStore(repo);
+    const warmSnapshot = snapshot('2026-07');
+    const staleSnapshot = snapshot('2026-07');
+    const freshSnapshot = snapshot('2026-07');
+    const publishedSnapshots: DashboardSnapshot[] = [];
+    store.setState({
+      snapshot: warmSnapshot,
+      status: 'ready',
+      requestedKey: '2026-07',
+    });
+    const unsubscribe = store.subscribe((state) => {
+      if (state.snapshot !== warmSnapshot) publishedSnapshots.push(state.snapshot!);
+    });
 
-    useDashboardStore.getState().setMonthSpendStats(current, previous);
+    const staleRequest = store.getState().refresh(input('2026-07'));
+    const freshRequest = store.getState().revalidateAfterMutation(input('2026-07'));
 
-    expect(useDashboardStore.getState().monthSpendLoaded).toBe(true);
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(2);
+    afterMutation.resolve(freshSnapshot);
+    await freshRequest;
+    beforeMutation.resolve(staleSnapshot);
+    await staleRequest;
+
+    expect(store.getState()).toMatchObject({
+      snapshot: freshSnapshot,
+      status: 'ready',
+      requestedKey: '2026-07',
+    });
+    expect(publishedSnapshots).toEqual([freshSnapshot]);
+    unsubscribe();
   });
 
-  it('setTransactionTotals updates current and previous transaction totals', () => {
-    const current: PeriodTotals = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
-    const previous: PeriodTotals = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
+  it('reset restores idle state and blocks a pre-reset completion', async () => {
+    const load = deferred<DashboardSnapshot>();
+    const store = createDashboardStore(repository(() => load.promise));
+    const request = store.getState().ensureSnapshot(input('2026-07'));
 
-    useDashboardStore.getState().setTransactionTotals(current, previous);
+    store.getState().reset();
+    load.resolve(snapshot('2026-07'));
+    await request;
 
-    expect(useDashboardStore.getState().currentTransactionTotals).toEqual(current);
-    expect(useDashboardStore.getState().previousTransactionTotals).toEqual(previous);
+    expect(store.getState()).toMatchObject({
+      snapshot: undefined,
+      status: 'idle',
+      requestedKey: undefined,
+      requestGeneration: 2,
+    });
   });
 
-  it('marks transaction totals loaded when current and previous totals update', () => {
-    const current: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
-    const previous: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
+  it('reuses a fresh focus snapshot until invalidation requests revalidation', async () => {
+    const first = snapshot('2026-07');
+    const second = snapshot('2026-07');
+    const repo = repository(() =>
+      Promise.resolve(repo.getSnapshot.mock.calls.length === 1 ? first : second),
+    );
+    const store = createDashboardStore(repo);
 
-    useDashboardStore.getState().setTransactionTotals(current, previous);
+    await store.getState().ensureSnapshot(input('2026-07'));
+    await store.getState().ensureSnapshot(input('2026-07'));
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(1);
 
-    expect(useDashboardStore.getState().transactionTotalsLoaded).toBe(true);
+    store.getState().invalidate();
+    await store.getState().ensureSnapshot(input('2026-07'));
+
+    expect(repo.getSnapshot).toHaveBeenCalledTimes(2);
+    expect(store.getState().snapshot).toBe(second);
   });
 
-  it('reset clears async numeric loaded flags', () => {
-    useDashboardStore.getState().setCurrentMonthCommitmentPayments([]);
-    useDashboardStore
-      .getState()
-      .setMonthSpendStats(
-        { totalEgp: 1, usdNative: 0, count: 1 },
-        { totalEgp: 0, usdNative: 0, count: 0 },
-      );
-    useDashboardStore
-      .getState()
-      .setTransactionTotals(
-        { incomeEgp: 1, expenseEgp: 0, netEgp: 1 },
-        { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
-      );
+  it('ignores stale failures without logging or changing the newer request state', async () => {
+    const july = deferred<DashboardSnapshot>();
+    const august = deferred<DashboardSnapshot>();
+    const repo = repository(({ yearMonth }) =>
+      yearMonth === '2026-07' ? july.promise : august.promise,
+    );
+    const store = createDashboardStore(repo);
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation();
 
-    useDashboardStore.getState().reset();
+    const julyRequest = store.getState().ensureSnapshot(input('2026-07'));
+    const augustRequest = store.getState().ensureSnapshot(input('2026-08'));
+    july.reject(new Error('stale July failure'));
+    await julyRequest;
 
-    const state = useDashboardStore.getState();
-    expect(state.commitmentPaymentsLoaded).toBe(false);
-    expect(state.monthSpendLoaded).toBe(false);
-    expect(state.transactionTotalsLoaded).toBe(false);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(store.getState()).toMatchObject({
+      status: 'initialLoading',
+      requestedKey: '2026-08',
+      requestGeneration: 2,
+    });
+
+    august.resolve(snapshot('2026-08'));
+    await augustRequest;
+    errorSpy.mockRestore();
   });
 });
