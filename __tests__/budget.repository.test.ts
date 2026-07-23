@@ -1,7 +1,11 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { BudgetGroup } from '@/constants/enums';
-import type { Budget } from '@/modules/budget/entities/budget.entity';
+import type {
+  Budget,
+  SpendingPlan,
+  SpendingPlanCategory,
+} from '@/modules/budget/entities/budget.entity';
 import {
   BudgetRepository,
   currentYearMonth,
@@ -14,16 +18,19 @@ jest.mock('@/database/client', () => {
   const mockWithExclusiveTransactionAsync = jest.fn(
     async (task: (db: SQLiteDatabase) => Promise<void>) => task(mockTransactionDb),
   );
+  const mockDb = { withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync };
   return {
-    getDb: jest.fn().mockResolvedValue({
-      withExclusiveTransactionAsync: mockWithExclusiveTransactionAsync,
-    }),
+    getDb: jest.fn().mockResolvedValue(mockDb),
+    mockDb,
     mockTransactionDb,
     mockWithExclusiveTransactionAsync,
   };
 });
 jest.mock('@/modules/budget/database/budget_stats', () => ({
+  getBudgetSpendByMonth: jest.fn().mockResolvedValue({}),
   getCategorySpendByMonth: jest.fn().mockResolvedValue({}),
+  getSpendingPlanSpend: jest.fn().mockResolvedValue({}),
+  getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
 }));
 jest.mock('@/modules/budget/database/budget_month_profiles', () => ({
   copyBudgetMonthCategoryGroups: jest.fn().mockResolvedValue(undefined),
@@ -37,20 +44,49 @@ jest.mock('@/modules/budget/database/budgets', () => ({
   deleteBudgetRow: jest.fn().mockResolvedValue(undefined),
   getBudgetRowById: jest.fn().mockResolvedValue(null),
   getBudgetRows: jest.fn(),
+  getBudgetRowsForMonths: jest.fn().mockResolvedValue([]),
   setBudgetRow: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/modules/budget/database/spending_plan_categories', () => ({
+  getSpendingPlanCategoryRows: jest.fn().mockResolvedValue([]),
+  replaceSpendingPlanCategoryRows: jest.fn().mockResolvedValue(undefined),
+}));
+jest.mock('@/modules/budget/database/spending_plans', () => ({
+  deleteSpendingPlan: jest.fn().mockResolvedValue(undefined),
+  getSpendingPlanById: jest.fn().mockResolvedValue(null),
+  getSpendingPlanRows: jest.fn().mockResolvedValue([]),
+  getSpendingPlanRowsForRange: jest.fn().mockResolvedValue([]),
+  setSpendingPlanRow: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('@/modules/categories/database/categories', () => ({
   getCategoriesByType: jest.fn().mockResolvedValue([]),
   setCategoryGroup: jest.fn().mockResolvedValue(undefined),
 }));
 
-const { deleteBudgetRow, getBudgetRowById, getBudgetRows, setBudgetRow } = jest.requireMock(
-  '@/modules/budget/database/budgets',
-) as {
-  deleteBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, string]>;
-  getBudgetRowById: jest.Mock<Promise<Budget | null>, [SQLiteDatabase, string]>;
-  getBudgetRows: jest.Mock<Promise<Budget[]>, [SQLiteDatabase]>;
-  setBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, Budget]>;
+const { deleteBudgetRow, getBudgetRowById, getBudgetRows, getBudgetRowsForMonths, setBudgetRow } =
+  jest.requireMock('@/modules/budget/database/budgets') as {
+    deleteBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, string]>;
+    getBudgetRowById: jest.Mock<Promise<Budget | null>, [SQLiteDatabase, string]>;
+    getBudgetRows: jest.Mock<Promise<Budget[]>, [SQLiteDatabase]>;
+    getBudgetRowsForMonths: jest.Mock<Promise<Budget[]>, [SQLiteDatabase, string[]]>;
+    setBudgetRow: jest.Mock<Promise<void>, [SQLiteDatabase, Budget]>;
+  };
+const {
+  getBudgetSpendByMonth,
+  getCategorySpendByMonth,
+  getSpendingPlanSpend,
+  getTrailingIncomeSuggestion,
+} = jest.requireMock('@/modules/budget/database/budget_stats') as {
+  getBudgetSpendByMonth: jest.Mock<Promise<Record<string, number>>, [SQLiteDatabase, string[]]>;
+  getCategorySpendByMonth: jest.Mock<
+    Promise<Record<string, Record<string, number>>>,
+    [SQLiteDatabase, string[]]
+  >;
+  getSpendingPlanSpend: jest.Mock<
+    Promise<Record<string, Record<string, number>>>,
+    [SQLiteDatabase, string[]]
+  >;
+  getTrailingIncomeSuggestion: jest.Mock<Promise<number | null>, [SQLiteDatabase, string, number?]>;
 };
 const {
   copyBudgetMonthCategoryGroups,
@@ -79,9 +115,22 @@ const {
 const { setCategoryGroup } = jest.requireMock('@/modules/categories/database/categories') as {
   setCategoryGroup: jest.Mock<Promise<void>, [SQLiteDatabase, string, BudgetGroup]>;
 };
-const { mockTransactionDb, mockWithExclusiveTransactionAsync } = jest.requireMock(
+const { getSpendingPlanCategoryRows } = jest.requireMock(
+  '@/modules/budget/database/spending_plan_categories',
+) as {
+  getSpendingPlanCategoryRows: jest.Mock<
+    Promise<SpendingPlanCategory[]>,
+    [SQLiteDatabase, string[]]
+  >;
+};
+const { getSpendingPlanRows } = jest.requireMock('@/modules/budget/database/spending_plans') as {
+  getSpendingPlanRows: jest.Mock<Promise<SpendingPlan[]>, [SQLiteDatabase, string]>;
+};
+const { getDb, mockDb, mockTransactionDb, mockWithExclusiveTransactionAsync } = jest.requireMock(
   '@/database/client',
 ) as {
+  getDb: jest.Mock<Promise<SQLiteDatabase>, []>;
+  mockDb: SQLiteDatabase;
   mockTransactionDb: SQLiteDatabase;
   mockWithExclusiveTransactionAsync: jest.Mock<
     Promise<void>,
@@ -230,6 +279,89 @@ describe('BudgetRepository month profiles', () => {
     expect(setBudgetMonthIncome.mock.calls[0]?.[0]).toBe(
       snapshotBudgetMonthCategoryGroups.mock.calls[0]?.[0],
     );
+  });
+});
+
+describe('BudgetRepository month snapshot', () => {
+  it('assembles one coherent 12-month snapshot from one database handle', async () => {
+    const months = lastMonths('2026-07', 12);
+    const rows = [budget('budget-food', 'food', 'Monthly Food', 5000, '2026-07')];
+    const plan: SpendingPlan = {
+      id: 'plan-trip',
+      name: 'Trip',
+      start_date: '2026-07-01',
+      end_date: '2026-07-31',
+      total_amount: 2000,
+      created_at: NOW,
+      updated_at: NOW,
+    };
+    const planCategories: SpendingPlanCategory[] = [
+      { plan_id: plan.id, category_id: 'food', allocated_amount: 2000 },
+    ];
+    getBudgetRowsForMonths.mockResolvedValueOnce(rows);
+    getCategorySpendByMonth.mockResolvedValueOnce({ food: { '2026-07': 1200 } });
+    getBudgetSpendByMonth.mockResolvedValueOnce({ 'budget-food': 900 });
+    getBudgetMonthIncome.mockResolvedValueOnce(20_000);
+    getBudgetMonthCategoryGroups.mockResolvedValueOnce({ food: BudgetGroup.Need });
+    getSpendingPlanRows.mockResolvedValueOnce([plan]);
+    getSpendingPlanCategoryRows.mockResolvedValueOnce(planCategories);
+    getSpendingPlanSpend.mockResolvedValueOnce({ 'plan-trip': { food: 500 } });
+    getTrailingIncomeSuggestion.mockResolvedValueOnce(18_000);
+
+    await expect(new BudgetRepository().getMonthSnapshot('2026-07')).resolves.toEqual({
+      loadedMonth: '2026-07',
+      rows,
+      spendByMonth: { food: { '2026-07': 1200 } },
+      spendByBudgetId: { 'budget-food': 900 },
+      expectedIncome: 20_000,
+      budgetGroupByCategoryId: { food: BudgetGroup.Need },
+      spendingPlans: [{ ...plan, categories: planCategories }],
+      spendingPlanSpendById: { 'plan-trip': { food: 500 } },
+      incomeSuggestion: 18_000,
+    });
+
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(getBudgetRowsForMonths).toHaveBeenCalledWith(mockDb, months);
+    expect(getCategorySpendByMonth).toHaveBeenCalledWith(mockDb, months);
+    expect(getBudgetSpendByMonth).toHaveBeenCalledWith(mockDb, months);
+    expect(getBudgetMonthIncome).toHaveBeenCalledWith(mockDb, '2026-07');
+    expect(getBudgetMonthCategoryGroups).toHaveBeenCalledWith(mockDb, '2026-07');
+    expect(getSpendingPlanRows).toHaveBeenCalledWith(mockDb, '2026-07');
+    expect(getSpendingPlanCategoryRows).toHaveBeenCalledWith(mockDb, ['plan-trip']);
+    expect(getSpendingPlanSpend).toHaveBeenCalledWith(mockDb, ['plan-trip']);
+    expect(getTrailingIncomeSuggestion).toHaveBeenCalledWith(mockDb, '2026-07');
+    expect(getBudgetRows).not.toHaveBeenCalled();
+  });
+});
+
+describe('BudgetRepository copy preview', () => {
+  it.each([
+    {
+      label: 'source-only rows',
+      rows: [budget('source-food', 'food', 'Food', 5000, '2026-06')],
+    },
+    {
+      label: 'target-only rows',
+      rows: [budget('target-food', 'food', 'Food', 4000, '2026-07')],
+    },
+    {
+      label: 'source and target rows',
+      rows: [
+        budget('source-food', 'food', 'Food', 5000, '2026-06'),
+        budget('target-food', 'food', 'Food', 4000, '2026-07'),
+      ],
+    },
+    { label: 'an empty source and target', rows: [] },
+  ])('loads only the requested months for $label', async ({ rows }) => {
+    getBudgetRowsForMonths.mockResolvedValueOnce(rows);
+
+    await expect(new BudgetRepository().getCopyPreview('2026-06', '2026-07')).resolves.toEqual(
+      rows,
+    );
+
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(getBudgetRowsForMonths).toHaveBeenCalledWith(mockDb, ['2026-06', '2026-07']);
+    expect(getBudgetRows).not.toHaveBeenCalled();
   });
 });
 

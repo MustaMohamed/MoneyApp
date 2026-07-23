@@ -8,6 +8,22 @@ export async function getBudgetRows(db: SQLiteDatabase): Promise<Budget[]> {
   );
 }
 
+export async function getBudgetRowsForMonths(
+  db: SQLiteDatabase,
+  months: string[],
+): Promise<Budget[]> {
+  const uniqueMonths = [...new Set(months)];
+  if (uniqueMonths.length === 0) return [];
+
+  return db.getAllAsync<Budget>(
+    `SELECT *
+       FROM budgets
+      WHERE effective_from IN (${uniqueMonths.map(() => '?').join(', ')})
+      ORDER BY effective_from ASC, created_at ASC`,
+    ...uniqueMonths,
+  );
+}
+
 export async function getBudgetRowById(db: SQLiteDatabase, id: string): Promise<Budget | null> {
   const rows = await db.getAllAsync<Budget>('SELECT * FROM budgets WHERE id = ?', [id]);
   return rows[0] ?? null;
