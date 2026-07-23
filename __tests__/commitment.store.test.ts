@@ -165,7 +165,7 @@ describe('commitment store snapshot ownership', () => {
       }
     });
 
-    await store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
+    await store.getState().loadMonthSnapshot(MAY);
     unsubscribe();
 
     expect(published).toEqual([next]);
@@ -185,8 +185,9 @@ describe('commitment store snapshot ownership', () => {
     });
     const store = createCommitmentStore(repository);
 
-    const first = store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
-    const second = store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
+    const first = store.getState().loadMonthSnapshot(MAY);
+    const second = store.getState().loadMonthSnapshot(MAY);
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
 
     request.resolve(snapshot());
@@ -202,8 +203,8 @@ describe('commitment store snapshot ownership', () => {
     });
     const store = createCommitmentStore(repository);
 
-    const mayLoad = store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
-    const juneLoad = store.getState().loadMonthSnapshot('2026-06', { ensureHousekeeping: false });
+    const mayLoad = store.getState().loadMonthSnapshot(MAY);
+    const juneLoad = store.getState().loadMonthSnapshot('2026-06');
     june.resolve(snapshot('2026-06', [commitment({ id: 'june' })], []));
     await juneLoad;
     may.resolve(snapshot(MAY, [commitment({ id: 'may' })], []));
@@ -221,11 +222,9 @@ describe('commitment store snapshot ownership', () => {
         .mockRejectedValueOnce(new Error('refresh failed')),
     });
     const store = createCommitmentStore(repository);
-    await store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
+    await store.getState().loadMonthSnapshot(MAY);
 
-    await expect(
-      store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false }),
-    ).rejects.toThrow('refresh failed');
+    await expect(store.getState().loadMonthSnapshot(MAY)).rejects.toThrow('refresh failed');
 
     expect(store.getState()).toMatchObject({
       commitments: [commitment()],
@@ -341,6 +340,42 @@ describe('commitment store housekeeping ownership', () => {
     jest.useRealTimers();
   });
 
+  it('does not let old housekeeping start a new-generation snapshot early', async () => {
+    jest.useFakeTimers().setSystemTime(DAY_ONE);
+    const oldWork = deferred<void>();
+    const newWork = deferred<void>();
+    const repository = makeRepository({
+      runHousekeeping: jest
+        .fn()
+        .mockReturnValueOnce(oldWork.promise)
+        .mockReturnValueOnce(newWork.promise),
+    });
+    const store = createCommitmentStore(repository);
+
+    const firstMutation = store.getState().addCommitment(newInput);
+    await Promise.resolve();
+    await Promise.resolve();
+    const secondMutation = store.getState().addCommitment({
+      ...newInput,
+      name: 'Second commitment',
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+
+    oldWork.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+    const snapshotsStartedBeforeCurrentHousekeeping = (repository.getMonthSnapshot as jest.Mock)
+      .mock.calls.length;
+
+    newWork.resolve();
+    await Promise.all([firstMutation, secondMutation]);
+
+    expect(snapshotsStartedBeforeCurrentHousekeeping).toBe(0);
+    expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
+  });
+
   it('reset invalidates in-flight ownership and forces the same key to rerun', async () => {
     const oldWork = deferred<void>();
     const repository = makeRepository({
@@ -405,7 +440,8 @@ describe('commitment store mutation invalidation', () => {
       getMonthSnapshot: jest.fn().mockResolvedValue(snapshot()),
     });
     const store = createCommitmentStore(repository);
-    await store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
+    await store.getState().loadMonthSnapshot(MAY);
+    (repository.runHousekeeping as jest.Mock).mockClear();
     (repository.getMonthSnapshot as jest.Mock).mockClear();
 
     await store.getState().markAsPaid('payment', paymentDetails);
@@ -448,7 +484,7 @@ describe('commitment store selectors', () => {
       getMonthSnapshot: jest.fn().mockResolvedValue(snapshot(MAY, commitments, payments)),
     });
     const store = createCommitmentStore(repository);
-    await store.getState().loadMonthSnapshot(MAY, { ensureHousekeeping: false });
+    await store.getState().loadMonthSnapshot(MAY);
     return store;
   }
 

@@ -67,9 +67,8 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
   useCommitmentsScreenState: jest.fn(),
 }));
 
-const ensureHousekeepingCurrentMock = jest.fn().mockResolvedValue(undefined);
 const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
-const setSelectedMonthMock = jest.fn();
+const setSelectedMonthMock = jest.fn().mockResolvedValue(undefined);
 const setRefreshingMock = jest.fn();
 const setStatusFilterMock = jest.fn();
 const setSearchQueryMock = jest.fn();
@@ -197,7 +196,6 @@ function setup({
     loading,
     loadError,
     setSelectedMonth: setSelectedMonthMock,
-    ensureHousekeepingCurrent: ensureHousekeepingCurrentMock,
     loadMonthSnapshot: loadMonthSnapshotMock,
     skipPayment: jest.fn(),
     deactivateCommitment: jest.fn(),
@@ -225,9 +223,8 @@ describe('useCommitments', () => {
   beforeEach(() => {
     capturedFocusCallback = null;
     mockInteractionTasks.length = 0;
-    ensureHousekeepingCurrentMock.mockReset().mockResolvedValue(undefined);
     loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
-    setSelectedMonthMock.mockClear();
+    setSelectedMonthMock.mockReset().mockResolvedValue(undefined);
     setRefreshingMock.mockClear();
     setStatusFilterMock.mockClear();
     setSearchQueryMock.mockClear();
@@ -256,7 +253,6 @@ describe('useCommitments', () => {
     });
 
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
-    expect(ensureHousekeepingCurrentMock).not.toHaveBeenCalled();
     expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
 
     act(() => {
@@ -265,18 +261,10 @@ describe('useCommitments', () => {
     });
 
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
-    expect(ensureHousekeepingCurrentMock).not.toHaveBeenCalled();
     expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
   });
 
-  it('focus schedules one housekeeping pass and one selected-month snapshot load', async () => {
-    const calls: string[] = [];
-    ensureHousekeepingCurrentMock.mockImplementation(async () => {
-      calls.push('ensureHousekeepingCurrent');
-    });
-    loadMonthSnapshotMock.mockImplementation(async (yearMonth: string) => {
-      calls.push(`loadMonthSnapshot:${yearMonth}`);
-    });
+  it('focus delegates all housekeeping and snapshot ownership to one selected-month load', async () => {
     renderHook(() => useCommitments());
 
     act(() => {
@@ -292,10 +280,8 @@ describe('useCommitments', () => {
       expect.any(Function),
       expect.objectContaining({ onError: expect.any(Function) }),
     );
-    expect(calls).toEqual(['ensureHousekeepingCurrent', 'loadMonthSnapshot:2026-05']);
-    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05', {
-      ensureHousekeeping: false,
-    });
+    expect(loadMonthSnapshotMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
   });
 
   it('pull-to-refresh reloads immediately without waiting for interactions', async () => {
@@ -308,10 +294,26 @@ describe('useCommitments', () => {
 
     expect(runAfterInteractions).not.toHaveBeenCalled();
     expect(setRefreshingMock).toHaveBeenNthCalledWith(1, true);
-    expect(ensureHousekeepingCurrentMock).toHaveBeenCalledTimes(1);
-    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05', {
-      ensureHousekeeping: false,
-    });
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05');
+    expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('contains selected-month load rejection at the navigation event boundary', async () => {
+    setSelectedMonthMock.mockRejectedValueOnce(new Error('month load failed'));
+    const { result } = renderHook(() => useCommitments());
+
+    await expect(result.current.navigateMonth('next')).resolves.toBeUndefined();
+
+    expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-06');
+  });
+
+  it('contains refresh rejection after the store records its load error', async () => {
+    loadMonthSnapshotMock.mockRejectedValueOnce(new Error('refresh failed'));
+    const { result } = renderHook(() => useCommitments());
+
+    await expect(result.current.onRefresh()).resolves.toBeUndefined();
+
+    expect(setRefreshingMock).toHaveBeenNthCalledWith(1, true);
     expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
   });
 
@@ -378,12 +380,10 @@ describe('useCommitments', () => {
     expect(result.current.state.counts.total).toBe(1);
   });
 
-  it('selectMonth delegates to the commitment store selected month', () => {
+  it('selectMonth delegates to the commitment store selected month', async () => {
     const { result } = renderHook(() => useCommitments());
 
-    act(() => {
-      result.current.selectMonth('2026-08');
-    });
+    await act(async () => result.current.selectMonth('2026-08'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-08');
   });
@@ -455,24 +455,20 @@ describe('useCommitments', () => {
     ).toEqual(['internet']);
   });
 
-  it('navigateMonth moves January to previous December', () => {
+  it('navigateMonth moves January to previous December', async () => {
     setup({ selectedMonth: '2026-01' });
     const { result } = renderHook(() => useCommitments());
 
-    act(() => {
-      result.current.navigateMonth('prev');
-    });
+    await act(async () => result.current.navigateMonth('prev'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2025-12');
   });
 
-  it('navigateMonth moves December to next January', () => {
+  it('navigateMonth moves December to next January', async () => {
     setup({ selectedMonth: '2026-12' });
     const { result } = renderHook(() => useCommitments());
 
-    act(() => {
-      result.current.navigateMonth('next');
-    });
+    await act(async () => result.current.navigateMonth('next'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2027-01');
   });

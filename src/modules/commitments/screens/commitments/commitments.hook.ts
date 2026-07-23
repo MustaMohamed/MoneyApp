@@ -66,7 +66,6 @@ export function useCommitments() {
     })),
   );
   const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
-  const ensureHousekeepingCurrent = useCommitmentStore.getState().ensureHousekeepingCurrent;
   const loadMonthSnapshot = useCommitmentStore.getState().loadMonthSnapshot;
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
@@ -204,25 +203,30 @@ export function useCommitments() {
   selectedMonthRef.current = selectedMonth;
 
   const navigateMonth = useCallback(
-    (direction: 'prev' | 'next') => {
-      void setSelectedMonth(shiftYearMonth(selectedMonth, direction === 'next' ? 1 : -1));
+    async (direction: 'prev' | 'next') => {
+      try {
+        await setSelectedMonth(shiftYearMonth(selectedMonth, direction === 'next' ? 1 : -1));
+      } catch {
+        // The store owns loadError; event boundaries contain the rejected operation.
+      }
     },
     [selectedMonth, setSelectedMonth],
   );
 
   const selectMonth = useCallback(
-    (yearMonth: string) => {
-      void setSelectedMonth(yearMonth);
+    async (yearMonth: string) => {
+      try {
+        await setSelectedMonth(yearMonth);
+      } catch {
+        // The store owns loadError; event boundaries contain the rejected operation.
+      }
     },
     [setSelectedMonth],
   );
 
   const reloadSelectedMonth = useCallback(
-    async (yearMonth: string) => {
-      await ensureHousekeepingCurrent();
-      await loadMonthSnapshot(yearMonth, { ensureHousekeeping: false });
-    },
-    [ensureHousekeepingCurrent, loadMonthSnapshot],
+    (yearMonth: string) => loadMonthSnapshot(yearMonth),
+    [loadMonthSnapshot],
   );
 
   useFocusEffect(
@@ -245,6 +249,8 @@ export function useCommitments() {
     setRefreshing(true);
     try {
       await reloadSelectedMonth(selectedMonth);
+    } catch {
+      // The store owns loadError; event boundaries contain the rejected operation.
     } finally {
       setRefreshing(false);
     }

@@ -35,13 +35,9 @@ interface CommitmentStoreState {
   generation: number;
 }
 
-interface LoadMonthSnapshotOptions {
-  ensureHousekeeping?: boolean;
-}
-
 type CommitmentStore = CommitmentStoreState & {
   ensureHousekeepingCurrent(now?: Date): Promise<void>;
-  loadMonthSnapshot(yearMonth: string, options?: LoadMonthSnapshotOptions): Promise<void>;
+  loadMonthSnapshot(yearMonth: string): Promise<void>;
   setSelectedMonth(yearMonth: string): Promise<void>;
 
   addCommitment(data: NewCommitmentInput): Promise<void>;
@@ -116,8 +112,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
 
       const refreshAfterMutation = async () => {
         const month = get().selectedMonth;
-        await get().ensureHousekeepingCurrent();
-        await get().loadMonthSnapshot(month, { ensureHousekeeping: false });
+        await get().loadMonthSnapshot(month);
       };
 
       return {
@@ -140,17 +135,14 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           }
         },
 
-        loadMonthSnapshot: async (
-          yearMonth,
-          { ensureHousekeeping = true }: LoadMonthSnapshotOptions = {},
-        ) => {
+        loadMonthSnapshot: async (yearMonth) => {
           const requestId = ++latestSnapshotRequest;
           latestRequestedMonth = yearMonth;
           const generation = dataGeneration;
           set({ loading: true, loadError: false });
 
           try {
-            if (ensureHousekeeping) await get().ensureHousekeepingCurrent();
+            await get().ensureHousekeepingCurrent();
             if (
               requestId !== latestSnapshotRequest ||
               yearMonth !== latestRequestedMonth ||
