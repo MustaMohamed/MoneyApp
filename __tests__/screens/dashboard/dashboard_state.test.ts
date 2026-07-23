@@ -6,8 +6,9 @@ describe('useDashboardState', () => {
   it('starts with the expected initial state', () => {
     const s = useDashboardState.getState();
     expect(s.isBreakdownVisible).toBe(false);
-    expect(s.refreshing).toBe(false);
     expect(s.selectedSegment).toBe('overview');
+    expect(s).not.toHaveProperty('refreshing');
+    expect(s).not.toHaveProperty('setRefreshing');
   });
 
   it('setBreakdownVisible toggles', () => {
@@ -15,13 +16,6 @@ describe('useDashboardState', () => {
     expect(useDashboardState.getState().isBreakdownVisible).toBe(true);
     useDashboardState.getState().setBreakdownVisible(false);
     expect(useDashboardState.getState().isBreakdownVisible).toBe(false);
-  });
-
-  it('setRefreshing toggles', () => {
-    useDashboardState.getState().setRefreshing(true);
-    expect(useDashboardState.getState().refreshing).toBe(true);
-    useDashboardState.getState().setRefreshing(false);
-    expect(useDashboardState.getState().refreshing).toBe(false);
   });
 
   it('setSelectedSegment switches between overview and accounts', () => {
@@ -34,13 +28,11 @@ describe('useDashboardState', () => {
   it('reset clears all fields back to initial state', () => {
     useDashboardState.setState({
       isBreakdownVisible: true,
-      refreshing: true,
       selectedSegment: 'accounts',
     });
     useDashboardState.getState().reset();
     const s = useDashboardState.getState();
     expect(s.isBreakdownVisible).toBe(false);
-    expect(s.refreshing).toBe(false);
     expect(s.selectedSegment).toBe('overview');
   });
 });
