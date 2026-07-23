@@ -118,6 +118,51 @@ describe('getAccountsStats — Sunday week-start branch', () => {
   });
 });
 
+describe('getAccountsStats — captured clock', () => {
+  it('uses the supplied month and week boundaries instead of the process clock', async () => {
+    jest.setSystemTime(new Date('2026-07-20T12:00:00.000Z'));
+    insertTx({
+      id: 'may-income',
+      type: 'income',
+      amount: 500,
+      egp_amount: 500,
+      transaction_date: '2026-05-04',
+    });
+    insertTx({
+      id: 'may-expense',
+      amount: 200,
+      egp_amount: 200,
+      transaction_date: '2026-05-10',
+    });
+    insertTx({
+      id: 'july-income',
+      type: 'income',
+      amount: 900,
+      egp_amount: 900,
+      transaction_date: '2026-07-05',
+    });
+    insertTx({
+      id: 'july-expense',
+      amount: 800,
+      egp_amount: 800,
+      transaction_date: '2026-07-06',
+    });
+
+    const stats = await getAccountsStats(
+      mockDb,
+      ['acc_bank'],
+      new Date('2026-05-10T12:00:00.000Z'),
+    );
+
+    expect(stats.acc_bank).toEqual({
+      month_in: 500,
+      month_out: 200,
+      week_in: 500,
+      week_out: 200,
+    });
+  });
+});
+
 describe('getAccountsStats — weekStart before monthStart branch', () => {
   it('uses weekStart as earliest when weekStart < monthStart (e.g. beginning of month on Thursday)', async () => {
     // 2026-05-01 is a Friday. Monday of that week = 2026-04-27, which is before monthStart (2026-05-01).
