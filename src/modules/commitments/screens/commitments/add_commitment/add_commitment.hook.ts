@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { DurationType } from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
@@ -18,6 +18,7 @@ export type { CommitmentFormValues };
 
 export function useAddCommitment() {
   const router = useRouter();
+  const saveInFlightRef = useRef(false);
 
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
@@ -37,6 +38,8 @@ export function useAddCommitment() {
   }, [reset]);
 
   async function onValid(data: CommitmentFormValues) {
+    if (saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
     setSaving(true);
     try {
       await addCommitment({
@@ -62,6 +65,7 @@ export function useAddCommitment() {
     } catch {
       // error logged by store
     } finally {
+      saveInFlightRef.current = false;
       setSaving(false);
     }
   }

@@ -157,9 +157,11 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      await loadAccounts();
       setVisible(false);
       reset();
+      void loadAccounts().catch((error: unknown) =>
+        console.error('[paySheet] account revalidation failed:', error),
+      );
     } catch {
       // error logged by store
     } finally {

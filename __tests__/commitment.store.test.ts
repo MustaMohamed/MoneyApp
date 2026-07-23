@@ -105,6 +105,12 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
+async function flushMicrotasks() {
+  for (let index = 0; index < 8; index += 1) {
+    await Promise.resolve();
+  }
+}
+
 const newInput: NewCommitmentInput = {
   name: 'Spotify',
   amount_type: AmountType.Fixed,
@@ -336,8 +342,8 @@ describe('commitment store housekeeping ownership', () => {
     await oldRequest;
     await store.getState().ensureHousekeepingCurrent(DAY_ONE);
 
-    expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
     jest.useRealTimers();
+    expect(repository.runHousekeeping).toHaveBeenCalledTimes(2);
   });
 
   it('does not let old housekeeping start a new-generation snapshot early', async () => {
@@ -370,10 +376,11 @@ describe('commitment store housekeeping ownership', () => {
 
     newWork.resolve();
     await Promise.all([firstMutation, secondMutation]);
+    await flushMicrotasks();
 
+    jest.useRealTimers();
     expect(snapshotsStartedBeforeCurrentHousekeeping).toBe(0);
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
-    jest.useRealTimers();
   });
 
   it('reset invalidates in-flight ownership and forces the same key to rerun', async () => {
@@ -398,6 +405,77 @@ describe('commitment store housekeeping ownership', () => {
 });
 
 describe('commitment store mutation invalidation', () => {
+  it('resolves a committed add while failed revalidation records loadError', async () => {
+    const refreshError = new Error('post-save refresh failed');
+    const repository = makeRepository({
+      runHousekeeping: jest.fn().mockRejectedValue(refreshError),
+    });
+    const store = createCommitmentStore(repository);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.getState().addCommitment(newInput)).resolves.toBeUndefined();
+    await flushMicrotasks();
+
+    expect(repository.add).toHaveBeenCalledTimes(1);
+    expect(store.getState()).toMatchObject({
+      generation: 1,
+      loading: false,
+      loadError: true,
+    });
+    expect(consoleSpy).toHaveBeenCalledWith('[commitmentStore] revalidation failed:', refreshError);
+    consoleSpy.mockRestore();
+  });
+
+  it.each([
+    {
+      name: 'update',
+      persist: 'update',
+      run: (store: ReturnType<typeof createCommitmentStore>) =>
+        store.getState().updateCommitment('commitment', updateInput),
+    },
+    {
+      name: 'deactivate',
+      persist: 'deactivate',
+      run: (store: ReturnType<typeof createCommitmentStore>) =>
+        store.getState().deactivateCommitment('commitment'),
+    },
+    {
+      name: 'pay',
+      persist: 'markAsPaid',
+      run: (store: ReturnType<typeof createCommitmentStore>) =>
+        store.getState().markAsPaid('payment', paymentDetails),
+    },
+    {
+      name: 'skip',
+      persist: 'markAsSkipped',
+      run: (store: ReturnType<typeof createCommitmentStore>) =>
+        store.getState().skipPayment('payment'),
+    },
+  ] as const)(
+    'resolves committed $name persistence while failed revalidation stays nonblocking',
+    async ({ persist, run }) => {
+      const repository = makeRepository();
+      const store = createCommitmentStore(repository);
+      await store.getState().loadMonthSnapshot(MAY);
+      const refreshError = new Error(`${persist} refresh failed`);
+      (repository.runHousekeeping as jest.Mock).mockReset().mockRejectedValue(refreshError);
+      (repository.getMonthSnapshot as jest.Mock).mockClear();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await expect(run(store)).resolves.toBeUndefined();
+      await flushMicrotasks();
+
+      expect(repository[persist]).toHaveBeenCalledTimes(1);
+      expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
+      expect(store.getState().loadError).toBe(true);
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[commitmentStore] revalidation failed:',
+        refreshError,
+      );
+      consoleSpy.mockRestore();
+    },
+  );
+
   it('increments generation before add housekeeping and snapshot refresh', async () => {
     const repository = makeRepository();
     const store = createCommitmentStore(repository);
@@ -406,6 +484,7 @@ describe('commitment store mutation invalidation', () => {
     });
 
     await store.getState().addCommitment(newInput);
+    await flushMicrotasks();
 
     expect(repository.add).toHaveBeenCalledWith(newInput);
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
@@ -417,6 +496,7 @@ describe('commitment store mutation invalidation', () => {
     const store = createCommitmentStore(repository);
 
     await store.getState().updateCommitment('commitment', updateInput);
+    await flushMicrotasks();
 
     expect(repository.update).toHaveBeenCalledWith('commitment', updateInput);
     expect(repository.deleteUnpaidPayments).toHaveBeenCalledWith('commitment');
@@ -429,6 +509,7 @@ describe('commitment store mutation invalidation', () => {
     const store = createCommitmentStore(repository);
 
     await store.getState().deactivateCommitment('commitment');
+    await flushMicrotasks();
 
     expect(repository.deactivate).toHaveBeenCalledWith('commitment');
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
@@ -445,6 +526,7 @@ describe('commitment store mutation invalidation', () => {
     (repository.getMonthSnapshot as jest.Mock).mockClear();
 
     await store.getState().markAsPaid('payment', paymentDetails);
+    await flushMicrotasks();
 
     expect(repository.markAsPaid).toHaveBeenCalledWith('payment', paymentDetails, commitment());
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
@@ -457,6 +539,7 @@ describe('commitment store mutation invalidation', () => {
     const store = createCommitmentStore(repository);
 
     await store.getState().skipPayment('payment');
+    await flushMicrotasks();
 
     expect(repository.markAsSkipped).toHaveBeenCalledWith('payment');
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);

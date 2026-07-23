@@ -7,9 +7,11 @@ import { useAddCommitmentState } from '@/modules/commitments/screens/commitments
 import { useCommitmentStore } from '@/modules/commitments/store/commitment.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
+const mockRouterBack = jest.fn();
+
 jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn(), back: jest.fn() }),
+  useRouter: () => ({ push: jest.fn(), back: mockRouterBack }),
 }));
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: jest.fn(),
@@ -25,6 +27,14 @@ jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitme
 
 const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
 const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
@@ -75,5 +85,37 @@ describe('useAddCommitment', () => {
 
     expect(addCommitmentMock).toHaveBeenCalledTimes(1);
     expect(generatePaymentsMock).not.toHaveBeenCalled();
+    expect(mockRouterBack).toHaveBeenCalledTimes(1);
+  });
+
+  it('allows only one committed add while the first submit is in flight', async () => {
+    const save = deferred<void>();
+    addCommitmentMock.mockReturnValueOnce(save.promise);
+    const { result } = renderHook(() => useAddCommitment());
+    act(() => {
+      result.current.form.setValue('name', 'Rent');
+      result.current.form.setValue('amount', 5000);
+      result.current.form.setValue('categoryId', 'category-rent');
+    });
+
+    let firstSubmit!: Promise<void>;
+    let secondSubmit!: Promise<void>;
+    act(() => {
+      firstSubmit = result.current.onSubmit();
+      secondSubmit = result.current.onSubmit();
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+
+    save.resolve();
+    await act(async () => {
+      await Promise.all([firstSubmit, secondSubmit]);
+    });
+
+    expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+    expect(mockRouterBack).toHaveBeenCalledTimes(1);
   });
 });

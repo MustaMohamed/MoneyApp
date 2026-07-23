@@ -110,9 +110,13 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         set({ generation: dataGeneration });
       };
 
-      const refreshAfterMutation = async () => {
+      const revalidateAfterMutation = () => {
         const month = get().selectedMonth;
-        await get().loadMonthSnapshot(month);
+        void get()
+          .loadMonthSnapshot(month)
+          .catch((error: unknown) =>
+            console.error('[commitmentStore] revalidation failed:', error),
+          );
       };
 
       return {
@@ -187,7 +191,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           try {
             await repo.add(data);
             invalidateData();
-            await refreshAfterMutation();
+            revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] addCommitment failed:', error);
             throw error;
@@ -199,7 +203,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
             await repo.update(id, data);
             await repo.deleteUnpaidPayments(id);
             invalidateData();
-            await refreshAfterMutation();
+            revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] updateCommitment failed:', error);
             throw error;
@@ -210,7 +214,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           try {
             await repo.deactivate(id);
             invalidateData();
-            await refreshAfterMutation();
+            revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] deactivateCommitment failed:', error);
             throw error;
@@ -226,7 +230,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
             if (!commitment) throw new Error(`Commitment not found for payment ${paymentId}`);
             await repo.markAsPaid(paymentId, details, commitment);
             invalidateData();
-            await refreshAfterMutation();
+            revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] markAsPaid failed:', error);
             throw error;
@@ -237,7 +241,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           try {
             await repo.markAsSkipped(paymentId);
             invalidateData();
-            await refreshAfterMutation();
+            revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] skipPayment failed:', error);
             throw error;
