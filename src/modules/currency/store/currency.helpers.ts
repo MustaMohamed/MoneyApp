@@ -5,7 +5,7 @@ export const RATE_REFRESH_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const persistedRatePattern = /^(?:\d+(?:\.\d+)?|\.\d+)$/;
 const remoteRateSchema = z.object({
   rates: z.object({
-    EGP: z.number().positive().finite(),
+    EGP: z.number().positive(),
   }),
 });
 
