@@ -71,9 +71,9 @@ export function createCurrencyStore(repo: IAppSettingsRepository) {
           const rate = parsePersistedRate(rateStr);
           set({
             ...(rate === undefined ? {} : { rate }),
-            lastFetched: fetchedAt,
-            isManualOverride: manualStr === 'true',
-            rate_updated_at: rateUpdatedAt,
+            lastFetched: rate === undefined ? null : fetchedAt,
+            isManualOverride: rate !== undefined && manualStr === 'true',
+            rate_updated_at: rate === undefined ? null : rateUpdatedAt,
             hasLoaded: true,
           });
         } catch (err) {

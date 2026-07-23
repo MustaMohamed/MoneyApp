@@ -16,7 +16,11 @@ export function runAfterInteractions(
   const deliverError = (error: unknown) => {
     if (cancelled) return;
     if (options.onError) {
-      options.onError(error);
+      try {
+        options.onError(error);
+      } catch (handlerError) {
+        console.error('[runAfterInteractions] error handler failed:', handlerError);
+      }
       return;
     }
     console.error('[runAfterInteractions] task failed:', error);

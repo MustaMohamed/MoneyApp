@@ -4,13 +4,19 @@ import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
 export type AppStartupStatus = 'initializing' | 'ready' | 'fatalError';
 
-const INITIAL_STATE = {
-  status: 'initializing' as AppStartupStatus,
+interface AppReadyState {
+  status: AppStartupStatus;
+  generation: number;
+  error: unknown | null;
+}
+
+const INITIAL_STATE: AppReadyState = {
+  status: 'initializing',
   generation: 0,
-  error: null as unknown,
+  error: null,
 };
 
-type AppReadyStore = typeof INITIAL_STATE & {
+type AppReadyStore = AppReadyState & {
   begin: () => number;
   resolveReady: (generation: number) => void;
   rejectFatal: (generation: number, error: unknown) => void;

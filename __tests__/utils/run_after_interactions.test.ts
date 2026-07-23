@@ -93,6 +93,29 @@ describe('runAfterInteractions', () => {
     expect(timeoutSpy).not.toHaveBeenCalled();
   });
 
+  it('contains failures thrown by the supplied error handler', () => {
+    const taskError = new Error('task failed');
+    const handlerError = new Error('handler failed');
+    const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    runAfterInteractions(
+      () => {
+        throw taskError;
+      },
+      {
+        onError: () => {
+          throw handlerError;
+        },
+      },
+    );
+
+    expect(() => mockScheduledCallbacks[0]?.()).not.toThrow();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      '[runAfterInteractions] error handler failed:',
+      handlerError,
+    );
+  });
+
   it('suppresses rejection delivery after cancellation', async () => {
     let reject!: (error: unknown) => void;
     const promise = new Promise<void>((_, rejectPromise) => {

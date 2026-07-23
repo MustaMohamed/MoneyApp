@@ -61,12 +61,23 @@ describe('currencyStore.loadRate', () => {
     expect(store.getState().hasLoaded).toBe(true);
   });
 
-  it('marks invalid persisted data loaded without publishing it', async () => {
-    const store = createCurrencyStore(makeRepo({ usd_rate: '50abc' }));
+  it('marks invalid persisted data loaded without retaining stale ownership metadata', async () => {
+    const store = createCurrencyStore(
+      makeRepo({
+        usd_rate: '50abc',
+        usd_rate_fetched_at: '2026-05-01T10:00:00.000Z',
+        usd_rate_manual_override: 'true',
+      }),
+    );
 
     await store.getState().loadRate();
 
-    expect(store.getState()).toMatchObject({ rate: 50, hasLoaded: true });
+    expect(store.getState()).toMatchObject({
+      rate: 50,
+      hasLoaded: true,
+      lastFetched: null,
+      isManualOverride: false,
+    });
   });
 
   it('sets isManualOverride=true when stored as "true"', async () => {
