@@ -133,6 +133,7 @@ const duePayment: CommitmentPayment = {
 // Stable, capturable mocks: markAsPaid so we can assert the persisted snapshot,
 // and an injectable accounts list so requiresRate (currency mismatch) can be exercised.
 const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
+const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
 
 function setupStoreMocks() {
@@ -141,7 +142,7 @@ function setupStoreMocks() {
     payments: [],
     selectedMonth: '2026-05',
     markAsPaid: mockMarkAsPaid,
-    loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
+    loadPaymentsForMonth: mockLoadPaymentsForMonth,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     get accounts() {
@@ -187,6 +188,8 @@ describe('usePaySheet', () => {
     mockAccounts = [];
     mockMarkAsPaid.mockClear();
     mockMarkAsPaid.mockResolvedValue(undefined);
+    mockLoadPaymentsForMonth.mockClear();
+    mockLoadPaymentsForMonth.mockResolvedValue(undefined);
     // Re-setup store mocks after clearAllMocks
     setupStoreMocks();
   });
@@ -247,6 +250,7 @@ describe('usePaySheet', () => {
       await result.current.onSubmit();
     });
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(mockLoadPaymentsForMonth).not.toHaveBeenCalled();
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
     expect(arg.exchange_rate_snapshot).toBe(99);
   });

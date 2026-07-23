@@ -22,7 +22,6 @@ export function useAddCommitment() {
   const accounts = useAccountStore((s) => s.accounts);
   const categories = useCategoryStore.useState.categories();
   const addCommitment = useCommitmentStore.getState().addCommitment;
-  const generatePayments = useCommitmentStore.getState().generatePayments;
   const saving = useAddCommitmentState.useState.saving();
   const setSaving = useAddCommitmentState.getState().setSaving;
   const reset = useAddCommitmentState.getState().reset;
@@ -57,7 +56,6 @@ export function useAddCommitment() {
         end_after_count:
           data.durationType === DurationType.AfterCount ? (data.endAfterCount ?? null) : null,
       });
-      await generatePayments();
       reset();
       form.reset(buildAddDefaults());
       router.back();

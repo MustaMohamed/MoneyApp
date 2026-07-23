@@ -1,4 +1,4 @@
-import { renderHook } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
@@ -23,12 +23,15 @@ jest.mock('@/modules/commitments/screens/commitments/add_commitment/add_commitme
   useAddCommitmentState: jest.fn(),
 }));
 
+const addCommitmentMock = jest.fn().mockResolvedValue(undefined);
+const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
+
 function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments: [],
     payments: [],
-    addCommitment: jest.fn().mockResolvedValue(undefined),
-    generatePayments: jest.fn().mockResolvedValue(undefined),
+    addCommitment: addCommitmentMock,
+    generatePayments: generatePaymentsMock,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: [],
@@ -44,7 +47,10 @@ function setup() {
 }
 
 describe('useAddCommitment', () => {
-  beforeEach(setup);
+  beforeEach(() => {
+    jest.clearAllMocks();
+    setup();
+  });
 
   it('renders without throwing', () => {
     expect(() => renderHook(() => useAddCommitment())).not.toThrow();
@@ -53,5 +59,21 @@ describe('useAddCommitment', () => {
   it('saving defaults to false', () => {
     const { result } = renderHook(() => useAddCommitment());
     expect(result.current.state.saving).toBe(false);
+  });
+
+  it('leaves payment generation to the commitment mutation owner', async () => {
+    const { result } = renderHook(() => useAddCommitment());
+    act(() => {
+      result.current.form.setValue('name', 'Rent');
+      result.current.form.setValue('amount', 5000);
+      result.current.form.setValue('categoryId', 'category-rent');
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+    });
+
+    expect(addCommitmentMock).toHaveBeenCalledTimes(1);
+    expect(generatePaymentsMock).not.toHaveBeenCalled();
   });
 });

@@ -66,9 +66,7 @@ export function usePaySheet(
     useShallow((state) => ({ rate: state.rate, rateUpdatedAt: state.rate_updated_at })),
   );
 
-  const selectedMonth = useCommitmentStore.useState.selectedMonth();
   const markAsPaid = useCommitmentStore.getState().markAsPaid;
-  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -160,7 +158,6 @@ export function usePaySheet(
         notes: data.notes?.trim() || undefined,
       });
       await loadAccounts();
-      await loadPaymentsForMonth(selectedMonth);
       setVisible(false);
       reset();
     } catch {

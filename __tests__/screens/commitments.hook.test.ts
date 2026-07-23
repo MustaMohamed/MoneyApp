@@ -43,7 +43,7 @@ jest.mock('expo-router', () => ({
   },
 }));
 jest.mock('@/utils/run_after_interactions', () => ({
-  runAfterInteractions: jest.fn((callback: () => void) => {
+  runAfterInteractions: jest.fn((callback: () => void, _options?: { onError?: unknown }) => {
     let cancelled = false;
     const cancel = jest.fn(() => {
       cancelled = true;
@@ -67,9 +67,8 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.state', () => (
   useCommitmentsScreenState: jest.fn(),
 }));
 
-const loadPaymentsForMonthMock = jest.fn().mockResolvedValue(undefined);
-const loadCommitmentsMock = jest.fn().mockResolvedValue(undefined);
-const generatePaymentsMock = jest.fn().mockResolvedValue(undefined);
+const ensureHousekeepingCurrentMock = jest.fn().mockResolvedValue(undefined);
+const loadMonthSnapshotMock = jest.fn().mockResolvedValue(undefined);
 const setSelectedMonthMock = jest.fn();
 const setRefreshingMock = jest.fn();
 const setStatusFilterMock = jest.fn();
@@ -168,6 +167,11 @@ function setup({
   accounts = [],
   categories = [],
   appliedFilters = EMPTY_COMMITMENT_FILTERS,
+  loadedMonth = selectedMonth,
+  commitmentsLoaded = true,
+  paymentsLoaded = true,
+  loading = false,
+  loadError = false,
 }: {
   selectedMonth?: string;
   commitments?: Commitment[];
@@ -177,17 +181,24 @@ function setup({
   accounts?: Account[];
   categories?: Category[];
   appliedFilters?: typeof EMPTY_COMMITMENT_FILTERS;
+  loadedMonth?: string;
+  commitmentsLoaded?: boolean;
+  paymentsLoaded?: boolean;
+  loading?: boolean;
+  loadError?: boolean;
 } = {}) {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
     commitments,
     payments,
     selectedMonth,
-    commitmentsLoaded: true,
-    paymentsLoaded: true,
+    commitmentsLoaded,
+    paymentsLoaded,
+    loadedMonth,
+    loading,
+    loadError,
     setSelectedMonth: setSelectedMonthMock,
-    loadPaymentsForMonth: loadPaymentsForMonthMock,
-    loadCommitments: loadCommitmentsMock,
-    generatePayments: generatePaymentsMock,
+    ensureHousekeepingCurrent: ensureHousekeepingCurrentMock,
+    loadMonthSnapshot: loadMonthSnapshotMock,
     skipPayment: jest.fn(),
     deactivateCommitment: jest.fn(),
   }));
@@ -214,9 +225,8 @@ describe('useCommitments', () => {
   beforeEach(() => {
     capturedFocusCallback = null;
     mockInteractionTasks.length = 0;
-    loadPaymentsForMonthMock.mockReset().mockResolvedValue(undefined);
-    loadCommitmentsMock.mockReset().mockResolvedValue(undefined);
-    generatePaymentsMock.mockReset().mockResolvedValue(undefined);
+    ensureHousekeepingCurrentMock.mockReset().mockResolvedValue(undefined);
+    loadMonthSnapshotMock.mockReset().mockResolvedValue(undefined);
     setSelectedMonthMock.mockClear();
     setRefreshingMock.mockClear();
     setStatusFilterMock.mockClear();
@@ -246,8 +256,8 @@ describe('useCommitments', () => {
     });
 
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
-    expect(loadCommitmentsMock).not.toHaveBeenCalled();
-    expect(loadPaymentsForMonthMock).not.toHaveBeenCalled();
+    expect(ensureHousekeepingCurrentMock).not.toHaveBeenCalled();
+    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
 
     act(() => {
       cleanup?.();
@@ -255,20 +265,17 @@ describe('useCommitments', () => {
     });
 
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
-    expect(loadCommitmentsMock).not.toHaveBeenCalled();
-    expect(loadPaymentsForMonthMock).not.toHaveBeenCalled();
+    expect(ensureHousekeepingCurrentMock).not.toHaveBeenCalled();
+    expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
   });
 
-  it('focus reload regenerates payments before loading the selected month', async () => {
+  it('focus schedules one housekeeping pass and one selected-month snapshot load', async () => {
     const calls: string[] = [];
-    loadCommitmentsMock.mockImplementation(async () => {
-      calls.push('loadCommitments');
+    ensureHousekeepingCurrentMock.mockImplementation(async () => {
+      calls.push('ensureHousekeepingCurrent');
     });
-    generatePaymentsMock.mockImplementation(async () => {
-      calls.push('generatePayments');
-    });
-    loadPaymentsForMonthMock.mockImplementation(async (yearMonth: string) => {
-      calls.push(`loadPaymentsForMonth:${yearMonth}`);
+    loadMonthSnapshotMock.mockImplementation(async (yearMonth: string) => {
+      calls.push(`loadMonthSnapshot:${yearMonth}`);
     });
     renderHook(() => useCommitments());
 
@@ -281,7 +288,14 @@ describe('useCommitments', () => {
       await Promise.resolve();
     });
 
-    expect(calls).toEqual(['loadCommitments', 'generatePayments', 'loadPaymentsForMonth:2026-05']);
+    expect(runAfterInteractions).toHaveBeenCalledWith(
+      expect.any(Function),
+      expect.objectContaining({ onError: expect.any(Function) }),
+    );
+    expect(calls).toEqual(['ensureHousekeepingCurrent', 'loadMonthSnapshot:2026-05']);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05', {
+      ensureHousekeeping: false,
+    });
   });
 
   it('pull-to-refresh reloads immediately without waiting for interactions', async () => {
@@ -294,10 +308,74 @@ describe('useCommitments', () => {
 
     expect(runAfterInteractions).not.toHaveBeenCalled();
     expect(setRefreshingMock).toHaveBeenNthCalledWith(1, true);
-    expect(loadCommitmentsMock).toHaveBeenCalledTimes(1);
-    expect(generatePaymentsMock).toHaveBeenCalledTimes(1);
-    expect(loadPaymentsForMonthMock).toHaveBeenCalledWith('2026-05');
+    expect(ensureHousekeepingCurrentMock).toHaveBeenCalledTimes(1);
+    expect(loadMonthSnapshotMock).toHaveBeenCalledWith('2026-05', {
+      ensureHousekeeping: false,
+    });
     expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
+  });
+
+  it('does not derive rows or summary from a stale month snapshot', () => {
+    setup({
+      selectedMonth: '2026-05',
+      loadedMonth: '2026-04',
+      commitments: [makeCommitment('commitment-payment')],
+      payments: [makePayment('payment', CommitmentPaymentStatus.Due)],
+    });
+
+    const { result } = renderHook(() => useCommitments());
+
+    expect(result.current.state.hasLoaded).toBe(false);
+    expect(result.current.state.presentation).toBe('coldLoading');
+    expect(result.current.state.sections).toEqual([]);
+    expect(result.current.state.counts.total).toBe(0);
+    expect(result.current.state.totalsByCurrency.size).toBe(0);
+    expect(result.current.state.hasCommitments).toBe(false);
+  });
+
+  it.each([
+    { commitmentsLoaded: false, paymentsLoaded: true },
+    { commitmentsLoaded: true, paymentsLoaded: false },
+  ])(
+    'requires both commitment and payment data before publishing a matching snapshot',
+    ({ commitmentsLoaded, paymentsLoaded }) => {
+      setup({ commitmentsLoaded, paymentsLoaded });
+
+      const { result } = renderHook(() => useCommitments());
+
+      expect(result.current.state.hasLoaded).toBe(false);
+      expect(result.current.state.presentation).toBe('coldLoading');
+    },
+  );
+
+  it('publishes a cold error without exposing stale month data', () => {
+    setup({
+      selectedMonth: '2026-05',
+      loadedMonth: '2026-04',
+      commitments: [makeCommitment('commitment-payment')],
+      payments: [makePayment('payment', CommitmentPaymentStatus.Due)],
+      loadError: true,
+    });
+
+    const { result } = renderHook(() => useCommitments());
+
+    expect(result.current.state.presentation).toBe('coldError');
+    expect(result.current.state.sections).toEqual([]);
+  });
+
+  it('keeps matching rows visible when a warm refresh fails', () => {
+    setup({
+      commitments: [makeCommitment('commitment-payment')],
+      payments: [makePayment('payment', CommitmentPaymentStatus.Due)],
+      loadError: true,
+    });
+
+    const { result } = renderHook(() => useCommitments());
+
+    expect(result.current.state.hasLoaded).toBe(true);
+    expect(result.current.state.presentation).toBe('contentWithError');
+    expect(result.current.state.sections[0]?.data[0]?.id).toBe('payment');
+    expect(result.current.state.counts.total).toBe(1);
   });
 
   it('selectMonth delegates to the commitment store selected month', () => {

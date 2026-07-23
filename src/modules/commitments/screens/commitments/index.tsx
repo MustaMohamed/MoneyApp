@@ -1,8 +1,9 @@
-import { Separator, Surface, Text as HeroText } from 'heroui-native';
+import { Alert, Separator, Surface, Text as HeroText } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
 
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty_state';
 import { FilterRail, type FilterRailOption } from '@/components/ui/filter_rail';
 import { Screen } from '@/components/ui/screen';
@@ -158,7 +159,7 @@ export default function CommitmentsScreen() {
         <SummaryHeader
           counts={state.counts}
           totalsByCurrency={state.totalsByCurrency}
-          isLoading={!state.paymentsLoaded || state.refreshing}
+          isLoading={state.presentation === 'coldLoading'}
         />
         <CommitmentSearchRow
           value={state.searchQuery}
@@ -173,15 +174,13 @@ export default function CommitmentsScreen() {
       setSearchQuery,
       state.activeFilterCount,
       state.counts,
-      state.paymentsLoaded,
-      state.refreshing,
+      state.presentation,
       state.searchQuery,
       state.totalsByCurrency,
     ],
   );
 
-  const showRowsSkeleton =
-    (!state.commitmentsLoaded || !state.paymentsLoaded) && state.sections.length === 0;
+  const showRowsSkeleton = state.presentation === 'coldLoading';
   const listSections = state.sections;
 
   const listEmptyComponent = useMemo(
@@ -197,8 +196,7 @@ export default function CommitmentsScreen() {
   );
 
   const handleRefresh = useCallback(() => void onRefresh(), [onRefresh]);
-  const showCommitmentsEmptyState =
-    state.commitmentsLoaded && !state.refreshing && !state.hasCommitments;
+  const showCommitmentsEmptyState = state.hasLoaded && !state.hasCommitments;
 
   return (
     <Screen edges={['top']}>
@@ -219,7 +217,44 @@ export default function CommitmentsScreen() {
         filterAccessibilityLabel="Commitment status filter"
       />
 
-      {showCommitmentsEmptyState ? (
+      {state.presentation === 'contentWithError' ? (
+        <View
+          className="absolute right-4 bottom-24 left-4 z-50"
+          style={{ minHeight: Size.statusRailMinHeight }}
+        >
+          <Alert status="danger" className="w-full">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{Strings.commitmentsLoadError}</Alert.Title>
+            </Alert.Content>
+            <Button
+              variant="secondary"
+              size="sm"
+              label={Strings.commitmentsLoadRetry}
+              accessibilityLabel={Strings.commitmentsLoadRetry}
+              onPress={() => void onRefresh()}
+            />
+          </Alert>
+        </View>
+      ) : null}
+
+      {state.presentation === 'coldError' ? (
+        <View className="flex-1 items-center justify-center px-6">
+          <Alert status="danger" className="w-full">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>{Strings.commitmentsLoadError}</Alert.Title>
+            </Alert.Content>
+            <Button
+              variant="secondary"
+              size="sm"
+              label={Strings.commitmentsLoadRetry}
+              accessibilityLabel={Strings.commitmentsLoadRetry}
+              onPress={() => void onRefresh()}
+            />
+          </Alert>
+        </View>
+      ) : showCommitmentsEmptyState ? (
         <CommitmentsEmptyState onAdd={goToAdd} />
       ) : (
         <SectionList
