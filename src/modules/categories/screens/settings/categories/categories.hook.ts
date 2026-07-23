@@ -14,12 +14,14 @@ import { useCategoriesScreenStore } from './categories.store';
 
 export function useCategories() {
   const router = useRouter();
-  const { categories, hasLoaded } = useCategoryStore(
+  const { categories, hasLoaded, loadError } = useCategoryStore(
     useShallow((s) => ({
       categories: s.categories,
       hasLoaded: s.hasLoaded,
+      loadError: s.loadError,
     })),
   );
+  const loadCategories = useCategoryStore.getState().loadCategories;
   const addCategory = useCategoryStore.getState().addCategory;
   const updateCategory = useCategoryStore.getState().updateCategory;
   const deleteCategory = useCategoryStore.getState().deleteCategory;
@@ -207,6 +209,13 @@ export function useCategories() {
   );
 
   const goBack = useCallback(() => router.back(), [router]);
+  const retryLoad = useCallback(async () => {
+    try {
+      await loadCategories();
+    } catch {
+      // The category store owns the retryable error state.
+    }
+  }, [loadCategories]);
 
   return {
     state: {
@@ -214,6 +223,7 @@ export function useCategories() {
       customCategories,
       isAtLimit,
       hasLoaded,
+      loadError,
       activeTab,
       showAddSheet,
       editingCategory,
@@ -233,6 +243,7 @@ export function useCategories() {
     handleDeleteConfirm,
     handleReassignConfirm,
     closeDeleteFlow,
+    retryLoad,
     goBack,
   };
 }

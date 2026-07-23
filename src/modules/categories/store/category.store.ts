@@ -24,66 +24,90 @@ type CategoryStore = typeof INITIAL_STATE & {
 };
 
 export function createCategoryStore(repo: ICategoryRepository) {
+  let requestGeneration = 0;
+  let sharedLoadPromise: Promise<void> | undefined;
+
   return createMoneyAppSelectors(
-    create<CategoryStore>((set, get) => ({
-      ...INITIAL_STATE,
+    create<CategoryStore>((set) => {
+      const loadOwned = (force: boolean): Promise<void> => {
+        if (!force && sharedLoadPromise) return sharedLoadPromise;
 
-      loadCategories: async () => {
+        const ownerGeneration = ++requestGeneration;
         set({ loadError: false });
-        try {
-          const categories = await repo.getAll();
-          set({ categories, hasLoaded: true, loadError: false });
-        } catch (err) {
-          set({ loadError: true });
-          console.error('[categoryStore] loadCategories failed:', err);
-          throw err;
-        }
-      },
 
-      addCategory: async (data) => {
-        try {
-          await repo.add(data);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] addCategory failed:', err);
-          throw err;
-        }
-      },
+        let request!: Promise<void>;
+        request = (async () => {
+          try {
+            const categories = await repo.getAll();
+            if (ownerGeneration !== requestGeneration) return;
+            set({ categories, hasLoaded: true, loadError: false });
+          } catch (error) {
+            if (ownerGeneration === requestGeneration) set({ loadError: true });
+            console.error('[categoryStore] loadCategories failed:', error);
+            throw error;
+          } finally {
+            if (sharedLoadPromise === request) sharedLoadPromise = undefined;
+          }
+        })();
 
-      updateCategory: async (id, data) => {
-        try {
-          await repo.update(id, data);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] updateCategory failed:', err);
-          throw err;
-        }
-      },
+        sharedLoadPromise = request;
+        return request;
+      };
 
-      deleteCategory: async (id) => {
-        try {
-          await repo.delete(id);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] deleteCategory failed:', err);
-          throw err;
-        }
-      },
+      return {
+        ...INITIAL_STATE,
 
-      reassignAndDelete: async (fromId, toId) => {
-        try {
-          await repo.reassignAndDelete(fromId, toId);
-          await get().loadCategories();
-        } catch (err) {
-          console.error('[categoryStore] reassignAndDelete failed:', err);
-          throw err;
-        }
-      },
+        loadCategories: () => loadOwned(false),
 
-      getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
+        addCategory: async (data) => {
+          try {
+            await repo.add(data);
+            await loadOwned(true);
+          } catch (err) {
+            console.error('[categoryStore] addCategory failed:', err);
+            throw err;
+          }
+        },
 
-      reset: () => set(INITIAL_STATE),
-    })),
+        updateCategory: async (id, data) => {
+          try {
+            await repo.update(id, data);
+            await loadOwned(true);
+          } catch (err) {
+            console.error('[categoryStore] updateCategory failed:', err);
+            throw err;
+          }
+        },
+
+        deleteCategory: async (id) => {
+          try {
+            await repo.delete(id);
+            await loadOwned(true);
+          } catch (err) {
+            console.error('[categoryStore] deleteCategory failed:', err);
+            throw err;
+          }
+        },
+
+        reassignAndDelete: async (fromId, toId) => {
+          try {
+            await repo.reassignAndDelete(fromId, toId);
+            await loadOwned(true);
+          } catch (err) {
+            console.error('[categoryStore] reassignAndDelete failed:', err);
+            throw err;
+          }
+        },
+
+        getCategoryTransactionCount: (id) => repo.getTransactionCount(id),
+
+        reset: () => {
+          requestGeneration += 1;
+          sharedLoadPromise = undefined;
+          set(INITIAL_STATE);
+        },
+      };
+    }),
   );
 }
 

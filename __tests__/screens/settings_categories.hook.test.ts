@@ -19,6 +19,7 @@ jest.mock('@/modules/categories/screens/settings/categories/categories.store', (
 }));
 
 function setup() {
+  const loadCategories = jest.fn().mockResolvedValue(undefined);
   attachMockSelectorStore(useCategoriesScreenState as unknown as jest.Mock, () => ({
     activeTab: 'expense',
     showAddSheet: false,
@@ -42,6 +43,8 @@ function setup() {
   attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
     categories: [],
     hasLoaded: false,
+    loadError: false,
+    loadCategories,
     addCategory: jest.fn().mockResolvedValue(undefined),
     updateCategory: jest.fn().mockResolvedValue(undefined),
     deleteCategory: jest.fn().mockResolvedValue(undefined),
@@ -65,5 +68,41 @@ describe('useCategories', () => {
   it('exposes whether category data has loaded', () => {
     const { result } = renderHook(() => useCategories());
     expect(result.current.state.hasLoaded).toBe(false);
+  });
+
+  it('exposes the category load error state', () => {
+    attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+      categories: [],
+      hasLoaded: false,
+      loadError: true,
+      loadCategories: jest.fn().mockResolvedValue(undefined),
+      addCategory: jest.fn().mockResolvedValue(undefined),
+      updateCategory: jest.fn().mockResolvedValue(undefined),
+      deleteCategory: jest.fn().mockResolvedValue(undefined),
+      reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+      getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
+    }));
+
+    const { result } = renderHook(() => useCategories());
+    expect(result.current.state.loadError).toBe(true);
+  });
+
+  it('retries category loading without leaking the rejection', async () => {
+    const loadCategories = jest.fn().mockRejectedValue(new Error('still unavailable'));
+    attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
+      categories: [],
+      hasLoaded: false,
+      loadError: true,
+      loadCategories,
+      addCategory: jest.fn().mockResolvedValue(undefined),
+      updateCategory: jest.fn().mockResolvedValue(undefined),
+      deleteCategory: jest.fn().mockResolvedValue(undefined),
+      reassignAndDelete: jest.fn().mockResolvedValue(undefined),
+      getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
+    }));
+    const { result } = renderHook(() => useCategories());
+
+    await expect(result.current.retryLoad()).resolves.toBeUndefined();
+    expect(loadCategories).toHaveBeenCalledTimes(1);
   });
 });

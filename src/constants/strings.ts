@@ -8,6 +8,9 @@ export const Strings = {
   startupErrorTitle: 'MoneyApp could not start',
   startupErrorDescription: 'Your data is still safe. Check the app again to finish loading it.',
   startupErrorRetry: 'Retry',
+  categoriesLoadError: 'Could not load categories.',
+  categoriesRefreshError: 'Could not refresh categories.',
+  categoriesLoadRetry: 'Retry',
 
   // O1 Welcome
   o1Headline: 'Your money.\nFinally clear.',

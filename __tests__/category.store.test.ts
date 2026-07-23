@@ -30,6 +30,16 @@ function makeRepo(overrides: Partial<ICategoryRepository> = {}): ICategoryReposi
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('categoryStore.loadCategories', () => {
   it('starts unloaded so screens do not show empty states before category data settles', () => {
     const repo = makeRepo();
@@ -67,6 +77,108 @@ describe('categoryStore.loadCategories', () => {
     const useStore = createCategoryStore(repo);
     await useStore.getState().loadCategories();
     expect(useStore.getState().categories).toEqual([cat]);
+  });
+
+  it('deduplicates concurrent cold loads', async () => {
+    const pending = deferred<Category[]>();
+    const repo = makeRepo({ getAll: jest.fn().mockReturnValue(pending.promise) });
+    const useStore = createCategoryStore(repo);
+
+    const first = useStore.getState().loadCategories();
+    const second = useStore.getState().loadCategories();
+    expect(repo.getAll).toHaveBeenCalledTimes(1);
+
+    pending.resolve([mockCategory()]);
+    await Promise.all([first, second]);
+    expect(useStore.getState().hasLoaded).toBe(true);
+  });
+
+  it('lets a mutation reload supersede an older cold preload', async () => {
+    const preload = deferred<Category[]>();
+    const before = mockCategory({ name: 'Before' });
+    const after = mockCategory({ name: 'After' });
+    const repo = makeRepo({
+      getAll: jest.fn().mockReturnValueOnce(preload.promise).mockResolvedValueOnce([after]),
+    });
+    const useStore = createCategoryStore(repo);
+
+    const staleLoad = useStore.getState().loadCategories();
+    await useStore.getState().addCategory({
+      name: 'After',
+      type: CategoryType.Expense,
+      icon: 'star',
+      color: '#fff',
+    });
+    preload.resolve([before]);
+    await staleLoad;
+
+    expect(repo.getAll).toHaveBeenCalledTimes(2);
+    expect(useStore.getState().categories).toEqual([after]);
+  });
+
+  it('does not publish an error from a superseded preload', async () => {
+    const preload = deferred<Category[]>();
+    const after = mockCategory({ name: 'After' });
+    const repo = makeRepo({
+      getAll: jest.fn().mockReturnValueOnce(preload.promise).mockResolvedValueOnce([after]),
+    });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    const staleLoad = useStore.getState().loadCategories();
+    await useStore.getState().updateCategory(after.id, {
+      name: after.name,
+      icon: after.icon,
+      color: after.color,
+    });
+    preload.reject(new Error('stale failure'));
+    await expect(staleLoad).rejects.toThrow('stale failure');
+
+    expect(useStore.getState()).toMatchObject({
+      categories: [after],
+      hasLoaded: true,
+      loadError: false,
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('preserves warm categories when revalidation fails', async () => {
+    const category = mockCategory();
+    const repo = makeRepo({
+      getAll: jest
+        .fn()
+        .mockResolvedValueOnce([category])
+        .mockRejectedValueOnce(new Error('refresh failed')),
+    });
+    const useStore = createCategoryStore(repo);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    await useStore.getState().loadCategories();
+
+    await expect(useStore.getState().loadCategories()).rejects.toThrow('refresh failed');
+
+    expect(useStore.getState()).toMatchObject({
+      categories: [category],
+      hasLoaded: true,
+      loadError: true,
+    });
+    consoleSpy.mockRestore();
+  });
+
+  it('invalidates pending load publication on reset', async () => {
+    const pending = deferred<Category[]>();
+    const repo = makeRepo({ getAll: jest.fn().mockReturnValue(pending.promise) });
+    const useStore = createCategoryStore(repo);
+
+    const load = useStore.getState().loadCategories();
+    useStore.getState().reset();
+    pending.resolve([mockCategory()]);
+    await load;
+
+    expect(useStore.getState()).toMatchObject({
+      categories: [],
+      hasLoaded: false,
+      loadError: false,
+    });
   });
 });
 
