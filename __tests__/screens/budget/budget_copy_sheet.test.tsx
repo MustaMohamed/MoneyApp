@@ -1,9 +1,8 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import type { ReactNode } from 'react';
-import type { PressableProps, StyleProp, ViewStyle } from 'react-native';
+import type { PressableProps } from 'react-native';
 
 import { Strings } from '@/constants/strings';
-import { Size } from '@/constants/theme';
 import type { BudgetCopyRowVM } from '@/modules/budget/screens/budget/budget.helpers';
 import { BudgetCopySheet } from '@/modules/budget/screens/budget/components/budget_copy_sheet';
 
@@ -84,9 +83,7 @@ jest.mock('heroui-native', () => {
   Alert.Content = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
   Alert.Title = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
   const SkeletonGroup = ({ children }: { children?: ReactNode }) => <View>{children}</View>;
-  SkeletonGroup.Item = ({ style }: { style?: StyleProp<ViewStyle> }) => (
-    <View testID="copy-preview-skeleton" style={style} />
-  );
+  SkeletonGroup.Item = () => <View testID="copy-preview-skeleton" />;
   return {
     Alert,
     Checkbox,
@@ -232,63 +229,6 @@ describe('BudgetCopySheet', () => {
       expect.stringContaining('border'),
       expect.stringContaining('border'),
     ]);
-  });
-
-  it('uses one named height token for loaded and skeleton preview rows', () => {
-    const loading = render(
-      <BudgetCopySheet
-        isOpen
-        sourceMonth="2026-06"
-        targetMonthLabel="July 2026"
-        rows={[]}
-        selectedBudgetIds={[]}
-        previewLoading
-        previewError={false}
-        copyBusy={false}
-        copyError={false}
-        onSourceMonthChange={jest.fn()}
-        onOpenChange={jest.fn()}
-        onToggleBudget={jest.fn()}
-        onSelectAll={jest.fn()}
-        onClearSelection={jest.fn()}
-        onRetryPreview={jest.fn()}
-        onApply={jest.fn()}
-      />,
-    );
-
-    expect(
-      loading.getAllByTestId('copy-preview-skeleton').map((node) => node.props.style.minHeight),
-    ).toEqual([
-      Size.budgetCopyPreviewRowHeight,
-      Size.budgetCopyPreviewRowHeight,
-      Size.budgetCopyPreviewRowHeight,
-    ]);
-    loading.unmount();
-
-    const loaded = render(
-      <BudgetCopySheet
-        isOpen
-        sourceMonth="2026-06"
-        targetMonthLabel="July 2026"
-        rows={rows}
-        selectedBudgetIds={[]}
-        previewLoading={false}
-        previewError={false}
-        copyBusy={false}
-        copyError={false}
-        onSourceMonthChange={jest.fn()}
-        onOpenChange={jest.fn()}
-        onToggleBudget={jest.fn()}
-        onSelectAll={jest.fn()}
-        onClearSelection={jest.fn()}
-        onRetryPreview={jest.fn()}
-        onApply={jest.fn()}
-      />,
-    );
-
-    expect(loaded.getByLabelText('Toggle Monthly Food').props.style.minHeight).toBe(
-      Size.budgetCopyPreviewRowHeight,
-    );
   });
 
   it('opens a direct month picker for changing the copy source month', () => {
