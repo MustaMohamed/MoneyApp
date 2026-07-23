@@ -1,548 +1,389 @@
-import { act, renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook } from '@testing-library/react-native';
 
-import { AccountType, Currency } from '@/constants/enums';
+import { AccountType, CommitmentPaymentStatus, Currency } from '@/constants/enums';
+import { useCurrencyStore } from '@/modules/currency/store/currency.store';
+import type {
+  DashboardLoadInput,
+  DashboardSnapshot,
+} from '@/modules/dashboard/repositories/dashboard.repository';
 import { useDashboard } from '@/modules/dashboard/screens/dashboard/dashboard.hook';
+import { useDashboardState } from '@/modules/dashboard/screens/dashboard/dashboard.state';
+import { useDashboardStore } from '@/modules/dashboard/screens/dashboard/dashboard.store';
+import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
+import { runAfterInteractions } from '@/utils/run_after_interactions';
 
-// All stores are mocked so no real Zustand stores are instantiated.
-// useDashboardState is mocked but backed by a simple object so tests
-// can inspect and mutate selectedSegment directly.
+jest.mock('zustand/react/shallow', () => ({
+  useShallow: <T>(selector: T): T => selector,
+}));
 
-jest.mock('zustand/react/shallow', () => ({ useShallow: (sel: any) => sel }));
-
-let capturedFocusCallback: (() => void | (() => void)) | null = null;
-const mockInteractionTasks: Array<{ callback: () => void; cancel: jest.Mock }> = [];
+const mockPush = jest.fn();
+let mockCapturedFocusCallback: (() => void | (() => void)) | undefined;
 
 jest.mock('expo-router', () => ({
-  useRouter: () => ({ push: jest.fn() }),
-  useFocusEffect: (cb: () => void | (() => void)) => {
-    capturedFocusCallback = cb;
+  useRouter: () => ({ push: mockPush }),
+  useFocusEffect: (callback: () => void | (() => void)) => {
+    mockCapturedFocusCallback = callback;
   },
 }));
 
+type ScheduledTask = {
+  callback: () => void | Promise<void>;
+  cancel: jest.MockedFunction<() => void>;
+};
+
+const mockScheduledTasks: ScheduledTask[] = [];
+
 jest.mock('@/utils/run_after_interactions', () => ({
-  runAfterInteractions: jest.fn((callback: () => void) => {
-    let cancelled = false;
-    const cancel = jest.fn(() => {
-      cancelled = true;
-    });
-    const task = {
-      callback: () => {
-        if (!cancelled) callback();
-      },
-      cancel,
+  runAfterInteractions: jest.fn((callback: () => void | Promise<void>) => {
+    const task: ScheduledTask = {
+      callback,
+      cancel: jest.fn(),
     };
-    mockInteractionTasks.push(task);
+    mockScheduledTasks.push(task);
     return { cancel: task.cancel };
   }),
 }));
 
-jest.mock('@/database/client', () => ({
-  getDb: jest.fn().mockResolvedValue({}),
-}));
-
-jest.mock('@/modules/accounts/database/account_stats', () => ({
-  getAccountsStats: jest.fn().mockResolvedValue({}),
-}));
-
-jest.mock('@/modules/transactions/database/transactions', () => ({
-  getMonthExpenseStats: jest.fn().mockResolvedValue({ totalEgp: 0, usdNative: 0, count: 0 }),
-  getPeriodTotals: jest.fn().mockResolvedValue({ incomeEgp: 0, expenseEgp: 0, netEgp: 0 }),
-}));
-
-jest.mock('@/modules/commitments/repositories/commitment.repository', () => ({
-  commitmentRepository: { getPaymentsForMonth: jest.fn().mockResolvedValue([]) },
-}));
-
-jest.mock('@/modules/budget/repositories/budget.repository', () => ({
-  budgetRepository: {
-    getRows: jest.fn().mockResolvedValue([]),
-    getSpendByMonth: jest.fn().mockResolvedValue({}),
-  },
-}));
-
-jest.mock('@/modules/accounts/store/account.store', () => ({
-  EMPTY_ACCOUNTS: [],
-  useAccountStore: jest.fn(),
-}));
-jest.mock('@/modules/currency/store/currency.store', () => ({ useCurrencyStore: jest.fn() }));
-jest.mock('@/modules/commitments/store/commitment.store', () => ({
-  useCommitmentStore: jest.fn(),
-}));
 jest.mock('@/modules/dashboard/screens/dashboard/dashboard.store', () => ({
   useDashboardStore: jest.fn(),
 }));
 jest.mock('@/modules/dashboard/screens/dashboard/dashboard.state', () => ({
   useDashboardState: jest.fn(),
 }));
+jest.mock('@/modules/currency/store/currency.store', () => ({
+  useCurrencyStore: jest.fn(),
+}));
 
-const { useAccountStore } = jest.requireMock('@/modules/accounts/store/account.store');
-const { useCurrencyStore } = jest.requireMock('@/modules/currency/store/currency.store');
-const { useCommitmentStore } = jest.requireMock('@/modules/commitments/store/commitment.store');
-const { commitmentRepository } = jest.requireMock(
-  '@/modules/commitments/repositories/commitment.repository',
-);
-const { budgetRepository } = jest.requireMock('@/modules/budget/repositories/budget.repository');
-const { getMonthExpenseStats, getPeriodTotals } = jest.requireMock(
-  '@/modules/transactions/database/transactions',
-);
-const { useDashboardStore } = jest.requireMock(
-  '@/modules/dashboard/screens/dashboard/dashboard.store',
-);
-const { useDashboardState } = jest.requireMock(
-  '@/modules/dashboard/screens/dashboard/dashboard.state',
-);
-const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
+const ensureSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
+const refreshSnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
+const retrySnapshot = jest.fn<Promise<void>, [DashboardLoadInput]>();
+const invalidate = jest.fn();
+const setBreakdownVisible = jest.fn();
+const setSelectedSegment = jest.fn();
 
-const BASE_ACCOUNTS = [
-  {
-    id: 'a1',
-    name: 'CIB',
-    type: AccountType.Bank,
-    currency: Currency.EGP,
-    current_balance: 27000,
-    opening_balance: 27000,
-    is_archived: 0,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: 'a2',
-    name: 'Savings',
-    type: AccountType.PhysicalSavings,
-    currency: Currency.EGP,
-    current_balance: 10000,
-    opening_balance: 10000,
-    is_archived: 0,
-    created_at: '',
-    updated_at: '',
-  },
-  {
-    id: 'a3',
-    name: 'Visa',
-    type: AccountType.CreditCard,
-    currency: Currency.EGP,
-    current_balance: 4080,
-    opening_balance: 4080,
-    is_archived: 0,
-    created_at: '',
-    updated_at: '',
-  },
-];
-
-// Shared mutable state for the V2 UI state mock — lets tests observe and
-// manipulate selectedSegment without a real Zustand store.
-let uiState = {
-  isBreakdownVisible: false,
-  refreshing: false,
-  selectedSegment: 'overview' as 'overview' | 'accounts',
-};
-const setBreakdownVisible = jest.fn((v: boolean) => {
-  uiState.isBreakdownVisible = v;
-});
-const setRefreshing = jest.fn((v: boolean) => {
-  uiState.refreshing = v;
-});
-const setSelectedSegment = jest.fn((s: 'overview' | 'accounts') => {
-  uiState.selectedSegment = s;
-});
-let loadAccountsMock: jest.Mock;
-
-function setupMocks(accounts = BASE_ACCOUNTS, accountsLoaded = true) {
-  const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-  loadAccountsMock = jest.fn().mockResolvedValue(undefined);
-  attachMockSelectorStore(useAccountStore as jest.Mock, () => ({
-    accounts,
-    hasLoaded: accountsLoaded,
-    loadAccounts: loadAccountsMock,
-  }));
-  attachMockSelectorStore(useCurrencyStore as jest.Mock, () => ({
-    rate: 48.85,
-    isManualOverride: false,
-  }));
-  attachMockSelectorStore(useCommitmentStore as jest.Mock, () => ({
-    commitments: [],
-    payments: [],
-  }));
-  attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-    statsMap: {},
-    currentMonthCommitmentPayments: [],
-    currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-    previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-    currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
-    previousTransactionTotals: null,
-    currentBudgetSummary: { budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 },
-    commitmentPaymentsLoaded: false,
-    monthSpendLoaded: false,
-    transactionTotalsLoaded: false,
-    budgetSummaryLoaded: false,
-    setStatsMap: jest.fn(),
-    setCurrentMonthCommitmentPayments: jest.fn(),
-    setMonthSpendStats: jest.fn(),
-    setTransactionTotals: jest.fn(),
-    setBudgetSummary: jest.fn(),
-  }));
-  attachMockSelectorStore(useDashboardState as jest.Mock, () => ({
-    ...uiState,
-    setBreakdownVisible,
-    setRefreshing,
-    setSelectedSegment,
-  }));
+function populatedSnapshot(): DashboardSnapshot {
+  return {
+    key: '2026-07',
+    yearMonth: '2026-07',
+    previousYearMonth: '2026-06',
+    accounts: [
+      {
+        id: 'usd-bank',
+        name: 'USD Bank',
+        type: AccountType.Bank,
+        currency: Currency.USD,
+        opening_balance: 100,
+        current_balance: 100,
+        color: null,
+        credit_limit: null,
+        revolving_balance: null,
+        minimum_payment: null,
+        statement_due_day: null,
+        interest_tracking: 0,
+        apr: null,
+        is_archived: 0,
+        balance_review_required: 0,
+        sort_order: 0,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+      },
+      {
+        id: 'card',
+        name: 'Card',
+        type: AccountType.CreditCard,
+        currency: Currency.EGP,
+        opening_balance: 1000,
+        current_balance: 1000,
+        color: null,
+        credit_limit: 5000,
+        revolving_balance: 1000,
+        minimum_payment: 100,
+        statement_due_day: 28,
+        interest_tracking: 0,
+        apr: null,
+        is_archived: 0,
+        balance_review_required: 0,
+        sort_order: 1,
+        created_at: '2026-01-02T00:00:00.000Z',
+        updated_at: '2026-01-02T00:00:00.000Z',
+      },
+    ],
+    statsMap: {
+      'usd-bank': { month_in: 100, month_out: 20, week_in: 30, week_out: 10 },
+    },
+    currentMonth: {
+      totals: { incomeEgp: 2000, expenseEgp: 500, netEgp: 1500 },
+      spend: { totalEgp: 500, usdNative: 10, count: 3 },
+    },
+    previousMonth: {
+      totals: { incomeEgp: 1800, expenseEgp: 400, netEgp: 1400 },
+      spend: { totalEgp: 400, usdNative: 8, count: 2 },
+    },
+    budgetSummary: {
+      budgeted: 1000,
+      spent: 500,
+      left: 500,
+      pct: 0.5,
+      categoryCount: 2,
+    },
+    commitmentPayments: [
+      {
+        id: 'paid',
+        commitment_id: 'commitment',
+        due_date: '2026-07-10',
+        paid_date: '2026-07-09',
+        skipped_date: null,
+        amount_due: 100,
+        amount_paid: 90,
+        currency: Currency.EGP,
+        exchange_rate_snapshot: null,
+        account_id: 'usd-bank',
+        transaction_id: null,
+        status: CommitmentPaymentStatus.Paid,
+        notes: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-07-09T00:00:00.000Z',
+      },
+    ],
+    loadedAt: new Date('2026-07-23T10:00:00.000Z').getTime(),
+  };
 }
 
+let dashboardStoreState: {
+  snapshot: DashboardSnapshot | undefined;
+  status:
+    | 'idle'
+    | 'initialLoading'
+    | 'ready'
+    | 'refreshing'
+    | 'refreshErrorWithData'
+    | 'initialError';
+  requestedKey: string | undefined;
+  requestGeneration: number;
+  ensureSnapshot: typeof ensureSnapshot;
+  refresh: typeof refreshSnapshot;
+  retry: typeof retrySnapshot;
+  invalidate: typeof invalidate;
+  reset: jest.MockedFunction<() => void>;
+};
+
+let dashboardUiState: {
+  isBreakdownVisible: boolean;
+  selectedSegment: 'overview' | 'accounts';
+  setBreakdownVisible: typeof setBreakdownVisible;
+  setSelectedSegment: typeof setSelectedSegment;
+  reset: jest.MockedFunction<() => void>;
+};
+
+let currencyState: {
+  rate: number;
+  isManualOverride: boolean;
+};
+
 beforeEach(() => {
-  capturedFocusCallback = null;
-  mockInteractionTasks.length = 0;
-  uiState = { isBreakdownVisible: false, refreshing: false, selectedSegment: 'overview' };
-  setBreakdownVisible.mockClear();
-  setRefreshing.mockClear();
-  setSelectedSegment.mockClear();
-  commitmentRepository.getPaymentsForMonth.mockClear();
-  budgetRepository.getRows.mockClear();
-  budgetRepository.getSpendByMonth.mockClear();
-  getMonthExpenseStats.mockClear();
-  getPeriodTotals.mockClear();
-  runAfterInteractions.mockClear();
-  setupMocks();
+  jest.useFakeTimers({ now: new Date('2026-07-23T10:00:00.000Z') });
+  mockCapturedFocusCallback = undefined;
+  mockScheduledTasks.length = 0;
+  jest.clearAllMocks();
+
+  ensureSnapshot.mockResolvedValue(undefined);
+  refreshSnapshot.mockResolvedValue(undefined);
+  retrySnapshot.mockResolvedValue(undefined);
+  dashboardStoreState = {
+    snapshot: populatedSnapshot(),
+    status: 'ready',
+    requestedKey: '2026-07',
+    requestGeneration: 1,
+    ensureSnapshot,
+    refresh: refreshSnapshot,
+    retry: retrySnapshot,
+    invalidate,
+    reset: jest.fn(),
+  };
+  dashboardUiState = {
+    isBreakdownVisible: false,
+    selectedSegment: 'overview',
+    setBreakdownVisible,
+    setSelectedSegment,
+    reset: jest.fn(),
+  };
+  currencyState = {
+    rate: 50,
+    isManualOverride: false,
+  };
+
+  attachMockSelectorStore(useDashboardStore, () => dashboardStoreState);
+  attachMockSelectorStore(useDashboardState, () => dashboardUiState);
+  attachMockSelectorStore(useCurrencyStore, () => currencyState);
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 describe('useDashboard', () => {
-  it('defaults selectedSegment to overview', () => {
-    const { result } = renderHook(() => useDashboard());
-    expect(result.current.state.selectedSegment).toBe('overview');
+  it('schedules one captured snapshot request on focus and invalidates on cleanup', () => {
+    renderHook(() => useDashboard());
+
+    let cleanup: void | (() => void);
+    act(() => {
+      cleanup = mockCapturedFocusCallback?.();
+    });
+
+    expect(setSelectedSegment).toHaveBeenCalledWith('overview');
+    expect(runAfterInteractions).toHaveBeenCalledTimes(1);
+    expect(ensureSnapshot).not.toHaveBeenCalled();
+
+    act(() => {
+      void mockScheduledTasks[0].callback();
+    });
+    expect(ensureSnapshot).toHaveBeenCalledWith({
+      yearMonth: '2026-07',
+      now: new Date('2026-07-23T10:00:00.000Z'),
+    });
+
+    act(() => {
+      cleanup?.();
+    });
+    expect(mockScheduledTasks[0].cancel).toHaveBeenCalledTimes(1);
+    expect(invalidate).toHaveBeenCalledTimes(1);
   });
 
-  it('exposes dashboard summary loading flags before async sections load', () => {
+  it('refreshes and retries immediately with a newly captured month key', async () => {
     const { result } = renderHook(() => useDashboard());
 
-    expect(result.current.state.monthSpend.loading).toBe(true);
-    expect(result.current.state.transactions.loading).toBe(true);
-    expect(result.current.state.commitments.loading).toBe(true);
-    expect(result.current.state.budget.loading).toBe(true);
+    await act(async () => result.current.refresh());
+    expect(runAfterInteractions).not.toHaveBeenCalled();
+    expect(refreshSnapshot).toHaveBeenCalledWith({
+      yearMonth: '2026-07',
+      now: expect.any(Date),
+    });
+
+    jest.setSystemTime(new Date('2026-08-01T00:00:00.000Z'));
+    await act(async () => result.current.retry());
+    expect(retrySnapshot).toHaveBeenCalledWith({
+      yearMonth: '2026-08',
+      now: expect.any(Date),
+    });
   });
 
-  it('exposes account loading state for account-derived dashboard totals', () => {
-    setupMocks([], false);
-
+  it('derives every Dashboard section from one matching snapshot', () => {
+    const currentSnapshot = dashboardStoreState.snapshot;
     const { result } = renderHook(() => useDashboard());
 
-    expect(result.current.state.accountsLoaded).toBe(false);
+    expect(result.current.state.accounts).toBe(currentSnapshot?.accounts);
+    expect(result.current.state.statsMap).toBe(currentSnapshot?.statsMap);
+    expect(result.current.state.netWorth).toMatchObject({
+      assetsEgp: 5000,
+      liabilitiesEgp: 1000,
+      netWorthEgp: 4000,
+    });
+    expect(result.current.state.liquidity.liquidEgp).toBe(5000);
+    expect(result.current.state.liabilities).toHaveLength(1);
+    expect(result.current.state.groupedAccounts[AccountType.Bank]).toHaveLength(1);
+    expect(result.current.state.monthSpend).toEqual({
+      currentEgp: 500,
+      currentUsdNative: 10,
+      currentCount: 3,
+      previousEgp: 400,
+      deltaPct: 25,
+      yearMonth: '2026-07',
+      loading: false,
+    });
+    expect(result.current.state.accountCounts).toEqual({ assets: 1, liabilities: 1 });
+    expect(result.current.state.commitments).toMatchObject({
+      counts: { paid: 1, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 1 },
+      yearMonth: '2026-07',
+      loading: false,
+    });
+    expect(result.current.state.commitments.totalsByCurrency).toEqual(
+      new Map([[Currency.EGP, 90]]),
+    );
+    expect(result.current.state.transactions).toEqual({
+      current: { incomeEgp: 2000, expenseEgp: 500, netEgp: 1500 },
+      previous: { incomeEgp: 1800, expenseEgp: 400, netEgp: 1400 },
+      previousLabel: 'June 2026',
+      yearMonth: '2026-07',
+      loading: false,
+    });
+    expect(result.current.state.budget).toEqual({
+      summary: { budgeted: 1000, spent: 500, left: 500, pct: 0.5, categoryCount: 2 },
+      yearMonth: '2026-07',
+      loading: false,
+    });
+    expect(result.current.state.presentation).toMatchObject({
+      hasSnapshot: true,
+      cardLoading: false,
+      isRefreshing: false,
+    });
   });
 
-  it('exposes loaded dashboard summary flags from the store', () => {
-    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-      statsMap: {},
-      currentMonthCommitmentPayments: [],
-      currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
-      previousTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
-      currentBudgetSummary: { budgeted: 5000, spent: 1500, left: 3500, pct: 0.3, categoryCount: 2 },
-      commitmentPaymentsLoaded: true,
-      monthSpendLoaded: true,
-      transactionTotalsLoaded: true,
-      budgetSummaryLoaded: true,
-      setStatsMap: jest.fn(),
-      setCurrentMonthCommitmentPayments: jest.fn(),
-      setMonthSpendStats: jest.fn(),
-      setTransactionTotals: jest.fn(),
-      setBudgetSummary: jest.fn(),
-    }));
+  it('uses the refresh indicator without reloading warm cards', () => {
+    dashboardStoreState.status = 'refreshing';
 
     const { result } = renderHook(() => useDashboard());
 
+    expect(result.current.state.presentation).toMatchObject({
+      showDashboardBody: true,
+      cardLoading: false,
+      isRefreshing: true,
+    });
     expect(result.current.state.monthSpend.loading).toBe(false);
     expect(result.current.state.transactions.loading).toBe(false);
     expect(result.current.state.commitments.loading).toBe(false);
     expect(result.current.state.budget.loading).toBe(false);
   });
 
-  it('settles dashboard summary sections with empty fallbacks when initial loaders fail', async () => {
-    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    const setCurrentMonthCommitmentPayments = jest.fn();
-    const setMonthSpendStats = jest.fn();
-    const setTransactionTotals = jest.fn();
-    const setBudgetSummary = jest.fn();
-    const emptySpend = { totalEgp: 0, usdNative: 0, count: 0 };
-    const emptyTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
-    const emptyBudget = { budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 };
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  it('maps initial errors without selecting the accounts empty state', () => {
+    dashboardStoreState.snapshot = undefined;
+    dashboardStoreState.status = 'initialError';
 
-    getMonthExpenseStats.mockRejectedValueOnce(new Error('spend down'));
-    getPeriodTotals.mockRejectedValueOnce(new Error('totals down'));
-    commitmentRepository.getPaymentsForMonth.mockRejectedValueOnce(new Error('payments down'));
-    budgetRepository.getRows.mockRejectedValueOnce(new Error('budget down'));
-    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-      statsMap: {},
-      currentMonthCommitmentPayments: [],
-      currentMonthSpend: emptySpend,
-      previousMonthSpend: emptySpend,
-      currentTransactionTotals: emptyTotals,
-      previousTransactionTotals: null,
-      currentBudgetSummary: emptyBudget,
-      commitmentPaymentsLoaded: false,
-      monthSpendLoaded: false,
-      transactionTotalsLoaded: false,
-      budgetSummaryLoaded: false,
-      setStatsMap: jest.fn(),
-      setCurrentMonthCommitmentPayments,
-      setMonthSpendStats,
-      setTransactionTotals,
-      setBudgetSummary,
-    }));
+    const { result } = renderHook(() => useDashboard());
 
-    renderHook(() => useDashboard());
-    act(() => {
-      capturedFocusCallback?.();
-      mockInteractionTasks[0]?.callback();
+    expect(result.current.state.presentation).toMatchObject({
+      showInitialError: true,
+      showAccountsEmptyState: false,
+      cardLoading: false,
     });
-
-    await waitFor(() => {
-      expect(setCurrentMonthCommitmentPayments).toHaveBeenCalledWith([]);
-      expect(setMonthSpendStats).toHaveBeenCalledWith(emptySpend, emptySpend);
-      expect(setTransactionTotals).toHaveBeenCalledWith(emptyTotals, emptyTotals);
-      expect(setBudgetSummary).toHaveBeenCalledWith(emptyBudget);
-    });
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
-    consoleSpy.mockRestore();
+    expect(result.current.state.accounts).toEqual([]);
+    expect(result.current.state.transactions.previous).toBeNull();
   });
 
-  it('setSelectedSegment updates state', () => {
+  it('re-derives currency values without starting a snapshot request', () => {
+    const { result, rerender } = renderHook(() => useDashboard());
+
+    expect(result.current.state.netWorth.assetsEgp).toBe(5000);
+    currencyState.rate = 55;
+    rerender({});
+
+    expect(result.current.state.netWorth.assetsEgp).toBe(5500);
+    expect(ensureSnapshot).not.toHaveBeenCalled();
+    expect(refreshSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('retains Dashboard navigation and UI actions', () => {
     const { result } = renderHook(() => useDashboard());
-    act(() => result.current.setSelectedSegment('accounts'));
+
+    act(() => {
+      result.current.setBreakdownVisible(true);
+      result.current.setSelectedSegment('accounts');
+      result.current.goToAccount('account-id');
+      result.current.goToAddAccount();
+      result.current.goToSettings();
+      result.current.goToTransactions();
+      result.current.goToBudget();
+      result.current.goToCommitments();
+    });
+
+    expect(setBreakdownVisible).toHaveBeenCalledWith(true);
     expect(setSelectedSegment).toHaveBeenCalledWith('accounts');
-  });
-
-  it('exposes liquidity memo computed from accounts', () => {
-    const { result } = renderHook(() => useDashboard());
-    expect(result.current.state.liquidity.liquidEgp).toBe(27000);
-    expect(result.current.state.liquidity.reserveEgp).toBe(10000);
-  });
-
-  it('exposes liabilities memo with credit cards only', () => {
-    const { result } = renderHook(() => useDashboard());
-    expect(result.current.state.liabilities).toEqual([
-      { id: 'a3', name: 'Visa', balanceEgp: 4080, statementDueDay: null },
+    expect(mockPush.mock.calls).toEqual([
+      ['/accounts/account-id'],
+      ['/accounts/add_account'],
+      ['/settings'],
+      ['/(app)/(tabs)/transactions'],
+      ['/(app)/(tabs)/budget'],
+      ['/(app)/(tabs)/commitments'],
     ]);
-  });
-
-  it('useFocusEffect resets segment to overview', () => {
-    uiState.selectedSegment = 'accounts';
-    renderHook(() => useDashboard());
-    act(() => {
-      capturedFocusCallback?.();
-    });
-    expect(setSelectedSegment).toHaveBeenCalledWith('overview');
-  });
-
-  it('loads the current month commitments once on initial focus', async () => {
-    renderHook(() => useDashboard());
-
-    act(() => {
-      capturedFocusCallback?.();
-      mockInteractionTasks[0]?.callback();
-    });
-
-    expect(useCommitmentStore).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
-    });
-  });
-
-  it('loads dashboard summary queries once on initial focus', async () => {
-    renderHook(() => useDashboard());
-
-    act(() => {
-      capturedFocusCallback?.();
-      mockInteractionTasks[0]?.callback();
-    });
-
-    await waitFor(() => {
-      expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
-      expect(getMonthExpenseStats).toHaveBeenCalledTimes(2);
-      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  it('cancels pending focus reload work on cleanup', () => {
-    renderHook(() => useDashboard());
-    commitmentRepository.getPaymentsForMonth.mockClear();
-    budgetRepository.getRows.mockClear();
-    budgetRepository.getSpendByMonth.mockClear();
-    getMonthExpenseStats.mockClear();
-    getPeriodTotals.mockClear();
-
-    let cleanup: void | (() => void);
-    act(() => {
-      cleanup = capturedFocusCallback?.();
-    });
-
-    expect(setSelectedSegment).toHaveBeenCalledWith('overview');
-    expect(runAfterInteractions).toHaveBeenCalledTimes(1);
-    expect(commitmentRepository.getPaymentsForMonth).not.toHaveBeenCalled();
-    expect(budgetRepository.getRows).not.toHaveBeenCalled();
-    expect(budgetRepository.getSpendByMonth).not.toHaveBeenCalled();
-    expect(getMonthExpenseStats).not.toHaveBeenCalled();
-    expect(getPeriodTotals).not.toHaveBeenCalled();
-
-    act(() => {
-      cleanup?.();
-      mockInteractionTasks[0]?.callback();
-    });
-
-    expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
-    expect(commitmentRepository.getPaymentsForMonth).not.toHaveBeenCalled();
-    expect(budgetRepository.getRows).not.toHaveBeenCalled();
-    expect(budgetRepository.getSpendByMonth).not.toHaveBeenCalled();
-    expect(getMonthExpenseStats).not.toHaveBeenCalled();
-    expect(getPeriodTotals).not.toHaveBeenCalled();
-  });
-
-  it('refresh reloads immediately without waiting for interactions', async () => {
-    const { result } = renderHook(() => useDashboard());
-    await act(async () => {
-      await Promise.resolve();
-    });
-    commitmentRepository.getPaymentsForMonth.mockClear();
-    budgetRepository.getRows.mockClear();
-    budgetRepository.getSpendByMonth.mockClear();
-    getMonthExpenseStats.mockClear();
-    getPeriodTotals.mockClear();
-    runAfterInteractions.mockClear();
-
-    await act(async () => {
-      await result.current.refresh();
-    });
-
-    expect(runAfterInteractions).not.toHaveBeenCalled();
-    expect(loadAccountsMock).toHaveBeenCalledTimes(1);
-    expect(commitmentRepository.getPaymentsForMonth).toHaveBeenCalledTimes(1);
-    expect(budgetRepository.getRows).toHaveBeenCalledTimes(1);
-    expect(budgetRepository.getSpendByMonth).toHaveBeenCalledTimes(1);
-    expect(getMonthExpenseStats).toHaveBeenCalledTimes(2);
-    expect(getPeriodTotals).toHaveBeenCalledTimes(2);
-  });
-
-  it('loads and exposes transaction totals for the dashboard summary card', async () => {
-    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    const currentTotals = { incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 };
-    const previousTotals = { incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 };
-    const setTransactionTotals = jest.fn();
-
-    getPeriodTotals.mockResolvedValueOnce(currentTotals).mockResolvedValueOnce(previousTotals);
-    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-      statsMap: {},
-      currentMonthCommitmentPayments: [],
-      currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      currentTransactionTotals: currentTotals,
-      previousTransactionTotals: previousTotals,
-      currentBudgetSummary: { budgeted: 0, spent: 0, left: 0, pct: 0, categoryCount: 0 },
-      commitmentPaymentsLoaded: true,
-      monthSpendLoaded: true,
-      transactionTotalsLoaded: true,
-      budgetSummaryLoaded: true,
-      setStatsMap: jest.fn(),
-      setCurrentMonthCommitmentPayments: jest.fn(),
-      setMonthSpendStats: jest.fn(),
-      setTransactionTotals,
-      setBudgetSummary: jest.fn(),
-    }));
-
-    const { result } = renderHook(() => useDashboard());
-    act(() => {
-      capturedFocusCallback?.();
-      mockInteractionTasks[0]?.callback();
-    });
-
-    await waitFor(() => {
-      expect(getPeriodTotals).toHaveBeenCalledTimes(2);
-    });
-
-    expect(setTransactionTotals).toHaveBeenCalledWith(currentTotals, previousTotals);
-    expect(result.current.state.transactions.current).toEqual(currentTotals);
-    expect(result.current.state.transactions.previous).toEqual(previousTotals);
-    expect(result.current.state.transactions.previousLabel).toMatch(/^\w+ \d{4}$/);
-  });
-
-  it('loads and exposes current-month budget summary for the dashboard card', async () => {
-    const { attachMockSelectorStore } = require('@/test_helpers/mock_zustand_selectors');
-    const budgetRows = [
-      {
-        id: 'food-2026-07',
-        category_id: 'food',
-        limit_amount: 5000,
-        effective_from: '2026-07',
-        created_at: '',
-        updated_at: '',
-      },
-      {
-        id: 'car-2026-07',
-        category_id: 'car',
-        limit_amount: 3000,
-        effective_from: '2026-07',
-        created_at: '',
-        updated_at: '',
-      },
-    ];
-    const spend = { food: { '2026-07': 1500 }, car: { '2026-07': 500 } };
-    const setBudgetSummary = jest.fn();
-
-    budgetRepository.getRows.mockResolvedValueOnce(budgetRows);
-    budgetRepository.getSpendByMonth.mockResolvedValueOnce(spend);
-    attachMockSelectorStore(useDashboardStore as jest.Mock, () => ({
-      statsMap: {},
-      currentMonthCommitmentPayments: [],
-      currentMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      previousMonthSpend: { totalEgp: 0, usdNative: 0, count: 0 },
-      currentTransactionTotals: { incomeEgp: 0, expenseEgp: 0, netEgp: 0 },
-      previousTransactionTotals: null,
-      currentBudgetSummary: {
-        budgeted: 8000,
-        spent: 2000,
-        left: 6000,
-        pct: 0.25,
-        categoryCount: 2,
-      },
-      commitmentPaymentsLoaded: true,
-      monthSpendLoaded: true,
-      transactionTotalsLoaded: true,
-      budgetSummaryLoaded: true,
-      setStatsMap: jest.fn(),
-      setCurrentMonthCommitmentPayments: jest.fn(),
-      setMonthSpendStats: jest.fn(),
-      setTransactionTotals: jest.fn(),
-      setBudgetSummary,
-    }));
-
-    const { result } = renderHook(() => useDashboard());
-    act(() => {
-      capturedFocusCallback?.();
-      mockInteractionTasks[0]?.callback();
-    });
-
-    await waitFor(() => {
-      expect(budgetRepository.getRows).toHaveBeenCalledTimes(1);
-      expect(budgetRepository.getSpendByMonth).toHaveBeenCalledWith(['2026-07']);
-    });
-
-    expect(setBudgetSummary).toHaveBeenCalledWith({
-      budgeted: 8000,
-      spent: 2000,
-      left: 6000,
-      pct: 0.25,
-      categoryCount: 2,
-    });
-    expect(result.current.state.budget.summary).toEqual({
-      budgeted: 8000,
-      spent: 2000,
-      left: 6000,
-      pct: 0.25,
-      categoryCount: 2,
-    });
   });
 });
