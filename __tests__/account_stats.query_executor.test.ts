@@ -10,6 +10,7 @@ let realDb: ReturnType<typeof Database>;
 const NOW = '2026-05-01T12:00:00.000Z';
 const DATE = '2026-05-01';
 const TIME = '12:00:00';
+const ORIGINAL_TIME_ZONE = process.env.TZ;
 
 function seedAccounts() {
   realDb
@@ -62,6 +63,7 @@ function insertTx(overrides: Record<string, unknown> = {}) {
 }
 
 beforeAll(() => {
+  process.env.TZ = 'Africa/Cairo';
   realDb = new Database(':memory:');
   realDb.exec(MIGRATIONS.map((m) => m.up).join('\n'));
   seedAccounts();
@@ -92,6 +94,11 @@ afterEach(() => {
 afterAll(() => {
   realDb.close();
   sqlite.__reset();
+  if (ORIGINAL_TIME_ZONE === undefined) {
+    delete process.env.TZ;
+  } else {
+    process.env.TZ = ORIGINAL_TIME_ZONE;
+  }
 });
 
 const mockDb = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
@@ -160,6 +167,44 @@ describe('getAccountsStats — captured clock', () => {
       week_in: 500,
       week_out: 200,
     });
+  });
+});
+
+describe('getAccountsStats — Cairo local-calendar boundaries', () => {
+  it('includes the local current day just after Cairo midnight', async () => {
+    const cairoJustAfterMidnight = new Date('2026-05-04T21:30:00.000Z');
+    insertTx({
+      id: 'cairo-current-day-expense',
+      amount: 125,
+      egp_amount: 125,
+      transaction_date: '2026-05-05',
+    });
+
+    const stats = await getAccountsStats(mockDb, ['acc_bank'], cairoJustAfterMidnight);
+
+    expect(stats.acc_bank.month_out).toBe(125);
+  });
+
+  it('starts the week on local Monday during Cairo early Monday', async () => {
+    const cairoEarlyMonday = new Date('2026-05-03T21:30:00.000Z');
+    insertTx({
+      id: 'cairo-sunday-expense',
+      amount: 70,
+      egp_amount: 70,
+      transaction_date: '2026-05-03',
+    });
+    insertTx({
+      id: 'cairo-monday-income',
+      type: 'income',
+      amount: 90,
+      egp_amount: 90,
+      transaction_date: '2026-05-04',
+    });
+
+    const stats = await getAccountsStats(mockDb, ['acc_bank'], cairoEarlyMonday);
+
+    expect(stats.acc_bank.week_in).toBe(90);
+    expect(stats.acc_bank.week_out).toBe(0);
   });
 });
 

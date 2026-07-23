@@ -1,14 +1,12 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { toLocalDateString } from '@/utils/format_date';
+
 export interface AccountStats {
   month_in: number;
   month_out: number;
   week_in: number;
   week_out: number;
-}
-
-function toISODate(d: Date): string {
-  return d.toISOString().slice(0, 10);
 }
 
 function computeDates(now: Date): { monthStart: string; weekStart: string } {
@@ -17,7 +15,7 @@ function computeDates(now: Date): { monthStart: string; weekStart: string } {
   const diffToMonday = day === 0 ? -6 : 1 - day;
   const monday = new Date(now);
   monday.setDate(now.getDate() + diffToMonday);
-  return { monthStart, weekStart: toISODate(monday) };
+  return { monthStart, weekStart: toLocalDateString(monday) };
 }
 
 export async function getAccountsStats(
@@ -29,7 +27,7 @@ export async function getAccountsStats(
 
   const { monthStart, weekStart } = computeDates(now);
   const earliest = monthStart <= weekStart ? monthStart : weekStart;
-  const throughDate = toISODate(now);
+  const throughDate = toLocalDateString(now);
   const placeholders = accountIds.map(() => '?').join(',');
 
   const rows = await db.getAllAsync<{
