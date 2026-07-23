@@ -5,6 +5,10 @@ export const Strings = {
   tabGoals: 'Goals',
   tabBudget: 'Budget',
 
+  startupErrorTitle: 'MoneyApp could not start',
+  startupErrorDescription: 'Your data is still safe. Check the app again to finish loading it.',
+  startupErrorRetry: 'Retry',
+
   // O1 Welcome
   o1Headline: 'Your money.\nFinally clear.',
   o1Subtext: 'Track everything. Plan with confidence.\nNo bank access needed.',
