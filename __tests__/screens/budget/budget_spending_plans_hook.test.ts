@@ -72,6 +72,7 @@ function setupStores() {
     spendingPlans,
     spendingPlanSpendById: { plan_trip: { food: 1200 } },
     loaded: true,
+    loadedMonth: '2026-07',
     expectedIncome: null,
     budgetGroupByCategoryId: {},
     load: jest.fn().mockResolvedValue(undefined),
