@@ -196,9 +196,16 @@ export function useCommitments() {
 
   useFocusEffect(
     useCallback(() => {
-      const task = runAfterInteractions(() => {
-        return reloadSelectedMonth(selectedMonthRef.current);
-      });
+      const task = runAfterInteractions(
+        () => {
+          return reloadSelectedMonth(selectedMonthRef.current);
+        },
+        {
+          onError: (error) => {
+            console.error('[commitments] focus load failed:', error);
+          },
+        },
+      );
       return () => task.cancel();
     }, [reloadSelectedMonth]),
   );
