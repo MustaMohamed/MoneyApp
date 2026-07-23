@@ -21,8 +21,7 @@ export function selectDashboardPresentation(input: {
   const matchingSnapshot = input.snapshot?.key === input.requestedKey ? input.snapshot : undefined;
   const hasSnapshot = matchingSnapshot !== undefined;
   const showInitialError = !hasSnapshot && input.status === 'initialError';
-  const showAccountsEmptyState =
-    matchingSnapshot !== undefined && matchingSnapshot.accounts.length === 0;
+  const showAccountsEmptyState = matchingSnapshot?.accounts.length === 0;
 
   return {
     hasSnapshot,
