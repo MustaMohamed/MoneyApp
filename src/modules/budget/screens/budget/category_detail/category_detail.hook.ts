@@ -53,8 +53,10 @@ export function useCategoryDetail() {
     useCallback(() => {
       const selectedMonth = validRouteMonth ?? currentYearMonth();
       setMonth(selectedMonth);
-      void loadCategories().catch(() => undefined);
-      void load(selectedMonth);
+      if (!useCategoryStore.getState().hasLoaded) {
+        void loadCategories().catch(() => undefined);
+      }
+      void load(selectedMonth).catch(() => undefined);
     }, [loadCategories, load, setMonth, validRouteMonth]),
   );
 
@@ -120,8 +122,10 @@ export function useCategoryDetail() {
     },
     goBack: () => router.back(),
     retry: () => {
-      void loadCategories().catch(() => undefined);
-      void load(month);
+      if (!useCategoryStore.getState().hasLoaded) {
+        void loadCategories().catch(() => undefined);
+      }
+      void load(month).catch(() => undefined);
     },
     editBudget: () => {
       if (!editableBudgetId) return;

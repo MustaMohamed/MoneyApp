@@ -262,13 +262,13 @@ describe('useBudget month actions', () => {
     });
   });
 
-  it('changes only UI selection and leaves loading to the focused effect', () => {
+  it('changes UI selection and explicitly loads the selected month', () => {
     const { result } = renderHook(() => useBudget());
 
     act(() => result.current.setSelectedMonth('2026-06'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-06');
-    expect(loadBudgetMock).not.toHaveBeenCalled();
+    expect(loadBudgetMock).toHaveBeenCalledWith('2026-06');
   });
 
   it('refreshes the selected month without reloading successful category data', async () => {

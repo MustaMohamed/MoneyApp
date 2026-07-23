@@ -153,11 +153,14 @@ export function useBudget() {
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(() => {
-        if (!categoriesLoaded) void loadCategories().catch(() => undefined);
-        void load(selectedMonth);
+        if (!useCategoryStore.getState().hasLoaded) {
+          void loadCategories().catch(() => undefined);
+        }
+        const focusedMonth = useBudgetState.getState().selectedMonth;
+        void load(focusedMonth).catch(() => undefined);
       });
       return () => task.cancel();
-    }, [categoriesLoaded, loadCategories, load, selectedMonth]),
+    }, [loadCategories, load]),
   );
 
   const today = toLocalDateString(new Date());
@@ -336,20 +339,21 @@ export function useBudget() {
   const setSelectedMonth = useCallback(
     (month: string) => {
       setSelectedMonthState(month);
+      void load(month).catch(() => undefined);
     },
-    [setSelectedMonthState],
+    [load, setSelectedMonthState],
   );
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
       const tasks: Promise<void>[] = [load(selectedMonth)];
-      if (!categoriesLoaded) tasks.push(loadCategories());
+      if (!useCategoryStore.getState().hasLoaded) tasks.push(loadCategories());
       await Promise.all(tasks);
     } finally {
       setRefreshing(false);
     }
-  }, [categoriesLoaded, load, loadCategories, selectedMonth, setRefreshing]);
+  }, [load, loadCategories, selectedMonth, setRefreshing]);
 
   const openCopy = useCallback(() => {
     clearCopySelection();

@@ -84,7 +84,7 @@ function setupStores() {
   budgetLoadedMonthState = '2026-05';
   budgetLoadErrorState = false;
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
-  loadBudgetMock = jest.fn();
+  loadBudgetMock = jest.fn().mockResolvedValue(undefined);
   openEditMock = jest.fn();
   mockRouterBack = jest.fn();
   resetSelectedMonthToCurrentMock = jest.fn(() => {
@@ -284,6 +284,25 @@ describe('useBudget — month rollover', () => {
 
     expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
   });
+
+  it('does not schedule a second focused budget request when categories become warm', () => {
+    categoriesLoadedState = false;
+    const { rerender } = renderHook(() => useBudget());
+    const initialFocusCallback = capturedFocusCallback;
+
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+    expect(loadBudgetMock).toHaveBeenCalledTimes(1);
+
+    categoriesLoadedState = true;
+    rerender(undefined);
+
+    expect(capturedFocusCallback).toBe(initialFocusCallback);
+    expect(mockInteractionTasks).toHaveLength(1);
+    expect(loadBudgetMock).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('useCategoryDetail — month rollover', () => {
@@ -310,6 +329,19 @@ describe('useCategoryDetail — month rollover', () => {
 
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.loadError).toBe(true);
+  });
+
+  it('does not query categories again when category detail opens warm', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    categoriesLoadedState = true;
+    renderHook(() => useCategoryDetail());
+
+    act(() => {
+      capturedFocusCallback?.();
+    });
+
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
+    expect(loadBudgetMock).toHaveBeenCalledWith('2026-05');
   });
 
   it.each([
