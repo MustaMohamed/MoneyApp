@@ -1,3 +1,4 @@
+import type { SQLiteDatabase } from 'expo-sqlite';
 import uuid from 'react-native-uuid';
 
 import { BudgetGroup, CategoryType } from '@/constants/enums';
@@ -141,6 +142,87 @@ function sameBudgetName(left: string, right: string): boolean {
   return normalizeBudgetName(left).toLowerCase() === normalizeBudgetName(right).toLowerCase();
 }
 
+type BudgetCopyMode = 'budgets' | 'limits';
+
+function buildBudgetCopyWrites({
+  rows,
+  sourceMonth,
+  targetMonth,
+  selectedIds,
+  copyMode,
+  now,
+}: {
+  rows: Budget[];
+  sourceMonth: string;
+  targetMonth: string;
+  selectedIds: ReadonlySet<string>;
+  copyMode: BudgetCopyMode;
+  now: string;
+}): { sourceRows: Budget[]; writes: Budget[] } {
+  const sourceRows =
+    copyMode === 'budgets'
+      ? [...selectedIds]
+          .map((budgetId) =>
+            rows.find((row) => row.id === budgetId && row.effective_from === sourceMonth),
+          )
+          .filter((row): row is Budget => row !== undefined)
+      : rows.filter(
+          (row) => row.effective_from === sourceMonth && selectedIds.has(row.category_id),
+        );
+
+  return {
+    sourceRows,
+    writes: sourceRows.map((source) => {
+      const target = rows.find(
+        (row) =>
+          row.category_id === source.category_id &&
+          row.effective_from === targetMonth &&
+          sameBudgetName(row.name, source.name),
+      );
+      return {
+        id: target?.id ?? String(uuid.v4()),
+        category_id: source.category_id,
+        name: source.name,
+        limit_amount: source.limit_amount,
+        effective_from: targetMonth,
+        created_at: target?.created_at ?? now,
+        updated_at: now,
+      };
+    }),
+  };
+}
+
+async function copyRowsInExclusiveTransaction(
+  db: SQLiteDatabase,
+  sourceMonth: string,
+  targetMonth: string,
+  selectedIds: ReadonlySet<string>,
+  copyMode: BudgetCopyMode,
+  now: string,
+): Promise<void> {
+  await db.withExclusiveTransactionAsync(async (transactionDb) => {
+    const rows = await getBudgetRowsForMonths(transactionDb, [sourceMonth, targetMonth]);
+    const { sourceRows, writes } = buildBudgetCopyWrites({
+      rows,
+      sourceMonth,
+      targetMonth,
+      selectedIds,
+      copyMode,
+      now,
+    });
+
+    for (const write of writes) {
+      await setBudgetRow(transactionDb, write);
+    }
+
+    if (copyMode === 'budgets') {
+      await copyBudgetMonthCategoryGroups(transactionDb, sourceMonth, targetMonth, [
+        ...new Set(sourceRows.map((row) => row.category_id)),
+      ]);
+    }
+  });
+}
+
 function normalizePlanName(name: string): string {
   return name.trim();
 }
@@ -279,41 +361,14 @@ export class BudgetRepository implements IBudgetRepository {
   ): Promise<void> {
     const db = await getDb();
     const now = new Date().toISOString();
-    const uniqueBudgetIds = Array.from(new Set(budgetIds));
-
-    await db.withExclusiveTransactionAsync(async (tx) => {
-      const rows = await getBudgetRows(tx);
-      const sourceRows = uniqueBudgetIds
-        .map((budgetId) =>
-          rows.find((row) => row.id === budgetId && row.effective_from === sourceMonth),
-        )
-        .filter((row): row is Budget => row !== undefined);
-
-      for (const source of sourceRows) {
-        const target = rows.find(
-          (row) =>
-            row.category_id === source.category_id &&
-            row.effective_from === targetMonth &&
-            sameBudgetName(row.name, source.name),
-        );
-
-        await setBudgetRow(tx, {
-          id: target?.id ?? String(uuid.v4()),
-          category_id: source.category_id,
-          name: source.name,
-          limit_amount: source.limit_amount,
-          effective_from: targetMonth,
-          created_at: target?.created_at ?? now,
-          updated_at: now,
-        });
-      }
-      await copyBudgetMonthCategoryGroups(
-        tx,
-        sourceMonth,
-        targetMonth,
-        Array.from(new Set(sourceRows.map((row) => row.category_id))),
-      );
-    });
+    await copyRowsInExclusiveTransaction(
+      db,
+      sourceMonth,
+      targetMonth,
+      new Set(budgetIds),
+      'budgets',
+      now,
+    );
   }
 
   async copyLimitsToMonth(
@@ -322,37 +377,14 @@ export class BudgetRepository implements IBudgetRepository {
     categoryIds: string[],
   ): Promise<void> {
     const db = await getDb();
-    const rows = await getBudgetRows(db);
     const now = new Date().toISOString();
-    const uniqueCategoryIds = Array.from(new Set(categoryIds));
-
-    await Promise.all(
-      uniqueCategoryIds.map(async (categoryId) => {
-        const sourceRows = rows.filter(
-          (row) => row.category_id === categoryId && row.effective_from === sourceMonth,
-        );
-
-        await Promise.all(
-          sourceRows.map(async (source) => {
-            const target = rows.find(
-              (row) =>
-                row.category_id === source.category_id &&
-                row.effective_from === targetMonth &&
-                sameBudgetName(row.name, source.name),
-            );
-
-            await setBudgetRow(db, {
-              id: target?.id ?? String(uuid.v4()),
-              category_id: categoryId,
-              name: source.name,
-              limit_amount: source.limit_amount,
-              effective_from: targetMonth,
-              created_at: target?.created_at ?? now,
-              updated_at: now,
-            });
-          }),
-        );
-      }),
+    await copyRowsInExclusiveTransaction(
+      db,
+      sourceMonth,
+      targetMonth,
+      new Set(categoryIds),
+      'limits',
+      now,
     );
   }
 

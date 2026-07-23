@@ -375,7 +375,7 @@ describe('BudgetRepository.removeBudget', () => {
 
 describe('BudgetRepository.copyBudgetsToMonth', () => {
   it('copies selected source budgets by id', async () => {
-    getBudgetRows.mockResolvedValueOnce([
+    getBudgetRowsForMonths.mockResolvedValueOnce([
       budget('budget-food', 'food', 'Monthly Food', 5000, '2026-07'),
       budget('budget-housing', 'housing', 'Rent', 700, '2026-06'),
     ]);
@@ -383,7 +383,9 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
     await new BudgetRepository().copyBudgetsToMonth('2026-07', '2026-08', ['budget-food']);
 
     expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
-    expect(getBudgetRows).toHaveBeenCalledWith(mockTransactionDb);
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(getBudgetRowsForMonths).toHaveBeenCalledWith(mockTransactionDb, ['2026-07', '2026-08']);
+    expect(getBudgetRows).not.toHaveBeenCalled();
     expect(setBudgetRow).toHaveBeenCalledTimes(1);
     expect(setBudgetRow).toHaveBeenCalledWith(
       mockTransactionDb,
@@ -404,7 +406,7 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
   });
 
   it('replaces an existing target budget with the same category and name', async () => {
-    getBudgetRows.mockResolvedValueOnce([
+    getBudgetRowsForMonths.mockResolvedValueOnce([
       budget('source-food', 'food', 'Monthly Food', 5000, '2026-07'),
       budget('target-food', 'food', 'Monthly Food', 3200, '2026-08'),
     ]);
@@ -425,7 +427,7 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
   });
 
   it('copies group snapshots only for categories of selected source budgets', async () => {
-    getBudgetRows.mockResolvedValueOnce([
+    getBudgetRowsForMonths.mockResolvedValueOnce([
       budget('budget-food-main', 'food', 'Monthly Food', 5000, '2026-07'),
       budget('budget-food-trip', 'food', 'Trip Food', 900, '2026-07'),
       budget('budget-rent', 'housing', 'Rent', 7000, '2026-07'),
@@ -449,7 +451,7 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
 
   it('stops sequential transaction writes and skips group snapshots when a budget copy fails', async () => {
     const writeError = new Error('budget copy failed');
-    getBudgetRows.mockResolvedValueOnce([
+    getBudgetRowsForMonths.mockResolvedValueOnce([
       budget('budget-food', 'food', 'Food', 5000, '2026-07'),
       budget('budget-rent', 'housing', 'Rent', 7000, '2026-07'),
       budget('budget-fuel', 'transport', 'Fuel', 1000, '2026-07'),
@@ -468,5 +470,66 @@ describe('BudgetRepository.copyBudgetsToMonth', () => {
     expect(setBudgetRow).toHaveBeenCalledTimes(2);
     expect(setBudgetRow.mock.calls.every(([db]) => db === mockTransactionDb)).toBe(true);
     expect(copyBudgetMonthCategoryGroups).not.toHaveBeenCalled();
+  });
+});
+
+describe('BudgetRepository.copyLimitsToMonth', () => {
+  it('copies all source rows for selected categories inside one exclusive transaction', async () => {
+    getBudgetRowsForMonths.mockResolvedValueOnce([
+      budget('source-food-main', 'food', 'Monthly Food', 5000, '2026-07'),
+      budget('source-food-trip', 'food', 'Trip Food', 900, '2026-07'),
+      budget('target-food-main', 'food', 'monthly food', 3200, '2026-08'),
+      budget('source-rent', 'housing', 'Rent', 7000, '2026-07'),
+    ]);
+
+    await new BudgetRepository().copyLimitsToMonth('2026-07', '2026-08', ['food', 'food']);
+
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(getBudgetRowsForMonths).toHaveBeenCalledWith(mockTransactionDb, ['2026-07', '2026-08']);
+    expect(getBudgetRows).not.toHaveBeenCalled();
+    expect(setBudgetRow).toHaveBeenCalledTimes(2);
+    expect(setBudgetRow).toHaveBeenNthCalledWith(
+      1,
+      mockTransactionDb,
+      expect.objectContaining({
+        id: 'target-food-main',
+        name: 'Monthly Food',
+        limit_amount: 5000,
+        effective_from: '2026-08',
+      }),
+    );
+    expect(setBudgetRow).toHaveBeenNthCalledWith(
+      2,
+      mockTransactionDb,
+      expect.objectContaining({
+        name: 'Trip Food',
+        limit_amount: 900,
+        effective_from: '2026-08',
+      }),
+    );
+    expect(copyBudgetMonthCategoryGroups).not.toHaveBeenCalled();
+  });
+
+  it('stops serial writes when a selected category copy fails', async () => {
+    const writeError = new Error('limit copy failed');
+    getBudgetRowsForMonths.mockResolvedValueOnce([
+      budget('budget-food', 'food', 'Food', 5000, '2026-07'),
+      budget('budget-rent', 'housing', 'Rent', 7000, '2026-07'),
+      budget('budget-fuel', 'transport', 'Fuel', 1000, '2026-07'),
+    ]);
+    setBudgetRow.mockResolvedValueOnce(undefined).mockRejectedValueOnce(writeError);
+
+    await expect(
+      new BudgetRepository().copyLimitsToMonth('2026-07', '2026-08', [
+        'food',
+        'housing',
+        'transport',
+      ]),
+    ).rejects.toThrow(writeError);
+
+    expect(mockWithExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(setBudgetRow).toHaveBeenCalledTimes(2);
+    expect(setBudgetRow.mock.calls.every(([db]) => db === mockTransactionDb)).toBe(true);
   });
 });
