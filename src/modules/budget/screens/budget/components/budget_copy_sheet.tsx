@@ -287,11 +287,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skeletonRow: {
-    minHeight: ms(54),
+    minHeight: Size.budgetCopyPreviewRowHeight,
     borderRadius: Radius.md,
   },
   row: {
-    minHeight: ms(54),
+    minHeight: Size.budgetCopyPreviewRowHeight,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
