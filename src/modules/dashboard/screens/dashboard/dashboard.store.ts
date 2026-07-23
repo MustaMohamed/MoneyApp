@@ -1,87 +1,138 @@
 import { create } from 'zustand';
 
-import type { CommitmentPayment } from '@/database/entities/commitment_payment.entity';
-import type { AccountStats } from '@/modules/accounts/database/account_stats';
-import type { BudgetDashboardSummaryVM } from '@/modules/budget/screens/budget/budget.helpers';
-import type { PeriodTotals } from '@/modules/transactions/database/transactions';
+import {
+  dashboardRepository,
+  type DashboardLoadInput,
+  type DashboardSnapshot,
+  type DashboardSnapshotStatus,
+  type IDashboardRepository,
+} from '@/modules/dashboard/repositories/dashboard.repository';
 import { createMoneyAppSelectors } from '@/utils/zustand_selectors';
 
-interface MonthSpendStats {
-  totalEgp: number;
-  usdNative: number;
-  count: number;
-}
-
 interface DashboardStoreShape {
-  statsMap: Record<string, AccountStats>;
-  currentMonthCommitmentPayments: CommitmentPayment[];
-  currentMonthSpend: MonthSpendStats;
-  previousMonthSpend: MonthSpendStats;
-  currentTransactionTotals: PeriodTotals;
-  previousTransactionTotals: PeriodTotals | null;
-  currentBudgetSummary: BudgetDashboardSummaryVM;
-  commitmentPaymentsLoaded: boolean;
-  monthSpendLoaded: boolean;
-  transactionTotalsLoaded: boolean;
-  budgetSummaryLoaded: boolean;
+  snapshot: DashboardSnapshot | undefined;
+  status: DashboardSnapshotStatus;
+  requestedKey: string | undefined;
+  requestGeneration: number;
 }
 
-type DashboardStore = DashboardStoreShape & {
-  setStatsMap: (m: Record<string, AccountStats>) => void;
-  setCurrentMonthCommitmentPayments: (p: CommitmentPayment[]) => void;
-  setMonthSpendStats: (current: MonthSpendStats, previous: MonthSpendStats) => void;
-  setTransactionTotals: (current: PeriodTotals, previous: PeriodTotals) => void;
-  setBudgetSummary: (summary: BudgetDashboardSummaryVM) => void;
+interface DashboardStoreActions {
+  ensureSnapshot: (input: DashboardLoadInput) => Promise<void>;
+  refresh: (input: DashboardLoadInput) => Promise<void>;
+  retry: (input: DashboardLoadInput) => Promise<void>;
+  invalidate: () => void;
   reset: () => void;
-};
+}
 
-const EMPTY_SPEND: MonthSpendStats = { totalEgp: 0, usdNative: 0, count: 0 };
-const EMPTY_TOTALS: PeriodTotals = { incomeEgp: 0, expenseEgp: 0, netEgp: 0 };
-const EMPTY_BUDGET_SUMMARY: BudgetDashboardSummaryVM = {
-  budgeted: 0,
-  spent: 0,
-  left: 0,
-  pct: 0,
-  categoryCount: 0,
+type DashboardStore = DashboardStoreShape & DashboardStoreActions;
+
+type InFlight = {
+  key: string;
+  generation: number;
+  promise: Promise<void>;
 };
 
 const INITIAL_STATE: DashboardStoreShape = {
-  statsMap: {},
-  currentMonthCommitmentPayments: [],
-  currentMonthSpend: EMPTY_SPEND,
-  previousMonthSpend: EMPTY_SPEND,
-  currentTransactionTotals: EMPTY_TOTALS,
-  previousTransactionTotals: null,
-  currentBudgetSummary: EMPTY_BUDGET_SUMMARY,
-  commitmentPaymentsLoaded: false,
-  monthSpendLoaded: false,
-  transactionTotalsLoaded: false,
-  budgetSummaryLoaded: false,
+  snapshot: undefined,
+  status: 'idle',
+  requestedKey: undefined,
+  requestGeneration: 0,
 };
 
-export const useDashboardStore = createMoneyAppSelectors(
-  create<DashboardStore>((set) => ({
-    ...INITIAL_STATE,
-    setStatsMap: (m) => set({ statsMap: m }),
-    setCurrentMonthCommitmentPayments: (p) =>
-      set({ currentMonthCommitmentPayments: p, commitmentPaymentsLoaded: true }),
-    setMonthSpendStats: (current, previous) =>
-      set({
-        currentMonthSpend: current,
-        previousMonthSpend: previous,
-        monthSpendLoaded: true,
-      }),
-    setTransactionTotals: (current, previous) =>
-      set({
-        currentTransactionTotals: current,
-        previousTransactionTotals: previous,
-        transactionTotalsLoaded: true,
-      }),
-    setBudgetSummary: (summary) =>
-      set({
-        currentBudgetSummary: summary,
-        budgetSummaryLoaded: true,
-      }),
-    reset: () => set(INITIAL_STATE),
-  })),
-);
+export function createDashboardStore(repository: IDashboardRepository) {
+  let generation = 0;
+  let freshKey: string | undefined;
+  let inFlight: InFlight | undefined;
+
+  return createMoneyAppSelectors(
+    create<DashboardStore>((set, get) => {
+      const startRequest = (input: DashboardLoadInput, force: boolean): Promise<void> => {
+        if (inFlight?.key === input.yearMonth) return inFlight.promise;
+
+        const currentSnapshot = get().snapshot;
+        if (!force && freshKey === input.yearMonth && currentSnapshot?.key === input.yearMonth) {
+          return Promise.resolve();
+        }
+
+        const ownerGeneration = ++generation;
+        const sameKeySnapshot =
+          currentSnapshot?.key === input.yearMonth ? currentSnapshot : undefined;
+
+        if (sameKeySnapshot) {
+          set({
+            status: 'refreshing',
+            requestedKey: input.yearMonth,
+            requestGeneration: ownerGeneration,
+          });
+        } else {
+          set({
+            snapshot: undefined,
+            status: 'initialLoading',
+            requestedKey: input.yearMonth,
+            requestGeneration: ownerGeneration,
+          });
+        }
+
+        let repositoryRequest: Promise<DashboardSnapshot>;
+        try {
+          repositoryRequest = Promise.resolve(repository.getSnapshot(input));
+        } catch (error) {
+          repositoryRequest = Promise.reject(error);
+        }
+
+        const request = repositoryRequest
+          .then(
+            (snapshot) => {
+              if (ownerGeneration !== generation) return;
+              freshKey = input.yearMonth;
+              set({
+                snapshot,
+                status: 'ready',
+                requestedKey: input.yearMonth,
+                requestGeneration: ownerGeneration,
+              });
+            },
+            (error: unknown) => {
+              if (ownerGeneration !== generation) return;
+              console.error('[dashboardStore] snapshot request failed:', error);
+              set({
+                status: sameKeySnapshot ? 'refreshErrorWithData' : 'initialError',
+                requestGeneration: ownerGeneration,
+              });
+            },
+          )
+          .finally(() => {
+            if (inFlight?.generation === ownerGeneration) inFlight = undefined;
+          });
+
+        inFlight = {
+          key: input.yearMonth,
+          generation: ownerGeneration,
+          promise: request,
+        };
+        return request;
+      };
+
+      return {
+        ...INITIAL_STATE,
+        ensureSnapshot: (input) => startRequest(input, false),
+        refresh: (input) => startRequest(input, true),
+        retry: (input) => startRequest(input, true),
+        invalidate: () => {
+          generation += 1;
+          freshKey = undefined;
+          inFlight = undefined;
+          set({ requestGeneration: generation });
+        },
+        reset: () => {
+          generation += 1;
+          freshKey = undefined;
+          inFlight = undefined;
+          set({ ...INITIAL_STATE, requestGeneration: generation });
+        },
+      };
+    }),
+  );
+}
+
+export const useDashboardStore = createDashboardStore(dashboardRepository);
