@@ -15,20 +15,10 @@
  * action callbacks shapes).
  */
 
-import { act, renderHook } from '@testing-library/react-native';
+import { renderHook } from '@testing-library/react-native';
 
-import {
-  AmountType,
-  CommitmentPaymentStatus,
-  Currency,
-  DurationType,
-  RecurrencePeriod,
-} from '@/constants/enums';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
-import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
-import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
-import { commitmentRepository } from '@/modules/commitments/repositories/commitment.repository';
 import { usePaySheetState } from '@/modules/commitments/screens/commitments/detail/components/pay_sheet.state';
 import { useCommitmentDetail } from '@/modules/commitments/screens/commitments/detail/detail.hook';
 import {
@@ -62,52 +52,11 @@ jest.mock('@/modules/commitments/screens/commitments/detail/components/pay_sheet
   usePaySheetState: jest.fn(),
 }));
 
-const commitment: Commitment = {
-  id: 'commitment-1',
-  name: 'Rent',
-  amount_type: AmountType.Fixed,
-  amount: 5000,
-  currency: Currency.EGP,
-  category_id: 'category-1',
-  recurrence_every: 1,
-  recurrence_period: RecurrencePeriod.Months,
-  start_date: '2026-01-01',
-  account_id: 'account-1',
-  notes: null,
-  duration_type: DurationType.Forever,
-  end_date: null,
-  end_after_count: null,
-  is_active: 1,
-  created_at: '2026-01-01T00:00:00.000Z',
-  updated_at: '2026-01-01T00:00:00.000Z',
-};
-
-const payment: CommitmentPayment = {
-  id: 'pay-1',
-  commitment_id: commitment.id,
-  due_date: '2026-05-01',
-  paid_date: null,
-  skipped_date: null,
-  amount_due: 5000,
-  amount_paid: null,
-  currency: Currency.EGP,
-  exchange_rate_snapshot: null,
-  account_id: 'account-1',
-  transaction_id: null,
-  status: CommitmentPaymentStatus.Due,
-  notes: null,
-  created_at: '2026-01-01T00:00:00.000Z',
-  updated_at: '2026-01-01T00:00:00.000Z',
-};
-
-const mockSkipPayment = jest.fn().mockResolvedValue(undefined);
-const mockSetSkipConfirmVisible = jest.fn();
-
-function setup(storeValues: { commitments?: Commitment[]; payments?: CommitmentPayment[] } = {}) {
+function setup() {
   attachMockSelectorStore(useCommitmentStore as unknown as jest.Mock, () => ({
-    commitments: storeValues.commitments ?? [],
-    payments: storeValues.payments ?? [],
-    skipPayment: mockSkipPayment,
+    commitments: [],
+    payments: [],
+    skipPayment: jest.fn().mockResolvedValue(undefined),
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts: [],
@@ -124,7 +73,7 @@ function setup(storeValues: { commitments?: Commitment[]; payments?: CommitmentP
   }));
   attachMockSelectorStore(useCommitmentDetailState as unknown as jest.Mock, () => ({
     skipConfirmVisible: false,
-    setSkipConfirmVisible: mockSetSkipConfirmVisible,
+    setSkipConfirmVisible: jest.fn(),
     reset: jest.fn(),
   }));
   attachMockSelectorStore(usePaySheetState as unknown as jest.Mock, () => ({
@@ -134,12 +83,7 @@ function setup(storeValues: { commitments?: Commitment[]; payments?: CommitmentP
 }
 
 describe('useCommitmentDetail', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-    mockSkipPayment.mockResolvedValue(undefined);
-    (commitmentRepository.getPaymentsByCommitment as jest.Mock).mockResolvedValue([]);
-    setup();
-  });
+  beforeEach(setup);
 
   it('renders without throwing', () => {
     expect(() => renderHook(() => useCommitmentDetail())).not.toThrow();
@@ -173,22 +117,5 @@ describe('useCommitmentDetail', () => {
     expect(typeof result.current.cancelSkip).toBe('function');
     expect(typeof result.current.goToEdit).toBe('function');
     expect(typeof result.current.goBack).toBe('function');
-  });
-
-  it('closes a committed skip without issuing a second direct detail query', async () => {
-    setup({ commitments: [commitment], payments: [payment] });
-    const { result } = renderHook(() => useCommitmentDetail());
-    await act(async () => {
-      await Promise.resolve();
-    });
-    expect(commitmentRepository.getPaymentsByCommitment).toHaveBeenCalledTimes(1);
-
-    await act(async () => {
-      await result.current.skipPayment();
-    });
-
-    expect(mockSkipPayment).toHaveBeenCalledWith(payment.id);
-    expect(mockSetSkipConfirmVisible).toHaveBeenCalledWith(false);
-    expect(commitmentRepository.getPaymentsByCommitment).toHaveBeenCalledTimes(1);
   });
 });

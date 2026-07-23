@@ -167,11 +167,17 @@ export function useCommitmentDetail() {
     if (!payment) return;
     try {
       await storeSkipPayment(payment.id);
-      setSkipConfirmVisible(false);
+      // Reload allPayments after skip
+      if (commitment) {
+        const updated = await commitmentRepository.getPaymentsByCommitment(commitment.id);
+        setAllPayments(updated);
+      }
     } catch (err) {
       console.error('[commitmentDetail] skipPayment failed', err);
+    } finally {
+      setSkipConfirmVisible(false);
     }
-  }, [payment, storeSkipPayment, setSkipConfirmVisible]);
+  }, [payment, storeSkipPayment, commitment, setAllPayments, setSkipConfirmVisible]);
 
   const confirmSkip = useCallback(() => {
     setSkipConfirmVisible(true);
