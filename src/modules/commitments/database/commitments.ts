@@ -100,3 +100,25 @@ export async function deactivateCommitment(db: SQLiteDatabase, id: string): Prom
     id,
   ]);
 }
+
+export async function deactivateExpiredCommitments(
+  db: SQLiteDatabase,
+  asOfDate: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.runAsync(
+    `UPDATE commitments
+        SET is_active = 0, updated_at = ?
+      WHERE is_active = 1
+        AND (
+          (duration_type = 'until_date' AND end_date IS NOT NULL AND end_date < ?)
+          OR
+          (duration_type = 'after_count' AND end_after_count IS NOT NULL
+            AND (SELECT COUNT(*)
+                   FROM commitment_payments INDEXED BY idx_cp_commitment_id
+                  WHERE commitment_id = commitments.id
+                    AND status = 'paid') >= end_after_count)
+        )`,
+    [updatedAt, asOfDate],
+  );
+}

@@ -2,6 +2,8 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { CommitmentPaymentStatus, Currency, TransactionType } from '@/constants/enums';
+import type { Transaction } from '@/database/entities/transaction.entity';
+import { MIGRATIONS } from '@/database/migrations';
 import {
   addPayments,
   deleteUnpaidPaymentsByCommitment,
@@ -10,12 +12,12 @@ import {
   getPaymentById,
   getPaymentsByCommitment,
   getPaymentsByMonth,
+  getActiveCommitmentDueDates,
   getPaidCountByCommitment,
+  insertPaymentRows,
   markCommitmentAsPaid,
   updatePaymentStatus,
-} from '@/database/commitment_payments';
-import type { Transaction } from '@/database/entities/transaction.entity';
-import { MIGRATIONS } from '@/database/migrations';
+} from '@/modules/commitments/database/commitment_payments';
 import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
@@ -95,6 +97,7 @@ beforeAll(() => {
 beforeEach(() => {
   realDb.exec('DELETE FROM commitment_payments');
   realDb.exec('DELETE FROM transactions');
+  realDb.exec('UPDATE commitments SET is_active = 1');
   realDb.prepare("UPDATE accounts SET current_balance = 5000 WHERE id = 'acc1'").run();
   realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc2'").run();
   realDb.prepare("UPDATE accounts SET current_balance = 1000 WHERE id = 'acc_card'").run();
@@ -283,7 +286,120 @@ describe('addPayments', () => {
     const rows = realDb.prepare('SELECT * FROM commitment_payments').all();
     expect(rows).toHaveLength(2);
   });
+
+  it('keeps the standalone transaction and delegates serial inserts', async () => {
+    const calls: string[] = [];
+    const db = {
+      runAsync: jest.fn(async (_sql: string, params: unknown[]) => {
+        calls.push(String(params[0]));
+        return { changes: 1, lastInsertRowId: 1 };
+      }),
+      withTransactionAsync: jest.fn(async (work: () => Promise<void>) => {
+        calls.push('transaction:start');
+        await work();
+        calls.push('transaction:end');
+      }),
+    } as unknown as Parameters<typeof addPayments>[0];
+    const payments = [
+      makePayment({ id: 'serial-1' }),
+      makePayment({ id: 'serial-2' }),
+      makePayment({ id: 'serial-3' }),
+    ];
+
+    await addPayments(db, payments);
+
+    expect(db.withTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(calls).toEqual([
+      'transaction:start',
+      'serial-1',
+      'serial-2',
+      'serial-3',
+      'transaction:end',
+    ]);
+  });
 });
+
+describe('insertPaymentRows', () => {
+  it('performs serial INSERT OR IGNORE calls without opening a transaction', async () => {
+    const first = deferredRun();
+    const second = deferredRun();
+    const runAsync = jest
+      .fn()
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+      .mockResolvedValueOnce({ changes: 1, lastInsertRowId: 3 });
+    const withTransactionAsync = jest.fn();
+    const db = { runAsync, withTransactionAsync } as unknown as Parameters<
+      typeof insertPaymentRows
+    >[0];
+    const promise = insertPaymentRows(db, [
+      makePayment({ id: 'low-1' }),
+      makePayment({ id: 'low-2' }),
+      makePayment({ id: 'low-3' }),
+    ]);
+
+    expect(runAsync).toHaveBeenCalledTimes(1);
+    expect(String(runAsync.mock.calls[0][0])).toContain('INSERT OR IGNORE');
+    first.resolve({ changes: 1, lastInsertRowId: 1 });
+    await Promise.resolve();
+    expect(runAsync).toHaveBeenCalledTimes(2);
+    second.resolve({ changes: 1, lastInsertRowId: 2 });
+    await promise;
+
+    expect(runAsync.mock.calls.map((call) => call[1][0])).toEqual(['low-1', 'low-2', 'low-3']);
+    expect(withTransactionAsync).not.toHaveBeenCalled();
+  });
+});
+
+describe('getActiveCommitmentDueDates', () => {
+  it('returns ordered due-date facts only for active commitments', async () => {
+    realDb.prepare("UPDATE commitments SET is_active = 0 WHERE id = 'commitment2'").run();
+    await addPayments(mockDb, [
+      makePayment({ id: 'active-late', commitment_id: 'commitment1', due_date: '2026-06-01' }),
+      makePayment({ id: 'active-early', commitment_id: 'commitment1', due_date: '2026-05-01' }),
+      makePayment({ id: 'inactive', commitment_id: 'commitment2', due_date: '2026-04-01' }),
+    ]);
+
+    await expect(getActiveCommitmentDueDates(mockDb)).resolves.toEqual([
+      { commitment_id: 'commitment1', due_date: '2026-05-01' },
+      { commitment_id: 'commitment1', due_date: '2026-06-01' },
+    ]);
+  });
+
+  it('uses existing indexes and does not require a new index', () => {
+    const plan = realDb
+      .prepare(
+        `EXPLAIN QUERY PLAN
+         SELECT payment.commitment_id, payment.due_date
+           FROM commitment_payments payment
+           JOIN commitments commitment ON commitment.id = payment.commitment_id
+             AND commitment.is_active = 1
+          ORDER BY payment.commitment_id, payment.due_date`,
+      )
+      .all() as Array<{ detail: string }>;
+    const indexNames = realDb
+      .prepare(
+        `SELECT name
+           FROM sqlite_master
+          WHERE type = 'index'
+            AND tbl_name IN ('commitments', 'commitment_payments')`,
+      )
+      .all() as Array<{ name: string }>;
+
+    expect(plan.map((row) => row.detail).join('\n')).toContain('idx_cp_commitment_id');
+    expect(indexNames.map((row) => row.name)).toEqual(
+      expect.arrayContaining(['idx_cp_commitment_id', 'idx_cp_due_date', 'idx_cp_status']),
+    );
+  });
+});
+
+function deferredRun() {
+  let resolve!: (value: { changes: number; lastInsertRowId: number }) => void;
+  const promise = new Promise<{ changes: number; lastInsertRowId: number }>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
 
 describe('getExistingDueDates', () => {
   it('returns due_date strings for the given commitment', async () => {

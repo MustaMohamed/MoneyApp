@@ -1,16 +1,25 @@
 import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
-import { AmountType, Currency, DurationType, RecurrencePeriod } from '@/constants/enums';
-import { MIGRATIONS } from '@/database/migrations';
 import {
+  AmountType,
+  CommitmentPaymentStatus,
+  Currency,
+  DurationType,
+  RecurrencePeriod,
+} from '@/constants/enums';
+import { MIGRATIONS } from '@/database/migrations';
+import { addPayments } from '@/modules/commitments/database/commitment_payments';
+import {
+  addCommitment,
+  deactivateCommitment,
+  deactivateExpiredCommitments,
   getCommitments,
   getCommitmentById,
-  addCommitment,
   updateCommitment,
-  deactivateCommitment,
 } from '@/modules/commitments/database/commitments';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
+import type { CommitmentPayment } from '@/modules/commitments/entities/commitment_payment.entity';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -67,6 +76,7 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+  realDb.exec('DELETE FROM commitment_payments');
   realDb.exec('DELETE FROM commitments');
 });
 
@@ -325,3 +335,105 @@ describe('deactivateCommitment', () => {
     expect(kept?.is_active).toBe(1);
   });
 });
+
+describe('deactivateExpiredCommitments', () => {
+  it('deactivates active finite commitments only after their strict completion boundary', async () => {
+    const commitments = [
+      makeCommitment({
+        id: 'until-before',
+        duration_type: DurationType.UntilDate,
+        end_date: '2026-05-07',
+      }),
+      makeCommitment({
+        id: 'until-today',
+        duration_type: DurationType.UntilDate,
+        end_date: '2026-05-08',
+      }),
+      makeCommitment({
+        id: 'after-complete',
+        duration_type: DurationType.AfterCount,
+        end_after_count: 2,
+      }),
+      makeCommitment({
+        id: 'after-incomplete',
+        duration_type: DurationType.AfterCount,
+        end_after_count: 2,
+      }),
+      makeCommitment({ id: 'forever-active' }),
+      makeCommitment({
+        id: 'already-inactive',
+        is_active: 0,
+        duration_type: DurationType.UntilDate,
+        end_date: '2020-01-01',
+        updated_at: '2020-01-01T00:00:00.000Z',
+      }),
+    ];
+    for (const commitment of commitments) await addCommitment(mockDb, commitment);
+
+    const paidRows: CommitmentPayment[] = [
+      makePayment('paid-1', 'after-complete', '2026-03-01'),
+      makePayment('paid-2', 'after-complete', '2026-04-01'),
+      makePayment('paid-3', 'after-incomplete', '2026-04-01'),
+    ];
+    await addPayments(mockDb, paidRows);
+
+    await deactivateExpiredCommitments(mockDb, '2026-05-08', NOW);
+
+    const rows = realDb
+      .prepare('SELECT id, is_active, updated_at FROM commitments ORDER BY id')
+      .all() as Array<{ id: string; is_active: number; updated_at: string }>;
+    const byId = new Map(rows.map((row) => [row.id, row]));
+
+    expect(byId.get('until-before')).toMatchObject({ is_active: 0, updated_at: NOW });
+    expect(byId.get('after-complete')).toMatchObject({ is_active: 0, updated_at: NOW });
+    expect(byId.get('until-today')?.is_active).toBe(1);
+    expect(byId.get('after-incomplete')?.is_active).toBe(1);
+    expect(byId.get('forever-active')?.is_active).toBe(1);
+    expect(byId.get('already-inactive')).toMatchObject({
+      is_active: 0,
+      updated_at: '2020-01-01T00:00:00.000Z',
+    });
+  });
+
+  it('uses the existing commitment payment index for paid-count expiry', () => {
+    const plan = realDb
+      .prepare(
+        `EXPLAIN QUERY PLAN
+         UPDATE commitments
+            SET is_active = 0, updated_at = ?
+          WHERE is_active = 1
+            AND (
+              (duration_type = 'until_date' AND end_date IS NOT NULL AND end_date < ?)
+              OR
+              (duration_type = 'after_count' AND end_after_count IS NOT NULL
+                AND (SELECT COUNT(*)
+                       FROM commitment_payments INDEXED BY idx_cp_commitment_id
+                      WHERE commitment_id = commitments.id
+                        AND status = 'paid') >= end_after_count)
+            )`,
+      )
+      .all(NOW, '2026-05-08') as Array<{ detail: string }>;
+
+    expect(plan.map((row) => row.detail).join('\n')).toContain('idx_cp_commitment_id');
+  });
+});
+
+function makePayment(id: string, commitmentId: string, dueDate: string): CommitmentPayment {
+  return {
+    id,
+    commitment_id: commitmentId,
+    due_date: dueDate,
+    paid_date: dueDate,
+    skipped_date: null,
+    amount_due: 200,
+    amount_paid: 200,
+    currency: Currency.EGP,
+    exchange_rate_snapshot: null,
+    account_id: 'acc1',
+    transaction_id: null,
+    status: CommitmentPaymentStatus.Paid,
+    notes: null,
+    created_at: NOW,
+    updated_at: NOW,
+  };
+}

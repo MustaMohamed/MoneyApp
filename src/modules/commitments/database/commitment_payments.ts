@@ -8,6 +8,49 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
+const INSERT_PAYMENT_SQL = `INSERT OR IGNORE INTO commitment_payments
+  (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
+   currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
+   created_at, updated_at)
+ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+function paymentInsertParams(payment: CommitmentPayment) {
+  return [
+    payment.id,
+    payment.commitment_id,
+    payment.due_date,
+    payment.paid_date,
+    payment.skipped_date,
+    payment.amount_due,
+    payment.amount_paid,
+    payment.currency,
+    payment.exchange_rate_snapshot,
+    payment.account_id,
+    payment.transaction_id,
+    payment.status,
+    payment.notes,
+    payment.created_at,
+    payment.updated_at,
+  ];
+}
+
+export interface ActiveCommitmentDueDate {
+  commitment_id: string;
+  due_date: string;
+}
+
+export function getActiveCommitmentDueDates(
+  db: SQLiteDatabase,
+): Promise<ActiveCommitmentDueDate[]> {
+  return db.getAllAsync<ActiveCommitmentDueDate>(
+    `SELECT payment.commitment_id, payment.due_date
+       FROM commitment_payments payment
+       JOIN commitments commitment ON commitment.id = payment.commitment_id
+         AND commitment.is_active = 1
+      ORDER BY payment.commitment_id, payment.due_date`,
+  );
+}
+
 /**
  * Get payments for a given month (YYYY-MM format).
  * Returns payments whose due_date falls within the selected month.
@@ -56,37 +99,21 @@ export async function getPaymentById(
 }
 
 /** Batch insert for payment generation (idempotent — uses INSERT OR IGNORE). */
+export async function insertPaymentRows(
+  db: SQLiteDatabase,
+  payments: CommitmentPayment[],
+): Promise<void> {
+  for (const payment of payments) {
+    await db.runAsync(INSERT_PAYMENT_SQL, paymentInsertParams(payment));
+  }
+}
+
 export async function addPayments(
   db: SQLiteDatabase,
   payments: CommitmentPayment[],
 ): Promise<void> {
   await db.withTransactionAsync(async () => {
-    for (const p of payments) {
-      await db.runAsync(
-        `INSERT OR IGNORE INTO commitment_payments
-          (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
-           currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
-           created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          p.id,
-          p.commitment_id,
-          p.due_date,
-          p.paid_date,
-          p.skipped_date,
-          p.amount_due,
-          p.amount_paid,
-          p.currency,
-          p.exchange_rate_snapshot,
-          p.account_id,
-          p.transaction_id,
-          p.status,
-          p.notes,
-          p.created_at,
-          p.updated_at,
-        ],
-      );
-    }
+    await insertPaymentRows(db, payments);
   });
 }
 
