@@ -16,6 +16,7 @@
     "format:check": "oxfmt --check",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "verify:pr": "node scripts/harness/verify_pr.js",
     "harness:test": "node --test scripts/harness/__tests__/*.test.js",
     "harness:generate": "node scripts/harness/generate.js",
     "harness:check": "node scripts/harness/check.js",

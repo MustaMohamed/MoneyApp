@@ -242,6 +242,44 @@
   ],
   "rules": "harness/rules/semantics.json",
   "verification": {
-    "checks": []
+    "checks": [
+      {
+        "id": "format",
+        "local": ["npm", "run", "format:check"],
+        "ci": { "job": "format", "run": "npm run format:check" }
+      },
+      {
+        "id": "lint",
+        "local": ["npm", "run", "lint"],
+        "ci": { "job": "lint", "run": "npm run lint" }
+      },
+      {
+        "id": "typecheck",
+        "local": ["npm", "run", "typecheck"],
+        "ci": {
+          "job": "typecheck",
+          "run": "npm run typecheck -- --incremental --tsBuildInfoFile .tsbuildinfo"
+        }
+      },
+      {
+        "id": "test",
+        "local": ["npm", "test", "--", "--ci"],
+        "ci": { "job": "test", "run": "npm test -- --ci --cacheDirectory .jest-cache" }
+      },
+      {
+        "id": "doctor",
+        "local": ["npx", "--yes", "expo-doctor"],
+        "ci": { "job": "doctor", "run": "npx --yes expo-doctor" }
+      },
+      {
+        "id": "prebuild",
+        "local": ["npx", "expo", "prebuild", "--no-install", "--platform", "android"],
+        "assertDirectory": "android",
+        "ci": {
+          "job": "prebuild-check",
+          "run": "npx expo prebuild --no-install --platform android"
+        }
+      }
+    ]
   }
 }

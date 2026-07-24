@@ -14,6 +14,7 @@ const {
   collectBabelText,
   collectSourceText,
   validateDependencyFacts,
+  validateIntegrationContract,
   validateRepositoryPaths,
   validateVerificationContract,
 } = require('./lib/repository_facts');
@@ -22,6 +23,7 @@ const root = path.resolve(__dirname, '../..');
 const manifest = loadManifest(root);
 const errors = [];
 const rendered = renderAll(root, manifest);
+const pkg = JSON.parse(fs.readFileSync(resolveInside(root, 'package.json'), 'utf8'));
 
 function collectLiveFiles() {
   const files = {};
@@ -53,7 +55,7 @@ const rules = JSON.parse(fs.readFileSync(resolveInside(root, manifest.rules), 'u
 errors.push(...evaluateRules(rules, liveFiles, { requireCompleteScope: true }));
 errors.push(
   ...validateDependencyFacts(
-    JSON.parse(fs.readFileSync(resolveInside(root, 'package.json'), 'utf8')),
+    pkg,
     JSON.parse(fs.readFileSync(resolveInside(root, 'package-lock.json'), 'utf8')),
     Object.values(liveFiles).join('\n'),
     collectSourceText(root),
@@ -65,6 +67,12 @@ errors.push(
   ...validateVerificationContract(
     manifest.verification.checks,
     fs.readFileSync(resolveInside(root, '.github/workflows/pr-checks.yml'), 'utf8'),
+  ),
+);
+errors.push(
+  ...validateIntegrationContract(
+    pkg,
+    fs.readFileSync(resolveInside(root, '.husky/pre-push'), 'utf8'),
   ),
 );
 

@@ -122,35 +122,81 @@ function extractJobBlock(workflow, job) {
   return lines.slice(start, end).join('\n');
 }
 
+const REQUIRED_CHECK_IDS = ['format', 'lint', 'typecheck', 'test', 'doctor', 'prebuild'];
+
 function validateVerificationContract(checks, workflow) {
   const errors = [];
-  const ids = new Set();
+  const ids = checks.map((check) => check.id);
+  if (JSON.stringify(ids) !== JSON.stringify(REQUIRED_CHECK_IDS)) {
+    errors.push({
+      ruleId: 'VERIFY-SIX-CHECKS',
+      file: 'harness/manifest.json',
+      message: `expected ordered check identities ${REQUIRED_CHECK_IDS.join(', ')}`,
+    });
+  }
+
   for (const check of checks) {
-    if (ids.has(check.id)) {
+    if (
+      !Array.isArray(check.local) ||
+      check.local.length === 0 ||
+      check.local.some((part) => typeof part !== 'string' || part.length === 0) ||
+      typeof check.ci?.job !== 'string' ||
+      typeof check.ci?.run !== 'string'
+    ) {
       errors.push({
         ruleId: 'VERIFY-SIX-CHECKS',
         file: 'harness/manifest.json',
-        message: `duplicate ${check.id}`,
+        message: `invalid registry entry for ${check.id}`,
       });
+      continue;
     }
-    ids.add(check.id);
     const block = extractJobBlock(workflow, check.ci.job);
     if (!block.includes(`run: ${check.ci.run}`)) {
       errors.push({
         ruleId: 'VERIFY-SIX-CHECKS',
         file: '.github/workflows/pr-checks.yml',
-        message: `missing ${check.id}: ${check.ci.run}`,
+        message: `CI job ${check.ci.job} does not run registered ${check.id} check`,
       });
     }
+  }
+
+  const prebuild = checks.find((check) => check.id === 'prebuild');
+  if (prebuild?.assertDirectory !== 'android') {
+    errors.push({
+      ruleId: 'VERIFY-SIX-CHECKS',
+      file: 'harness/manifest.json',
+      message: 'prebuild must assert the worktree-owned android directory',
+    });
+  }
+  return errors;
+}
+
+function validateIntegrationContract(pkg, prePush) {
+  const errors = [];
+  if (pkg.scripts?.['verify:pr'] !== 'node scripts/harness/verify_pr.js') {
+    errors.push({
+      ruleId: 'VERIFY-SIX-CHECKS',
+      file: 'package.json',
+      message: 'verify:pr must delegate to scripts/harness/verify_pr.js',
+    });
+  }
+  if (prePush.trim() !== 'npm run verify:pr') {
+    errors.push({
+      ruleId: 'VERIFY-SIX-CHECKS',
+      file: '.husky/pre-push',
+      message: 'pre-push must contain only npm run verify:pr',
+    });
   }
   return errors;
 }
 
 module.exports = {
+  REQUIRED_CHECK_IDS,
   collectBabelText,
   collectSourceText,
   extractJobBlock,
   validateDependencyFacts,
+  validateIntegrationContract,
   validateRepositoryPaths,
   validateVerificationContract,
 };

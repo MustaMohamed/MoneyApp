@@ -5,7 +5,9 @@ const path = require('node:path');
 const test = require('node:test');
 
 const {
+  REQUIRED_CHECK_IDS,
   validateDependencyFacts,
+  validateIntegrationContract,
   validateRepositoryPaths,
   validateVerificationContract,
 } = require('../lib/repository_facts');
@@ -222,11 +224,78 @@ void test('rejects missing canonical paths and persona surfaces', (t) => {
 });
 
 void test('accepts six registered CI checks with their exact job commands', () => {
-  const checks = [
-    { id: 'format', ci: { job: 'format', run: 'npm run format:check' } },
-    { id: 'lint', ci: { job: 'lint', run: 'npm run lint' } },
-  ];
-  const workflow =
-    '  format:\n    steps:\n      - run: npm run format:check\n  lint:\n    steps:\n      - run: npm run lint\n';
+  const root = path.resolve(__dirname, '../../..');
+  const checks = JSON.parse(fs.readFileSync(path.join(root, 'harness/manifest.json'), 'utf8'))
+    .verification.checks;
+  const workflow = checks
+    .map((check) => `  ${check.ci.job}:\n    steps:\n      - run: ${check.ci.run}\n`)
+    .join('');
+
+  assert.deepEqual(
+    checks.map((check) => check.id),
+    REQUIRED_CHECK_IDS,
+  );
   assert.deepEqual(validateVerificationContract(checks, workflow), []);
+});
+
+void test('rejects reordered verification identities', () => {
+  const root = path.resolve(__dirname, '../../..');
+  const checks = structuredClone(
+    JSON.parse(fs.readFileSync(path.join(root, 'harness/manifest.json'), 'utf8')).verification
+      .checks,
+  );
+  [checks[0], checks[1]] = [checks[1], checks[0]];
+  const workflow = checks
+    .map((check) => `  ${check.ci.job}:\n    steps:\n      - run: ${check.ci.run}\n`)
+    .join('');
+
+  const errors = validateVerificationContract(checks, workflow);
+  assert(errors.some((error) => error.ruleId === 'VERIFY-SIX-CHECKS'));
+});
+
+void test('rejects a workflow missing the registered doctor job', () => {
+  const root = path.resolve(__dirname, '../../..');
+  const checks = JSON.parse(fs.readFileSync(path.join(root, 'harness/manifest.json'), 'utf8'))
+    .verification.checks;
+  const workflow = checks
+    .filter((check) => check.id !== 'doctor')
+    .map((check) => `  ${check.ci.job}:\n    steps:\n      - run: ${check.ci.run}\n`)
+    .join('');
+
+  const errors = validateVerificationContract(checks, workflow);
+  assert(errors.some((error) => error.ruleId === 'VERIFY-SIX-CHECKS'));
+});
+
+void test('rejects malformed verification registry entries', () => {
+  const checks = REQUIRED_CHECK_IDS.map((id) => ({
+    id,
+    local: id === 'lint' ? [] : ['command'],
+    ci: { job: id, run: 'command' },
+    ...(id === 'prebuild' ? { assertDirectory: 'android' } : {}),
+  }));
+  const workflow = checks
+    .map((check) => `  ${check.ci.job}:\n    steps:\n      - run: ${check.ci.run}\n`)
+    .join('');
+
+  const errors = validateVerificationContract(checks, workflow);
+  assert(errors.some((error) => error.message === 'invalid registry entry for lint'));
+});
+
+void test('accepts the canonical package script and pre-push delegation', () => {
+  assert.deepEqual(
+    validateIntegrationContract(
+      { scripts: { 'verify:pr': 'node scripts/harness/verify_pr.js' } },
+      'npm run verify:pr\n',
+    ),
+    [],
+  );
+});
+
+void test('rejects a pre-push hook that duplicates verification commands', () => {
+  const errors = validateIntegrationContract(
+    { scripts: { 'verify:pr': 'node scripts/harness/verify_pr.js' } },
+    'npm test && npm run typecheck\n',
+  );
+
+  assert(errors.some((error) => error.ruleId === 'VERIFY-SIX-CHECKS'));
 });
