@@ -1,0 +1,4 @@
+{
+  "AGENTS.md": "explicit user request. Spec sign-off. Device QA. critical trigger. Sarah approves plans. merge recommendation. Zustand v5. Signals rollback. src/modules/<domain>/. HeroUI Native. @preact/signals-react and its Babel transform are not installed. Reintroducing Signals requires a new approved plan.",
+  ".codex/agents/dev.toml": "Do not use Preact Signals. Never migrate to @preact/signals-react without an approved plan."
+}

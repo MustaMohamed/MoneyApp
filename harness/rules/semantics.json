@@ -1,3 +1,172 @@
 {
-  "rules": []
+  "rules": [
+    {
+      "id": "AUTH-USER-INTEGRATION",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/*.toml",
+        ".claude/agents/*.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/commands/*.md"
+      ],
+      "require": ["explicit user request"],
+      "forbid": [
+        "approve and merge",
+        "approves and merges",
+        "approves & merges",
+        "merge code reviews on the user's behalf",
+        "merges code reviews on the user's behalf"
+      ]
+    },
+    {
+      "id": "GATE-SPEC-SIGNOFF",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/sarah.toml",
+        ".claude/agents/sarah.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/commands/feature.md"
+      ],
+      "require": ["Spec sign-off"],
+      "forbid": ["Gate 1 (plan approval)"]
+    },
+    {
+      "id": "GATE-DEVICE-QA",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/sarah.toml",
+        ".claude/agents/sarah.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/commands/feature.md"
+      ],
+      "require": ["Device QA"],
+      "forbid": ["Gate 2 (code review)"]
+    },
+    {
+      "id": "GATE-CRITICAL-TRIGGER",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/*.toml",
+        ".claude/agents/*.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/commands/feature.md"
+      ],
+      "require": ["critical trigger"],
+      "forbid": []
+    },
+    {
+      "id": "LEAD-PLAN-APPROVAL",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/sarah.toml",
+        ".claude/agents/sarah.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md"
+      ],
+      "require": ["Sarah approves plans"],
+      "forbid": []
+    },
+    {
+      "id": "LEAD-REVIEW-VERDICT",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/tariq.toml",
+        ".claude/agents/tariq.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md"
+      ],
+      "require": ["merge recommendation"],
+      "forbid": ["Tariq merges", "Tariq approves and merges"]
+    },
+    {
+      "id": "STACK-ZUSTAND",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/dev.toml",
+        ".codex/agents/tariq.toml",
+        ".claude/agents/dev.md",
+        ".claude/agents/tariq.md",
+        ".agents/skills/moneyapp-expert-panel/SKILL.md",
+        ".claude/skills/moneyapp-expert-panel/SKILL.md"
+      ],
+      "require": ["Zustand v5"],
+      "forbid": []
+    },
+    {
+      "id": "STACK-NO-SIGNALS",
+      "files": ["AGENTS.md", "CLAUDE.md", ".agents/**/*.md", ".claude/**/*.md", ".codex/**/*.toml"],
+      "require": [],
+      "forbid": [],
+      "forbidPositiveSignalsGuidance": true
+    },
+    {
+      "id": "PATH-SRC-CANONICAL",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/dev.toml",
+        ".codex/agents/tariq.toml",
+        ".claude/agents/dev.md",
+        ".claude/agents/tariq.md"
+      ],
+      "require": ["src/modules/<domain>/"],
+      "forbid": ["canonical feature code lives under `modules/<domain>/`"]
+    },
+    {
+      "id": "UI-HEROUI",
+      "files": [
+        "AGENTS.md",
+        "CLAUDE.md",
+        ".codex/agents/dev.toml",
+        ".codex/agents/marcus.toml",
+        ".codex/agents/tariq.toml",
+        ".claude/agents/dev.md",
+        ".claude/agents/marcus.md",
+        ".claude/agents/tariq.md"
+      ],
+      "require": ["HeroUI Native"],
+      "forbid": []
+    },
+    {
+      "id": "PERSONA-SARAH-OWNERSHIP",
+      "files": [".codex/agents/sarah.toml", ".claude/agents/sarah.md"],
+      "require": ["orchestration"],
+      "forbid": ["owns architecture", "owns financial formulas"]
+    },
+    {
+      "id": "PERSONA-MARCUS-OWNERSHIP",
+      "files": [".codex/agents/marcus.toml", ".claude/agents/marcus.md"],
+      "require": ["product/UX"],
+      "forbid": ["owns financial formulas", "owns architecture"]
+    },
+    {
+      "id": "PERSONA-LAYLA-OWNERSHIP",
+      "files": [".codex/agents/layla.toml", ".claude/agents/layla.md"],
+      "require": ["financial formulas"],
+      "forbid": ["owns product/UX", "owns architecture"]
+    },
+    {
+      "id": "PERSONA-TARIQ-OWNERSHIP",
+      "files": [".codex/agents/tariq.toml", ".claude/agents/tariq.md"],
+      "require": ["architecture"],
+      "forbid": ["owns product/UX", "owns financial formulas"]
+    },
+    {
+      "id": "PERSONA-DEV-OWNERSHIP",
+      "files": [".codex/agents/dev.toml", ".claude/agents/dev.md"],
+      "require": ["implements approved plans"],
+      "forbid": ["approves plans", "owns product/UX", "owns financial formulas"]
+    }
+  ]
 }

@@ -1,0 +1,74 @@
+[
+  {
+    "name": "signals-installed",
+    "files": { ".codex/agents/dev.toml": "The Babel signals transform is installed." },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "signals-use-directive",
+    "files": {
+      ".codex/agents/dev.toml": "Use @preact/signals-react for migrated state."
+    },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "signals-prefer-directive",
+    "files": { ".claude/agents/dev.md": "Prefer Preact Signals for migrated state." },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "signals-enforce-directive",
+    "files": {
+      ".agents/skills/moneyapp-expert-panel/SKILL.md": "Enforce @preact/signals-react as the state model."
+    },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "signals-migrate-directive",
+    "files": { ".claude/agents/tariq.md": "Migrate shared state to Preact Signals." },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "signals-stack-claim",
+    "files": { "CLAUDE.md": "State stack: @preact/signals-react." },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "signals-transform-installed",
+    "files": { "AGENTS.md": "The signals transform is installed." },
+    "expectedRule": "STACK-NO-SIGNALS"
+  },
+  {
+    "name": "agent-merge-authority",
+    "files": { ".claude/agents/tariq.md": "Tariq may approve and merge." },
+    "expectedRule": "AUTH-USER-INTEGRATION"
+  },
+  {
+    "name": "obsolete-gates",
+    "files": {
+      ".claude/commands/feature.md": "Gate 1 (plan approval) then Gate 2 (code review)."
+    },
+    "expectedRule": "GATE-SPEC-SIGNOFF"
+  },
+  {
+    "name": "missing-src-prefix",
+    "files": {
+      ".codex/agents/dev.toml": "Canonical feature code lives under `modules/<domain>/`."
+    },
+    "expectedRule": "PATH-SRC-CANONICAL"
+  },
+  {
+    "name": "divergent-persona-ownership",
+    "files": {
+      ".claude/agents/marcus.md": "Marcus owns architecture."
+    },
+    "expectedRule": "PERSONA-MARCUS-OWNERSHIP"
+  },
+  {
+    "name": "missing-critical-trigger",
+    "files": {
+      ".codex/agents/sarah.toml": "Sarah owns orchestration. Sarah approves plans. explicit user request."
+    },
+    "expectedRule": "GATE-CRITICAL-TRIGGER"
+  }
+]
