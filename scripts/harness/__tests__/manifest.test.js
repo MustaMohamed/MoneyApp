@@ -7,6 +7,8 @@ const test = require('node:test');
 const { assertSafeRelativePath, resolveInside, writeFileAtomic } = require('../lib/paths');
 const { loadManifest, validateManifest } = require('../lib/manifest');
 
+const repositoryRoot = path.resolve(__dirname, '../../..');
+
 function createTarget(overrides = {}) {
   return {
     id: 'root-agents',
@@ -24,6 +26,7 @@ function createManifest(overrides = {}) {
     targets: [],
     personas: [],
     rules: 'harness/rules/semantics.json',
+    workflow: { machine: 'harness/workflow/state_machine.json' },
     verification: { checks: [] },
     ...overrides,
   };
@@ -34,6 +37,13 @@ function createManifestRoot(t, manifest) {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/manifest.json'), JSON.stringify(manifest));
+  if (manifest.workflow?.machine) {
+    writeFixture(
+      root,
+      manifest.workflow.machine,
+      fs.readFileSync(path.join(repositoryRoot, 'harness/workflow/state_machine.json'), 'utf8'),
+    );
+  }
   return root;
 }
 
@@ -526,6 +536,13 @@ void test('rejects portable target aliases across every registered input class',
       label: 'rules',
       overrides: { targets: [createTarget({ path: targetPath })], rules: inputAlias },
     },
+    {
+      label: 'workflow machine',
+      overrides: {
+        targets: [createTarget({ path: targetPath })],
+        workflow: { machine: inputAlias },
+      },
+    },
   ];
 
   for (const fixture of cases) {
@@ -536,6 +553,20 @@ void test('rejects portable target aliases across every registered input class',
       ),
     );
   }
+});
+
+void test('requires a non-empty safe workflow machine path', () => {
+  for (const machine of [undefined, '']) {
+    assert.throws(
+      () => validateManifest(createManifest({ workflow: { machine } })),
+      /workflow\.machine must be a non-empty string/,
+    );
+  }
+  assert.throws(
+    () =>
+      validateManifest(createManifest({ workflow: { machine: '../workflow/state_machine.json' } })),
+    /repository-relative/,
+  );
 });
 
 void test('requires rules to be a non-empty safe repository-relative path', () => {
@@ -695,6 +726,15 @@ void test('load rejects a missing registered rules file', (t) => {
   assert.throws(() => loadManifest(root), /missing registered input.*missing\.json/);
 });
 
+void test('load rejects a missing registered workflow machine', (t) => {
+  const manifest = createManifest();
+  const root = createManifestRoot(t, manifest);
+  writeFixture(root, manifest.rules, '{"rules":[]}');
+  fs.unlinkSync(path.join(root, manifest.workflow.machine));
+
+  assert.throws(() => loadManifest(root), /missing registered input.*state_machine\.json/);
+});
+
 void test('load rejects a missing registered policy order input', (t) => {
   const root = createManifestRoot(
     t,
@@ -763,7 +803,11 @@ void test('load accepts an ordinary nonexistent nested target path', (t) => {
       ],
     }),
   );
-  writeFixture(root, 'harness/rules/semantics.json', '{"rules":[]}');
+  writeFixture(
+    root,
+    'harness/rules/semantics.json',
+    fs.readFileSync(path.join(repositoryRoot, 'harness/rules/semantics.json'), 'utf8'),
+  );
   writeFixture(root, 'harness/templates/agents.md');
 
   assert.doesNotThrow(() => loadManifest(root));
