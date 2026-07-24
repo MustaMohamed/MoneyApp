@@ -43,7 +43,7 @@ function writeFixture(root, relativePath, content = '') {
   fs.writeFileSync(target, content);
 }
 
-test('accepts a unique repository-relative target', () => {
+void test('accepts a unique repository-relative target', () => {
   assert.doesNotThrow(() =>
     validateManifest(
       createManifest({
@@ -53,13 +53,13 @@ test('accepts a unique repository-relative target', () => {
   );
 });
 
-test('rejects parent traversal and absolute paths', () => {
+void test('rejects parent traversal and absolute paths', () => {
   for (const value of ['../AGENTS.md', '/tmp/AGENTS.md']) {
     assert.throws(() => assertSafeRelativePath(value), /repository-relative/);
   }
 });
 
-test('rejects Windows absolute and backslash paths', () => {
+void test('rejects Windows absolute and backslash paths', () => {
   for (const value of [
     'C:\\tmp\\AGENTS.md',
     'C:/tmp/AGENTS.md',
@@ -71,23 +71,23 @@ test('rejects Windows absolute and backslash paths', () => {
   }
 });
 
-test('rejects non-normal repository-relative paths', () => {
+void test('rejects non-normal repository-relative paths', () => {
   for (const value of ['nested/./output.md', 'nested//output.md', 'nested/output.md/']) {
     assert.throws(() => assertSafeRelativePath(value), /normalized repository-relative/);
   }
 });
 
-test('rejects non-NFC path spelling', () => {
+void test('rejects non-NFC path spelling', () => {
   assert.throws(() => assertSafeRelativePath('generated/cafe\u0301.md'), /NFC-normalized/);
 });
 
-test('accepts NFC paths and uppercase root filenames', () => {
+void test('accepts NFC paths and uppercase root filenames', () => {
   for (const value of ['generated/caf\u00e9.md', 'AGENTS.md', 'CLAUDE.md']) {
     assert.doesNotThrow(() => assertSafeRelativePath(value));
   }
 });
 
-test('rejects Windows-invalid and control characters in path segments', () => {
+void test('rejects Windows-invalid and control characters in path segments', () => {
   for (const character of ['<', '>', ':', '"', '|', '?', '*', '\u0001', '\u007f', '\u0085']) {
     assert.throws(
       () => assertSafeRelativePath(`nested/bad${character}name.md`),
@@ -96,7 +96,7 @@ test('rejects Windows-invalid and control characters in path segments', () => {
   }
 });
 
-test('rejects Windows device basenames with or without extensions', () => {
+void test('rejects Windows device basenames with or without extensions', () => {
   for (const segment of [
     'CON',
     'prn.txt',
@@ -111,13 +111,13 @@ test('rejects Windows device basenames with or without extensions', () => {
   }
 });
 
-test('rejects path segments ending in a dot or space', () => {
+void test('rejects path segments ending in a dot or space', () => {
   for (const value of ['nested/name.', 'nested/name ']) {
     assert.throws(() => assertSafeRelativePath(value), /non-portable path segment/);
   }
 });
 
-test('accepts portable dot-directories and non-device names', () => {
+void test('accepts portable dot-directories and non-device names', () => {
   for (const value of [
     '.claude/commands/feature.md',
     '.codex/agents/dev.toml',
@@ -128,7 +128,7 @@ test('accepts portable dot-directories and non-device names', () => {
   }
 });
 
-test('resolves and writes only repository-relative paths', (t) => {
+void test('resolves and writes only repository-relative paths', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-paths-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
 
@@ -139,7 +139,7 @@ test('resolves and writes only repository-relative paths', (t) => {
   assert.deepEqual(fs.readdirSync(path.join(root, 'nested')), ['file.md']);
 });
 
-test('atomic write rejects a case-aliased existing file without changing it', (t) => {
+void test('atomic write rejects a case-aliased existing file without changing it', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   const existing = path.join(root, 'Existing.md');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -158,7 +158,7 @@ test('atomic write rejects a case-aliased existing file without changing it', (t
   assert.match(caught?.message ?? '', /on-disk path alias.*existing\.md.*Existing\.md/i);
 });
 
-test('atomic write rejects a case-aliased existing directory without writing inside it', (t) => {
+void test('atomic write rejects a case-aliased existing directory without writing inside it', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   const existing = path.join(root, 'Generated');
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
@@ -177,7 +177,7 @@ test('atomic write rejects a case-aliased existing directory without writing ins
   assert.match(caught?.message ?? '', /on-disk path alias.*generated.*Generated/i);
 });
 
-test('atomic write rejects a Unicode-normalization-aliased existing file', (t) => {
+void test('atomic write rejects a Unicode-normalization-aliased existing file', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   const declared = 'Caf\u00e9.md';
   const existingName = 'Cafe\u0301.md';
@@ -202,7 +202,7 @@ test('atomic write rejects a Unicode-normalization-aliased existing file', (t) =
   assert.match(caught?.message ?? '', /on-disk path alias/);
 });
 
-test('atomic write rejects a Unicode-normalization-aliased existing directory', (t) => {
+void test('atomic write rejects a Unicode-normalization-aliased existing directory', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   const declared = 'Caf\u00e9';
   const existingName = 'Cafe\u0301';
@@ -227,7 +227,7 @@ test('atomic write rejects a Unicode-normalization-aliased existing directory', 
   assert.match(caught?.message ?? '', /on-disk path alias/);
 });
 
-test('resolve rejects an exact existing component with an additional folded alias', (t) => {
+void test('resolve rejects an exact existing component with an additional folded alias', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.writeFileSync(path.join(root, 'Existing.md'), 'alias\n');
@@ -243,7 +243,7 @@ test('resolve rejects an exact existing component with an additional folded alia
   );
 });
 
-test('resolve accepts an exactly spelled existing parent and a missing nested target', (t) => {
+void test('resolve accepts an exactly spelled existing parent and a missing nested target', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'generated'));
@@ -254,7 +254,7 @@ test('resolve accepts an exactly spelled existing parent and a missing nested ta
   );
 });
 
-test('atomic write rejects a symlinked parent that escapes the repository', (t) => {
+void test('atomic write rejects a symlinked parent that escapes the repository', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   const external = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-external-'));
   const escaped = path.join(external, 'escaped.md');
@@ -275,7 +275,7 @@ test('atomic write rejects a symlinked parent that escapes the repository', (t) 
   assert.match(caught?.message ?? '', /symbolic-link component.*linked/);
 });
 
-test('atomic write rejects an internal symbolic-link component', (t) => {
+void test('atomic write rejects an internal symbolic-link component', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'real'));
@@ -296,7 +296,7 @@ test('atomic write rejects an internal symbolic-link component', (t) => {
   assert.match(caught?.message ?? '', /symbolic-link component.*alias/);
 });
 
-test('atomic write ignores a planted predictable temp symlink', (t) => {
+void test('atomic write ignores a planted predictable temp symlink', (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-root-'));
   const externalRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-external-'));
   const target = path.join(root, 'generated.md');
@@ -319,7 +319,7 @@ test('atomic write ignores a planted predictable temp symlink', (t) => {
   assert.equal(fs.readlinkSync(predictableTemp), external);
 });
 
-test('rejects duplicate target ids', () => {
+void test('rejects duplicate target ids', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -331,7 +331,7 @@ test('rejects duplicate target ids', () => {
   );
 });
 
-test('rejects duplicate target paths', () => {
+void test('rejects duplicate target paths', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -343,7 +343,7 @@ test('rejects duplicate target paths', () => {
   );
 });
 
-test('rejects case-only target path collisions', () => {
+void test('rejects case-only target path collisions', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -363,7 +363,7 @@ test('rejects case-only target path collisions', () => {
   );
 });
 
-test('rejects Unicode case-equivalent NFC target paths', () => {
+void test('rejects Unicode case-equivalent NFC target paths', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -383,7 +383,7 @@ test('rejects Unicode case-equivalent NFC target paths', () => {
   );
 });
 
-test('rejects sharp-s expansion target path collisions', () => {
+void test('rejects sharp-s expansion target path collisions', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -403,7 +403,7 @@ test('rejects sharp-s expansion target path collisions', () => {
   );
 });
 
-test('rejects long-s target path collisions', () => {
+void test('rejects long-s target path collisions', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -423,7 +423,7 @@ test('rejects long-s target path collisions', () => {
   );
 });
 
-test('rejects a non-canonical target path alias', () => {
+void test('rejects a non-canonical target path alias', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -438,7 +438,7 @@ test('rejects a non-canonical target path alias', () => {
   );
 });
 
-test('rejects a source repeated within one target', () => {
+void test('rejects a source repeated within one target', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -454,7 +454,7 @@ test('rejects a source repeated within one target', () => {
   );
 });
 
-test('rejects a self-sourced target that would change across generation passes', () => {
+void test('rejects a self-sourced target that would change across generation passes', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -471,7 +471,7 @@ test('rejects a self-sourced target that would change across generation passes',
   );
 });
 
-test('rejects the manifest itself as an exact generated target', () => {
+void test('rejects the manifest itself as an exact generated target', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -483,7 +483,7 @@ test('rejects the manifest itself as an exact generated target', () => {
   );
 });
 
-test('rejects a case and Unicode portable alias of the manifest as a target', () => {
+void test('rejects a case and Unicode portable alias of the manifest as a target', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -495,7 +495,7 @@ test('rejects a case and Unicode portable alias of the manifest as a target', ()
   );
 });
 
-test('rejects portable target aliases across every registered input class', () => {
+void test('rejects portable target aliases across every registered input class', () => {
   const targetPath = 'Generated/Caf\u00e9.md';
   const inputAlias = 'generated/CAF\u00c9.md';
   const persona = {
@@ -538,7 +538,7 @@ test('rejects portable target aliases across every registered input class', () =
   }
 });
 
-test('requires rules to be a non-empty safe repository-relative path', () => {
+void test('requires rules to be a non-empty safe repository-relative path', () => {
   for (const rules of [undefined, '']) {
     assert.throws(
       () => validateManifest(createManifest({ rules })),
@@ -551,7 +551,7 @@ test('requires rules to be a non-empty safe repository-relative path', () => {
   );
 });
 
-test('requires the version and manifest collections', () => {
+void test('requires the version and manifest collections', () => {
   assert.throws(() => validateManifest(createManifest({ version: 2 })), /version must be 1/);
   assert.throws(
     () => validateManifest(createManifest({ policyOrder: undefined })),
@@ -565,7 +565,7 @@ test('requires the version and manifest collections', () => {
   );
 });
 
-test('rejects duplicate policy order entries', () => {
+void test('rejects duplicate policy order entries', () => {
   assert.throws(
     () =>
       validateManifest(
@@ -577,7 +577,7 @@ test('rejects duplicate policy order entries', () => {
   );
 });
 
-test('rejects unsafe policy order entries', () => {
+void test('rejects unsafe policy order entries', () => {
   for (const policyPath of ['../authority.md', '/tmp/authority.md']) {
     assert.throws(
       () => validateManifest(createManifest({ policyOrder: [policyPath] })),
@@ -586,7 +586,7 @@ test('rejects unsafe policy order entries', () => {
   }
 });
 
-test('requires repository-relative target inputs', () => {
+void test('requires repository-relative target inputs', () => {
   for (const target of [
     createTarget({ path: '../AGENTS.md' }),
     createTarget({ template: '/tmp/agents.md' }),
@@ -599,14 +599,14 @@ test('requires repository-relative target inputs', () => {
   }
 });
 
-test('requires target sources to be an array', () => {
+void test('requires target sources to be an array', () => {
   assert.throws(
     () => validateManifest(createManifest({ targets: [createTarget({ sources: undefined })] })),
     /target root-agents sources must be an array/,
   );
 });
 
-test('requires each target to be a non-null object', () => {
+void test('requires each target to be a non-null object', () => {
   for (const target of [null, [], 'AGENTS.md']) {
     assert.throws(
       () => validateManifest(createManifest({ targets: [target] })),
@@ -615,7 +615,7 @@ test('requires each target to be a non-null object', () => {
   }
 });
 
-test('requires non-empty string target fields', () => {
+void test('requires non-empty string target fields', () => {
   for (const key of ['id', 'path', 'template']) {
     for (const value of ['', 42]) {
       assert.throws(
@@ -631,7 +631,7 @@ test('requires non-empty string target fields', () => {
   }
 });
 
-test('accepts a complete unique persona', () => {
+void test('accepts a complete unique persona', () => {
   assert.doesNotThrow(() =>
     validateManifest(
       createManifest({
@@ -649,7 +649,7 @@ test('accepts a complete unique persona', () => {
   );
 });
 
-test('rejects duplicate or incomplete personas', () => {
+void test('rejects duplicate or incomplete personas', () => {
   const persona = {
     id: 'sarah',
     description: 'Orchestration lead',
@@ -684,7 +684,7 @@ test('rejects duplicate or incomplete personas', () => {
   );
 });
 
-test('load rejects a missing registered rules file', (t) => {
+void test('load rejects a missing registered rules file', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({
@@ -695,7 +695,7 @@ test('load rejects a missing registered rules file', (t) => {
   assert.throws(() => loadManifest(root), /missing registered input.*missing\.json/);
 });
 
-test('load rejects a missing registered policy order input', (t) => {
+void test('load rejects a missing registered policy order input', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({
@@ -708,7 +708,7 @@ test('load rejects a missing registered policy order input', (t) => {
   assert.throws(() => loadManifest(root), /missing registered input.*authority\.md/);
 });
 
-test('load rejects a registered input through an escaping symlink', (t) => {
+void test('load rejects a registered input through an escaping symlink', (t) => {
   const external = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-external-'));
   t.after(() => fs.rmSync(external, { recursive: true, force: true }));
   const root = createManifestRoot(
@@ -723,7 +723,7 @@ test('load rejects a registered input through an escaping symlink', (t) => {
   assert.throws(() => loadManifest(root), /symbolic-link component.*linked/);
 });
 
-test('load rejects target paths aliased by an internal symbolic link', (t) => {
+void test('load rejects target paths aliased by an internal symbolic link', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({
@@ -750,7 +750,7 @@ test('load rejects target paths aliased by an internal symbolic link', (t) => {
   assert.throws(() => loadManifest(root), /symbolic-link component.*alias/);
 });
 
-test('load accepts an ordinary nonexistent nested target path', (t) => {
+void test('load accepts an ordinary nonexistent nested target path', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({
@@ -769,7 +769,7 @@ test('load accepts an ordinary nonexistent nested target path', (t) => {
   assert.doesNotThrow(() => loadManifest(root));
 });
 
-test('load rejects a target path with a case-aliased existing component', (t) => {
+void test('load rejects a target path with a case-aliased existing component', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({
@@ -792,7 +792,7 @@ test('load rejects a target path with a case-aliased existing component', (t) =>
   assert.deepEqual(fs.readdirSync(root).sort(), originalEntries);
 });
 
-test('load rejects a missing registered template', (t) => {
+void test('load rejects a missing registered template', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({
@@ -805,7 +805,7 @@ test('load rejects a missing registered template', (t) => {
   assert.throws(() => loadManifest(root), /missing registered input.*agents\.md/);
 });
 
-test('load rejects a missing registered source', (t) => {
+void test('load rejects a missing registered source', (t) => {
   const root = createManifestRoot(
     t,
     createManifest({

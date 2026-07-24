@@ -11,6 +11,8 @@ module.exports = {
     '/dist/',
     '/android/',
     '/ios/',
+    // Node's test runner owns the harness suites.
+    '<rootDir>/scripts/harness/__tests__/',
     // <rootDir>-anchored so parallel @dev agents running inside
     // .claude/worktrees/agent-XXX/ can discover their own tests.
     // An un-anchored '/.claude/' matched the absolute path of every

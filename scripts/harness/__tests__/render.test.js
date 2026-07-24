@@ -6,7 +6,7 @@ const test = require('node:test');
 
 const { extractSection, renderTarget } = require('../lib/render');
 
-test('extracts one named persona section', () => {
+void test('extracts one named persona section', () => {
   const source = [
     '# Dev',
     '<!-- harness:section agent -->',
@@ -20,7 +20,7 @@ test('extracts one named persona section', () => {
   assert.equal(extractSection(source, 'inline'), 'Inline body.\n');
 });
 
-test('rejects duplicate named persona sections', () => {
+void test('rejects duplicate named persona sections', () => {
   const source = [
     '<!-- harness:section inline -->',
     'First body.',
@@ -34,7 +34,7 @@ test('rejects duplicate named persona sections', () => {
   assert.throws(() => extractSection(source, 'inline'), /duplicate section: inline/);
 });
 
-test('rejects nested persona sections', () => {
+void test('rejects nested persona sections', () => {
   const source = [
     '<!-- harness:section inline -->',
     'Inline body.',
@@ -48,13 +48,13 @@ test('rejects nested persona sections', () => {
   assert.throws(() => extractSection(source, 'inline'), /nested section: agent/);
 });
 
-test('rejects a stray persona end marker', () => {
+void test('rejects a stray persona end marker', () => {
   const source = ['# Dev', '<!-- harness:endsection -->', ''].join('\n');
 
   assert.throws(() => extractSection(source, 'inline'), /unexpected end section/);
 });
 
-test('rejects a repeated persona end marker', () => {
+void test('rejects a repeated persona end marker', () => {
   const source = [
     '<!-- harness:section inline -->',
     'Inline body.',
@@ -66,13 +66,13 @@ test('rejects a repeated persona end marker', () => {
   assert.throws(() => extractSection(source, 'inline'), /unexpected end section/);
 });
 
-test('rejects a persona section missing its end marker', () => {
+void test('rejects a persona section missing its end marker', () => {
   const source = ['<!-- harness:section inline -->', 'Inline body.', ''].join('\n');
 
   assert.throws(() => extractSection(source, 'inline'), /missing end section: inline/);
 });
 
-test('rejects a malformed persona end marker', () => {
+void test('rejects a malformed persona end marker', () => {
   const source = [
     '<!-- harness:section inline -->',
     'Inline body.',
@@ -83,7 +83,7 @@ test('rejects a malformed persona end marker', () => {
   assert.throws(() => extractSection(source, 'inline'), /malformed section marker/);
 });
 
-test('renders declared includes and escaped JSON variables', () => {
+void test('renders declared includes and escaped JSON variables', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/source.md'), 'Policy body.\n');
@@ -102,7 +102,7 @@ test('renders declared includes and escaped JSON variables', () => {
   assert.equal(output, 'NOTICE\n"A \\"quoted\\" description"\nPolicy body.\n');
 });
 
-test('uses the global generated notice when target variables contain notice', () => {
+void test('uses the global generated notice when target variables contain notice', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/template.md'), '{{raw:notice}}');
@@ -117,7 +117,7 @@ test('uses the global generated notice when target variables contain notice', ()
   assert.equal(output, 'GLOBAL NOTICE\n');
 });
 
-test('rejects a declared source omitted from the template', () => {
+void test('rejects a declared source omitted from the template', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/source.md'), 'Policy body.\n');
@@ -135,7 +135,7 @@ test('rejects a declared source omitted from the template', () => {
   );
 });
 
-test('rejects undeclared includes and unresolved placeholders', () => {
+void test('rejects undeclared includes and unresolved placeholders', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/template.md'), '{{include:harness/secret.md}}');
@@ -153,7 +153,7 @@ test('rejects undeclared includes and unresolved placeholders', () => {
   );
 });
 
-test('rejects repeated canonical includes in one target', () => {
+void test('rejects repeated canonical includes in one target', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/source.md'), 'Policy.\n');
@@ -173,7 +173,7 @@ test('rejects repeated canonical includes in one target', () => {
   );
 });
 
-test('rejects unsupported placeholder modes', () => {
+void test('rejects unsupported placeholder modes', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/template.md'), '{{yaml:description}}');
@@ -189,7 +189,7 @@ test('rejects unsupported placeholder modes', () => {
   );
 });
 
-test('rejects an empty placeholder with the target id', () => {
+void test('rejects an empty placeholder with the target id', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/template.md'), '{{}}');
@@ -206,7 +206,7 @@ test('rejects an empty placeholder with the target id', () => {
   );
 });
 
-test('keeps placeholder-looking canonical source content literal', () => {
+void test('keeps placeholder-looking canonical source content literal', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/source.md'), 'Literal {{raw:notice}}.\n');
@@ -222,7 +222,7 @@ test('keeps placeholder-looking canonical source content literal', () => {
   assert.equal(output, 'Literal {{raw:notice}}.\n');
 });
 
-test('keeps placeholder-looking variable content literal', () => {
+void test('keeps placeholder-looking variable content literal', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/template.md'), '{{raw:description}}');
@@ -237,7 +237,7 @@ test('keeps placeholder-looking variable content literal', () => {
   assert.equal(output, 'Literal {{raw:notice}}.\n');
 });
 
-test('rejects a malformed template placeholder with the target id', () => {
+void test('rejects a malformed template placeholder with the target id', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
 
