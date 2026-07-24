@@ -17,6 +17,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "harness:test": "node --test scripts/harness/__tests__/*.test.js",
+    "harness:generate": "node scripts/harness/generate.js",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
