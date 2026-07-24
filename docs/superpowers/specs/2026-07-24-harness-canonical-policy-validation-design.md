@@ -1,7 +1,7 @@
 # Harness Phase 1: Canonical Policy and Validation Design
 
 - **Date:** 2026-07-24
-- **Status:** Design approved; written specification awaiting user review
+- **Status:** Approved
 - **Scope:** Canonical harness policy, generated Codex and Claude adapters, semantic validation, and enforcement of the repository's existing verification contract
 
 ## Goal
@@ -109,6 +109,7 @@ harness/
     claude_agent.md
     expert_panel.md
     claude_feature_command.md
+    claude_status_command.md
   rules/
     semantics.json
   fixtures/
