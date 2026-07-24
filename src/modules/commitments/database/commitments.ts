@@ -10,6 +10,32 @@ export async function getCommitments(db: SQLiteDatabase): Promise<Commitment[]> 
   );
 }
 
+export async function getCommitmentsForMonthSnapshot(
+  db: SQLiteDatabase,
+  yearMonth: string,
+): Promise<Commitment[]> {
+  const monthStart = `${yearMonth}-01`;
+  const [year, month] = yearMonth.split('-').map(Number);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const nextMonthStart = `${nextYear}-${String(nextMonth).padStart(2, '0')}-01`;
+
+  return db.getAllAsync<Commitment>(
+    `SELECT commitment.*
+       FROM commitments commitment
+      WHERE commitment.is_active = 1
+         OR EXISTS (
+              SELECT 1
+                FROM commitment_payments payment INDEXED BY idx_cp_commitment_id
+               WHERE payment.commitment_id = commitment.id
+                 AND payment.due_date >= ?
+                 AND payment.due_date < ?
+            )
+      ORDER BY commitment.created_at DESC`,
+    [monthStart, nextMonthStart],
+  );
+}
+
 export async function getCommitmentById(
   db: SQLiteDatabase,
   id: string,
@@ -99,4 +125,26 @@ export async function deactivateCommitment(db: SQLiteDatabase, id: string): Prom
     new Date().toISOString(),
     id,
   ]);
+}
+
+export async function deactivateExpiredCommitments(
+  db: SQLiteDatabase,
+  asOfDate: string,
+  updatedAt: string,
+): Promise<void> {
+  await db.runAsync(
+    `UPDATE commitments
+        SET is_active = 0, updated_at = ?
+      WHERE is_active = 1
+        AND (
+          (duration_type = 'until_date' AND end_date IS NOT NULL AND end_date < ?)
+          OR
+          (duration_type = 'after_count' AND end_after_count IS NOT NULL
+            AND (SELECT COUNT(*)
+                   FROM commitment_payments INDEXED BY idx_cp_commitment_id
+                  WHERE commitment_id = commitments.id
+                    AND status = 'paid') >= end_after_count)
+        )`,
+    [updatedAt, asOfDate],
+  );
 }

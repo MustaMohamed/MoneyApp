@@ -27,21 +27,46 @@ export type CommitmentsSection = {
   data: CommitmentPayment[];
 };
 
+export type CommitmentsPresentation = 'coldLoading' | 'coldError' | 'content' | 'contentWithError';
+
+const EMPTY_COMMITMENTS: Commitment[] = [];
+const EMPTY_PAYMENTS: CommitmentPayment[] = [];
+
+function resolveCommitmentsPresentation({
+  hasMatchingSnapshot,
+  loadError,
+}: {
+  hasMatchingSnapshot: boolean;
+  loadError: boolean;
+}): CommitmentsPresentation {
+  if (!hasMatchingSnapshot) return loadError ? 'coldError' : 'coldLoading';
+  return loadError ? 'contentWithError' : 'content';
+}
+
 export function useCommitments() {
-  const { commitments, payments, selectedMonth, commitmentsLoaded, paymentsLoaded } =
-    useCommitmentStore(
-      useShallow((s) => ({
-        commitments: s.commitments,
-        payments: s.payments,
-        selectedMonth: s.selectedMonth,
-        commitmentsLoaded: s.commitmentsLoaded,
-        paymentsLoaded: s.paymentsLoaded,
-      })),
-    );
+  const {
+    commitments,
+    payments,
+    selectedMonth,
+    commitmentsLoaded,
+    paymentsLoaded,
+    loadedMonth,
+    loading,
+    loadError,
+  } = useCommitmentStore(
+    useShallow((s) => ({
+      commitments: s.commitments,
+      payments: s.payments,
+      selectedMonth: s.selectedMonth,
+      commitmentsLoaded: s.commitmentsLoaded,
+      paymentsLoaded: s.paymentsLoaded,
+      loadedMonth: s.loadedMonth,
+      loading: s.loading,
+      loadError: s.loadError,
+    })),
+  );
   const setSelectedMonth = useCommitmentStore.getState().setSelectedMonth;
-  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
-  const loadCommitments = useCommitmentStore.getState().loadCommitments;
-  const generatePayments = useCommitmentStore.getState().generatePayments;
+  const loadMonthSnapshot = useCommitmentStore.getState().loadMonthSnapshot;
   const skipPayment = useCommitmentStore.getState().skipPayment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
 
@@ -67,15 +92,21 @@ export function useCommitments() {
 
   const accountsById = useMemo(() => new Map(accounts.map((a) => [a.id, a])), [accounts]);
   const categoriesById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
+  const hasMatchingSnapshot = commitmentsLoaded && paymentsLoaded && loadedMonth === selectedMonth;
+  const activeCommitments = hasMatchingSnapshot ? commitments : EMPTY_COMMITMENTS;
+  const activePayments = hasMatchingSnapshot ? payments : EMPTY_PAYMENTS;
 
   const commitmentsById = useMemo(
-    () => new Map(commitments.map((c: Commitment) => [c.id, c])),
-    [commitments],
+    () => new Map(activeCommitments.map((c: Commitment) => [c.id, c])),
+    [activeCommitments],
   );
 
   const sections: CommitmentsSection[] = useMemo(() => {
     const filter = deferredStatusFilter;
-    const allPayments = filter === 'all' ? payments : payments.filter((p) => p.status === filter);
+    const allPayments =
+      filter === 'all'
+        ? activePayments
+        : activePayments.filter((payment) => payment.status === filter);
     const filteredPayments = allPayments.filter((payment) => {
       const commitment = commitmentsById.get(payment.commitment_id);
       const accountId = payment.account_id ?? commitment?.account_id;
@@ -109,7 +140,7 @@ export function useCommitments() {
     commitmentsById,
     debouncedSearch,
     deferredStatusFilter,
-    payments,
+    activePayments,
   ]);
 
   const counts = useMemo(() => {
@@ -118,7 +149,7 @@ export function useCommitments() {
     let due = 0;
     let upcoming = 0;
     let skipped = 0;
-    for (const p of payments) {
+    for (const p of activePayments) {
       switch (p.status) {
         case CommitmentPaymentStatus.Paid:
           paid++;
@@ -145,8 +176,8 @@ export function useCommitments() {
       skipped,
       total: paid + overdue + due + upcoming, // excludes skipped
     };
-  }, [payments]);
-  const isEmpty = useMemo(() => payments.length === 0, [payments]);
+  }, [activePayments]);
+  const isEmpty = activePayments.length === 0;
   const activeFilterCount = useMemo(
     () => countActiveCommitmentFilters(appliedFilters),
     [appliedFilters],
@@ -158,7 +189,7 @@ export function useCommitments() {
   // estimate: skipped (excluded). Skipped payments excluded entirely.
   const totalsByCurrency = useMemo(() => {
     const totals = new Map<string, number>();
-    for (const p of payments) {
+    for (const p of activePayments) {
       if (p.status === CommitmentPaymentStatus.Skipped) continue;
       const isPaid = p.status === CommitmentPaymentStatus.Paid;
       const value = isPaid ? (p.amount_paid ?? p.amount_due) : p.amount_due;
@@ -166,32 +197,36 @@ export function useCommitments() {
       totals.set(p.currency, (totals.get(p.currency) ?? 0) + value);
     }
     return totals;
-  }, [payments]);
+  }, [activePayments]);
 
   const selectedMonthRef = useRef(selectedMonth);
   selectedMonthRef.current = selectedMonth;
 
   const navigateMonth = useCallback(
-    (direction: 'prev' | 'next') => {
-      void setSelectedMonth(shiftYearMonth(selectedMonth, direction === 'next' ? 1 : -1));
+    async (direction: 'prev' | 'next') => {
+      try {
+        await setSelectedMonth(shiftYearMonth(selectedMonth, direction === 'next' ? 1 : -1));
+      } catch {
+        // The store owns loadError; event boundaries contain the rejected operation.
+      }
     },
     [selectedMonth, setSelectedMonth],
   );
 
   const selectMonth = useCallback(
-    (yearMonth: string) => {
-      void setSelectedMonth(yearMonth);
+    async (yearMonth: string) => {
+      try {
+        await setSelectedMonth(yearMonth);
+      } catch {
+        // The store owns loadError; event boundaries contain the rejected operation.
+      }
     },
     [setSelectedMonth],
   );
 
   const reloadSelectedMonth = useCallback(
-    async (yearMonth: string) => {
-      await loadCommitments();
-      await generatePayments();
-      await loadPaymentsForMonth(yearMonth);
-    },
-    [generatePayments, loadCommitments, loadPaymentsForMonth],
+    (yearMonth: string) => loadMonthSnapshot(yearMonth),
+    [loadMonthSnapshot],
   );
 
   useFocusEffect(
@@ -214,6 +249,8 @@ export function useCommitments() {
     setRefreshing(true);
     try {
       await reloadSelectedMonth(selectedMonth);
+    } catch {
+      // The store owns loadError; event boundaries contain the rejected operation.
     } finally {
       setRefreshing(false);
     }
@@ -256,10 +293,14 @@ export function useCommitments() {
       isEmpty,
       commitmentsLoaded,
       paymentsLoaded,
+      loading,
+      loadError,
+      presentation: resolveCommitmentsPresentation({ hasMatchingSnapshot, loadError }),
+      hasLoaded: hasMatchingSnapshot,
       // hasCommitments is month-independent (all commitments, any month). isEmpty is
       // per-selected-month. The list shows the full welcome empty state only when there
       // are no commitments at all; an empty *month* keeps the nav/filters mounted.
-      hasCommitments: commitments.length > 0,
+      hasCommitments: activeCommitments.length > 0,
       statusFilter,
       searchQuery,
       activeFilterCount,

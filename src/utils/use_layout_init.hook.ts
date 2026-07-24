@@ -14,8 +14,7 @@ function scheduleCommitmentHousekeeping() {
     void (async () => {
       try {
         const store = useCommitmentStore.getState();
-        await store.generatePayments();
-        await store.checkAndDeactivateExpired();
+        await store.ensureHousekeepingCurrent();
       } catch (error) {
         console.warn('[layoutInit] commitment housekeeping failed:', error);
       }

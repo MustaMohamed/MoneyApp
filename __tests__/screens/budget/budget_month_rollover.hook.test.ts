@@ -42,15 +42,10 @@ jest.mock('@/utils/run_after_interactions', () => ({
 jest.mock('@/modules/categories/store/category.store', () => ({ useCategoryStore: jest.fn() }));
 jest.mock('@/modules/budget/store/budget.store', () => ({ useBudgetStore: jest.fn() }));
 jest.mock('@/modules/budget/screens/budget/budget.state', () => ({ useBudgetState: jest.fn() }));
-jest.mock('@/modules/budget/database/budget_stats', () => ({
-  getTrailingIncomeSuggestion: jest.fn().mockResolvedValue(null),
-}));
-jest.mock('@/database/client', () => ({ getDb: jest.fn().mockResolvedValue({}) }));
 
 const { useCategoryStore } = jest.requireMock('@/modules/categories/store/category.store');
 const { useBudgetStore } = jest.requireMock('@/modules/budget/store/budget.store');
 const { useBudgetState } = jest.requireMock('@/modules/budget/screens/budget/budget.state');
-const { getTrailingIncomeSuggestion } = jest.requireMock('@/modules/budget/database/budget_stats');
 const { runAfterInteractions } = jest.requireMock('@/utils/run_after_interactions');
 
 let loadCategoriesMock: jest.Mock;
@@ -58,7 +53,6 @@ let loadBudgetMock: jest.Mock;
 let selectedMonthState: string;
 let copySourceMonthState: string;
 let resetSelectedMonthToCurrentMock: jest.Mock;
-let setIncomeSuggestionMock: jest.Mock;
 let openEditMock: jest.Mock;
 let mockRouterBack: jest.Mock;
 let categoriesState: Category[];
@@ -90,7 +84,7 @@ function setupStores() {
   budgetLoadedMonthState = '2026-05';
   budgetLoadErrorState = false;
   loadCategoriesMock = jest.fn().mockResolvedValue(undefined);
-  loadBudgetMock = jest.fn();
+  loadBudgetMock = jest.fn().mockResolvedValue(undefined);
   openEditMock = jest.fn();
   mockRouterBack = jest.fn();
   resetSelectedMonthToCurrentMock = jest.fn(() => {
@@ -98,7 +92,6 @@ function setupStores() {
     selectedMonthState = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     copySourceMonthState = previousYearMonth(selectedMonthState);
   });
-  setIncomeSuggestionMock = jest.fn();
   attachMockSelectorStore(useCategoryStore as jest.Mock, () => ({
     categories: categoriesState,
     hasLoaded: categoriesLoadedState,
@@ -114,8 +107,18 @@ function setupStores() {
     loadedMonth: budgetLoadedMonthState,
     loadError: budgetLoadErrorState,
     expectedIncome: null,
+    incomeSuggestion: null,
     budgetGroupByCategoryId: {},
+    copyPreviewRows: [],
+    copyPreviewSourceMonth: undefined,
+    copyPreviewTargetMonth: undefined,
+    copyPreviewLoaded: false,
+    copyPreviewLoading: false,
+    copyPreviewError: false,
     load: loadBudgetMock,
+    loadCopyPreview: jest.fn(),
+    copyBudgetsToMonth: jest.fn(),
+    removeBudget: jest.fn(),
     setSpendingPlan: jest.fn(),
     removeSpendingPlan: jest.fn(),
   }));
@@ -125,8 +128,11 @@ function setupStores() {
     lensTab: 'categories',
     copySheetVisible: false,
     copySelectedBudgetIds: [],
-    incomeSuggestion: null,
+    copyBusy: false,
+    copyError: false,
+    refreshing: false,
     expandedCategoryId: undefined,
+    expandedBudgetGroup: undefined,
     openAdd: jest.fn(),
     openEdit: openEditMock,
     setLensTab: jest.fn(),
@@ -143,8 +149,11 @@ function setupStores() {
     setCopySelectedBudgetIds: jest.fn(),
     toggleCopyBudgetId: jest.fn(),
     clearCopySelection: jest.fn(),
-    setIncomeSuggestion: setIncomeSuggestionMock,
+    setCopyBusy: jest.fn(),
+    setCopyError: jest.fn(),
+    setRefreshing: jest.fn(),
     setExpandedCategoryId: jest.fn(),
+    setExpandedBudgetGroup: jest.fn(),
   }));
 }
 
@@ -181,7 +190,6 @@ beforeEach(() => {
   capturedFocusCallback = null;
   mockInteractionTasks.length = 0;
   jest.useFakeTimers();
-  getTrailingIncomeSuggestion.mockClear();
   runAfterInteractions.mockClear();
   setupStores();
   mockRouteMonth = undefined;
@@ -227,8 +235,6 @@ describe('useBudget — month rollover', () => {
 
     loadCategoriesMock.mockClear();
     loadBudgetMock.mockClear();
-    getTrailingIncomeSuggestion.mockClear();
-
     jest.setSystemTime(new Date('2026-06-15T12:00:00'));
     let cleanup: void | (() => void);
     act(() => {
@@ -240,7 +246,6 @@ describe('useBudget — month rollover', () => {
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
     expect(loadCategoriesMock).not.toHaveBeenCalled();
     expect(loadBudgetMock).not.toHaveBeenCalled();
-    expect(getTrailingIncomeSuggestion).not.toHaveBeenCalled();
 
     act(() => {
       cleanup?.();
@@ -250,7 +255,53 @@ describe('useBudget — month rollover', () => {
     expect(mockInteractionTasks[0]?.cancel).toHaveBeenCalledTimes(1);
     expect(loadCategoriesMock).not.toHaveBeenCalled();
     expect(loadBudgetMock).not.toHaveBeenCalled();
-    expect(getTrailingIncomeSuggestion).not.toHaveBeenCalled();
+  });
+
+  it('loads the focused selected month and refreshes through the same store key', async () => {
+    const { result } = renderHook(() => useBudget());
+
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+    await act(async () => {
+      await result.current.refresh();
+    });
+
+    expect(loadBudgetMock).toHaveBeenNthCalledWith(1, '2026-05');
+    expect(loadBudgetMock).toHaveBeenNthCalledWith(2, '2026-05');
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
+  });
+
+  it('loads categories on focus only when no successful category data exists', () => {
+    categoriesLoadedState = false;
+    renderHook(() => useBudget());
+
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+
+    expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not schedule a second focused budget request when categories become warm', () => {
+    categoriesLoadedState = false;
+    const { rerender } = renderHook(() => useBudget());
+    const initialFocusCallback = capturedFocusCallback;
+
+    act(() => {
+      capturedFocusCallback?.();
+      mockInteractionTasks[0]?.callback();
+    });
+    expect(loadBudgetMock).toHaveBeenCalledTimes(1);
+
+    categoriesLoadedState = true;
+    rerender(undefined);
+
+    expect(capturedFocusCallback).toBe(initialFocusCallback);
+    expect(mockInteractionTasks).toHaveLength(1);
+    expect(loadBudgetMock).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -278,6 +329,19 @@ describe('useCategoryDetail — month rollover', () => {
 
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.loadError).toBe(true);
+  });
+
+  it('does not query categories again when category detail opens warm', () => {
+    jest.setSystemTime(new Date('2026-05-15T12:00:00'));
+    categoriesLoadedState = true;
+    renderHook(() => useCategoryDetail());
+
+    act(() => {
+      capturedFocusCallback?.();
+    });
+
+    expect(loadCategoriesMock).not.toHaveBeenCalled();
+    expect(loadBudgetMock).toHaveBeenCalledWith('2026-05');
   });
 
   it.each([

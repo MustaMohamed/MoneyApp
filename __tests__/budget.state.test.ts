@@ -14,7 +14,9 @@ describe('useBudgetState', () => {
     expect(s.selectedMonth).toBe('2026-07');
     expect(s.copySourceMonth).toBe('2026-06');
     expect(s.copySelectedBudgetIds).toEqual([]);
-    expect(s.incomeSuggestion).toBeNull();
+    expect(s.copyBusy).toBe(false);
+    expect(s.copyError).toBe(false);
+    expect(s).not.toHaveProperty('incomeSuggestion');
     jest.useRealTimers();
   });
 
@@ -91,16 +93,13 @@ describe('useBudgetState', () => {
 
   it('closes copy sheet and clears copy selection', () => {
     useBudgetState.getState().openCopy(['budget-food']);
+    useBudgetState.getState().setCopyBusy(true);
+    useBudgetState.getState().setCopyError(true);
     useBudgetState.getState().closeCopy();
     const s = useBudgetState.getState();
     expect(s.copySheetVisible).toBe(false);
     expect(s.copySelectedBudgetIds).toEqual([]);
-  });
-
-  it('stores the trailing income suggestion for the 50/30/20 lens', () => {
-    useBudgetState.getState().setIncomeSuggestion(25000);
-    expect(useBudgetState.getState().incomeSuggestion).toBe(25000);
-    useBudgetState.getState().setIncomeSuggestion(null);
-    expect(useBudgetState.getState().incomeSuggestion).toBeNull();
+    expect(s.copyBusy).toBe(false);
+    expect(s.copyError).toBe(false);
   });
 });

@@ -454,7 +454,11 @@ export const Strings = {
   budgetCopyNextSourceA11y: 'Next source month',
   budgetCopySelectAll: 'Select all',
   budgetCopyClear: 'Clear',
+  budgetCopyCancel: 'Cancel',
   budgetCopyApply: 'Apply',
+  budgetCopyPreviewError: 'Could not load this copy preview.',
+  budgetCopyRetry: 'Try again',
+  budgetCopyError: 'Could not copy these budgets. Nothing was changed.',
   budgetCopyEmptyTitle: 'Nothing to copy',
   budgetCopyEmptyBody: 'Selected source month has no category budgets.',
   budgetCopyStatusNew: 'New',
@@ -846,6 +850,9 @@ export const Strings = {
   commitmentsSkipConfirmCancel: 'Cancel',
   commitmentsSkipConfirmConfirm: 'Skip Payment',
   commitmentsSkipError: 'Could not skip this payment. Please try again.',
+  commitmentsLoadError: 'Could not load commitments. Please try again.',
+  commitmentsLoadRetry: 'Retry',
+  commitmentsSaveError: 'Could not save this commitment. Please try again.',
 
   // Commitments — C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,

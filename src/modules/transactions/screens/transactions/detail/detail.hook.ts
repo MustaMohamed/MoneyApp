@@ -201,10 +201,7 @@ export function useTransactionDetail(id: string) {
         return;
       }
       const commitmentState = useCommitmentStore.getState();
-      await Promise.all([
-        commitmentState.loadCommitments(),
-        commitmentState.setSelectedMonth(payment.due_date.slice(0, 7)),
-      ]);
+      await commitmentState.setSelectedMonth(payment.due_date.slice(0, 7));
       router.push(getCommitmentPaymentRoute(commitmentPaymentId));
     } catch (error) {
       console.error('[transactionDetail] open commitment failed', error);

@@ -21,6 +21,14 @@ jest.mock('heroui-native', () => {
     <View testID="skeleton-item">{children}</View>
   );
   return {
+    Alert: Object.assign(
+      ({ children }: { children?: ReactNode }) => <View accessibilityRole="alert">{children}</View>,
+      {
+        Indicator: () => null,
+        Content: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
+        Title: ({ children }: { children?: ReactNode }) => <Text>{children}</Text>,
+      },
+    ),
     Separator: () => <View testID="separator" />,
     Spinner: () => <Text>spinner</Text>,
     Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
@@ -30,6 +38,16 @@ jest.mock('heroui-native', () => {
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });
+jest.mock('@/components/ui/button', () => ({
+  Button: ({ label, onPress }: { label: string; onPress?: () => void }) => {
+    const { Pressable, Text } = jest.requireActual<typeof import('react-native')>('react-native');
+    return (
+      <Pressable accessibilityRole="button" onPress={onPress}>
+        <Text>{label}</Text>
+      </Pressable>
+    );
+  },
+}));
 jest.mock('@/components/ui/screen', () => ({
   Screen: ({ children }: { children: ReactNode }) => {
     const { View } = jest.requireActual<typeof import('react-native')>('react-native');
@@ -139,6 +157,10 @@ const baseCommitmentsState: CommitmentsScreenState = {
   isEmpty: true,
   commitmentsLoaded: true,
   paymentsLoaded: true,
+  loading: false,
+  loadError: false,
+  presentation: 'content',
+  hasLoaded: true,
   hasCommitments: false,
   statusFilter: 'all',
   searchQuery: '',
@@ -228,6 +250,8 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
+      presentation: 'coldLoading',
+      hasLoaded: false,
       sections: [{ title: 'Due', data: [makePayment()] }],
     });
 
@@ -240,6 +264,8 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
+      presentation: 'coldLoading',
+      hasLoaded: false,
       sections: [],
     });
 
@@ -253,6 +279,8 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments({
       commitmentsLoaded: false,
       paymentsLoaded: false,
+      presentation: 'coldLoading',
+      hasLoaded: false,
       hasCommitments: false,
       sections: [],
     });
@@ -276,7 +304,7 @@ describe('CommitmentsScreen', () => {
 
     const { getByText, queryByTestId } = render(<CommitmentsScreen />);
 
-    expect(getByText('Summary loading:true')).toBeTruthy();
+    expect(getByText('Summary loading:false')).toBeTruthy();
     expect(getByText('Commitment row')).toBeTruthy();
     expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });

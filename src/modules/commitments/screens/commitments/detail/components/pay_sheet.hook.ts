@@ -66,9 +66,7 @@ export function usePaySheet(
     useShallow((state) => ({ rate: state.rate, rateUpdatedAt: state.rate_updated_at })),
   );
 
-  const selectedMonth = useCommitmentStore.useState.selectedMonth();
   const markAsPaid = useCommitmentStore.getState().markAsPaid;
-  const loadPaymentsForMonth = useCommitmentStore.getState().loadPaymentsForMonth;
 
   const form = useZodForm(schema, {
     mode: 'onSubmit',
@@ -159,10 +157,11 @@ export function usePaySheet(
         // oxlint-disable-next-line typescript/prefer-nullish-coalescing -- || is intentional: empty string maps to undefined
         notes: data.notes?.trim() || undefined,
       });
-      await loadAccounts();
-      await loadPaymentsForMonth(selectedMonth);
       setVisible(false);
       reset();
+      void loadAccounts().catch((error: unknown) =>
+        console.error('[paySheet] account revalidation failed:', error),
+      );
     } catch {
       // error logged by store
     } finally {

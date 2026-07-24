@@ -3,6 +3,7 @@ import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { DurationType } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { useZodForm } from '@/utils/use_zod_form.hook';
@@ -26,13 +27,15 @@ export function useEditCommitment() {
   const commitments = useCommitmentStore.useState.commitments();
   const updateCommitment = useCommitmentStore.getState().updateCommitment;
   const deactivateCommitment = useCommitmentStore.getState().deactivateCommitment;
-  const { saving, deactivateDialogVisible } = useEditCommitmentState(
+  const { saving, saveError, deactivateDialogVisible } = useEditCommitmentState(
     useShallow((s) => ({
       saving: s.saving,
+      saveError: s.saveError,
       deactivateDialogVisible: s.deactivateDialogVisible,
     })),
   );
   const setSaving = useEditCommitmentState.getState().setSaving;
+  const setSaveError = useEditCommitmentState.getState().setSaveError;
   const setDeactivateDialogVisible = useEditCommitmentState.getState().setDeactivateDialogVisible;
   const reset = useEditCommitmentState.getState().reset;
 
@@ -61,6 +64,7 @@ export function useEditCommitment() {
 
   async function onValid(data: CommitmentFormValues) {
     if (!id) return;
+    setSaveError(undefined);
     setSaving(true);
     try {
       await updateCommitment(id, {
@@ -86,7 +90,7 @@ export function useEditCommitment() {
       // on a "Commitment not found" screen).
       router.dismissTo('/commitments' as Parameters<typeof router.dismissTo>[0]);
     } catch {
-      // error logged by store
+      setSaveError(Strings.commitmentsSaveError);
     } finally {
       setSaving(false);
     }
@@ -118,6 +122,7 @@ export function useEditCommitment() {
   return {
     state: {
       saving,
+      saveError,
       deactivateDialogVisible,
       categories,
       accounts,

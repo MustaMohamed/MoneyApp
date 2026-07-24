@@ -2,7 +2,11 @@ import Database from 'better-sqlite3';
 import * as SQLite from 'expo-sqlite';
 
 import { MIGRATIONS } from '@/database/migrations';
-import { getBudgetRows, setBudgetRow } from '@/modules/budget/database/budgets';
+import {
+  getBudgetRows,
+  getBudgetRowsForMonths,
+  setBudgetRow,
+} from '@/modules/budget/database/budgets';
 
 const sqlite = SQLite as unknown as { __reset: () => void };
 let realDb: ReturnType<typeof Database>;
@@ -48,6 +52,11 @@ afterAll(() => {
 const db = (SQLite as unknown as { __fakeDb: unknown }).__fakeDb as Parameters<
   typeof getBudgetRows
 >[0];
+const fakeDb = (
+  SQLite as unknown as {
+    __fakeDb: { getAllAsync: jest.Mock; runAsync: jest.Mock };
+  }
+).__fakeDb;
 
 describe('budgets query file', () => {
   function insertAssignedTransaction(id: string, budgetId: string) {
@@ -76,6 +85,59 @@ describe('budgets query file', () => {
     expect(rows).toHaveLength(1);
     expect(rows[0].name).toBe('Monthly Food');
     expect(rows[0].limit_amount).toBe(3000);
+  });
+
+  it('returns no rows without querying SQLite when no months are requested', async () => {
+    fakeDb.getAllAsync.mockClear();
+
+    await expect(getBudgetRowsForMonths(db, [])).resolves.toEqual([]);
+
+    expect(fakeDb.getAllAsync).not.toHaveBeenCalled();
+  });
+
+  it('returns only the requested 12-month window', async () => {
+    const months = Array.from({ length: 24 }, (_, index) => {
+      const date = new Date(Date.UTC(2024, 7 + index, 1));
+      return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+    });
+    for (const [index, month] of months.entries()) {
+      await setBudgetRow(db, {
+        id: `budget-${index}`,
+        category_id: 'cat_food',
+        name: `Food ${index}`,
+        limit_amount: index + 1,
+        effective_from: month,
+        created_at: `${month}-01T00:00:00.000Z`,
+        updated_at: `${month}-01T00:00:00.000Z`,
+      });
+    }
+
+    const rows = await getBudgetRowsForMonths(db, months.slice(12));
+
+    expect(rows.map((row) => row.effective_from)).toEqual(months.slice(12));
+    expect(rows).toHaveLength(12);
+    expect(rows).not.toContainEqual(expect.objectContaining({ effective_from: months[0] }));
+    expect(rows).not.toContainEqual(expect.objectContaining({ effective_from: months[11] }));
+  });
+
+  it('deduplicates requested months before building placeholders and arguments', async () => {
+    fakeDb.getAllAsync.mockClear();
+
+    await getBudgetRowsForMonths(db, ['2026-04', '2026-05', '2026-04']);
+
+    expect(fakeDb.getAllAsync).toHaveBeenCalledWith(
+      expect.stringContaining('IN (?, ?)'),
+      '2026-04',
+      '2026-05',
+    );
+  });
+
+  it('uses the existing month index for explicit month reads', () => {
+    const plan = realDb
+      .prepare('EXPLAIN QUERY PLAN SELECT * FROM budgets WHERE effective_from IN (?, ?)')
+      .all('2026-04', '2026-05') as { detail: string }[];
+
+    expect(plan.some(({ detail }) => detail.includes('idx_budgets_month'))).toBe(true);
   });
 
   it('allows multiple named budgets in one category month', async () => {

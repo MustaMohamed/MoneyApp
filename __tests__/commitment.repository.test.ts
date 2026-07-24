@@ -8,25 +8,29 @@ import {
   TransactionType,
 } from '@/constants/enums';
 import { getDb } from '@/database/client';
+import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
+import type { Account } from '@/modules/accounts/entities/account.entity';
 import {
   addPayments,
   deleteUnpaidPaymentsByCommitment,
+  getActiveCommitmentDueDates,
   getExistingDueDates,
   getLastPaidPayment,
   getPaidCountByCommitment,
+  insertPaymentRows,
   getPaymentById,
   getPaymentsByCommitment,
   getPaymentsByMonth,
   markCommitmentAsPaid,
   updatePaymentStatus,
-} from '@/database/commitment_payments';
-import { getAccountByIdIncludingArchived } from '@/modules/accounts/database/accounts';
-import type { Account } from '@/modules/accounts/entities/account.entity';
+} from '@/modules/commitments/database/commitment_payments';
 import {
   addCommitment,
   deactivateCommitment,
+  deactivateExpiredCommitments,
   getCommitmentById,
   getCommitments,
+  getCommitmentsForMonthSnapshot,
   updateCommitment,
 } from '@/modules/commitments/database/commitments';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -43,23 +47,32 @@ jest.mock('@/modules/accounts/database/accounts');
 jest.mock('@/database/client');
 jest.mock('react-native-uuid', () => ({ v4: jest.fn(() => 'test-uuid-1234') }));
 
-const mockDb = {} as any;
+const transactionDb = {};
+const mockDb = {
+  withExclusiveTransactionAsync: jest.fn(async (work: (db: unknown) => Promise<void>) => {
+    await work(transactionDb);
+  }),
+};
 
 beforeEach(() => {
   jest.clearAllMocks();
   (getDb as jest.Mock).mockResolvedValue(mockDb);
   (getCommitments as jest.Mock).mockResolvedValue([]);
+  (getCommitmentsForMonthSnapshot as jest.Mock).mockResolvedValue([]);
   (getCommitmentById as jest.Mock).mockResolvedValue(null);
   (addCommitment as jest.Mock).mockResolvedValue(undefined);
   (updateCommitment as jest.Mock).mockResolvedValue(undefined);
   (deactivateCommitment as jest.Mock).mockResolvedValue(undefined);
+  (deactivateExpiredCommitments as jest.Mock).mockResolvedValue(undefined);
   (getPaymentsByMonth as jest.Mock).mockResolvedValue([]);
+  (getActiveCommitmentDueDates as jest.Mock).mockResolvedValue([]);
   (getPaymentsByCommitment as jest.Mock).mockResolvedValue([]);
   (getPaymentById as jest.Mock).mockResolvedValue(null);
   (getLastPaidPayment as jest.Mock).mockResolvedValue(null);
   (getPaidCountByCommitment as jest.Mock).mockResolvedValue(0);
   (getExistingDueDates as jest.Mock).mockResolvedValue([]);
   (addPayments as jest.Mock).mockResolvedValue(undefined);
+  (insertPaymentRows as jest.Mock).mockResolvedValue(undefined);
   (deleteUnpaidPaymentsByCommitment as jest.Mock).mockResolvedValue(undefined);
   (markCommitmentAsPaid as jest.Mock).mockResolvedValue(undefined);
   (updatePaymentStatus as jest.Mock).mockResolvedValue(undefined);
@@ -254,6 +267,64 @@ describe('CommitmentRepository.getPaymentsForMonth', () => {
 
     expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05');
     expect(result).toBe(expected);
+  });
+});
+
+describe('CommitmentRepository.getMonthSnapshot', () => {
+  it('returns commitments and month payments together with the loaded month', async () => {
+    (getCommitmentsForMonthSnapshot as jest.Mock).mockResolvedValue([baseCommitment]);
+    (getPaymentsByMonth as jest.Mock).mockResolvedValue([basePayment]);
+
+    await expect(repo.getMonthSnapshot('2026-05')).resolves.toEqual({
+      loadedMonth: '2026-05',
+      commitments: [baseCommitment],
+      payments: [basePayment],
+    });
+
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(getCommitmentsForMonthSnapshot).toHaveBeenCalledWith(mockDb, '2026-05');
+    expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05');
+  });
+
+  it('does not publish a partial result when the second read fails', async () => {
+    (getCommitments as jest.Mock).mockResolvedValue([baseCommitment]);
+    (getPaymentsByMonth as jest.Mock).mockRejectedValue(new Error('payment read failed'));
+
+    await expect(repo.getMonthSnapshot('2026-05')).rejects.toThrow('payment read failed');
+  });
+});
+
+describe('CommitmentRepository.runHousekeeping', () => {
+  it('uses one DB handle and one exclusive transaction for the complete work unit', async () => {
+    const commitment = {
+      ...baseCommitment,
+      start_date: '2026-05-08',
+      duration_type: DurationType.AfterCount,
+      end_after_count: 1,
+    };
+    (getCommitments as jest.Mock).mockResolvedValue([commitment]);
+
+    await repo.runHousekeeping(new Date('2026-05-08T10:11:12.000Z'));
+
+    expect(getDb).toHaveBeenCalledTimes(1);
+    expect(mockDb.withExclusiveTransactionAsync).toHaveBeenCalledTimes(1);
+    expect(getCommitments).toHaveBeenCalledWith(transactionDb);
+    expect(getActiveCommitmentDueDates).toHaveBeenCalledWith(transactionDb);
+    expect(insertPaymentRows).toHaveBeenCalledWith(transactionDb, [
+      expect.objectContaining({
+        id: 'test-uuid-1234',
+        commitment_id: 'c-1',
+        due_date: '2026-05-08',
+        status: CommitmentPaymentStatus.Due,
+        created_at: '2026-05-08T10:11:12.000Z',
+        updated_at: '2026-05-08T10:11:12.000Z',
+      }),
+    ]);
+    expect(deactivateExpiredCommitments).toHaveBeenCalledWith(
+      transactionDb,
+      '2026-05-08',
+      '2026-05-08T10:11:12.000Z',
+    );
   });
 });
 

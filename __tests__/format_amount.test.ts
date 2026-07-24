@@ -1,4 +1,10 @@
-import { formatAmount } from '@/utils/format_amount';
+import { Currency } from '@/constants/enums';
+import {
+  formatAmount,
+  formatCurrencyAmount,
+  formatExchangeRate,
+  formatWithCurrencyCode,
+} from '@/utils/format_amount';
 
 describe('formatAmount', () => {
   it('formats integer with comma separator', () => {
@@ -27,5 +33,24 @@ describe('formatAmount', () => {
 
   it('always shows exact decimal count (no rounding display)', () => {
     expect(formatAmount(5000, 2)).toBe('5,000.00');
+  });
+});
+
+describe('currency amount formatting', () => {
+  it('uses the configured currency decimals by default', () => {
+    expect(formatCurrencyAmount(10500.5, Currency.USD)).toBe('10,500.50 USD');
+  });
+
+  it('honors an explicit currency decimal count', () => {
+    expect(formatCurrencyAmount(10500.5, Currency.EGP, 1)).toBe('10,500.5 EGP');
+  });
+
+  it('formats an arbitrary currency code with default and explicit decimals', () => {
+    expect(formatWithCurrencyCode(10500.5, 'GBP')).toBe('10,501 GBP');
+    expect(formatWithCurrencyCode(10500.5, 'GBP', 2)).toBe('10,500.50 GBP');
+  });
+
+  it('formats the USD to EGP exchange-rate label', () => {
+    expect(formatExchangeRate(48.125)).toBe('1 USD = 48.13 EGP');
   });
 });

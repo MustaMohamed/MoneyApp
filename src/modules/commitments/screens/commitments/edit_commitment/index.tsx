@@ -17,6 +17,7 @@ export default function EditCommitmentScreen() {
         categories={state.categories}
         accounts={state.accounts}
         saving={state.saving}
+        errorMessage={state.saveError}
         onSubmit={() => void onSubmit()}
         title={Strings.commitmentsEditTitle}
         footerExtra={

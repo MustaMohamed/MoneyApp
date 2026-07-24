@@ -1,11 +1,11 @@
 import { BudgetGroup } from '@/constants/enums';
 import type { BudgetMonthGroupMap } from '@/modules/budget/entities/budget.entity';
+import type { BudgetMonthSnapshot } from '@/modules/budget/repositories/budget.repository';
 import { createBudgetStore, type BudgetStoreRepository } from '@/modules/budget/store/budget.store';
 
 jest.mock('@/modules/budget/repositories/budget.repository', () => ({
   budgetRepository: {},
   currentYearMonth: jest.fn().mockReturnValue('2026-05'),
-  lastMonths: jest.fn((anchorMonth: string) => [anchorMonth]),
 }));
 
 function deferred<T>() {
@@ -20,15 +20,23 @@ function makeRepo(
   incomeByMonth: Record<string, number | null> = {},
   groupsByMonth: Record<string, BudgetMonthGroupMap> = {},
 ): jest.Mocked<BudgetStoreRepository> {
+  const monthSnapshot = (yearMonth: string): BudgetMonthSnapshot => ({
+    loadedMonth: yearMonth,
+    rows: [],
+    spendByMonth: {},
+    spendByBudgetId: {},
+    expectedIncome: incomeByMonth[yearMonth] ?? null,
+    budgetGroupByCategoryId: groupsByMonth[yearMonth] ?? {},
+    spendingPlans: [],
+    spendingPlanSpendById: {},
+    incomeSuggestion: null,
+  });
+
   return {
     copyBudgetsToMonth: jest.fn().mockResolvedValue(undefined),
     copyLimitsToMonth: jest.fn().mockResolvedValue(undefined),
-    getCategoryGroups: jest.fn(async (yearMonth) => groupsByMonth[yearMonth] ?? {}),
-    getExpectedIncome: jest.fn(async (yearMonth) => incomeByMonth[yearMonth] ?? null),
-    getRows: jest.fn().mockResolvedValue([]),
-    getSpendByBudget: jest.fn().mockResolvedValue({}),
-    getSpendByMonth: jest.fn().mockResolvedValue({}),
-    getSpendingPlansForMonth: jest.fn().mockResolvedValue({ plans: [], spendByPlanId: {} }),
+    getCopyPreview: jest.fn().mockResolvedValue([]),
+    getMonthSnapshot: jest.fn(async (yearMonth) => monthSnapshot(yearMonth)),
     removeBudget: jest.fn().mockResolvedValue(undefined),
     removeSpendingPlan: jest.fn().mockResolvedValue(undefined),
     setBudget: jest.fn().mockResolvedValue(undefined),
@@ -55,8 +63,7 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
 
     await store.getState().load('2026-06');
 
-    expect(repo.getExpectedIncome).toHaveBeenCalledWith('2026-06');
-    expect(repo.getCategoryGroups).toHaveBeenCalledWith('2026-06');
+    expect(repo.getMonthSnapshot).toHaveBeenCalledWith('2026-06');
     expect(store.getState()).toMatchObject({
       expectedIncome: 25_000,
       budgetGroupByCategoryId: groups,
@@ -81,8 +88,7 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
     await store.getState().setExpectedIncome('2026-09', 30_000);
 
     expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-09', 30_000);
-    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-09');
-    expect(repo.getCategoryGroups).toHaveBeenLastCalledWith('2026-09');
+    expect(repo.getMonthSnapshot).toHaveBeenLastCalledWith('2026-09');
     expect(store.getState()).toMatchObject({ expectedIncome: 30_000, loadedMonth: '2026-09' });
   });
 
@@ -94,7 +100,7 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
     await store.getState().setExpectedIncome(28_000);
 
     expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-08', 28_000);
-    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-08');
+    expect(repo.getMonthSnapshot).toHaveBeenLastCalledWith('2026-08');
   });
 
   it('persists without loading when no month has been requested', async () => {
@@ -104,7 +110,7 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
     await store.getState().setExpectedIncome(22_000);
 
     expect(repo.setExpectedIncome).toHaveBeenCalledWith('2026-05', 22_000);
-    expect(repo.getExpectedIncome).not.toHaveBeenCalled();
+    expect(repo.getMonthSnapshot).not.toHaveBeenCalled();
     expect(store.getState().loaded).toBe(false);
   });
 
@@ -123,8 +129,8 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
     write.resolve(undefined);
     await julySave;
 
-    expect(repo.getExpectedIncome).toHaveBeenCalledTimes(2);
-    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-08');
+    expect(repo.getMonthSnapshot).toHaveBeenCalledTimes(2);
+    expect(repo.getMonthSnapshot).toHaveBeenLastCalledWith('2026-08');
     expect(store.getState()).toMatchObject({
       expectedIncome: 30_000,
       budgetGroupByCategoryId: { food: BudgetGroup.Want },
@@ -133,16 +139,38 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
   });
 
   it('suppresses a stale month load after a newer month resolves', async () => {
-    const juneIncome = deferred<number | null>();
+    const juneSnapshot = deferred<BudgetMonthSnapshot>();
     const repo = makeRepo({ '2026-07': 27_000 }, { '2026-07': { food: BudgetGroup.Want } });
-    repo.getExpectedIncome.mockImplementation((yearMonth) =>
-      yearMonth === '2026-06' ? juneIncome.promise : Promise.resolve(27_000),
+    repo.getMonthSnapshot.mockImplementation((yearMonth) =>
+      yearMonth === '2026-06'
+        ? juneSnapshot.promise
+        : Promise.resolve({
+            loadedMonth: '2026-07',
+            rows: [],
+            spendByMonth: {},
+            spendByBudgetId: {},
+            expectedIncome: 27_000,
+            budgetGroupByCategoryId: { food: BudgetGroup.Want },
+            spendingPlans: [],
+            spendingPlanSpendById: {},
+            incomeSuggestion: null,
+          }),
     );
     const store = createBudgetStore(repo);
 
     const juneLoad = store.getState().load('2026-06');
     await store.getState().load('2026-07');
-    juneIncome.resolve(18_000);
+    juneSnapshot.resolve({
+      loadedMonth: '2026-06',
+      rows: [],
+      spendByMonth: {},
+      spendByBudgetId: {},
+      expectedIncome: 18_000,
+      budgetGroupByCategoryId: {},
+      spendingPlans: [],
+      spendingPlanSpendById: {},
+      incomeSuggestion: null,
+    });
     await juneLoad;
 
     expect(store.getState()).toMatchObject({
@@ -153,14 +181,24 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
   });
 
   it('reset clears month profile state and invalidates an in-flight load', async () => {
-    const pendingIncome = deferred<number | null>();
+    const pendingSnapshot = deferred<BudgetMonthSnapshot>();
     const repo = makeRepo({}, { '2026-06': { food: BudgetGroup.Need } });
-    repo.getExpectedIncome.mockReturnValueOnce(pendingIncome.promise);
+    repo.getMonthSnapshot.mockReturnValueOnce(pendingSnapshot.promise);
     const store = createBudgetStore(repo);
 
     const load = store.getState().load('2026-06');
     store.getState().reset();
-    pendingIncome.resolve(20_000);
+    pendingSnapshot.resolve({
+      loadedMonth: '2026-06',
+      rows: [],
+      spendByMonth: {},
+      spendByBudgetId: {},
+      expectedIncome: 20_000,
+      budgetGroupByCategoryId: { food: BudgetGroup.Need },
+      spendingPlans: [],
+      spendingPlanSpendById: {},
+      incomeSuggestion: null,
+    });
     await load;
 
     expect(store.getState()).toMatchObject({
@@ -185,7 +223,6 @@ describe('useBudgetStore — month-specific 50/30/20 profiles', () => {
       'budget-food',
       'budget-rent',
     ]);
-    expect(repo.getExpectedIncome).toHaveBeenLastCalledWith('2026-07');
-    expect(repo.getCategoryGroups).toHaveBeenLastCalledWith('2026-07');
+    expect(repo.getMonthSnapshot).toHaveBeenLastCalledWith('2026-07');
   });
 });

@@ -133,6 +133,8 @@ const duePayment: CommitmentPayment = {
 // Stable, capturable mocks: markAsPaid so we can assert the persisted snapshot,
 // and an injectable accounts list so requiresRate (currency mismatch) can be exercised.
 const mockMarkAsPaid = jest.fn().mockResolvedValue(undefined);
+const mockLoadPaymentsForMonth = jest.fn().mockResolvedValue(undefined);
+const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 let mockAccounts: Account[] = [];
 
 function setupStoreMocks() {
@@ -141,13 +143,13 @@ function setupStoreMocks() {
     payments: [],
     selectedMonth: '2026-05',
     markAsPaid: mockMarkAsPaid,
-    loadPaymentsForMonth: jest.fn().mockResolvedValue(undefined),
+    loadPaymentsForMonth: mockLoadPaymentsForMonth,
   }));
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     get accounts() {
       return mockAccounts;
     },
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
+    loadAccounts: mockLoadAccounts,
   }));
   attachMockSelectorStore(useCurrencyStore as unknown as jest.Mock, () => ({
     rate: 55,
@@ -187,6 +189,10 @@ describe('usePaySheet', () => {
     mockAccounts = [];
     mockMarkAsPaid.mockClear();
     mockMarkAsPaid.mockResolvedValue(undefined);
+    mockLoadPaymentsForMonth.mockClear();
+    mockLoadPaymentsForMonth.mockResolvedValue(undefined);
+    mockLoadAccounts.mockClear();
+    mockLoadAccounts.mockResolvedValue(undefined);
     // Re-setup store mocks after clearAllMocks
     setupStoreMocks();
   });
@@ -247,6 +253,7 @@ describe('usePaySheet', () => {
       await result.current.onSubmit();
     });
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(mockLoadPaymentsForMonth).not.toHaveBeenCalled();
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
     expect(arg.exchange_rate_snapshot).toBe(99);
   });
@@ -267,5 +274,32 @@ describe('usePaySheet', () => {
     expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
     const arg = mockMarkAsPaid.mock.calls[0][1] as { exchange_rate_snapshot?: number };
     expect(arg.exchange_rate_snapshot).toBe(52);
+  });
+
+  it('closes after a committed payment when account revalidation fails', async () => {
+    const refreshError = new Error('account refresh failed');
+    mockLoadAccounts.mockRejectedValueOnce(refreshError);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    act(() => {
+      result.current.form.setValue('account_id', 'acc-egp');
+      result.current.form.setValue('amount', 15);
+      result.current.form.setValue('paid_date', '2026-05-20');
+    });
+
+    await act(async () => {
+      await result.current.onSubmit();
+      await Promise.resolve();
+    });
+
+    expect(mockMarkAsPaid).toHaveBeenCalledTimes(1);
+    expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+    expect(mockPaySheetState.setVisible).toHaveBeenCalledWith(false);
+    expect(mockPaySheetState.reset).toHaveBeenCalledTimes(1);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '[paySheet] account revalidation failed:',
+      refreshError,
+    );
+    consoleSpy.mockRestore();
   });
 });

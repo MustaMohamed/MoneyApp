@@ -1,15 +1,19 @@
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
 import { BudgetGroup, CategoryType } from '@/constants/enums';
-import { getDb } from '@/database/client';
-import { getTrailingIncomeSuggestion } from '@/modules/budget/database/budget_stats';
+import type {
+  Budget,
+  BudgetMonthGroupMap,
+  SpendingPlanWithCategories,
+} from '@/modules/budget/entities/budget.entity';
 import { currentYearMonth } from '@/modules/budget/repositories/budget.repository';
 import {
   buildBudgetCategoriesSummary,
   buildBudgetCopyRows,
   buildCategoryBudgetRows,
+  resolveBudgetPresentation,
 } from '@/modules/budget/screens/budget/budget.helpers';
 import { useBudgetState } from '@/modules/budget/screens/budget/budget.state';
 import {
@@ -26,6 +30,12 @@ import { useCategoryStore } from '@/modules/categories/store/category.store';
 import { formatMonthYear, toLocalDateString } from '@/utils/format_date';
 import { runAfterInteractions } from '@/utils/run_after_interactions';
 
+const EMPTY_BUDGET_ROWS: Budget[] = [];
+const EMPTY_SPENDING_PLANS: SpendingPlanWithCategories[] = [];
+const EMPTY_SPEND_BY_MONTH: Record<string, Record<string, number>> = {};
+const EMPTY_SPEND_BY_ID: Record<string, number> = {};
+const EMPTY_BUDGET_GROUP_MAP: BudgetMonthGroupMap = {};
+
 export interface BudgetEditTargetVM extends NamedBudgetVM {
   categoryId: string;
   categoryName: string;
@@ -37,7 +47,6 @@ export interface BudgetEditTargetVM extends NamedBudgetVM {
 
 export function useBudget() {
   const router = useRouter();
-  const incomeSuggestionRequest = useRef(0);
 
   const { categories, categoriesLoaded, categoryLoadError } = useCategoryStore(
     useShallow((s) => ({
@@ -57,6 +66,13 @@ export function useBudget() {
     loadedMonth,
     expectedIncome,
     budgetGroupByCategoryId,
+    incomeSuggestion,
+    copyPreviewRows,
+    copyPreviewSourceMonth,
+    copyPreviewTargetMonth,
+    copyPreviewLoaded,
+    copyPreviewLoading,
+    copyPreviewError,
     loadError,
   } = useBudgetStore(
     useShallow((s) => ({
@@ -69,10 +85,18 @@ export function useBudget() {
       loadedMonth: s.loadedMonth,
       expectedIncome: s.expectedIncome,
       budgetGroupByCategoryId: s.budgetGroupByCategoryId,
+      incomeSuggestion: s.incomeSuggestion,
+      copyPreviewRows: s.copyPreviewRows,
+      copyPreviewSourceMonth: s.copyPreviewSourceMonth,
+      copyPreviewTargetMonth: s.copyPreviewTargetMonth,
+      copyPreviewLoaded: s.copyPreviewLoaded,
+      copyPreviewLoading: s.copyPreviewLoading,
+      copyPreviewError: s.copyPreviewError,
       loadError: s.loadError,
     })),
   );
   const load = useBudgetStore.getState().load;
+  const loadCopyPreview = useBudgetStore.getState().loadCopyPreview;
   const copyBudgetsToMonth = useBudgetStore.getState().copyBudgetsToMonth;
   const removeBudget = useBudgetStore.getState().removeBudget;
   const setSpendingPlan = useBudgetStore.getState().setSpendingPlan;
@@ -88,7 +112,8 @@ export function useBudget() {
     lensTab,
     copySheetVisible,
     copySelectedBudgetIds,
-    incomeSuggestion,
+    copyBusy,
+    copyError,
     refreshing,
     targetBudgetId,
     targetPlanId,
@@ -101,7 +126,8 @@ export function useBudget() {
       lensTab: s.lensTab,
       copySheetVisible: s.copySheetVisible,
       copySelectedBudgetIds: s.copySelectedBudgetIds,
-      incomeSuggestion: s.incomeSuggestion,
+      copyBusy: s.copyBusy,
+      copyError: s.copyError,
       refreshing: s.refreshing,
       targetBudgetId: s.targetBudgetId,
       targetPlanId: s.targetPlanId,
@@ -117,63 +143,65 @@ export function useBudget() {
   const setCopySelectedBudgetIds = useBudgetState.getState().setCopySelectedBudgetIds;
   const toggleCopyBudgetId = useBudgetState.getState().toggleCopyBudgetId;
   const clearCopySelection = useBudgetState.getState().clearCopySelection;
-  const setIncomeSuggestion = useBudgetState.getState().setIncomeSuggestion;
+  const setCopyBusy = useBudgetState.getState().setCopyBusy;
+  const setCopyError = useBudgetState.getState().setCopyError;
   const setRefreshing = useBudgetState.getState().setRefreshing;
   const setExpandedCategoryId = useBudgetState.getState().setExpandedCategoryId;
   const setExpandedBudgetGroup = useBudgetState.getState().setExpandedBudgetGroup;
   const openIncomeSheetState = useIncomeSheetState.getState().open;
 
-  const loadIncomeSuggestion = useCallback(
-    async (month: string) => {
-      const request = ++incomeSuggestionRequest.current;
-      try {
-        const db = await getDb();
-        const s = await getTrailingIncomeSuggestion(db, month);
-        if (request === incomeSuggestionRequest.current) setIncomeSuggestion(s);
-      } catch {
-        if (request === incomeSuggestionRequest.current) setIncomeSuggestion(null);
-      }
-    },
-    [setIncomeSuggestion],
-  );
-
   useFocusEffect(
     useCallback(() => {
       const task = runAfterInteractions(() => {
-        void loadCategories().catch(() => undefined);
-        void load(selectedMonth);
-        void loadIncomeSuggestion(selectedMonth);
+        if (!useCategoryStore.getState().hasLoaded) {
+          void loadCategories().catch(() => undefined);
+        }
+        const focusedMonth = useBudgetState.getState().selectedMonth;
+        void load(focusedMonth).catch(() => undefined);
       });
       return () => task.cancel();
-    }, [loadCategories, load, loadIncomeSuggestion, selectedMonth]),
+    }, [loadCategories, load]),
   );
 
   const today = toLocalDateString(new Date());
+  const hasMatchingBudgetSnapshot = budgetLoaded && loadedMonth === selectedMonth;
+  const activeBudgetRows = hasMatchingBudgetSnapshot ? budgetRows : EMPTY_BUDGET_ROWS;
+  const activeSpendByMonth = hasMatchingBudgetSnapshot ? spendByMonth : EMPTY_SPEND_BY_MONTH;
+  const activeSpendByBudgetId = hasMatchingBudgetSnapshot ? spendByBudgetId : EMPTY_SPEND_BY_ID;
+  const activeSpendingPlans = hasMatchingBudgetSnapshot ? spendingPlans : EMPTY_SPENDING_PLANS;
+  const activeSpendingPlanSpendById = hasMatchingBudgetSnapshot
+    ? spendingPlanSpendById
+    : EMPTY_SPEND_BY_MONTH;
+  const activeExpectedIncome = hasMatchingBudgetSnapshot ? expectedIncome : null;
+  const activeBudgetGroupByCategoryId = hasMatchingBudgetSnapshot
+    ? budgetGroupByCategoryId
+    : EMPTY_BUDGET_GROUP_MAP;
+  const activeIncomeSuggestion = hasMatchingBudgetSnapshot ? incomeSuggestion : null;
 
   const categoryLedger = useMemo(
     () =>
       buildCategoryBudgetRows({
         categories,
-        budgets: budgetRows,
-        spendByMonth,
-        spendByBudgetId,
+        budgets: activeBudgetRows,
+        spendByMonth: activeSpendByMonth,
+        spendByBudgetId: activeSpendByBudgetId,
         yearMonth: selectedMonth,
       }),
-    [budgetRows, categories, selectedMonth, spendByBudgetId, spendByMonth],
+    [activeBudgetRows, activeSpendByBudgetId, activeSpendByMonth, categories, selectedMonth],
   );
   const rows = categoryLedger.rows;
-  const hasConfiguredIncome = hasBudgetRuleIncome(expectedIncome);
+  const hasConfiguredIncome = hasBudgetRuleIncome(activeExpectedIncome);
 
   const categoriesSummary = useMemo(
     () =>
       buildBudgetCategoriesSummary({
         rows,
-        expectedIncome,
+        expectedIncome: activeExpectedIncome,
         unbudgetedSpend: categoryLedger.unbudgetedSpend,
         selectedMonth,
         today,
       }),
-    [categoryLedger.unbudgetedSpend, expectedIncome, rows, selectedMonth, today],
+    [activeExpectedIncome, categoryLedger.unbudgetedSpend, rows, selectedMonth, today],
   );
 
   const overall = useMemo(
@@ -189,13 +217,13 @@ export function useBudget() {
   const spendingPlanRows = useMemo(
     () =>
       buildSpendingPlanRows({
-        plans: spendingPlans,
+        plans: activeSpendingPlans,
         categories,
-        spendByPlanId: spendingPlanSpendById,
+        spendByPlanId: activeSpendingPlanSpendById,
         selectedMonth,
         today,
       }),
-    [categories, selectedMonth, spendingPlanSpendById, spendingPlans, today],
+    [activeSpendingPlanSpendById, activeSpendingPlans, categories, selectedMonth, today],
   );
 
   const spendingPlansSummary = useMemo(
@@ -215,8 +243,11 @@ export function useBudget() {
               categoryId: row.categoryId,
               categoryName: row.name,
               categoryGroup: category
-                ? (resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasConfiguredIncome) ??
-                  null)
+                ? (resolveBudgetRuleGroup(
+                    category,
+                    activeBudgetGroupByCategoryId,
+                    hasConfiguredIncome,
+                  ) ?? null)
                 : null,
               icon: row.icon,
               color: row.color,
@@ -224,7 +255,7 @@ export function useBudget() {
           }),
         )
         .find((budget) => budget.id === targetBudgetId),
-    [budgetGroupByCategoryId, categories, hasConfiguredIncome, rows, targetBudgetId],
+    [activeBudgetGroupByCategoryId, categories, hasConfiguredIncome, rows, targetBudgetId],
   );
 
   const editingPlan = useMemo(
@@ -235,21 +266,21 @@ export function useBudget() {
   const ruleLens = useMemo(
     () =>
       buildBudgetRuleLens({
-        income: expectedIncome,
+        income: activeExpectedIncome,
         categories,
-        budgets: budgetRows,
-        budgetGroupByCategoryId,
-        spendByMonth,
+        budgets: activeBudgetRows,
+        budgetGroupByCategoryId: activeBudgetGroupByCategoryId,
+        spendByMonth: activeSpendByMonth,
         selectedMonth,
         lifecycleDate: today,
       }),
     [
-      budgetGroupByCategoryId,
-      budgetRows,
+      activeBudgetGroupByCategoryId,
+      activeBudgetRows,
+      activeExpectedIncome,
+      activeSpendByMonth,
       categories,
-      expectedIncome,
       selectedMonth,
-      spendByMonth,
       today,
     ],
   );
@@ -261,16 +292,34 @@ export function useBudget() {
     [categories],
   );
 
+  const hasMatchingCopyPreview =
+    copyPreviewLoaded &&
+    copyPreviewSourceMonth === copySourceMonth &&
+    copyPreviewTargetMonth === selectedMonth;
   const copyRows = useMemo(
     () =>
       buildBudgetCopyRows({
-        rows: budgetRows,
+        rows: hasMatchingCopyPreview ? copyPreviewRows : [],
         categories,
         sourceMonth: copySourceMonth,
         targetMonth: selectedMonth,
       }),
-    [budgetRows, categories, copySourceMonth, selectedMonth],
+    [categories, copyPreviewRows, copySourceMonth, hasMatchingCopyPreview, selectedMonth],
   );
+  const copyPreviewMatchesSelection =
+    copyPreviewSourceMonth === copySourceMonth && copyPreviewTargetMonth === selectedMonth;
+  const copyPreviewIsLoading =
+    copySheetVisible &&
+    (!copyPreviewMatchesSelection ||
+      copyPreviewLoading ||
+      (!copyPreviewLoaded && !copyPreviewError));
+  const copyPreviewHasError = copySheetVisible && copyPreviewMatchesSelection && copyPreviewError;
+
+  useEffect(() => {
+    if (copySheetVisible && hasMatchingCopyPreview) {
+      setCopySelectedBudgetIds(copyRows.map((row) => row.id));
+    }
+  }, [copyRows, copySheetVisible, hasMatchingCopyPreview, setCopySelectedBudgetIds]);
 
   const daysLeft = useMemo(() => {
     const [y, m] = selectedMonth.split('-').map(Number);
@@ -290,50 +339,65 @@ export function useBudget() {
   const setSelectedMonth = useCallback(
     (month: string) => {
       setSelectedMonthState(month);
-      setIncomeSuggestion(null);
-      void load(month);
-      void loadIncomeSuggestion(month);
+      void load(month).catch(() => undefined);
     },
-    [load, loadIncomeSuggestion, setIncomeSuggestion, setSelectedMonthState],
+    [load, setSelectedMonthState],
   );
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      await Promise.all([
-        loadCategories(),
-        load(selectedMonth),
-        loadIncomeSuggestion(selectedMonth),
-      ]);
+      const tasks: Promise<void>[] = [load(selectedMonth)];
+      if (!useCategoryStore.getState().hasLoaded) tasks.push(loadCategories());
+      await Promise.all(tasks);
     } finally {
       setRefreshing(false);
     }
-  }, [load, loadCategories, loadIncomeSuggestion, selectedMonth, setRefreshing]);
+  }, [load, loadCategories, selectedMonth, setRefreshing]);
 
   const openCopy = useCallback(() => {
-    openCopyState(copyRows.map((row) => row.id));
-  }, [copyRows, openCopyState]);
+    clearCopySelection();
+    openCopyState();
+    void loadCopyPreview(copySourceMonth, selectedMonth);
+  }, [clearCopySelection, copySourceMonth, loadCopyPreview, openCopyState, selectedMonth]);
 
   const setCopySourceMonth = useCallback(
     (month: string) => {
       setCopySourceMonthState(month);
-      const rowsForSource = buildBudgetCopyRows({
-        rows: budgetRows,
-        categories,
-        sourceMonth: month,
-        targetMonth: selectedMonth,
-      });
-      setCopySelectedBudgetIds(rowsForSource.map((row) => row.id));
+      clearCopySelection();
+      setCopyError(false);
+      void loadCopyPreview(month, selectedMonth);
     },
-    [budgetRows, categories, selectedMonth, setCopySelectedBudgetIds, setCopySourceMonthState],
+    [clearCopySelection, loadCopyPreview, selectedMonth, setCopyError, setCopySourceMonthState],
   );
+
+  const retryCopyPreview = useCallback(() => {
+    void loadCopyPreview(copySourceMonth, selectedMonth);
+  }, [copySourceMonth, loadCopyPreview, selectedMonth]);
 
   const copySelectedBudgets = useCallback(
     async (budgetIds = copySelectedBudgetIds) => {
-      await copyBudgetsToMonth(copySourceMonth, selectedMonth, budgetIds);
-      closeCopy();
+      if (useBudgetState.getState().copyBusy || budgetIds.length === 0) return;
+      setCopyBusy(true);
+      setCopyError(false);
+      try {
+        await copyBudgetsToMonth(copySourceMonth, selectedMonth, budgetIds);
+        closeCopy();
+      } catch {
+        setCopyError(true);
+      } finally {
+        setCopyBusy(false);
+      }
     },
-    [closeCopy, copyBudgetsToMonth, copySelectedBudgetIds, copySourceMonth, selectedMonth],
+    [
+      closeCopy,
+      copyBudgetsToMonth,
+      copySelectedBudgetIds,
+      copySourceMonth,
+      selectedMonth,
+      setCopyBusy,
+      setCopyError,
+    ],
   );
 
   const selectAllCopyBudgets = useCallback(() => {
@@ -374,12 +438,12 @@ export function useBudget() {
 
   const openIncomeSheet = useCallback(() => {
     openIncomeSheetState(
-      incomeSuggestion,
-      expectedIncome,
+      activeIncomeSuggestion,
+      activeExpectedIncome,
       selectedMonth,
       formatMonthYear(selectedMonth),
     );
-  }, [expectedIncome, incomeSuggestion, openIncomeSheetState, selectedMonth]);
+  }, [activeExpectedIncome, activeIncomeSuggestion, openIncomeSheetState, selectedMonth]);
 
   const manageRuleGroup = useCallback(
     (group: BudgetGroup) => {
@@ -393,7 +457,7 @@ export function useBudget() {
         categories.find(
           (category) =>
             category.type === CategoryType.Expense &&
-            resolveBudgetRuleGroup(category, budgetGroupByCategoryId, hasConfiguredIncome) ===
+            resolveBudgetRuleGroup(category, activeBudgetGroupByCategoryId, hasConfiguredIncome) ===
               group,
         )?.id;
       setLensTab('categories');
@@ -401,7 +465,7 @@ export function useBudget() {
       if (!firstMatchingCategory) openAddWithContext(contextualCategoryId, group);
     },
     [
-      budgetGroupByCategoryId,
+      activeBudgetGroupByCategoryId,
       categories,
       hasConfiguredIncome,
       openAddWithContext,
@@ -427,21 +491,25 @@ export function useBudget() {
       hasSpendingPlans: spendingPlanRows.length > 0,
       budgetableCategories,
       ruleLens,
-      suggestion: incomeSuggestion,
+      suggestion: activeIncomeSuggestion,
       lensTab,
       copySourceMonth,
       copyRows,
       copySheetVisible,
       copySelectedBudgetIds,
+      copyPreviewLoading: copyPreviewIsLoading,
+      copyPreviewError: copyPreviewHasError,
+      copyBusy,
+      copyError,
       refreshing,
+      presentation: resolveBudgetPresentation({
+        hasMatchingSnapshot: categoriesLoaded && hasMatchingBudgetSnapshot,
+        loadError: loadError || categoryLoadError,
+      }),
       loadError: loadError || categoryLoadError,
       expandedCategoryId,
       expandedBudgetGroup,
-      hasLoaded: Boolean(
-        categoriesLoaded &&
-        budgetLoaded &&
-        (loadedMonth === undefined || loadedMonth === selectedMonth),
-      ),
+      hasLoaded: Boolean(categoriesLoaded && hasMatchingBudgetSnapshot),
     },
     openAdd,
     openEdit,
@@ -462,6 +530,7 @@ export function useBudget() {
     selectAllCopyBudgets,
     clearCopySelection,
     setCopySourceMonth,
+    retryCopyPreview,
     copySelectedBudgets,
     removeBudgetForMonth,
     removeSpendingPlanForMonth,

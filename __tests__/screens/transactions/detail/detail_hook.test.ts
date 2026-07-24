@@ -295,7 +295,7 @@ describe('useTransactionDetail commitment navigation', () => {
     await act(async () => result.current.openCommitment());
 
     expect(mockGetCommitmentPaymentById).toHaveBeenCalledWith('payment-1');
-    expect(loadCommitments).toHaveBeenCalledTimes(1);
+    expect(loadCommitments).not.toHaveBeenCalled();
     expect(setSelectedMonth).toHaveBeenCalledWith('2026-04');
     expect(router.push).toHaveBeenCalledWith('/commitments/payment-1');
   });

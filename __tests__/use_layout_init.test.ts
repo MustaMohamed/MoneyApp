@@ -8,8 +8,7 @@ const mockRunMigrations = jest.fn<Promise<void>, [unknown]>();
 const mockInitOnboarding = jest.fn<Promise<{ complete: boolean; step: string }>, []>();
 const mockLoadAccounts = jest.fn<Promise<void>, []>();
 const mockLoadRate = jest.fn<Promise<void>, []>();
-const mockGeneratePayments = jest.fn<Promise<void>, []>();
-const mockCheckAndDeactivateExpired = jest.fn<Promise<void>, []>();
+const mockEnsureHousekeepingCurrent = jest.fn<Promise<void>, []>();
 
 jest.mock('@/database/client', () => ({
   getDb: () => mockGetDb(),
@@ -33,8 +32,7 @@ jest.mock('@/modules/currency/store/currency.store', () => ({
 jest.mock('@/modules/commitments/store/commitment.store', () => ({
   useCommitmentStore: {
     getState: () => ({
-      generatePayments: () => mockGeneratePayments(),
-      checkAndDeactivateExpired: () => mockCheckAndDeactivateExpired(),
+      ensureHousekeepingCurrent: () => mockEnsureHousekeepingCurrent(),
     }),
   },
 }));
@@ -68,8 +66,7 @@ describe('useAppInit', () => {
     mockInitOnboarding.mockResolvedValue({ complete: false, step: 'N1' });
     mockLoadAccounts.mockResolvedValue(undefined);
     mockLoadRate.mockResolvedValue(undefined);
-    mockGeneratePayments.mockResolvedValue(undefined);
-    mockCheckAndDeactivateExpired.mockResolvedValue(undefined);
+    mockEnsureHousekeepingCurrent.mockResolvedValue(undefined);
   });
 
   afterEach(() => consoleWarnSpy.mockRestore());
@@ -126,24 +123,26 @@ describe('useAppInit', () => {
   it('marks ready without awaiting optional commitment housekeeping', async () => {
     const generate = deferred<void>();
     mockInitOnboarding.mockResolvedValue({ complete: true, step: 'N4' });
-    mockGeneratePayments.mockReturnValue(generate.promise);
+    mockEnsureHousekeepingCurrent.mockReturnValue(generate.promise);
 
     renderHook(() => useAppInit());
     await flushStartup();
 
     expect(useAppReadyStore.getState().status).toBe('ready');
+    expect(mockEnsureHousekeepingCurrent).toHaveBeenCalledTimes(1);
     generate.resolve();
     await flushStartup();
   });
 
   it('keeps ready when optional commitment housekeeping fails', async () => {
     mockInitOnboarding.mockResolvedValue({ complete: true, step: 'N4' });
-    mockGeneratePayments.mockRejectedValue(new Error('housekeeping'));
+    mockEnsureHousekeepingCurrent.mockRejectedValue(new Error('housekeeping'));
 
     renderHook(() => useAppInit());
     await flushStartup();
 
     expect(useAppReadyStore.getState().status).toBe('ready');
+    expect(mockEnsureHousekeepingCurrent).toHaveBeenCalledTimes(1);
     expect(consoleWarnSpy).toHaveBeenCalledWith(
       '[layoutInit] commitment housekeeping failed:',
       expect.any(Error),
@@ -154,7 +153,6 @@ describe('useAppInit', () => {
     renderHook(() => useAppInit());
     await flushStartup();
 
-    expect(mockGeneratePayments).not.toHaveBeenCalled();
-    expect(mockCheckAndDeactivateExpired).not.toHaveBeenCalled();
+    expect(mockEnsureHousekeepingCurrent).not.toHaveBeenCalled();
   });
 });
