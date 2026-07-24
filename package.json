@@ -16,6 +16,7 @@
     "format:check": "oxfmt --check",
     "test": "jest",
     "test:coverage": "jest --coverage",
+    "harness:test": "node --test scripts/harness/__tests__/*.test.js",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
