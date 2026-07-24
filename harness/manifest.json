@@ -241,6 +241,9 @@
     }
   ],
   "rules": "harness/rules/semantics.json",
+  "workflow": {
+    "machine": "harness/workflow/state_machine.json"
+  },
   "verification": {
     "checks": [
       {

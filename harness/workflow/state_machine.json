@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "internalGuards": ["INIT-NON-MAIN", "DELIVERY-EVIDENCE-FRESH"],
+  "states": [
+    "brainstorming",
+    "awaiting_spec_signoff",
+    "planning",
+    "awaiting_plan_approval",
+    "execution",
+    "validation",
+    "awaiting_device_qa",
+    "integration_ready",
+    "cancelled"
+  ],
+  "roles": ["user", "sarah", "tariq", "dev", "system"],
+  "events": {
+    "initiative.created": {
+      "origins": ["none"],
+      "destination": "brainstorming",
+      "roles": ["sarah"],
+      "guard": "INIT-NON-MAIN"
+    },
+    "spec.submitted": {
+      "origins": ["brainstorming"],
+      "destination": "awaiting_spec_signoff",
+      "roles": ["sarah", "tariq"],
+      "guard": "GATE-SPEC-SIGNOFF"
+    },
+    "spec.signed": {
+      "origins": ["awaiting_spec_signoff"],
+      "destination": "planning",
+      "roles": ["sarah"],
+      "guard": "GATE-SPEC-SIGNOFF"
+    },
+    "spec.revised": {
+      "origins": [
+        "awaiting_spec_signoff",
+        "planning",
+        "awaiting_plan_approval",
+        "execution",
+        "validation",
+        "awaiting_device_qa",
+        "integration_ready"
+      ],
+      "destination": "awaiting_spec_signoff",
+      "roles": ["sarah", "tariq"],
+      "guard": "GATE-SPEC-SIGNOFF"
+    },
+    "plan.submitted": {
+      "origins": ["planning"],
+      "destination": "awaiting_plan_approval",
+      "roles": ["tariq"],
+      "guard": "LEAD-PLAN-APPROVAL"
+    },
+    "plan.approved": {
+      "origins": ["awaiting_plan_approval"],
+      "destination": "execution",
+      "roles": ["sarah"],
+      "guard": "LEAD-PLAN-APPROVAL"
+    },
+    "plan.revised": {
+      "origins": [
+        "awaiting_plan_approval",
+        "execution",
+        "validation",
+        "awaiting_device_qa",
+        "integration_ready"
+      ],
+      "destination": "awaiting_plan_approval",
+      "roles": ["tariq"],
+      "guard": "LEAD-PLAN-APPROVAL"
+    },
+    "implementation.ready": {
+      "origins": ["execution"],
+      "destination": "validation",
+      "roles": ["dev"],
+      "guard": "DELIVERY-EVIDENCE-FRESH"
+    },
+    "review.approved": {
+      "origins": ["validation"],
+      "destination": "validation",
+      "roles": ["tariq"],
+      "guard": "LEAD-REVIEW-VERDICT"
+    },
+    "review.changes_requested": {
+      "origins": ["validation"],
+      "destination": "execution",
+      "roles": ["tariq"],
+      "guard": "LEAD-REVIEW-VERDICT"
+    },
+    "verification.passed": {
+      "origins": ["validation"],
+      "destination": "validation",
+      "roles": ["system"],
+      "guard": "VERIFY-SIX-CHECKS"
+    },
+    "verification.failed": {
+      "origins": ["validation"],
+      "destination": "validation",
+      "roles": ["system"],
+      "guard": "VERIFY-SIX-CHECKS"
+    },
+    "device_qa.passed": {
+      "origins": ["awaiting_device_qa"],
+      "destination": "integration_ready",
+      "roles": ["sarah"],
+      "guard": "GATE-DEVICE-QA"
+    },
+    "device_qa.failed": {
+      "origins": ["awaiting_device_qa"],
+      "destination": "execution",
+      "roles": ["sarah"],
+      "guard": "GATE-DEVICE-QA"
+    },
+    "work.reopened": {
+      "origins": ["validation", "awaiting_device_qa", "integration_ready"],
+      "destination": "execution",
+      "roles": ["sarah", "tariq", "dev"],
+      "guard": "DELIVERY-EVIDENCE-FRESH"
+    },
+    "blocker.opened": {
+      "origins": [
+        "brainstorming",
+        "awaiting_spec_signoff",
+        "planning",
+        "awaiting_plan_approval",
+        "execution",
+        "validation",
+        "awaiting_device_qa",
+        "integration_ready"
+      ],
+      "destination": "same",
+      "roles": ["sarah", "tariq", "dev"],
+      "guard": "GATE-CRITICAL-TRIGGER"
+    },
+    "blocker.resolved": {
+      "origins": [
+        "brainstorming",
+        "awaiting_spec_signoff",
+        "planning",
+        "awaiting_plan_approval",
+        "execution",
+        "validation",
+        "awaiting_device_qa",
+        "integration_ready"
+      ],
+      "destination": "same",
+      "roles": ["sarah"],
+      "guard": "GATE-CRITICAL-TRIGGER"
+    },
+    "initiative.cancelled": {
+      "origins": [
+        "brainstorming",
+        "awaiting_spec_signoff",
+        "planning",
+        "awaiting_plan_approval",
+        "execution",
+        "validation",
+        "awaiting_device_qa"
+      ],
+      "destination": "cancelled",
+      "roles": ["sarah"],
+      "guard": "AUTH-USER-INTEGRATION"
+    }
+  }
+}
