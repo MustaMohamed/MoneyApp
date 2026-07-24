@@ -151,6 +151,7 @@ describe('commitment store snapshot ownership', () => {
       loading: false,
       loadError: false,
       generation: 0,
+      transitioningPaymentIds: [],
     });
   });
 
@@ -426,13 +427,26 @@ describe('commitment store mutation invalidation', () => {
     consoleSpy.mockRestore();
   });
 
+  it('rejects update when required schedule regeneration fails', async () => {
+    const refreshError = new Error('schedule regeneration failed');
+    const repository = makeRepository({
+      runHousekeeping: jest.fn().mockRejectedValue(refreshError),
+    });
+    const store = createCommitmentStore(repository);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+    await expect(store.getState().updateCommitment('commitment', updateInput)).rejects.toThrow(
+      refreshError,
+    );
+
+    expect(repository.update).toHaveBeenCalledWith('commitment', updateInput);
+    expect(repository.deleteUnpaidPayments).toHaveBeenCalledWith('commitment');
+    expect(repository.getMonthSnapshot).not.toHaveBeenCalled();
+    expect(store.getState().loadError).toBe(true);
+    consoleSpy.mockRestore();
+  });
+
   it.each([
-    {
-      name: 'update',
-      persist: 'update',
-      run: (store: ReturnType<typeof createCommitmentStore>) =>
-        store.getState().updateCommitment('commitment', updateInput),
-    },
     {
       name: 'deactivate',
       persist: 'deactivate',
@@ -532,6 +546,50 @@ describe('commitment store mutation invalidation', () => {
     expect(repository.runHousekeeping).toHaveBeenCalledTimes(1);
     expect(repository.getMonthSnapshot).toHaveBeenCalledTimes(1);
     expect(store.getState().generation).toBe(1);
+  });
+
+  it('locks a payment against a stale Skip while Pay persistence is in flight', async () => {
+    const payRequest = deferred<void>();
+    const repository = makeRepository({
+      markAsPaid: jest.fn().mockReturnValue(payRequest.promise),
+    });
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+
+    const payAction = store.getState().markAsPaid('payment', paymentDetails);
+    const skipAction = store.getState().skipPayment('payment');
+
+    expect(store.getState().transitioningPaymentIds).toEqual(['payment']);
+    payRequest.resolve();
+    await payAction;
+    await expect(skipAction).rejects.toThrow('Payment transition already in progress: payment');
+    expect(repository.markAsSkipped).not.toHaveBeenCalled();
+    expect(store.getState().transitioningPaymentIds).toEqual([]);
+  });
+
+  it('publishes paid status and metadata before the background snapshot refresh settles', async () => {
+    const refresh = deferred<void>();
+    const repository = makeRepository();
+    const store = createCommitmentStore(repository);
+    await store.getState().loadMonthSnapshot(MAY);
+    (repository.runHousekeeping as jest.Mock).mockReset().mockReturnValue(refresh.promise);
+
+    await store.getState().markAsPaid('payment', paymentDetails);
+
+    expect(store.getState().payments).toEqual([
+      expect.objectContaining({
+        id: 'payment',
+        status: CommitmentPaymentStatus.Paid,
+        paid_date: paymentDetails.paid_date,
+        skipped_date: null,
+        amount_paid: paymentDetails.amount_paid,
+        account_id: paymentDetails.account_id,
+      }),
+    ]);
+    expect(store.getState().transitioningPaymentIds).toEqual([]);
+
+    refresh.resolve();
+    await flushMicrotasks();
   });
 
   it('invalidates and reloads once after skipping', async () => {

@@ -849,6 +849,7 @@ export const Strings = {
   commitmentsSkipError: 'Could not skip this payment. Please try again.',
   commitmentsLoadError: 'Could not load commitments. Please try again.',
   commitmentsLoadRetry: 'Retry',
+  commitmentsSaveError: 'Could not save this commitment. Please try again.',
 
   // Commitments — C5 Pay Sheet
   commitmentsPayTitle: (name: string) => `Pay ${name}`,

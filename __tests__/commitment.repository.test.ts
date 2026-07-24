@@ -30,6 +30,7 @@ import {
   deactivateExpiredCommitments,
   getCommitmentById,
   getCommitments,
+  getCommitmentsForMonthSnapshot,
   updateCommitment,
 } from '@/modules/commitments/database/commitments';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -57,6 +58,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   (getDb as jest.Mock).mockResolvedValue(mockDb);
   (getCommitments as jest.Mock).mockResolvedValue([]);
+  (getCommitmentsForMonthSnapshot as jest.Mock).mockResolvedValue([]);
   (getCommitmentById as jest.Mock).mockResolvedValue(null);
   (addCommitment as jest.Mock).mockResolvedValue(undefined);
   (updateCommitment as jest.Mock).mockResolvedValue(undefined);
@@ -270,7 +272,7 @@ describe('CommitmentRepository.getPaymentsForMonth', () => {
 
 describe('CommitmentRepository.getMonthSnapshot', () => {
   it('returns commitments and month payments together with the loaded month', async () => {
-    (getCommitments as jest.Mock).mockResolvedValue([baseCommitment]);
+    (getCommitmentsForMonthSnapshot as jest.Mock).mockResolvedValue([baseCommitment]);
     (getPaymentsByMonth as jest.Mock).mockResolvedValue([basePayment]);
 
     await expect(repo.getMonthSnapshot('2026-05')).resolves.toEqual({
@@ -280,7 +282,7 @@ describe('CommitmentRepository.getMonthSnapshot', () => {
     });
 
     expect(getDb).toHaveBeenCalledTimes(1);
-    expect(getCommitments).toHaveBeenCalledWith(mockDb);
+    expect(getCommitmentsForMonthSnapshot).toHaveBeenCalledWith(mockDb, '2026-05');
     expect(getPaymentsByMonth).toHaveBeenCalledWith(mockDb, '2026-05');
   });
 

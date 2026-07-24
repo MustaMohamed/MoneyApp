@@ -8,11 +8,12 @@ import type { Transaction } from '@/modules/transactions/entities/transaction.en
 
 import type { CommitmentPayment } from '../entities/commitment_payment.entity';
 
-const INSERT_PAYMENT_SQL = `INSERT OR IGNORE INTO commitment_payments
+const INSERT_PAYMENT_PREFIX = `INSERT OR IGNORE INTO commitment_payments
   (id, commitment_id, due_date, paid_date, skipped_date, amount_due, amount_paid,
    currency, exchange_rate_snapshot, account_id, transaction_id, status, notes,
-   created_at, updated_at)
- VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+   created_at, updated_at) VALUES`;
+const PAYMENT_VALUE_PLACEHOLDER = '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+const PAYMENT_INSERT_CHUNK_SIZE = 60;
 
 function paymentInsertParams(payment: CommitmentPayment) {
   return [
@@ -103,8 +104,13 @@ export async function insertPaymentRows(
   db: SQLiteDatabase,
   payments: CommitmentPayment[],
 ): Promise<void> {
-  for (const payment of payments) {
-    await db.runAsync(INSERT_PAYMENT_SQL, paymentInsertParams(payment));
+  for (let index = 0; index < payments.length; index += PAYMENT_INSERT_CHUNK_SIZE) {
+    const chunk = payments.slice(index, index + PAYMENT_INSERT_CHUNK_SIZE);
+    const placeholders = chunk.map(() => PAYMENT_VALUE_PLACEHOLDER).join(', ');
+    await db.runAsync(
+      `${INSERT_PAYMENT_PREFIX} ${placeholders}`,
+      chunk.flatMap(paymentInsertParams),
+    );
   }
 }
 
@@ -121,7 +127,7 @@ export async function addPayments(
 export async function updatePaymentStatus(
   db: SQLiteDatabase,
   id: string,
-  status: string,
+  status: CommitmentPaymentStatus,
   fields?: {
     paid_date?: string;
     skipped_date?: string;
@@ -132,7 +138,8 @@ export async function updatePaymentStatus(
   },
 ): Promise<void> {
   const now = new Date().toISOString();
-  await db.runAsync(
+  const isSkipping = status === CommitmentPaymentStatus.Skipped;
+  const result = await db.runAsync(
     `UPDATE commitment_payments SET
       status = ?,
       paid_date = COALESCE(?, paid_date),
@@ -142,7 +149,10 @@ export async function updatePaymentStatus(
       exchange_rate_snapshot = COALESCE(?, exchange_rate_snapshot),
       transaction_id = COALESCE(?, transaction_id),
       updated_at = ?
-     WHERE id = ?`,
+     WHERE id = ?
+       ${
+         isSkipping ? "AND status IN ('upcoming', 'due', 'overdue') AND transaction_id IS NULL" : ''
+       }`,
     [
       status,
       fields?.paid_date ?? null,
@@ -155,6 +165,14 @@ export async function updatePaymentStatus(
       id,
     ],
   );
+  if (isSkipping && result.changes !== 1) {
+    const existing = await getPaymentById(db, id);
+    if (existing?.status === CommitmentPaymentStatus.Skipped && existing.transaction_id === null) {
+      return;
+    }
+    if (!existing) throw new Error(`Commitment payment not found: ${id}`);
+    throw new Error(`Commitment payment cannot be marked as skipped: ${id}`);
+  }
 }
 
 /**
@@ -249,7 +267,7 @@ export async function markCommitmentAsPaid(
         notes = ?,
         updated_at = ?
        WHERE id = ?
-         AND status <> 'paid'
+         AND status IN ('upcoming', 'due', 'overdue')
          AND transaction_id IS NULL`,
       [
         details.paid_date,

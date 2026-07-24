@@ -29,6 +29,7 @@ import {
   deactivateExpiredCommitments,
   getCommitmentById,
   getCommitments,
+  getCommitmentsForMonthSnapshot,
   updateCommitment,
   type UpdateCommitmentData,
 } from '../database/commitments';
@@ -133,7 +134,7 @@ export class CommitmentRepository implements ICommitmentRepository {
 
   async getMonthSnapshot(yearMonth: string): Promise<CommitmentMonthSnapshot> {
     const db = await getDb();
-    const commitments = await getCommitments(db);
+    const commitments = await getCommitmentsForMonthSnapshot(db, yearMonth);
     const payments = await getPaymentsByMonth(db, yearMonth);
     return { loadedMonth: yearMonth, commitments, payments };
   }

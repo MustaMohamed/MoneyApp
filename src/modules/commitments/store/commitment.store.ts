@@ -26,6 +26,7 @@ export type {
 interface CommitmentStoreState {
   commitments: Commitment[];
   payments: CommitmentPayment[];
+  transitioningPaymentIds: string[];
   selectedMonth: string;
   commitmentsLoaded: boolean;
   paymentsLoaded: boolean;
@@ -62,6 +63,7 @@ function initialState(generation = 0): CommitmentStoreState {
   return {
     commitments: [],
     payments: [],
+    transitioningPaymentIds: [],
     selectedMonth: currentYearMonth(),
     commitmentsLoaded: false,
     paymentsLoaded: false,
@@ -117,6 +119,23 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
           .catch((error: unknown) =>
             console.error('[commitmentStore] revalidation failed:', error),
           );
+      };
+
+      const beginPaymentTransition = (paymentId: string) => {
+        if (get().transitioningPaymentIds.includes(paymentId)) {
+          throw new Error(`Payment transition already in progress: ${paymentId}`);
+        }
+        set((state) => ({
+          transitioningPaymentIds: [...state.transitioningPaymentIds, paymentId],
+        }));
+      };
+
+      const endPaymentTransition = (paymentId: string) => {
+        set((state) => ({
+          transitioningPaymentIds: state.transitioningPaymentIds.filter(
+            (candidate) => candidate !== paymentId,
+          ),
+        }));
       };
 
       return {
@@ -203,7 +222,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
             await repo.update(id, data);
             await repo.deleteUnpaidPayments(id);
             invalidateData();
-            revalidateAfterMutation();
+            await get().loadMonthSnapshot(get().selectedMonth);
           } catch (error) {
             console.error('[commitmentStore] updateCommitment failed:', error);
             throw error;
@@ -222,6 +241,7 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
         },
 
         markAsPaid: async (paymentId, details) => {
+          beginPaymentTransition(paymentId);
           try {
             const payment = get().payments.find((candidate) => candidate.id === paymentId);
             const commitment = payment
@@ -229,22 +249,58 @@ export function createCommitmentStore(repo: ICommitmentRepository) {
               : undefined;
             if (!commitment) throw new Error(`Commitment not found for payment ${paymentId}`);
             await repo.markAsPaid(paymentId, details, commitment);
+            const updatedAt = new Date().toISOString();
+            set((state) => ({
+              payments: state.payments.map((candidate) =>
+                candidate.id === paymentId
+                  ? {
+                      ...candidate,
+                      status: CommitmentPaymentStatus.Paid,
+                      paid_date: details.paid_date,
+                      skipped_date: null,
+                      amount_paid: details.amount_paid,
+                      account_id: details.account_id,
+                      exchange_rate_snapshot:
+                        details.exchange_rate_snapshot ?? candidate.exchange_rate_snapshot,
+                      updated_at: updatedAt,
+                    }
+                  : candidate,
+              ),
+            }));
             invalidateData();
             revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] markAsPaid failed:', error);
             throw error;
+          } finally {
+            endPaymentTransition(paymentId);
           }
         },
 
         skipPayment: async (paymentId) => {
+          beginPaymentTransition(paymentId);
           try {
             await repo.markAsSkipped(paymentId);
+            const skippedAt = new Date().toISOString();
+            set((state) => ({
+              payments: state.payments.map((candidate) =>
+                candidate.id === paymentId
+                  ? {
+                      ...candidate,
+                      status: CommitmentPaymentStatus.Skipped,
+                      skipped_date: skippedAt,
+                      updated_at: skippedAt,
+                    }
+                  : candidate,
+              ),
+            }));
             invalidateData();
             revalidateAfterMutation();
           } catch (error) {
             console.error('[commitmentStore] skipPayment failed:', error);
             throw error;
+          } finally {
+            endPaymentTransition(paymentId);
           }
         },
 

@@ -24,9 +24,10 @@ describe('useAddCommitmentState', () => {
 });
 
 describe('useEditCommitmentState', () => {
-  it('starts with saving false and deactivateDialogVisible false', () => {
+  it('starts with saving false, no error, and deactivateDialogVisible false', () => {
     const s = useEditCommitmentState.getState();
     expect(s.saving).toBe(false);
+    expect(s.saveError).toBeUndefined();
     expect(s.deactivateDialogVisible).toBe(false);
   });
 
@@ -40,9 +41,16 @@ describe('useEditCommitmentState', () => {
     expect(useEditCommitmentState.getState().deactivateDialogVisible).toBe(true);
   });
 
+  it('setSaveError updates the visible save error', () => {
+    useEditCommitmentState.getState().setSaveError('Could not save');
+    expect(useEditCommitmentState.getState().saveError).toBe('Could not save');
+  });
+
   it('reset returns to initial state', () => {
     useEditCommitmentState.getState().setSaving(true);
+    useEditCommitmentState.getState().setSaveError('Could not save');
     useEditCommitmentState.getState().reset();
     expect(useEditCommitmentState.getState().saving).toBe(false);
+    expect(useEditCommitmentState.getState().saveError).toBeUndefined();
   });
 });

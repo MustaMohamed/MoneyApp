@@ -9,6 +9,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { TYPE_OPTIONS } from '@/components/account_type_pill';
 import { Button } from '@/components/ui/button';
+import { FormErrorText } from '@/components/ui/form_error_text';
 import { Screen, ScreenScroll } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
@@ -20,6 +21,7 @@ import {
   RecurrencePeriod,
 } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Type } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/database/entities/account.entity';
 import type { Category } from '@/database/entities/category.entity';
@@ -45,6 +47,7 @@ interface CommitmentFormBodyProps {
   categories: Category[];
   accounts: Account[];
   saving: boolean;
+  errorMessage?: string;
   onSubmit: () => void;
   title: string;
   locked?: boolean;
@@ -57,6 +60,7 @@ export function CommitmentFormBody({
   categories,
   accounts,
   saving,
+  errorMessage,
   onSubmit,
   title,
   locked,
@@ -460,6 +464,19 @@ export function CommitmentFormBody({
 
       {/* CTA footer */}
       <View className="border-separator border-t px-4 pt-2 pb-6">
+        <View
+          style={{ minHeight: ms(16) }}
+          className="justify-center"
+          accessibilityLiveRegion="polite"
+        >
+          <FormErrorText
+            message={errorMessage}
+            numberOfLines={1}
+            disableAnimation
+            className="text-center"
+            style={{ fontSize: Type.micro }}
+          />
+        </View>
         <Button
           variant="primary"
           label={Strings.commitmentsSave}

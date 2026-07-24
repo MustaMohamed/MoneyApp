@@ -15,6 +15,8 @@ import { formatAmount } from '@/utils/format_amount';
 import { toIconName } from '@/utils/icon_name_guard';
 import { ms } from '@/utils/responsive';
 
+import { BUDGET_COPY_PREVIEW_ROW_GEOMETRY } from './budget_copy_sheet.helpers';
+
 interface BudgetCopySheetProps {
   isOpen: boolean;
   sourceMonth: string;
@@ -287,11 +289,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skeletonRow: {
-    minHeight: Size.budgetCopyPreviewRowHeight,
+    ...BUDGET_COPY_PREVIEW_ROW_GEOMETRY,
     borderRadius: Radius.md,
   },
   row: {
-    minHeight: Size.budgetCopyPreviewRowHeight,
+    ...BUDGET_COPY_PREVIEW_ROW_GEOMETRY,
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,

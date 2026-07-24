@@ -380,6 +380,21 @@ describe('useCommitments', () => {
     expect(result.current.state.counts.total).toBe(1);
   });
 
+  it('keeps a selected-month payment visible after its parent deactivates', () => {
+    const inactiveParent = makeCommitment('commitment-payment', { is_active: 0 });
+    const paidPayment = makePayment('payment', CommitmentPaymentStatus.Paid);
+    setup({
+      commitments: [inactiveParent],
+      payments: [paidPayment],
+    });
+
+    const { result } = renderHook(() => useCommitments());
+
+    expect(result.current.state.hasCommitments).toBe(true);
+    expect(result.current.state.commitmentsById.get(inactiveParent.id)).toBe(inactiveParent);
+    expect(result.current.state.sections[0]?.data).toEqual([paidPayment]);
+  });
+
   it('selectMonth delegates to the commitment store selected month', async () => {
     const { result } = renderHook(() => useCommitments());
 

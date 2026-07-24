@@ -228,13 +228,34 @@ describe('CommitmentRepository.runHousekeeping', () => {
       expect(workloadCounts()).toEqual({
         activeReads: 1,
         dueDateReads: 1,
-        inserts: count,
+        inserts: Math.ceil(count / 60),
         expiryUpdates: 1,
         exclusiveTransactions: 1,
       });
       expect(getDb).toHaveBeenCalledTimes(1);
     },
   );
+
+  it('chunks the maximum 100-by-64 generation workload into bounded writes', async () => {
+    const commitmentCount = 100;
+    const occurrencesPerCommitment = 64;
+    insertCommitments(
+      Array.from({ length: commitmentCount }, (_, index) =>
+        commitment(`maximum-${index}`, {
+          recurrence_period: RecurrencePeriod.Days,
+          duration_type: DurationType.Forever,
+          end_after_count: null,
+        }),
+      ),
+    );
+
+    await new CommitmentRepository().runHousekeeping(NOW);
+
+    expect(realDb.prepare('SELECT COUNT(*) AS count FROM commitment_payments').get()).toEqual({
+      count: commitmentCount * occurrencesPerCommitment,
+    });
+    expect(workloadCounts().inserts).toBeLessThanOrEqual(108);
+  });
 
   it('writes exact fixed and variable rows and inserts no duplicates on a second pass', async () => {
     insertCommitments([
@@ -326,8 +347,8 @@ describe('CommitmentRepository.runHousekeeping', () => {
     );
   });
 
-  it('rolls back earlier inserts when a later serial insert fails', async () => {
-    insertCommitments([commitment('first'), commitment('second')]);
+  it('rolls back earlier chunks when a later insert chunk fails', async () => {
+    insertCommitments(Array.from({ length: 61 }, (_, index) => commitment(`rollback-${index}`)));
     injectedInsertFailure = 1;
 
     await expect(new CommitmentRepository().runHousekeeping(NOW)).rejects.toThrow(

@@ -14,8 +14,9 @@ import {
   addCommitment,
   deactivateCommitment,
   deactivateExpiredCommitments,
-  getCommitments,
   getCommitmentById,
+  getCommitments,
+  getCommitmentsForMonthSnapshot,
   updateCommitment,
 } from '@/modules/commitments/database/commitments';
 import type { Commitment } from '@/modules/commitments/entities/commitment.entity';
@@ -205,6 +206,33 @@ describe('getCommitments', () => {
   it('returns an empty array when no active commitments exist', async () => {
     const results = await getCommitments(mockDb);
     expect(results).toEqual([]);
+  });
+});
+
+describe('getCommitmentsForMonthSnapshot', () => {
+  it('returns active commitments and inactive parents referenced by the selected month', async () => {
+    const active = makeCommitment({ id: 'active-parent', is_active: 1 });
+    const inactiveWithPayment = makeCommitment({
+      id: 'inactive-with-payment',
+      is_active: 0,
+    });
+    const unrelatedInactive = makeCommitment({
+      id: 'unrelated-inactive',
+      is_active: 0,
+    });
+    await addCommitment(mockDb, active);
+    await addCommitment(mockDb, inactiveWithPayment);
+    await addCommitment(mockDb, unrelatedInactive);
+    await addPayments(mockDb, [
+      makePayment('selected-payment', inactiveWithPayment.id, '2026-05-12'),
+    ]);
+
+    const results = await getCommitmentsForMonthSnapshot(mockDb, '2026-05');
+
+    expect(results).toHaveLength(2);
+    expect(results.map((row) => row.id)).toEqual(
+      expect.arrayContaining([inactiveWithPayment.id, active.id]),
+    );
   });
 });
 
