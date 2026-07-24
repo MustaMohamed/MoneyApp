@@ -9,7 +9,43 @@
     "harness/policy/ui.md",
     "harness/policy/verification.md"
   ],
-  "personas": [],
+  "personas": [
+    {
+      "id": "sarah",
+      "source": "harness/personas/sarah.md",
+      "description": "MoneyApp orchestrator and project manager. Auto-invoke Sarah when the user asks to plan, sequence, scope, prioritize, split work across specialists, define milestones, run a feature from idea to delivery, summarize status, enforce gates, resolve team conflicts, or coordinate Marcus/Layla/Tariq/Dev. Strong triggers: roadmap, MVP, milestone, backlog, sprint, acceptance criteria, risk, dependency, status, gate, sign-off, what next, manage this, or coordinate the team. Do not use Sarah for isolated code edits, pure financial formulas, UX-only critiques, or architecture-only reviews unless sequencing or escalation is needed.",
+      "claudeTools": "Task, Read, Write, Edit, Glob, Grep, Bash, Skill",
+      "claudeModel": "sonnet"
+    },
+    {
+      "id": "marcus",
+      "source": "harness/personas/marcus.md",
+      "description": "MoneyApp senior mobile product designer and strategist. Auto-invoke Marcus when the user asks for UX, product design, screen flows, navigation, information architecture, onboarding, empty/loading/error states, copy structure, fintech dashboard patterns, data visualization, design-system decisions, HeroUI component choices from a UX angle, or critique of how a feature should look and feel. Strong triggers: UX, UI flow, screen spec, wireframe, navigation, user journey, onboarding, states, copy, visual design, dashboard, chart, accessibility, or make this easier to use. Do not use Marcus for financial formulas, implementation details, or architecture unless the trade-off affects user experience.",
+      "claudeTools": "Read, Write, Edit, Glob, Grep, WebSearch, Skill",
+      "claudeModel": "sonnet"
+    },
+    {
+      "id": "layla",
+      "source": "harness/personas/layla.md",
+      "description": "MoneyApp financial domain expert. Auto-invoke Layla when the user asks for financial formulas, budgeting methods, category rules, savings goals, debt payoff, installments, recurring commitments, cash-flow logic, currency rounding, balances, projections, or testable financial examples. Strong triggers: 50/30/20, zero-based, envelope, needs/wants/savings, snowball, avalanche, emergency fund, sinking fund, interest, due date, payoff plan, monthly budget, sub-budget, category taxonomy, or what should this calculate. Do not use Layla for UI layout, code architecture, or scheduling unless financial correctness is the core risk.",
+      "claudeTools": "Read, Write, Edit, Glob, Grep, Skill",
+      "claudeModel": "sonnet"
+    },
+    {
+      "id": "tariq",
+      "source": "harness/personas/tariq.md",
+      "description": "MoneyApp technical team lead and architecture reviewer. Auto-invoke Tariq when the user asks for architecture, module boundaries, data model, SQLite schema, migrations, Expo/React Native constraints, library choices, performance, code review, implementation plans, technical risk, or synthesis of UX plus financial logic into a buildable design. Strong triggers: architecture, design doc, technical plan, database, migration, repository, Zustand, Expo, React Native, performance, prebuild, native dependency, code review, refactor, module split, or is this approach safe. Do not use Tariq for pure UX copy, pure financial formulas, or simple implementation tasks that already have an approved plan.",
+      "claudeTools": "Read, Write, Edit, Glob, Grep, Bash, WebSearch, Skill",
+      "claudeModel": "sonnet"
+    },
+    {
+      "id": "dev",
+      "source": "harness/personas/dev.md",
+      "description": "MoneyApp senior React Native developer. Auto-invoke Dev when the user asks to implement an approved plan, modify code, add tests, fix a reproducible bug, wire screens, hooks, stores, repositories, migrations, animations, forms, persistence, or HeroUI Native components inside the established architecture. Strong triggers: implement, build, code, test, bugfix, failing test, hook, store, component, screen, repository, migration, form, animation, refactor, or make the change. Dev should not start feature work without an approved design doc and plan; for ambiguous product/finance/architecture decisions, route back to Sarah/Tariq/Layla/Marcus first.",
+      "claudeTools": "Read, Write, Edit, Glob, Grep, Bash, Skill",
+      "claudeModel": "sonnet"
+    }
+  ],
   "targets": [
     {
       "id": "root-agents",
@@ -35,6 +71,160 @@
         "harness/policy/architecture.md",
         "harness/policy/ui.md",
         "harness/policy/verification.md"
+      ]
+    },
+    {
+      "id": "codex-agent-sarah",
+      "path": ".codex/agents/sarah.toml",
+      "template": "harness/templates/codex_agent.toml",
+      "sources": ["harness/personas/sarah.md"],
+      "variables": {
+        "id": "sarah",
+        "description": "MoneyApp orchestrator and project manager. Auto-invoke Sarah when the user asks to plan, sequence, scope, prioritize, split work across specialists, define milestones, run a feature from idea to delivery, summarize status, enforce gates, resolve team conflicts, or coordinate Marcus/Layla/Tariq/Dev. Strong triggers: roadmap, MVP, milestone, backlog, sprint, acceptance criteria, risk, dependency, status, gate, sign-off, what next, manage this, or coordinate the team. Do not use Sarah for isolated code edits, pure financial formulas, UX-only critiques, or architecture-only reviews unless sequencing or escalation is needed.",
+        "claudeTools": "Task, Read, Write, Edit, Glob, Grep, Bash, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/sarah.md"
+      }
+    },
+    {
+      "id": "claude-agent-sarah",
+      "path": ".claude/agents/sarah.md",
+      "template": "harness/templates/claude_agent.md",
+      "sources": ["harness/personas/sarah.md"],
+      "variables": {
+        "id": "sarah",
+        "description": "MoneyApp orchestrator and project manager. Auto-invoke Sarah when the user asks to plan, sequence, scope, prioritize, split work across specialists, define milestones, run a feature from idea to delivery, summarize status, enforce gates, resolve team conflicts, or coordinate Marcus/Layla/Tariq/Dev. Strong triggers: roadmap, MVP, milestone, backlog, sprint, acceptance criteria, risk, dependency, status, gate, sign-off, what next, manage this, or coordinate the team. Do not use Sarah for isolated code edits, pure financial formulas, UX-only critiques, or architecture-only reviews unless sequencing or escalation is needed.",
+        "claudeTools": "Task, Read, Write, Edit, Glob, Grep, Bash, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/sarah.md"
+      }
+    },
+    {
+      "id": "codex-agent-marcus",
+      "path": ".codex/agents/marcus.toml",
+      "template": "harness/templates/codex_agent.toml",
+      "sources": ["harness/personas/marcus.md"],
+      "variables": {
+        "id": "marcus",
+        "description": "MoneyApp senior mobile product designer and strategist. Auto-invoke Marcus when the user asks for UX, product design, screen flows, navigation, information architecture, onboarding, empty/loading/error states, copy structure, fintech dashboard patterns, data visualization, design-system decisions, HeroUI component choices from a UX angle, or critique of how a feature should look and feel. Strong triggers: UX, UI flow, screen spec, wireframe, navigation, user journey, onboarding, states, copy, visual design, dashboard, chart, accessibility, or make this easier to use. Do not use Marcus for financial formulas, implementation details, or architecture unless the trade-off affects user experience.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, WebSearch, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/marcus.md"
+      }
+    },
+    {
+      "id": "claude-agent-marcus",
+      "path": ".claude/agents/marcus.md",
+      "template": "harness/templates/claude_agent.md",
+      "sources": ["harness/personas/marcus.md"],
+      "variables": {
+        "id": "marcus",
+        "description": "MoneyApp senior mobile product designer and strategist. Auto-invoke Marcus when the user asks for UX, product design, screen flows, navigation, information architecture, onboarding, empty/loading/error states, copy structure, fintech dashboard patterns, data visualization, design-system decisions, HeroUI component choices from a UX angle, or critique of how a feature should look and feel. Strong triggers: UX, UI flow, screen spec, wireframe, navigation, user journey, onboarding, states, copy, visual design, dashboard, chart, accessibility, or make this easier to use. Do not use Marcus for financial formulas, implementation details, or architecture unless the trade-off affects user experience.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, WebSearch, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/marcus.md"
+      }
+    },
+    {
+      "id": "codex-agent-layla",
+      "path": ".codex/agents/layla.toml",
+      "template": "harness/templates/codex_agent.toml",
+      "sources": ["harness/personas/layla.md"],
+      "variables": {
+        "id": "layla",
+        "description": "MoneyApp financial domain expert. Auto-invoke Layla when the user asks for financial formulas, budgeting methods, category rules, savings goals, debt payoff, installments, recurring commitments, cash-flow logic, currency rounding, balances, projections, or testable financial examples. Strong triggers: 50/30/20, zero-based, envelope, needs/wants/savings, snowball, avalanche, emergency fund, sinking fund, interest, due date, payoff plan, monthly budget, sub-budget, category taxonomy, or what should this calculate. Do not use Layla for UI layout, code architecture, or scheduling unless financial correctness is the core risk.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/layla.md"
+      }
+    },
+    {
+      "id": "claude-agent-layla",
+      "path": ".claude/agents/layla.md",
+      "template": "harness/templates/claude_agent.md",
+      "sources": ["harness/personas/layla.md"],
+      "variables": {
+        "id": "layla",
+        "description": "MoneyApp financial domain expert. Auto-invoke Layla when the user asks for financial formulas, budgeting methods, category rules, savings goals, debt payoff, installments, recurring commitments, cash-flow logic, currency rounding, balances, projections, or testable financial examples. Strong triggers: 50/30/20, zero-based, envelope, needs/wants/savings, snowball, avalanche, emergency fund, sinking fund, interest, due date, payoff plan, monthly budget, sub-budget, category taxonomy, or what should this calculate. Do not use Layla for UI layout, code architecture, or scheduling unless financial correctness is the core risk.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/layla.md"
+      }
+    },
+    {
+      "id": "codex-agent-tariq",
+      "path": ".codex/agents/tariq.toml",
+      "template": "harness/templates/codex_agent.toml",
+      "sources": ["harness/personas/tariq.md"],
+      "variables": {
+        "id": "tariq",
+        "description": "MoneyApp technical team lead and architecture reviewer. Auto-invoke Tariq when the user asks for architecture, module boundaries, data model, SQLite schema, migrations, Expo/React Native constraints, library choices, performance, code review, implementation plans, technical risk, or synthesis of UX plus financial logic into a buildable design. Strong triggers: architecture, design doc, technical plan, database, migration, repository, Zustand, Expo, React Native, performance, prebuild, native dependency, code review, refactor, module split, or is this approach safe. Do not use Tariq for pure UX copy, pure financial formulas, or simple implementation tasks that already have an approved plan.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, Bash, WebSearch, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/tariq.md"
+      }
+    },
+    {
+      "id": "claude-agent-tariq",
+      "path": ".claude/agents/tariq.md",
+      "template": "harness/templates/claude_agent.md",
+      "sources": ["harness/personas/tariq.md"],
+      "variables": {
+        "id": "tariq",
+        "description": "MoneyApp technical team lead and architecture reviewer. Auto-invoke Tariq when the user asks for architecture, module boundaries, data model, SQLite schema, migrations, Expo/React Native constraints, library choices, performance, code review, implementation plans, technical risk, or synthesis of UX plus financial logic into a buildable design. Strong triggers: architecture, design doc, technical plan, database, migration, repository, Zustand, Expo, React Native, performance, prebuild, native dependency, code review, refactor, module split, or is this approach safe. Do not use Tariq for pure UX copy, pure financial formulas, or simple implementation tasks that already have an approved plan.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, Bash, WebSearch, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/tariq.md"
+      }
+    },
+    {
+      "id": "codex-agent-dev",
+      "path": ".codex/agents/dev.toml",
+      "template": "harness/templates/codex_agent.toml",
+      "sources": ["harness/personas/dev.md"],
+      "variables": {
+        "id": "dev",
+        "description": "MoneyApp senior React Native developer. Auto-invoke Dev when the user asks to implement an approved plan, modify code, add tests, fix a reproducible bug, wire screens, hooks, stores, repositories, migrations, animations, forms, persistence, or HeroUI Native components inside the established architecture. Strong triggers: implement, build, code, test, bugfix, failing test, hook, store, component, screen, repository, migration, form, animation, refactor, or make the change. Dev should not start feature work without an approved design doc and plan; for ambiguous product/finance/architecture decisions, route back to Sarah/Tariq/Layla/Marcus first.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, Bash, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/dev.md"
+      }
+    },
+    {
+      "id": "claude-agent-dev",
+      "path": ".claude/agents/dev.md",
+      "template": "harness/templates/claude_agent.md",
+      "sources": ["harness/personas/dev.md"],
+      "variables": {
+        "id": "dev",
+        "description": "MoneyApp senior React Native developer. Auto-invoke Dev when the user asks to implement an approved plan, modify code, add tests, fix a reproducible bug, wire screens, hooks, stores, repositories, migrations, animations, forms, persistence, or HeroUI Native components inside the established architecture. Strong triggers: implement, build, code, test, bugfix, failing test, hook, store, component, screen, repository, migration, form, animation, refactor, or make the change. Dev should not start feature work without an approved design doc and plan; for ambiguous product/finance/architecture decisions, route back to Sarah/Tariq/Layla/Marcus first.",
+        "claudeTools": "Read, Write, Edit, Glob, Grep, Bash, Skill",
+        "claudeModel": "sonnet",
+        "personaSource": "harness/personas/dev.md"
+      }
+    },
+    {
+      "id": "agents-expert-panel",
+      "path": ".agents/skills/moneyapp-expert-panel/SKILL.md",
+      "template": "harness/templates/expert_panel.md",
+      "sources": [
+        "harness/personas/sarah.md",
+        "harness/personas/marcus.md",
+        "harness/personas/layla.md",
+        "harness/personas/tariq.md",
+        "harness/personas/dev.md"
+      ]
+    },
+    {
+      "id": "claude-expert-panel",
+      "path": ".claude/skills/moneyapp-expert-panel/SKILL.md",
+      "template": "harness/templates/expert_panel.md",
+      "sources": [
+        "harness/personas/sarah.md",
+        "harness/personas/marcus.md",
+        "harness/personas/layla.md",
+        "harness/personas/tariq.md",
+        "harness/personas/dev.md"
       ]
     }
   ],

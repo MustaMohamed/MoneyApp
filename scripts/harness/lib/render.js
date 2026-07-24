@@ -44,10 +44,15 @@ function unresolvedPlaceholder(target) {
   throw new Error(`${target.id}: unresolved placeholder`);
 }
 
+function resolveIncludePath(token, variables) {
+  return Object.hasOwn(variables, token) ? String(variables[token]) : token;
+}
+
 function renderPlaceholder(root, target, variables, declared, included, body) {
   const include = /^include:([^#{}\r\n]+)(?:#([A-Za-z0-9_-]+))?$/.exec(body);
   if (include) {
-    const [, sourcePath, section] = include;
+    const [, sourceToken, section] = include;
+    const sourcePath = resolveIncludePath(sourceToken, variables);
     if (!declared.has(sourcePath)) {
       throw new Error(`${target.id}: undeclared include ${sourcePath}`);
     }
@@ -115,7 +120,7 @@ function renderTarget(root, notice, target) {
     }
   }
 
-  return output.endsWith('\n') ? output : `${output}\n`;
+  return `${output.replace(/(?:\r?\n)+$/u, '')}\n`;
 }
 
 function renderAll(root, manifest) {

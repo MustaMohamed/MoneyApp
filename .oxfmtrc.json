@@ -38,6 +38,7 @@
     "coverage/**",
     "assets/**",
     ".claude/**",
+    "harness/templates/codex_agent.toml",
     "package-lock.json",
     "yarn.lock",
     "uniwind.d.ts",

@@ -102,6 +102,27 @@ void test('renders declared includes and escaped JSON variables', () => {
   assert.equal(output, 'NOTICE\n"A \\"quoted\\" description"\nPolicy body.\n');
 });
 
+void test('resolves variable-backed include paths only when the source is declared', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
+  fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, 'harness/persona.md'),
+    ['<!-- harness:section agent -->', 'Agent body.', '<!-- harness:endsection -->', ''].join('\n'),
+  );
+  fs.writeFileSync(path.join(root, 'harness/template.md'), '{{include:personaSource#agent}}');
+
+  assert.throws(
+    () =>
+      renderTarget(root, 'NOTICE', {
+        id: 'variable-include',
+        template: 'harness/template.md',
+        sources: [],
+        variables: { personaSource: 'harness/persona.md' },
+      }),
+    /variable-include: undeclared include harness\/persona\.md/,
+  );
+});
+
 void test('uses the global generated notice when target variables contain notice', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
