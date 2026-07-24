@@ -17,6 +17,8 @@ function validateManifest(manifest) {
   requireArray(manifest.targets, 'targets');
   requireArray(manifest.personas, 'personas');
   requireArray(manifest.verification?.checks, 'verification.checks');
+  requireNonEmptyString(manifest.rules, 'rules');
+  assertSafeRelativePath(manifest.rules);
 
   for (const policyPath of manifest.policyOrder) assertSafeRelativePath(policyPath);
   if (new Set(manifest.policyOrder).size !== manifest.policyOrder.length) {
@@ -63,6 +65,32 @@ function validateManifest(manifest) {
     }
     personaIds.add(persona.id);
   }
+
+  const registeredInputs = [
+    { label: 'manifest', path: 'harness/manifest.json' },
+    { label: 'rules', path: manifest.rules },
+    ...manifest.policyOrder.map((input) => ({ label: 'policyOrder', path: input })),
+    ...manifest.targets.flatMap((target) => [
+      { label: `target ${target.id} template`, path: target.template },
+      ...target.sources.map((source) => ({
+        label: `target ${target.id} source`,
+        path: source,
+      })),
+    ]),
+    ...manifest.personas.map((persona) => ({
+      label: `persona ${persona.id} source`,
+      path: persona.source,
+    })),
+  ];
+  for (const input of registeredInputs) {
+    const generatedPath = paths.get(pathIdentity(input.path));
+    if (generatedPath) {
+      throw new Error(
+        `registered input ${input.label} ${input.path} aliases generated target path ${generatedPath}`,
+      );
+    }
+  }
+
   return manifest;
 }
 

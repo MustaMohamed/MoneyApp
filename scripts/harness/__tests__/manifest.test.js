@@ -23,6 +23,7 @@ function createManifest(overrides = {}) {
     policyOrder: [],
     targets: [],
     personas: [],
+    rules: 'harness/rules/semantics.json',
     verification: { checks: [] },
     ...overrides,
   };
@@ -450,6 +451,103 @@ test('rejects a source repeated within one target', () => {
         }),
       ),
     /duplicate source/,
+  );
+});
+
+test('rejects a self-sourced target that would change across generation passes', () => {
+  assert.throws(
+    () =>
+      validateManifest(
+        createManifest({
+          targets: [
+            createTarget({
+              path: 'generated/policy.md',
+              sources: ['generated/policy.md'],
+            }),
+          ],
+        }),
+      ),
+    /registered input target root-agents source generated\/policy\.md aliases generated target path generated\/policy\.md/,
+  );
+});
+
+test('rejects the manifest itself as an exact generated target', () => {
+  assert.throws(
+    () =>
+      validateManifest(
+        createManifest({
+          targets: [createTarget({ path: 'harness/manifest.json' })],
+        }),
+      ),
+    /registered input manifest harness\/manifest\.json aliases generated target path harness\/manifest\.json/,
+  );
+});
+
+test('rejects a case and Unicode portable alias of the manifest as a target', () => {
+  assert.throws(
+    () =>
+      validateManifest(
+        createManifest({
+          targets: [createTarget({ path: 'Harness/Manife\u017ft.json' })],
+        }),
+      ),
+    /registered input manifest harness\/manifest\.json aliases generated target path Harness\/Manife\u017ft\.json/,
+  );
+});
+
+test('rejects portable target aliases across every registered input class', () => {
+  const targetPath = 'Generated/Caf\u00e9.md';
+  const inputAlias = 'generated/CAF\u00c9.md';
+  const persona = {
+    id: 'sarah',
+    description: 'Orchestration lead',
+    source: inputAlias,
+    claudeTools: 'Read, Grep, Glob',
+    claudeModel: 'inherit',
+  };
+  const cases = [
+    {
+      label: 'target root-agents template',
+      overrides: { targets: [createTarget({ path: targetPath, template: inputAlias })] },
+    },
+    {
+      label: 'target root-agents source',
+      overrides: { targets: [createTarget({ path: targetPath, sources: [inputAlias] })] },
+    },
+    {
+      label: 'policyOrder',
+      overrides: { targets: [createTarget({ path: targetPath })], policyOrder: [inputAlias] },
+    },
+    {
+      label: 'persona sarah source',
+      overrides: { targets: [createTarget({ path: targetPath })], personas: [persona] },
+    },
+    {
+      label: 'rules',
+      overrides: { targets: [createTarget({ path: targetPath })], rules: inputAlias },
+    },
+  ];
+
+  for (const fixture of cases) {
+    assert.throws(
+      () => validateManifest(createManifest(fixture.overrides)),
+      new RegExp(
+        `registered input ${fixture.label} .* aliases generated target path Generated/Caf`,
+      ),
+    );
+  }
+});
+
+test('requires rules to be a non-empty safe repository-relative path', () => {
+  for (const rules of [undefined, '']) {
+    assert.throws(
+      () => validateManifest(createManifest({ rules })),
+      /rules must be a non-empty string/,
+    );
+  }
+  assert.throws(
+    () => validateManifest(createManifest({ rules: '../semantics.json' })),
+    /repository-relative/,
   );
 });
 

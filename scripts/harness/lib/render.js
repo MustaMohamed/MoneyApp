@@ -105,7 +105,7 @@ function renderTemplate(root, target, variables, declared, included, template) {
 function renderTarget(root, notice, target) {
   const declared = new Set(target.sources);
   const included = new Set();
-  const variables = { notice, ...(target.variables || {}) };
+  const variables = { ...(target.variables || {}), notice };
   const template = read(root, target.template);
   const output = renderTemplate(root, target, variables, declared, included, template);
 

@@ -102,6 +102,21 @@ test('renders declared includes and escaped JSON variables', () => {
   assert.equal(output, 'NOTICE\n"A \\"quoted\\" description"\nPolicy body.\n');
 });
 
+test('uses the global generated notice when target variables contain notice', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
+  fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'harness/template.md'), '{{raw:notice}}');
+
+  const output = renderTarget(root, 'GLOBAL NOTICE', {
+    id: 'reserved-notice',
+    template: 'harness/template.md',
+    sources: [],
+    variables: { notice: 'TARGET NOTICE' },
+  });
+
+  assert.equal(output, 'GLOBAL NOTICE\n');
+});
+
 test('rejects a declared source omitted from the template', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-harness-'));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
