@@ -1,9 +1,9 @@
 # Harness Phase 2: Durable Initiative State and Evidence Design
 
 - **Date:** 2026-07-25
-- **Status:** Awaiting product-owner sign-off
+- **Status:** Approved by product owner
 - **Scope:** Repository-tracked initiative state, evidence-bound gates, deterministic status reporting, and verification receipts
-- **Depends on:** Harness Phase 1 at `28b293d`
+- **Depends on:** Harness Phase 1 at `8096bbf`
 
 ## Decision Summary
 
