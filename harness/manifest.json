@@ -226,6 +226,18 @@
         "harness/personas/tariq.md",
         "harness/personas/dev.md"
       ]
+    },
+    {
+      "id": "claude-feature-command",
+      "path": ".claude/commands/feature.md",
+      "template": "harness/templates/claude_feature_command.md",
+      "sources": []
+    },
+    {
+      "id": "claude-status-command",
+      "path": ".claude/commands/status.md",
+      "template": "harness/templates/claude_status_command.md",
+      "sources": []
     }
   ],
   "rules": "harness/rules/semantics.json",
