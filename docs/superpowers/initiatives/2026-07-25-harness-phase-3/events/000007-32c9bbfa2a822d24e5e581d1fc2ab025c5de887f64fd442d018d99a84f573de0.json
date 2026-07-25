@@ -1,0 +1,26 @@
+{
+  "eventHash": "32c9bbfa2a822d24e5e581d1fc2ab025c5de887f64fd442d018d99a84f573de0",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "f5ac95932ed8ca069c5498b178d19198dfa83f3f4e536c1bd05ce9f63962b330",
+    "sequence": 6
+  },
+  "payload": {
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md",
+      "sha256": "ebab2fa0087da4bc2dd9b4b124f6466393ef223c6c59b952cdfae5f70b8b3f0f"
+    },
+    "reason": "Align task path scopes with the approved specification's existing harness glob grammar and update downstream ledger sequence examples.",
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json",
+      "sha256": "38ff0c697fd47c96b5a207787b3a4a50014d623782871d66228e628af85d0aa1"
+    }
+  },
+  "recordedAt": "2026-07-25T08:09:12.054Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 7,
+  "type": "plan.revised"
+}
