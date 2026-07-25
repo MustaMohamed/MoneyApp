@@ -151,6 +151,7 @@ void test('reports stable JSON evidence and two independent validation actions',
     `HEAD: ${HEAD_SHA}`,
     `Delivery digest: ${DIGEST}`,
     `Validation cycle: ${CYCLE}`,
+    'Validation cycle status: valid',
     'Review: pending',
     'Verification: pending',
     'QA: not_applicable',
@@ -175,6 +176,7 @@ void test('reports an untracked initiative without inventing workflow state', ()
   assert.equal(status.owner, 'none');
   assert.equal(status.sequence, 0);
   assert.equal(status.evidence.ledger.status, 'untracked');
+  assert.equal(status.evidence.validationCycleStatus, 'not_applicable');
   assert.deepEqual(status.nextActions, [
     `npm run workflow -- init --id ${ID} --title <title> --branch <non-main-branch> --base-sha <40-char-sha>`,
   ]);
@@ -196,6 +198,7 @@ void test('contains invalid ledger errors instead of throwing from status', () =
 
   assert.equal(status.phase, 'invalid');
   assert.equal(status.evidence.ledger.status, 'invalid');
+  assert.equal(status.evidence.validationCycleStatus, 'unknown');
   assert.deepEqual(status.evidence.ledger.errors, ['parent hash mismatch']);
   assert.deepEqual(status.nextActions, []);
   assert.match(formatWorkflowStatus(status), /Ledger errors: parent hash mismatch/);
@@ -380,4 +383,105 @@ void test('does not report validation receipts as pending before a validation cy
   assert.equal(status.evidence.review.status, 'not_applicable');
   assert.equal(status.evidence.verification.status, 'not_applicable');
   assert.equal(status.evidence.qa.status, 'not_applicable');
+});
+
+void test('stale integration-ready delivery invalidates receipts and suppresses integration authority', () => {
+  const status = getWorkflowStatus({
+    root: '/repo',
+    initiativeId: ID,
+    machine: {},
+    ...dependencies({
+      loadEventHistory: () => ({
+        events: [{}],
+        projection: validationProjection({
+          phase: 'integration_ready',
+          owner: 'user',
+          sequence: 8,
+          review: { status: 'approved', eventHash: '1'.repeat(64) },
+          verification: { status: 'passed', eventHash: '2'.repeat(64) },
+          legalNextEvents: ['work.reopened'],
+        }),
+      }),
+      collectDeliveryRevision: () => {
+        throw new Error('Delivery is dirty outside evidence paths: ["src/file.js"]');
+      },
+    }),
+  });
+
+  assert.equal(status.evidence.delivery.status, 'error');
+  assert.equal(status.evidence.validationCycleStatus, 'stale');
+  assert.equal(status.evidence.review.status, 'stale');
+  assert.equal(status.evidence.verification.status, 'stale');
+  assert.equal(status.evidence.qa.status, 'not_applicable');
+  assert.equal(status.evidence.explicitUserAction, false);
+  assert.deepEqual(status.nextActions, [
+    `npm run workflow -- record work.reopened --id ${ID} --expected-sequence 8 --recorded-by sarah --reason <reason>`,
+  ]);
+  assert.equal(checkWorkflowStatus(status).ok, false);
+  assert.match(formatWorkflowStatus(status), /Validation cycle status: stale/);
+});
+
+void test('validation delivery digest or branch drift invalidates the active cycle', async (t) => {
+  for (const observed of [
+    { branch: BRANCH, headSha: HEAD_SHA, contentDigest: '9'.repeat(64) },
+    { branch: 'refactor/other', headSha: HEAD_SHA, contentDigest: DIGEST },
+  ]) {
+    await t.test(JSON.stringify(observed), () => {
+      const status = getWorkflowStatus({
+        root: '/repo',
+        initiativeId: ID,
+        machine: {},
+        ...dependencies({
+          collectDeliveryRevision: () => observed,
+        }),
+      });
+
+      assert.equal(status.evidence.delivery.status, 'stale');
+      assert.equal(status.evidence.validationCycleStatus, 'stale');
+      assert.equal(status.evidence.review.status, 'stale');
+      assert.equal(status.evidence.verification.status, 'stale');
+      assert.deepEqual(status.nextActions, [
+        `npm run workflow -- record work.reopened --id ${ID} --expected-sequence 6 --recorded-by sarah --reason <reason>`,
+      ]);
+      assert.equal(checkWorkflowStatus(status).ok, false);
+    });
+  }
+});
+
+void test('stale spec and plan evidence prescribe their typed revision commands first', async (t) => {
+  await t.test('spec', () => {
+    const status = getWorkflowStatus({
+      root: '/repo',
+      initiativeId: ID,
+      machine: {},
+      ...dependencies({
+        validateArtifactReference: (_root, artifact) => {
+          if (artifact.path === SPEC.path) throw new Error('Stale artifact: spec changed');
+          return artifact;
+        },
+      }),
+    });
+
+    assert.deepEqual(status.nextActions, [
+      `npm run workflow -- record spec.revised --id ${ID} --expected-sequence 6 --recorded-by tariq --spec ${SPEC.path} --device-qa-mode not_applicable --device-qa-rationale <rationale> --reason <reason>`,
+    ]);
+  });
+
+  await t.test('plan', () => {
+    const status = getWorkflowStatus({
+      root: '/repo',
+      initiativeId: ID,
+      machine: {},
+      ...dependencies({
+        validateArtifactReference: (_root, artifact) => {
+          if (artifact.path === PLAN.path) throw new Error('Stale artifact: plan changed');
+          return artifact;
+        },
+      }),
+    });
+
+    assert.deepEqual(status.nextActions, [
+      `npm run workflow -- record plan.revised --id ${ID} --expected-sequence 6 --recorded-by tariq --plan ${PLAN.path} --reason <reason>`,
+    ]);
+  });
 });

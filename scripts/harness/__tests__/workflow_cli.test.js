@@ -122,6 +122,7 @@ function harness(overrides = {}) {
       if (!reference) throw new Error(`Unexpected artifact ${relativePath}`);
       return reference;
     },
+    validateArtifactReference: (_root, reference) => reference,
     collectDeliveryRevision: () => ({
       branch: BRANCH,
       headSha: HEAD_SHA,
@@ -292,6 +293,87 @@ void test('approved bootstrap commands preserve current artifact references and 
   }
 });
 
+void test('spec and plan approvals revalidate the current artifact immediately before append', async (t) => {
+  const cases = [
+    {
+      event: 'spec.signed',
+      sequence: 2,
+      role: 'sarah',
+      current: SPEC,
+      flags: ['--decision-by', 'user', '--basis', 'Approved'],
+      payloadKey: 'spec',
+    },
+    {
+      event: 'plan.approved',
+      sequence: 4,
+      role: 'sarah',
+      current: PLAN,
+      flags: ['--decision-by', 'sarah', '--basis', 'Approved'],
+      payloadKey: 'plan',
+    },
+  ];
+
+  for (const item of cases) {
+    await t.test(`${item.event} uses validated reference`, async () => {
+      const calls = [];
+      const result = await execute(
+        [
+          'record',
+          item.event,
+          '--id',
+          ID,
+          '--expected-sequence',
+          String(item.sequence),
+          '--recorded-by',
+          item.role,
+          ...item.flags,
+        ],
+        {
+          loadEventHistory: () => ({
+            events: [{}],
+            projection: projection({ sequence: item.sequence }),
+          }),
+          validateArtifactReference: (root, reference) => {
+            calls.push({ root, reference });
+            return { ...reference };
+          },
+        },
+      );
+      assert.equal(result.code, 0, result.stderr.value());
+      assert.deepEqual(calls, [{ root: '/repo', reference: item.current }]);
+      assert.deepEqual(result.appended[0].draft.payload[item.payloadKey], item.current);
+    });
+
+    await t.test(`${item.event} rejects stale current evidence without append`, async () => {
+      const result = await execute(
+        [
+          'record',
+          item.event,
+          '--id',
+          ID,
+          '--expected-sequence',
+          String(item.sequence),
+          '--recorded-by',
+          item.role,
+          ...item.flags,
+        ],
+        {
+          loadEventHistory: () => ({
+            events: [{}],
+            projection: projection({ sequence: item.sequence }),
+          }),
+          validateArtifactReference: () => {
+            throw new Error('Stale artifact: observed digest changed');
+          },
+        },
+      );
+      assert.equal(result.code, 1);
+      assert.match(result.stderr.value(), /stale artifact/i);
+      assert.equal(result.appended.length, 0);
+    });
+  }
+});
+
 void test('builds cycle-bound review, QA, reopen, blocker, and cancellation payloads', async (t) => {
   const cases = [
     {
@@ -429,6 +511,173 @@ void test('builds cycle-bound review, QA, reopen, blocker, and cancellation payl
       assert.deepEqual(result.appended[0].draft.payload, item.payload);
     });
   }
+});
+
+void test('review and QA records collect a fresh clean revision immediately before append', async (t) => {
+  const CURRENT_HEAD = 'a'.repeat(40);
+  const cases = [
+    {
+      event: 'review.approved',
+      role: 'tariq',
+      flags: ['--review', REVIEW.path, '--decision-by', 'tariq', '--basis', 'Reviewed'],
+    },
+    {
+      event: 'review.changes_requested',
+      role: 'tariq',
+      flags: ['--review', REVIEW.path, '--decision-by', 'tariq', '--basis', 'Changes'],
+    },
+    {
+      event: 'device_qa.passed',
+      role: 'sarah',
+      flags: [
+        '--qa',
+        QA.path,
+        '--decision-by',
+        'user',
+        '--basis',
+        'Run',
+        '--device',
+        'Pixel',
+        '--os',
+        'Android',
+      ],
+    },
+    {
+      event: 'device_qa.failed',
+      role: 'sarah',
+      flags: [
+        '--qa',
+        QA.path,
+        '--decision-by',
+        'user',
+        '--basis',
+        'Run',
+        '--device',
+        'Pixel',
+        '--os',
+        'Android',
+        '--failed-cases',
+        'resume',
+      ],
+    },
+  ];
+
+  for (const item of cases) {
+    await t.test(`${item.event} binds the current revision to the active cycle`, async () => {
+      const calls = [];
+      const result = await execute(
+        [
+          'record',
+          item.event,
+          '--id',
+          ID,
+          '--expected-sequence',
+          '6',
+          '--recorded-by',
+          item.role,
+          ...item.flags,
+        ],
+        {
+          collectDeliveryRevision: (root, initiative, options) => {
+            calls.push({ root, initiative, options });
+            return {
+              branch: BRANCH,
+              headSha: CURRENT_HEAD,
+              contentDigest: DIGEST,
+            };
+          },
+        },
+      );
+      assert.equal(result.code, 0, result.stderr.value());
+      assert.equal(calls.length, 1);
+      assert.deepEqual(result.appended[0].draft.payload.delivery, {
+        branch: BRANCH,
+        headSha: CURRENT_HEAD,
+        contentDigest: DIGEST,
+        validationCycleId: CYCLE,
+      });
+    });
+
+    await t.test(`${item.event} rejects dirty collection without append`, async () => {
+      const result = await execute(
+        [
+          'record',
+          item.event,
+          '--id',
+          ID,
+          '--expected-sequence',
+          '6',
+          '--recorded-by',
+          item.role,
+          ...item.flags,
+        ],
+        {
+          collectDeliveryRevision: () => {
+            throw new Error('Delivery is dirty outside evidence paths');
+          },
+        },
+      );
+      assert.equal(result.code, 1);
+      assert.match(result.stderr.value(), /delivery is dirty/i);
+      assert.equal(result.appended.length, 0);
+    });
+
+    await t.test(`${item.event} rejects content drift without append`, async () => {
+      const result = await execute(
+        [
+          'record',
+          item.event,
+          '--id',
+          ID,
+          '--expected-sequence',
+          '6',
+          '--recorded-by',
+          item.role,
+          ...item.flags,
+        ],
+        {
+          collectDeliveryRevision: () => ({
+            branch: BRANCH,
+            headSha: CURRENT_HEAD,
+            contentDigest: 'f'.repeat(64),
+          }),
+        },
+      );
+      assert.equal(result.code, 1);
+      assert.match(result.stderr.value(), /content digest.*active delivery/i);
+      assert.equal(result.appended.length, 0);
+    });
+  }
+});
+
+void test('work.reopened preserves the prior cycle delivery after content drift', async () => {
+  const result = await execute(
+    [
+      'record',
+      'work.reopened',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '6',
+      '--recorded-by',
+      'sarah',
+      '--reason',
+      'Delivery changed',
+    ],
+    {
+      collectDeliveryRevision: () => {
+        throw new Error('work.reopened must not collect the current delivery');
+      },
+    },
+  );
+
+  assert.equal(result.code, 0, result.stderr.value());
+  assert.deepEqual(result.appended[0].draft.payload.delivery, {
+    branch: BRANCH,
+    headSha: HEAD_SHA,
+    contentDigest: DIGEST,
+    validationCycleId: CYCLE,
+  });
 });
 
 void test('builds revised spec and plan and passed QA payloads', async (t) => {
@@ -732,6 +981,37 @@ void test('rejects invalid device QA declarations and failed cases', async (t) =
     await t.test(argv[2], async () => {
       const result = await execute(argv);
       assert.equal(result.code, 2);
+      assert.equal(result.appended.length, 0);
+    });
+  }
+});
+
+void test('rejects noncanonical blocker owner and resolver roles before append', async (t) => {
+  const base = [
+    'record',
+    'blocker.opened',
+    '--id',
+    ID,
+    '--expected-sequence',
+    '6',
+    '--recorded-by',
+    'dev',
+    '--blocker-id',
+    'critical',
+    '--trigger',
+    'new dependency',
+    '--reason',
+    'Needs authority',
+  ];
+  for (const roleFlags of [
+    ['--owner', 'system', '--resolver', 'user'],
+    ['--owner', 'dev', '--resolver', 'system'],
+    ['--owner', 'arbitrary', '--resolver', 'arbitrary'],
+  ]) {
+    await t.test(roleFlags.join(' '), async () => {
+      const result = await execute([...base, ...roleFlags]);
+      assert.equal(result.code, 2);
+      assert.match(result.stderr.value(), /blocker (owner|resolver)/i);
       assert.equal(result.appended.length, 0);
     });
   }
