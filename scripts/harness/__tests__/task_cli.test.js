@@ -456,7 +456,22 @@ void test('validates replacement bootstrap completions before appending', async 
       },
     ],
   };
+  const previousGraph = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: PLAN,
+      tasks: [{ ...task, title: 'Previous task CLI graph' }],
+    },
+    'graphHash',
+  );
   const valid = harness();
+  valid.options.loadTaskContext = () => ({
+    ...valid.context,
+    graph: previousGraph,
+    resolveGraph: (graphHash) =>
+      graphHash === previousGraph.graphHash ? previousGraph : undefined,
+  });
   assert.equal(
     await execute(valid, [
       'replace',
@@ -478,6 +493,11 @@ void test('validates replacement bootstrap completions before appending', async 
   assert.equal(valid.appended.length, 1);
   assert.equal(valid.appended[0].draft.type, 'task_graph.replaced');
   assert.equal(valid.appended[0].draft.recordedBy.role, 'tariq');
+  assert.equal(
+    valid.appended[0].resolveGraph(previousGraph.graphHash, GRAPH_REF, PLAN),
+    previousGraph,
+  );
+  assert.equal(valid.appended[0].resolveGraph(graph.graphHash, GRAPH_REF, PLAN), graph);
   assert.deepEqual(
     JSON.parse(JSON.stringify(valid.appended[0].draft.payload.bootstrapCompletions)),
     [validCompletion],

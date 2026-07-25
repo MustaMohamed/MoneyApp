@@ -127,6 +127,10 @@ function findTask(graph, taskId) {
   return task;
 }
 
+function sameArtifact(left, right) {
+  return left?.path === right?.path && left?.sha256 === right?.sha256;
+}
+
 function validateRequiredChecks(task, checks) {
   if (!Array.isArray(checks) || checks.length === 0) {
     usage('--checks must contain at least one check');
@@ -656,9 +660,19 @@ async function runTaskCli(options) {
         ? parseCanonicalArgument(flags['bootstrap-completions'], '--bootstrap-completions')
         : [];
       validateBootstrapCompletions(normalized, context, completions);
+      const resolveReplacementGraph = (graphHash, graphReference, planReference) => {
+        if (
+          graphHash === context.graph.graphHash &&
+          sameArtifact(graphReference, context.initiativeProjection.plan.taskGraph) &&
+          sameArtifact(planReference, context.initiativeProjection.plan.current)
+        ) {
+          return context.graph;
+        }
+        return previous.resolveGraph?.(graphHash, graphReference, planReference);
+      };
       return appendResult(
         normalized,
-        { ...context, graph: previous.graph, resolveGraph: () => context.graph },
+        { ...context, graph: previous.graph, resolveGraph: resolveReplacementGraph },
         observed,
         {
           type: 'task_graph.replaced',

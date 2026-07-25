@@ -136,6 +136,7 @@
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v2.json`
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json`
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json`
+- `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json`
 - `docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/*.json`
 - `docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md`
 - `docs/superpowers/reviews/2026-07-25-harness-bounded-task-packets-review.md`
@@ -1382,16 +1383,25 @@ revision. Preserve v3 as intermediate immutable evidence. The approved v4 graph
 keeps the same task numbering and expands Task 12 only to the projection
 boundary needed for multi-replacement replay.
 
+The v4 replacement attempt then proved the CLI resolver had the same
+single-replacement assumption: it replaced the historical resolver with one
+that could resolve only the incoming graph. Preserve v4 unchanged. The approved
+v5 graph keeps the same task numbering and expands Task 12 only to compose the
+historical resolver with the incoming approved graph.
+
 ## Task 12: Repair Post-Replacement Event Appends
 
 **Files:**
 - Modify: `scripts/harness/lib/tasks/store.js`
 - Modify: `scripts/harness/lib/tasks/projection.js`
+- Modify: `scripts/harness/lib/tasks/cli.js`
 - Modify: `scripts/harness/__tests__/task_store.test.js`
 - Modify: `scripts/harness/__tests__/task_projection.test.js`
+- Modify: `scripts/harness/__tests__/task_cli.test.js`
 - Modify: `docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md`
 - Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json`
 - Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json`
+- Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json`
 
 - [ ] **Step 1: Add the failing append-after-replacement regression**
 
@@ -1415,7 +1425,8 @@ same graph for the final replay that includes the candidate event. Validate
 each historical replacement through its own resolved graph and embedded plan
 artifact rather than comparing it with the latest approval bundle. The CLI
 continues to source newly appended replacement evidence from the current
-approved bundle. Do not weaken hashes or special-case claim.
+approved bundle and composes that exact incoming graph with the existing
+historical resolver. Do not weaken hashes or special-case claim.
 
 - [ ] **Step 3: Verify and commit the persistence repair**
 
@@ -1436,22 +1447,25 @@ Commit the exact repair, revised plan/graph, and initiative evidence:
 ```bash
 git add scripts/harness/lib/tasks/store.js \
   scripts/harness/lib/tasks/projection.js \
+  scripts/harness/lib/tasks/cli.js \
   scripts/harness/__tests__/task_store.test.js \
   scripts/harness/__tests__/task_projection.test.js \
+  scripts/harness/__tests__/task_cli.test.js \
   docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md \
   docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json \
   docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json \
+  docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json \
   docs/superpowers/initiatives/2026-07-25-harness-phase-3
 git commit -m "fix: replay task appends from activation graph"
 ```
 
-Then replace v2 with the approved v4 graph, importing Tasks 1–12 only from
+Then replace v2 with the approved v5 graph, importing Tasks 1–12 only from
 their exact validated commit ranges.
 
 ## Task 13: Activate and Dogfood the Phase 3 Task Graph
 
 **Files:**
-- Read: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json`
+- Read: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json`
 - Create: `docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/*.json`
 - Create: `docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md`
 - Test: all focused Phase 3 harness tests
@@ -1480,7 +1494,7 @@ npm run workflow -- tasks status \
   --id 2026-07-25-harness-phase-3 --json
 ```
 
-Expected: the initiative references the approved v4 plan/graph bundle, Tasks
+Expected: the initiative references the approved v5 plan/graph bundle, Tasks
 1–12 are imported as completed, Task 13 is ready, and Task 14 is pending.
 
 - [ ] **Step 3: Prove deterministic fresh-checkout projection**
