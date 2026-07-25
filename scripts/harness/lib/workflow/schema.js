@@ -28,6 +28,8 @@ const HEX_64 = /^[a-f0-9]{64}$/;
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const CANONICAL_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const FORBIDDEN_BRANCH_CHARACTERS = new Set(['~', '^', ':', '?', '*', '[', '\\']);
+const BLOCKER_OWNERS = new Set(['sarah', 'tariq', 'dev']);
+const BLOCKER_RESOLVERS = new Set(['user', 'sarah', 'tariq']);
 
 function requireObject(value, label) {
   if (
@@ -72,6 +74,13 @@ function requireExactKeys(value, allowed, required, label) {
 function requireString(value, label) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${label} must be a nonempty string`);
+  }
+  return value;
+}
+
+function requireOneOf(value, allowed, label) {
+  if (typeof value !== 'string' || !allowed.has(value)) {
+    throw new Error(`${label} must be one of: ${[...allowed].join(', ')}`);
   }
   return value;
 }
@@ -431,8 +440,8 @@ const PAYLOAD_VALIDATORS = {
     requireString(payload.blockerId, 'blocker ID');
     requireString(payload.trigger, 'blocker trigger');
     requireString(payload.risk, 'blocker risk');
-    requireString(payload.owner, 'blocker owner');
-    requireString(payload.requiredResolver, 'blocker requiredResolver');
+    requireOneOf(payload.owner, BLOCKER_OWNERS, 'blocker owner');
+    requireOneOf(payload.requiredResolver, BLOCKER_RESOLVERS, 'blocker requiredResolver');
   },
   'blocker.resolved': (event) => {
     const payload = strictPayload(event, ['blockerId', 'resolution', 'authority']);

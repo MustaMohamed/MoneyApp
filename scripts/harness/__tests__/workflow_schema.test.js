@@ -817,3 +817,49 @@ void test('requires coherent structured verification evidence', () => {
     /failedCheck.*failed result/i,
   );
 });
+
+void test('requires canonical blocker owner and resolver roles', () => {
+  for (const owner of ['sarah', 'tariq', 'dev']) {
+    const event = envelope('blocker.opened');
+    assert.doesNotThrow(() =>
+      validateEventPayload({
+        ...event,
+        payload: { ...event.payload, owner },
+      }),
+    );
+  }
+
+  for (const requiredResolver of ['user', 'sarah', 'tariq']) {
+    const event = envelope('blocker.opened');
+    assert.doesNotThrow(() =>
+      validateEventPayload({
+        ...event,
+        payload: { ...event.payload, requiredResolver },
+      }),
+    );
+  }
+
+  for (const owner of ['arbitrary', 'system', ['sarah']]) {
+    const event = envelope('blocker.opened');
+    assert.throws(
+      () =>
+        validateEventPayload({
+          ...event,
+          payload: { ...event.payload, owner },
+        }),
+      /blocker owner.*sarah.*tariq.*dev/i,
+    );
+  }
+
+  for (const requiredResolver of ['arbitrary', 'system', 'dev', ['user']]) {
+    const event = envelope('blocker.opened');
+    assert.throws(
+      () =>
+        validateEventPayload({
+          ...event,
+          payload: { ...event.payload, requiredResolver },
+        }),
+      /blocker requiredResolver.*user.*sarah.*tariq/i,
+    );
+  }
+});
