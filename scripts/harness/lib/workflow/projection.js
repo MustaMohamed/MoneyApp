@@ -80,9 +80,6 @@ function requireCurrentDelivery(state, delivery) {
   if (delivery.branch !== state.delivery.branch) {
     throw new Error('Delivery branch does not match the current implementation branch');
   }
-  if (delivery.headSha !== state.delivery.headSha) {
-    throw new Error('Delivery head SHA does not match the current implementation head SHA');
-  }
 }
 
 function hasOpenCriticalBlocker(state) {

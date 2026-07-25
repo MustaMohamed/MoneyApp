@@ -525,7 +525,41 @@ void test('derives awaiting_device_qa from the currently signed required declara
   assert.equal(projection.spec.deviceQaMode, 'required');
 });
 
-void test('requires review and verification delivery to match current cycle and digest', () => {
+void test('accepts diagnostic HEAD movement across review and verification evidence', () => {
+  const ledger = bootstrap();
+  const ready = ledger.ready();
+  appendReviewApproved(ledger, ready, { headSha: '4'.repeat(40) });
+  appendVerificationPassed(ledger, ready, { headSha: '5'.repeat(40) });
+
+  const projection = replayEvents(machine, ledger.events);
+  assert.equal(projection.phase, 'integration_ready');
+  assert.equal(projection.review.delivery.headSha, '4'.repeat(40));
+  assert.equal(projection.verification.delivery.headSha, '5'.repeat(40));
+});
+
+void test('accepts diagnostic HEAD movement in required device QA evidence', () => {
+  const ledger = bootstrap({ deviceQaMode: 'required' });
+  const ready = ledger.ready();
+  appendReviewApproved(ledger, ready, { headSha: '4'.repeat(40) });
+  appendVerificationPassed(ledger, ready, { headSha: '5'.repeat(40) });
+  ledger.append(
+    'device_qa.passed',
+    {
+      authority: USER_AUTHORITY,
+      qa: QA,
+      device: 'Pixel 9 Pro',
+      os: 'Android 16',
+      delivery: cycleDelivery(ready, { headSha: '6'.repeat(40) }),
+    },
+    'sarah',
+  );
+
+  const projection = replayEvents(machine, ledger.events);
+  assert.equal(projection.phase, 'integration_ready');
+  assert.equal(projection.qa.delivery.headSha, '6'.repeat(40));
+});
+
+void test('requires review and verification delivery to match current cycle, digest, and branch', () => {
   for (const [label, append] of [
     [
       'review cycle',
@@ -536,6 +570,10 @@ void test('requires review and verification delivery to match current cycle and 
       (ledger, ready) => appendReviewApproved(ledger, ready, { contentDigest: '5'.repeat(64) }),
     ],
     [
+      'review branch',
+      (ledger, ready) => appendReviewApproved(ledger, ready, { branch: 'refactor/other' }),
+    ],
+    [
       'verification cycle',
       (ledger, ready) =>
         appendVerificationPassed(ledger, ready, { validationCycleId: '6'.repeat(64) }),
@@ -544,6 +582,10 @@ void test('requires review and verification delivery to match current cycle and 
       'verification digest',
       (ledger, ready) => appendVerificationPassed(ledger, ready, { contentDigest: '7'.repeat(64) }),
     ],
+    [
+      'verification branch',
+      (ledger, ready) => appendVerificationPassed(ledger, ready, { branch: 'refactor/other' }),
+    ],
   ]) {
     const ledger = bootstrap();
     const ready = ledger.ready();
@@ -551,7 +593,7 @@ void test('requires review and verification delivery to match current cycle and 
 
     assert.throws(
       () => replayEvents(machine, ledger.events),
-      /delivery (validation cycle|content digest).*current implementation/i,
+      /delivery (validation cycle|content digest|branch).*current implementation/i,
       label,
     );
   }
