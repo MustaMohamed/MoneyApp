@@ -1,0 +1,26 @@
+{
+  "eventHash": "57962f120ea281aa6c56ad6e9f92c5e917827c1ca4a46be025bbcdfeda76b9d0",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "740296a79a95ba57a44f87a985a3fa69bb0ed918882bdd033506396ae53b6c3a",
+    "sequence": 3
+  },
+  "payload": {
+    "authority": {
+      "basis": "The product owner explicitly instructed 'Proceed phase 3' after reviewing the committed Phase 3 specification.",
+      "decisionBy": "user",
+      "recordedBy": "sarah"
+    },
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-25-harness-bounded-task-packets-design.md",
+      "sha256": "d72a87551ade96c892c88b3eeff5675272868d60432d3a1a7bc1981d5620cddd"
+    }
+  },
+  "recordedAt": "2026-07-25T07:50:45.217Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 4,
+  "type": "spec.signed"
+}

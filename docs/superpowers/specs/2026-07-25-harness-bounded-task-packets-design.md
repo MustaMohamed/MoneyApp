@@ -1,7 +1,7 @@
 # Harness Phase 3: Bounded Task Packets and Dispatch Coordination Design
 
 - **Date:** 2026-07-25
-- **Status:** Awaiting product-owner sign-off
+- **Status:** Approved by product owner
 - **Scope:** Content-bound task graphs, deterministic task packets, durable task execution state, and host-neutral dispatch coordination
 - **Depends on:** Harness Phase 1 and Phase 2 merged through `4c150561be49d3904e2556b9345530c9987a4e3b`
 - **Initiative:** `2026-07-25-harness-phase-3`
