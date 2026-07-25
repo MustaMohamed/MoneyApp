@@ -146,12 +146,18 @@ function deliveryStatus(root, projection, collectDeliveryRevision) {
   }
   try {
     const observed = collectDeliveryRevision(root, projection.initiative);
-    const stale = observed.contentDigest !== projection.delivery.contentDigest;
-    const errors = stale
-      ? [
-          `Stale delivery content digest: expected ${projection.delivery.contentDigest}; observed ${observed.contentDigest}`,
-        ]
-      : [];
+    const errors = [];
+    if (observed.branch !== projection.delivery.branch) {
+      errors.push(
+        `Stale delivery branch: expected ${projection.delivery.branch}; observed ${observed.branch}`,
+      );
+    }
+    if (observed.contentDigest !== projection.delivery.contentDigest) {
+      errors.push(
+        `Stale delivery content digest: expected ${projection.delivery.contentDigest}; observed ${observed.contentDigest}`,
+      );
+    }
+    const stale = errors.length > 0;
     return {
       status: stale ? 'stale' : 'valid',
       branch: observed.branch,
@@ -252,6 +258,28 @@ function nextActionsFor(projection, initiativeId) {
   }
 }
 
+function evidenceRepairActions({ projection, initiativeId, artifacts, delivery }) {
+  const sequence = projection.sequence;
+  const prefix = 'npm run workflow -- record';
+  if (artifacts.spec && artifacts.spec.status !== 'valid') {
+    const deviceQaMode = projection.spec?.deviceQaMode ?? '<required|not_applicable>';
+    return [
+      `${prefix} spec.revised --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --spec ${artifacts.spec.path} --device-qa-mode ${deviceQaMode} --device-qa-rationale <rationale> --reason <reason>`,
+    ];
+  }
+  if (artifacts.plan && artifacts.plan.status !== 'valid') {
+    return [
+      `${prefix} plan.revised --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --plan ${artifacts.plan.path} --reason <reason>`,
+    ];
+  }
+  if (projection.validationCycleId && delivery.status !== 'valid') {
+    return [
+      `${prefix} work.reopened --id ${initiativeId} --expected-sequence ${sequence} --recorded-by sarah --reason <reason>`,
+    ];
+  }
+  return nextActionsFor(projection, initiativeId);
+}
+
 function untrackedStatus(initiativeId) {
   return {
     schemaVersion: 1,
@@ -273,6 +301,7 @@ function untrackedStatus(initiativeId) {
         errors: [],
       },
       validationCycleId: undefined,
+      validationCycleStatus: 'not_applicable',
       review: { status: 'not_applicable' },
       verification: { status: 'not_applicable' },
       qa: { status: 'not_applicable' },
@@ -307,6 +336,7 @@ function invalidStatus(initiativeId, error) {
         errors: [],
       },
       validationCycleId: undefined,
+      validationCycleStatus: 'unknown',
       review: { status: 'unknown' },
       verification: { status: 'unknown' },
       qa: { status: 'unknown' },
@@ -368,17 +398,6 @@ function getWorkflowStatus({
     compareCodeUnits(left.blockerId, right.blockerId),
   );
   const hasValidationCycle = projection.validationCycleId !== undefined;
-  const reviewStatus = hasValidationCycle
-    ? receiptStatus(projection.review)
-    : { status: 'not_applicable' };
-  const verificationStatus = hasValidationCycle
-    ? receiptStatus(projection.verification)
-    : { status: 'not_applicable' };
-  const qaStatus = projection.qa
-    ? receiptStatus(projection.qa)
-    : projection.phase === 'awaiting_device_qa'
-      ? { status: 'pending' }
-      : { status: 'not_applicable' };
   const delivery = deliveryStatus(root, projection, (repositoryRoot, initiative) =>
     collectDeliveryRevision(
       repositoryRoot,
@@ -386,6 +405,30 @@ function getWorkflowStatus({
       runGit === undefined ? undefined : { runGit },
     ),
   );
+  const staleCycle = hasValidationCycle && delivery.status !== 'valid';
+  const reviewStatus = staleCycle
+    ? { status: 'stale' }
+    : hasValidationCycle
+      ? receiptStatus(projection.review)
+      : { status: 'not_applicable' };
+  const verificationStatus = staleCycle
+    ? { status: 'stale' }
+    : hasValidationCycle
+      ? receiptStatus(projection.verification)
+      : { status: 'not_applicable' };
+  const qaStatus = projection.qa
+    ? staleCycle
+      ? { status: 'stale' }
+      : receiptStatus(projection.qa)
+    : projection.phase === 'awaiting_device_qa'
+      ? staleCycle
+        ? { status: 'stale' }
+        : { status: 'pending' }
+      : { status: 'not_applicable' };
+  const hasInvalidArtifact = Object.values(artifacts).some(
+    (artifact) => artifact.status !== 'valid',
+  );
+  const evidenceBlocksAction = hasInvalidArtifact || staleCycle;
 
   return {
     schemaVersion: 1,
@@ -406,20 +449,31 @@ function getWorkflowStatus({
       artifacts,
       delivery,
       validationCycleId: projection.validationCycleId,
+      validationCycleStatus: hasValidationCycle
+        ? staleCycle
+          ? 'stale'
+          : 'valid'
+        : 'not_applicable',
       review: reviewStatus,
       verification: verificationStatus,
       qa: qaStatus,
       explicitUserAction:
-        projection.phase === 'awaiting_spec_signoff' ||
-        projection.phase === 'awaiting_device_qa' ||
-        projection.phase === 'integration_ready' ||
-        blockers.some((blocker) => blocker.requiredResolver === 'user'),
+        !evidenceBlocksAction &&
+        (projection.phase === 'awaiting_spec_signoff' ||
+          projection.phase === 'awaiting_device_qa' ||
+          projection.phase === 'integration_ready' ||
+          blockers.some((blocker) => blocker.requiredResolver === 'user')),
       ...(currentCycleDelivery(projection)
         ? { cycleDelivery: currentCycleDelivery(projection) }
         : {}),
     },
     blockers,
-    nextActions: nextActionsFor(projection, initiativeId),
+    nextActions: evidenceRepairActions({
+      projection,
+      initiativeId,
+      artifacts,
+      delivery,
+    }),
   };
 }
 
@@ -518,6 +572,7 @@ function formatWorkflowStatus(status) {
     `HEAD: ${display(status.evidence.delivery.headSha)}`,
     `Delivery digest: ${display(status.evidence.delivery.contentDigest)}`,
     `Validation cycle: ${display(status.evidence.validationCycleId)}`,
+    `Validation cycle status: ${status.evidence.validationCycleStatus}`,
     `Review: ${status.evidence.review.status}`,
     `Verification: ${status.evidence.verification.status}`,
     `QA: ${status.evidence.qa.status}`,

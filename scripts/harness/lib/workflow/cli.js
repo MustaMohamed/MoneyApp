@@ -23,6 +23,8 @@ const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_40 = /^[a-f0-9]{40}$/;
 const RECOVERY_TOKEN = /^[a-f0-9]{32}$/;
 const FORBIDDEN_BRANCH_CHARACTERS = new Set(['~', '^', ':', '?', '*', '[', '\\']);
+const BLOCKER_OWNERS = new Set(['sarah', 'tariq', 'dev']);
+const BLOCKER_RESOLVERS = new Set(['user', 'sarah', 'tariq']);
 const RECORD_EVENTS = new Set([
   'spec.submitted',
   'spec.signed',
@@ -171,6 +173,31 @@ function cycleDelivery(projection) {
   };
 }
 
+function collectCycleDelivery(root, projection, collectDeliveryRevision, runGit) {
+  const active = cycleDelivery(projection);
+  const current = collectDeliveryRevision(
+    root,
+    projection.initiative,
+    runGit ? { runGit } : undefined,
+  );
+  if (current.branch !== active.branch) {
+    throw new Error(
+      `Current delivery branch does not match active delivery: expected ${active.branch}; observed ${current.branch}`,
+    );
+  }
+  if (current.contentDigest !== active.contentDigest) {
+    throw new Error(
+      `Current delivery content digest does not match active delivery: expected ${active.contentDigest}; observed ${current.contentDigest}`,
+    );
+  }
+  return {
+    branch: current.branch,
+    headSha: current.headSha,
+    contentDigest: current.contentDigest,
+    validationCycleId: active.validationCycleId,
+  };
+}
+
 function parseFailedCases(value) {
   let values;
   if (value.trim().startsWith('[')) {
@@ -221,6 +248,7 @@ function buildPayload({
   root,
   projection,
   createArtifactReference,
+  validateArtifactReference,
   collectDeliveryRevision,
   runGit,
 }) {
@@ -248,7 +276,11 @@ function buildPayload({
     case 'spec.signed':
       if (!projection.spec?.current) throw new Error('No current submitted spec exists');
       return {
-        spec: projection.spec.current,
+        spec: validateArtifactReference(
+          root,
+          projection.spec.current,
+          runGit ? { runGit } : undefined,
+        ),
         authority: authority(flags, recordedBy, 'user'),
       };
     case 'spec.revised':
@@ -262,7 +294,11 @@ function buildPayload({
     case 'plan.approved':
       if (!projection.plan?.current) throw new Error('No current submitted plan exists');
       return {
-        plan: projection.plan.current,
+        plan: validateArtifactReference(
+          root,
+          projection.plan.current,
+          runGit ? { runGit } : undefined,
+        ),
         authority: authority(flags, recordedBy, 'sarah'),
       };
     case 'plan.revised':
@@ -280,8 +316,8 @@ function buildPayload({
       return {
         verdict: eventType === 'review.approved' ? 'approved' : 'changes_requested',
         review: artifact('review'),
-        delivery: cycleDelivery(projection),
         authority: authority(flags, recordedBy, 'tariq'),
+        delivery: collectCycleDelivery(root, projection, collectDeliveryRevision, runGit),
       };
     case 'device_qa.passed':
       return {
@@ -289,7 +325,7 @@ function buildPayload({
         qa: artifact('qa'),
         device: flags.device,
         os: flags.os,
-        delivery: cycleDelivery(projection),
+        delivery: collectCycleDelivery(root, projection, collectDeliveryRevision, runGit),
       };
     case 'device_qa.failed':
       return {
@@ -298,11 +334,17 @@ function buildPayload({
         device: flags.device,
         os: flags.os,
         failedCases: parseFailedCases(flags['failed-cases']),
-        delivery: cycleDelivery(projection),
+        delivery: collectCycleDelivery(root, projection, collectDeliveryRevision, runGit),
       };
     case 'work.reopened':
       return { reason: flags.reason, delivery: cycleDelivery(projection) };
-    case 'blocker.opened':
+    case 'blocker.opened': {
+      if (!BLOCKER_OWNERS.has(flags.owner)) {
+        usage('--owner blocker owner must be sarah, tariq, or dev');
+      }
+      if (!BLOCKER_RESOLVERS.has(flags.resolver)) {
+        usage('--resolver blocker resolver must be user, sarah, or tariq');
+      }
       return {
         blockerId: flags['blocker-id'],
         trigger: flags.trigger,
@@ -310,6 +352,7 @@ function buildPayload({
         owner: flags.owner,
         requiredResolver: flags.resolver,
       };
+    }
     case 'blocker.resolved':
       return {
         blockerId: flags['blocker-id'],
@@ -446,6 +489,7 @@ async function runCli(options) {
           `Stale expected sequence: observed ${history.projection.sequence}; received ${observedSequence}`,
         );
       }
+      const recordedAt = timestamp(clock);
       const payload = buildPayload({
         eventType,
         flags,
@@ -453,10 +497,10 @@ async function runCli(options) {
         root,
         projection: history.projection,
         createArtifactReference,
+        validateArtifactReference,
         collectDeliveryRevision,
         runGit,
       });
-      const recordedAt = timestamp(clock);
       const result = appendEvent({
         root,
         initiativeId,
