@@ -10,6 +10,8 @@ const {
   validateRegisteredStructure,
 } = require('./lib/structure');
 const { evaluateRules } = require('./lib/semantics');
+const { collectWorkflowValidationErrors } = require('./lib/workflow/check');
+const { loadWorkflowMachine } = require('./lib/workflow/machine');
 const {
   collectSourceText,
   validateDependencyFacts,
@@ -20,6 +22,7 @@ const {
 
 const root = path.resolve(__dirname, '../..');
 const manifest = loadManifest(root);
+const workflowMachine = loadWorkflowMachine(root, manifest);
 const errors = [];
 const rendered = renderAll(root, manifest);
 const pkg = JSON.parse(fs.readFileSync(resolveInside(root, 'package.json'), 'utf8'));
@@ -71,6 +74,13 @@ errors.push(
     pkg,
     fs.readFileSync(resolveInside(root, '.husky/pre-push'), 'utf8'),
   ),
+);
+errors.push(
+  ...collectWorkflowValidationErrors({
+    root,
+    manifest,
+    machine: workflowMachine,
+  }),
 );
 
 if (errors.length > 0) {
