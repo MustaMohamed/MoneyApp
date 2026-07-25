@@ -83,8 +83,19 @@ void test('canonical persona sections retain binding authority and role decision
   }
 
   for (const section of Object.values(sections.sarah)) {
-    for (const phrase of ['Spec sign-off', 'Device QA', 'Sarah approves plans']) {
-      assert.match(section, new RegExp(phrase), `Sarah section is missing ${phrase}`);
+    for (const phrase of [
+      'Spec sign-off',
+      'Device QA',
+      'Sarah approves plans',
+      'exact current packet',
+      'records task outcomes',
+      'repository inspection',
+    ]) {
+      assert.match(
+        section,
+        new RegExp(phrase.replaceAll(' ', '\\s+')),
+        `Sarah section is missing ${phrase}`,
+      );
     }
   }
 
@@ -94,6 +105,9 @@ void test('canonical persona sections retain binding authority and role decision
       'Zustand v5',
       'src/modules/<domain>/',
       'HeroUI Native',
+      'task graph',
+      'activation',
+      'replacement',
     ]) {
       assert.equal(section.includes(phrase), true, `Tariq section is missing ${phrase}`);
     }
@@ -104,12 +118,26 @@ void test('canonical persona sections retain binding authority and role decision
     'Zustand v5',
     'src/modules/<domain>/',
     'HeroUI Native',
+    'claimed packet',
+    'write scopes',
+    'never writes task events',
   ]) {
     assert.equal(sections.dev.agent.includes(phrase), true, `Dev agent is missing ${phrase}`);
   }
 
   for (const phrase of ['product/UX', 'HeroUI Native']) {
     assert.equal(sections.marcus.agent.includes(phrase), true, `Marcus agent is missing ${phrase}`);
+  }
+
+  for (const role of ['sarah', 'tariq', 'dev']) {
+    for (const section of Object.values(sections[role])) {
+      assert.match(
+        section,
+        /task\s+verification\s+commands\s+are\s+not\s+automatically\s+executed/i,
+      );
+      assert.match(section, /inline\s+or\s+through\s+a\s+host\s+dispatcher/i);
+      assert.doesNotMatch(section, /repository (?:code )?dispatches agents/i);
+    }
   }
 });
 

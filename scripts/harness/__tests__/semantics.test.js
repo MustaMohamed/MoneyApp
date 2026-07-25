@@ -37,6 +37,20 @@ void test('semantic registry contains only current binding decisions', () => {
   );
 });
 
+void test('integration authority rule rejects task protocol overreach', () => {
+  const authority = rules.find((rule) => rule.id === 'AUTH-USER-INTEGRATION');
+  for (const forbidden of [
+    'repository dispatches agents',
+    'harness dispatches agents',
+    'executes packet commands',
+    'workers record task events',
+    'concurrent task claims',
+    'task packets authorize push',
+  ]) {
+    assert(authority.forbid.includes(forbidden));
+  }
+});
+
 void test('rejects an empty semantic rule registry', () => {
   const errors = evaluateRules([], scopedFiles, { requireCompleteScope: true });
   assert(errors.some((error) => error.ruleId === 'SEMANTIC-RULE-REGISTRY'));

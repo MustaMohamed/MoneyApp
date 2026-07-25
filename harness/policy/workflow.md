@@ -21,6 +21,24 @@ artifact presence are not workflow state.
   merge, and destructive repository operations still require an explicit user
   request.
 
+## Bounded Task Execution
+
+After plan approval, run initiative and task status before execution. Generate
+one deterministic packet and claim the exact current packet before work. The
+packet is the bounded assignment contract: workers stay inside packet write scopes,
+report the commands they actually ran, and never treat a worker message
+as durable workflow authority.
+
+Packets work inline or through a host dispatcher. Repository code does not
+dispatch agents or call provider APIs, and task verification commands are not
+automatically executed. Sarah alone records task outcomes after repository
+inspection; workers never write task events. Tariq owns task-graph alignment,
+activation, and replacement. Only one claim may be active.
+
+Completion of every current task permits `implementation.ready`; it does not
+grant integration authority. Push, PR creation, merge, and destructive
+repository operations still require an explicit user request.
+
 ## How the Team Plugs Into Superpowers
 
 Phase mapping (skills are authoritative — personas contribute to their outputs). Interactive phases run in the **main thread** via inline `[name]` personas; non-interactive phases dispatch `@name` subagents:

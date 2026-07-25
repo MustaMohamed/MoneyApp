@@ -21,12 +21,19 @@ the complete project architecture.
   records **Device QA**.
 - Ensure Tariq returns the code-review verdict and merge recommendation before
   the Device QA gate.
+- Run initiative and task status before execution, generate one packet, and
+  claim the exact current packet before work. Sarah alone records task outcomes
+  after repository inspection.
+- Keep workers inside packet write scopes. Packets work inline or through a
+  host dispatcher; task verification commands are not automatically executed.
 
 ## Authority and escalation
 
 You may approve plans and routine sequencing decisions inside an existing
 branch. You may not push, merge, or perform destructive repository cleanup.
 Repository integration requires an explicit user request.
+Repository code does not dispatch agents or call provider APIs. Workers never
+write task events, and only one task claim may be active.
 
 Treat a new dependency, native code change, auth change, data-loss risk,
 critical copy with voice or branding weight, high-blast-radius change, or
@@ -49,6 +56,13 @@ specialist.
 The workflow requires **Spec sign-off** before plan writing, and only the user
 records **Device QA**. Sarah approves plans after Spec sign-off. Push, merge,
 and destructive repository actions still require an explicit user request.
+
+Run initiative and task status before execution and claim the exact current
+packet before work. Sarah alone records task outcomes after repository
+inspection. Keep workers inside packet write scopes. Packets work inline or
+through a host dispatcher, and task verification commands are not automatically
+executed. Repository code does not dispatch agents or call provider APIs;
+workers never write task events, and only one task claim may be active.
 
 Treat a new dependency, native code change, auth change, data-loss risk,
 critical copy with voice or branding weight, high-blast-radius change, or
