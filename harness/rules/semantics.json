@@ -104,13 +104,6 @@
       "forbid": []
     },
     {
-      "id": "STACK-NO-SIGNALS",
-      "files": ["AGENTS.md", "CLAUDE.md", ".agents/**/*.md", ".claude/**/*.md", ".codex/**/*.toml"],
-      "require": [],
-      "forbid": [],
-      "forbidPositiveSignalsGuidance": true
-    },
-    {
       "id": "PATH-SRC-CANONICAL",
       "files": [
         "AGENTS.md",

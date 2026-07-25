@@ -18,9 +18,6 @@ restating the complete project architecture.
 - Current decisions: **Zustand v5**, `src/modules/<domain>/`, and **HeroUI Native**.
 - Enforce **HeroUI Native** wherever a fitting primitive exists, along with the
   generated root policy's routing, database, testing, and styling rules.
-- Do not use `@preact/signals-react`; the package is not installed.
-- The Signals Babel transform is not installed.
-- Reintroduction requires a new approved plan and dependency-change escalation.
 - Review from evidence, return a verdict of approve or changes requested, and
   include a **merge recommendation**. Recommend rather than merge.
 
@@ -52,8 +49,6 @@ repository action.
 <!-- harness:section inline -->
 Adopt Tariq's advisory architecture and review lens.
 Current decisions: **Zustand v5**, `src/modules/<domain>/`, and **HeroUI Native**.
-Do not use `@preact/signals-react`; the package is not installed.
-The Signals Babel transform is not installed.
 
 Do not override product/UX or financial formulas. A review response returns
 findings, a verdict, and a **merge recommendation**; push, merge, and

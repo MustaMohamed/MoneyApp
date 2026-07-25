@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { resolveInside } = require('./paths');
-const { classifyPositiveSignalsGuidance } = require('./semantics');
 
 function allDependencies(pkg) {
   return { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
@@ -30,15 +29,7 @@ function collectSourceText(root) {
   return chunks.join('\n');
 }
 
-function collectBabelText(root) {
-  return ['babel.config.js', 'babel.config.cjs', 'babel.config.mjs']
-    .map((file) => resolveInside(root, file))
-    .filter((file) => fs.existsSync(file))
-    .map((file) => fs.readFileSync(file, 'utf8'))
-    .join('\n');
-}
-
-function validateDependencyFacts(pkg, lock, liveText, sourceText, babelText) {
+function validateDependencyFacts(pkg, lock, sourceText) {
   const dependencies = allDependencies(pkg);
   const errors = [];
   if (
@@ -50,21 +41,6 @@ function validateDependencyFacts(pkg, lock, liveText, sourceText, babelText) {
       ruleId: 'STACK-ZUSTAND',
       file: 'package.json',
       message: 'Zustand guidance does not match package, lockfile, and source imports',
-    });
-  }
-  const positiveLiveGuidance = classifyPositiveSignalsGuidance(liveText);
-  const signalsEvidence = [
-    dependencies['@preact/signals-react'] && 'package.json dependency',
-    lockHasPackage(lock, '@preact/signals-react') && 'package-lock.json package',
-    /@preact\/signals-react(?:-transform)?/.test(babelText) && 'Babel transform',
-    /from\s+['"]@preact\/signals-react(?:\/[^'"]+)?['"]/.test(sourceText) && 'source import',
-    positiveLiveGuidance && `positive live ${positiveLiveGuidance.kind}`,
-  ].filter(Boolean);
-  if (signalsEvidence.length > 0) {
-    errors.push({
-      ruleId: 'STACK-NO-SIGNALS',
-      file: 'package.json',
-      message: `Signals rollback contradicted by ${signalsEvidence.join(', ')}`,
     });
   }
   return errors;
@@ -192,7 +168,6 @@ function validateIntegrationContract(pkg, prePush) {
 
 module.exports = {
   REQUIRED_CHECK_IDS,
-  collectBabelText,
   collectSourceText,
   extractJobBlock,
   validateDependencyFacts,
