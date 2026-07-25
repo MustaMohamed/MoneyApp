@@ -236,12 +236,23 @@ void test('replaces a graph only without an active claim and supersedes old task
     },
     'graphHash',
   );
+  const replacementTaskGraph = { ...TASK_GRAPH, sha256: '9'.repeat(64) };
+  const revisedInitiativeProjection = {
+    ...initiativeProjection,
+    sequence: 7,
+    latestEvent: { eventHash: '8'.repeat(64) },
+    plan: {
+      current: replacement.plan,
+      taskGraph: replacementTaskGraph,
+      approved: true,
+    },
+  };
   const value = ledger();
   value.append('task_graph.replaced', {
     initiative: { sequence: 7, eventHash: '8'.repeat(64) },
     spec: SPEC,
     plan: replacement.plan,
-    taskGraph: { ...TASK_GRAPH, sha256: '9'.repeat(64) },
+    taskGraph: replacementTaskGraph,
     branch: BRANCH,
     baseSha: HEAD,
     graphHash: replacement.graphHash,
@@ -252,15 +263,27 @@ void test('replaces a graph only without an active claim and supersedes old task
   const projection = replayTaskEvents({
     graph,
     events: value.events,
-    initiativeProjection: {
-      ...initiativeProjection,
-      sequence: 7,
-      latestEvent: { eventHash: '8'.repeat(64) },
-    },
+    initiativeProjection: revisedInitiativeProjection,
     resolveGraph: (hash) => (hash === replacement.graphHash ? replacement : graph),
   });
   assert.equal(projection.tasks['task-01'].state, 'superseded');
   assert.equal(projection.tasks['task-10'].state, 'ready');
+
+  const mismatched = ledger();
+  mismatched.append('task_graph.replaced', {
+    ...value.events.at(-1).payload,
+    taskGraph: { ...replacementTaskGraph, sha256: '6'.repeat(64) },
+  });
+  assert.throws(
+    () =>
+      replayTaskEvents({
+        graph,
+        events: mismatched.events,
+        initiativeProjection: revisedInitiativeProjection,
+        resolveGraph: () => replacement,
+      }),
+    /approved plan bundle/i,
+  );
 
   const claimed = ledger();
   claimed.append('task.claimed', claimPayload('task-01'));

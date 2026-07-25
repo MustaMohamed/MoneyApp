@@ -112,6 +112,7 @@
 - `scripts/harness/__tests__/workflow_status.test.js`
 - `scripts/harness/__tests__/workflow_integration.test.js`
 - `scripts/harness/__tests__/integration.test.js`
+- `scripts/harness/__tests__/workflow_machine.test.js`
 
 ### Canonical policy and generated surfaces
 
@@ -132,6 +133,7 @@
 ### Phase 3 dogfood artifacts
 
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json`
+- `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v2.json`
 - `docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/*.json`
 - `docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md`
 - `docs/superpowers/reviews/2026-07-25-harness-bounded-task-packets-review.md`
@@ -1260,17 +1262,116 @@ git add harness AGENTS.md CLAUDE.md .codex/agents .claude/agents \
 git commit -m "docs: generate bounded task execution policy"
 ```
 
-## Task 11: Activate and Dogfood the Phase 3 Task Graph
+## Dogfood Correction: Preserve and Replace the Activated Graph
+
+The first live Task 11 claim correctly failed when `npm run harness:test`
+exposed a workflow-machine fixture that still used the pre-Phase-3 manifest
+shape. Root-cause tracing also proved that a genuinely revised approval bundle
+could not replay the historical activation before reaching
+`task_graph.replaced`, and that replacement bootstrap completions did not yet
+receive the committed-range validation used by activation.
+
+Preserve the activated graph at its original path and hash. The revised
+approved graph is
+`docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v2.json`;
+it inserts one bounded self-hosting repair task, moves dogfood reporting to
+Task 12, and moves final review to Task 13. Because replacement itself is the
+capability under repair, Task 11 is imported once through the locked Phase 3
+bootstrap exception from its exact repair commit. All later work returns to
+live packet claims.
+
+## Task 11: Repair Self-Hosted Graph Replacement
 
 **Files:**
-- Read: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json`
+- Modify: `scripts/harness/lib/tasks/projection.js`
+- Modify: `scripts/harness/lib/tasks/cli.js`
+- Modify: `scripts/harness/__tests__/task_projection.test.js`
+- Modify: `scripts/harness/__tests__/task_cli.test.js`
+- Modify: `scripts/harness/__tests__/workflow_machine.test.js`
+- Modify: `docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md`
+- Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v2.json`
+
+- [ ] **Step 1: Preserve the observed failing regression**
+
+Run:
+
+```bash
+node --test scripts/harness/__tests__/workflow_machine.test.js
+```
+
+Expected: FAIL because the isolated manifest fixture does not include the
+required `workflow.tasks` contract.
+
+- [ ] **Step 2: Add failing replacement regressions**
+
+Add projection coverage where the initiative's latest approved plan/graph
+bundle differs from the historical activation bundle. Require replay to retain
+the immutable activation and accept only a replacement bound to the latest
+approved bundle. Add CLI coverage proving replacement bootstrap completions
+receive the same required-check and committed-range validation as activation.
+
+Run:
+
+```bash
+node --test \
+  scripts/harness/__tests__/task_projection.test.js \
+  scripts/harness/__tests__/task_cli.test.js
+```
+
+Expected: FAIL because activation is compared with the latest approval bundle
+and replacement completions are not validated.
+
+- [ ] **Step 3: Implement the bounded root-cause repairs**
+
+Update the isolated workflow-machine manifest fixture with the exact canonical
+task limits. During task replay, validate the historical activation against its
+resolved graph while validating a replacement against the latest approved
+plan/graph bundle. Share bootstrap completion validation between activation
+and replacement so both prove required checks and exact committed ranges.
+
+- [ ] **Step 4: Verify and commit the repair**
+
+Run:
+
+```bash
+node --test \
+  scripts/harness/__tests__/workflow_machine.test.js \
+  scripts/harness/__tests__/task_projection.test.js \
+  scripts/harness/__tests__/task_cli.test.js
+npm run harness:check
+```
+
+Expected: PASS.
+
+Commit the exact repair, revised plan/graph, and initiative evidence:
+
+```bash
+git add scripts/harness/lib/tasks/projection.js \
+  scripts/harness/lib/tasks/cli.js \
+  scripts/harness/__tests__/task_projection.test.js \
+  scripts/harness/__tests__/task_cli.test.js \
+  scripts/harness/__tests__/workflow_machine.test.js \
+  docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md \
+  docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v2.json \
+  docs/superpowers/initiatives/2026-07-25-harness-phase-3
+git commit -m "fix: repair self-hosted task replacement"
+```
+
+Then replace the active graph with the approved v2 graph, importing Tasks 1–11
+only from their exact validated commit ranges.
+
+## Task 12: Activate and Dogfood the Phase 3 Task Graph
+
+**Files:**
+- Read: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v2.json`
 - Create: `docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/*.json`
 - Create: `docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md`
 - Test: all focused Phase 3 harness tests
 
-- [ ] **Step 1: Build bootstrap completion evidence from actual commits**
+- [ ] **Step 1: Inspect the replacement bootstrap evidence**
 
-For every already completed graph task, collect:
+Confirm that the replacement event imports Tasks 1–11 only from actual commits.
+For every imported task, inspect:
 
 ```bash
 git show --format='%H%n%P%n%s' --name-status -z <task-commit>
@@ -1278,24 +1379,21 @@ git show --format='%H%n%P%n%s' --name-status -z <task-commit>
 
 Record the exact parent as `startHead`, commit as `endHead`, changed delivery
 paths, the commit subject as summary, and the focused command named by that
-task as a passed check. Do not include planning/spec/initiative-event commits
-as implementation completions.
+task as a passed check. Initiative-event paths remain evidence exclusions.
 
-- [ ] **Step 2: Activate with the reviewed bootstrap evidence**
+- [ ] **Step 2: Confirm the approved replacement is current**
 
 Run:
 
 ```bash
-npm run workflow -- tasks activate \
-  --id 2026-07-25-harness-phase-3 \
-  --expected-initiative-sequence 8 \
-  --task-graph docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json \
-  --bootstrap-completions '<canonical JSON from Step 1>'
+npm run workflow -- status \
+  --id 2026-07-25-harness-phase-3 --json
+npm run workflow -- tasks status \
+  --id 2026-07-25-harness-phase-3 --json
 ```
 
-Expected: one `task_graph.activated` root event whose imported tasks exactly
-match validated commit ranges and whose remaining tasks project as ready or
-pending.
+Expected: the initiative references the approved v2 plan/graph bundle, Tasks
+1–11 are imported as completed, Task 12 is ready, and Task 13 is pending.
 
 - [ ] **Step 3: Prove deterministic fresh-checkout projection**
 
@@ -1315,21 +1413,21 @@ repository state. Copy the repository to a temporary directory with
 `git archive HEAD`, copy the task-event evidence, and prove the same projection
 and packet hash there.
 
-- [ ] **Step 4: Claim Task 11 through the live packet protocol**
+- [ ] **Step 4: Claim Task 12 through the live packet protocol**
 
-Generate and claim the Task 11 packet:
+Generate and claim the Task 12 packet:
 
 ```bash
 npm run workflow -- tasks packet \
-  --id 2026-07-25-harness-phase-3 --task task-11 --json
+  --id 2026-07-25-harness-phase-3 --task task-12 --json
 npm run workflow -- tasks claim \
-  --id 2026-07-25-harness-phase-3 --task task-11 \
+  --id 2026-07-25-harness-phase-3 --task task-12 \
   --packet-hash <packet-hash> --expected-sequence <task-sequence> \
   --mode inline --assignee-role dev \
   --basis "Inline Phase 3 dogfood under the product owner's no-subagent direction."
 ```
 
-Keep Task 12 pending until Task 11's report commit and task completion are
+Keep Task 13 pending until Task 12's report commit and task completion are
 recorded.
 
 - [ ] **Step 5: Write, commit, and complete the dogfood task**
@@ -1348,12 +1446,12 @@ git add docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood
 git commit -m "test: dogfood bounded task coordination"
 ```
 
-Run every Task 11 verification command manually, inspect the actual Git range,
+Run every Task 12 verification command manually, inspect the actual Git range,
 then record:
 
 ```bash
 npm run workflow -- tasks complete \
-  --id 2026-07-25-harness-phase-3 --task task-11 \
+  --id 2026-07-25-harness-phase-3 --task task-12 \
   --packet-hash <packet-hash> --expected-sequence <task-sequence> \
   --summary "<actual bounded result>" \
   --checks '<canonical JSON array of actual passed checks>'
@@ -1373,7 +1471,7 @@ npm run workflow -- tasks status \
 Expected: every current task is `completed`, no active claim/blocker exists,
 except the final validation task, which is now `ready`.
 
-## Task 12: Review, Verify, and Record Integration Readiness
+## Task 13: Review, Verify, and Record Integration Readiness
 
 **Files:**
 - Create: `docs/superpowers/reviews/2026-07-25-harness-bounded-task-packets-review.md`
@@ -1383,13 +1481,13 @@ except the final validation task, which is now `ready`.
 
 - [ ] **Step 1: Run the complete harness regression suite**
 
-Generate and claim Task 12 first:
+Generate and claim Task 13 first:
 
 ```bash
 npm run workflow -- tasks packet \
-  --id 2026-07-25-harness-phase-3 --task task-12 --json
+  --id 2026-07-25-harness-phase-3 --task task-13 --json
 npm run workflow -- tasks claim \
-  --id 2026-07-25-harness-phase-3 --task task-12 \
+  --id 2026-07-25-harness-phase-3 --task task-13 \
   --packet-hash <packet-hash> --expected-sequence <task-sequence> \
   --mode inline --assignee-role tariq \
   --basis "Run the final Phase 3 regression and review inline."
@@ -1432,7 +1530,7 @@ packet byte sizes, claim/failure/release/blocker counts, retry count, and any
 scope violation count.
 
 Append the final regression counts and review verdict to the delivery-visible
-dogfood report. This report update is the Task 12 mutation delta; review and
+dogfood report. This report update is the Task 13 mutation delta; review and
 ledger files remain evidence exclusions.
 
 - [ ] **Step 3: Commit implementation and review evidence**
@@ -1450,18 +1548,18 @@ git add scripts harness AGENTS.md CLAUDE.md .codex .claude \
 git commit -m "test: verify harness phase 3 delivery"
 ```
 
-Run every Task 12 verification command manually, inspect the committed range,
+Run every Task 13 verification command manually, inspect the committed range,
 and complete the claim:
 
 ```bash
 npm run workflow -- tasks complete \
-  --id 2026-07-25-harness-phase-3 --task task-12 \
+  --id 2026-07-25-harness-phase-3 --task task-13 \
   --packet-hash <packet-hash> --expected-sequence <task-sequence> \
   --summary "Full harness regression and Tariq review are green." \
   --checks '<canonical JSON array of actual passed checks>'
 ```
 
-Expected: all twelve graph tasks are completed and
+Expected: all thirteen graph tasks are completed and
 `implementationReadyAllowed` is `true`.
 
 - [ ] **Step 4: Record implementation and review gates**

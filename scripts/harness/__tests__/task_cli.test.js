@@ -1,7 +1,7 @@
 const assert = require('node:assert/strict');
 const test = require('node:test');
 
-const { finalizeHashedObject } = require('../lib/workflow/canonical');
+const { canonicalStringify, finalizeHashedObject } = require('../lib/workflow/canonical');
 const { createTaskPacket } = require('../lib/tasks/packet');
 const { runTaskCli } = require('../lib/tasks/cli');
 
@@ -413,6 +413,75 @@ void test('records fail, block, unblock, and release as Sarah events', async () 
     assert.equal(fixture.appended[0].draft.type, eventType);
     assert.equal(fixture.appended[0].draft.recordedBy.role, 'sarah');
   }
+});
+
+void test('validates replacement bootstrap completions before appending', async () => {
+  const completion = {
+    taskId: 'task-01',
+    startHead: START,
+    endHead: END,
+    changedPaths: ['scripts/harness/lib/tasks/cli.js'],
+    summary: 'Implemented task CLI.',
+    checks: [],
+  };
+  const fixture = harness();
+  assert.equal(
+    await execute(fixture, [
+      'replace',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '1',
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--reason',
+      'The approved graph changed.',
+      '--bootstrap-completions',
+      canonicalStringify([completion]),
+    ]),
+    2,
+  );
+  assert.equal(fixture.appended.length, 0);
+  assert.match(fixture.stderr.value(), /checks|required/i);
+
+  const validCompletion = {
+    ...completion,
+    checks: [
+      {
+        command: task.verificationCommands[0],
+        passed: true,
+        summary: 'Focused task CLI test passed.',
+      },
+    ],
+  };
+  const valid = harness();
+  assert.equal(
+    await execute(valid, [
+      'replace',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '1',
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--reason',
+      'The approved graph changed.',
+      '--bootstrap-completions',
+      canonicalStringify([validCompletion]),
+    ]),
+    0,
+  );
+  assert.equal(valid.appended.length, 1);
+  assert.equal(valid.appended[0].draft.type, 'task_graph.replaced');
+  assert.equal(valid.appended[0].draft.recordedBy.role, 'tariq');
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(valid.appended[0].draft.payload.bootstrapCompletions)),
+    [validCompletion],
+  );
 });
 
 void test('rejects stale sequences, duplicate flags, positional arguments, and unknown commands', async () => {

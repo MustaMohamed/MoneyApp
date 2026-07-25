@@ -1,0 +1,22 @@
+{
+  "eventHash": "acf43689874d7a7d4eb34e393a8b2ffd1bdb587fd9de290200502644d00ee8dc",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "8db43dfcb36dc48ec79bec2b73c3f130fe72cb0d45fcad65f8adac3f6ee01d5b",
+    "sequence": 2
+  },
+  "payload": {
+    "changesRemain": false,
+    "claimEventHash": "8db43dfcb36dc48ec79bec2b73c3f130fe72cb0d45fcad65f8adac3f6ee01d5b",
+    "packetHash": "07b620553ac07aecfe6eebf8c119eed0973119bd9e8aabda84815563a9928b8e",
+    "summary": "Full harness regression exposed a workflow-machine fixture missing the required workflow.tasks manifest contract.",
+    "taskId": "task-11"
+  },
+  "recordedAt": "2026-07-25T08:50:54.846Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 3,
+  "type": "task.failed"
+}

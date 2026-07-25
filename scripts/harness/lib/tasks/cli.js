@@ -145,6 +145,33 @@ function validateRequiredChecks(task, checks) {
   return checks;
 }
 
+function validateBootstrapCompletions(options, context, completions) {
+  if (!Array.isArray(completions)) usage('--bootstrap-completions must be an array');
+  for (const completion of completions) {
+    const task = findTask(context.graph, completion.taskId);
+    validateRequiredChecks(task, completion.checks);
+    const observed = (
+      options.collectTaskCompletionRevision ?? collectTaskCompletionRevisionDefault
+    )(
+      options.root,
+      {
+        branch: context.initiativeProjection.initiative.branch,
+        startHead: completion.startHead,
+      },
+      task,
+      { endHead: completion.endHead },
+    );
+    if (
+      observed.startHead !== completion.startHead ||
+      observed.endHead !== completion.endHead ||
+      JSON.stringify(observed.changedPaths) !== JSON.stringify(completion.changedPaths)
+    ) {
+      throw new Error(`Bootstrap completion evidence mismatch for ${completion.taskId}`);
+    }
+  }
+  return completions;
+}
+
 function requireObservedSequence(taskProjection, value) {
   const observed = requireSequence(value, '--expected-sequence');
   if (observed < 1) usage('--expected-sequence must be at least 1');
@@ -421,29 +448,7 @@ async function runTaskCli(options) {
       const completions = flags['bootstrap-completions']
         ? parseCanonicalArgument(flags['bootstrap-completions'], '--bootstrap-completions')
         : [];
-      if (!Array.isArray(completions)) usage('--bootstrap-completions must be an array');
-      for (const completion of completions) {
-        const task = findTask(context.graph, completion.taskId);
-        validateRequiredChecks(task, completion.checks);
-        const observed = (
-          normalized.collectTaskCompletionRevision ?? collectTaskCompletionRevisionDefault
-        )(
-          normalized.root,
-          {
-            branch: context.initiativeProjection.initiative.branch,
-            startHead: completion.startHead,
-          },
-          task,
-          { endHead: completion.endHead },
-        );
-        if (
-          observed.startHead !== completion.startHead ||
-          observed.endHead !== completion.endHead ||
-          JSON.stringify(observed.changedPaths) !== JSON.stringify(completion.changedPaths)
-        ) {
-          throw new Error(`Bootstrap completion evidence mismatch for ${completion.taskId}`);
-        }
-      }
+      validateBootstrapCompletions(normalized, context, completions);
       return appendResult(normalized, context, 0, {
         type: 'task_graph.activated',
         recordedAt: timestamp(normalized.clock),
@@ -650,6 +655,7 @@ async function runTaskCli(options) {
       const completions = flags['bootstrap-completions']
         ? parseCanonicalArgument(flags['bootstrap-completions'], '--bootstrap-completions')
         : [];
+      validateBootstrapCompletions(normalized, context, completions);
       return appendResult(
         normalized,
         { ...context, graph: previous.graph, resolveGraph: () => context.graph },
