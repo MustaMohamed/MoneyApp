@@ -1,0 +1,22 @@
+{
+  "eventHash": "6eb8ec609a644065c86b8c18f2f9491376c42f4822c838e10b87a89ebd246f26",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "4b96aa43318fcc9033f6ebaa427840bf607fdd85238424f52ae30dddf7fa753f",
+    "sequence": 6
+  },
+  "payload": {
+    "changesRemain": false,
+    "claimEventHash": "4b96aa43318fcc9033f6ebaa427840bf607fdd85238424f52ae30dddf7fa753f",
+    "packetHash": "3280022c11bef0d3b058e536d1cdb40d5159e125dcb800146b79002b8913d9c8",
+    "summary": "Full harness regression exposed a committed-graph fixture that paired the original graph with the revised current plan artifact.",
+    "taskId": "task-13"
+  },
+  "recordedAt": "2026-07-25T09:12:45.432Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 7,
+  "type": "task.failed"
+}

@@ -137,6 +137,7 @@
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json`
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json`
 - `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json`
+- `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v6.json`
 - `docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/*.json`
 - `docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md`
 - `docs/superpowers/reviews/2026-07-25-harness-bounded-task-packets-review.md`
@@ -1389,6 +1390,12 @@ that could resolve only the incoming graph. Preserve v4 unchanged. The approved
 v5 graph keeps the same task numbering and expands Task 12 only to compose the
 historical resolver with the incoming approved graph.
 
+The first live v5 Task 13 regression then exposed a stale committed-graph test
+fixture: it paired the immutable original graph with the revised current plan.
+Preserve v5 unchanged. The approved v6 graph keeps task numbering stable,
+extends Task 12 only to carry the v6 planning artifact, and lets live Task 13
+update that exact test fixture alongside the dogfood report.
+
 ## Task 12: Repair Post-Replacement Event Appends
 
 **Files:**
@@ -1402,6 +1409,7 @@ historical resolver with the incoming approved graph.
 - Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json`
 - Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json`
 - Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json`
+- Create: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v6.json`
 
 - [ ] **Step 1: Add the failing append-after-replacement regression**
 
@@ -1455,19 +1463,21 @@ git add scripts/harness/lib/tasks/store.js \
   docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json \
   docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v4.json \
   docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json \
+  docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v6.json \
   docs/superpowers/initiatives/2026-07-25-harness-phase-3
 git commit -m "fix: replay task appends from activation graph"
 ```
 
-Then replace v2 with the approved v5 graph, importing Tasks 1–12 only from
+Then replace v5 with the approved v6 graph, importing Tasks 1–12 only from
 their exact validated commit ranges.
 
 ## Task 13: Activate and Dogfood the Phase 3 Task Graph
 
 **Files:**
-- Read: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v5.json`
+- Read: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v6.json`
 - Create: `docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/*.json`
 - Create: `docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md`
+- Modify: `scripts/harness/__tests__/task_graph.test.js`
 - Test: all focused Phase 3 harness tests
 
 - [ ] **Step 1: Inspect the replacement bootstrap evidence**
@@ -1494,8 +1504,12 @@ npm run workflow -- tasks status \
   --id 2026-07-25-harness-phase-3 --json
 ```
 
-Expected: the initiative references the approved v5 plan/graph bundle, Tasks
+Expected: the initiative references the approved v6 plan/graph bundle, Tasks
 1–12 are imported as completed, Task 13 is ready, and Task 14 is pending.
+
+Before rerunning the full regression, point the committed Phase 3 graph fixture
+at the approved v6 graph and assert fourteen tasks. Keep the test plan-bound by
+hashing the current plan bytes; do not rewrite any historical graph.
 
 - [ ] **Step 3: Prove deterministic fresh-checkout projection**
 
