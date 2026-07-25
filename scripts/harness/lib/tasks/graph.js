@@ -2,6 +2,7 @@ const fs = require('node:fs');
 
 const { assertSafeRelativePath, resolveInside } = require('../paths');
 const { verifyCanonicalHashedObject } = require('../workflow/canonical');
+const { assertScopeResolvesInside, parsePathScope, scopesOverlap } = require('./path_scope');
 
 const GRAPH_KEYS = new Set(['schemaVersion', 'initiativeId', 'plan', 'tasks', 'graphHash']);
 const TASK_KEYS = new Set([
@@ -24,6 +25,10 @@ const TASK_KINDS = new Set(['mutation', 'validation']);
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TASK_ID = /^task-(\d{2}|\d{3})$/;
 const HEX_64 = /^[a-f0-9]{64}$/;
+
+function compareCodeUnits(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
 
 function requireObject(value, label) {
   if (
@@ -117,21 +122,6 @@ function requireUniqueStrings(
   return value;
 }
 
-function validateScopeText(value, label) {
-  requireString(value, label);
-  if (
-    value !== value.normalize('NFC') ||
-    value.startsWith('/') ||
-    value.includes('\\') ||
-    value
-      .split('/')
-      .some((segment) => segment.length === 0 || segment === '.' || segment === '..') ||
-    /[\u0000-\u001f\u007f-\u009f<>:"|]/u.test(value)
-  ) {
-    throw new Error(`${label} must be a safe portable repository-relative path scope`);
-  }
-}
-
 function validateCommands(commands, limits, taskId) {
   requireArray(
     commands,
@@ -169,7 +159,7 @@ function validateTextBudget(task, limits) {
   }
 }
 
-function validateTask(task, limits, ids) {
+function validateTask(task, limits, ids, root) {
   const label = `Task ${String(task?.id ?? '<unknown>')}`;
   requireExactKeys(task, TASK_KEYS, `${label.toLowerCase()} fields`);
   const match = typeof task.id === 'string' ? task.id.match(TASK_ID) : undefined;
@@ -200,7 +190,12 @@ function validateTask(task, limits, ids) {
     boundLabel: 'write paths',
   });
   for (const scope of [...task.readPaths, ...task.writePaths]) {
-    validateScopeText(scope, `${label} path scope`);
+    try {
+      parsePathScope(scope);
+      if (root !== undefined) assertScopeResolvesInside(root, scope);
+    } catch (error) {
+      throw new Error(`${label} path scope is invalid: ${error.message}`);
+    }
   }
   requireUniqueStrings(
     task.acceptanceCriteria,
@@ -224,6 +219,68 @@ function validateTask(task, limits, ids) {
   validateTextBudget(task, limits);
 }
 
+function validateDependencyGraph(tasks) {
+  const byId = new Map(tasks.map((task) => [task.id, task]));
+  const errors = [];
+  for (const task of tasks) {
+    for (const dependency of task.dependsOn) {
+      if (dependency === task.id) {
+        errors.push(`${task.id} cannot depend on itself`);
+      } else if (!byId.has(dependency)) {
+        errors.push(`${task.id} has unknown dependency ${dependency}`);
+      }
+    }
+  }
+
+  const colors = new Map();
+  const stack = [];
+  function visit(taskId) {
+    if (colors.get(taskId) === 'done') return;
+    if (colors.get(taskId) === 'active') {
+      const start = stack.indexOf(taskId);
+      errors.push(`Dependency cycle: ${[...stack.slice(start), taskId].join(' -> ')}`);
+      return;
+    }
+    colors.set(taskId, 'active');
+    stack.push(taskId);
+    for (const dependency of byId.get(taskId).dependsOn) {
+      if (byId.has(dependency) && dependency !== taskId) visit(dependency);
+    }
+    stack.pop();
+    colors.set(taskId, 'done');
+  }
+  for (const taskId of [...byId.keys()].sort(compareCodeUnits)) visit(taskId);
+  if (errors.length > 0) throw new Error(errors.join('\n'));
+
+  const reachMemo = new Map();
+  function reaches(from, target) {
+    const key = `${from}:${target}`;
+    if (reachMemo.has(key)) return reachMemo.get(key);
+    const result = byId
+      .get(from)
+      .dependsOn.some((dependency) => dependency === target || reaches(dependency, target));
+    reachMemo.set(key, result);
+    return result;
+  }
+
+  const ordered = [...tasks].sort((left, right) => compareCodeUnits(left.id, right.id));
+  for (let leftIndex = 0; leftIndex < ordered.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < ordered.length; rightIndex += 1) {
+      const left = ordered[leftIndex];
+      const right = ordered[rightIndex];
+      if (reaches(left.id, right.id) || reaches(right.id, left.id)) continue;
+      if (
+        left.writePaths.some((leftScope) =>
+          right.writePaths.some((rightScope) => scopesOverlap(leftScope, rightScope)),
+        )
+      ) {
+        errors.push(`${left.id} and ${right.id} have unordered overlapping write scopes`);
+      }
+    }
+  }
+  if (errors.length > 0) throw new Error(errors.join('\n'));
+}
+
 function validateLimits(limits) {
   requireObject(limits, 'Task graph limits');
   for (const key of [
@@ -242,7 +299,7 @@ function validateLimits(limits) {
   }
 }
 
-function validateTaskGraph(graph, { limits, expectedInitiativeId, expectedPlan }) {
+function validateTaskGraph(graph, { limits, expectedInitiativeId, expectedPlan, root }) {
   validateLimits(limits);
   requireExactKeys(graph, GRAPH_KEYS, 'Task graph');
   if (graph.schemaVersion !== 1) throw new Error('Task graph schemaVersion must be 1');
@@ -266,7 +323,8 @@ function validateTaskGraph(graph, { limits, expectedInitiativeId, expectedPlan }
     throw new Error(`Task graph exceeds maximum ${limits.maxTasks} tasks`);
   }
   const ids = new Set();
-  for (const task of graph.tasks) validateTask(task, limits, ids);
+  for (const task of graph.tasks) validateTask(task, limits, ids, root);
+  validateDependencyGraph(graph.tasks);
   return graph;
 }
 

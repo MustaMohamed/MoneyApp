@@ -130,6 +130,65 @@ void test('requires unique IDs and exact plan and initiative binding', () => {
   );
 });
 
+void test('rejects missing dependencies, self-dependencies, cycles, and unordered writes', () => {
+  assert.throws(
+    () => validateTaskGraph(graph({ tasks: [task({ dependsOn: ['task-02'] })] }), options()),
+    /task-01.*unknown dependency task-02/i,
+  );
+  assert.throws(
+    () => validateTaskGraph(graph({ tasks: [task({ dependsOn: ['task-01'] })] }), options()),
+    /task-01.*depend on itself/i,
+  );
+  assert.throws(
+    () =>
+      validateTaskGraph(
+        graph({
+          tasks: [
+            task({ id: 'task-01', dependsOn: ['task-02'] }),
+            task({
+              id: 'task-02',
+              dependsOn: ['task-01'],
+              writePaths: ['scripts/harness/lib/tasks/packet.js'],
+            }),
+          ],
+        }),
+        options(),
+      ),
+    /dependency cycle.*task-01.*task-02/i,
+  );
+  assert.throws(
+    () =>
+      validateTaskGraph(
+        graph({
+          tasks: [
+            task({ id: 'task-01', writePaths: ['scripts/harness/**'] }),
+            task({
+              id: 'task-02',
+              writePaths: ['scripts/harness/lib/tasks/*.js'],
+            }),
+          ],
+        }),
+        options(),
+      ),
+    /task-01 and task-02.*unordered overlapping write scopes/i,
+  );
+  assert.doesNotThrow(() =>
+    validateTaskGraph(
+      graph({
+        tasks: [
+          task({ id: 'task-01', writePaths: ['scripts/harness/**'] }),
+          task({
+            id: 'task-02',
+            dependsOn: ['task-01'],
+            writePaths: ['scripts/harness/lib/tasks/*.js'],
+          }),
+        ],
+      }),
+      options(),
+    ),
+  );
+});
+
 void test('enforces every canonical task and graph bound at the exact boundary', () => {
   const fortyTasks = Array.from({ length: limits.maxTasks }, (_, index) =>
     task({
