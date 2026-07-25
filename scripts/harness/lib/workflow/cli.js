@@ -228,9 +228,9 @@ const EVENT_FLAGS = {
   'spec.submitted': ['spec', 'device-qa-mode', 'device-qa-rationale'],
   'spec.signed': ['decision-by', 'basis'],
   'spec.revised': ['spec', 'device-qa-mode', 'device-qa-rationale', 'reason'],
-  'plan.submitted': ['plan'],
+  'plan.submitted': ['plan', 'task-graph'],
   'plan.approved': ['decision-by', 'basis'],
-  'plan.revised': ['plan', 'reason'],
+  'plan.revised': ['plan', 'task-graph', 'reason'],
   'implementation.ready': [],
   'review.approved': ['review', 'decision-by', 'basis'],
   'review.changes_requested': ['review', 'decision-by', 'basis'],
@@ -291,7 +291,7 @@ function buildPayload({
         reason: flags.reason,
       };
     case 'plan.submitted':
-      return { plan: artifact('plan') };
+      return { plan: artifact('plan'), taskGraph: artifact('task-graph') };
     case 'plan.approved':
       if (!projection.plan?.current) throw new Error('No current submitted plan exists');
       return {
@@ -300,10 +300,19 @@ function buildPayload({
           projection.plan.current,
           runGit ? { runGit } : undefined,
         ),
+        taskGraph: validateArtifactReference(
+          root,
+          projection.plan.taskGraph,
+          runGit ? { runGit } : undefined,
+        ),
         authority: authority(flags, recordedBy, 'sarah'),
       };
     case 'plan.revised':
-      return { plan: artifact('plan'), reason: flags.reason };
+      return {
+        plan: artifact('plan'),
+        taskGraph: artifact('task-graph'),
+        reason: flags.reason,
+      };
     case 'implementation.ready':
       return {
         delivery: collectDeliveryRevision(

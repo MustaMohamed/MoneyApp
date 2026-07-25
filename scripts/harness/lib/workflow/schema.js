@@ -318,9 +318,10 @@ function validateChecks(event, checks) {
   }
 }
 
-function strictPayload(event, keys) {
-  const allowed = new Set(keys);
-  requireExactKeys(event.payload, allowed, allowed, `${event.type} payload`);
+function strictPayload(event, keys, optionalKeys = []) {
+  const required = new Set(keys);
+  const allowed = new Set([...keys, ...optionalKeys]);
+  requireExactKeys(event.payload, allowed, required, `${event.type} payload`);
   return event.payload;
 }
 
@@ -348,16 +349,20 @@ const PAYLOAD_VALIDATORS = {
     requireString(payload.reason, 'spec revision reason');
   },
   'plan.submitted': (event) => {
-    validateArtifact(strictPayload(event, ['plan']).plan, 'plan');
+    const payload = strictPayload(event, ['plan'], ['taskGraph']);
+    validateArtifact(payload.plan, 'plan');
+    if (payload.taskGraph !== undefined) validateArtifact(payload.taskGraph, 'task graph');
   },
   'plan.approved': (event) => {
-    const payload = strictPayload(event, ['plan', 'authority']);
+    const payload = strictPayload(event, ['plan', 'authority'], ['taskGraph']);
     validateArtifact(payload.plan, 'plan');
+    if (payload.taskGraph !== undefined) validateArtifact(payload.taskGraph, 'task graph');
     validateAuthority(event, payload.authority, ['sarah']);
   },
   'plan.revised': (event) => {
-    const payload = strictPayload(event, ['plan', 'reason']);
+    const payload = strictPayload(event, ['plan', 'reason'], ['taskGraph']);
     validateArtifact(payload.plan, 'plan');
+    if (payload.taskGraph !== undefined) validateArtifact(payload.taskGraph, 'task graph');
     requireString(payload.reason, 'plan revision reason');
   },
   'implementation.ready': (event) => {

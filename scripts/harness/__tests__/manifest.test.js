@@ -20,15 +20,32 @@ function createTarget(overrides = {}) {
 }
 
 function createManifest(overrides = {}) {
+  const workflow = {
+    machine: 'harness/workflow/state_machine.json',
+    tasks: {
+      directory: 'docs/superpowers/task-graphs',
+      limits: {
+        maxTasks: 40,
+        maxDependencies: 12,
+        maxReadPaths: 24,
+        maxWritePaths: 16,
+        maxAcceptanceCriteria: 12,
+        maxVerificationCommands: 8,
+        maxTaskTextBytes: 8192,
+        maxPacketBytes: 24576,
+      },
+    },
+    ...overrides.workflow,
+  };
   return {
     version: 1,
     policyOrder: [],
     targets: [],
     personas: [],
     rules: 'harness/rules/semantics.json',
-    workflow: { machine: 'harness/workflow/state_machine.json' },
     verification: { checks: [] },
     ...overrides,
+    workflow,
   };
 }
 
@@ -567,6 +584,49 @@ void test('requires a non-empty safe workflow machine path', () => {
       validateManifest(createManifest({ workflow: { machine: '../workflow/state_machine.json' } })),
     /repository-relative/,
   );
+});
+
+void test('requires the exact bounded task graph manifest contract', () => {
+  const manifest = createManifest();
+  assert.deepEqual(manifest.workflow.tasks, {
+    directory: 'docs/superpowers/task-graphs',
+    limits: {
+      maxTasks: 40,
+      maxDependencies: 12,
+      maxReadPaths: 24,
+      maxWritePaths: 16,
+      maxAcceptanceCriteria: 12,
+      maxVerificationCommands: 8,
+      maxTaskTextBytes: 8192,
+      maxPacketBytes: 24576,
+    },
+  });
+  assert.doesNotThrow(() => validateManifest(manifest));
+
+  for (const tasks of [
+    undefined,
+    {},
+    { ...manifest.workflow.tasks, directory: '../task-graphs' },
+    {
+      ...manifest.workflow.tasks,
+      limits: { ...manifest.workflow.tasks.limits, maxTasks: 0 },
+    },
+    {
+      ...manifest.workflow.tasks,
+      limits: {
+        ...manifest.workflow.tasks.limits,
+        maxPacketBytes: manifest.workflow.tasks.limits.maxTaskTextBytes - 1,
+      },
+    },
+  ]) {
+    assert.throws(() =>
+      validateManifest(
+        createManifest({
+          workflow: { ...manifest.workflow, tasks },
+        }),
+      ),
+    );
+  }
 });
 
 void test('requires rules to be a non-empty safe repository-relative path', () => {

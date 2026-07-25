@@ -199,6 +199,7 @@ function applyEvent(state, event, definition) {
     case 'plan.submitted':
       state.plan = {
         current: payload.plan,
+        taskGraph: payload.taskGraph,
         approved: false,
         submittedAt: event.recordedAt,
         submittedEventHash: event.eventHash,
@@ -206,6 +207,7 @@ function applyEvent(state, event, definition) {
       break;
     case 'plan.approved':
       requireCurrentArtifact(state.plan?.current, payload.plan, 'Approved plan');
+      requireCurrentArtifact(state.plan?.taskGraph, payload.taskGraph, 'Approved task graph');
       state.plan = {
         ...state.plan,
         approved: true,
@@ -216,6 +218,7 @@ function applyEvent(state, event, definition) {
     case 'plan.revised':
       state.plan = {
         current: payload.plan,
+        taskGraph: payload.taskGraph,
         approved: false,
         submittedAt: event.recordedAt,
         submittedEventHash: event.eventHash,

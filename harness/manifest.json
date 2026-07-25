@@ -242,7 +242,20 @@
   ],
   "rules": "harness/rules/semantics.json",
   "workflow": {
-    "machine": "harness/workflow/state_machine.json"
+    "machine": "harness/workflow/state_machine.json",
+    "tasks": {
+      "directory": "docs/superpowers/task-graphs",
+      "limits": {
+        "maxTasks": 40,
+        "maxDependencies": 12,
+        "maxReadPaths": 24,
+        "maxWritePaths": 16,
+        "maxAcceptanceCriteria": 12,
+        "maxVerificationCommands": 8,
+        "maxTaskTextBytes": 8192,
+        "maxPacketBytes": 24576
+      }
+    }
   },
   "verification": {
     "checks": [

@@ -17,6 +17,10 @@ const PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-cli-test.md',
   sha256: '6'.repeat(64),
 };
+const TASK_GRAPH = {
+  path: 'docs/superpowers/task-graphs/2026-07-25-cli-test.json',
+  sha256: 'b'.repeat(64),
+};
 const REVIEW = {
   path: 'docs/superpowers/reviews/2026-07-25-cli-test-review.md',
   sha256: '7'.repeat(64),
@@ -71,7 +75,7 @@ function projection(overrides = {}) {
     sequence: 6,
     latestEvent: { type: 'implementation.ready', eventHash: CYCLE },
     spec: { current: SPEC, signed: true, deviceQaMode: 'not_applicable' },
-    plan: { current: PLAN, approved: true },
+    plan: { current: PLAN, taskGraph: TASK_GRAPH, approved: true },
     delivery: { branch: BRANCH, headSha: HEAD_SHA, contentDigest: DIGEST },
     validationCycleId: CYCLE,
     review: undefined,
@@ -93,7 +97,22 @@ function harness(overrides = {}) {
     stderr,
     clock: () => NOW,
     loadManifest: () => ({
-      workflow: { machine: 'machine.json' },
+      workflow: {
+        machine: 'machine.json',
+        tasks: {
+          directory: 'docs/superpowers/task-graphs',
+          limits: {
+            maxTasks: 40,
+            maxDependencies: 12,
+            maxReadPaths: 24,
+            maxWritePaths: 16,
+            maxAcceptanceCriteria: 12,
+            maxVerificationCommands: 8,
+            maxTaskTextBytes: 8192,
+            maxPacketBytes: 24576,
+          },
+        },
+      },
       verification: { checks: [{ id: 'format', local: ['npm', 'run', 'format:check'] }] },
     }),
     loadWorkflowMachine: () => machine,
@@ -118,6 +137,7 @@ function harness(overrides = {}) {
       const references = new Map([
         [SPEC.path, SPEC],
         [PLAN.path, PLAN],
+        [TASK_GRAPH.path, TASK_GRAPH],
         [REVIEW.path, REVIEW],
         [QA.path, QA],
       ]);
@@ -251,8 +271,8 @@ void test('approved bootstrap commands preserve current artifact references and 
       sequence: 3,
       event: 'plan.submitted',
       role: 'tariq',
-      flags: ['--plan', PLAN.path],
-      payload: { plan: PLAN },
+      flags: ['--plan', PLAN.path, '--task-graph', TASK_GRAPH.path],
+      payload: { plan: PLAN, taskGraph: TASK_GRAPH },
     },
     {
       sequence: 4,
@@ -261,6 +281,7 @@ void test('approved bootstrap commands preserve current artifact references and 
       flags: ['--decision-by', 'sarah', '--basis', 'Sarah approved'],
       payload: {
         plan: PLAN,
+        taskGraph: TASK_GRAPH,
         authority: {
           decisionBy: 'sarah',
           recordedBy: 'sarah',
@@ -352,8 +373,19 @@ void test('spec and plan approvals revalidate the current artifact immediately b
         },
       );
       assert.equal(result.code, 0, result.stderr.value());
-      assert.deepEqual(calls, [{ root: '/repo', reference: item.current }]);
+      assert.deepEqual(
+        calls,
+        item.event === 'plan.approved'
+          ? [
+              { root: '/repo', reference: item.current },
+              { root: '/repo', reference: TASK_GRAPH },
+            ]
+          : [{ root: '/repo', reference: item.current }],
+      );
       assert.deepEqual(result.appended[0].draft.payload[item.payloadKey], item.current);
+      if (item.event === 'plan.approved') {
+        assert.deepEqual(result.appended[0].draft.payload.taskGraph, TASK_GRAPH);
+      }
     });
 
     await t.test(`${item.event} rejects stale current evidence without append`, async () => {
@@ -716,8 +748,15 @@ void test('builds revised spec and plan and passed QA payloads', async (t) => {
     {
       event: 'plan.revised',
       role: 'tariq',
-      flags: ['--plan', PLAN.path, '--reason', 'Review correction'],
-      payload: { plan: PLAN, reason: 'Review correction' },
+      flags: [
+        '--plan',
+        PLAN.path,
+        '--task-graph',
+        TASK_GRAPH.path,
+        '--reason',
+        'Review correction',
+      ],
+      payload: { plan: PLAN, taskGraph: TASK_GRAPH, reason: 'Review correction' },
     },
     {
       event: 'device_qa.passed',
@@ -934,6 +973,32 @@ void test('returns usage code two for malformed or forbidden commands', async (t
     ],
     ['record', 'review.approved', '--id', ID, '--recorded-by', 'tariq'],
     ['record', 'review.approved', '--id', ID, '--expected-sequence', '6'],
+    [
+      'record',
+      'plan.submitted',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '3',
+      '--recorded-by',
+      'tariq',
+      '--plan',
+      PLAN.path,
+    ],
+    [
+      'record',
+      'plan.revised',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '6',
+      '--recorded-by',
+      'tariq',
+      '--plan',
+      PLAN.path,
+      '--reason',
+      'Review correction',
+    ],
     [
       'record',
       'review.approved',

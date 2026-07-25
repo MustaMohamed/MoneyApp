@@ -26,6 +26,10 @@ const PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-example.md',
   sha256: 'f'.repeat(64),
 };
+const TASK_GRAPH = {
+  path: 'docs/superpowers/task-graphs/2026-07-25-example.json',
+  sha256: '9'.repeat(64),
+};
 const REVISED_PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-example.md',
   sha256: '1'.repeat(64),
@@ -102,11 +106,15 @@ function createLedger({ deviceQaMode = 'not_applicable' } = {}) {
     signSpec(spec = SPEC) {
       return append('spec.signed', { spec, authority: USER_AUTHORITY }, 'sarah');
     },
-    submitPlan(plan = PLAN) {
-      return append('plan.submitted', { plan }, 'tariq');
+    submitPlan(plan = PLAN, taskGraph) {
+      return append('plan.submitted', { plan, ...(taskGraph ? { taskGraph } : {}) }, 'tariq');
     },
-    approvePlan(plan = PLAN) {
-      return append('plan.approved', { plan, authority: SARAH_AUTHORITY }, 'sarah');
+    approvePlan(plan = PLAN, taskGraph) {
+      return append(
+        'plan.approved',
+        { plan, ...(taskGraph ? { taskGraph } : {}), authority: SARAH_AUTHORITY },
+        'sarah',
+      );
     },
     ready(delivery = deliverySeed()) {
       return append('implementation.ready', { delivery }, 'dev');
@@ -221,6 +229,19 @@ void test('replays a valid ledger in numeric sequence order and projects validat
   assert.deepEqual(ordered.plan.current, PLAN);
   assert.equal(ordered.plan.approved, true);
   assert.deepEqual(ordered.openBlockers, {});
+});
+
+void test('projects plan and task graph as one approved evidence bundle', () => {
+  const ledger = createLedger();
+  ledger.submitSpec();
+  ledger.signSpec();
+  ledger.submitPlan(PLAN, TASK_GRAPH);
+  ledger.approvePlan(PLAN, TASK_GRAPH);
+
+  const projection = replayEvents(machine, ledger.events);
+  assert.deepEqual(projection.plan.current, PLAN);
+  assert.deepEqual(projection.plan.taskGraph, TASK_GRAPH);
+  assert.equal(projection.plan.approved, true);
 });
 
 void test('rejects gaps, duplicate sequences and hashes, broken parents, and mixed initiatives', () => {
