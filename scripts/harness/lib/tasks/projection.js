@@ -242,12 +242,6 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
         latestFailure = undefined;
         requireInitiativeReference(payload, initiativeProjection, 'Task graph replacement');
         requireGraphBundle(currentGraph, payload, initiativeProjection, 'Task graph replacement');
-        if (
-          !sameArtifact(payload.plan, initiativeProjection.plan.current) ||
-          !sameArtifact(payload.taskGraph, initiativeProjection.plan.taskGraph)
-        ) {
-          throw new Error('Task graph replacement does not match the approved plan bundle');
-        }
         for (const imported of payload.bootstrapCompletions) {
           requireCurrentTask(byId, imported.taskId);
           if (!dependencyComplete(byId.get(imported.taskId), completed)) {

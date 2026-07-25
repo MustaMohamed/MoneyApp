@@ -47,6 +47,17 @@ const graph = finalizeHashedObject(
   },
   'graphHash',
 );
+const REPLACEMENT_PLAN = { ...PLAN, sha256: '1'.repeat(64) };
+const REPLACEMENT_TASK_GRAPH = { ...TASK_GRAPH, sha256: '2'.repeat(64) };
+const replacementGraph = finalizeHashedObject(
+  {
+    schemaVersion: 1,
+    initiativeId: ID,
+    plan: REPLACEMENT_PLAN,
+    tasks: graph.tasks,
+  },
+  'graphHash',
+);
 const initiativeProjection = {
   phase: 'execution',
   sequence: 8,
@@ -151,6 +162,88 @@ void test('uses expected sequence compare-and-swap and reports lock contention',
       }),
     /locked by PID 999.*other-host/i,
   );
+});
+
+void test('appends candidate events from the resolved activation graph after replacement', (t) => {
+  const root = rootFixture(t);
+  appendActivation(root);
+  const revisedProjection = {
+    ...initiativeProjection,
+    sequence: 9,
+    latestEvent: { eventHash: '9'.repeat(64) },
+    plan: {
+      current: REPLACEMENT_PLAN,
+      taskGraph: REPLACEMENT_TASK_GRAPH,
+      approved: true,
+    },
+  };
+  const resolveGraph = (graphHash) => (graphHash === graph.graphHash ? graph : replacementGraph);
+
+  appendTaskEvent({
+    root,
+    initiativeId: ID,
+    expectedSequence: 2,
+    draft: {
+      type: 'task_graph.replaced',
+      recordedAt: '2026-07-25T00:01:00.000Z',
+      recordedBy: { role: 'tariq' },
+      payload: {
+        initiative: { sequence: 9, eventHash: '9'.repeat(64) },
+        spec: SPEC,
+        plan: REPLACEMENT_PLAN,
+        taskGraph: REPLACEMENT_TASK_GRAPH,
+        branch: BRANCH,
+        baseSha: HEAD,
+        graphHash: replacementGraph.graphHash,
+        previousGraphHash: graph.graphHash,
+        reason: 'The approved graph changed.',
+        bootstrapCompletions: [],
+      },
+    },
+    graph,
+    initiativeProjection: revisedProjection,
+    resolveGraph,
+    token: () => '8'.repeat(32),
+    hostname: () => 'test-host',
+    pid: 1234,
+  });
+
+  assert.doesNotThrow(() =>
+    appendTaskEvent({
+      root,
+      initiativeId: ID,
+      expectedSequence: 3,
+      draft: {
+        type: 'task.claimed',
+        recordedAt: '2026-07-25T00:02:00.000Z',
+        recordedBy: { role: 'sarah' },
+        payload: {
+          taskId: 'task-01',
+          packetHash: 'f'.repeat(64),
+          mode: 'inline',
+          assigneeRole: 'dev',
+          branch: BRANCH,
+          startHead: HEAD,
+          basis: 'Test the first post-replacement mutation.',
+        },
+      },
+      graph: replacementGraph,
+      initiativeProjection: revisedProjection,
+      resolveGraph,
+      token: () => '9'.repeat(32),
+      hostname: () => 'test-host',
+      pid: 1234,
+    }),
+  );
+  const history = loadTaskHistory({
+    root,
+    initiativeId: ID,
+    graph: replacementGraph,
+    initiativeProjection: revisedProjection,
+    resolveGraph,
+  });
+  assert.equal(history.projection.activeClaim.taskId, 'task-01');
+  assert.equal(history.projection.sequence, 3);
 });
 
 void test('fails closed on corrupt, forked, symlinked, and unsupported ledger entries', (t) => {

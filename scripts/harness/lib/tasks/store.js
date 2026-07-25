@@ -164,7 +164,13 @@ function inspectTaskFiles({
 }) {
   const paths = taskPaths(root, initiativeId);
   if (!exists(paths.eventsPath, fsImpl)) {
-    return { events: [], paths: [], projection: undefined, runtimeEntries: [] };
+    return {
+      activationGraph: graph,
+      events: [],
+      paths: [],
+      projection: undefined,
+      runtimeEntries: [],
+    };
   }
   const stats = fsImpl.lstatSync(paths.eventsPath);
   if (stats.isSymbolicLink() || !stats.isDirectory()) {
@@ -236,6 +242,7 @@ function inspectTaskFiles({
           resolveGraph,
         });
   return {
+    activationGraph,
     events,
     paths: records.map((record) => record.path),
     projection,
@@ -419,7 +426,7 @@ function appendTaskEvent({
     validateTaskEventEnvelope(event);
     validateTaskEventPayload(event, { initiativeId });
     replayTaskEvents({
-      graph,
+      graph: history.activationGraph,
       events: [...history.events, event],
       initiativeProjection,
       resolveGraph,
