@@ -1,0 +1,326 @@
+const { hashCanonicalObject } = require('../workflow/canonical');
+const { validateTaskEventEnvelope, validateTaskEventPayload } = require('./schema');
+
+function compareCodeUnits(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function sameArtifact(left, right) {
+  return left?.path === right?.path && left?.sha256 === right?.sha256;
+}
+
+function hasInitiativeBlockers(projection) {
+  if (projection.openBlockers instanceof Map) return projection.openBlockers.size > 0;
+  return Object.keys(projection.openBlockers ?? {}).length > 0;
+}
+
+function requireGraphBundle(graph, payload, initiativeProjection, label) {
+  if (payload.graphHash !== graph.graphHash) {
+    throw new Error(`${label} graph hash does not match the resolved graph`);
+  }
+  if (!sameArtifact(payload.plan, graph.plan)) {
+    throw new Error(`${label} plan does not match the graph plan reference`);
+  }
+  if (payload.branch !== initiativeProjection.initiative.branch) {
+    throw new Error(`${label} branch does not match the initiative branch`);
+  }
+  if (payload.baseSha !== initiativeProjection.initiative.baseSha) {
+    throw new Error(`${label} base SHA does not match the initiative base SHA`);
+  }
+  if (!sameArtifact(payload.spec, initiativeProjection.spec.current)) {
+    throw new Error(`${label} spec does not match the signed initiative spec`);
+  }
+}
+
+function requireInitiativeReference(payload, initiativeProjection, label) {
+  if (payload.initiative.sequence > initiativeProjection.sequence) {
+    throw new Error(`${label} initiative reference is ahead of current initiative state`);
+  }
+  if (
+    payload.initiative.sequence === initiativeProjection.sequence &&
+    payload.initiative.eventHash !== initiativeProjection.latestEvent.eventHash
+  ) {
+    throw new Error(`${label} initiative reference hash is stale`);
+  }
+}
+
+function prepareEvents(events, initiativeId) {
+  if (!Array.isArray(events) || events.length === 0) {
+    throw new Error('Task ledger must contain an activation event');
+  }
+  const ordered = [...events].sort((left, right) => left.sequence - right.sequence);
+  const hashes = new Set();
+  for (const [index, event] of ordered.entries()) {
+    validateTaskEventEnvelope(event);
+    validateTaskEventPayload(event, { initiativeId });
+    if (event.eventHash !== hashCanonicalObject(event, 'eventHash')) {
+      throw new Error(`Task event ${event.sequence} hash mismatch`);
+    }
+    if (event.sequence !== index + 1) {
+      throw new Error(
+        `Task ledger must be contiguous: expected sequence ${index + 1}, received ${event.sequence}`,
+      );
+    }
+    if (hashes.has(event.eventHash)) {
+      throw new Error(`Task ledger has duplicate event hash ${event.eventHash}`);
+    }
+    hashes.add(event.eventHash);
+    if (index > 0) {
+      const parent = ordered[index - 1];
+      if (
+        event.parent.sequence !== parent.sequence ||
+        event.parent.eventHash !== parent.eventHash
+      ) {
+        throw new Error(`Task event ${event.sequence} parent does not match the prior event`);
+      }
+    }
+  }
+  return ordered;
+}
+
+function taskMap(graph) {
+  return new Map(graph.tasks.map((task) => [task.id, task]));
+}
+
+function dependencyComplete(task, completed) {
+  return task.dependsOn.every((dependency) => completed.has(dependency));
+}
+
+function deriveReadyTaskIds(graph, completed, blockers, activeClaim, suppressReady = false) {
+  if (suppressReady || activeClaim) return [];
+  return graph.tasks
+    .filter(
+      (task) =>
+        !completed.has(task.id) && !blockers.has(task.id) && dependencyComplete(task, completed),
+    )
+    .map((task) => task.id)
+    .sort(compareCodeUnits);
+}
+
+function deriveParallelReadyGroups(readyTaskIds) {
+  return readyTaskIds.length > 1 ? [readyTaskIds] : [];
+}
+
+function requireCurrentTask(byId, taskId) {
+  const task = byId.get(taskId);
+  if (!task) throw new Error(`Task event references unknown current task ${taskId}`);
+  return task;
+}
+
+function requireClaim(activeClaim, payload) {
+  if (!activeClaim) throw new Error(`No active claim exists for ${payload.taskId}`);
+  if (activeClaim.taskId !== payload.taskId) {
+    throw new Error(`Active claim belongs to ${activeClaim.taskId}, not ${payload.taskId}`);
+  }
+  if (activeClaim.packetHash !== payload.packetHash) {
+    throw new Error('Task outcome packet hash does not match the active claim');
+  }
+  if (activeClaim.eventHash !== payload.claimEventHash) {
+    throw new Error('Task outcome claim event hash does not match the active claim');
+  }
+}
+
+function completionFromPayload(payload, eventHash, { bootstrap = false } = {}) {
+  return {
+    taskId: payload.taskId,
+    startHead: payload.startHead,
+    endHead: payload.endHead,
+    changedPaths: payload.changedPaths,
+    summary: payload.summary,
+    checks: payload.checks,
+    eventHash,
+    bootstrap,
+  };
+}
+
+function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph }) {
+  if (initiativeProjection.initiative?.id !== graph.initiativeId) {
+    throw new Error('Task graph initiative does not match initiative projection');
+  }
+  const ordered = prepareEvents(events, graph.initiativeId);
+  let currentGraph = graph;
+  let byId = taskMap(currentGraph);
+  let activeClaim;
+  let latestFailure;
+  const completed = new Map();
+  const blockers = new Map();
+  const supersededTasks = new Map();
+
+  for (const event of ordered) {
+    const payload = event.payload;
+    switch (event.type) {
+      case 'task_graph.activated': {
+        if (event.sequence !== 1) throw new Error('Task graph activation must be the root event');
+        if (initiativeProjection.phase !== 'execution') {
+          throw new Error('Task graph activation requires initiative execution phase');
+        }
+        requireInitiativeReference(payload, initiativeProjection, 'Task graph activation');
+        requireGraphBundle(currentGraph, payload, initiativeProjection, 'Task graph activation');
+        if (
+          !sameArtifact(payload.plan, initiativeProjection.plan.current) ||
+          !sameArtifact(payload.taskGraph, initiativeProjection.plan.taskGraph)
+        ) {
+          throw new Error('Task graph activation does not match the approved plan bundle');
+        }
+        for (const imported of payload.bootstrapCompletions) {
+          requireCurrentTask(byId, imported.taskId);
+          if (!dependencyComplete(byId.get(imported.taskId), completed)) {
+            throw new Error(`Bootstrap completion ${imported.taskId} has incomplete dependencies`);
+          }
+          completed.set(
+            imported.taskId,
+            completionFromPayload(imported, event.eventHash, { bootstrap: true }),
+          );
+        }
+        break;
+      }
+      case 'task.claimed': {
+        requireCurrentTask(byId, payload.taskId);
+        if (activeClaim)
+          throw new Error(`An active claim already exists for ${activeClaim.taskId}`);
+        const ready = deriveReadyTaskIds(
+          currentGraph,
+          completed,
+          blockers,
+          undefined,
+          hasInitiativeBlockers(initiativeProjection),
+        );
+        if (!ready.includes(payload.taskId)) {
+          throw new Error(`Task ${payload.taskId} is not ready to claim`);
+        }
+        activeClaim = { ...payload, eventHash: event.eventHash, sequence: event.sequence };
+        break;
+      }
+      case 'task.completed': {
+        const task = requireCurrentTask(byId, payload.taskId);
+        requireClaim(activeClaim, payload);
+        if (!dependencyComplete(task, completed)) {
+          throw new Error(`Task ${task.id} dependencies are no longer completed`);
+        }
+        completed.set(task.id, completionFromPayload(payload, event.eventHash));
+        activeClaim = undefined;
+        latestFailure = undefined;
+        break;
+      }
+      case 'task.failed':
+        requireCurrentTask(byId, payload.taskId);
+        requireClaim(activeClaim, payload);
+        activeClaim = undefined;
+        latestFailure = { ...payload, eventHash: event.eventHash };
+        break;
+      case 'task.blocked':
+        requireCurrentTask(byId, payload.taskId);
+        if (completed.has(payload.taskId)) {
+          throw new Error(`Completed task ${payload.taskId} cannot be blocked`);
+        }
+        if (activeClaim && activeClaim.taskId === payload.taskId) activeClaim = undefined;
+        if (blockers.has(payload.taskId))
+          throw new Error(`Task ${payload.taskId} is already blocked`);
+        blockers.set(payload.taskId, { ...payload, eventHash: event.eventHash });
+        break;
+      case 'task.unblocked':
+        requireCurrentTask(byId, payload.taskId);
+        if (!blockers.has(payload.taskId)) {
+          throw new Error(`Task ${payload.taskId} is not blocked`);
+        }
+        blockers.delete(payload.taskId);
+        break;
+      case 'task.released':
+        requireCurrentTask(byId, payload.taskId);
+        requireClaim(activeClaim, payload);
+        activeClaim = undefined;
+        break;
+      case 'task_graph.replaced': {
+        if (activeClaim)
+          throw new Error('Task graph cannot be replaced while an active claim exists');
+        if (payload.previousGraphHash !== currentGraph.graphHash) {
+          throw new Error('Task graph replacement previous hash is stale');
+        }
+        for (const task of currentGraph.tasks) {
+          supersededTasks.set(task.id, { ...task, state: 'superseded' });
+        }
+        const replacement = resolveGraph?.(payload.graphHash);
+        if (!replacement) throw new Error(`Cannot resolve replacement graph ${payload.graphHash}`);
+        currentGraph = replacement;
+        byId = taskMap(currentGraph);
+        completed.clear();
+        blockers.clear();
+        latestFailure = undefined;
+        requireInitiativeReference(payload, initiativeProjection, 'Task graph replacement');
+        requireGraphBundle(currentGraph, payload, initiativeProjection, 'Task graph replacement');
+        for (const imported of payload.bootstrapCompletions) {
+          requireCurrentTask(byId, imported.taskId);
+          if (!dependencyComplete(byId.get(imported.taskId), completed)) {
+            throw new Error(
+              `Replacement completion ${imported.taskId} has incomplete dependencies`,
+            );
+          }
+          completed.set(
+            imported.taskId,
+            completionFromPayload(imported, event.eventHash, { bootstrap: true }),
+          );
+        }
+        break;
+      }
+      default:
+        throw new Error(`Unknown task event type: ${event.type}`);
+    }
+  }
+
+  const suppressReady = hasInitiativeBlockers(initiativeProjection);
+  const readyTaskIds = deriveReadyTaskIds(
+    currentGraph,
+    completed,
+    blockers,
+    activeClaim,
+    suppressReady,
+  );
+  const tasks = Object.create(null);
+  for (const [taskId, task] of supersededTasks) tasks[taskId] = task;
+  for (const task of currentGraph.tasks) {
+    let state;
+    if (completed.has(task.id)) state = 'completed';
+    else if (blockers.has(task.id)) state = 'blocked';
+    else if (activeClaim?.taskId === task.id) state = 'claimed';
+    else if (!dependencyComplete(task, completed)) state = 'pending';
+    else state = suppressReady || activeClaim ? 'pending' : 'ready';
+    tasks[task.id] = {
+      ...task,
+      state,
+      completion: completed.get(task.id),
+      blocker: blockers.get(task.id),
+    };
+  }
+  const allCompleted =
+    currentGraph.tasks.length > 0 && currentGraph.tasks.every((task) => completed.has(task.id));
+
+  return Object.freeze({
+    schemaVersion: 1,
+    initiativeId: currentGraph.initiativeId,
+    graph: currentGraph,
+    graphHash: currentGraph.graphHash,
+    sequence: ordered.at(-1).sequence,
+    latestEvent: ordered.at(-1),
+    tasks,
+    readyTaskIds,
+    parallelReadyGroups: deriveParallelReadyGroups(readyTaskIds),
+    activeClaim,
+    blockers: Object.fromEntries(
+      [...blockers.entries()].sort(([left], [right]) => compareCodeUnits(left, right)),
+    ),
+    completions: Object.fromEntries(
+      [...completed.entries()].sort(([left], [right]) => compareCodeUnits(left, right)),
+    ),
+    completedCount: completed.size,
+    totalCount: currentGraph.tasks.length,
+    latestFailure,
+    implementationReadyAllowed:
+      allCompleted && !activeClaim && blockers.size === 0 && !suppressReady,
+  });
+}
+
+module.exports = {
+  deriveParallelReadyGroups,
+  deriveReadyTaskIds,
+  replayTaskEvents,
+};
