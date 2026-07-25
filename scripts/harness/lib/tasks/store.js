@@ -159,6 +159,7 @@ function inspectTaskFiles({
   initiativeId,
   graph,
   initiativeProjection,
+  initiativeSnapshots,
   resolveGraph,
   fsImpl,
 }) {
@@ -239,6 +240,7 @@ function inspectTaskFiles({
           graph: activationGraph,
           events,
           initiativeProjection,
+          initiativeSnapshots,
           resolveGraph,
         });
   return {
@@ -255,6 +257,7 @@ function loadTaskHistory({
   initiativeId,
   graph,
   initiativeProjection,
+  initiativeSnapshots,
   resolveGraph,
   fsImpl = fs,
 }) {
@@ -265,6 +268,7 @@ function loadTaskHistory({
     initiativeId,
     graph,
     initiativeProjection,
+    initiativeSnapshots,
     resolveGraph,
     fsImpl,
   });
@@ -300,15 +304,6 @@ function parseLock(bytes) {
   return lock;
 }
 
-function syncDirectory(directory, fsImpl) {
-  const descriptor = fsImpl.openSync(directory, fsImpl.constants.O_RDONLY);
-  try {
-    fsImpl.fsyncSync(descriptor);
-  } finally {
-    fsImpl.closeSync(descriptor);
-  }
-}
-
 function unlinkOwned(target, identity, fsImpl) {
   if (!identity || !exists(target, fsImpl)) return false;
   const current = fsImpl.lstatSync(target);
@@ -317,6 +312,105 @@ function unlinkOwned(target, identity, fsImpl) {
   }
   fsImpl.unlinkSync(target);
   return true;
+}
+
+function fileIdentity(stats) {
+  return {
+    dev: stats.dev,
+    ino: stats.ino,
+    size: stats.size,
+    mtimeMs: stats.mtimeMs,
+  };
+}
+
+function closeBestEffort(descriptor, fsImpl) {
+  if (descriptor === undefined) return undefined;
+  try {
+    fsImpl.closeSync(descriptor);
+    return undefined;
+  } catch (error) {
+    return error;
+  }
+}
+
+function syncDirectory(directory, fsImpl, phase = 'operation') {
+  let descriptor;
+  try {
+    descriptor = fsImpl.openSync(directory, fsImpl.constants.O_RDONLY);
+  } catch (error) {
+    const wrapped = new Error(`Task ${phase} directory open failed: ${error.message}`, {
+      cause: error,
+    });
+    wrapped.directorySynced = false;
+    throw wrapped;
+  }
+  let syncFailure;
+  try {
+    fsImpl.fsyncSync(descriptor);
+  } catch (error) {
+    syncFailure = error;
+  }
+  const closeFailure = closeBestEffort(descriptor, fsImpl);
+  if (syncFailure && closeFailure) {
+    const combined = new AggregateError(
+      [syncFailure, closeFailure],
+      `Task ${phase} directory fsync and close failed: ${syncFailure.message}; ${closeFailure.message}`,
+    );
+    combined.directorySynced = false;
+    throw combined;
+  }
+  if (syncFailure) {
+    const wrapped = new Error(`Task ${phase} directory fsync failed: ${syncFailure.message}`, {
+      cause: syncFailure,
+    });
+    wrapped.directorySynced = false;
+    throw wrapped;
+  }
+  if (closeFailure) {
+    const wrapped = new Error(`Task ${phase} directory close failed: ${closeFailure.message}`, {
+      cause: closeFailure,
+    });
+    wrapped.directorySynced = true;
+    throw wrapped;
+  }
+}
+
+function appendFailure(primary, cleanupFailures, installed, commitDurable, finalPath) {
+  const failures = [primary, ...cleanupFailures].filter(Boolean);
+  let failure;
+  if (failures.length > 1) {
+    failure = new AggregateError(
+      failures,
+      `Task append failed with ${failures.length} errors: ${failures
+        .map((error) => error.message)
+        .join('; ')}`,
+    );
+  } else {
+    [failure] = failures;
+  }
+  if (installed && !commitDurable) {
+    const uncertain = new Error(
+      `Task event was installed but durability is uncertain: ${failure.message}`,
+      { cause: failure },
+    );
+    uncertain.durableUncertain = true;
+    uncertain.committedPath = finalPath;
+    if (failure instanceof AggregateError) uncertain.errors = failure.errors;
+    return uncertain;
+  }
+  if (commitDurable) failure.committedPath = finalPath;
+  return failure;
+}
+
+function recoveryDetails(initiativeId, token, paths, residuePaths) {
+  return {
+    initiativeId,
+    token,
+    lockPath: paths.lockRelative,
+    tempPath: paths.tempRelative,
+    residuePaths,
+    command: `npm run workflow -- tasks recover --id ${initiativeId} --token ${token}`,
+  };
 }
 
 function requireDraft(draft) {
@@ -342,6 +436,7 @@ function appendTaskEvent({
   draft,
   graph,
   initiativeProjection,
+  initiativeSnapshots,
   resolveGraph,
   validateCurrent,
   fsImpl = fs,
@@ -368,7 +463,11 @@ function appendTaskEvent({
   let ownsLock = false;
   let ownsTemp = false;
   let installed = false;
+  let commitDurable = false;
   let finalPath;
+  let result;
+  let failure;
+  const cleanupFailures = [];
 
   try {
     try {
@@ -390,18 +489,19 @@ function appendTaskEvent({
     };
     const lockBytes = canonicalStringify(lock);
     parseLock(Buffer.from(lockBytes));
+    lockIdentity = fileIdentity(fsImpl.fstatSync(lockDescriptor));
     fsImpl.writeFileSync(lockDescriptor, lockBytes);
     fsImpl.fsyncSync(lockDescriptor);
-    lockIdentity = fsImpl.fstatSync(lockDescriptor);
     fsImpl.closeSync(lockDescriptor);
     lockDescriptor = undefined;
-    syncDirectory(paths.eventsPath, fsImpl);
+    syncDirectory(paths.eventsPath, fsImpl, 'lock persistence');
 
     const history = inspectTaskFiles({
       root,
       initiativeId,
       graph,
       initiativeProjection,
+      initiativeSnapshots,
       resolveGraph,
       fsImpl,
     });
@@ -429,6 +529,7 @@ function appendTaskEvent({
       graph: history.activationGraph,
       events: [...history.events, event],
       initiativeProjection,
+      initiativeSnapshots,
       resolveGraph,
     });
 
@@ -439,9 +540,9 @@ function appendTaskEvent({
     );
     tempDescriptor = fsImpl.openSync(runtime.tempPath, 'wx');
     ownsTemp = true;
+    tempIdentity = fileIdentity(fsImpl.fstatSync(tempDescriptor));
     fsImpl.writeFileSync(tempDescriptor, bytes);
     fsImpl.fsyncSync(tempDescriptor);
-    tempIdentity = fsImpl.fstatSync(tempDescriptor);
     fsImpl.closeSync(tempDescriptor);
     tempDescriptor = undefined;
     fsImpl.linkSync(runtime.tempPath, finalPath);
@@ -449,24 +550,111 @@ function appendTaskEvent({
     if (!sameInode(tempIdentity, fsImpl.lstatSync(finalPath))) {
       throw new Error('Installed task event does not match the temporary file identity');
     }
-    syncDirectory(paths.eventsPath, fsImpl);
+    try {
+      syncDirectory(paths.eventsPath, fsImpl, 'final commit');
+      commitDurable = true;
+    } catch (error) {
+      if (error.directorySynced) commitDurable = true;
+      throw error;
+    }
     if (!unlinkOwned(runtime.tempPath, tempIdentity, fsImpl)) {
+      ownsTemp = false;
       throw new Error('Task temporary file changed before cleanup');
     }
     ownsTemp = false;
-    syncDirectory(paths.eventsPath, fsImpl);
-    return { event, path: finalPath };
+    syncDirectory(paths.eventsPath, fsImpl, 'temporary cleanup');
+    result = { event, path: finalPath };
+  } catch (error) {
+    failure = error;
   } finally {
-    if (lockDescriptor !== undefined) fsImpl.closeSync(lockDescriptor);
-    if (tempDescriptor !== undefined) fsImpl.closeSync(tempDescriptor);
-    if (ownsTemp && !installed && unlinkOwned(runtime.tempPath, tempIdentity, fsImpl)) {
-      ownsTemp = false;
+    if (ownsTemp && !tempIdentity && tempDescriptor !== undefined) {
+      try {
+        tempIdentity = fileIdentity(fsImpl.fstatSync(tempDescriptor));
+      } catch (error) {
+        cleanupFailures.push(error);
+      }
     }
+    const tempCloseFailure = closeBestEffort(tempDescriptor, fsImpl);
+    if (tempCloseFailure) cleanupFailures.push(tempCloseFailure);
+    tempDescriptor = undefined;
+    if (ownsTemp && tempIdentity) {
+      try {
+        const removed = unlinkOwned(runtime.tempPath, tempIdentity, fsImpl);
+        if (removed || !exists(runtime.tempPath, fsImpl)) {
+          ownsTemp = false;
+        } else {
+          ownsTemp = false;
+          cleanupFailures.push(new Error('Task temporary file changed before cleanup'));
+        }
+      } catch (error) {
+        cleanupFailures.push(error);
+      }
+    }
+    if (ownsLock && !lockIdentity && lockDescriptor !== undefined) {
+      try {
+        lockIdentity = fileIdentity(fsImpl.fstatSync(lockDescriptor));
+      } catch (error) {
+        cleanupFailures.push(error);
+      }
+    }
+    const lockCloseFailure = closeBestEffort(lockDescriptor, fsImpl);
+    if (lockCloseFailure) cleanupFailures.push(lockCloseFailure);
+    lockDescriptor = undefined;
     if (ownsLock && lockIdentity && !ownsTemp) {
-      unlinkOwned(paths.lockPath, lockIdentity, fsImpl);
-      syncDirectory(paths.eventsPath, fsImpl);
+      try {
+        const removed = unlinkOwned(paths.lockPath, lockIdentity, fsImpl);
+        if (removed || !exists(paths.lockPath, fsImpl)) {
+          ownsLock = false;
+          syncDirectory(paths.eventsPath, fsImpl, 'lock cleanup');
+        } else {
+          ownsLock = false;
+          cleanupFailures.push(new Error('Task lock changed before cleanup'));
+        }
+      } catch (error) {
+        cleanupFailures.push(error);
+      }
     }
   }
+  if (failure || cleanupFailures.length > 0) {
+    const residuePaths = [
+      ...(ownsTemp && exists(runtime.tempPath, fsImpl) ? [runtime.tempRelative] : []),
+      ...(ownsLock && exists(paths.lockPath, fsImpl) ? [paths.lockRelative] : []),
+    ];
+    const combined = appendFailure(failure, cleanupFailures, installed, commitDurable, finalPath);
+    if (residuePaths.length > 0) {
+      try {
+        const preflight = recoverTaskRuntimeFiles({
+          root,
+          initiativeId,
+          token: recoveryToken,
+          graph,
+          initiativeProjection,
+          initiativeSnapshots,
+          resolveGraph,
+          fsImpl,
+          hostname: () => undefined,
+          isProcessAlive: () => false,
+          dryRun: true,
+        });
+        if (
+          preflight.status !== 'dry_run' ||
+          preflight.wouldRemove.length !== residuePaths.length ||
+          preflight.wouldRemove.some((entry, index) => entry !== residuePaths[index])
+        ) {
+          throw new Error('Task recovery preflight does not match owned runtime residue');
+        }
+        combined.recovery = recoveryDetails(initiativeId, recoveryToken, runtime, residuePaths);
+      } catch (error) {
+        combined.manualIntervention = {
+          status: 'manual_intervention_required',
+          residuePaths,
+          causes: [combined.message, error.message],
+        };
+      }
+    }
+    throw combined;
+  }
+  return result;
 }
 
 function defaultIsProcessAlive(pid) {
@@ -484,6 +672,7 @@ function recoverTaskRuntimeFiles({
   token,
   graph,
   initiativeProjection,
+  initiativeSnapshots,
   resolveGraph,
   fsImpl = fs,
   hostname = os.hostname,
@@ -502,6 +691,7 @@ function recoverTaskRuntimeFiles({
     initiativeId,
     graph,
     initiativeProjection,
+    initiativeSnapshots,
     resolveGraph,
     fsImpl,
   });

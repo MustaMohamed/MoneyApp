@@ -71,6 +71,7 @@ function taskProjection(overrides = {}) {
     completions: {},
     completedCount: 0,
     totalCount: 1,
+    accountedHead: initiativeProjection.initiative.baseSha,
     implementationReadyAllowed: false,
     tasks: { 'task-01': { ...task, state: 'ready' } },
     ...overrides,
@@ -163,7 +164,13 @@ void test('activates the approved graph with one Tariq root event', async () => 
 });
 
 void test('claims only the exact current packet and records start revision', async () => {
-  const fixture = harness();
+  let observedExpectedHead;
+  const fixture = harness({
+    collectTaskStartRevision(root, branch, options) {
+      observedExpectedHead = options?.expectedHead;
+      return { branch: BRANCH, startHead: START };
+    },
+  });
   const packet = createTaskPacket(fixture.context, 'task-01');
   assert.equal(
     await execute(fixture, [
@@ -186,6 +193,7 @@ void test('claims only the exact current packet and records start revision', asy
     0,
   );
   assert.equal(fixture.appended.length, 1);
+  assert.equal(observedExpectedHead, initiativeProjection.initiative.baseSha);
   assert.deepEqual(fixture.appended[0].draft.payload, {
     taskId: 'task-01',
     packetHash: packet.packetHash,
@@ -355,7 +363,7 @@ void test('records fail, block, unblock, and release as Sarah events', async () 
         '--reason',
         'Architecture decision required.',
         '--critical-trigger',
-        'true',
+        'false',
       ],
       'task.blocked',
       taskProjection(),
@@ -413,6 +421,82 @@ void test('records fail, block, unblock, and release as Sarah events', async () 
     assert.equal(fixture.appended[0].draft.type, eventType);
     assert.equal(fixture.appended[0].draft.recordedBy.role, 'sarah');
   }
+});
+
+void test('requires an initiative blocker before recording a critical task blocker', async () => {
+  const fixture = harness();
+  assert.equal(
+    await execute(fixture, [
+      'block',
+      '--id',
+      ID,
+      '--task',
+      'task-01',
+      '--expected-sequence',
+      '1',
+      '--owner',
+      'tariq',
+      '--reason',
+      'Critical architecture decision required.',
+      '--critical-trigger',
+      'true',
+    ]),
+    1,
+  );
+  assert.equal(fixture.appended.length, 0);
+  assert.match(fixture.stderr.value(), /initiative blocker.*critical task blocker/i);
+});
+
+void test('rejects task graph replacement outside execution and rejects the active graph', async () => {
+  const outsideExecution = harness();
+  outsideExecution.options.loadTaskContext = () => ({
+    ...outsideExecution.context,
+    initiativeProjection: { ...initiativeProjection, phase: 'integration_ready' },
+  });
+  outsideExecution.options.loadInitiativeContext = () => ({
+    graph,
+    initiativeProjection: { ...initiativeProjection, phase: 'integration_ready' },
+    taskHistory: { events: [], projection: undefined },
+    limits: LIMITS,
+  });
+  assert.equal(
+    await execute(outsideExecution, [
+      'replace',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '1',
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--reason',
+      'Attempt to reopen an accepted delivery.',
+    ]),
+    1,
+  );
+  assert.match(outsideExecution.stderr.value(), /replacement requires initiative execution phase/i);
+  assert.equal(outsideExecution.appended.length, 0);
+
+  const sameGraph = harness();
+  assert.equal(
+    await execute(sameGraph, [
+      'replace',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '1',
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--reason',
+      'Attempt to reset the same graph.',
+    ]),
+    1,
+  );
+  assert.match(sameGraph.stderr.value(), /replacement graph must differ/i);
+  assert.equal(sameGraph.appended.length, 0);
 });
 
 void test('validates replacement bootstrap completions before appending', async () => {

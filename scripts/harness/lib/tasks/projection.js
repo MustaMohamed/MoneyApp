@@ -14,34 +14,53 @@ function hasInitiativeBlockers(projection) {
   return Object.keys(projection.openBlockers ?? {}).length > 0;
 }
 
-function requireGraphBundle(graph, payload, initiativeProjection, label) {
+function requireGraphBundle(graph, payload, initiativeSnapshot, label) {
   if (payload.graphHash !== graph.graphHash) {
     throw new Error(`${label} graph hash does not match the resolved graph`);
   }
   if (!sameArtifact(payload.plan, graph.plan)) {
     throw new Error(`${label} plan does not match the graph plan reference`);
   }
-  if (payload.branch !== initiativeProjection.initiative.branch) {
+  if (payload.branch !== initiativeSnapshot.initiative.branch) {
     throw new Error(`${label} branch does not match the initiative branch`);
   }
-  if (payload.baseSha !== initiativeProjection.initiative.baseSha) {
+  if (payload.baseSha !== initiativeSnapshot.initiative.baseSha) {
     throw new Error(`${label} base SHA does not match the initiative base SHA`);
   }
-  if (!sameArtifact(payload.spec, initiativeProjection.spec.current)) {
+  if (!sameArtifact(payload.spec, initiativeSnapshot.spec.current)) {
     throw new Error(`${label} spec does not match the signed initiative spec`);
+  }
+  if (!initiativeSnapshot.spec.signed) {
+    throw new Error(`${label} initiative spec is not signed`);
+  }
+  if (
+    !initiativeSnapshot.plan?.approved ||
+    !sameArtifact(payload.plan, initiativeSnapshot.plan.current) ||
+    !sameArtifact(payload.taskGraph, initiativeSnapshot.plan.taskGraph)
+  ) {
+    throw new Error(`${label} does not match the approved initiative plan bundle`);
   }
 }
 
-function requireInitiativeReference(payload, initiativeProjection, label) {
-  if (payload.initiative.sequence > initiativeProjection.sequence) {
-    throw new Error(`${label} initiative reference is ahead of current initiative state`);
-  }
+function requireInitiativeReference(payload, initiativeProjection, initiativeSnapshots, label) {
+  const current = initiativeProjection.latestEvent;
   if (
     payload.initiative.sequence === initiativeProjection.sequence &&
-    payload.initiative.eventHash !== initiativeProjection.latestEvent.eventHash
+    payload.initiative.eventHash === current.eventHash
   ) {
-    throw new Error(`${label} initiative reference hash is stale`);
+    return initiativeProjection;
   }
+  const snapshot = initiativeSnapshots?.get(payload.initiative.eventHash);
+  if (
+    !snapshot ||
+    snapshot.sequence !== payload.initiative.sequence ||
+    snapshot.latestEvent?.eventHash !== payload.initiative.eventHash
+  ) {
+    throw new Error(
+      `${label} initiative reference does not match an exact historical initiative event`,
+    );
+  }
+  return snapshot;
 }
 
 function prepareEvents(events, initiativeId) {
@@ -133,7 +152,13 @@ function completionFromPayload(payload, eventHash, { bootstrap = false } = {}) {
   };
 }
 
-function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph }) {
+function replayTaskEvents({
+  graph,
+  events,
+  initiativeProjection,
+  initiativeSnapshots,
+  resolveGraph,
+}) {
   if (initiativeProjection.initiative?.id !== graph.initiativeId) {
     throw new Error('Task graph initiative does not match initiative projection');
   }
@@ -145,6 +170,7 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
   const completed = new Map();
   const blockers = new Map();
   const supersededTasks = new Map();
+  let accountedHead = initiativeProjection.initiative.baseSha;
 
   for (const event of ordered) {
     const payload = event.payload;
@@ -153,8 +179,16 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
         if (event.sequence !== 1) throw new Error('Task graph activation must be the root event');
         // Activation phase is enforced before append. Replay may occur after the
         // initiative has advanced to validation or integration readiness.
-        requireInitiativeReference(payload, initiativeProjection, 'Task graph activation');
-        requireGraphBundle(currentGraph, payload, initiativeProjection, 'Task graph activation');
+        const snapshot = requireInitiativeReference(
+          payload,
+          initiativeProjection,
+          initiativeSnapshots,
+          'Task graph activation',
+        );
+        if (snapshot.phase !== 'execution') {
+          throw new Error('Task graph activation requires initiative execution phase');
+        }
+        requireGraphBundle(currentGraph, payload, snapshot, 'Task graph activation');
         for (const imported of payload.bootstrapCompletions) {
           requireCurrentTask(byId, imported.taskId);
           if (!dependencyComplete(byId.get(imported.taskId), completed)) {
@@ -164,6 +198,7 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
             imported.taskId,
             completionFromPayload(imported, event.eventHash, { bootstrap: true }),
           );
+          accountedHead = imported.endHead;
         }
         break;
       }
@@ -176,12 +211,14 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
           completed,
           blockers,
           undefined,
-          hasInitiativeBlockers(initiativeProjection),
+          hasInitiativeBlockers(initiativeProjection) ||
+            [...blockers.values()].some((blocker) => blocker.criticalTrigger),
         );
         if (!ready.includes(payload.taskId)) {
           throw new Error(`Task ${payload.taskId} is not ready to claim`);
         }
         activeClaim = { ...payload, eventHash: event.eventHash, sequence: event.sequence };
+        accountedHead = payload.startHead;
         break;
       }
       case 'task.completed': {
@@ -191,6 +228,7 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
           throw new Error(`Task ${task.id} dependencies are no longer completed`);
         }
         completed.set(task.id, completionFromPayload(payload, event.eventHash));
+        accountedHead = payload.endHead;
         activeClaim = undefined;
         latestFailure = undefined;
         break;
@@ -239,8 +277,16 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
         completed.clear();
         blockers.clear();
         latestFailure = undefined;
-        requireInitiativeReference(payload, initiativeProjection, 'Task graph replacement');
-        requireGraphBundle(currentGraph, payload, initiativeProjection, 'Task graph replacement');
+        const snapshot = requireInitiativeReference(
+          payload,
+          initiativeProjection,
+          initiativeSnapshots,
+          'Task graph replacement',
+        );
+        if (snapshot.phase !== 'execution') {
+          throw new Error('Task graph replacement requires initiative execution phase');
+        }
+        requireGraphBundle(currentGraph, payload, snapshot, 'Task graph replacement');
         for (const imported of payload.bootstrapCompletions) {
           requireCurrentTask(byId, imported.taskId);
           if (!dependencyComplete(byId.get(imported.taskId), completed)) {
@@ -252,6 +298,7 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
             imported.taskId,
             completionFromPayload(imported, event.eventHash, { bootstrap: true }),
           );
+          accountedHead = imported.endHead;
         }
         break;
       }
@@ -260,7 +307,9 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
     }
   }
 
-  const suppressReady = hasInitiativeBlockers(initiativeProjection);
+  const suppressReady =
+    hasInitiativeBlockers(initiativeProjection) ||
+    [...blockers.values()].some((blocker) => blocker.criticalTrigger);
   const readyTaskIds = deriveReadyTaskIds(
     currentGraph,
     completed,
@@ -306,6 +355,7 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
     ),
     completedCount: completed.size,
     totalCount: currentGraph.tasks.length,
+    accountedHead,
     latestFailure,
     implementationReadyAllowed:
       allCompleted && !activeClaim && blockers.size === 0 && !suppressReady,

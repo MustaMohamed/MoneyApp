@@ -8,7 +8,10 @@ const { matchesScope } = require('./path_scope');
 
 const EVIDENCE_PREFIXES = Object.freeze([
   'docs/superpowers/initiatives/',
+  'docs/superpowers/plans/',
   'docs/superpowers/reviews/',
+  'docs/superpowers/specs/',
+  'docs/superpowers/task-graphs/',
   'docs/superpowers/qa/',
 ]);
 const READ_ONLY_GIT_COMMANDS = new Set(['diff', 'merge-base', 'rev-parse', 'status']);
@@ -206,6 +209,53 @@ function collectTaskStartRevision(root, expectedBranch, options = {}) {
   assertExpectedBranch(branch, expectedBranch);
   const startHead = readHead(root, options);
   assertDeliveryClean(root, options);
+  if (options.expectedHead !== undefined) {
+    if (!HEX_40.test(options.expectedHead)) {
+      throw new Error(
+        'Accounted task checkpoint must be a 40-character lowercase hexadecimal commit',
+      );
+    }
+    if (startHead !== options.expectedHead) {
+      try {
+        runGit(root, ['merge-base', '--is-ancestor', options.expectedHead, startHead], options);
+      } catch (error) {
+        throw new Error('Current task start HEAD does not descend from the accounted checkpoint', {
+          cause: error,
+        });
+      }
+      const records = parseNameStatusZ(
+        runGit(
+          root,
+          [
+            'diff',
+            '--name-status',
+            '-z',
+            '--find-renames',
+            '--find-copies',
+            options.expectedHead,
+            startHead,
+            '--',
+          ],
+          options,
+        ),
+      );
+      const unaccounted = new Set();
+      for (const record of records) {
+        if (record.status.startsWith('R') && !isEvidencePath(record.sourcePath)) {
+          unaccounted.add(record.sourcePath);
+        }
+        if (!isEvidencePath(record.destinationPath)) {
+          unaccounted.add(record.destinationPath);
+        }
+      }
+      const paths = [...unaccounted].sort(comparePaths);
+      if (paths.length > 0) {
+        throw new Error(
+          `Unaccounted committed delivery paths are not allowed: ${JSON.stringify(paths)}`,
+        );
+      }
+    }
+  }
   return Object.freeze({ branch, startHead });
 }
 

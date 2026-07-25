@@ -3,6 +3,7 @@ const {
   validateArtifactReference: validateArtifactReferenceDefault,
 } = require('../workflow/evidence');
 const { loadEventHistory: loadEventHistoryDefault } = require('../workflow/store');
+const { replayEvents } = require('../workflow/projection');
 const {
   collectTaskCompletionRevision: collectTaskCompletionRevisionDefault,
   collectTaskStartRevision: collectTaskStartRevisionDefault,
@@ -220,12 +221,19 @@ function defaultContextLoaders(options) {
     });
   }
 
-  function loadInitiativeProjection(initiativeId) {
+  function loadInitiativeState(initiativeId) {
     const history = loadEventHistory({ root, initiativeId, machine });
     validateInitiative(history.projection, initiativeId);
     validateArtifactReference(root, history.projection.spec.current);
     validateArtifactReference(root, history.projection.plan.current);
-    return history.projection;
+    const initiativeSnapshots = new Map();
+    for (const [index, event] of (history.events ?? []).entries()) {
+      initiativeSnapshots.set(
+        event.eventHash,
+        replayEvents(machine, history.events.slice(0, index + 1)),
+      );
+    }
+    return { initiativeProjection: history.projection, initiativeSnapshots };
   }
 
   function resolveGraph(initiativeId) {
@@ -239,7 +247,7 @@ function defaultContextLoaders(options) {
   }
 
   function loadInitiativeContext(initiativeId, relativeGraphPath) {
-    const initiativeProjection = loadInitiativeProjection(initiativeId);
+    const { initiativeProjection, initiativeSnapshots } = loadInitiativeState(initiativeId);
     if (
       relativeGraphPath !== undefined &&
       relativeGraphPath !== initiativeProjection.plan.taskGraph.path
@@ -257,11 +265,13 @@ function defaultContextLoaders(options) {
       initiativeId,
       graph,
       initiativeProjection,
+      initiativeSnapshots,
       resolveGraph: graphResolver,
     });
     return {
       graph,
       initiativeProjection,
+      initiativeSnapshots,
       taskHistory,
       limits,
       resolveGraph: graphResolver,
@@ -309,6 +319,7 @@ function appendResult(options, context, observedSequence, draft) {
     draft,
     graph: context.graph,
     initiativeProjection: context.initiativeProjection,
+    initiativeSnapshots: context.initiativeSnapshots,
     resolveGraph: context.resolveGraph,
   });
   const event = result.event ?? result;
@@ -512,6 +523,7 @@ async function runTaskCli(options) {
       const revision = (normalized.collectTaskStartRevision ?? collectTaskStartRevisionDefault)(
         normalized.root,
         context.initiativeProjection.initiative.branch,
+        { expectedHead: context.taskProjection.accountedHead },
       );
       return appendResult(normalized, context, observed, {
         type: 'task.claimed',
@@ -584,13 +596,22 @@ async function runTaskCli(options) {
         normalized,
         'task.blocked',
         ['owner', 'reason', 'critical-trigger'],
-        (flags) => {
+        (flags, context) => {
           if (!BLOCKER_OWNERS.has(flags.owner)) usage('--owner is invalid');
+          const criticalTrigger = requireBoolean(flags['critical-trigger'], '--critical-trigger');
+          if (
+            criticalTrigger &&
+            Object.keys(context.initiativeProjection.openBlockers ?? {}).length === 0
+          ) {
+            throw new Error(
+              'An initiative blocker must be opened before a critical task blocker is recorded',
+            );
+          }
           return {
             taskId: flags.task,
             owner: flags.owner,
             reason: flags.reason,
-            criticalTrigger: requireBoolean(flags['critical-trigger'], '--critical-trigger'),
+            criticalTrigger,
           };
         },
       );
@@ -656,10 +677,23 @@ async function runTaskCli(options) {
           `Stale expected initiative sequence: observed ${context.initiativeProjection.sequence}; received ${expectedInitiative}`,
         );
       }
+      if (context.initiativeProjection.phase !== 'execution') {
+        throw new Error('Task graph replacement requires initiative execution phase');
+      }
       const completions = flags['bootstrap-completions']
         ? parseCanonicalArgument(flags['bootstrap-completions'], '--bootstrap-completions')
         : [];
       validateBootstrapCompletions(normalized, context, completions);
+      if (context.graph.graphHash === previous.graph.graphHash) {
+        throw new Error('Task graph replacement graph must differ from the active graph');
+      }
+      const replacementCheckpoint =
+        completions.at(-1)?.endHead ?? previous.taskProjection.accountedHead;
+      (normalized.collectTaskStartRevision ?? collectTaskStartRevisionDefault)(
+        normalized.root,
+        context.initiativeProjection.initiative.branch,
+        { expectedHead: replacementCheckpoint },
+      );
       const resolveReplacementGraph = (graphHash, graphReference, planReference) => {
         if (
           graphHash === context.graph.graphHash &&
@@ -714,6 +748,8 @@ async function runTaskCli(options) {
         token: flags.token,
         graph: context.graph,
         initiativeProjection: context.initiativeProjection,
+        initiativeSnapshots: context.initiativeSnapshots,
+        resolveGraph: context.resolveGraph,
         dryRun: flags['dry-run'] === true,
       });
       stdout.write(canonicalStringify(result));

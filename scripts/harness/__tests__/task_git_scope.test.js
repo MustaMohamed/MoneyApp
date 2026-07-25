@@ -113,6 +113,49 @@ void test('collects a clean attached task start with direct read-only Git argume
   );
 });
 
+void test('rejects committed delivery changes between the accounted checkpoint and claim', (t) => {
+  const root = repositoryRoot(t);
+  const git = gitStub({
+    'diff --name-status -z --find-renames --find-copies': Buffer.from('M\0src/unaccounted.js\0'),
+  });
+
+  assert.throws(
+    () =>
+      collectTaskStartRevision(root, BRANCH, {
+        expectedHead: START,
+        runGit: git.runGit,
+      }),
+    /unaccounted committed delivery paths.*src\/unaccounted\.js/i,
+  );
+});
+
+void test('allows only harness evidence commits between the checkpoint and claim', (t) => {
+  const root = repositoryRoot(t);
+  const git = gitStub({
+    'diff --name-status -z --find-renames --find-copies': Buffer.from(
+      [
+        'M',
+        'docs/superpowers/initiatives/2026-07-25-example/task-events/event.json',
+        'M',
+        'docs/superpowers/specs/2026-07-25-example-design.md',
+        'M',
+        'docs/superpowers/plans/2026-07-25-example.md',
+        'M',
+        'docs/superpowers/task-graphs/2026-07-25-example.json',
+        '',
+      ].join('\0'),
+    ),
+  });
+
+  assert.deepEqual(
+    collectTaskStartRevision(root, BRANCH, {
+      expectedHead: START,
+      runGit: git.runGit,
+    }),
+    { branch: BRANCH, startHead: END },
+  );
+});
+
 void test('collects and validates a committed mutation delta', (t) => {
   const root = repositoryRoot(t);
   const git = gitStub();

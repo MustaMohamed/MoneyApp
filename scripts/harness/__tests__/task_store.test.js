@@ -75,6 +75,17 @@ function rootFixture(t) {
   return root;
 }
 
+function fsProxy(overrides) {
+  return new Proxy(fs, {
+    get(target, property) {
+      const override = overrides[property];
+      if (override) return override;
+      const value = Reflect.get(target, property);
+      return typeof value === 'function' ? value.bind(target) : value;
+    },
+  });
+}
+
 function activationDraft() {
   return {
     type: 'task_graph.activated',
@@ -164,6 +175,204 @@ void test('uses expected sequence compare-and-swap and reports lock contention',
   );
 });
 
+void test('cleans owned task runtime files after pre-install write and fsync failures', async (t) => {
+  for (const failure of ['lock-write', 'lock-fsync', 'temp-write', 'temp-fsync']) {
+    await t.test(failure, () => {
+      const root = rootFixture(t);
+      const descriptors = new Map();
+      const actualOpen = fs.openSync;
+      const actualWrite = fs.writeFileSync;
+      const actualFsync = fs.fsyncSync;
+      const actualClose = fs.closeSync;
+      let injected = false;
+      const fsImpl = fsProxy({
+        openSync(target, flags, mode) {
+          const descriptor = actualOpen(target, flags, mode);
+          descriptors.set(descriptor, String(target));
+          return descriptor;
+        },
+        writeFileSync(target, data, options) {
+          const file = descriptors.get(target) ?? String(target);
+          if (
+            !injected &&
+            ((failure === 'lock-write' && file.endsWith('.tasks.lock')) ||
+              (failure === 'temp-write' && file.endsWith('.tmp')))
+          ) {
+            injected = true;
+            throw new Error(`simulated ${failure}`);
+          }
+          return actualWrite(target, data, options);
+        },
+        fsyncSync(descriptor) {
+          const file = descriptors.get(descriptor);
+          if (
+            !injected &&
+            ((failure === 'lock-fsync' && file?.endsWith('.tasks.lock')) ||
+              (failure === 'temp-fsync' && file?.endsWith('.tmp')))
+          ) {
+            injected = true;
+            throw new Error(`simulated ${failure}`);
+          }
+          return actualFsync(descriptor);
+        },
+        closeSync(descriptor) {
+          descriptors.delete(descriptor);
+          return actualClose(descriptor);
+        },
+      });
+
+      assert.throws(() => appendActivation(root, { fsImpl }), new RegExp(failure, 'i'));
+      const events = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
+      assert.deepEqual(fs.existsSync(events) ? fs.readdirSync(events) : [], []);
+      assert.doesNotThrow(() =>
+        appendActivation(root, {
+          token: () => '3'.repeat(32),
+        }),
+      );
+    });
+  }
+});
+
+void test('does not overwrite a task event installed by a racing writer', (t) => {
+  const root = rootFixture(t);
+  const actualLink = fs.linkSync;
+  const fsImpl = fsProxy({
+    linkSync(source, target) {
+      fs.writeFileSync(target, 'racing writer bytes');
+      return actualLink(source, target);
+    },
+  });
+
+  assert.throws(() => appendActivation(root, { fsImpl }), /exist|install|overwrite/i);
+  const events = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
+  const final = fs.readdirSync(events).find((name) => name.endsWith('.json'));
+  assert.equal(fs.readFileSync(path.join(events, final), 'utf8'), 'racing writer bytes');
+  assert.equal(fs.existsSync(path.join(events, '.tasks.lock')), false);
+  assert.equal(fs.existsSync(path.join(events, `.tasks-${'1'.repeat(32)}.tmp`)), false);
+});
+
+void test('reports durability uncertainty after an installed task event directory fsync fails', (t) => {
+  const root = rootFixture(t);
+  const events = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
+  const descriptors = new Map();
+  const actualOpen = fs.openSync;
+  const actualFsync = fs.fsyncSync;
+  const actualClose = fs.closeSync;
+  let directoryOpenCount = 0;
+  const fsImpl = fsProxy({
+    openSync(target, flags, mode) {
+      const descriptor = actualOpen(target, flags, mode);
+      const directoryPhase =
+        target === events ? (directoryOpenCount++ === 0 ? 'lock' : 'commit') : undefined;
+      descriptors.set(descriptor, { target, directoryPhase });
+      return descriptor;
+    },
+    fsyncSync(descriptor) {
+      if (descriptors.get(descriptor)?.directoryPhase === 'commit') {
+        throw new Error('simulated final task commit directory fsync failure');
+      }
+      return actualFsync(descriptor);
+    },
+    closeSync(descriptor) {
+      descriptors.delete(descriptor);
+      return actualClose(descriptor);
+    },
+  });
+
+  assert.throws(
+    () => appendActivation(root, { fsImpl }),
+    (error) => {
+      assert.match(error.message, /durability is uncertain/i);
+      assert.equal(error.durableUncertain, true);
+      assert.match(error.committedPath, /000001-[a-f0-9]{64}\.json$/);
+      return true;
+    },
+  );
+  assert.equal(fs.readdirSync(events).filter((name) => name.endsWith('.json')).length, 1);
+  assert.equal(fs.existsSync(path.join(events, '.tasks.lock')), false);
+});
+
+void test('preserves foreign runtime inodes that replace captured task files', async (t) => {
+  await t.test('foreign temporary file', () => {
+    const root = rootFixture(t);
+    const token = '1'.repeat(32);
+    const events = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
+    const temp = path.join(events, `.tasks-${token}.tmp`);
+    const actualLink = fs.linkSync;
+    const actualLstat = fs.lstatSync;
+    const actualUnlink = fs.unlinkSync;
+    let linked = false;
+    let replaced = false;
+    const replaceTemp = (target) => {
+      if (target === temp && linked && !replaced) {
+        actualUnlink(target);
+        fs.writeFileSync(target, 'foreign temporary file');
+        replaced = true;
+      }
+    };
+    const fsImpl = fsProxy({
+      linkSync(source, target) {
+        const result = actualLink(source, target);
+        linked = true;
+        return result;
+      },
+      lstatSync(target) {
+        replaceTemp(target);
+        return actualLstat(target);
+      },
+      unlinkSync(target) {
+        replaceTemp(target);
+        return actualUnlink(target);
+      },
+    });
+
+    assert.throws(
+      () => appendActivation(root, { fsImpl }),
+      (error) => {
+        assert.match(error.message, /temporary file changed before cleanup/i);
+        assert.match(path.basename(error.committedPath), EVENT_NAME);
+        assert.equal(error.recovery, undefined);
+        return true;
+      },
+    );
+    assert.equal(fs.readFileSync(temp, 'utf8'), 'foreign temporary file');
+    assert.equal(fs.existsSync(path.join(events, '.tasks.lock')), false);
+  });
+
+  await t.test('foreign lock file', () => {
+    const root = rootFixture(t);
+    const token = '1'.repeat(32);
+    const events = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
+    const temp = path.join(events, `.tasks-${token}.tmp`);
+    const lock = path.join(events, '.tasks.lock');
+    const actualUnlink = fs.unlinkSync;
+    let replaced = false;
+    const fsImpl = fsProxy({
+      unlinkSync(target) {
+        const result = actualUnlink(target);
+        if (target === temp && !replaced) {
+          actualUnlink(lock);
+          fs.writeFileSync(lock, 'foreign lock file');
+          replaced = true;
+        }
+        return result;
+      },
+    });
+
+    assert.throws(
+      () => appendActivation(root, { fsImpl }),
+      (error) => {
+        assert.match(error.message, /lock changed before cleanup/i);
+        assert.match(path.basename(error.committedPath), EVENT_NAME);
+        assert.equal(error.recovery, undefined);
+        return true;
+      },
+    );
+    assert.equal(fs.readFileSync(lock, 'utf8'), 'foreign lock file');
+    assert.equal(fs.existsSync(temp), false);
+  });
+});
+
 void test('appends candidate events from the resolved activation graph after replacement', (t) => {
   const root = rootFixture(t);
   appendActivation(root);
@@ -178,6 +387,9 @@ void test('appends candidate events from the resolved activation graph after rep
     },
   };
   const resolveGraph = (graphHash) => (graphHash === graph.graphHash ? graph : replacementGraph);
+  const initiativeSnapshots = new Map([
+    [initiativeProjection.latestEvent.eventHash, initiativeProjection],
+  ]);
 
   appendTaskEvent({
     root,
@@ -202,6 +414,7 @@ void test('appends candidate events from the resolved activation graph after rep
     },
     graph,
     initiativeProjection: revisedProjection,
+    initiativeSnapshots,
     resolveGraph,
     token: () => '8'.repeat(32),
     hostname: () => 'test-host',
@@ -229,6 +442,7 @@ void test('appends candidate events from the resolved activation graph after rep
       },
       graph: replacementGraph,
       initiativeProjection: revisedProjection,
+      initiativeSnapshots,
       resolveGraph,
       token: () => '9'.repeat(32),
       hostname: () => 'test-host',
@@ -240,6 +454,7 @@ void test('appends candidate events from the resolved activation graph after rep
     initiativeId: ID,
     graph: replacementGraph,
     initiativeProjection: revisedProjection,
+    initiativeSnapshots,
     resolveGraph,
   });
   assert.equal(history.projection.activeClaim.taskId, 'task-01');
@@ -346,14 +561,34 @@ void test('preserves the matching lock when post-install temp cleanup fails', (t
     },
   });
 
+  let observed;
   assert.throws(
     () => appendActivation(root, { token: () => token, fsImpl }),
-    /injected task temp cleanup failure/i,
+    (error) => {
+      observed = error;
+      assert.match(error.message, /injected task temp cleanup failure/i);
+      return true;
+    },
   );
   const events = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
   assert.equal(fs.existsSync(path.join(events, '.tasks.lock')), true);
   assert.equal(fs.existsSync(path.join(events, `.tasks-${token}.tmp`)), true);
   assert.equal(fs.readdirSync(events).filter((entry) => EVENT_NAME.test(entry)).length, 1);
+  assert.deepEqual(observed.recovery, {
+    initiativeId: ID,
+    token,
+    lockPath: path.posix.join('docs/superpowers/initiatives', ID, 'task-events/.tasks.lock'),
+    tempPath: path.posix.join(
+      'docs/superpowers/initiatives',
+      ID,
+      `task-events/.tasks-${token}.tmp`,
+    ),
+    residuePaths: [
+      path.posix.join('docs/superpowers/initiatives', ID, `task-events/.tasks-${token}.tmp`),
+      path.posix.join('docs/superpowers/initiatives', ID, 'task-events/.tasks.lock'),
+    ],
+    command: `npm run workflow -- tasks recover --id ${ID} --token ${token}`,
+  });
 });
 
 void test('refuses recovery for a live local lock or the wrong token', (t) => {

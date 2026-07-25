@@ -128,11 +128,13 @@ void test('projects deterministic pending, ready, claimed, and completed states'
   assert.deepEqual(initial.readyTaskIds, ['task-01']);
   assert.equal(initial.tasks['task-01'].state, 'ready');
   assert.equal(initial.tasks['task-02'].state, 'pending');
+  assert.equal(initial.accountedHead, HEAD);
 
   const claim = value.append('task.claimed', claimPayload('task-01'));
   const claimed = replayTaskEvents({ graph, events: value.events, initiativeProjection });
   assert.equal(claimed.tasks['task-01'].state, 'claimed');
   assert.equal(claimed.activeClaim.eventHash, claim.eventHash);
+  assert.equal(claimed.accountedHead, HEAD);
 
   value.append('task.completed', completePayload('task-01', claim));
   const completed = replayTaskEvents({ graph, events: value.events, initiativeProjection });
@@ -140,6 +142,7 @@ void test('projects deterministic pending, ready, claimed, and completed states'
   assert.deepEqual(completed.readyTaskIds, ['task-02', 'task-03']);
   assert.deepEqual(completed.parallelReadyGroups, [['task-02', 'task-03']]);
   assert.equal(completed.implementationReadyAllowed, false);
+  assert.equal(completed.accountedHead, 'f'.repeat(40));
 });
 
 void test('replays historical activation after the initiative advances to validation', () => {
@@ -155,6 +158,9 @@ void test('replays historical activation after the initiative advances to valida
     graph,
     events: value.events,
     initiativeProjection: validationProjection,
+    initiativeSnapshots: new Map([
+      [initiativeProjection.latestEvent.eventHash, initiativeProjection],
+    ]),
   });
 
   assert.deepEqual(projection.readyTaskIds, ['task-01']);
@@ -245,6 +251,74 @@ void test('suppresses ready work while an initiative blocker is open', () => {
   assert.equal(projection.implementationReadyAllowed, false);
 });
 
+void test('suppresses all independent work while a critical task blocker is open', () => {
+  const value = ledger();
+  const claim = value.append('task.claimed', claimPayload('task-01'));
+  value.append('task.completed', completePayload('task-01', claim));
+  value.append('task.blocked', {
+    taskId: 'task-02',
+    owner: 'tariq',
+    reason: 'A critical architecture decision is unresolved.',
+    criticalTrigger: true,
+  });
+
+  const projection = replayTaskEvents({ graph, events: value.events, initiativeProjection });
+  assert.deepEqual(projection.readyTaskIds, []);
+  assert.equal(projection.tasks['task-02'].state, 'blocked');
+  assert.equal(projection.tasks['task-03'].state, 'pending');
+  assert.equal(projection.implementationReadyAllowed, false);
+});
+
+void test('validates task graph bundles against the exact historical initiative snapshot', () => {
+  const value = ledger();
+  const revisedSpec = { ...SPEC, sha256: '9'.repeat(64) };
+  const currentProjection = {
+    ...initiativeProjection,
+    sequence: 7,
+    latestEvent: { eventHash: '2'.repeat(64) },
+    spec: { current: revisedSpec, signed: true },
+  };
+  const historicalSnapshot = {
+    ...initiativeProjection,
+    sequence: 6,
+    latestEvent: { eventHash: '1'.repeat(64) },
+  };
+  const initiativeSnapshots = new Map([
+    [historicalSnapshot.latestEvent.eventHash, historicalSnapshot],
+  ]);
+
+  assert.doesNotThrow(() =>
+    replayTaskEvents({
+      graph,
+      events: value.events,
+      initiativeProjection: currentProjection,
+      initiativeSnapshots,
+    }),
+  );
+
+  const forged = ledger();
+  forged.events[0] = finalizeHashedObject(
+    {
+      ...forged.events[0],
+      payload: {
+        ...forged.events[0].payload,
+        initiative: { sequence: 6, eventHash: '9'.repeat(64) },
+      },
+    },
+    'eventHash',
+  );
+  assert.throws(
+    () =>
+      replayTaskEvents({
+        graph,
+        events: forged.events,
+        initiativeProjection: currentProjection,
+        initiativeSnapshots,
+      }),
+    /initiative reference.*unknown|exact historical initiative event/i,
+  );
+});
+
 void test('replays multiple resolved replacements only without an active claim', () => {
   const replacement = finalizeHashedObject(
     {
@@ -318,10 +392,27 @@ void test('replays multiple resolved replacements only without an active claim',
     }
     return undefined;
   };
+  const initiativeSnapshots = new Map([
+    [initiativeProjection.latestEvent.eventHash, initiativeProjection],
+    [
+      '8'.repeat(64),
+      {
+        ...initiativeProjection,
+        sequence: 7,
+        latestEvent: { eventHash: '8'.repeat(64) },
+        plan: {
+          current: replacement.plan,
+          taskGraph: replacementTaskGraph,
+          approved: true,
+        },
+      },
+    ],
+  ]);
   const projection = replayTaskEvents({
     graph,
     events: value.events,
     initiativeProjection: currentInitiativeProjection,
+    initiativeSnapshots,
     resolveGraph,
   });
   assert.equal(projection.tasks['task-01'].state, 'superseded');
@@ -339,6 +430,7 @@ void test('replays multiple resolved replacements only without an active claim',
         graph,
         events: mismatched.events,
         initiativeProjection: currentInitiativeProjection,
+        initiativeSnapshots,
         resolveGraph,
       }),
     /Cannot resolve replacement graph/i,
