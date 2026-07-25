@@ -1,0 +1,16 @@
+{
+  "eventHash": "029b6e3b44060c0c66bdc44b4ced406c61c91650f3ef9e9f24a2e8c08edf2b0d",
+  "initiativeId": "2026-07-25-harness-phase-2",
+  "payload": {
+    "baseSha": "8096bbfb9aa4f05280bfaec0ed730973f54ee375",
+    "branch": "refactor/harness-phase-2-workflow-state",
+    "title": "Harness Phase 2 durable initiative state"
+  },
+  "recordedAt": "2026-07-25T05:49:54.779Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 1,
+  "type": "initiative.created"
+}
