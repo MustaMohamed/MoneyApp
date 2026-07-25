@@ -56,7 +56,9 @@
         "Strict keys, IDs, roles, kinds, commands, and every configured bound fail closed.",
         "The embedded plan artifact exactly equals the approved plan reference."
       ],
-      "dependsOn": ["task-01"],
+      "dependsOn": [
+        "task-01"
+      ],
       "escalationNotes": [],
       "id": "task-02",
       "kind": "mutation",
@@ -91,7 +93,9 @@
         "Cycles, missing dependencies, aliases, and symlink escapes fail closed.",
         "Overlapping write scopes require a transitive dependency ordering."
       ],
-      "dependsOn": ["task-02"],
+      "dependsOn": [
+        "task-02"
+      ],
       "escalationNotes": [],
       "id": "task-03",
       "kind": "mutation",
@@ -125,8 +129,12 @@
         "Replay projects pending, ready, claimed, blocked, completed, and superseded deterministically.",
         "Only one active claim exists and implementation readiness requires every current task completed."
       ],
-      "dependsOn": ["task-03"],
-      "escalationNotes": ["Stop if task events would weaken an initiative-level gate."],
+      "dependsOn": [
+        "task-03"
+      ],
+      "escalationNotes": [
+        "Stop if task events would weaken an initiative-level gate."
+      ],
       "id": "task-04",
       "kind": "mutation",
       "objective": "Define the immutable task-event contract and a pure deterministic task projection.",
@@ -159,7 +167,9 @@
         "Every binding input changes packetHash.",
         "Packets contain only bounded task-local context and canonical authority constraints."
       ],
-      "dependsOn": ["task-04"],
+      "dependsOn": [
+        "task-04"
+      ],
       "escalationNotes": [],
       "id": "task-05",
       "kind": "mutation",
@@ -172,7 +182,13 @@
       ],
       "recommendedCommitMessage": "feat: emit deterministic bounded task packets",
       "title": "Generate bounded task packets",
-      "verificationCommands": [["node", "--test", "scripts/harness/__tests__/task_packet.test.js"]],
+      "verificationCommands": [
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_packet.test.js"
+        ]
+      ],
       "writePaths": [
         "scripts/harness/lib/tasks/packet.js",
         "scripts/harness/__tests__/task_packet.test.js"
@@ -184,7 +200,9 @@
         "Sequence races, forks, corrupt bytes, aliases, and unsupported runtime files fail closed.",
         "Recovery is token-scoped and never removes initiative-ledger runtime files."
       ],
-      "dependsOn": ["task-05"],
+      "dependsOn": [
+        "task-05"
+      ],
       "escalationNotes": [],
       "id": "task-06",
       "kind": "mutation",
@@ -217,7 +235,9 @@
         "Mutation completion rejects empty, divergent, dirty, or out-of-scope delivery changes.",
         "Validation tasks reject HEAD movement and delivery changes."
       ],
-      "dependsOn": ["task-06"],
+      "dependsOn": [
+        "task-06"
+      ],
       "escalationNotes": [],
       "id": "task-07",
       "kind": "mutation",
@@ -231,7 +251,11 @@
       "recommendedCommitMessage": "feat: enforce committed task write scopes",
       "title": "Validate committed Git scope",
       "verificationCommands": [
-        ["node", "--test", "scripts/harness/__tests__/task_git_scope.test.js"]
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_git_scope.test.js"
+        ]
       ],
       "writePaths": [
         "scripts/harness/lib/tasks/git_scope.js",
@@ -244,8 +268,12 @@
         "Read-only commands append nothing and mutation commands append one event or nothing.",
         "Claims and completions revalidate exact packet, branch, sequence, graph, scope, and checks."
       ],
-      "dependsOn": ["task-07"],
-      "escalationNotes": ["Do not add automatic command execution or provider-specific dispatch."],
+      "dependsOn": [
+        "task-07"
+      ],
+      "escalationNotes": [
+        "Do not add automatic command execution or provider-specific dispatch."
+      ],
       "id": "task-08",
       "kind": "mutation",
       "objective": "Expose activation, status, next, packet, claim, outcome, replacement, and recovery through the dependency-free workflow CLI.",
@@ -280,7 +308,9 @@
         "implementation.ready rejects incomplete current graphs and preserves no-graph history.",
         "harness:check validates task artifacts read-only without changing the six CI checks."
       ],
-      "dependsOn": ["task-08"],
+      "dependsOn": [
+        "task-08"
+      ],
       "escalationNotes": [],
       "id": "task-09",
       "kind": "mutation",
@@ -322,7 +352,9 @@
         "Sarah, Tariq, and Dev have consistent task responsibilities and authority boundaries.",
         "No generated text claims provider dispatch, automatic command execution, concurrent claims, or repository integration authority."
       ],
-      "dependsOn": ["task-09"],
+      "dependsOn": [
+        "task-09"
+      ],
       "escalationNotes": [
         "Stop if a generated policy change would grant push, PR, merge, destructive, or provider authority."
       ],
@@ -348,7 +380,11 @@
           "scripts/harness/__tests__/workflow_commands.test.js",
           "scripts/harness/__tests__/semantic_integration.test.js"
         ],
-        ["npm", "run", "harness:check"]
+        [
+          "npm",
+          "run",
+          "harness:check"
+        ]
       ],
       "writePaths": [
         "harness/policy/*.md",
@@ -374,7 +410,9 @@
         "Task 11 is claimed and completed through the live inline packet protocol.",
         "Fresh repository state emits the same projection and packet hash, with dogfood metrics recorded outside the full plan."
       ],
-      "dependsOn": ["task-10"],
+      "dependsOn": [
+        "task-10"
+      ],
       "escalationNotes": [
         "Do not backfill any initiative other than the explicitly approved Phase 3 bootstrap."
       ],
@@ -390,10 +428,20 @@
       "recommendedCommitMessage": "test: dogfood bounded task coordination",
       "title": "Dogfood task coordination",
       "verificationCommands": [
-        ["npm", "run", "harness:test"],
-        ["npm", "run", "harness:check"]
+        [
+          "npm",
+          "run",
+          "harness:test"
+        ],
+        [
+          "npm",
+          "run",
+          "harness:check"
+        ]
       ],
-      "writePaths": ["docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md"]
+      "writePaths": [
+        "docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md"
+      ]
     },
     {
       "acceptanceCriteria": [
@@ -401,7 +449,9 @@
         "Tariq's review finds no unresolved specification or authority issue.",
         "The delivery-visible dogfood report records final regression and review evidence."
       ],
-      "dependsOn": ["task-11"],
+      "dependsOn": [
+        "task-11"
+      ],
       "escalationNotes": [
         "Do not record implementation.ready until all twelve current tasks are completed."
       ],
@@ -419,13 +469,35 @@
       "recommendedCommitMessage": "test: verify harness phase 3 delivery",
       "title": "Review and validate Phase 3 delivery",
       "verificationCommands": [
-        ["npm", "run", "harness:test"],
-        ["npm", "run", "harness:check"],
-        ["npm", "run", "format:check"],
-        ["npm", "run", "lint"],
-        ["npm", "run", "typecheck"]
+        [
+          "npm",
+          "run",
+          "harness:test"
+        ],
+        [
+          "npm",
+          "run",
+          "harness:check"
+        ],
+        [
+          "npm",
+          "run",
+          "format:check"
+        ],
+        [
+          "npm",
+          "run",
+          "lint"
+        ],
+        [
+          "npm",
+          "run",
+          "typecheck"
+        ]
       ],
-      "writePaths": ["docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md"]
+      "writePaths": [
+        "docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md"
+      ]
     }
   ]
 }
