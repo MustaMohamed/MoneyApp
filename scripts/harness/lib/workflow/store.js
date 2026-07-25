@@ -502,12 +502,107 @@ function requireDraft(draft) {
   return draft;
 }
 
+function withWorkflowLock({
+  root,
+  initiativeId,
+  machine,
+  callback,
+  fsImpl = fs,
+  clock = () => new Date().toISOString(),
+  hostname = os.hostname,
+  pid = process.pid,
+  token = () => crypto.randomBytes(16).toString('hex'),
+}) {
+  assertRepositoryRoot(root, fsImpl);
+  requireInitiativeId(initiativeId);
+  validateMachine(machine);
+  if (typeof callback !== 'function') {
+    throw new Error('Workflow lock callback must be a function');
+  }
+
+  const recoveryToken = requireRecoveryToken(token());
+  const paths = ensureEventsDirectory(root, initiativeId, fsImpl);
+  let descriptor;
+  let identity;
+  let ownsLock = false;
+  let result;
+  let primaryFailure;
+  const cleanupFailures = [];
+
+  try {
+    try {
+      descriptor = fsImpl.openSync(paths.lockPath, 'wx');
+      ownsLock = true;
+    } catch (error) {
+      if (error.code !== 'EEXIST') throw error;
+      const lock = readLock(paths.lockPath, fsImpl).metadata;
+      const contention = new Error(
+        `Workflow initiative ${initiativeId} is locked by PID ${lock.pid} on ${lock.host} (token ${lock.token})`,
+        { cause: error },
+      );
+      contention.lock = lock;
+      throw contention;
+    }
+
+    const lock = {
+      host: hostname(),
+      pid,
+      recordedAt: clock(),
+      token: recoveryToken,
+    };
+    const bytes = canonicalStringify(lock);
+    parseCanonicalLock(Buffer.from(bytes, 'utf8'));
+    fsImpl.writeFileSync(descriptor, bytes);
+    fsImpl.fsyncSync(descriptor);
+    identity = fileIdentity(fsImpl.fstatSync(descriptor));
+    fsImpl.closeSync(descriptor);
+    descriptor = undefined;
+    syncDirectory(paths.eventsPath, 'snapshot lock persistence', fsImpl);
+    result = callback();
+    if (result && typeof result.then === 'function') {
+      throw new Error('Workflow lock callback must be synchronous');
+    }
+  } catch (error) {
+    primaryFailure = error;
+  } finally {
+    const closeFailure = closeBestEffort(descriptor, fsImpl);
+    if (closeFailure) cleanupFailures.push(closeFailure);
+    if (ownsLock && identity) {
+      try {
+        if (!unlinkOwnedFile(paths.lockPath, identity, fsImpl)) {
+          cleanupFailures.push(
+            new Error(`Workflow snapshot lock changed before cleanup: ${paths.lockRelative}`),
+          );
+        } else {
+          ownsLock = false;
+          syncDirectory(paths.eventsPath, 'snapshot lock cleanup', fsImpl);
+        }
+      } catch (error) {
+        cleanupFailures.push(error);
+      }
+    }
+  }
+
+  const failures = [primaryFailure, ...cleanupFailures].filter(Boolean);
+  if (failures.length === 1) throw failures[0];
+  if (failures.length > 1) {
+    throw new AggregateError(
+      failures,
+      `Workflow locked operation failed with ${failures.length} errors: ${failures
+        .map((error) => error.message)
+        .join('; ')}`,
+    );
+  }
+  return result;
+}
+
 function appendEvent({
   root,
   initiativeId,
   expectedSequence,
   draft,
   machine,
+  validateCurrent,
   fsImpl = fs,
   clock = () => new Date().toISOString(),
   hostname = os.hostname,
@@ -518,6 +613,9 @@ function appendEvent({
   requireInitiativeId(initiativeId);
   validateMachine(machine);
   requireDraft(draft);
+  if (validateCurrent !== undefined && typeof validateCurrent !== 'function') {
+    throw new Error('validateCurrent must be a function when provided');
+  }
   if (!Number.isSafeInteger(expectedSequence) || expectedSequence < 1) {
     throw new Error('Expected sequence must be a positive safe integer');
   }
@@ -597,6 +695,7 @@ function appendEvent({
         `Stale expected sequence: expected ${nextSequence}, received ${expectedSequence}`,
       );
     }
+    if (validateCurrent) validateCurrent({ history, nextSequence });
     const parent = history.events.at(-1);
     const event = finalizeEvent({
       schemaVersion: 1,
@@ -917,4 +1016,5 @@ module.exports = {
   appendEvent,
   loadEventHistory,
   recoverRuntimeFiles,
+  withWorkflowLock,
 };

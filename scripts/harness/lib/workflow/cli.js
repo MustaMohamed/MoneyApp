@@ -18,6 +18,7 @@ const {
   listWorkflowStatuses: listWorkflowStatusesDefault,
   selectInitiativeId: selectInitiativeIdDefault,
 } = require('./status');
+const { verifyWorkflow: verifyWorkflowDefault } = require('./verify');
 
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_40 = /^[a-f0-9]{40}$/;
@@ -403,13 +404,16 @@ async function runCli(options) {
     formatWorkflowStatus = formatWorkflowStatusDefault,
     checkWorkflowStatus = checkWorkflowStatusDefault,
     selectInitiativeId = selectInitiativeIdDefault,
+    verifyWorkflow = verifyWorkflowDefault,
+    withWorkflowLock,
+    runVerification,
     runGit,
   } = options;
 
   try {
     if (!Array.isArray(argv) || argv.length === 0) usage('A workflow command is required');
     const command = argv[0];
-    const { machine } = workflowDependencies(options);
+    const { manifest, machine } = workflowDependencies(options);
 
     if (command === 'init') {
       const flags = parseFlags(argv.slice(1), {
@@ -524,6 +528,44 @@ async function runCli(options) {
         ...(result.path ? { path: result.path } : {}),
       });
       return 0;
+    }
+
+    if (command === 'verify') {
+      const flags = parseFlags(argv.slice(1), {
+        allowed: new Set(['id', 'expected-sequence']),
+      });
+      requireFlags(flags, ['id', 'expected-sequence']);
+      const initiativeId = requireInitiativeId(flags.id);
+      const expectedSequence = requireExpectedSequence(flags['expected-sequence']);
+      if (expectedSequence < 1) {
+        usage('--expected-sequence must be at least 1 for an existing initiative');
+      }
+      const result = verifyWorkflow({
+        root,
+        initiativeId,
+        expectedSequence,
+        machine,
+        checks: manifest.verification.checks,
+        clock,
+        appendEvent,
+        loadEventHistory,
+        collectDeliveryRevision,
+        ...(withWorkflowLock ? { withWorkflowLock } : {}),
+        ...(runVerification ? { runVerification } : {}),
+        ...(runGit ? { runGit } : {}),
+      });
+      if (!result.recorded) {
+        stderr.write(`workflow verify: ${result.reason}\n`);
+        return 1;
+      }
+      writeResult(stdout, {
+        status: 'recorded',
+        initiativeId,
+        sequence: result.event.sequence,
+        eventType: result.event.type,
+        eventHash: result.event.eventHash,
+      });
+      return result.ok ? 0 : 1;
     }
 
     if (command === 'status') {
