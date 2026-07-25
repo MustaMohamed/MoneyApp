@@ -15,7 +15,7 @@ const { loadTaskGraph, validateTaskGraph } = require('../lib/tasks/graph');
 const root = path.resolve(__dirname, '../../..');
 const manifest = loadManifest(root);
 const limits = manifest.workflow.tasks.limits;
-const graphPath = 'docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json';
+const graphPath = 'docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v6.json';
 const planPath = 'docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md';
 const expectedPlan = {
   path: planPath,
@@ -83,7 +83,7 @@ void test('loads the committed Phase 3 graph as canonical plan-bound immutable e
 
   assert.equal(source, canonicalStringify(loaded));
   assert.equal(loaded.graphHash, hashCanonicalObject(loaded, 'graphHash'));
-  assert.equal(loaded.tasks.length, 12);
+  assert.equal(loaded.tasks.length, 14);
   assert(Object.isFrozen(loaded));
   assert(Object.isFrozen(loaded.tasks[0]));
 });

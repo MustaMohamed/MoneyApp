@@ -1,0 +1,24 @@
+{
+  "eventHash": "9fde577b88d1927c0d2f7cd4f11074eaac0cbe3e83f5ed3b6df2d9198d4e6cb3",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "0aa4eee1c97615130993a30ab69ad841b02ad42baa613435c0c8ca03654c4dd2",
+    "sequence": 8
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Inline Phase 3 dogfood under the product owner's no-subagent direction with the v6 current-graph fixture scope.",
+    "branch": "refactor/harness-phase-3-task-packets",
+    "mode": "inline",
+    "packetHash": "bc8ed545f2a7e80728a7164e6d0fa26aba8ba61cd5ec579a3638cb149401d2c4",
+    "startHead": "f424dcd265bf3f29282214697aa7140e99632d13",
+    "taskId": "task-13"
+  },
+  "recordedAt": "2026-07-25T09:16:43.764Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 9,
+  "type": "task.claimed"
+}
