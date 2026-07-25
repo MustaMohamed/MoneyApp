@@ -338,7 +338,7 @@ function readExactFile(root, relativePath) {
   if (!before.isFile()) throw new Error(`Task graph must be a regular file: ${relativePath}`);
   let descriptor;
   try {
-    descriptor = fs.openSync(absolutePath, fs.constants.O_RDONLY | (fs.constants.O_NOFOLLOW ?? 0));
+    descriptor = fs.openSync(absolutePath, fs.constants.O_RDONLY | fs.constants.O_NOFOLLOW);
     const opened = fs.fstatSync(descriptor);
     if (
       !opened.isFile() ||

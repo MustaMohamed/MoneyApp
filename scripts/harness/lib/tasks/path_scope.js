@@ -131,12 +131,18 @@ function scopesOverlap(leftScope, rightScope) {
     if (visited.has(key)) continue;
     visited.add(key);
     if (leftIndex === left.length && rightIndex === right.length && consumed) return true;
+    const leftEnded = leftIndex === left.length;
+    const rightEnded = rightIndex === right.length;
+    if (!leftEnded && left[leftIndex].type === 'many') {
+      queue.push([leftIndex + 1, rightIndex, consumed]);
+    }
+    if (!rightEnded && right[rightIndex].type === 'many') {
+      queue.push([leftIndex, rightIndex + 1, consumed]);
+    }
+    if (leftEnded || rightEnded) continue;
+
     const leftToken = left[leftIndex];
     const rightToken = right[rightIndex];
-    if (leftToken?.type === 'many') queue.push([leftIndex + 1, rightIndex, consumed]);
-    if (rightToken?.type === 'many') queue.push([leftIndex, rightIndex + 1, consumed]);
-    if (!leftToken || !rightToken) continue;
-
     const canShareSegment =
       leftToken.type === 'many' ||
       rightToken.type === 'many' ||
