@@ -1,0 +1,5 @@
+description = {{json:description}}
+developer_instructions = """
+<!-- {{raw:notice}} -->
+{{include:personaSource#agent}}"""
+name = {{json:id}}

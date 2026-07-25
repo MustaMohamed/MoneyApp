@@ -3,6 +3,16 @@
 // `oxlint --fix` yields an empty file set and a non-zero exit ("No files found to
 // lint"), which fails the pre-commit hook. Filter those paths out of every task.
 const VENDORED_DIRS = ['/.claude/', '/.agents/'];
+const HARNESS_PREFIXES = ['harness/', '.agents/', '.claude/', '.codex/', 'scripts/harness/'];
+const HARNESS_FILES = new Set([
+  'AGENTS.md',
+  'CLAUDE.md',
+  'package.json',
+  'lint-staged.config.mjs',
+  '.husky/pre-push',
+  '.github/workflows/pr-checks.yml',
+  'scripts/validate-agent-assets.js',
+]);
 
 /** @param {string} file */
 const isVendored = (file) => VENDORED_DIRS.some((dir) => file.includes(dir));
@@ -13,17 +23,30 @@ const keep = (files) => files.filter((file) => !isVendored(file));
 /** @param {string[]} files */
 const quote = (files) => files.map((file) => `"${file}"`).join(' ');
 
+/** @param {string} file */
+const relative = (file) => {
+  // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-call, typescript/no-unsafe-member-access -- lint-staged invokes this Node config from the repository root
+  const root = process.cwd();
+  return file.replace(`${root}/`, '');
+};
+
+/** @param {string} file */
+const affectsHarness = (file) => {
+  const value = relative(file);
+  return HARNESS_FILES.has(value) || HARNESS_PREFIXES.some((prefix) => value.startsWith(prefix));
+};
+
 /** @type {import('lint-staged').Configuration} */
 export default {
-  '*.{ts,tsx,js,cjs,mjs}': (/** @type {string[]} */ files) => {
-    const targets = keep(files);
-    if (targets.length === 0) return [];
-    const list = quote(targets);
-    return [`oxlint --fix ${list}`, `oxfmt ${list}`];
-  },
-  '*.json': (/** @type {string[]} */ files) => {
-    const targets = keep(files);
-    if (targets.length === 0) return [];
-    return [`oxfmt ${quote(targets)}`];
+  '*': (/** @type {string[]} */ files) => {
+    const commands = [];
+    const lintTargets = keep(files.filter((file) => /\.(?:ts|tsx|js|cjs|mjs)$/u.test(file)));
+    const formatTargets = keep(files.filter((file) => /\.(?:ts|tsx|js|cjs|mjs|json)$/u.test(file)));
+
+    if (lintTargets.length > 0) commands.push(`oxlint --fix ${quote(lintTargets)}`);
+    if (formatTargets.length > 0) commands.push(`oxfmt ${quote(formatTargets)}`);
+    if (files.some(affectsHarness)) commands.push('npm run harness:check');
+
+    return commands;
   },
 };

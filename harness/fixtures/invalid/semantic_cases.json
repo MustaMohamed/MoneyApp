@@ -1,0 +1,35 @@
+[
+  {
+    "name": "agent-merge-authority",
+    "files": { ".claude/agents/tariq.md": "Tariq may approve and merge." },
+    "expectedRule": "AUTH-USER-INTEGRATION"
+  },
+  {
+    "name": "obsolete-gates",
+    "files": {
+      ".claude/commands/feature.md": "Gate 1 (plan approval) then Gate 2 (code review)."
+    },
+    "expectedRule": "GATE-SPEC-SIGNOFF"
+  },
+  {
+    "name": "missing-src-prefix",
+    "files": {
+      ".codex/agents/dev.toml": "Canonical feature code lives under `modules/<domain>/`."
+    },
+    "expectedRule": "PATH-SRC-CANONICAL"
+  },
+  {
+    "name": "divergent-persona-ownership",
+    "files": {
+      ".claude/agents/marcus.md": "Marcus owns architecture."
+    },
+    "expectedRule": "PERSONA-MARCUS-OWNERSHIP"
+  },
+  {
+    "name": "missing-critical-trigger",
+    "files": {
+      ".codex/agents/sarah.toml": "Sarah owns orchestration. Sarah approves plans. explicit user request."
+    },
+    "expectedRule": "GATE-CRITICAL-TRIGGER"
+  }
+]

@@ -1,0 +1,16 @@
+---
+description: Run a MoneyApp feature through the canonical superpowers workflow
+---
+<!-- {{raw:notice}} -->
+
+@sarah Orchestrate this feature through brainstorm, design doc, Spec sign-off,
+plan, execution, Tariq review, local verification, Device QA when applicable,
+and repository integration.
+
+Proceed autonomously between gates. Stop only for Spec sign-off, Device QA,
+a critical trigger, or a push, merge, or destructive repository action that
+requires an explicit user request.
+
+Consult or dispatch the domain owner defined by the generated MoneyApp policy.
+
+$ARGUMENTS
