@@ -3,6 +3,8 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const { resolveInside } = require('../paths');
+const { loadCurrentInitiativeContext } = require('../tasks/cli');
+const { getTaskStatus } = require('../tasks/status');
 const { validateArtifactReference: validateArtifactReferenceDefault } = require('./evidence');
 const { collectDeliveryRevision: collectDeliveryRevisionDefault } = require('./git_revision');
 const { loadEventHistory: loadEventHistoryDefault } = require('./store');
@@ -198,7 +200,7 @@ function currentCycleDelivery(projection) {
   };
 }
 
-function nextActionsFor(projection, initiativeId) {
+function nextActionsFor(projection, initiativeId, tasks) {
   const sequence = projection.sequence;
   const prefix = `npm run workflow -- record`;
   if (Object.keys(projection.openBlockers ?? {}).length > 0) {
@@ -219,13 +221,24 @@ function nextActionsFor(projection, initiativeId) {
       ];
     case 'planning':
       return [
-        `${prefix} plan.submitted --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --plan <plan-path>`,
+        `${prefix} plan.submitted --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --plan <plan-path> --task-graph <task-graph-path>`,
       ];
     case 'awaiting_plan_approval':
       return [
         `${prefix} plan.approved --id ${initiativeId} --expected-sequence ${sequence} --recorded-by sarah --decision-by sarah --basis <basis>`,
       ];
     case 'execution':
+      if (projection.plan?.taskGraph && !tasks?.activated) {
+        return [
+          `npm run workflow -- tasks activate --id ${initiativeId} --expected-initiative-sequence ${sequence} --task-graph ${projection.plan.taskGraph.path}`,
+        ];
+      }
+      if (projection.plan?.taskGraph && !tasks?.implementationReadyAllowed) {
+        return [
+          `npm run workflow -- tasks status --id ${initiativeId}`,
+          `npm run workflow -- tasks next --id ${initiativeId} --json`,
+        ];
+      }
       return [
         `${prefix} implementation.ready --id ${initiativeId} --expected-sequence ${sequence} --recorded-by dev`,
       ];
@@ -264,6 +277,7 @@ function evidenceRepairActions({
   artifacts,
   delivery,
   staleReceiptArtifact,
+  tasks,
 }) {
   const sequence = projection.sequence;
   const prefix = 'npm run workflow -- record';
@@ -273,9 +287,12 @@ function evidenceRepairActions({
       `${prefix} spec.revised --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --spec ${artifacts.spec.path} --device-qa-mode ${deviceQaMode} --device-qa-rationale <rationale> --reason <reason>`,
     ];
   }
-  if (artifacts.plan && artifacts.plan.status !== 'valid') {
+  if (
+    (artifacts.plan && artifacts.plan.status !== 'valid') ||
+    (artifacts.taskGraph && artifacts.taskGraph.status !== 'valid')
+  ) {
     return [
-      `${prefix} plan.revised --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --plan ${artifacts.plan.path} --reason <reason>`,
+      `${prefix} plan.revised --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --plan ${artifacts.plan?.path ?? projection.plan.current.path} --task-graph ${artifacts.taskGraph?.path ?? '<task-graph-path>'} --reason <reason>`,
     ];
   }
   if (projection.validationCycleId && (delivery.status !== 'valid' || staleReceiptArtifact)) {
@@ -283,7 +300,7 @@ function evidenceRepairActions({
       `${prefix} work.reopened --id ${initiativeId} --expected-sequence ${sequence} --recorded-by sarah --reason <reason>`,
     ];
   }
-  return nextActionsFor(projection, initiativeId);
+  return nextActionsFor(projection, initiativeId, tasks);
 }
 
 function untrackedStatus(initiativeId) {
@@ -360,6 +377,8 @@ function getWorkflowStatus({
   loadEventHistory = loadEventHistoryDefault,
   validateArtifactReference = validateArtifactReferenceDefault,
   collectDeliveryRevision = collectDeliveryRevisionDefault,
+  manifest,
+  loadTaskState,
   runGit,
 }) {
   requireInitiativeId(initiativeId);
@@ -387,6 +406,11 @@ function getWorkflowStatus({
     ...(projection.plan?.current
       ? {
           plan: artifactStatus(root, projection.plan.current, validateArtifact),
+        }
+      : {}),
+    ...(projection.plan?.taskGraph
+      ? {
+          taskGraph: artifactStatus(root, projection.plan.taskGraph, validateArtifact),
         }
       : {}),
     ...(projection.review?.artifact
@@ -449,6 +473,66 @@ function getWorkflowStatus({
     (artifact) => artifact.status !== 'valid',
   );
   const evidenceBlocksAction = hasInvalidArtifact || staleCycle;
+  let tasks;
+  if (projection.plan?.taskGraph) {
+    try {
+      const loaded = loadTaskState
+        ? loadTaskState({
+            root,
+            initiativeId,
+            manifest,
+            machine,
+            initiativeProjection: projection,
+          })
+        : loadCurrentInitiativeContext(
+            {
+              root,
+              manifest,
+              machine,
+              loadEventHistory,
+              validateArtifactReference,
+            },
+            initiativeId,
+          );
+      const taskProjection = loaded?.taskProjection ?? loaded?.taskHistory?.projection ?? loaded;
+      if (taskProjection?.latestEvent) {
+        tasks = { ...getTaskStatus(taskProjection), activated: true, status: 'valid', errors: [] };
+      } else {
+        const graph = loaded.graph;
+        tasks = {
+          graphHash: graph.graphHash,
+          sequence: 0,
+          latestEventType: null,
+          completed: 0,
+          total: graph.tasks.length,
+          readyTaskIds: [],
+          parallelReadyGroups: [],
+          blockedTasks: [],
+          activeClaim: null,
+          implementationReadyAllowed: false,
+          activated: false,
+          status: 'valid',
+          errors: [],
+        };
+      }
+    } catch (error) {
+      tasks = {
+        graphHash: undefined,
+        sequence: 0,
+        latestEventType: null,
+        completed: 0,
+        total: 0,
+        readyTaskIds: [],
+        parallelReadyGroups: [],
+        blockedTasks: [],
+        activeClaim: null,
+        implementationReadyAllowed: false,
+        activated: false,
+        status: 'error',
+        errors: [errorMessage(error)],
+      };
+    }
+  }
 
   return {
     schemaVersion: 1,
@@ -460,6 +544,7 @@ function getWorkflowStatus({
         ? (blockers[0].requiredResolver ?? projection.owner)
         : projection.owner,
     sequence: projection.sequence,
+    ...(tasks ? { tasks } : {}),
     evidence: {
       ledger: { status: 'valid', eventCount: history.events.length, errors: [] },
       latestEvent: projection.latestEvent
@@ -497,6 +582,7 @@ function getWorkflowStatus({
       artifacts,
       delivery,
       staleReceiptArtifact,
+      tasks,
     }),
   };
 }
@@ -535,6 +621,9 @@ function collectStatusErrors(status) {
         `Delivery evidence is ${status.evidence.delivery.status}`,
       ]),
     );
+  }
+  if (status.tasks?.status === 'error') {
+    errors.push(...status.tasks.errors);
   }
   return [...new Set(errors)];
 }
@@ -600,6 +689,16 @@ function formatWorkflowStatus(status) {
     `Review: ${status.evidence.review.status}`,
     `Verification: ${status.evidence.verification.status}`,
     `QA: ${status.evidence.qa.status}`,
+    ...(status.tasks
+      ? [
+          `Tasks: ${status.tasks.completed}/${status.tasks.total} completed`,
+          `Task ledger sequence: ${status.tasks.sequence}`,
+          `Implementation ready: ${status.tasks.implementationReadyAllowed ? 'yes' : 'no'}`,
+          ...(status.tasks.errors.length > 0
+            ? [`Task errors: ${status.tasks.errors.join('; ')}`]
+            : []),
+        ]
+      : []),
     ...blockerLines,
     `Explicit user action: ${status.evidence.explicitUserAction ? 'required' : 'not required'}`,
     'Next actions:',

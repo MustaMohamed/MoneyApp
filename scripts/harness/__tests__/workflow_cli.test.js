@@ -147,6 +147,9 @@ function harness(overrides = {}) {
     },
     validateArtifactReference: (_root, reference) => reference,
     loadTaskGraph: () => ({}),
+    loadTaskContext: () => ({
+      taskProjection: { implementationReadyAllowed: true },
+    }),
     collectDeliveryRevision: () => ({
       branch: BRANCH,
       headSha: HEAD_SHA,

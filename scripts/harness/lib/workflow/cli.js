@@ -19,7 +19,7 @@ const {
   selectInitiativeId: selectInitiativeIdDefault,
 } = require('./status');
 const { verifyWorkflow: verifyWorkflowDefault } = require('./verify');
-const { runTaskCli: runTaskCliDefault } = require('../tasks/cli');
+const { loadCurrentTaskContext, runTaskCli: runTaskCliDefault } = require('../tasks/cli');
 const { loadTaskGraph: loadTaskGraphDefault } = require('../tasks/graph');
 
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -429,6 +429,7 @@ async function runCli(options) {
     runVerification,
     runGit,
     loadTaskGraph = loadTaskGraphDefault,
+    loadTaskContext,
   } = options;
 
   try {
@@ -526,6 +527,21 @@ async function runCli(options) {
           `Stale expected sequence: observed ${history.projection.sequence}; received ${observedSequence}`,
         );
       }
+      if (eventType === 'implementation.ready' && history.projection.plan?.taskGraph) {
+        const taskContext = (loadTaskContext ?? loadCurrentTaskContext)(
+          {
+            root,
+            manifest,
+            machine,
+            loadEventHistory,
+            validateArtifactReference,
+          },
+          initiativeId,
+        );
+        if (!taskContext.taskProjection.implementationReadyAllowed) {
+          throw new Error('The current task graph has incomplete tasks');
+        }
+      }
       const recordedAt = timestamp(clock);
       const payload = buildPayload({
         eventType,
@@ -613,6 +629,7 @@ async function runCli(options) {
         root,
         initiativeId: flags.id,
         machine,
+        manifest,
         loadEventHistory,
         ...(runGit
           ? {
@@ -625,6 +642,7 @@ async function runCli(options) {
         root,
         initiativeId,
         machine,
+        manifest,
         loadEventHistory,
         validateArtifactReference,
         collectDeliveryRevision,
@@ -642,6 +660,7 @@ async function runCli(options) {
       const statuses = listWorkflowStatuses({
         root,
         machine,
+        manifest,
         loadEventHistory,
         validateArtifactReference,
         collectDeliveryRevision,
@@ -686,6 +705,7 @@ async function runCli(options) {
         root,
         initiativeId,
         machine,
+        manifest,
         loadEventHistory,
         validateArtifactReference,
         collectDeliveryRevision,

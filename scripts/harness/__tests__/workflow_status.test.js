@@ -591,7 +591,7 @@ void test('stale spec and plan evidence prescribe their typed revision commands 
     });
 
     assert.deepEqual(status.nextActions, [
-      `npm run workflow -- record plan.revised --id ${ID} --expected-sequence 6 --recorded-by tariq --plan ${PLAN.path} --reason <reason>`,
+      `npm run workflow -- record plan.revised --id ${ID} --expected-sequence 6 --recorded-by tariq --plan ${PLAN.path} --task-graph <task-graph-path> --reason <reason>`,
     ]);
   });
 });

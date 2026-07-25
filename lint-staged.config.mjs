@@ -10,6 +10,7 @@ const HARNESS_PREFIXES = [
   '.codex/',
   'scripts/harness/',
   'docs/superpowers/initiatives/',
+  'docs/superpowers/task-graphs/',
   'docs/superpowers/reviews/',
   'docs/superpowers/qa/',
 ];
@@ -30,6 +31,15 @@ const isVendored = (file) => VENDORED_DIRS.some((dir) => file.includes(dir));
 
 /** @param {string[]} files */
 const keep = (files) => files.filter((file) => !isVendored(file));
+
+/** @param {string} file */
+const isImmutableTaskEvidence = (file) => {
+  const value = relative(file);
+  return (
+    value.startsWith('docs/superpowers/task-graphs/') ||
+    (value.startsWith('docs/superpowers/initiatives/') && value.includes('/task-events/'))
+  );
+};
 
 /** @param {string[]} files */
 const quote = (files) => files.map((file) => `"${file}"`).join(' ');
@@ -52,7 +62,11 @@ export default {
   '*': (/** @type {string[]} */ files) => {
     const commands = [];
     const lintTargets = keep(files.filter((file) => /\.(?:ts|tsx|js|cjs|mjs)$/u.test(file)));
-    const formatTargets = keep(files.filter((file) => /\.(?:ts|tsx|js|cjs|mjs|json)$/u.test(file)));
+    const formatTargets = keep(
+      files.filter(
+        (file) => /\.(?:ts|tsx|js|cjs|mjs|json)$/u.test(file) && !isImmutableTaskEvidence(file),
+      ),
+    );
 
     if (lintTargets.length > 0) commands.push(`oxlint --fix ${quote(lintTargets)}`);
     if (formatTargets.length > 0) commands.push(`oxfmt ${quote(formatTargets)}`);

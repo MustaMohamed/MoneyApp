@@ -262,6 +262,14 @@ function initiativeContext(options, initiativeId, graphPath) {
   return (options.loadInitiativeContext ?? loaders.loadInitiativeContext)(initiativeId, graphPath);
 }
 
+function loadCurrentTaskContext(options, initiativeId) {
+  return taskContext(options, initiativeId);
+}
+
+function loadCurrentInitiativeContext(options, initiativeId, graphPath) {
+  return initiativeContext(options, initiativeId, graphPath);
+}
+
 function appendResult(options, context, observedSequence, draft) {
   const result = (options.appendTaskEvent ?? appendTaskEventDefault)({
     root: options.root,
@@ -702,5 +710,7 @@ async function runTaskCli(options) {
 }
 
 module.exports = {
+  loadCurrentInitiativeContext,
+  loadCurrentTaskContext,
   runTaskCli,
 };
