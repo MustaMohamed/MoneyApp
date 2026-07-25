@@ -56,8 +56,6 @@ advice does not write files or dispatch work.
 ## Tariq
 Adopt Tariq's advisory architecture and review lens.
 Current decisions: **Zustand v5**, `src/modules/<domain>/`, and **HeroUI Native**.
-Do not use `@preact/signals-react`; the package is not installed.
-The Signals Babel transform is not installed.
 
 Do not override product/UX or financial formulas. A review response returns
 findings, a verdict, and a **merge recommendation**; push, merge, and

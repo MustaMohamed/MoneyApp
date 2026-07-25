@@ -1,44 +1,5 @@
 [
   {
-    "name": "signals-installed",
-    "files": { ".codex/agents/dev.toml": "The Babel signals transform is installed." },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
-    "name": "signals-use-directive",
-    "files": {
-      ".codex/agents/dev.toml": "Use @preact/signals-react for migrated state."
-    },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
-    "name": "signals-prefer-directive",
-    "files": { ".claude/agents/dev.md": "Prefer Preact Signals for migrated state." },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
-    "name": "signals-enforce-directive",
-    "files": {
-      ".agents/skills/moneyapp-expert-panel/SKILL.md": "Enforce @preact/signals-react as the state model."
-    },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
-    "name": "signals-migrate-directive",
-    "files": { ".claude/agents/tariq.md": "Migrate shared state to Preact Signals." },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
-    "name": "signals-stack-claim",
-    "files": { "CLAUDE.md": "State stack: @preact/signals-react." },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
-    "name": "signals-transform-installed",
-    "files": { "AGENTS.md": "The signals transform is installed." },
-    "expectedRule": "STACK-NO-SIGNALS"
-  },
-  {
     "name": "agent-merge-authority",
     "files": { ".claude/agents/tariq.md": "Tariq may approve and merge." },
     "expectedRule": "AUTH-USER-INTEGRATION"

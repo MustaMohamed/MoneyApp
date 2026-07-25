@@ -12,7 +12,6 @@ void test('root adapters contain identical binding decisions', () => {
     'explicit user request',
     'Spec sign-off',
     'Device QA',
-    'Signals rollback',
     'src/modules/<domain>/',
     'HeroUI Native',
     'npm run verify:pr',

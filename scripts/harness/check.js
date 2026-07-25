@@ -11,7 +11,6 @@ const {
 } = require('./lib/structure');
 const { evaluateRules } = require('./lib/semantics');
 const {
-  collectBabelText,
   collectSourceText,
   validateDependencyFacts,
   validateIntegrationContract,
@@ -57,9 +56,7 @@ errors.push(
   ...validateDependencyFacts(
     pkg,
     JSON.parse(fs.readFileSync(resolveInside(root, 'package-lock.json'), 'utf8')),
-    Object.values(liveFiles).join('\n'),
     collectSourceText(root),
-    collectBabelText(root),
   ),
 );
 errors.push(...validateRepositoryPaths(root, manifest));

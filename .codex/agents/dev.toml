@@ -21,9 +21,6 @@ restating the complete project architecture.
 - Top-level partial updates use
   `set({ x: value })`; functional `set` is reserved for updates that read the
   current state, and nested spreads are limited to nested objects.
-- Do not use `@preact/signals-react`; the package is not installed.
-- The Signals Babel transform is not installed.
-- Reintroduction requires a new approved plan and dependency-change escalation.
 - Read the relevant HeroUI Native component documentation before building UI.
 
 ## Domain boundaries

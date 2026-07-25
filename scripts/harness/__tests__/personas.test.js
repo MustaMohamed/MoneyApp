@@ -12,8 +12,6 @@ void test('each supported surface has one current persona', () => {
   for (const role of roles) {
     const codex = fs.readFileSync(path.join(root, `.codex/agents/${role}.toml`), 'utf8');
     const claude = fs.readFileSync(path.join(root, `.claude/agents/${role}.md`), 'utf8');
-    assert.equal(codex.includes('Babel signals transform is installed'), false);
-    assert.equal(claude.includes('Babel signals transform is installed'), false);
     assert.match(codex, new RegExp(`name = "${role}"`));
     assert.match(claude, new RegExp(`name: ${role}`));
   }
