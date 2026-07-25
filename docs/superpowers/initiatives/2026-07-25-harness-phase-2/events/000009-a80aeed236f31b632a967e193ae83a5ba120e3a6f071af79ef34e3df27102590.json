@@ -1,0 +1,49 @@
+{
+  "eventHash": "a80aeed236f31b632a967e193ae83a5ba120e3a6f071af79ef34e3df27102590",
+  "initiativeId": "2026-07-25-harness-phase-2",
+  "parent": {
+    "eventHash": "3f6a0ba8bc4f657b9355d0f0e1204dc355313bdc65ddb0470623fe18397fdebf",
+    "sequence": 8
+  },
+  "payload": {
+    "checks": [
+      {
+        "id": "format",
+        "status": "passed"
+      },
+      {
+        "id": "lint",
+        "status": "passed"
+      },
+      {
+        "id": "typecheck",
+        "status": "passed"
+      },
+      {
+        "id": "test",
+        "status": "passed"
+      },
+      {
+        "id": "doctor",
+        "status": "passed"
+      },
+      {
+        "id": "prebuild",
+        "status": "passed"
+      }
+    ],
+    "delivery": {
+      "branch": "refactor/harness-phase-2-workflow-state",
+      "contentDigest": "4e1645d798e320438a4efc9f5fe1fdcbe3638335fa85515116be119a9a0efac9",
+      "headSha": "27f01869679792d60ba045202150f42a5daba495",
+      "validationCycleId": "d223e8ebc6de34128945e39f193d4b3aae9671939bc463f7bbaa41376c000aa5"
+    }
+  },
+  "recordedAt": "2026-07-25T05:54:18.195Z",
+  "recordedBy": {
+    "role": "system"
+  },
+  "schemaVersion": 1,
+  "sequence": 9,
+  "type": "verification.passed"
+}
