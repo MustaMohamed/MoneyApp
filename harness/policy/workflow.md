@@ -1,5 +1,26 @@
 # Workflow
 
+## Durable Initiative State
+
+The immutable initiative ledger under
+`docs/superpowers/initiatives/<initiative-id>/events/` is the workflow
+authority after Phase 2. Chat text, an open editor, a task title, and inferred
+artifact presence are not workflow state.
+
+- On every resume, run `npm run workflow -- status --id <initiative-id> --json`
+  before recommending or recording work. When the ID is omitted, the command
+  may select only a unique ledger for the current branch.
+- Create a new ledger with `npm run workflow -- init` before plan or
+  implementation work. Resume an existing initiative by appending typed
+  initiative-level events; never create a global active-state file.
+- Use the exact `sequence` reported by status as `--expected-sequence`.
+- Only `npm run workflow -- verify` may record verification results. A typed
+  status or verification command never gains push, PR, merge, or destructive
+  repository authority.
+- `integration_ready` means the required evidence is fresh. Push, PR creation,
+  merge, and destructive repository operations still require an explicit user
+  request.
+
 ## How the Team Plugs Into Superpowers
 
 Phase mapping (skills are authoritative — personas contribute to their outputs). Interactive phases run in the **main thread** via inline `[name]` personas; non-interactive phases dispatch `@name` subagents:

@@ -31,6 +31,26 @@ void test('lint-staged validates relevant harness files after source formatting'
   ]);
 });
 
+void test('lint-staged treats workflow machine, ledgers, evidence, and runtime policies as harness inputs', async () => {
+  const configUrl = pathToFileURL(path.join(root, 'lint-staged.config.mjs')).href;
+  const config = (await import(`${configUrl}?workflow=${Date.now()}`)).default;
+  const relevant = [
+    'harness/workflow/state_machine.json',
+    'docs/superpowers/initiatives/2026-07-25-example/events/000001-event.json',
+    'docs/superpowers/reviews/2026-07-25-example.md',
+    'docs/superpowers/qa/2026-07-25-example.md',
+    '.gitattributes',
+    '.gitignore',
+  ].map((file) => path.join(root, file));
+
+  for (const file of relevant) {
+    assert(
+      config['*']([file]).includes('npm run harness:check'),
+      `${path.relative(root, file)} must trigger harness validation`,
+    );
+  }
+});
+
 void test('lint-staged validates generated harness files without formatting vendored assets', async () => {
   const configUrl = pathToFileURL(path.join(root, 'lint-staged.config.mjs')).href;
   const config = (await import(configUrl)).default;

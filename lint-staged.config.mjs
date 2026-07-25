@@ -3,10 +3,21 @@
 // `oxlint --fix` yields an empty file set and a non-zero exit ("No files found to
 // lint"), which fails the pre-commit hook. Filter those paths out of every task.
 const VENDORED_DIRS = ['/.claude/', '/.agents/'];
-const HARNESS_PREFIXES = ['harness/', '.agents/', '.claude/', '.codex/', 'scripts/harness/'];
+const HARNESS_PREFIXES = [
+  'harness/',
+  '.agents/',
+  '.claude/',
+  '.codex/',
+  'scripts/harness/',
+  'docs/superpowers/initiatives/',
+  'docs/superpowers/reviews/',
+  'docs/superpowers/qa/',
+];
 const HARNESS_FILES = new Set([
   'AGENTS.md',
   'CLAUDE.md',
+  '.gitattributes',
+  '.gitignore',
   'package.json',
   'lint-staged.config.mjs',
   '.husky/pre-push',

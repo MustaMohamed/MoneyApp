@@ -13,15 +13,21 @@ function runVerification(root, checks, overrides = {}) {
       return fs.existsSync(absolute) && fs.statSync(absolute).isDirectory();
     });
 
+  const results = [];
   for (const check of checks) {
     const [command, ...args] = check.local;
     const result = spawn(command, args);
-    if (result.status !== 0) return { ok: false, failedCheck: check.id };
-    if (check.assertDirectory && !isDirectory(check.assertDirectory)) {
-      return { ok: false, failedCheck: check.id };
+    if (result.status !== 0) {
+      results.push({ id: check.id, status: 'failed' });
+      return { ok: false, failedCheck: check.id, checks: results };
     }
+    if (check.assertDirectory && !isDirectory(check.assertDirectory)) {
+      results.push({ id: check.id, status: 'failed' });
+      return { ok: false, failedCheck: check.id, checks: results };
+    }
+    results.push({ id: check.id, status: 'passed' });
   }
-  return { ok: true };
+  return { ok: true, failedCheck: undefined, checks: results };
 }
 
 module.exports = { runVerification };
