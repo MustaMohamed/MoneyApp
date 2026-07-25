@@ -1,0 +1,47 @@
+{
+  "eventHash": "e84d161a48750a6c90f553846010dfaa877c8de8ee69ba661e9ae918661525d4",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "9fde577b88d1927c0d2f7cd4f11074eaac0cbe3e83f5ed3b6df2d9198d4e6cb3",
+    "sequence": 9
+  },
+  "payload": {
+    "changedPaths": [
+      "docs/superpowers/reports/2026-07-25-harness-bounded-task-packets-dogfood.md",
+      "scripts/harness/__tests__/task_graph.test.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "npm",
+          "run",
+          "harness:test"
+        ],
+        "passed": true,
+        "summary": "513 tests: 512 passed, 0 failed, 1 filesystem-capability skip."
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "harness:check"
+        ],
+        "passed": true,
+        "summary": "Harness valid with all 16 generated targets current."
+      }
+    ],
+    "claimEventHash": "9fde577b88d1927c0d2f7cd4f11074eaac0cbe3e83f5ed3b6df2d9198d4e6cb3",
+    "endHead": "eaa8c63f9b90b48faee4ea6ab4bdc075749172fc",
+    "packetHash": "bc8ed545f2a7e80728a7164e6d0fa26aba8ba61cd5ec579a3638cb149401d2c4",
+    "startHead": "f424dcd265bf3f29282214697aa7140e99632d13",
+    "summary": "Refreshed the current committed-graph fixture, proved fresh-checkout packet determinism, and recorded green dogfood evidence.",
+    "taskId": "task-13"
+  },
+  "recordedAt": "2026-07-25T09:18:54.318Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 10,
+  "type": "task.completed"
+}
