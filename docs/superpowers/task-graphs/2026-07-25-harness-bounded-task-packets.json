@@ -1,9 +1,9 @@
 {
-  "graphHash": "f0888faa440e9fdc31447348470e274a83eb71505670d12c227dd3d3177a1cba",
+  "graphHash": "ea23a1ddf740c455e53b1485966a64a458fbe0676c00603644763438aea83b10",
   "initiativeId": "2026-07-25-harness-phase-3",
   "plan": {
     "path": "docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md",
-    "sha256": "e3c751591d948de89fc02e09299b4d81e5d9a0b4b590fca4e28719096a65b6da"
+    "sha256": "ebab2fa0087da4bc2dd9b4b124f6466393ef223c6c59b952cdfae5f70b8b3f0f"
   },
   "schemaVersion": 1,
   "tasks": [

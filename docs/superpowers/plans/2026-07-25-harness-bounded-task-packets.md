@@ -493,8 +493,9 @@ scopesOverlap(left, right);
 assertScopeResolvesInside(root, scope);
 ```
 
-Only `*`, `?`, and whole-segment `**` are metacharacters. Convert each segment
-to a deterministic regular expression after validating it through
+Only `*` and whole-segment `**` are metacharacters; `?`, character classes, and
+brace expansion remain invalid, matching the existing harness glob grammar.
+Convert each segment to a deterministic regular expression after validating it through
 `assertSafeRelativePath`; walk the literal prefix with `lstatSync` and reject
 symlink components. `scopesOverlap` must be conservative: return `true` when
 the two finite-state segment patterns can intersect, never return a false
@@ -1287,7 +1288,7 @@ Run:
 ```bash
 npm run workflow -- tasks activate \
   --id 2026-07-25-harness-phase-3 \
-  --expected-initiative-sequence 6 \
+  --expected-initiative-sequence 8 \
   --task-graph docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json \
   --bootstrap-completions '<canonical JSON from Step 1>'
 ```
@@ -1470,11 +1471,11 @@ Run:
 ```bash
 npm run workflow -- record implementation.ready \
   --id 2026-07-25-harness-phase-3 \
-  --expected-sequence 6 \
+  --expected-sequence 8 \
   --recorded-by dev
 npm run workflow -- record review.approved \
   --id 2026-07-25-harness-phase-3 \
-  --expected-sequence 7 \
+  --expected-sequence 9 \
   --recorded-by tariq \
   --review docs/superpowers/reviews/2026-07-25-harness-bounded-task-packets-review.md \
   --decision-by tariq \
