@@ -131,6 +131,25 @@ void test('collects and validates a committed mutation delta', (t) => {
   );
 });
 
+void test('validates an explicit historical completion range under the current branch tip', (t) => {
+  const root = repositoryRoot(t);
+  const currentHead = 'c'.repeat(40);
+  const git = gitStub({ 'rev-parse --verify HEAD': `${currentHead}\n` });
+  const result = collectTaskCompletionRevision(root, { branch: BRANCH, startHead: START }, task(), {
+    runGit: git.runGit,
+    endHead: END,
+  });
+
+  assert.equal(result.endHead, END);
+  assert.deepEqual(
+    git.calls.filter((args) => args[0] === 'merge-base'),
+    [
+      ['merge-base', '--is-ancestor', END, currentHead],
+      ['merge-base', '--is-ancestor', START, END],
+    ],
+  );
+});
+
 void test('validates both rename paths, only copy destinations, and evidence exclusions', (t) => {
   const root = repositoryRoot(t);
   const git = gitStub({

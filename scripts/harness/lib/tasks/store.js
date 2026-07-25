@@ -215,10 +215,26 @@ function inspectTaskFiles({
     }
   }
   const events = records.map((record) => record.event);
+  let activationGraph = graph;
+  if (events.length > 0 && events[0].payload.graphHash !== graph.graphHash) {
+    activationGraph = resolveGraph?.(
+      events[0].payload.graphHash,
+      events[0].payload.taskGraph,
+      events[0].payload.plan,
+    );
+    if (!activationGraph) {
+      throw new Error(`Cannot resolve activated task graph ${events[0].payload.graphHash}`);
+    }
+  }
   const projection =
     events.length === 0
       ? undefined
-      : replayTaskEvents({ graph, events, initiativeProjection, resolveGraph });
+      : replayTaskEvents({
+          graph: activationGraph,
+          events,
+          initiativeProjection,
+          resolveGraph,
+        });
   return {
     events,
     paths: records.map((record) => record.path),

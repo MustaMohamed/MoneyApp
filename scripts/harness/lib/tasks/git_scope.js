@@ -238,9 +238,22 @@ function collectTaskCompletionRevision(root, startRevision, task, options = {}) 
   }
   const branch = readBranch(root, options);
   assertExpectedBranch(branch, startRevision.branch);
-  const endHead = readHead(root, options);
+  const currentHead = readHead(root, options);
+  const endHead = options.endHead ?? currentHead;
+  if (!HEX_40.test(endHead)) {
+    throw new Error('Explicit task end HEAD must be a 40-character lowercase hexadecimal commit');
+  }
   assertDeliveryClean(root, options);
 
+  if (endHead !== currentHead) {
+    try {
+      runGit(root, ['merge-base', '--is-ancestor', endHead, currentHead], options);
+    } catch (error) {
+      throw new Error('Historical task end HEAD does not belong to the current branch', {
+        cause: error,
+      });
+    }
+  }
   if (endHead !== startRevision.startHead) {
     try {
       runGit(root, ['merge-base', '--is-ancestor', startRevision.startHead, endHead], options);

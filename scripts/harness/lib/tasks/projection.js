@@ -239,7 +239,7 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
         for (const task of currentGraph.tasks) {
           supersededTasks.set(task.id, { ...task, state: 'superseded' });
         }
-        const replacement = resolveGraph?.(payload.graphHash);
+        const replacement = resolveGraph?.(payload.graphHash, payload.taskGraph, payload.plan);
         if (!replacement) throw new Error(`Cannot resolve replacement graph ${payload.graphHash}`);
         currentGraph = replacement;
         byId = taskMap(currentGraph);

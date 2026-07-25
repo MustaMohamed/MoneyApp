@@ -146,6 +146,7 @@ function harness(overrides = {}) {
       return reference;
     },
     validateArtifactReference: (_root, reference) => reference,
+    loadTaskGraph: () => ({}),
     collectDeliveryRevision: () => ({
       branch: BRANCH,
       headSha: HEAD_SHA,

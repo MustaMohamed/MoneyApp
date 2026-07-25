@@ -19,6 +19,8 @@ const {
   selectInitiativeId: selectInitiativeIdDefault,
 } = require('./status');
 const { verifyWorkflow: verifyWorkflowDefault } = require('./verify');
+const { runTaskCli: runTaskCliDefault } = require('../tasks/cli');
+const { loadTaskGraph: loadTaskGraphDefault } = require('../tasks/graph');
 
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_40 = /^[a-f0-9]{40}$/;
@@ -251,6 +253,8 @@ function buildPayload({
   createArtifactReference,
   validateArtifactReference,
   collectDeliveryRevision,
+  loadTaskGraph,
+  taskLimits,
   runGit,
 }) {
   const artifact = (name) => {
@@ -269,6 +273,16 @@ function buildPayload({
       mode: flags['device-qa-mode'],
       rationale: flags['device-qa-rationale'],
     };
+  };
+  const validatePlanGraph = (plan, taskGraph) => {
+    loadTaskGraph({
+      root,
+      relativePath: taskGraph.path,
+      limits: taskLimits,
+      expectedInitiativeId: projection.initiative.id,
+      expectedPlan: plan,
+    });
+    return { plan, taskGraph };
   };
 
   switch (eventType) {
@@ -291,26 +305,23 @@ function buildPayload({
         reason: flags.reason,
       };
     case 'plan.submitted':
-      return { plan: artifact('plan'), taskGraph: artifact('task-graph') };
+      return validatePlanGraph(artifact('plan'), artifact('task-graph'));
     case 'plan.approved':
       if (!projection.plan?.current) throw new Error('No current submitted plan exists');
       return {
-        plan: validateArtifactReference(
-          root,
-          projection.plan.current,
-          runGit ? { runGit } : undefined,
-        ),
-        taskGraph: validateArtifactReference(
-          root,
-          projection.plan.taskGraph,
-          runGit ? { runGit } : undefined,
+        ...validatePlanGraph(
+          validateArtifactReference(root, projection.plan.current, runGit ? { runGit } : undefined),
+          validateArtifactReference(
+            root,
+            projection.plan.taskGraph,
+            runGit ? { runGit } : undefined,
+          ),
         ),
         authority: authority(flags, recordedBy, 'sarah'),
       };
     case 'plan.revised':
       return {
-        plan: artifact('plan'),
-        taskGraph: artifact('task-graph'),
+        ...validatePlanGraph(artifact('plan'), artifact('task-graph')),
         reason: flags.reason,
       };
     case 'implementation.ready':
@@ -417,12 +428,25 @@ async function runCli(options) {
     withWorkflowLock,
     runVerification,
     runGit,
+    loadTaskGraph = loadTaskGraphDefault,
   } = options;
 
   try {
     if (!Array.isArray(argv) || argv.length === 0) usage('A workflow command is required');
     const command = argv[0];
     const { manifest, machine } = workflowDependencies(options);
+
+    if (command === 'tasks') {
+      return (options.runTaskCli ?? runTaskCliDefault)({
+        ...options,
+        argv: argv.slice(1),
+        manifest,
+        machine,
+        stdout,
+        stderr,
+        clock,
+      });
+    }
 
     if (command === 'init') {
       const flags = parseFlags(argv.slice(1), {
@@ -512,6 +536,8 @@ async function runCli(options) {
         createArtifactReference,
         validateArtifactReference,
         collectDeliveryRevision,
+        loadTaskGraph,
+        taskLimits: manifest.workflow.tasks.limits,
         runGit,
       });
       const result = appendEvent({
