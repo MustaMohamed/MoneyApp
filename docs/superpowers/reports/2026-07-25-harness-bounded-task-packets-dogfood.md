@@ -4,14 +4,14 @@
 
 - Initiative: `2026-07-25-harness-phase-3`
 - Branch: `refactor/harness-phase-3-task-packets`
-- Current graph: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v8.json`
-- Graph hash: `8758b85f41035f0e1620aa125e8b61c72f0c5401e1f20818fa17eec1f7ae14cd`
-- Graph artifact SHA-256: `6d15e131d1577637d554ed029020d2db14a2414e4cf7bb2b7bd5042e149a21b0`
+- Current graph: `docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v9.json`
+- Graph hash: `643db5bc8382222f01d6481e6dde830adc0cc0c60777767d469ee042f5217102`
+- Graph artifact SHA-256: `9d39083b0f19f9296d47ded0d2d09655d6155c162fdb7feb62bf49cd90a0aea9`
 - Plan artifact SHA-256: `7b0679cac856115cfb5b59202c384bb489971f2016d8b15be2b99e5bb52c5ed3`
-- Current tasks: 15
-- Imported completed tasks before this live claim: 14
-- Current live task at review checkpoint: `task-15`
-- Task-ledger sequence at review checkpoint: 17
+- Current tasks: 16
+- Imported completed tasks before this live claim: 15
+- Current live task at review checkpoint: `task-16`
+- Task-ledger sequence at review checkpoint: 20
 - Device QA: not applicable
 
 ## Observed Metrics
@@ -19,17 +19,17 @@
 | Metric | Count |
 | --- | ---: |
 | Task-ledger activations | 1 |
-| Task-graph replacements | 5 |
-| Recorded live claims | 6 |
+| Task-graph replacements | 6 |
+| Recorded live claims | 7 |
 | Recorded task failures | 4 |
 | Recorded releases | 0 |
 | Recorded task blockers | 0 |
 | Critical-trigger blockers | 0 |
 | Rejected mutations with no event appended | 6 |
-| Defined execution retries | 11 |
+| Defined execution retries | 12 |
 | Scope-violation batches | 1 |
 | Tasks in the scope-violation batch | 2 |
-| Preserved graph artifacts | 8 |
+| Preserved graph artifacts | 9 |
 
 `Defined execution retries` counts the initial activation scope correction, the
 first failed dogfood regression, the bad-SHA replacement retry, the first
@@ -37,7 +37,8 @@ post-replacement claim retry, the repeated-replacement resolver retry, and the
 current-graph fixture retry, plus the rejected noncanonical completion payload,
 immutable-evidence formatter correction, source-format correction, type-aware
 lint correction, and v8 committed-graph task-count correction. It does not
-count ordinary read-only status or packet regeneration.
+count ordinary read-only status or packet regeneration. The twelfth retry is
+the lifecycle replay correction found by the first full `verify:pr` run.
 
 ## Determinism Evidence
 
@@ -65,6 +66,7 @@ Earlier immutable checkpoints also matched their fresh checkout:
 | v5 | `task-13` | 2,716 | `3280022c11bef0d3b058e536d1cdb40d5159e125dcb800146b79002b8913d9c8` |
 | v6 | `task-13` | 2,922 | `bc8ed545f2a7e80728a7164e6d0fa26aba8ba61cd5ec579a3638cb149401d2c4` |
 | v8 | `task-15` | 3,232 | `bbf28f8f62cd4f02274362681badf402a3600fed622f8867a8b14ecac9dcbfd8` |
+| v9 | `task-16` | 3,413 | `383d31c7596c47a01df05c1bb3f0ee9157557c44fc2ea7373cf8e2eefe24ad76` |
 
 ## Dogfood Findings and Repairs
 
@@ -91,6 +93,11 @@ Earlier immutable checkpoints also matched their fresh checkout:
 8. The first exact type-aware lint run exposed five Phase 3 errors: four
    unnecessary bounds conditions in path-scope intersection and one redundant
    `O_NOFOLLOW` fallback. v8 repaired them without weakening lint policy.
+9. The first full `verify:pr` advanced through format and into lint, where its
+   read-only harness check found historical task activation replay incorrectly
+   required the initiative's current phase to still be execution. v9 keeps the
+   execution guard at CLI append time and lets valid history replay in later
+   validation and integration phases.
 
 The intermediate graphs remain immutable evidence. No event, graph, or shipped
 migration was rewritten.
@@ -100,7 +107,7 @@ migration was rewritten.
 - `node --test scripts/harness/__tests__/task_path_scope.test.js scripts/harness/__tests__/task_graph.test.js`:
   12 passed, 0 failed.
 - `npm run harness:test`:
-  514 tests, 513 passed, 0 failed, 1 filesystem-capability skip.
+  515 tests, 514 passed, 0 failed, 1 filesystem-capability skip.
 - `npm run harness:check`:
   valid, 16 generated targets current.
 - `npm run format:check`:

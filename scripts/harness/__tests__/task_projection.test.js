@@ -142,6 +142,25 @@ void test('projects deterministic pending, ready, claimed, and completed states'
   assert.equal(completed.implementationReadyAllowed, false);
 });
 
+void test('replays historical activation after the initiative advances to validation', () => {
+  const value = ledger();
+  const validationProjection = {
+    ...initiativeProjection,
+    phase: 'validation',
+    sequence: 7,
+    latestEvent: { eventHash: '2'.repeat(64) },
+  };
+
+  const projection = replayTaskEvents({
+    graph,
+    events: value.events,
+    initiativeProjection: validationProjection,
+  });
+
+  assert.deepEqual(projection.readyTaskIds, ['task-01']);
+  assert.equal(projection.tasks['task-01'].state, 'ready');
+});
+
 void test('projects block, unblock, fail, and release without inferring success', () => {
   const value = ledger();
   value.append('task.blocked', {

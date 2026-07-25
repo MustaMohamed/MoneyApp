@@ -151,9 +151,8 @@ function replayTaskEvents({ graph, events, initiativeProjection, resolveGraph })
     switch (event.type) {
       case 'task_graph.activated': {
         if (event.sequence !== 1) throw new Error('Task graph activation must be the root event');
-        if (initiativeProjection.phase !== 'execution') {
-          throw new Error('Task graph activation requires initiative execution phase');
-        }
+        // Activation phase is enforced before append. Replay may occur after the
+        // initiative has advanced to validation or integration readiness.
         requireInitiativeReference(payload, initiativeProjection, 'Task graph activation');
         requireGraphBundle(currentGraph, payload, initiativeProjection, 'Task graph activation');
         for (const imported of payload.bootstrapCompletions) {
