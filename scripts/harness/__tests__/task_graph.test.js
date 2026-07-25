@@ -15,7 +15,7 @@ const { loadTaskGraph, validateTaskGraph } = require('../lib/tasks/graph');
 const root = path.resolve(__dirname, '../../..');
 const manifest = loadManifest(root);
 const limits = manifest.workflow.tasks.limits;
-const graphPath = 'docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v6.json';
+const graphPath = 'docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v7.json';
 const planPath = 'docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md';
 const expectedPlan = {
   path: planPath,

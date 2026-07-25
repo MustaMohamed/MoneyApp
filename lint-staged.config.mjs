@@ -37,7 +37,8 @@ const isImmutableTaskEvidence = (file) => {
   const value = relative(file);
   return (
     value.startsWith('docs/superpowers/task-graphs/') ||
-    (value.startsWith('docs/superpowers/initiatives/') && value.includes('/task-events/'))
+    (value.startsWith('docs/superpowers/initiatives/') &&
+      (value.includes('/events/') || value.includes('/task-events/')))
   );
 };
 
