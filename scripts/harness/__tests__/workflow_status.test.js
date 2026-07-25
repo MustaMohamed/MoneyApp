@@ -23,6 +23,14 @@ const PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-status-test.md',
   sha256: 'e'.repeat(64),
 };
+const REVIEW = {
+  path: 'docs/superpowers/reviews/2026-07-25-status-test-review.md',
+  sha256: '1'.repeat(64),
+};
+const QA = {
+  path: 'docs/superpowers/qa/2026-07-25-status-test-qa.md',
+  sha256: '2'.repeat(64),
+};
 
 function validationProjection(overrides = {}) {
   return {
@@ -414,11 +422,113 @@ void test('stale integration-ready delivery invalidates receipts and suppresses 
   assert.equal(status.evidence.verification.status, 'stale');
   assert.equal(status.evidence.qa.status, 'not_applicable');
   assert.equal(status.evidence.explicitUserAction, false);
+  assert.equal(status.owner, 'sarah');
   assert.deepEqual(status.nextActions, [
     `npm run workflow -- record work.reopened --id ${ID} --expected-sequence 8 --recorded-by sarah --reason <reason>`,
   ]);
   assert.equal(checkWorkflowStatus(status).ok, false);
   assert.match(formatWorkflowStatus(status), /Validation cycle status: stale/);
+});
+
+void test('stale integration-ready review and QA artifacts invalidate their receipts', async (t) => {
+  const cases = [
+    {
+      name: 'review',
+      sequence: 9,
+      staleArtifact: REVIEW,
+      projection: {
+        review: {
+          status: 'approved',
+          artifact: REVIEW,
+          eventHash: '3'.repeat(64),
+        },
+        verification: { status: 'passed', eventHash: '4'.repeat(64) },
+      },
+      expected: {
+        review: 'stale',
+        verification: 'passed',
+        qa: 'not_applicable',
+      },
+    },
+    {
+      name: 'QA',
+      sequence: 10,
+      staleArtifact: QA,
+      projection: {
+        spec: {
+          current: SPEC,
+          signed: true,
+          deviceQaMode: 'required',
+        },
+        review: {
+          status: 'approved',
+          artifact: REVIEW,
+          eventHash: '3'.repeat(64),
+        },
+        verification: { status: 'passed', eventHash: '4'.repeat(64) },
+        qa: {
+          status: 'passed',
+          artifact: QA,
+          eventHash: '5'.repeat(64),
+        },
+      },
+      expected: {
+        review: 'approved',
+        verification: 'passed',
+        qa: 'stale',
+      },
+    },
+  ];
+
+  for (const item of cases) {
+    await t.test(item.name, () => {
+      const validatedPaths = [];
+      const status = getWorkflowStatus({
+        root: '/repo',
+        initiativeId: ID,
+        machine: {},
+        ...dependencies({
+          loadEventHistory: () => ({
+            events: [{}],
+            projection: validationProjection({
+              phase: 'integration_ready',
+              owner: 'user',
+              sequence: item.sequence,
+              legalNextEvents: ['work.reopened'],
+              ...item.projection,
+            }),
+          }),
+          validateArtifactReference: (_root, artifact) => {
+            validatedPaths.push(artifact.path);
+            if (artifact.path === item.staleArtifact.path) {
+              throw new Error(`Stale artifact: ${item.name} changed`);
+            }
+            return artifact;
+          },
+        }),
+      });
+
+      assert.deepEqual(validatedPaths, [
+        SPEC.path,
+        PLAN.path,
+        REVIEW.path,
+        ...(item.name === 'QA' ? [QA.path] : []),
+      ]);
+      assert.equal(status.evidence.delivery.status, 'valid');
+      assert.equal(status.evidence.artifacts[item.name.toLowerCase()].status, 'stale');
+      assert.equal(status.evidence.validationCycleStatus, 'stale');
+      assert.equal(status.evidence.review.status, item.expected.review);
+      assert.equal(status.evidence.verification.status, item.expected.verification);
+      assert.equal(status.evidence.qa.status, item.expected.qa);
+      assert.equal(status.evidence.explicitUserAction, false);
+      assert.equal(status.owner, 'sarah');
+      assert.deepEqual(status.nextActions, [
+        `npm run workflow -- record work.reopened --id ${ID} --expected-sequence ${item.sequence} --recorded-by sarah --reason <reason>`,
+      ]);
+      assert.doesNotMatch(status.nextActions.join('\n'), /repository integration/i);
+      assert.equal(checkWorkflowStatus(status).ok, false);
+    });
+  }
 });
 
 void test('validation delivery digest or branch drift invalidates the active cycle', async (t) => {

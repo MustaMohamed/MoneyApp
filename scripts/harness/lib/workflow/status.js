@@ -258,7 +258,13 @@ function nextActionsFor(projection, initiativeId) {
   }
 }
 
-function evidenceRepairActions({ projection, initiativeId, artifacts, delivery }) {
+function evidenceRepairActions({
+  projection,
+  initiativeId,
+  artifacts,
+  delivery,
+  staleReceiptArtifact,
+}) {
   const sequence = projection.sequence;
   const prefix = 'npm run workflow -- record';
   if (artifacts.spec && artifacts.spec.status !== 'valid') {
@@ -272,7 +278,7 @@ function evidenceRepairActions({ projection, initiativeId, artifacts, delivery }
       `${prefix} plan.revised --id ${initiativeId} --expected-sequence ${sequence} --recorded-by tariq --plan ${artifacts.plan.path} --reason <reason>`,
     ];
   }
-  if (projection.validationCycleId && delivery.status !== 'valid') {
+  if (projection.validationCycleId && (delivery.status !== 'valid' || staleReceiptArtifact)) {
     return [
       `${prefix} work.reopened --id ${initiativeId} --expected-sequence ${sequence} --recorded-by sarah --reason <reason>`,
     ];
@@ -405,23 +411,37 @@ function getWorkflowStatus({
       runGit === undefined ? undefined : { runGit },
     ),
   );
-  const staleCycle = hasValidationCycle && delivery.status !== 'valid';
-  const reviewStatus = staleCycle
-    ? { status: 'stale' }
-    : hasValidationCycle
-      ? receiptStatus(projection.review)
-      : { status: 'not_applicable' };
-  const verificationStatus = staleCycle
+  const staleDelivery = hasValidationCycle && delivery.status !== 'valid';
+  const receiptArtifactPhase = ['validation', 'awaiting_device_qa', 'integration_ready'].includes(
+    projection.phase,
+  );
+  const staleReviewArtifact =
+    receiptArtifactPhase &&
+    projection.review?.artifact !== undefined &&
+    artifacts.review?.status !== 'valid';
+  const staleQaArtifact =
+    receiptArtifactPhase &&
+    projection.qa?.artifact !== undefined &&
+    artifacts.qa?.status !== 'valid';
+  const staleReceiptArtifact = staleReviewArtifact || staleQaArtifact;
+  const staleCycle = staleDelivery || (hasValidationCycle && staleReceiptArtifact);
+  const reviewStatus =
+    staleDelivery || staleReviewArtifact
+      ? { status: 'stale' }
+      : hasValidationCycle
+        ? receiptStatus(projection.review)
+        : { status: 'not_applicable' };
+  const verificationStatus = staleDelivery
     ? { status: 'stale' }
     : hasValidationCycle
       ? receiptStatus(projection.verification)
       : { status: 'not_applicable' };
   const qaStatus = projection.qa
-    ? staleCycle
+    ? staleDelivery || staleQaArtifact
       ? { status: 'stale' }
       : receiptStatus(projection.qa)
     : projection.phase === 'awaiting_device_qa'
-      ? staleCycle
+      ? staleDelivery
         ? { status: 'stale' }
         : { status: 'pending' }
       : { status: 'not_applicable' };
@@ -434,8 +454,11 @@ function getWorkflowStatus({
     schemaVersion: 1,
     initiativeId,
     phase: projection.phase,
-    owner:
-      blockers.length > 0 ? (blockers[0].requiredResolver ?? projection.owner) : projection.owner,
+    owner: staleCycle
+      ? 'sarah'
+      : blockers.length > 0
+        ? (blockers[0].requiredResolver ?? projection.owner)
+        : projection.owner,
     sequence: projection.sequence,
     evidence: {
       ledger: { status: 'valid', eventCount: history.events.length, errors: [] },
@@ -473,6 +496,7 @@ function getWorkflowStatus({
       initiativeId,
       artifacts,
       delivery,
+      staleReceiptArtifact,
     }),
   };
 }
