@@ -23,7 +23,7 @@ try {
   };
 }
 
-const { appendEvent, loadEventHistory, recoverRuntimeFiles } = store;
+const { appendEvent, loadEventHistory, recoverRuntimeFiles, withWorkflowLock } = store;
 const repositoryRoot = path.resolve(__dirname, '../../..');
 const machine = loadWorkflowMachine(repositoryRoot, loadManifest(repositoryRoot));
 const INITIATIVE_ID = '2026-07-25-store-test';
@@ -1867,4 +1867,56 @@ void test('recovery refuses embedded relative and absolute runtime path referenc
       assert.equal(fs.existsSync(eventPath(root, event)), true);
     });
   }
+});
+
+void test('withWorkflowLock persists an exclusive lock around a synchronous snapshot', (t) => {
+  const root = makeRoot(t);
+  const result = withWorkflowLock({
+    root,
+    initiativeId: INITIATIVE_ID,
+    machine,
+    callback() {
+      const lock = runtimePath(root, '.workflow.lock');
+      assert.equal(fs.existsSync(lock), true);
+      const metadata = JSON.parse(fs.readFileSync(lock, 'utf8'));
+      assert.equal(metadata.token, TOKEN);
+      return 'snapshot';
+    },
+    ...dependencies(),
+  });
+
+  assert.equal(result, 'snapshot');
+  assert.equal(fs.existsSync(runtimePath(root, '.workflow.lock')), false);
+});
+
+void test('append validates final workflow facts while holding its lock before temp creation', (t) => {
+  const root = makeRoot(t);
+  let validated = false;
+
+  assert.throws(
+    () =>
+      appendEvent({
+        root,
+        initiativeId: INITIATIVE_ID,
+        expectedSequence: 1,
+        draft: createdDraft(),
+        machine,
+        validateCurrent({ history, nextSequence }) {
+          validated = true;
+          assert.equal(history.events.length, 0);
+          assert.equal(nextSequence, 1);
+          assert.equal(fs.existsSync(runtimePath(root, '.workflow.lock')), true);
+          assert.deepEqual(
+            fs.readdirSync(eventsPath(root)).filter((entry) => entry !== '.workflow.lock'),
+            [],
+          );
+          throw new Error('verification facts changed before append');
+        },
+        ...dependencies(),
+      }),
+    /verification facts changed before append/i,
+  );
+
+  assert.equal(validated, true);
+  assert.deepEqual(fs.readdirSync(eventsPath(root)), []);
 });

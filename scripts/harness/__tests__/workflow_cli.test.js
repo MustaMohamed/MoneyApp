@@ -92,7 +92,10 @@ function harness(overrides = {}) {
     stdout,
     stderr,
     clock: () => NOW,
-    loadManifest: () => ({ workflow: { machine: 'machine.json' } }),
+    loadManifest: () => ({
+      workflow: { machine: 'machine.json' },
+      verification: { checks: [{ id: 'format', local: ['npm', 'run', 'format:check'] }] },
+    }),
     loadWorkflowMachine: () => machine,
     loadEventHistory: () => ({
       events: [{}],
@@ -142,6 +145,15 @@ function harness(overrides = {}) {
     formatWorkflowStatus: () => 'human status\n',
     checkWorkflowStatus: (status) => ({ ok: true, errors: [], status }),
     selectInitiativeId: ({ initiativeId }) => initiativeId ?? ID,
+    verifyWorkflow: () => ({
+      ok: true,
+      recorded: true,
+      event: {
+        sequence: 7,
+        type: 'verification.passed',
+        eventHash: 'a'.repeat(64),
+      },
+    }),
     ...overrides,
   };
   return { stdout, stderr, appended, dependencies };
@@ -824,6 +836,63 @@ void test('status, list, check, and recovery delegate without mutation', async (
   });
 });
 
+void test('verify delegates only the typed id and observed sequence and reports its receipt', async (t) => {
+  await t.test('passed verification returns zero', async () => {
+    let request;
+    const result = await execute(['verify', '--id', ID, '--expected-sequence', '6'], {
+      verifyWorkflow: (value) => {
+        request = value;
+        return {
+          ok: true,
+          recorded: true,
+          event: {
+            sequence: 7,
+            type: 'verification.passed',
+            eventHash: 'a'.repeat(64),
+          },
+        };
+      },
+    });
+
+    assert.equal(result.code, 0);
+    assert.equal(request.initiativeId, ID);
+    assert.equal(request.expectedSequence, 6);
+    assert.deepEqual(request.checks, [{ id: 'format', local: ['npm', 'run', 'format:check'] }]);
+    assert.match(result.stdout.value(), /verification\.passed/);
+  });
+
+  await t.test('failed checks record failure and return one', async () => {
+    const result = await execute(['verify', '--id', ID, '--expected-sequence', '6'], {
+      verifyWorkflow: () => ({
+        ok: false,
+        recorded: true,
+        event: {
+          sequence: 7,
+          type: 'verification.failed',
+          eventHash: 'b'.repeat(64),
+        },
+      }),
+    });
+
+    assert.equal(result.code, 1);
+    assert.match(result.stdout.value(), /verification\.failed/);
+  });
+
+  await t.test('stale facts record nothing and return one', async () => {
+    const result = await execute(['verify', '--id', ID, '--expected-sequence', '6'], {
+      verifyWorkflow: () => ({
+        ok: false,
+        recorded: false,
+        reason: 'contentDigest changed while verification checks ran',
+      }),
+    });
+
+    assert.equal(result.code, 1);
+    assert.equal(result.stdout.value(), '');
+    assert.match(result.stderr.value(), /contentDigest changed/i);
+  });
+});
+
 void test('returns usage code two for malformed or forbidden commands', async (t) => {
   const cases = [
     ['unknown'],
@@ -831,6 +900,8 @@ void test('returns usage code two for malformed or forbidden commands', async (t
     ['push'],
     ['merge'],
     ['finish'],
+    ['verify', '--id', ID, '--expected-sequence', '6', '--claim-green', 'yes'],
+    ['verify', '--id', ID],
     [
       'record',
       'verification.passed',

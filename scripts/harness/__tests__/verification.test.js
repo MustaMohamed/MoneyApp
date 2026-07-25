@@ -22,6 +22,10 @@ void test('runs checks in order and stops at first failure', () => {
 
   assert.equal(result.ok, false);
   assert.equal(result.failedCheck, 'lint');
+  assert.deepEqual(result.checks, [
+    { id: 'format', status: 'passed' },
+    { id: 'lint', status: 'failed' },
+  ]);
   assert.deepEqual(calls, [
     ['npm', 'run', 'format:check'],
     ['npm', 'run', 'lint'],
@@ -36,4 +40,27 @@ void test('requires the registered generated directory', () => {
   );
 
   assert.equal(result.failedCheck, 'prebuild');
+  assert.deepEqual(result.checks, [{ id: 'prebuild', status: 'failed' }]);
+});
+
+void test('returns one passed result for every successful registered check', () => {
+  const checks = [
+    { id: 'format', local: ['npm', 'run', 'format:check'] },
+    { id: 'lint', local: ['npm', 'run', 'lint'] },
+  ];
+
+  assert.deepEqual(
+    runVerification('/repo', checks, {
+      spawn: () => ({ status: 0 }),
+      isDirectory: () => true,
+    }),
+    {
+      ok: true,
+      failedCheck: undefined,
+      checks: [
+        { id: 'format', status: 'passed' },
+        { id: 'lint', status: 'passed' },
+      ],
+    },
+  );
 });
