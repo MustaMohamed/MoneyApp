@@ -5,6 +5,11 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { loadManifest, validateWorkflowMachine } = require('../lib/manifest');
+const {
+  assertAllowedOrigin,
+  getEventDefinition,
+  loadWorkflowMachine,
+} = require('../lib/workflow/machine');
 
 const root = path.resolve(__dirname, '../../..');
 const STATES = [
@@ -329,4 +334,68 @@ void test('rejects arbitrary integration_ready-destination events from integrati
     () => validate(machine),
     /integration_ready.*spec\.revised.*plan\.revised.*work\.reopened.*blocker\.opened.*blocker\.resolved/,
   );
+});
+
+void test('loads one deeply frozen machine registry through the manifest path', () => {
+  const manifest = loadManifest(root);
+  const machine = loadWorkflowMachine(root, manifest);
+
+  assert.deepEqual(machine, EXPECTED_MACHINE);
+  assert.equal(Object.isFrozen(machine), true);
+  assert.equal(Object.isFrozen(machine.events), true);
+  assert.equal(Object.isFrozen(machine.events['implementation.ready']), true);
+  assert.equal(Object.isFrozen(machine.events['implementation.ready'].origins), true);
+  assert.throws(
+    () => loadWorkflowMachine(root, { workflow: { machine: '../outside.json' } }),
+    /normalized repository-relative|safe|escapes/i,
+  );
+});
+
+void test('returns deterministic event definitions and rejects unknown types', () => {
+  const machine = loadWorkflowMachine(root, loadManifest(root));
+
+  assert.equal(getEventDefinition(machine, 'spec.signed'), machine.events['spec.signed']);
+  for (const type of ['spec.approved', '__proto__', 'constructor']) {
+    assert.throws(
+      () => getEventDefinition(machine, type),
+      new RegExp(`Unknown workflow event type: ${type.replace('.', '\\.')}`),
+      `${type} must not resolve through the event registry prototype chain`,
+    );
+  }
+});
+
+void test('accepts every declared origin and rejects every forbidden origin', () => {
+  const machine = loadWorkflowMachine(root, loadManifest(root));
+  const candidateOrigins = ['none', ...machine.states];
+
+  for (const [type, definition] of Object.entries(machine.events)) {
+    for (const origin of candidateOrigins) {
+      if (definition.origins.includes(origin)) {
+        assert.doesNotThrow(
+          () => assertAllowedOrigin(definition, origin === 'none' ? undefined : origin),
+          `${type} must accept ${origin}`,
+        );
+      } else {
+        assert.throws(
+          () => assertAllowedOrigin(definition, origin === 'none' ? undefined : origin),
+          new RegExp(`cannot be recorded from ${origin}`),
+          `${type} must reject ${origin}`,
+        );
+      }
+    }
+  }
+});
+
+void test('allows the pseudo-origin none only when no phase exists', () => {
+  const machine = loadWorkflowMachine(root, loadManifest(root));
+  const created = getEventDefinition(machine, 'initiative.created');
+  const submitted = getEventDefinition(machine, 'spec.submitted');
+
+  assert.doesNotThrow(() => assertAllowedOrigin(created, undefined));
+  assert.throws(
+    () => assertAllowedOrigin(created, 'none'),
+    /real workflow phase|cannot be recorded/i,
+  );
+  assert.throws(() => assertAllowedOrigin(created, 'brainstorming'), /cannot be recorded/i);
+  assert.throws(() => assertAllowedOrigin(submitted, undefined), /cannot be recorded from none/i);
 });
