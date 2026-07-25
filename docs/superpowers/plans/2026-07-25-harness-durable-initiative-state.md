@@ -424,8 +424,12 @@ authority: {
 }
 ```
 
-Artifact references are `{ path, sha256 }`; delivery references are
-`{ branch, headSha, contentDigest, validationCycleId }`.
+Artifact references are `{ path, sha256 }`. `implementation.ready` carries the
+delivery seed `{ branch, headSha, contentDigest }`; its finalized event hash is
+the authoritative `validationCycleId`. Downstream cycle-bound delivery
+references are `{ branch, headSha, contentDigest, validationCycleId }`. This
+avoids an impossible self-reference in which an event hash would depend on
+itself.
 
 - [ ] **Step 6: Enforce LF in Git**
 
@@ -743,7 +747,7 @@ repository-relative path and the CLI computes the SHA-256:
 | `plan.submitted` | `--plan` |
 | `plan.approved` | `--decision-by sarah`, `--basis` |
 | `plan.revised` | `--plan`, `--reason` |
-| `implementation.ready` | No additional flags; CLI computes branch, HEAD, digest, and cycle |
+| `implementation.ready` | No additional flags; CLI computes branch, HEAD, and digest, then derives the cycle ID from the finalized event hash |
 | `review.approved` | `--review`, `--decision-by tariq`, `--basis` |
 | `review.changes_requested` | `--review`, `--decision-by tariq`, `--basis` |
 | `device_qa.passed` | `--qa`, `--decision-by user`, `--basis`, `--device`, `--os` |
