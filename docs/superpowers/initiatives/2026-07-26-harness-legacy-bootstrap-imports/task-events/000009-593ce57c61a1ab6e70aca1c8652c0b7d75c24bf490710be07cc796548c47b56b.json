@@ -1,0 +1,42 @@
+{
+  "eventHash": "593ce57c61a1ab6e70aca1c8652c0b7d75c24bf490710be07cc796548c47b56b",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "9830018ba13f8db75b0866706732d050713b88408c3043e25bc4314426228064",
+    "sequence": 8
+  },
+  "payload": {
+    "changedPaths": [
+      "scripts/harness/__tests__/task_cli.test.js",
+      "scripts/harness/__tests__/task_store.test.js",
+      "scripts/harness/lib/tasks/cli.js",
+      "scripts/harness/lib/tasks/store.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_cli.test.js",
+          "scripts/harness/__tests__/task_store.test.js",
+          "scripts/harness/__tests__/task_projection.test.js"
+        ],
+        "passed": true,
+        "summary": "43 focused CLI, store, and projection tests passed."
+      }
+    ],
+    "claimEventHash": "9830018ba13f8db75b0866706732d050713b88408c3043e25bc4314426228064",
+    "endHead": "0538919aae394d03893ffa9cb3482b65b32a94d2",
+    "packetHash": "7b4a7155fb7acd506c74579987f5af76ac4c991e2223a0813742b04d1a461dc2",
+    "startHead": "c9a41c18f7be9b66aa9219c7d4cee1f39cde2ace",
+    "summary": "Integrated generic bootstrap attestation into append and repository-backed replay.",
+    "taskId": "task-04"
+  },
+  "recordedAt": "2026-07-26T13:12:48.584Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 9,
+  "type": "task.completed"
+}

@@ -1,0 +1,24 @@
+{
+  "eventHash": "9830018ba13f8db75b0866706732d050713b88408c3043e25bc4314426228064",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "ccce30c96abf33ff04b0b7c58be0b9b5d330ab0e308f8c0366262b1f7a7cf892",
+    "sequence": 7
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Integrate the approved bootstrap attestation policy into append and replay using focused TDD.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "7b4a7155fb7acd506c74579987f5af76ac4c991e2223a0813742b04d1a461dc2",
+    "startHead": "c9a41c18f7be9b66aa9219c7d4cee1f39cde2ace",
+    "taskId": "task-04"
+  },
+  "recordedAt": "2026-07-26T13:04:47.478Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 8,
+  "type": "task.claimed"
+}
