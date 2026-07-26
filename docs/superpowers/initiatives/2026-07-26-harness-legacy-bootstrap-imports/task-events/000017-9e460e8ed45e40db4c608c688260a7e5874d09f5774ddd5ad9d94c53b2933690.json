@@ -1,0 +1,21 @@
+{
+  "eventHash": "9e460e8ed45e40db4c608c688260a7e5874d09f5774ddd5ad9d94c53b2933690",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "117d941b1b2d26959e6b9625725dd8b3e13ce1610f2df3c0fe9b3e3148be5dde",
+    "sequence": 16
+  },
+  "payload": {
+    "claimEventHash": "117d941b1b2d26959e6b9625725dd8b3e13ce1610f2df3c0fe9b3e3148be5dde",
+    "packetHash": "9ccb0578eb1066e07a9e9209990966c3ea92a0a3f4744058b98b51b360c5f0fc",
+    "reason": "Task 5 must explicitly include CLI manifest-reference plumbing required by the approved shared replay architecture.",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:13:50.208Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 17,
+  "type": "task.released"
+}
