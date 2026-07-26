@@ -1,0 +1,25 @@
+{
+  "eventHash": "691d63ac7230526b1b2feb5fc0f40ebd0e78c62bb51e3fdde86214c7c41a98f9",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "86dc49c845f1c002d5b7881de586b0d7bfd128001e3da4872548f3f30dd4a3e7",
+    "sequence": 1
+  },
+  "payload": {
+    "deviceQa": {
+      "mode": "not_applicable",
+      "rationale": "Harness-only validation has no app runtime or user interface."
+    },
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+      "sha256": "1cb0f5a2bc47819a55ed1322d8885a6f5491ed2a0be8f9beb8a59ef7944342de"
+    }
+  },
+  "recordedAt": "2026-07-26T12:06:34.815Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 2,
+  "type": "spec.submitted"
+}
