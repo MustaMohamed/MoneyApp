@@ -1,8 +1,13 @@
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const test = require('node:test');
 
+const { loadManifest } = require('../lib/manifest');
+const { loadCurrentInitiativeContext } = require('../lib/tasks/cli');
 const { runCli } = require('../lib/workflow/cli');
 const { collectWorkflowValidationErrors } = require('../lib/workflow/check');
+const { loadWorkflowMachine } = require('../lib/workflow/machine');
 const { getWorkflowStatus } = require('../lib/workflow/status');
 
 const ID = '2026-07-25-task-integration';
@@ -13,6 +18,7 @@ const TASK_GRAPH = {
   path: 'docs/superpowers/task-graphs/task-integration.json',
   sha256: '3'.repeat(64),
 };
+const ROOT = fs.realpathSync(path.resolve(__dirname, '../../..'));
 
 function writable() {
   let value = '';
@@ -206,4 +212,42 @@ void test('task graph or task-ledger corruption becomes deterministic harness er
   assert.equal(errors.length, 1);
   assert.equal(errors[0].file, `docs/superpowers/initiatives/${ID}/task-events`);
   assert.match(errors[0].message, /task event parent chain/i);
+});
+
+void test('replays the exact anchored Phase 3 legacy task ledger', () => {
+  const manifest = loadManifest(ROOT);
+  const machine = loadWorkflowMachine(ROOT, manifest);
+  const context = loadCurrentInitiativeContext(
+    { root: ROOT, manifest, machine },
+    '2026-07-25-harness-phase-3',
+  );
+  const portableContext = loadCurrentInitiativeContext(
+    {
+      root: ROOT,
+      manifest,
+      machine,
+      bootstrapGit: {
+        readFileAtCommit(root, commit, relativePath) {
+          assert.equal(root, ROOT);
+          assert.equal(commit, manifest.workflow.tasks.legacyBootstrapAnchor);
+          return fs.readFileSync(path.join(root, relativePath));
+        },
+        classifyCommitAvailability: () => 'missing',
+        attestLegacyBootstrapBridge: () => {
+          throw new Error('Portable replay must not use live bridge attestation');
+        },
+      },
+    },
+    '2026-07-25-harness-phase-3',
+  );
+
+  for (const projection of [
+    context.taskHistory.projection,
+    portableContext.taskHistory.projection,
+  ]) {
+    assert.equal(projection.completedCount, 16);
+    assert.equal(projection.totalCount, 16);
+    assert.equal(projection.implementationReadyAllowed, true);
+    assert.equal(projection.accountedHead, '9beb87e743ceac7a8cf07623d63d69b3b655306a');
+  }
 });

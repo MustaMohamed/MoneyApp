@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { finalizeHashedObject } = require('../lib/workflow/canonical');
+const { createLegacyBootstrapBridgeArtifact } = require('../lib/tasks/bootstrap');
 const { replayTaskEvents } = require('../lib/tasks/projection');
 
 const ID = '2026-07-25-example';
@@ -478,6 +479,39 @@ void test('projects activation bootstrap completions in their accounted order', 
   assert.equal(projection.accountedHead, HEAD_TWO);
 });
 
+void test('projects only exact repository-verified transparent bridges', () => {
+  const bridgedStart = 'b'.repeat(40);
+  const completion = bootstrapCompletion('task-01', bridgedStart, HEAD_ONE, 'generated/one.js');
+  const value = ledger([completion]);
+  const bridge = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [
+      {
+        beforeHead: HEAD,
+        afterHead: bridgedStart,
+        changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+      },
+    ],
+  }).bridges[0];
+
+  assert.throws(
+    () => replayTaskEvents({ graph, events: value.events, initiativeProjection }),
+    /checkpoint.*bridge missing/i,
+  );
+
+  const projection = replayTaskEvents({
+    graph,
+    events: value.events,
+    initiativeProjection,
+    verifiedBootstrapContexts: new Map([
+      [value.events[0].eventHash, { transparentBridges: [bridge] }],
+    ]),
+  });
+
+  assert.equal(projection.tasks['task-01'].state, 'completed');
+  assert.equal(projection.accountedHead, HEAD_ONE);
+});
+
 void test('preserves completed tasks through repeated replacements and supersedes only unfinished work', () => {
   const first = bootstrapCompletion('task-01', HEAD, HEAD_ONE, 'generated/one.js');
   const second = bootstrapCompletion('task-02', HEAD_ONE, HEAD_TWO, 'generated/two.js');
@@ -577,7 +611,59 @@ void test('preserves completed tasks through repeated replacements and supersede
   assert.equal(projection.tasks['task-06'].state, 'ready');
 });
 
-void test('rejects replacement bootstrap data that hides or changes completed work', () => {
+void test('keeps tasks completed when a full snapshot re-attests their evidence', () => {
+  const first = bootstrapCompletion('task-01', HEAD, HEAD_ONE, 'generated/one.js');
+  const reattested = {
+    ...first,
+    endHead: HEAD_TWO,
+    summary: 'Re-attested task-01 against the replacement graph.',
+  };
+  const replacementPlan = { ...PLAN, sha256: '4'.repeat(64) };
+  const replacementTaskGraph = { ...TASK_GRAPH, sha256: '5'.repeat(64) };
+  const replacement = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: replacementPlan,
+      tasks: [task('task-01', [], 'generated/one.js')],
+    },
+    'graphHash',
+  );
+  const value = ledger([first]);
+  const replacementEvent = value.append('task_graph.replaced', {
+    initiative: { sequence: 7, eventHash: '8'.repeat(64) },
+    spec: SPEC,
+    plan: replacementPlan,
+    taskGraph: replacementTaskGraph,
+    branch: BRANCH,
+    baseSha: HEAD,
+    graphHash: replacement.graphHash,
+    previousGraphHash: graph.graphHash,
+    reason: 'Re-attest the completed task against the replacement graph.',
+    bootstrapCompletions: [reattested],
+  });
+  const current = {
+    ...initiativeProjection,
+    sequence: 7,
+    latestEvent: { eventHash: '8'.repeat(64) },
+    plan: { current: replacementPlan, taskGraph: replacementTaskGraph, approved: true },
+  };
+
+  const projection = replayTaskEvents({
+    graph,
+    events: value.events,
+    initiativeProjection: current,
+    initiativeSnapshots: new Map([['1'.repeat(64), initiativeProjection]]),
+    resolveGraph: () => replacement,
+  });
+
+  assert.equal(projection.tasks['task-01'].state, 'completed');
+  assert.equal(projection.completedCount, 1);
+  assert.equal(projection.accountedHead, HEAD_TWO);
+  assert.equal(projection.completions['task-01'].eventHash, replacementEvent.eventHash);
+});
+
+void test('rejects replacement bootstrap data that hides or reorders completed work', () => {
   const first = bootstrapCompletion('task-01', HEAD, HEAD_ONE, 'generated/one.js');
   const second = bootstrapCompletion('task-02', HEAD_ONE, HEAD_TWO, 'generated/two.js');
   const replacementPlan = { ...PLAN, sha256: '4'.repeat(64) };
@@ -601,12 +687,7 @@ void test('rejects replacement bootstrap data that hides or changes completed wo
     plan: { current: replacementPlan, taskGraph: replacementTaskGraph, approved: true },
   };
   const snapshots = new Map([['1'.repeat(64), initiativeProjection]]);
-  const cases = [
-    [first],
-    [second, first],
-    [{ ...first, summary: 'Changed prior evidence.' }, second],
-    [first, second, second],
-  ];
+  const cases = [[first], [second, first], [first, second, second]];
 
   for (const bootstrapCompletions of cases) {
     const value = ledger([first, second]);

@@ -29,6 +29,7 @@ const TASK_LIMIT_KEYS = [
   'maxPacketBytes',
 ];
 const HEX_40 = /^[a-f0-9]{40}$/u;
+const HEX_64 = /^[a-f0-9]{64}$/u;
 
 function workflowEvent(origins, destination, roles, guard) {
   return { origins, destination, roles, guard };
@@ -374,7 +375,7 @@ function validateManifest(manifest) {
   requireObject(manifest.workflow?.tasks, 'workflow.tasks');
   requireExactKeys(
     manifest.workflow.tasks,
-    ['directory', 'legacyBootstrapAnchor', 'limits'],
+    ['directory', 'legacyBootstrapAnchor', 'legacyBootstrapBridges', 'limits'],
     'workflow.tasks fields',
   );
   requireNonEmptyString(manifest.workflow.tasks.directory, 'workflow.tasks.directory');
@@ -382,6 +383,22 @@ function validateManifest(manifest) {
     throw new Error(
       'workflow.tasks.legacyBootstrapAnchor must be a 40-character lowercase hexadecimal commit',
     );
+  }
+  requireObject(
+    manifest.workflow.tasks.legacyBootstrapBridges,
+    'workflow.tasks.legacyBootstrapBridges',
+  );
+  requireExactKeys(
+    manifest.workflow.tasks.legacyBootstrapBridges,
+    ['path', 'sha256'],
+    'workflow.tasks.legacyBootstrapBridges fields',
+  );
+  requireNonEmptyString(
+    manifest.workflow.tasks.legacyBootstrapBridges.path,
+    'workflow.tasks.legacyBootstrapBridges.path',
+  );
+  if (!HEX_64.test(manifest.workflow.tasks.legacyBootstrapBridges.sha256)) {
+    throw new Error('workflow.tasks.legacyBootstrapBridges.sha256 must be lowercase SHA-256');
   }
   requireObject(manifest.workflow.tasks.limits, 'workflow.tasks.limits');
   requireExactKeys(manifest.workflow.tasks.limits, TASK_LIMIT_KEYS, 'workflow.tasks.limits fields');
@@ -399,6 +416,7 @@ function validateManifest(manifest) {
   assertSafeRelativePath(manifest.rules);
   assertSafeRelativePath(manifest.workflow.machine);
   assertSafeRelativePath(manifest.workflow.tasks.directory);
+  assertSafeRelativePath(manifest.workflow.tasks.legacyBootstrapBridges.path);
 
   for (const policyPath of manifest.policyOrder) assertSafeRelativePath(policyPath);
   if (new Set(manifest.policyOrder).size !== manifest.policyOrder.length) {
@@ -448,6 +466,10 @@ function validateManifest(manifest) {
 
   const registeredInputs = [
     { label: 'manifest', path: 'harness/manifest.json' },
+    {
+      label: 'legacy bootstrap bridge artifact',
+      path: manifest.workflow.tasks.legacyBootstrapBridges.path,
+    },
     { label: 'rules', path: manifest.rules },
     { label: 'workflow machine', path: manifest.workflow.machine },
     ...manifest.policyOrder.map((input) => ({ label: 'policyOrder', path: input })),
@@ -484,6 +506,7 @@ function loadManifest(root) {
   const registeredInputs = [
     manifest.rules,
     manifest.workflow.machine,
+    manifest.workflow.tasks.legacyBootstrapBridges.path,
     ...manifest.policyOrder,
     ...manifest.targets.flatMap((target) => [target.template, ...target.sources]),
     ...manifest.personas.map((persona) => persona.source),

@@ -146,6 +146,9 @@ function createMachineRoot(t, machineSource) {
     path.join(fixtureRoot, 'harness/rules/semantics.json'),
     JSON.stringify({ rules: [] }),
   );
+  const bridgeTarget = path.join(fixtureRoot, taskContract.legacyBootstrapBridges.path);
+  fs.mkdirSync(path.dirname(bridgeTarget), { recursive: true });
+  fs.copyFileSync(path.join(root, taskContract.legacyBootstrapBridges.path), bridgeTarget);
   fs.writeFileSync(path.join(fixtureRoot, 'harness/workflow/state_machine.json'), machineSource);
   return fixtureRoot;
 }

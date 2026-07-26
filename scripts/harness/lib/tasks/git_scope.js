@@ -4,17 +4,13 @@ const { execFileSync } = require('node:child_process');
 const { TextDecoder } = require('node:util');
 
 const { assertSafeRelativePath, pathIdentity, resolveInside } = require('../paths');
-const { createBootstrapAttestation } = require('./bootstrap');
+const {
+  createBootstrapAttestation,
+  createLegacyBootstrapBridgeArtifact,
+  isWorkflowEvidencePath,
+} = require('./bootstrap');
 const { matchesScope } = require('./path_scope');
 
-const EVIDENCE_PREFIXES = Object.freeze([
-  'docs/superpowers/initiatives/',
-  'docs/superpowers/plans/',
-  'docs/superpowers/reviews/',
-  'docs/superpowers/specs/',
-  'docs/superpowers/task-graphs/',
-  'docs/superpowers/qa/',
-]);
 const READ_ONLY_GIT_COMMANDS = new Set(['diff', 'merge-base', 'rev-parse', 'status']);
 const HEX_40 = /^[a-f0-9]{40}$/u;
 const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
@@ -79,7 +75,7 @@ function comparePaths(left, right) {
 }
 
 function isEvidencePath(relativePath) {
-  return EVIDENCE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+  return isWorkflowEvidencePath(relativePath);
 }
 
 function parsePorcelainStatus(output) {
@@ -374,6 +370,59 @@ function assertAncestor(root, ancestor, descendant, message, options) {
   }
 }
 
+function attestLegacyBootstrapBridge(root, bridge, options = {}) {
+  assertRepositoryRoot(root);
+  const normalized = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '0'.repeat(40),
+    bridges: [bridge],
+  }).bridges[0];
+  assertAncestor(
+    root,
+    normalized.beforeHead,
+    normalized.afterHead,
+    'Legacy bootstrap bridge endpoint does not descend from its prior checkpoint',
+    options,
+  );
+  const records = parseNameStatusZ(
+    runGit(
+      root,
+      [
+        'diff',
+        '--name-status',
+        '-z',
+        '--find-renames',
+        '--find-copies',
+        normalized.beforeHead,
+        normalized.afterHead,
+        '--',
+      ],
+      options,
+    ),
+  );
+  const paths = [];
+  for (const record of records) {
+    if (record.status.startsWith('R')) paths.push(record.sourcePath);
+    paths.push(record.destinationPath);
+  }
+  const observed = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '0'.repeat(40),
+    bridges: [
+      {
+        beforeHead: normalized.beforeHead,
+        afterHead: normalized.afterHead,
+        changedPaths: paths.sort(comparePaths),
+      },
+    ],
+  }).bridges[0];
+  if (
+    observed.digest !== normalized.digest ||
+    !equalStringArrays(observed.changedPaths, normalized.changedPaths)
+  ) {
+    throw new Error('Live legacy bootstrap bridge does not match its portable evidence');
+  }
+  return observed;
+}
+
 function attestBootstrapChain(
   root,
   { branch, graph, checkpoint, previousAccountedHead, completions },
@@ -447,6 +496,7 @@ function attestBootstrapChain(
 
 module.exports = {
   attestBootstrapChain,
+  attestLegacyBootstrapBridge,
   collectTaskCompletionRevision,
   collectTaskStartRevision,
   parseNameStatusZ,

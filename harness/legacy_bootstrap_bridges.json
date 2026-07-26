@@ -1,0 +1,63 @@
+{
+  "artifactHash": "2fbdf7fc352bdaf44904e60291c44a255b0d0d29dfa386672f15c69ddb8f9a7c",
+  "bridges": [
+    {
+      "afterHead": "daf350f7edb0552e9fb4a79d76f6e32c544f5692",
+      "beforeHead": "1e001beb3470557c3ebf8eab38be51032a27455f",
+      "changedPaths": [
+        "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v8.json"
+      ],
+      "digest": "b28ff3d36aed169a48abf08bb37368415d35444c12b67ad1f7f39a8c160b99d5"
+    },
+    {
+      "afterHead": "2fd1d9c3d000c332569aa308934614cdc4c771f2",
+      "beforeHead": "4c150561be49d3904e2556b9345530c9987a4e3b",
+      "changedPaths": [
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000001-d3d8ffff12cecffb68256f9a41faaf3c76ff6ad9228e8a29aa89ae8ec4f05188.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000002-1a839023067eccbd8fa02dfa714c7cdb9c3a05ccf8fc07ec18db91c120879134.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000003-740296a79a95ba57a44f87a985a3fa69bb0ed918882bdd033506396ae53b6c3a.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000004-57962f120ea281aa6c56ad6e9f92c5e917827c1ca4a46be025bbcdfeda76b9d0.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000005-4283c86058feef3341f2e6d34fd5353c472a5e1fbc871bc7d595d2f014c28253.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000006-f5ac95932ed8ca069c5498b178d19198dfa83f3f4e536c1bd05ce9f63962b330.json",
+        "docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md",
+        "docs/superpowers/specs/2026-07-25-harness-bounded-task-packets-design.md",
+        "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json"
+      ],
+      "digest": "1ca38b6e982f96bb562f0e32f5fc1fedb39d403568524620d02a236bf7a21bdb"
+    },
+    {
+      "afterHead": "39bd32e1c60926e2ec9340a8bd8d271522df0cad",
+      "beforeHead": "8cc61a434a199acefb388592daeb9b6c7d886093",
+      "changedPaths": [
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000009-12af17bf7d9cff015c884774587ee3123f3466d491856a5950e0ef0717459cbd.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000010-a7460b8c85d929be2bfd71abd25d33371392c7ebe6852ce4afbe86bff2d59348.json",
+        "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json"
+      ],
+      "digest": "de1766032b3dab49e7f307a033e1d5a52fb8c2a794c0cbd5aeb99bf83da2d54e"
+    },
+    {
+      "afterHead": "eb4d40bb006d5c58ea888090c06ed230ac987748",
+      "beforeHead": "bade616bf43b0159a66dfe36cf54aca6eb25bba2",
+      "changedPaths": [
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000007-32c9bbfa2a822d24e5e581d1fc2ab025c5de887f64fd442d018d99a84f573de0.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/events/000008-add4e5fe0d795f9dd30a32671927553de3340374f8cd038efb67153d42d5d617.json",
+        "docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md",
+        "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets.json"
+      ],
+      "digest": "779f92cb786ae1f1b8c143699b92dedd6d0ee332cf799d3e6bbba79cc55f1436"
+    },
+    {
+      "afterHead": "52cf854dd0ae72f143d0ed083f1a007bd5b4d415",
+      "beforeHead": "eaa8c63f9b90b48faee4ea6ab4bdc075749172fc",
+      "changedPaths": [
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/000010-e84d161a48750a6c90f553846010dfaa877c8de8ee69ba661e9ae918661525d4.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/000011-2b8447143f0875f3c0448d2f3b9db8c9cd163ee21ed283b7a8b9e23b9bb10bf3.json",
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/000012-5a8d06f4243efa06cc07355938c7edd3d2da25e6702eb2261a54f286e6464f8b.json",
+        "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v7.json"
+      ],
+      "digest": "97ed75f38c746bb6b4d979b598e54a3073cbc2a7fe9ea8b44f06a0e411251cea"
+    }
+  ],
+  "migrationAnchor": "4881847975ab6b8fc66d1e019584594feb474bb7",
+  "schemaVersion": 1
+}

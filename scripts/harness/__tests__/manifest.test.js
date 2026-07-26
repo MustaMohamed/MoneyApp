@@ -25,6 +25,10 @@ function createManifest(overrides = {}) {
     tasks: {
       directory: 'docs/superpowers/task-graphs',
       legacyBootstrapAnchor: '4'.repeat(40),
+      legacyBootstrapBridges: {
+        path: 'harness/legacy_bootstrap_bridges.json',
+        sha256: '5'.repeat(64),
+      },
       limits: {
         maxTasks: 40,
         maxDependencies: 12,
@@ -55,6 +59,9 @@ function createManifestRoot(t, manifest) {
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   fs.mkdirSync(path.join(root, 'harness'), { recursive: true });
   fs.writeFileSync(path.join(root, 'harness/manifest.json'), JSON.stringify(manifest));
+  if (manifest.workflow?.tasks?.legacyBootstrapBridges?.path) {
+    writeFixture(root, manifest.workflow.tasks.legacyBootstrapBridges.path, '{}\n');
+  }
   if (manifest.workflow?.machine) {
     writeFixture(
       root,
@@ -97,6 +104,36 @@ void test('requires one canonical legacy bootstrap migration anchor', () => {
           }),
         ),
       /legacyBootstrapAnchor.*40-character lowercase hexadecimal/i,
+    );
+  }
+});
+
+void test('requires one content-bound legacy bootstrap bridge artifact', () => {
+  const reference = createManifest().workflow.tasks.legacyBootstrapBridges;
+  assert.deepEqual(reference, {
+    path: 'harness/legacy_bootstrap_bridges.json',
+    sha256: '5'.repeat(64),
+  });
+  for (const legacyBootstrapBridges of [
+    undefined,
+    {},
+    { ...reference, path: '../legacy_bootstrap_bridges.json' },
+    { ...reference, sha256: '5'.repeat(63) },
+    { ...reference, extra: true },
+  ]) {
+    assert.throws(
+      () =>
+        validateManifest(
+          createManifest({
+            workflow: {
+              tasks: {
+                ...createManifest().workflow.tasks,
+                legacyBootstrapBridges,
+              },
+            },
+          }),
+        ),
+      /legacyBootstrapBridges|bridge artifact|repository-relative|sha256/i,
     );
   }
 });
@@ -612,6 +649,10 @@ void test('requires the exact bounded task graph manifest contract', () => {
   assert.deepEqual(manifest.workflow.tasks, {
     directory: 'docs/superpowers/task-graphs',
     legacyBootstrapAnchor: '4'.repeat(40),
+    legacyBootstrapBridges: {
+      path: 'harness/legacy_bootstrap_bridges.json',
+      sha256: '5'.repeat(64),
+    },
     limits: {
       maxTasks: 40,
       maxDependencies: 12,

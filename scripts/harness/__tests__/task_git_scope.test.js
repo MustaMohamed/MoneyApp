@@ -8,6 +8,7 @@ const test = require('node:test');
 const { finalizeHashedObject } = require('../lib/workflow/canonical');
 const {
   attestBootstrapChain,
+  attestLegacyBootstrapBridge,
   collectTaskCompletionRevision,
   collectTaskStartRevision,
   parseNameStatusZ,
@@ -367,6 +368,52 @@ void test('attests an exact bootstrap chain from a stable real repository', (t) 
   assert.equal(result.attestation.validatedHead, repository.endHead);
   assert.equal(result.attestation.ranges[0].taskId, 'task-01');
   assert.match(result.attestation.chainDigest, /^[a-f0-9]{64}$/u);
+});
+
+void test('attests an evidence-only bridge and rejects non-evidence or divergent gaps', (t) => {
+  const root = repositoryRoot(t);
+  const bridge = {
+    beforeHead: START,
+    afterHead: END,
+    changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+  };
+  const evidenceGit = gitStub({
+    'diff --name-status -z --find-renames --find-copies': Buffer.from(
+      'M\0docs/superpowers/specs/legacy-design.md\0',
+    ),
+  });
+  const attested = attestLegacyBootstrapBridge(root, bridge, {
+    runGit: evidenceGit.runGit,
+  });
+  assert.equal(attested.beforeHead, START);
+  assert.equal(attested.afterHead, END);
+  assert.deepEqual(attested.changedPaths, bridge.changedPaths);
+  assert.match(attested.digest, /^[a-f0-9]{64}$/u);
+
+  assert.throws(
+    () =>
+      attestLegacyBootstrapBridge(
+        root,
+        { ...bridge, changedPaths: ['scripts/harness/lib/tasks/store.js'] },
+        {
+          runGit: gitStub({
+            'diff --name-status -z --find-renames --find-copies': Buffer.from(
+              'M\0scripts/harness/lib/tasks/store.js\0',
+            ),
+          }).runGit,
+        },
+      ),
+    /evidence/i,
+  );
+  assert.throws(
+    () =>
+      attestLegacyBootstrapBridge(root, bridge, {
+        runGit: gitStub({
+          'merge-base --is-ancestor': new Error('not ancestor'),
+        }).runGit,
+      }),
+    /descend|ancestor/i,
+  );
 });
 
 void test('rejects invented ranges, path disagreement, and a stale final endpoint', (t) => {

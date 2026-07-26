@@ -1,7 +1,149 @@
-const { canonicalStringify, hashCanonicalObject } = require('../workflow/canonical');
+const { assertSafeRelativePath, pathIdentity } = require('../paths');
+const { matchesScope } = require('./path_scope');
+const {
+  canonicalStringify,
+  finalizeHashedObject,
+  hashCanonicalObject,
+} = require('../workflow/canonical');
 
 const HEX_40 = /^[a-f0-9]{40}$/u;
 const HEX_64 = /^[a-f0-9]{64}$/u;
+const EVIDENCE_PREFIXES = Object.freeze([
+  'docs/superpowers/initiatives/',
+  'docs/superpowers/plans/',
+  'docs/superpowers/reviews/',
+  'docs/superpowers/specs/',
+  'docs/superpowers/task-graphs/',
+  'docs/superpowers/qa/',
+]);
+
+function compareCodeUnits(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function requireExactKeys(value, expected, label) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error(`${label} must be an object`);
+  }
+  const actual = Object.keys(value).sort(compareCodeUnits);
+  const ordered = [...expected].sort(compareCodeUnits);
+  if (actual.length !== ordered.length || actual.some((key, index) => key !== ordered[index])) {
+    throw new Error(`${label} fields are not canonical`);
+  }
+}
+
+function isWorkflowEvidencePath(relativePath) {
+  return EVIDENCE_PREFIXES.some((prefix) => relativePath.startsWith(prefix));
+}
+
+function bridgeKey(bridge) {
+  return `${bridge.beforeHead}:${bridge.afterHead}`;
+}
+
+function bridgeDigest(bridge) {
+  return hashCanonicalObject(
+    {
+      beforeHead: bridge.beforeHead,
+      afterHead: bridge.afterHead,
+      changedPaths: bridge.changedPaths,
+    },
+    'digest',
+  );
+}
+
+function normalizeLegacyBootstrapBridge(value) {
+  requireExactKeys(
+    value,
+    value?.digest === undefined
+      ? ['beforeHead', 'afterHead', 'changedPaths']
+      : ['beforeHead', 'afterHead', 'changedPaths', 'digest'],
+    'Legacy bootstrap bridge',
+  );
+  if (!HEX_40.test(value.beforeHead ?? '') || !HEX_40.test(value.afterHead ?? '')) {
+    throw new Error('Legacy bootstrap bridge endpoints must be commit hashes');
+  }
+  if (value.beforeHead === value.afterHead) {
+    throw new Error('Legacy bootstrap bridge must move between different commits');
+  }
+  if (!Array.isArray(value.changedPaths) || value.changedPaths.length === 0) {
+    throw new Error('Legacy bootstrap bridge requires evidence changed paths');
+  }
+  const changedPaths = [...value.changedPaths];
+  const identities = new Set();
+  for (const relativePath of changedPaths) {
+    assertSafeRelativePath(relativePath);
+    if (!isWorkflowEvidencePath(relativePath)) {
+      throw new Error(`Legacy bootstrap bridge path is not workflow evidence: ${relativePath}`);
+    }
+    const identity = pathIdentity(relativePath);
+    if (identities.has(identity)) {
+      throw new Error(`Legacy bootstrap bridge contains duplicate path: ${relativePath}`);
+    }
+    identities.add(identity);
+  }
+  changedPaths.sort(compareCodeUnits);
+  if (changedPaths.some((entry, index) => entry !== value.changedPaths[index])) {
+    throw new Error('Legacy bootstrap bridge changed paths must be sorted');
+  }
+  const normalized = {
+    beforeHead: value.beforeHead,
+    afterHead: value.afterHead,
+    changedPaths: Object.freeze(changedPaths),
+  };
+  const digest = bridgeDigest(normalized);
+  if (value.digest !== undefined && value.digest !== digest) {
+    throw new Error('Legacy bootstrap bridge digest mismatch');
+  }
+  return Object.freeze({ ...normalized, digest });
+}
+
+function createLegacyBootstrapBridgeArtifact({ migrationAnchor, bridges }) {
+  if (!HEX_40.test(migrationAnchor ?? '')) {
+    throw new Error('Legacy bootstrap bridge artifact requires a migration anchor');
+  }
+  if (!Array.isArray(bridges)) {
+    throw new Error('Legacy bootstrap bridge artifact bridges must be an array');
+  }
+  const normalized = bridges
+    .map(normalizeLegacyBootstrapBridge)
+    .sort((left, right) => compareCodeUnits(bridgeKey(left), bridgeKey(right)));
+  const keys = new Set();
+  for (const bridge of normalized) {
+    const key = bridgeKey(bridge);
+    if (keys.has(key)) throw new Error(`Duplicate legacy bootstrap bridge: ${key}`);
+    keys.add(key);
+  }
+  return finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      migrationAnchor,
+      bridges: normalized,
+    },
+    'artifactHash',
+  );
+}
+
+function validateLegacyBootstrapBridgeArtifact({ artifact, migrationAnchor }) {
+  requireExactKeys(
+    artifact,
+    ['schemaVersion', 'migrationAnchor', 'bridges', 'artifactHash'],
+    'Legacy bootstrap bridge artifact',
+  );
+  if (artifact.schemaVersion !== 1) {
+    throw new Error('Legacy bootstrap bridge artifact schemaVersion must be 1');
+  }
+  if (artifact.migrationAnchor !== migrationAnchor) {
+    throw new Error('Legacy bootstrap bridge artifact migration anchor mismatch');
+  }
+  const expected = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: artifact.migrationAnchor,
+    bridges: artifact.bridges,
+  });
+  if (canonicalStringify(artifact) !== canonicalStringify(expected)) {
+    throw new Error('Legacy bootstrap bridge artifact hash or canonical order mismatch');
+  }
+  return expected;
+}
 
 function taskMap(graph) {
   if (!graph || !Array.isArray(graph.tasks)) {
@@ -118,9 +260,23 @@ function validateTaskRange(task, completion) {
   } else if (completion.startHead === completion.endHead || changedPaths.length === 0) {
     throw new Error(`Bootstrap mutation task ${task.id} requires a committed delivery range`);
   }
+  for (const relativePath of changedPaths) {
+    if (!task.writePaths.some((scope) => matchesScope(relativePath, scope))) {
+      throw new Error(
+        `Bootstrap task ${task.id} changed path outside its write scope: ${relativePath}`,
+      );
+    }
+  }
 }
 
-function inferMode({ completions, baseSha, previousChain, previousAccountedHead, replacement }) {
+function inferMode({
+  completions,
+  baseSha,
+  previousChain,
+  previousAccountedHead,
+  transparentBridges,
+  replacement,
+}) {
   if (!replacement) return { mode: 'activation', checkpoint: baseSha };
   if (completions.length === 0) {
     return { mode: 'extension', checkpoint: previousAccountedHead };
@@ -129,7 +285,7 @@ function inferMode({ completions, baseSha, previousChain, previousAccountedHead,
   const snapshot =
     previousChain.length > 0 &&
     first.taskId === previousChain[0].taskId &&
-    first.startHead === baseSha;
+    (first.startHead === baseSha || transparentBridges.has(`${baseSha}:${first.startHead}`));
   return snapshot
     ? { mode: 'snapshot', checkpoint: baseSha }
     : { mode: 'extension', checkpoint: previousAccountedHead };
@@ -152,10 +308,26 @@ function validateBootstrapChain({
   baseSha,
   previousChain = [],
   previousAccountedHead = baseSha,
+  transparentBridges = [],
   replacement = false,
 }) {
-  if (!Array.isArray(completions) || !Array.isArray(previousChain)) {
-    throw new Error('Bootstrap completions and previous chain must be arrays');
+  if (
+    !Array.isArray(completions) ||
+    !Array.isArray(previousChain) ||
+    !Array.isArray(transparentBridges)
+  ) {
+    throw new Error(
+      'Bootstrap completions, previous chain, and transparent bridges must be arrays',
+    );
+  }
+  const bridgeMap = new Map(
+    transparentBridges.map((bridge) => {
+      const normalized = normalizeLegacyBootstrapBridge(bridge);
+      return [bridgeKey(normalized), normalized];
+    }),
+  );
+  if (bridgeMap.size !== transparentBridges.length) {
+    throw new Error('Bootstrap transparent bridges contain duplicate endpoints');
   }
   const byId = taskMap(graph);
   const { mode, checkpoint } = inferMode({
@@ -163,6 +335,7 @@ function validateBootstrapChain({
     baseSha,
     previousChain,
     previousAccountedHead,
+    transparentBridges: bridgeMap,
     replacement,
   });
   if (mode === 'snapshot') requireSnapshotPrefix(completions, previousChain);
@@ -171,6 +344,7 @@ function validateBootstrapChain({
   const chain = mode === 'extension' ? [...previousChain, ...imported] : [...imported];
   const completed = new Set(mode === 'extension' ? previousChain.map((item) => item.taskId) : []);
   const importedIds = new Set();
+  const usedBridges = [];
   let expectedHead = checkpoint;
 
   for (const completion of imported) {
@@ -183,8 +357,12 @@ function validateBootstrapChain({
       throw new Error(`Bootstrap extension repeats already completed task ${task.id}`);
     }
     if (completion.startHead !== expectedHead) {
-      const label = expectedHead === checkpoint ? 'checkpoint' : 'contiguous chain';
-      throw new Error(`Bootstrap ${label} mismatch for ${task.id}`);
+      const bridge = bridgeMap.get(`${expectedHead}:${completion.startHead}`);
+      if (!bridge) {
+        const label = expectedHead === checkpoint ? 'checkpoint' : 'contiguous chain';
+        throw new Error(`Bootstrap ${label} mismatch for ${task.id}; evidence bridge missing`);
+      }
+      usedBridges.push(bridge);
     }
     const missing = task.dependsOn.filter((dependency) => !completed.has(dependency));
     if (missing.length > 0) {
@@ -209,12 +387,16 @@ function validateBootstrapChain({
     mode,
     chain: Object.freeze(chain),
     imported: Object.freeze([...imported]),
+    transparentBridges: Object.freeze(usedBridges),
     accountedHead: chain.at(-1)?.endHead ?? previousAccountedHead,
   });
 }
 
 module.exports = {
   createBootstrapAttestation,
+  createLegacyBootstrapBridgeArtifact,
+  isWorkflowEvidencePath,
   validateBootstrapChain,
+  validateLegacyBootstrapBridgeArtifact,
   verifyBootstrapAttestation,
 };

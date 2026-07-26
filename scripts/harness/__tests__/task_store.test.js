@@ -1,11 +1,15 @@
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const test = require('node:test');
 
 const { canonicalStringify, finalizeHashedObject } = require('../lib/workflow/canonical');
-const { createBootstrapAttestation } = require('../lib/tasks/bootstrap');
+const {
+  createBootstrapAttestation,
+  createLegacyBootstrapBridgeArtifact,
+} = require('../lib/tasks/bootstrap');
 const {
   appendTaskEvent,
   loadTaskHistory,
@@ -142,6 +146,23 @@ function appendActivation(root, overrides = {}) {
     pid: 1234,
     ...overrides,
   });
+}
+
+function writeLegacyActivationFixture(root, draft) {
+  const event = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      ...draft,
+      initiativeId: ID,
+      sequence: 1,
+    },
+    'eventHash',
+  );
+  const eventsPath = path.join(root, 'docs/superpowers/initiatives', ID, 'task-events');
+  fs.mkdirSync(eventsPath, { recursive: true });
+  const eventPath = path.join(eventsPath, `000001-${event.eventHash}.json`);
+  fs.writeFileSync(eventPath, canonicalStringify(event));
+  return { event, path: eventPath };
 }
 
 void test('atomically appends and reloads a canonical projected task event', (t) => {
@@ -670,6 +691,205 @@ void test('accepts receipt-less legacy bytes only at the manifest migration anch
     } else {
       assert.throws(load, /migration anchor|legacy bootstrap/i);
     }
+  }
+});
+
+void test('replays anchored receipt-less gaps through live or portable evidence bridges', (t) => {
+  const bridgedStart = 'b'.repeat(40);
+  const completion = {
+    ...bootstrapCompletion(),
+    startHead: bridgedStart,
+  };
+  const bridgeArtifact = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [
+      {
+        beforeHead: HEAD,
+        afterHead: bridgedStart,
+        changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+      },
+    ],
+  });
+
+  for (const availability of ['complete', 'missing']) {
+    const root = rootFixture(t);
+    const appended = writeLegacyActivationFixture(
+      root,
+      activationDraft({ completions: [completion] }),
+    );
+    const storedBytes = fs.readFileSync(appended.path);
+    let liveAttestations = 0;
+    const history = loadTaskHistory({
+      root,
+      initiativeId: ID,
+      graph,
+      initiativeProjection,
+      verifyBootstrapEvent: (context) =>
+        verifyStoredBootstrapEvent({
+          ...context,
+          legacyBootstrapAnchor: '9'.repeat(40),
+          legacyBootstrapBridges: bridgeArtifact,
+          git: {
+            readFileAtCommit: () => storedBytes,
+            classifyCommitAvailability: () => availability,
+            attestLegacyBootstrapBridge(rootPath, bridge) {
+              liveAttestations += 1;
+              assert.equal(rootPath, root);
+              return bridge;
+            },
+          },
+        }),
+    });
+    assert.equal(history.projection.tasks['task-01'].state, 'completed');
+    assert.equal(liveAttestations, availability === 'complete' ? 1 : 0);
+  }
+});
+
+void test('does not apply legacy bridge context to a newly appended event', (t) => {
+  const root = rootFixture(t);
+  const bridgedStart = 'b'.repeat(40);
+  const completion = { ...bootstrapCompletion(), startHead: bridgedStart };
+  const bridge = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [
+      {
+        beforeHead: HEAD,
+        afterHead: bridgedStart,
+        changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+      },
+    ],
+  }).bridges[0];
+
+  assert.throws(
+    () =>
+      appendActivation(root, {
+        draft: activationDraft({ completions: [completion] }),
+        verifyBootstrapEvent: () => ({ transparentBridges: [bridge] }),
+      }),
+    /checkpoint.*bridge missing/i,
+  );
+});
+
+void test('binds portable legacy bridge replay to the exact artifact bytes', (t) => {
+  const root = rootFixture(t);
+  const bridgedStart = 'b'.repeat(40);
+  const completion = { ...bootstrapCompletion(), startHead: bridgedStart };
+  const artifact = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [
+      {
+        beforeHead: HEAD,
+        afterHead: bridgedStart,
+        changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+      },
+    ],
+  });
+  const appended = writeLegacyActivationFixture(
+    root,
+    activationDraft({ completions: [completion] }),
+  );
+  const artifactPath = path.join(root, 'harness/legacy_bootstrap_bridges.json');
+  fs.mkdirSync(path.dirname(artifactPath), { recursive: true });
+  const artifactBytes = Buffer.from(canonicalStringify(artifact));
+  fs.writeFileSync(artifactPath, artifactBytes);
+  const reference = {
+    path: 'harness/legacy_bootstrap_bridges.json',
+    sha256: crypto.createHash('sha256').update(artifactBytes).digest('hex'),
+  };
+  const load = () =>
+    loadTaskHistory({
+      root,
+      initiativeId: ID,
+      graph,
+      initiativeProjection,
+      verifyBootstrapEvent: (context) =>
+        verifyStoredBootstrapEvent({
+          ...context,
+          legacyBootstrapAnchor: '9'.repeat(40),
+          legacyBootstrapBridgeReference: reference,
+          git: {
+            readFileAtCommit: () => fs.readFileSync(appended.path),
+            classifyCommitAvailability: () => 'missing',
+          },
+        }),
+    });
+
+  assert.equal(load().projection.completedCount, 1);
+  fs.appendFileSync(artifactPath, ' ');
+  assert.throws(load, /artifact SHA-256 mismatch/i);
+});
+
+void test('rejects missing, partial, or changed legacy bridge evidence', (t) => {
+  const bridgedStart = 'b'.repeat(40);
+  const completion = { ...bootstrapCompletion(), startHead: bridgedStart };
+  const artifact = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [
+      {
+        beforeHead: HEAD,
+        afterHead: bridgedStart,
+        changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+      },
+    ],
+  });
+  const cases = [
+    {
+      label: 'missing bridge',
+      bridges: createLegacyBootstrapBridgeArtifact({
+        migrationAnchor: '9'.repeat(40),
+        bridges: [],
+      }),
+      availability: 'missing',
+      error: /bridge.*missing|checkpoint/i,
+    },
+    {
+      label: 'partial bridge objects',
+      bridges: artifact,
+      availability: 'partial',
+      error: /partial/i,
+    },
+    {
+      label: 'changed live bridge',
+      bridges: artifact,
+      availability: 'complete',
+      observed: {
+        ...artifact.bridges[0],
+        changedPaths: ['docs/superpowers/specs/changed.md'],
+      },
+      error: /bridge.*match|digest|changed/i,
+    },
+  ];
+
+  for (const candidate of cases) {
+    const root = rootFixture(t);
+    const appended = writeLegacyActivationFixture(
+      root,
+      activationDraft({ completions: [completion] }),
+    );
+    const storedBytes = fs.readFileSync(appended.path);
+    assert.throws(
+      () =>
+        loadTaskHistory({
+          root,
+          initiativeId: ID,
+          graph,
+          initiativeProjection,
+          verifyBootstrapEvent: (context) =>
+            verifyStoredBootstrapEvent({
+              ...context,
+              legacyBootstrapAnchor: '9'.repeat(40),
+              legacyBootstrapBridges: candidate.bridges,
+              git: {
+                readFileAtCommit: () => storedBytes,
+                classifyCommitAvailability: () => candidate.availability,
+                attestLegacyBootstrapBridge: () =>
+                  candidate.observed ?? candidate.bridges.bridges[0],
+              },
+            }),
+        }),
+      candidate.error,
+      candidate.label,
+    );
   }
 });
 

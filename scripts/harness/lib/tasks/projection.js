@@ -127,6 +127,25 @@ function requireCurrentTask(byId, taskId) {
   return task;
 }
 
+function transparentBridgesForEvent(verifiedBootstrapContexts, event) {
+  const context = verifiedBootstrapContexts.get(event.eventHash);
+  if (context === undefined) return [];
+  if (
+    !context ||
+    typeof context !== 'object' ||
+    Array.isArray(context) ||
+    Object.keys(context).length !== 1 ||
+    !Object.hasOwn(context, 'transparentBridges') ||
+    !Array.isArray(context.transparentBridges)
+  ) {
+    throw new Error(`Verified bootstrap context is invalid for event ${event.eventHash}`);
+  }
+  if (context.transparentBridges.length > 0 && event.payload.bootstrapAttestation !== undefined) {
+    throw new Error('Receipt-bearing bootstrap events cannot use legacy evidence bridges');
+  }
+  return context.transparentBridges;
+}
+
 function requireClaim(activeClaim, payload) {
   if (!activeClaim) throw new Error(`No active claim exists for ${payload.taskId}`);
   if (activeClaim.taskId !== payload.taskId) {
@@ -153,37 +172,11 @@ function completionFromPayload(payload, eventHash, { bootstrap = false } = {}) {
   };
 }
 
-function completionEvidence(completion) {
-  return {
-    taskId: completion.taskId,
-    startHead: completion.startHead,
-    endHead: completion.endHead,
-    changedPaths: completion.changedPaths,
-    summary: completion.summary,
-    checks: completion.checks,
-  };
-}
-
-function sameCompletionEvidence(left, right) {
-  return (
-    hashCanonicalObject(completionEvidence(left), 'digest') ===
-    hashCanonicalObject(completionEvidence(right), 'digest')
-  );
-}
-
 function reconcileCompletionChain(previousChain, validation, eventHash) {
   if (validation.mode === 'snapshot') {
-    for (const [index, previous] of previousChain.entries()) {
-      if (!sameCompletionEvidence(previous, validation.imported[index])) {
-        throw new Error(`Bootstrap snapshot cannot alter completed task ${previous.taskId}`);
-      }
-    }
-    return [
-      ...previousChain,
-      ...validation.imported
-        .slice(previousChain.length)
-        .map((completion) => completionFromPayload(completion, eventHash, { bootstrap: true })),
-    ];
+    return validation.imported.map((completion) =>
+      completionFromPayload(completion, eventHash, { bootstrap: true }),
+    );
   }
   if (validation.mode === 'extension') {
     return [
@@ -209,11 +202,21 @@ function replayTaskEvents({
   initiativeProjection,
   initiativeSnapshots,
   resolveGraph,
+  verifiedBootstrapContexts = new Map(),
 }) {
   if (initiativeProjection.initiative?.id !== graph.initiativeId) {
     throw new Error('Task graph initiative does not match initiative projection');
   }
   const ordered = prepareEvents(events, graph.initiativeId);
+  if (!(verifiedBootstrapContexts instanceof Map)) {
+    throw new Error('Verified bootstrap contexts must be a Map');
+  }
+  const eventHashes = new Set(ordered.map((event) => event.eventHash));
+  for (const eventHash of verifiedBootstrapContexts.keys()) {
+    if (!eventHashes.has(eventHash)) {
+      throw new Error(`Verified bootstrap context references unknown event ${eventHash}`);
+    }
+  }
   let currentGraph = graph;
   let byId = taskMap(currentGraph);
   let activeClaim;
@@ -247,6 +250,7 @@ function replayTaskEvents({
           baseSha: payload.baseSha,
           previousChain: [],
           previousAccountedHead: payload.baseSha,
+          transparentBridges: transparentBridgesForEvent(verifiedBootstrapContexts, event),
           replacement: false,
         });
         completionChain = reconcileCompletionChain([], validation, event.eventHash);
@@ -339,6 +343,7 @@ function replayTaskEvents({
           baseSha: payload.baseSha,
           previousChain: completionChain,
           previousAccountedHead: accountedHead,
+          transparentBridges: transparentBridgesForEvent(verifiedBootstrapContexts, event),
           replacement: true,
         });
         const reconciled = reconcileCompletionChain(completionChain, validation, event.eventHash);

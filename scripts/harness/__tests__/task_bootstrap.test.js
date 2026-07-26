@@ -4,7 +4,9 @@ const test = require('node:test');
 const { finalizeHashedObject } = require('../lib/workflow/canonical');
 const {
   createBootstrapAttestation,
+  createLegacyBootstrapBridgeArtifact,
   validateBootstrapChain,
+  validateLegacyBootstrapBridgeArtifact,
   verifyBootstrapAttestation,
 } = require('../lib/tasks/bootstrap');
 
@@ -78,6 +80,48 @@ void test('validates an activation chain from the initiative base', () => {
   assert.equal(Object.isFrozen(result), true);
 });
 
+void test('validates a generic onboarding-shaped pre-harness import', () => {
+  const onboardingGraph = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: '2026-07-23-onboarding-heroui-redesign',
+      plan: {
+        path: 'docs/superpowers/plans/2026-07-24-onboarding-heroui-redesign.md',
+        sha256: 'b'.repeat(64),
+      },
+      tasks: [
+        {
+          ...task('task-01', []),
+          title: 'Import approved onboarding artifacts',
+          writePaths: [
+            'assets/moneyapp-logo-cross-fan-gradient-v2.png',
+            'docs/superpowers/specs/2026-07-24-onboarding-heroui-redesign-design.md',
+          ],
+        },
+      ],
+    },
+    'graphHash',
+  );
+  const imported = completion('task-01', BASE, HEAD_ONE, {
+    changedPaths: [
+      'assets/moneyapp-logo-cross-fan-gradient-v2.png',
+      'docs/superpowers/specs/2026-07-24-onboarding-heroui-redesign-design.md',
+    ],
+  });
+
+  const result = validateBootstrapChain({
+    graph: onboardingGraph,
+    completions: [imported],
+    baseSha: BASE,
+    previousChain: [],
+    previousAccountedHead: BASE,
+    replacement: false,
+  });
+
+  assert.deepEqual(result.imported, [imported]);
+  assert.equal(result.accountedHead, HEAD_ONE);
+});
+
 void test('validates replacement extensions and complete legacy snapshots', () => {
   const first = completion('task-01', BASE, HEAD_ONE);
   const second = completion('task-02', HEAD_ONE, HEAD_TWO);
@@ -142,6 +186,136 @@ void test('rejects invalid checkpoints, gaps, duplicates, and dependency reorder
   );
 });
 
+void test('accepts only validated evidence bridges for anchored legacy chain gaps', () => {
+  const bridgedStart = '4'.repeat(40);
+  const first = completion('task-01', bridgedStart, HEAD_ONE);
+  const artifact = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [
+      {
+        beforeHead: BASE,
+        afterHead: bridgedStart,
+        changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+      },
+    ],
+  });
+  const bridges = validateLegacyBootstrapBridgeArtifact({
+    artifact,
+    migrationAnchor: '9'.repeat(40),
+  }).bridges;
+
+  const result = validateBootstrapChain({
+    graph,
+    completions: [first],
+    baseSha: BASE,
+    previousChain: [],
+    previousAccountedHead: BASE,
+    replacement: false,
+    transparentBridges: bridges,
+  });
+  assert.equal(result.mode, 'activation');
+  assert.equal(result.accountedHead, HEAD_ONE);
+
+  assert.throws(
+    () =>
+      validateBootstrapChain({
+        graph,
+        completions: [first],
+        baseSha: BASE,
+        previousChain: [],
+        previousAccountedHead: BASE,
+        replacement: false,
+      }),
+    /checkpoint/i,
+  );
+  assert.throws(
+    () =>
+      createLegacyBootstrapBridgeArtifact({
+        migrationAnchor: '9'.repeat(40),
+        bridges: [
+          {
+            beforeHead: BASE,
+            afterHead: bridgedStart,
+            changedPaths: ['scripts/harness/lib/tasks/store.js'],
+          },
+        ],
+      }),
+    /evidence/i,
+  );
+});
+
+void test('rejects changed, duplicate, reordered, and wrong-anchor bridge artifacts', () => {
+  const first = {
+    beforeHead: BASE,
+    afterHead: HEAD_ONE,
+    changedPaths: ['docs/superpowers/specs/legacy-design.md'],
+  };
+  const second = {
+    beforeHead: HEAD_ONE,
+    afterHead: HEAD_TWO,
+    changedPaths: ['docs/superpowers/plans/legacy-plan.md'],
+  };
+  const artifact = createLegacyBootstrapBridgeArtifact({
+    migrationAnchor: '9'.repeat(40),
+    bridges: [first, second],
+  });
+
+  assert.equal(
+    validateLegacyBootstrapBridgeArtifact({
+      artifact,
+      migrationAnchor: '9'.repeat(40),
+    }).artifactHash,
+    artifact.artifactHash,
+  );
+  for (const candidate of [
+    { ...artifact, migrationAnchor: '8'.repeat(40) },
+    { ...artifact, bridges: [...artifact.bridges].reverse() },
+    {
+      ...artifact,
+      bridges: [artifact.bridges[0], artifact.bridges[0]],
+    },
+    {
+      ...artifact,
+      bridges: [
+        {
+          ...artifact.bridges[0],
+          changedPaths: ['docs/superpowers/specs/changed.md'],
+        },
+        artifact.bridges[1],
+      ],
+    },
+  ]) {
+    assert.throws(
+      () =>
+        validateLegacyBootstrapBridgeArtifact({
+          artifact: candidate,
+          migrationAnchor: '9'.repeat(40),
+        }),
+      /anchor|canonical|duplicate|order|hash|digest/i,
+    );
+  }
+});
+
+void test('rejects portable bridge path aliases', () => {
+  assert.throws(
+    () =>
+      createLegacyBootstrapBridgeArtifact({
+        migrationAnchor: '9'.repeat(40),
+        bridges: [
+          {
+            beforeHead: BASE,
+            afterHead: HEAD_ONE,
+            changedPaths: [
+              'docs/superpowers/specs/Legacy-Design.md',
+              'docs/superpowers/specs/legacy-design.md',
+            ],
+          },
+        ],
+      }),
+    /duplicate path/i,
+  );
+});
+
 void test('rejects unknown tasks and incomplete required checks', () => {
   const options = {
     graph,
@@ -177,6 +351,25 @@ void test('rejects unknown tasks and incomplete required checks', () => {
         ],
       }),
     /required check.*pass/i,
+  );
+});
+
+void test('rejects bootstrap delivery paths outside the exact graph task scope', () => {
+  assert.throws(
+    () =>
+      validateBootstrapChain({
+        graph,
+        completions: [
+          completion('task-01', BASE, HEAD_ONE, {
+            changedPaths: ['generated/task-02.js'],
+          }),
+        ],
+        baseSha: BASE,
+        previousChain: [],
+        previousAccountedHead: BASE,
+        replacement: false,
+      }),
+    /write scope/i,
   );
 });
 

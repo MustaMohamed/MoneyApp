@@ -4,7 +4,7 @@ const test = require('node:test');
 const { canonicalStringify, finalizeHashedObject } = require('../lib/workflow/canonical');
 const { createBootstrapAttestation } = require('../lib/tasks/bootstrap');
 const { createTaskPacket } = require('../lib/tasks/packet');
-const { runTaskCli } = require('../lib/tasks/cli');
+const { loadCurrentInitiativeContext, runTaskCli } = require('../lib/tasks/cli');
 
 const ID = '2026-07-25-task-cli';
 const BRANCH = 'refactor/task-cli';
@@ -142,6 +142,45 @@ function harness(overrides = {}) {
   };
   return { appended, context, options, stderr, stdout };
 }
+
+void test('shared initiative loading binds the manifest legacy bridge reference', () => {
+  const legacyBootstrapBridges = {
+    path: 'harness/legacy_bootstrap_bridges.json',
+    sha256: '9'.repeat(64),
+  };
+  let observed;
+  loadCurrentInitiativeContext(
+    {
+      root: '/repo',
+      machine: {},
+      manifest: {
+        workflow: {
+          tasks: {
+            legacyBootstrapAnchor: 'a'.repeat(40),
+            legacyBootstrapBridges,
+            limits: LIMITS,
+          },
+        },
+      },
+      loadEventHistory: () => ({ events: [], projection: initiativeProjection }),
+      validateArtifactReference: (_root, reference) => reference,
+      loadTaskGraph: () => graph,
+      loadTaskHistory({ verifyBootstrapEvent }) {
+        verifyBootstrapEvent({ marker: 'stored bootstrap' });
+        return { events: [], projection: undefined };
+      },
+      verifyStoredBootstrapEvent(context) {
+        observed = context;
+        return { transparentBridges: [] };
+      },
+    },
+    ID,
+  );
+
+  assert.equal(observed.marker, 'stored bootstrap');
+  assert.equal(observed.legacyBootstrapAnchor, 'a'.repeat(40));
+  assert.deepEqual(observed.legacyBootstrapBridgeReference, legacyBootstrapBridges);
+});
 
 async function execute(fixture, argv) {
   return runTaskCli({ ...fixture.options, argv });

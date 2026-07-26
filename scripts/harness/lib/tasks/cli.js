@@ -235,14 +235,16 @@ function defaultContextLoaders(options) {
     validateArtifactReference = validateArtifactReferenceDefault,
     loadTaskGraph = loadTaskGraphDefault,
     loadTaskHistory = loadTaskHistoryDefault,
+    verifyStoredBootstrapEvent = verifyStoredBootstrapEventDefault,
   } = options;
   const limits = manifest.workflow.tasks.limits;
   const verifyBootstrapEvent =
     options.verifyBootstrapEvent ??
     ((context) =>
-      verifyStoredBootstrapEventDefault({
+      verifyStoredBootstrapEvent({
         ...context,
         legacyBootstrapAnchor: manifest.workflow.tasks.legacyBootstrapAnchor,
+        legacyBootstrapBridgeReference: manifest.workflow.tasks.legacyBootstrapBridges,
         git: options.bootstrapGit,
       }));
 
@@ -433,6 +435,7 @@ async function runTaskCli(options) {
       verifyStoredBootstrapEventDefault({
         ...context,
         legacyBootstrapAnchor: normalized.manifest.workflow.tasks.legacyBootstrapAnchor,
+        legacyBootstrapBridgeReference: normalized.manifest.workflow.tasks.legacyBootstrapBridges,
         git: normalized.bootstrapGit,
       }));
   try {

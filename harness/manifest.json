@@ -246,6 +246,10 @@
     "tasks": {
       "directory": "docs/superpowers/task-graphs",
       "legacyBootstrapAnchor": "4881847975ab6b8fc66d1e019584594feb474bb7",
+      "legacyBootstrapBridges": {
+        "path": "harness/legacy_bootstrap_bridges.json",
+        "sha256": "c1cbba5abc4a7c5d1d959df40f0da71641078cbc8fc4f27ac497f8a86b5fe88f"
+      },
       "limits": {
         "maxTasks": 40,
         "maxDependencies": 12,
