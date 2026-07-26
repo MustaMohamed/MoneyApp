@@ -1,0 +1,16 @@
+{
+  "eventHash": "86dc49c845f1c002d5b7881de586b0d7bfd128001e3da4872548f3f30dd4a3e7",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "payload": {
+    "baseSha": "4881847975ab6b8fc66d1e019584594feb474bb7",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "title": "Validated Legacy Bootstrap Imports"
+  },
+  "recordedAt": "2026-07-26T12:00:47.673Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 1,
+  "type": "initiative.created"
+}
