@@ -1,0 +1,45 @@
+{
+  "eventHash": "254ed9cbd92a2a39d34391ca177950a9e4119e5b04012594750e33360c943356",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "b24b6e97f22794b74cbc3fe3233aa2ee276f33d12252d29116fcf51c9d9aa0f8",
+    "sequence": 2
+  },
+  "payload": {
+    "changedPaths": [
+      "harness/manifest.json",
+      "scripts/harness/__tests__/manifest.test.js",
+      "scripts/harness/__tests__/task_bootstrap.test.js",
+      "scripts/harness/__tests__/task_schema.test.js",
+      "scripts/harness/lib/manifest.js",
+      "scripts/harness/lib/tasks/bootstrap.js",
+      "scripts/harness/lib/tasks/schema.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/manifest.test.js",
+          "scripts/harness/__tests__/task_schema.test.js",
+          "scripts/harness/__tests__/task_bootstrap.test.js"
+        ],
+        "passed": true,
+        "summary": "63 passed, 1 skipped."
+      }
+    ],
+    "claimEventHash": "b24b6e97f22794b74cbc3fe3233aa2ee276f33d12252d29116fcf51c9d9aa0f8",
+    "endHead": "0adb597f8ce1b0f9909ddd4a40c9ddd321790356",
+    "packetHash": "1fe62408b73505c85fcb6512c94e4d576ad8090e03a4f78ecef1650db454024e",
+    "startHead": "b3ddb64922f40d154e591c0f6dc7cedba23cb342",
+    "summary": "Implemented generic pure bootstrap chain validation, manifest migration anchor validation, and portable receipt schema validation.",
+    "taskId": "task-01"
+  },
+  "recordedAt": "2026-07-26T12:55:01.348Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 3,
+  "type": "task.completed"
+}

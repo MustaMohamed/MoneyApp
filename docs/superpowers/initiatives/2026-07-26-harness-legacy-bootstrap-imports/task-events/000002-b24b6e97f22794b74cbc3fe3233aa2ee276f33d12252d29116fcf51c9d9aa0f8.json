@@ -1,0 +1,24 @@
+{
+  "eventHash": "b24b6e97f22794b74cbc3fe3233aa2ee276f33d12252d29116fcf51c9d9aa0f8",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "3182ddf055f4cd0d3868bb530f0e8114d5eddc68588c2bb90623a1d39618902c",
+    "sequence": 1
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Execute the approved task-01 packet inline with TDD.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "1fe62408b73505c85fcb6512c94e4d576ad8090e03a4f78ecef1650db454024e",
+    "startHead": "b3ddb64922f40d154e591c0f6dc7cedba23cb342",
+    "taskId": "task-01"
+  },
+  "recordedAt": "2026-07-26T12:51:36.646Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 2,
+  "type": "task.claimed"
+}
