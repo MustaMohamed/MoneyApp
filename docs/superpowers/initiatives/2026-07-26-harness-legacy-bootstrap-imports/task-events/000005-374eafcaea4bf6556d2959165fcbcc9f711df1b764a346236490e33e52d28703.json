@@ -1,0 +1,41 @@
+{
+  "eventHash": "374eafcaea4bf6556d2959165fcbcc9f711df1b764a346236490e33e52d28703",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "0538242f8cb83ed2b307c567c39bae14eb4803ddc00daef9b980786bc78d5ab5",
+    "sequence": 4
+  },
+  "payload": {
+    "changedPaths": [
+      "scripts/harness/__tests__/task_bootstrap.test.js",
+      "scripts/harness/__tests__/task_git_scope.test.js",
+      "scripts/harness/lib/tasks/bootstrap.js",
+      "scripts/harness/lib/tasks/git_scope.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_bootstrap.test.js",
+          "scripts/harness/__tests__/task_git_scope.test.js"
+        ],
+        "passed": true,
+        "summary": "23 focused bootstrap and Git attestation tests passed."
+      }
+    ],
+    "claimEventHash": "0538242f8cb83ed2b307c567c39bae14eb4803ddc00daef9b980786bc78d5ab5",
+    "endHead": "cef8a5b55b49ae3ad6aff77b087c3417c9aa6e65",
+    "packetHash": "399df3cf11f3ec67d49f6bd71a30335dcc7ba839731e8bab92c67274f824eb4a",
+    "startHead": "f558b7ee1cd9a8a1925b540c681e3c888925f4ce",
+    "summary": "Added stable Git range attestation and canonical portable bootstrap receipts.",
+    "taskId": "task-02"
+  },
+  "recordedAt": "2026-07-26T13:01:13.500Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 5,
+  "type": "task.completed"
+}
