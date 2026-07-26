@@ -1,0 +1,248 @@
+{
+  "graphHash": "d2a5ddee61e11029303fcf565bf6e710da566a1ec82283f57f76caaa5ac4bdcf",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "plan": {
+    "path": "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports.md",
+    "sha256": "66107248736e4da3f66b783c04f1309ec6f777e3b337ff49a498c748a6a867e1"
+  },
+  "schemaVersion": 1,
+  "tasks": [
+    {
+      "acceptanceCriteria": [
+        "Bootstrap eligibility contains no initiative ID allowlist.",
+        "Activation, extension, and full-snapshot chains enforce exact graph, checkpoint, dependency, check, ordering, and monotonicity rules.",
+        "The manifest owns one validated legacy migration anchor and schema validates the portable receipt shape."
+      ],
+      "dependsOn": [],
+      "escalationNotes": [
+        "Stop if compatibility would require rewriting an immutable historical task event."
+      ],
+      "id": "task-01",
+      "kind": "mutation",
+      "objective": "Define the generic pure bootstrap chain and canonical event contracts.",
+      "ownerRole": "dev",
+      "readPaths": [
+        "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+        "scripts/harness/lib/tasks/graph.js",
+        "scripts/harness/lib/workflow/canonical.js"
+      ],
+      "recommendedCommitMessage": "feat: validate bootstrap completion chains",
+      "title": "Validate bootstrap completion chains",
+      "verificationCommands": [
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/manifest.test.js",
+          "scripts/harness/__tests__/task_schema.test.js",
+          "scripts/harness/__tests__/task_bootstrap.test.js"
+        ]
+      ],
+      "writePaths": [
+        "harness/manifest.json",
+        "scripts/harness/lib/manifest.js",
+        "scripts/harness/lib/tasks/bootstrap.js",
+        "scripts/harness/lib/tasks/schema.js",
+        "scripts/harness/__tests__/manifest.test.js",
+        "scripts/harness/__tests__/task_schema.test.js",
+        "scripts/harness/__tests__/task_bootstrap.test.js"
+      ]
+    },
+    {
+      "acceptanceCriteria": [
+        "Every range is observed from Git with exact ancestry, paths, and write scopes.",
+        "Repository branch, HEAD, and delivery cleanliness remain stable across attestation.",
+        "Portable range and chain digests reject any changed graph, checkpoint, branch, HEAD, range, or order."
+      ],
+      "dependsOn": [
+        "task-01"
+      ],
+      "escalationNotes": [],
+      "id": "task-02",
+      "kind": "mutation",
+      "objective": "Attest ordered Git ranges and emit deterministic portable receipts.",
+      "ownerRole": "dev",
+      "readPaths": [
+        "scripts/harness/lib/tasks/bootstrap.js",
+        "scripts/harness/lib/tasks/path_scope.js",
+        "scripts/harness/lib/workflow/canonical.js"
+      ],
+      "recommendedCommitMessage": "feat: attest bootstrap git ranges",
+      "title": "Attest bootstrap Git ranges",
+      "verificationCommands": [
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_bootstrap.test.js",
+          "scripts/harness/__tests__/task_git_scope.test.js"
+        ]
+      ],
+      "writePaths": [
+        "scripts/harness/lib/tasks/bootstrap.js",
+        "scripts/harness/lib/tasks/git_scope.js",
+        "scripts/harness/__tests__/task_bootstrap.test.js",
+        "scripts/harness/__tests__/task_git_scope.test.js"
+      ]
+    },
+    {
+      "acceptanceCriteria": [
+        "Projection keeps an ordered completion chain and monotonic accounted head.",
+        "Replacement never removes, reorders, reopens, or hides a completed task.",
+        "Only incomplete tasks from an old graph become superseded."
+      ],
+      "dependsOn": [
+        "task-02"
+      ],
+      "escalationNotes": [],
+      "id": "task-03",
+      "kind": "mutation",
+      "objective": "Reconcile graph replacement without clearing prior completed state.",
+      "ownerRole": "dev",
+      "readPaths": [
+        "scripts/harness/lib/tasks/bootstrap.js",
+        "scripts/harness/lib/tasks/projection.js"
+      ],
+      "recommendedCommitMessage": "fix: preserve completed tasks across graph replacement",
+      "title": "Preserve completion projection",
+      "verificationCommands": [
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_bootstrap.test.js",
+          "scripts/harness/__tests__/task_projection.test.js"
+        ]
+      ],
+      "writePaths": [
+        "scripts/harness/lib/tasks/projection.js",
+        "scripts/harness/__tests__/task_projection.test.js"
+      ]
+    },
+    {
+      "acceptanceCriteria": [
+        "Activation and replacement append only after shared pure and Git validation.",
+        "New nonempty events carry canonical portable receipts and empty events do not.",
+        "Replay accepts anchored legacy events or valid receipts and rejects partial, missing, or tampered evidence."
+      ],
+      "dependsOn": [
+        "task-03"
+      ],
+      "escalationNotes": [
+        "Stop if replay would need network access or automatic Git mutation."
+      ],
+      "id": "task-04",
+      "kind": "mutation",
+      "objective": "Enforce bootstrap validation during CLI append and repository-backed replay.",
+      "ownerRole": "dev",
+      "readPaths": [
+        "scripts/harness/lib/tasks/bootstrap.js",
+        "scripts/harness/lib/tasks/git_scope.js",
+        "scripts/harness/lib/tasks/projection.js",
+        "scripts/harness/lib/tasks/store.js"
+      ],
+      "recommendedCommitMessage": "feat: enforce bootstrap attestations on replay",
+      "title": "Integrate append and replay validation",
+      "verificationCommands": [
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_cli.test.js",
+          "scripts/harness/__tests__/task_store.test.js",
+          "scripts/harness/__tests__/task_projection.test.js"
+        ]
+      ],
+      "writePaths": [
+        "scripts/harness/lib/tasks/cli.js",
+        "scripts/harness/lib/tasks/store.js",
+        "scripts/harness/__tests__/task_cli.test.js",
+        "scripts/harness/__tests__/task_store.test.js"
+      ]
+    },
+    {
+      "acceptanceCriteria": [
+        "Existing anchored Phase 3 history replays without feature-branch commit objects.",
+        "A generic onboarding-shaped bootstrap succeeds without an initiative exception.",
+        "End-to-end replay rejects disjoint, invented, stale, reordered, completion-hiding, and receipt-tampered evidence."
+      ],
+      "dependsOn": [
+        "task-04"
+      ],
+      "escalationNotes": [],
+      "id": "task-05",
+      "kind": "mutation",
+      "objective": "Lock generic migration and fresh-checkout compatibility through integration tests.",
+      "ownerRole": "dev",
+      "readPaths": [
+        "docs/superpowers/initiatives/2026-07-25-harness-phase-3/task-events/**",
+        "scripts/harness/lib/tasks/*.js"
+      ],
+      "recommendedCommitMessage": "test: lock bootstrap migration invariants",
+      "title": "Verify migration compatibility",
+      "verificationCommands": [
+        [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_integration.test.js",
+          "scripts/harness/__tests__/task_cli.test.js",
+          "scripts/harness/__tests__/task_store.test.js"
+        ],
+        [
+          "npm",
+          "run",
+          "harness:test"
+        ]
+      ],
+      "writePaths": [
+        "scripts/harness/__tests__/task_integration.test.js",
+        "scripts/harness/__tests__/task_store.test.js",
+        "scripts/harness/__tests__/task_cli.test.js"
+      ]
+    },
+    {
+      "acceptanceCriteria": [
+        "The complete diff contains no initiative allowlist or onboarding-specific harness path.",
+        "All spec invariants have behavioral coverage and invalid evidence projects no partial state.",
+        "Format, harness check, complete harness tests, and all six CI-parity checks pass."
+      ],
+      "dependsOn": [
+        "task-05"
+      ],
+      "escalationNotes": [
+        "Stop on any unresolved review finding or failing CI-parity check."
+      ],
+      "id": "task-06",
+      "kind": "validation",
+      "objective": "Review the complete implementation and verify every registered gate.",
+      "ownerRole": "tariq",
+      "readPaths": [
+        "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+        "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports.md",
+        "scripts/harness/lib/tasks/*.js",
+        "scripts/harness/__tests__/task_*.test.js"
+      ],
+      "recommendedCommitMessage": "chore: verify validated bootstrap imports",
+      "title": "Review and verify harness delivery",
+      "verificationCommands": [
+        [
+          "npm",
+          "run",
+          "format:check"
+        ],
+        [
+          "npm",
+          "run",
+          "harness:check"
+        ],
+        [
+          "npm",
+          "run",
+          "harness:test"
+        ],
+        [
+          "npm",
+          "run",
+          "verify:pr"
+        ]
+      ],
+      "writePaths": []
+    }
+  ]
+}
