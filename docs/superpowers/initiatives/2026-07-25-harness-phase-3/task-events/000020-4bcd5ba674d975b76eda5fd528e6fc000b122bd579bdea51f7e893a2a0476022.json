@@ -1,0 +1,24 @@
+{
+  "eventHash": "4bcd5ba674d975b76eda5fd528e6fc000b122bd579bdea51f7e893a2a0476022",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "3f295b1dc8147eb51429872529a7c751b630694f36588269f10f959df1a34bcb",
+    "sequence": 19
+  },
+  "payload": {
+    "assigneeRole": "tariq",
+    "basis": "Repair historical task replay across the validation lifecycle and refresh final review inline under the product owner's no-subagent direction.",
+    "branch": "refactor/harness-phase-3-task-packets",
+    "mode": "inline",
+    "packetHash": "383d31c7596c47a01df05c1bb3f0ee9157557c44fc2ea7373cf8e2eefe24ad76",
+    "startHead": "7a15fa6b8b5946df44c7910b4c90083e6b4f0267",
+    "taskId": "task-16"
+  },
+  "recordedAt": "2026-07-25T11:28:38.583Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 20,
+  "type": "task.claimed"
+}

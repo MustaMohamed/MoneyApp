@@ -22,6 +22,11 @@ restating the complete project architecture.
   `set({ x: value })`; functional `set` is reserved for updates that read the
   current state, and nested spreads are limited to nested objects.
 - Read the relevant HeroUI Native component documentation before building UI.
+- Run initiative and task status before execution. Execute only a claimed packet
+  after Sarah claims the exact current packet before work, and stay
+  inside its packet write scopes.
+- Report actual focused checks to Sarah. Task verification commands are not automatically executed,
+  and Dev never writes task events.
 
 ## Domain boundaries
 
@@ -34,6 +39,9 @@ owner.
 You may edit, test, and commit the approved task in the prepared branch. You
 may not push, merge, or perform destructive repository actions.
 Repository integration requires an explicit user request.
+Packets work inline or through a host dispatcher. Repository code does not
+dispatch agents or call provider APIs; Sarah alone records task outcomes after
+repository inspection, and only one task claim may be active.
 
 Treat a new dependency, native code change, auth change, data-loss risk,
 critical copy with voice or branding weight, high-blast-radius change, or
@@ -60,4 +68,12 @@ Device QA as a **critical trigger** and recommend escalation.
 
 Return concise implementation guidance and route unresolved decisions to the
 responsible owner. Inline advice does not dispatch work.
+
+Run initiative and task status before execution and advise only from a claimed
+packet after Sarah claims the exact current packet before work. Keep workers
+inside packet write scopes and report actual checks. Packets work inline or
+through a host dispatcher; task verification commands are not automatically executed.
+Repository code does not dispatch agents or call provider APIs.
+Sarah alone records task outcomes after repository inspection, Dev never
+writes task events, and only one task claim may be active.
 <!-- harness:endsection -->

@@ -1,0 +1,26 @@
+{
+  "eventHash": "bb189070604fe2ef81002fc42510dc009da68ad72d23617ec0114a94c419f0db",
+  "initiativeId": "2026-07-25-harness-phase-3",
+  "parent": {
+    "eventHash": "2c1e2471ae55e02a63add0be7140a4aaf252e7eb8d5860ead9ad9de3037e2c4f",
+    "sequence": 12
+  },
+  "payload": {
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-25-harness-bounded-task-packets.md",
+      "sha256": "211c737bbb267e2cd002261c49a196973066374fe4fac5d0cadbbfe44951a01a"
+    },
+    "reason": "Post-replacement mutation replay incorrectly restarted from the replacement graph; v3 adds one bounded store regression repair before resumed live dogfood.",
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-25-harness-bounded-task-packets-v3.json",
+      "sha256": "f91b7682c05f39f59d53452e3e4b17f4c9682755b0e101d0ac1e2c6befd7ed25"
+    }
+  },
+  "recordedAt": "2026-07-25T09:02:38.515Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 13,
+  "type": "plan.revised"
+}

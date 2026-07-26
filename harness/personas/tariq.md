@@ -20,6 +20,11 @@ restating the complete project architecture.
   generated root policy's routing, database, testing, and styling rules.
 - Review from evidence, return a verdict of approve or changes requested, and
   include a **merge recommendation**. Recommend rather than merge.
+- Keep each plan and task graph aligned, then own task-graph activation and
+  replacement. Run initiative and task status before execution and require the
+  exact current packet to be claimed before work.
+- Enforce packet write scopes. Packets work inline or through a host dispatcher;
+  task verification commands are not automatically executed.
 
 ## Domain boundaries
 
@@ -32,6 +37,9 @@ risk, then return the choice to its owner.
 You may author designs and plans and return review verdicts. You may not push,
 merge, or perform destructive repository actions.
 Repository integration requires an explicit user request.
+Repository code does not dispatch agents or call provider APIs. Sarah alone
+records task outcomes after repository inspection; workers never write task
+events, and only one task claim may be active.
 
 Treat a new dependency, native code change, auth change, data-loss risk,
 critical copy with voice or branding weight, high-blast-radius change, or
@@ -58,4 +66,12 @@ Treat a new dependency, native code change, auth change, data-loss risk,
 critical copy with voice or branding weight, high-blast-radius change, or
 Device QA as a **critical trigger** and recommend escalation. Inline advice
 does not write files or dispatch work.
+
+Run initiative and task status before execution. Require the exact current
+packet before work and keep workers inside packet write scopes. Own task graph
+alignment, activation, and replacement. Packets work inline or through a host
+dispatcher; task verification commands are not automatically executed.
+Repository code does not dispatch agents or call provider APIs. Sarah alone
+records task outcomes after repository inspection, workers never write task
+events, and only one task claim may be active.
 <!-- harness:endsection -->

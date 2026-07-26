@@ -126,6 +126,7 @@ function validate(machine) {
 
 function createMachineRoot(t, machineSource) {
   const fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-workflow-machine-'));
+  const taskContract = loadManifest(root).workflow.tasks;
   t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
   fs.mkdirSync(path.join(fixtureRoot, 'harness/rules'), { recursive: true });
   fs.mkdirSync(path.join(fixtureRoot, 'harness/workflow'), { recursive: true });
@@ -137,7 +138,7 @@ function createMachineRoot(t, machineSource) {
       targets: [],
       personas: [],
       rules: 'harness/rules/semantics.json',
-      workflow: { machine: 'harness/workflow/state_machine.json' },
+      workflow: { machine: 'harness/workflow/state_machine.json', tasks: taskContract },
       verification: { checks: [] },
     }),
   );

@@ -8,6 +8,14 @@ React Native (Expo) personal finance app — local-only, no bank connections.
 
 **Autonomous team mode (default).** The team runs work end-to-end without per-step human check-ins. The user is the product owner, not the gatekeeper — they are consulted only at the **Spec sign-off** gate, the **Device QA** gate, and on the **critical triggers** listed below. Everywhere else, Sarah and Tariq make recommendations and the team proceeds inside the branch. Merging, pushing, and destructive repository operations still require an explicit user request.
 
+**Bounded task protocol.** Run initiative and task status before execution,
+claim the exact current packet before work, and keep workers inside packet
+write scopes. Packets work inline or through a host dispatcher. Sarah alone
+records task outcomes after repository inspection; task verification commands
+are not automatically executed. Repository code never dispatches agents or
+calls provider APIs. Push, PR creation, merge, and destructive repository
+operations still require an explicit user request.
+
 ## The Team (Specialist Roles)
 
 Work runs through the superpowers skill flow. These personas contribute domain expertise during specific phases — they do not replace the skills.
@@ -53,3 +61,7 @@ Sarah/Tariq escalate immediately when any of the following fires. Everywhere els
 5. **Escalate critical triggers, write down the rest.** When a critical trigger fires, Sarah surfaces it to the user with a recommendation. When personas disagree at the routine level, the responsible lead (Sarah for scope, Tariq for tech) decides and records the rationale in the design doc or PR description.
 6. **Default to subagents.** When a task matches a specialist's domain, dispatch the best-fit subagent automatically rather than doing the work in the main thread — pick by domain (Law 1): product/UX → `@marcus` · financial logic → `@layla` · architecture/synthesis/review → `@tariq` · implementation → `@dev` · orchestration/sequencing → `@sarah`. Use `[name]` inline only for quick consults. When the fit is genuinely unclear — no agent matches, or the task spans several domains with no obvious owner — **ask the user which agent to use, or fall back to the main thread**. The main thread also handles lightweight glue with no domain owner (reads, status checks, routing, trivial one-offs); those need no subagent.
 7. **HeroUI Native components only.** Use a HeroUI Native component wherever one exists (see Components + Bottom Sheets — e.g. `BottomSheet`, not a custom `@gorhom` wrapper). Building a custom or third-party UI component that a HeroUI primitive could cover is a critical trigger: it needs sign-off plus a written "no HeroUI primitive fits" justification. Always prefer composing/wrapping a HeroUI primitive over a parallel implementation.
+8. **Task packets bound execution.** Workers execute only a claimed current
+   packet, stay within its write scopes, report actual checks, and never write
+   task events. Only Sarah records outcomes after inspecting the repository;
+   only Tariq activates or replaces an approved task graph.

@@ -18,6 +18,16 @@ const WORKFLOW_V1_STATES = [
 ];
 const WORKFLOW_V1_ACTIVE_STATES = WORKFLOW_V1_STATES.slice(0, -1);
 const WORKFLOW_V1_ROLES = ['user', 'sarah', 'tariq', 'dev', 'system'];
+const TASK_LIMIT_KEYS = [
+  'maxTasks',
+  'maxDependencies',
+  'maxReadPaths',
+  'maxWritePaths',
+  'maxAcceptanceCriteria',
+  'maxVerificationCommands',
+  'maxTaskTextBytes',
+  'maxPacketBytes',
+];
 
 function workflowEvent(origins, destination, roles, guard) {
   return { origins, destination, roles, guard };
@@ -360,8 +370,25 @@ function validateManifest(manifest) {
   requireArray(manifest.verification?.checks, 'verification.checks');
   requireNonEmptyString(manifest.rules, 'rules');
   requireNonEmptyString(manifest.workflow?.machine, 'workflow.machine');
+  requireObject(manifest.workflow?.tasks, 'workflow.tasks');
+  requireExactKeys(manifest.workflow.tasks, ['directory', 'limits'], 'workflow.tasks fields');
+  requireNonEmptyString(manifest.workflow.tasks.directory, 'workflow.tasks.directory');
+  requireObject(manifest.workflow.tasks.limits, 'workflow.tasks.limits');
+  requireExactKeys(manifest.workflow.tasks.limits, TASK_LIMIT_KEYS, 'workflow.tasks.limits fields');
+  for (const key of TASK_LIMIT_KEYS) {
+    const value = manifest.workflow.tasks.limits[key];
+    if (!Number.isSafeInteger(value) || value < 1) {
+      throw new Error(`workflow.tasks.limits.${key} must be a positive safe integer`);
+    }
+  }
+  if (
+    manifest.workflow.tasks.limits.maxPacketBytes < manifest.workflow.tasks.limits.maxTaskTextBytes
+  ) {
+    throw new Error('workflow.tasks.limits.maxPacketBytes must be at least maxTaskTextBytes');
+  }
   assertSafeRelativePath(manifest.rules);
   assertSafeRelativePath(manifest.workflow.machine);
+  assertSafeRelativePath(manifest.workflow.tasks.directory);
 
   for (const policyPath of manifest.policyOrder) assertSafeRelativePath(policyPath);
   if (new Set(manifest.policyOrder).size !== manifest.policyOrder.length) {

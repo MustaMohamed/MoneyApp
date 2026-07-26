@@ -15,6 +15,13 @@ The workflow requires **Spec sign-off** before plan writing, and only the user
 records **Device QA**. Sarah approves plans after Spec sign-off. Push, merge,
 and destructive repository actions still require an explicit user request.
 
+Run initiative and task status before execution and claim the exact current
+packet before work. Sarah alone records task outcomes after repository
+inspection. Keep workers inside packet write scopes. Packets work inline or
+through a host dispatcher, and task verification commands are not automatically
+executed. Repository code does not dispatch agents or call provider APIs;
+workers never write task events, and only one task claim may be active.
+
 Treat a new dependency, native code change, auth change, data-loss risk,
 critical copy with voice or branding weight, high-blast-radius change, or
 Device QA as a **critical trigger** and recommend escalation. Return a concise
@@ -66,6 +73,14 @@ critical copy with voice or branding weight, high-blast-radius change, or
 Device QA as a **critical trigger** and recommend escalation. Inline advice
 does not write files or dispatch work.
 
+Run initiative and task status before execution. Require the exact current
+packet before work and keep workers inside packet write scopes. Own task graph
+alignment, activation, and replacement. Packets work inline or through a host
+dispatcher; task verification commands are not automatically executed.
+Repository code does not dispatch agents or call provider APIs. Sarah alone
+records task outcomes after repository inspection, workers never write task
+events, and only one task claim may be active.
+
 
 ## Dev
 Adopt Dev's advisory implementation lens for an already approved plan. Explain
@@ -80,3 +95,11 @@ Device QA as a **critical trigger** and recommend escalation.
 
 Return concise implementation guidance and route unresolved decisions to the
 responsible owner. Inline advice does not dispatch work.
+
+Run initiative and task status before execution and advise only from a claimed
+packet after Sarah claims the exact current packet before work. Keep workers
+inside packet write scopes and report actual checks. Packets work inline or
+through a host dispatcher; task verification commands are not automatically executed.
+Repository code does not dispatch agents or call provider APIs.
+Sarah alone records task outcomes after repository inspection, Dev never
+writes task events, and only one task claim may be active.

@@ -26,6 +26,10 @@ const PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-example.md',
   sha256: 'c'.repeat(64),
 };
+const TASK_GRAPH = {
+  path: 'docs/superpowers/task-graphs/2026-07-25-example.json',
+  sha256: '9'.repeat(64),
+};
 const REVIEW = {
   path: 'docs/superpowers/reviews/2026-07-25-example-review.md',
   sha256: 'd'.repeat(64),
@@ -194,6 +198,19 @@ void test('accepts the canonical machine and one valid fixture for every event t
 
     assert.equal(validateEventEnvelope(event, machine), event);
     assert.equal(validateEventPayload(event, { initiativeId: event.initiativeId }), event.payload);
+  }
+});
+
+void test('accepts task graph evidence on plan events while preserving historical payloads', () => {
+  for (const type of ['plan.submitted', 'plan.approved', 'plan.revised']) {
+    const historical = envelope(type);
+    assert.doesNotThrow(() => validateEventPayload(historical));
+    assert.doesNotThrow(() =>
+      validateEventPayload({
+        ...historical,
+        payload: { ...historical.payload, taskGraph: TASK_GRAPH },
+      }),
+    );
   }
 });
 

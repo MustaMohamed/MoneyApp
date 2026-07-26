@@ -37,6 +37,8 @@ void test('lint-staged treats workflow machine, ledgers, evidence, and runtime p
   const relevant = [
     'harness/workflow/state_machine.json',
     'docs/superpowers/initiatives/2026-07-25-example/events/000001-event.json',
+    'docs/superpowers/initiatives/2026-07-25-example/task-events/000001-event.json',
+    'docs/superpowers/task-graphs/2026-07-25-example.json',
     'docs/superpowers/reviews/2026-07-25-example.md',
     'docs/superpowers/qa/2026-07-25-example.md',
     '.gitattributes',
@@ -49,6 +51,25 @@ void test('lint-staged treats workflow machine, ledgers, evidence, and runtime p
       `${path.relative(root, file)} must trigger harness validation`,
     );
   }
+
+  const immutableEvidence = relevant.filter(
+    (file) =>
+      file.includes('/events/') || file.includes('/task-events/') || file.includes('/task-graphs/'),
+  );
+  assert.deepEqual(config['*'](immutableEvidence), ['npm run harness:check']);
+});
+
+void test('oxfmt excludes canonical workflow and task evidence from repository formatting', () => {
+  const config = JSON.parse(fs.readFileSync(path.join(root, '.oxfmtrc.json'), 'utf8'));
+
+  assert.deepEqual(
+    config.ignorePatterns.filter((pattern) => pattern.startsWith('docs/superpowers/')),
+    [
+      'docs/superpowers/initiatives/**/events/*.json',
+      'docs/superpowers/initiatives/**/task-events/*.json',
+      'docs/superpowers/task-graphs/*.json',
+    ],
+  );
 });
 
 void test('lint-staged validates generated harness files without formatting vendored assets', async () => {

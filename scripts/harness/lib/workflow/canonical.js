@@ -115,6 +115,32 @@ function finalizeEvent(event) {
   return deepFreeze(canonicalClone({ ...cloned, eventHash }));
 }
 
+function hashCanonicalObject(value, hashField) {
+  if (typeof hashField !== 'string' || hashField.length === 0) {
+    throw new Error('Canonical hash field must be a nonempty string');
+  }
+  const cloned = canonicalClone(value);
+  if (cloned === null || Array.isArray(cloned) || typeof cloned !== 'object') {
+    throw new Error('Canonical hashed value must be a plain object');
+  }
+  delete cloned[hashField];
+  return sha256(canonicalStringify(cloned));
+}
+
+function finalizeHashedObject(value, hashField) {
+  const cloned = canonicalClone(value);
+  if (cloned === null || Array.isArray(cloned) || typeof cloned !== 'object') {
+    throw new Error('Canonical hashed value must be a plain object');
+  }
+  delete cloned[hashField];
+  return deepFreeze(
+    canonicalClone({
+      ...cloned,
+      [hashField]: hashCanonicalObject(cloned, hashField),
+    }),
+  );
+}
+
 function parseJsonWithoutDuplicateKeys(source) {
   let offset = 0;
 
@@ -260,6 +286,31 @@ function exactUtf8Source(value) {
   return { bytes, source };
 }
 
+function parseCanonicalJson(value, label = 'Canonical JSON') {
+  const { bytes, source } = exactUtf8Source(value);
+  const parsed = parseJsonWithoutDuplicateKeys(source);
+  const canonical = canonicalStringify(parsed);
+  if (!bytes.equals(Buffer.from(canonical, 'utf8'))) {
+    throw new Error(`${label} does not match canonical bytes`);
+  }
+  return parsed;
+}
+
+function verifyCanonicalHashedObject(value, hashField, label = 'Canonical object') {
+  const parsed = parseCanonicalJson(value, label);
+  if (
+    parsed === null ||
+    Array.isArray(parsed) ||
+    typeof parsed !== 'object' ||
+    !/^[a-f0-9]{64}$/.test(parsed[hashField] ?? '')
+  ) {
+    throw new Error(`${label} must contain a lowercase hexadecimal ${hashField}`);
+  }
+  const expectedHash = hashCanonicalObject(parsed, hashField);
+  if (parsed[hashField] !== expectedHash) throw new Error(`${label} hash mismatch`);
+  return deepFreeze(parsed);
+}
+
 function verifyCanonicalEvent(value) {
   const { bytes, source } = exactUtf8Source(value);
   const event = parseJsonWithoutDuplicateKeys(source);
@@ -283,4 +334,13 @@ function verifyCanonicalEvent(value) {
   return deepFreeze(event);
 }
 
-module.exports = { canonicalStringify, finalizeEvent, verifyCanonicalEvent };
+module.exports = {
+  canonicalClone,
+  canonicalStringify,
+  finalizeHashedObject,
+  finalizeEvent,
+  hashCanonicalObject,
+  parseCanonicalJson,
+  verifyCanonicalHashedObject,
+  verifyCanonicalEvent,
+};

@@ -13,9 +13,17 @@ If it is new, run `npm run workflow -- init` with its explicit ID, title,
 non-main branch, and base SHA. Do not infer workflow state from chat or artifact
 presence.
 
+After plan approval, run initiative and task status before execution. Generate
+one packet and have Sarah claim the exact current packet before work. Keep the
+worker inside packet write scopes whether packets run inline or through a host dispatcher.
+Task verification commands are not automatically executed; the
+worker reports actual results, and Sarah alone records task outcomes after
+repository inspection. Repository code does not dispatch agents or call
+provider APIs.
+
 Proceed autonomously between gates. Stop only for Spec sign-off, Device QA,
-a critical trigger, or a push, merge, or destructive repository action that
-requires an explicit user request.
+a critical trigger, or a push, PR, merge, or destructive repository action
+that requires an explicit user request.
 
 Consult or dispatch the domain owner defined by the generated MoneyApp policy.
 

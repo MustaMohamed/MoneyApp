@@ -3,7 +3,10 @@ const test = require('node:test');
 
 const {
   canonicalStringify,
+  finalizeHashedObject,
   finalizeEvent,
+  hashCanonicalObject,
+  verifyCanonicalHashedObject,
   verifyCanonicalEvent,
 } = require('../lib/workflow/canonical');
 
@@ -31,6 +34,25 @@ void test('finalizes and verifies a self-hashed canonical event', () => {
   assert.deepEqual(verifyCanonicalEvent(canonicalStringify(event)), event);
   assert.ok(Object.isFrozen(event));
   assert.ok(Object.isFrozen(event.payload));
+});
+
+void test('finalizes and verifies a generic canonical self-hashed object', () => {
+  const value = finalizeHashedObject({ schemaVersion: 1, name: 'task graph' }, 'graphHash');
+
+  assert.equal(value.graphHash, hashCanonicalObject(value, 'graphHash'));
+  assert.deepEqual(
+    verifyCanonicalHashedObject(canonicalStringify(value), 'graphHash', 'Task graph'),
+    value,
+  );
+  assert.throws(
+    () =>
+      verifyCanonicalHashedObject(
+        canonicalStringify({ ...value, name: 'edited' }),
+        'graphHash',
+        'Task graph',
+      ),
+    /Task graph hash mismatch/,
+  );
 });
 
 void test('sorts object keys recursively and uses two-space UTF-8 JSON with one LF', () => {

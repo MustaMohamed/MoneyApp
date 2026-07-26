@@ -17,7 +17,13 @@
         "approves and merges",
         "approves & merges",
         "merge code reviews on the user's behalf",
-        "merges code reviews on the user's behalf"
+        "merges code reviews on the user's behalf",
+        "repository dispatches agents",
+        "harness dispatches agents",
+        "executes packet commands",
+        "workers record task events",
+        "concurrent task claims",
+        "task packets authorize push"
       ]
     },
     {

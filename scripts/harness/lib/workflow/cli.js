@@ -19,6 +19,8 @@ const {
   selectInitiativeId: selectInitiativeIdDefault,
 } = require('./status');
 const { verifyWorkflow: verifyWorkflowDefault } = require('./verify');
+const { loadCurrentTaskContext, runTaskCli: runTaskCliDefault } = require('../tasks/cli');
+const { loadTaskGraph: loadTaskGraphDefault } = require('../tasks/graph');
 
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEX_40 = /^[a-f0-9]{40}$/;
@@ -228,9 +230,9 @@ const EVENT_FLAGS = {
   'spec.submitted': ['spec', 'device-qa-mode', 'device-qa-rationale'],
   'spec.signed': ['decision-by', 'basis'],
   'spec.revised': ['spec', 'device-qa-mode', 'device-qa-rationale', 'reason'],
-  'plan.submitted': ['plan'],
+  'plan.submitted': ['plan', 'task-graph'],
   'plan.approved': ['decision-by', 'basis'],
-  'plan.revised': ['plan', 'reason'],
+  'plan.revised': ['plan', 'task-graph', 'reason'],
   'implementation.ready': [],
   'review.approved': ['review', 'decision-by', 'basis'],
   'review.changes_requested': ['review', 'decision-by', 'basis'],
@@ -251,6 +253,8 @@ function buildPayload({
   createArtifactReference,
   validateArtifactReference,
   collectDeliveryRevision,
+  loadTaskGraph,
+  taskLimits,
   runGit,
 }) {
   const artifact = (name) => {
@@ -269,6 +273,16 @@ function buildPayload({
       mode: flags['device-qa-mode'],
       rationale: flags['device-qa-rationale'],
     };
+  };
+  const validatePlanGraph = (plan, taskGraph) => {
+    loadTaskGraph({
+      root,
+      relativePath: taskGraph.path,
+      limits: taskLimits,
+      expectedInitiativeId: projection.initiative.id,
+      expectedPlan: plan,
+    });
+    return { plan, taskGraph };
   };
 
   switch (eventType) {
@@ -291,19 +305,25 @@ function buildPayload({
         reason: flags.reason,
       };
     case 'plan.submitted':
-      return { plan: artifact('plan') };
+      return validatePlanGraph(artifact('plan'), artifact('task-graph'));
     case 'plan.approved':
       if (!projection.plan?.current) throw new Error('No current submitted plan exists');
       return {
-        plan: validateArtifactReference(
-          root,
-          projection.plan.current,
-          runGit ? { runGit } : undefined,
+        ...validatePlanGraph(
+          validateArtifactReference(root, projection.plan.current, runGit ? { runGit } : undefined),
+          validateArtifactReference(
+            root,
+            projection.plan.taskGraph,
+            runGit ? { runGit } : undefined,
+          ),
         ),
         authority: authority(flags, recordedBy, 'sarah'),
       };
     case 'plan.revised':
-      return { plan: artifact('plan'), reason: flags.reason };
+      return {
+        ...validatePlanGraph(artifact('plan'), artifact('task-graph')),
+        reason: flags.reason,
+      };
     case 'implementation.ready':
       return {
         delivery: collectDeliveryRevision(
@@ -408,12 +428,26 @@ async function runCli(options) {
     withWorkflowLock,
     runVerification,
     runGit,
+    loadTaskGraph = loadTaskGraphDefault,
+    loadTaskContext,
   } = options;
 
   try {
     if (!Array.isArray(argv) || argv.length === 0) usage('A workflow command is required');
     const command = argv[0];
     const { manifest, machine } = workflowDependencies(options);
+
+    if (command === 'tasks') {
+      return (options.runTaskCli ?? runTaskCliDefault)({
+        ...options,
+        argv: argv.slice(1),
+        manifest,
+        machine,
+        stdout,
+        stderr,
+        clock,
+      });
+    }
 
     if (command === 'init') {
       const flags = parseFlags(argv.slice(1), {
@@ -493,6 +527,21 @@ async function runCli(options) {
           `Stale expected sequence: observed ${history.projection.sequence}; received ${observedSequence}`,
         );
       }
+      if (eventType === 'implementation.ready' && history.projection.plan?.taskGraph) {
+        const taskContext = (loadTaskContext ?? loadCurrentTaskContext)(
+          {
+            root,
+            manifest,
+            machine,
+            loadEventHistory,
+            validateArtifactReference,
+          },
+          initiativeId,
+        );
+        if (!taskContext.taskProjection.implementationReadyAllowed) {
+          throw new Error('The current task graph has incomplete tasks');
+        }
+      }
       const recordedAt = timestamp(clock);
       const payload = buildPayload({
         eventType,
@@ -503,6 +552,8 @@ async function runCli(options) {
         createArtifactReference,
         validateArtifactReference,
         collectDeliveryRevision,
+        loadTaskGraph,
+        taskLimits: manifest.workflow.tasks.limits,
         runGit,
       });
       const result = appendEvent({
@@ -578,6 +629,7 @@ async function runCli(options) {
         root,
         initiativeId: flags.id,
         machine,
+        manifest,
         loadEventHistory,
         ...(runGit
           ? {
@@ -590,6 +642,7 @@ async function runCli(options) {
         root,
         initiativeId,
         machine,
+        manifest,
         loadEventHistory,
         validateArtifactReference,
         collectDeliveryRevision,
@@ -607,6 +660,7 @@ async function runCli(options) {
       const statuses = listWorkflowStatuses({
         root,
         machine,
+        manifest,
         loadEventHistory,
         validateArtifactReference,
         collectDeliveryRevision,
@@ -651,6 +705,7 @@ async function runCli(options) {
         root,
         initiativeId,
         machine,
+        manifest,
         loadEventHistory,
         validateArtifactReference,
         collectDeliveryRevision,
