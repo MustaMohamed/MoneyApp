@@ -4,6 +4,7 @@ const { execFileSync } = require('node:child_process');
 const { TextDecoder } = require('node:util');
 
 const { assertSafeRelativePath, pathIdentity, resolveInside } = require('../paths');
+const { createBootstrapAttestation } = require('./bootstrap');
 const { matchesScope } = require('./path_scope');
 
 const EVIDENCE_PREFIXES = Object.freeze([
@@ -144,6 +145,15 @@ function assertExpectedBranch(branch, expectedBranch) {
   if (branch !== expectedBranch) {
     throw new Error(`Branch mismatch: expected ${expectedBranch}; observed ${branch}`);
   }
+}
+
+function collectRepositorySnapshot(root, expectedBranch, options = {}) {
+  assertRepositoryRoot(root);
+  const branch = readBranch(root, options);
+  assertExpectedBranch(branch, expectedBranch);
+  const head = readHead(root, options);
+  assertDeliveryClean(root, options);
+  return Object.freeze({ branch, head });
 }
 
 function parseNameStatusZ(output) {
@@ -334,7 +344,109 @@ function collectTaskCompletionRevision(root, startRevision, task, options = {}) 
   });
 }
 
+function equalStringArrays(left, right) {
+  return (
+    Array.isArray(left) &&
+    Array.isArray(right) &&
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
+function assertObservedCompletion(completion, observed) {
+  if (
+    completion.taskId !== observed.taskId ||
+    completion.startHead !== observed.startHead ||
+    completion.endHead !== observed.endHead ||
+    !equalStringArrays(completion.changedPaths, observed.changedPaths)
+  ) {
+    throw new Error(
+      `Bootstrap attestation changed paths or range mismatch for ${completion.taskId}`,
+    );
+  }
+}
+
+function assertAncestor(root, ancestor, descendant, message, options) {
+  try {
+    runGit(root, ['merge-base', '--is-ancestor', ancestor, descendant], options);
+  } catch (error) {
+    throw new Error(message, { cause: error });
+  }
+}
+
+function attestBootstrapChain(
+  root,
+  { branch, graph, checkpoint, previousAccountedHead, completions },
+  options = {},
+) {
+  if (!graph || !Array.isArray(graph.tasks) || !HEX_40.test(checkpoint ?? '')) {
+    throw new Error('Bootstrap attestation requires an approved graph and checkpoint');
+  }
+  if (!Array.isArray(completions) || completions.length === 0) {
+    throw new Error('Bootstrap attestation requires at least one completion');
+  }
+
+  const opening = collectRepositorySnapshot(root, branch, options);
+  const tasks = new Map(graph.tasks.map((candidate) => [candidate.id, candidate]));
+  const observedCompletions = [];
+  let expectedStart = checkpoint;
+
+  for (const completion of completions) {
+    const task = tasks.get(completion.taskId);
+    if (!task) {
+      throw new Error(`Bootstrap attestation references unknown task ${completion.taskId}`);
+    }
+    if (completion.startHead !== expectedStart) {
+      throw new Error(`Bootstrap attestation chain is not contiguous at ${completion.taskId}`);
+    }
+    const observed = collectTaskCompletionRevision(
+      root,
+      { branch, startHead: completion.startHead },
+      task,
+      { ...options, endHead: completion.endHead },
+    );
+    assertObservedCompletion(completion, { taskId: completion.taskId, ...observed });
+    observedCompletions.push(completion);
+    expectedStart = completion.endHead;
+  }
+
+  const validatedHead = completions.at(-1).endHead;
+  if (validatedHead !== opening.head) {
+    throw new Error('Bootstrap attestation endpoint does not reach the stable repository HEAD');
+  }
+  if (previousAccountedHead !== undefined) {
+    if (!HEX_40.test(previousAccountedHead)) {
+      throw new Error('Previous accounted HEAD must be a commit hash');
+    }
+    assertAncestor(
+      root,
+      previousAccountedHead,
+      validatedHead,
+      'Bootstrap replacement endpoint does not descend from its prior accounted HEAD',
+      options,
+    );
+  }
+
+  const attestation = createBootstrapAttestation({
+    graphHash: graph.graphHash,
+    branch,
+    checkpoint,
+    validatedHead,
+    completions: observedCompletions,
+  });
+  const closing = collectRepositorySnapshot(root, branch, options);
+  if (closing.branch !== opening.branch || closing.head !== opening.head) {
+    throw new Error('Repository branch or HEAD changed during bootstrap attestation');
+  }
+
+  return Object.freeze({
+    observedCompletions: Object.freeze([...observedCompletions]),
+    attestation,
+  });
+}
+
 module.exports = {
+  attestBootstrapChain,
   collectTaskCompletionRevision,
   collectTaskStartRevision,
   parseNameStatusZ,

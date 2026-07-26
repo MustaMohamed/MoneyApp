@@ -1,8 +1,89 @@
+const { canonicalStringify, hashCanonicalObject } = require('../workflow/canonical');
+
+const HEX_40 = /^[a-f0-9]{40}$/u;
+const HEX_64 = /^[a-f0-9]{64}$/u;
+
 function taskMap(graph) {
   if (!graph || !Array.isArray(graph.tasks)) {
     throw new Error('Bootstrap validation requires an approved task graph');
   }
   return new Map(graph.tasks.map((task) => [task.id, task]));
+}
+
+function requireAttestationContext({ graphHash, branch, checkpoint, validatedHead, completions }) {
+  if (!HEX_64.test(graphHash ?? '')) {
+    throw new Error('Bootstrap attestation graph hash must be lowercase hexadecimal');
+  }
+  if (typeof branch !== 'string' || branch.length === 0) {
+    throw new Error('Bootstrap attestation branch must be nonempty');
+  }
+  if (!HEX_40.test(checkpoint ?? '') || !HEX_40.test(validatedHead ?? '')) {
+    throw new Error('Bootstrap attestation checkpoint and validated HEAD must be commit hashes');
+  }
+  if (!Array.isArray(completions) || completions.length === 0) {
+    throw new Error('Bootstrap attestation requires at least one completion');
+  }
+  if (completions.at(-1)?.endHead !== validatedHead) {
+    throw new Error('Bootstrap attestation validated HEAD must equal the final completion end');
+  }
+}
+
+function rangeDigest(completion) {
+  return hashCanonicalObject(
+    {
+      taskId: completion.taskId,
+      startHead: completion.startHead,
+      endHead: completion.endHead,
+      changedPaths: completion.changedPaths,
+    },
+    'digest',
+  );
+}
+
+function createBootstrapAttestation(context) {
+  requireAttestationContext(context);
+  const { graphHash, branch, checkpoint, validatedHead, completions } = context;
+  const ranges = Object.freeze(
+    completions.map((completion) =>
+      Object.freeze({
+        taskId: completion.taskId,
+        digest: rangeDigest(completion),
+      }),
+    ),
+  );
+  const chainDigest = hashCanonicalObject(
+    {
+      schemaVersion: 1,
+      graphHash,
+      branch,
+      checkpoint,
+      validatedHead,
+      ranges,
+    },
+    'chainDigest',
+  );
+  return Object.freeze({
+    schemaVersion: 1,
+    validatedHead,
+    ranges,
+    chainDigest,
+  });
+}
+
+function verifyBootstrapAttestation({ attestation, ...context }) {
+  const expected = createBootstrapAttestation(context);
+  let actual;
+  let canonicalExpected;
+  try {
+    actual = canonicalStringify(attestation);
+    canonicalExpected = canonicalStringify(expected);
+  } catch (error) {
+    throw new Error('Bootstrap attestation is not canonical JSON data', { cause: error });
+  }
+  if (actual !== canonicalExpected) {
+    throw new Error('Bootstrap attestation does not match its observed chain context');
+  }
+  return true;
 }
 
 function commandKey(command) {
@@ -133,5 +214,7 @@ function validateBootstrapChain({
 }
 
 module.exports = {
+  createBootstrapAttestation,
   validateBootstrapChain,
+  verifyBootstrapAttestation,
 };

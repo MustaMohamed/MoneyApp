@@ -2,9 +2,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 const test = require('node:test');
 
+const { finalizeHashedObject } = require('../lib/workflow/canonical');
 const {
+  attestBootstrapChain,
   collectTaskCompletionRevision,
   collectTaskStartRevision,
   parseNameStatusZ,
@@ -14,6 +17,7 @@ const {
 const BRANCH = 'refactor/example';
 const START = 'a'.repeat(40);
 const END = 'b'.repeat(40);
+const COMMAND = ['node', '--test', 'focused.test.js'];
 
 function repositoryRoot(t) {
   const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'moneyapp-task-git-')));
@@ -27,9 +31,59 @@ function task(overrides = {}) {
   return {
     id: 'task-01',
     kind: 'mutation',
+    dependsOn: [],
+    verificationCommands: [COMMAND],
     writePaths: ['scripts/harness/lib/tasks/**'],
     ...overrides,
   };
+}
+
+function completion(taskId, startHead, endHead, changedPaths) {
+  return {
+    taskId,
+    startHead,
+    endHead,
+    changedPaths,
+    summary: `Completed ${taskId}.`,
+    checks: [{ command: COMMAND, passed: true, summary: 'Focused test passed.' }],
+  };
+}
+
+function graph(tasks = [task()]) {
+  return finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: '2026-07-26-example',
+      plan: {
+        path: 'docs/superpowers/plans/2026-07-26-example.md',
+        sha256: 'a'.repeat(64),
+      },
+      tasks,
+    },
+    'graphHash',
+  );
+}
+
+function realRepository(t) {
+  const root = repositoryRoot(t);
+  const git = (...args) =>
+    execFileSync('git', ['-C', root, ...args], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }).trim();
+  git('init', '-b', BRANCH);
+  git('config', 'user.email', 'harness@example.test');
+  git('config', 'user.name', 'Harness Test');
+  git('add', 'scripts/harness/lib/tasks/graph.js');
+  git('commit', '-m', 'base');
+  const startHead = git('rev-parse', 'HEAD');
+  fs.writeFileSync(
+    path.join(root, 'scripts/harness/lib/tasks/graph.js'),
+    'module.exports = { ready: true };',
+  );
+  git('add', 'scripts/harness/lib/tasks/graph.js');
+  git('commit', '-m', 'change');
+  return { root, startHead, endHead: git('rev-parse', 'HEAD') };
 }
 
 function gitStub(overrides = {}) {
@@ -54,7 +108,11 @@ function gitStub(overrides = {}) {
         if (value instanceof Error) throw value;
         return value;
       }
-      if (args[0] === 'diff') return values['diff --name-status -z --find-renames --find-copies'];
+      if (args[0] === 'diff') {
+        const value = values['diff --name-status -z --find-renames --find-copies'];
+        if (value instanceof Error) throw value;
+        return value;
+      }
       const value = values[prefix] ?? values[args.slice(0, 4).join(' ')];
       if (value instanceof Error) throw value;
       if (value === undefined) throw new Error(`Unexpected Git command: ${args.join(' ')}`);
@@ -289,4 +347,195 @@ void test('rejects unsafe, aliased, and out-of-scope changed paths', (t) => {
   ]) {
     assert.throws(() => validateChangedPaths(root, task(), changedPaths), /path|scope|NFC/i);
   }
+});
+
+void test('attests an exact bootstrap chain from a stable real repository', (t) => {
+  const repository = realRepository(t);
+  const completions = [
+    completion('task-01', repository.startHead, repository.endHead, [
+      'scripts/harness/lib/tasks/graph.js',
+    ]),
+  ];
+  const result = attestBootstrapChain(repository.root, {
+    branch: BRANCH,
+    graph: graph(),
+    checkpoint: repository.startHead,
+    completions,
+  });
+
+  assert.deepEqual(result.observedCompletions, completions);
+  assert.equal(result.attestation.validatedHead, repository.endHead);
+  assert.equal(result.attestation.ranges[0].taskId, 'task-01');
+  assert.match(result.attestation.chainDigest, /^[a-f0-9]{64}$/u);
+});
+
+void test('rejects invented ranges, path disagreement, and a stale final endpoint', (t) => {
+  const root = repositoryRoot(t);
+  const approvedGraph = graph();
+  const options = {
+    branch: BRANCH,
+    graph: approvedGraph,
+    checkpoint: START,
+  };
+  const exact = completion('task-01', START, END, ['scripts/harness/lib/tasks/graph.js']);
+
+  assert.throws(
+    () =>
+      attestBootstrapChain(
+        root,
+        {
+          ...options,
+          completions: [{ ...exact, endHead: 'c'.repeat(40) }],
+        },
+        { runGit: gitStub().runGit },
+      ),
+    /end HEAD|historical|attest/i,
+  );
+  assert.throws(
+    () =>
+      attestBootstrapChain(
+        root,
+        {
+          ...options,
+          completions: [{ ...exact, changedPaths: ['scripts/harness/lib/tasks/other.js'] }],
+        },
+        { runGit: gitStub().runGit },
+      ),
+    /changed paths|attest/i,
+  );
+  assert.throws(
+    () =>
+      attestBootstrapChain(
+        root,
+        {
+          ...options,
+          completions: [exact],
+        },
+        {
+          runGit: gitStub({
+            'rev-parse --verify HEAD': `${'c'.repeat(40)}\n`,
+          }).runGit,
+        },
+      ),
+    /validated HEAD|repository HEAD|stale/i,
+  );
+  assert.throws(
+    () =>
+      attestBootstrapChain(
+        root,
+        { ...options, completions: [exact] },
+        {
+          runGit: gitStub({
+            'merge-base --is-ancestor': new Error('not ancestor'),
+          }).runGit,
+        },
+      ),
+    /does not descend/i,
+  );
+  assert.throws(
+    () =>
+      attestBootstrapChain(
+        root,
+        { ...options, completions: [exact] },
+        {
+          runGit: gitStub({
+            'diff --name-status -z --find-renames --find-copies': Buffer.from(
+              'R100\0outside/old.js\0scripts/harness/lib/tasks/graph.js\0',
+            ),
+          }).runGit,
+        },
+      ),
+    /outside approved write scopes.*outside\/old\.js/i,
+  );
+});
+
+void test('rejects unsafe repository state and partial Git attestation', (t) => {
+  const root = repositoryRoot(t);
+  const approvedGraph = graph();
+  const exact = completion('task-01', START, END, ['scripts/harness/lib/tasks/graph.js']);
+  const options = { branch: BRANCH, graph: approvedGraph, checkpoint: START, completions: [exact] };
+  const cases = [
+    [gitStub({ 'rev-parse --abbrev-ref HEAD': 'HEAD\n' }), /detached HEAD/i],
+    [gitStub({ 'rev-parse --abbrev-ref HEAD': 'feat/other\n' }), /branch mismatch/i],
+    [
+      gitStub({
+        'status --porcelain=v1 -z --untracked-files=all': Buffer.from(
+          ' M scripts/harness/lib/tasks/graph.js\0',
+        ),
+      }),
+      /dirty delivery/i,
+    ],
+    [
+      gitStub({
+        'diff --name-status -z --find-renames --find-copies': new Error('object missing'),
+      }),
+      /object missing|attest/i,
+    ],
+  ];
+
+  for (const [git, error] of cases) {
+    assert.throws(() => attestBootstrapChain(root, options, { runGit: git.runGit }), error);
+  }
+});
+
+void test('rejects a branch or HEAD race across chain attestation', (t) => {
+  const root = repositoryRoot(t);
+  const approvedGraph = graph();
+  const exact = completion('task-01', START, END, ['scripts/harness/lib/tasks/graph.js']);
+  for (const changed of ['branch', 'head']) {
+    const branchValues = [
+      `${BRANCH}\n`,
+      `${BRANCH}\n`,
+      changed === 'branch' ? 'feat/changed\n' : `${BRANCH}\n`,
+    ];
+    const headValues = [
+      `${END}\n`,
+      `${END}\n`,
+      changed === 'head' ? `${'c'.repeat(40)}\n` : `${END}\n`,
+    ];
+    const git = gitStub({
+      'rev-parse --abbrev-ref HEAD': () => Buffer.from(branchValues.shift()),
+      'rev-parse --verify HEAD': () => Buffer.from(headValues.shift()),
+    });
+    const runGit = (args) => {
+      const value = git.runGit(args);
+      return typeof value === 'function' ? value() : value;
+    };
+
+    assert.throws(
+      () =>
+        attestBootstrapChain(
+          root,
+          { branch: BRANCH, graph: approvedGraph, checkpoint: START, completions: [exact] },
+          { runGit },
+        ),
+      /changed during bootstrap attestation|branch mismatch/i,
+    );
+  }
+});
+
+void test('proves a replacement endpoint descends from its prior accounted head', (t) => {
+  const root = repositoryRoot(t);
+  const exact = completion('task-01', START, END, ['scripts/harness/lib/tasks/graph.js']);
+  const git = gitStub();
+  attestBootstrapChain(
+    root,
+    {
+      branch: BRANCH,
+      graph: graph(),
+      checkpoint: START,
+      previousAccountedHead: START,
+      completions: [exact],
+    },
+    { runGit: git.runGit },
+  );
+  assert(
+    git.calls.some(
+      (args) =>
+        args[0] === 'merge-base' &&
+        args[1] === '--is-ancestor' &&
+        args[2] === START &&
+        args[3] === END,
+    ),
+  );
 });
