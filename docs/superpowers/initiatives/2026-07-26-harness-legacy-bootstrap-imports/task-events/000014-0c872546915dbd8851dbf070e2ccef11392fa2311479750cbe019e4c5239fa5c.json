@@ -1,0 +1,21 @@
+{
+  "eventHash": "0c872546915dbd8851dbf070e2ccef11392fa2311479750cbe019e4c5239fa5c",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "a5e44b3dd26d5f8827add2f5c499fc854e195e812ffca2f9d8aa923591e8ccb0",
+    "sequence": 13
+  },
+  "payload": {
+    "claimEventHash": "a5e44b3dd26d5f8827add2f5c499fc854e195e812ffca2f9d8aa923591e8ccb0",
+    "packetHash": "b9793440dc5095f0b1b82e51e54ea587bc9efd6c84e870cd1c25007767ebcc99",
+    "reason": "TDD exposed that legacy bridge verification must also feed the pure projection replay path; the active packet omits projection.js and its tests.",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:07:50.369Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 14,
+  "type": "task.released"
+}

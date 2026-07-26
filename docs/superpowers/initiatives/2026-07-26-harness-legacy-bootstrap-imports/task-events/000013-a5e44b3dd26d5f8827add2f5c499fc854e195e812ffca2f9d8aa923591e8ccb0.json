@@ -1,0 +1,24 @@
+{
+  "eventHash": "a5e44b3dd26d5f8827add2f5c499fc854e195e812ffca2f9d8aa923591e8ccb0",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "88dcaf9283c3e351a1cc6fc211548ee48c181b988f3204b54d1aff8e166c2614",
+    "sequence": 12
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Implement the approved generic evidence-bridge migration rule with TDD inside the revised Task 5 write scope.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "b9793440dc5095f0b1b82e51e54ea587bc9efd6c84e870cd1c25007767ebcc99",
+    "startHead": "7ba50f1168793c5bd70658a9c2e4f539f1748c88",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:02:33.155Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 13,
+  "type": "task.claimed"
+}
