@@ -1,0 +1,39 @@
+{
+  "eventHash": "ccce30c96abf33ff04b0b7c58be0b9b5d330ab0e308f8c0366262b1f7a7cf892",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "0ed83a73d3ab026c7fd8e123eb041ad1244f68c9389aac15bfdea963453a018f",
+    "sequence": 6
+  },
+  "payload": {
+    "changedPaths": [
+      "scripts/harness/__tests__/task_projection.test.js",
+      "scripts/harness/lib/tasks/projection.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_bootstrap.test.js",
+          "scripts/harness/__tests__/task_projection.test.js"
+        ],
+        "passed": true,
+        "summary": "19 focused bootstrap and projection tests passed."
+      }
+    ],
+    "claimEventHash": "0ed83a73d3ab026c7fd8e123eb041ad1244f68c9389aac15bfdea963453a018f",
+    "endHead": "1a483883e68e2ba977f1193afe36db3e876e7508",
+    "packetHash": "b924b059cb2891925b21b0e11ee242f47b5f3fb922155a30bf080bd886b0f64b",
+    "startHead": "2d43a297bb6258ae42be9d586216d5f31bb6e6f4",
+    "summary": "Preserved ordered completed work and monotonic accounted state across graph replacements.",
+    "taskId": "task-03"
+  },
+  "recordedAt": "2026-07-26T13:04:27.707Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 7,
+  "type": "task.completed"
+}

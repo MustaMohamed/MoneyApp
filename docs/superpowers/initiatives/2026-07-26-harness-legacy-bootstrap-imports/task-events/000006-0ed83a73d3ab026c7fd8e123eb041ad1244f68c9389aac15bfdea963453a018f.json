@@ -1,0 +1,24 @@
+{
+  "eventHash": "0ed83a73d3ab026c7fd8e123eb041ad1244f68c9389aac15bfdea963453a018f",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "374eafcaea4bf6556d2959165fcbcc9f711df1b764a346236490e33e52d28703",
+    "sequence": 5
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Implement the approved monotonic replacement projection with focused TDD.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "b924b059cb2891925b21b0e11ee242f47b5f3fb922155a30bf080bd886b0f64b",
+    "startHead": "2d43a297bb6258ae42be9d586216d5f31bb6e6f4",
+    "taskId": "task-03"
+  },
+  "recordedAt": "2026-07-26T13:01:37.494Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 6,
+  "type": "task.claimed"
+}
