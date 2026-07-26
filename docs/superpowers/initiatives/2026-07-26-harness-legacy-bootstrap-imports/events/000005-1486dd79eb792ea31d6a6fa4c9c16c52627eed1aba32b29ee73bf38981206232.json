@@ -1,0 +1,26 @@
+{
+  "eventHash": "1486dd79eb792ea31d6a6fa4c9c16c52627eed1aba32b29ee73bf38981206232",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "d89507e3b6b170d6d21817d6d7156da0b7c95dd41ee9e957086679010b6e7b50",
+    "sequence": 4
+  },
+  "payload": {
+    "authority": {
+      "basis": "The user explicitly approved the portable replay-attestation and migration-anchor delta now recorded at SHA-256 2f7231fee67b86bc4c0c26842fbb75fe5af3cfca362ed034fd9cf3332f5709da.",
+      "decisionBy": "user",
+      "recordedBy": "sarah"
+    },
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+      "sha256": "2f7231fee67b86bc4c0c26842fbb75fe5af3cfca362ed034fd9cf3332f5709da"
+    }
+  },
+  "recordedAt": "2026-07-26T12:47:21.682Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 5,
+  "type": "spec.signed"
+}

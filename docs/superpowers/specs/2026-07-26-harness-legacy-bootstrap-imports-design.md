@@ -1,7 +1,7 @@
 # Validated Legacy Bootstrap Imports Design
 
 - **Date:** 2026-07-26
-- **Status:** Awaiting exact product-owner sign-off
+- **Status:** Revised; awaiting exact product-owner sign-off
 - **Initiative:** `2026-07-26-harness-legacy-bootstrap-imports`
 - **Branch:** `feat/harness-legacy-bootstrap-imports`
 - **Base:** `4881847975ab6b8fc66d1e019584594feb474bb7`
@@ -62,6 +62,13 @@ taskId, startHead, endHead, changedPaths, summary, checks
 Bootstrap remains migration evidence, not a normal worker outcome. It can be
 recorded only in `task_graph.activated` or `task_graph.replaced`, only by Tariq,
 and never creates a claim.
+
+Every new nonempty bootstrap event also carries a canonical
+`bootstrapAttestation` produced after repository validation. The attestation
+binds the event's graph, accounting checkpoint, validated branch HEAD, ordered
+completion claims, and canonical per-range diff digests into one chain digest.
+It is portable evidence for later checkouts where squash merging or branch
+deletion has made the original commit objects unreachable.
 
 ### Activation
 
@@ -149,6 +156,25 @@ Disjoint, overlapping, invented, stale, truncated, or reordered ranges fail.
 - The branch and HEAD snapshot must remain unchanged throughout validation;
   otherwise the operation fails as stale without appending.
 
+### Portable replay attestation
+
+- A new nonempty bootstrap cannot be appended without a versioned canonical
+  attestation generated from the successfully observed repository state.
+- When referenced commit objects remain available, replay recomputes Git
+  ancestry, diffs, paths, and the attestation digest.
+- When those objects are no longer available after legitimate repository
+  integration, replay requires the recorded portable attestation and still
+  reruns every pure graph, ordering, dependency, check, and monotonicity rule.
+- Receipt-less legacy bootstrap events are accepted only when the exact
+  canonical event bytes existed at migration anchor
+  `4881847975ab6b8fc66d1e019584594feb474bb7`.
+- A receipt-less event absent from that anchor is newly introduced legacy data
+  and fails replay. This is one repository migration boundary, not an
+  initiative allowlist.
+- Partial Git availability, a digest mismatch, a changed receipt, or evidence
+  that disagrees with the event fails closed; replay never silently downgrades
+  from live proof to portable proof.
+
 ## Write-Time and Replay Flow
 
 ### Activation or replacement command
@@ -157,23 +183,26 @@ Disjoint, overlapping, invented, stale, truncated, or reordered ranges fail.
 2. Capture branch, HEAD, and clean-delivery state once.
 3. Run pure chain validation using activation or prior replacement state.
 4. Attest every range against Git and its exact graph task.
-5. Re-read branch, HEAD, and delivery state to detect a race.
-6. Append only when every invariant still holds.
+5. Build the canonical portable attestation from those observed results.
+6. Re-read branch, HEAD, and delivery state to detect a race.
+7. Append only when every invariant still holds.
 
 ### Projection and task-history replay
 
 1. Validate the immutable event envelope and graph binding.
 2. Rebuild the completion chain with the same pure validator.
 3. Preserve completion state monotonically across graph replacement.
-4. During repository-backed history loading, re-attest bootstrap commit
-   existence, ancestry, exact paths, scopes, branch ownership, and clean
-   delivery.
-5. Reject the ledger rather than projecting partial state when any event is
+4. For new events, verify the portable attestation and re-attest against Git
+   whenever all referenced objects are available.
+5. For receipt-less events, require exact byte presence at the migration anchor
+   before applying the pure invariants.
+6. Reject the ledger rather than projecting partial state when any event is
    disjoint, invented, stale, reordered, or completion-hiding.
 
 The pure projection remains testable without Git. The normal repository replay
-path combines it with Git attestation, so `tasks status`, `harness:check`, and
-integration gates cannot accept evidence that append-time checks alone saw.
+path combines it with live or portable attestation, so `tasks status`,
+`harness:check`, and integration gates remain deterministic in active branches
+and fresh post-merge checkouts.
 
 ## Architecture
 
@@ -183,6 +212,8 @@ The implementation will:
 - add one shared pure bootstrap-chain validator;
 - extend the read-only Git evidence layer with chain-level snapshot and
   attestation support;
+- add a versioned canonical portable attestation to new nonempty bootstrap
+  events and one manifest-owned legacy migration anchor;
 - call those contracts from activation and replacement instead of duplicating
   per-completion checks;
 - make projection replacement reconcile preserved completions instead of
@@ -226,11 +257,14 @@ TDD coverage will include:
 - dependency order and required-check failures;
 - invented commits, stale snapshots, disjoint chains, reordered chains, and
   tampered replay;
+- portable-attestation digest tampering, partial Git availability, missing
+  receipts, and receipt-less events absent from the migration anchor;
 - extension and full-snapshot replacement;
 - replacement attempts that omit, reorder, repeat, reopen, or hide completed
   tasks;
 - existing valid Phase 3 legacy ledger replay without an initiative-specific
-  exception;
+  exception, including a fresh-checkout fixture without its feature-branch
+  commit objects;
 - a synthetic onboarding-shaped bootstrap proving the policy is generic;
 - fresh task status, `harness:check`, complete `harness:test`, and CI-parity
   verification.
