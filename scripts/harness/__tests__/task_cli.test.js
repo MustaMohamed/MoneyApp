@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const test = require('node:test');
 
 const { canonicalStringify, finalizeHashedObject } = require('../lib/workflow/canonical');
+const { createBootstrapAttestation } = require('../lib/tasks/bootstrap');
 const { createTaskPacket } = require('../lib/tasks/packet');
 const { runTaskCli } = require('../lib/tasks/cli');
 
@@ -103,6 +104,10 @@ function harness(overrides = {}) {
       limits: LIMITS,
     }),
     appendTaskEvent(request) {
+      request.validateCurrent?.({
+        history: { events: [], projection: context.taskProjection },
+        nextSequence: request.expectedSequence,
+      });
       appended.push(request);
       return {
         event: {
@@ -120,6 +125,18 @@ function harness(overrides = {}) {
       endHead: END,
       changedPaths: ['scripts/harness/lib/tasks/cli.js'],
     }),
+    attestBootstrapChain(root, request) {
+      return {
+        observedCompletions: request.completions,
+        attestation: createBootstrapAttestation({
+          graphHash: request.graph.graphHash,
+          branch: request.branch,
+          checkpoint: request.checkpoint,
+          validatedHead: request.completions.at(-1).endHead,
+          completions: request.completions,
+        }),
+      };
+    },
     recoverTaskRuntimeFiles: () => ({ status: 'recovered', removed: ['lock'] }),
     ...overrides,
   };
@@ -161,6 +178,57 @@ void test('activates the approved graph with one Tariq root event', async () => 
   assert.equal(fixture.appended[0].expectedSequence, 1);
   assert.equal(fixture.appended[0].draft.type, 'task_graph.activated');
   assert.equal(fixture.appended[0].draft.recordedBy.role, 'tariq');
+  assert.equal(Object.hasOwn(fixture.appended[0].draft.payload, 'bootstrapAttestation'), false);
+});
+
+void test('activates a generic bootstrap chain with the exact stable Git attestation', async () => {
+  const completion = {
+    taskId: 'task-01',
+    startHead: initiativeProjection.initiative.baseSha,
+    endHead: END,
+    changedPaths: ['scripts/harness/lib/tasks/cli.js'],
+    summary: 'Implemented task CLI.',
+    checks: [
+      {
+        command: task.verificationCommands[0],
+        passed: true,
+        summary: 'Focused task CLI test passed.',
+      },
+    ],
+  };
+  let attestations = 0;
+  const fixture = harness({
+    attestBootstrapChain(root, request) {
+      attestations += 1;
+      return harness().options.attestBootstrapChain(root, request);
+    },
+  });
+  assert.equal(
+    await execute(fixture, [
+      'activate',
+      '--id',
+      ID,
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--bootstrap-completions',
+      canonicalStringify([completion]),
+    ]),
+    0,
+  );
+
+  assert.equal(attestations, 2);
+  assert.deepEqual(
+    fixture.appended[0].draft.payload.bootstrapAttestation,
+    createBootstrapAttestation({
+      graphHash: graph.graphHash,
+      branch: BRANCH,
+      checkpoint: initiativeProjection.initiative.baseSha,
+      validatedHead: END,
+      completions: [completion],
+    }),
+  );
 });
 
 void test('claims only the exact current packet and records start revision', async () => {
@@ -502,13 +570,28 @@ void test('rejects task graph replacement outside execution and rejects the acti
 void test('validates replacement bootstrap completions before appending', async () => {
   const completion = {
     taskId: 'task-01',
-    startHead: START,
+    startHead: initiativeProjection.initiative.baseSha,
     endHead: END,
     changedPaths: ['scripts/harness/lib/tasks/cli.js'],
     summary: 'Implemented task CLI.',
     checks: [],
   };
+  const previousGraph = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: PLAN,
+      tasks: [{ ...task, title: 'Previous task CLI graph' }],
+    },
+    'graphHash',
+  );
   const fixture = harness();
+  fixture.options.loadTaskContext = () => ({
+    ...fixture.context,
+    graph: previousGraph,
+    resolveGraph: (graphHash) =>
+      graphHash === previousGraph.graphHash ? previousGraph : undefined,
+  });
   assert.equal(
     await execute(fixture, [
       'replace',
@@ -525,7 +608,7 @@ void test('validates replacement bootstrap completions before appending', async 
       '--bootstrap-completions',
       canonicalStringify([completion]),
     ]),
-    2,
+    1,
   );
   assert.equal(fixture.appended.length, 0);
   assert.match(fixture.stderr.value(), /checks|required/i);
@@ -540,15 +623,6 @@ void test('validates replacement bootstrap completions before appending', async 
       },
     ],
   };
-  const previousGraph = finalizeHashedObject(
-    {
-      schemaVersion: 1,
-      initiativeId: ID,
-      plan: PLAN,
-      tasks: [{ ...task, title: 'Previous task CLI graph' }],
-    },
-    'graphHash',
-  );
   const valid = harness();
   valid.options.loadTaskContext = () => ({
     ...valid.context,
@@ -586,6 +660,136 @@ void test('validates replacement bootstrap completions before appending', async 
     JSON.parse(JSON.stringify(valid.appended[0].draft.payload.bootstrapCompletions)),
     [validCompletion],
   );
+  assert.deepEqual(
+    valid.appended[0].draft.payload.bootstrapAttestation,
+    createBootstrapAttestation({
+      graphHash: graph.graphHash,
+      branch: BRANCH,
+      checkpoint: initiativeProjection.initiative.baseSha,
+      validatedHead: END,
+      completions: [validCompletion],
+    }),
+  );
+});
+
+void test('rejects a Git race and a replacement that would hide completed work', async () => {
+  const completion = {
+    taskId: 'task-01',
+    startHead: initiativeProjection.initiative.baseSha,
+    endHead: END,
+    changedPaths: ['scripts/harness/lib/tasks/cli.js'],
+    summary: 'Implemented task CLI.',
+    checks: [
+      {
+        command: task.verificationCommands[0],
+        passed: true,
+        summary: 'Focused task CLI test passed.',
+      },
+    ],
+  };
+  let calls = 0;
+  const raced = harness({
+    attestBootstrapChain(root, request) {
+      calls += 1;
+      if (calls === 2) throw new Error('Repository HEAD changed during bootstrap attestation');
+      return harness().options.attestBootstrapChain(root, request);
+    },
+  });
+  assert.equal(
+    await execute(raced, [
+      'activate',
+      '--id',
+      ID,
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--bootstrap-completions',
+      canonicalStringify([completion]),
+    ]),
+    1,
+  );
+  assert.equal(raced.appended.length, 0);
+  assert.match(raced.stderr.value(), /HEAD changed/i);
+
+  const previousGraph = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: PLAN,
+      tasks: [{ ...task, title: 'Previous task CLI graph' }],
+    },
+    'graphHash',
+  );
+  const hidden = harness();
+  hidden.options.loadTaskContext = () => ({
+    ...hidden.context,
+    graph: previousGraph,
+    taskProjection: taskProjection({
+      completionOrder: ['task-01'],
+      completions: { 'task-01': completion },
+      completedCount: 1,
+      accountedHead: END,
+      tasks: { 'task-01': { ...task, state: 'completed', completion } },
+      readyTaskIds: [],
+    }),
+    resolveGraph: () => previousGraph,
+  });
+  assert.equal(
+    await execute(hidden, [
+      'replace',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '1',
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--reason',
+      'Attempt to hide completed work.',
+      '--bootstrap-completions',
+      canonicalStringify([]),
+    ]),
+    0,
+  );
+  assert.equal(hidden.appended.length, 1);
+
+  const omittedGraph = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: PLAN,
+      tasks: [],
+    },
+    'graphHash',
+  );
+  const omitted = harness();
+  omitted.options.loadTaskContext = hidden.options.loadTaskContext;
+  omitted.options.loadInitiativeContext = () => ({
+    graph: omittedGraph,
+    initiativeProjection,
+    taskHistory: { events: [], projection: undefined },
+    limits: LIMITS,
+  });
+  assert.equal(
+    await execute(omitted, [
+      'replace',
+      '--id',
+      ID,
+      '--expected-sequence',
+      '1',
+      '--expected-initiative-sequence',
+      '8',
+      '--task-graph',
+      GRAPH_REF.path,
+      '--reason',
+      'Remove the completed task.',
+    ]),
+    1,
+  );
+  assert.equal(omitted.appended.length, 0);
+  assert.match(omitted.stderr.value(), /omits completed task/i);
 });
 
 void test('rejects stale sequences, duplicate flags, positional arguments, and unknown commands', async () => {

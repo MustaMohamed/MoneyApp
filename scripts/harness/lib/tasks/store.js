@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const { execFileSync } = require('node:child_process');
 
 const { resolveInside } = require('../paths');
 const {
@@ -10,6 +11,8 @@ const {
   parseCanonicalJson,
   verifyCanonicalHashedObject,
 } = require('../workflow/canonical');
+const { validateBootstrapChain, verifyBootstrapAttestation } = require('./bootstrap');
+const { attestBootstrapChain } = require('./git_scope');
 const { replayTaskEvents } = require('./projection');
 const { validateTaskEventEnvelope, validateTaskEventPayload } = require('./schema');
 
@@ -19,6 +22,7 @@ const TOKEN = /^[a-f0-9]{32}$/;
 const INITIATIVE_ID = /^(\d{4})-(\d{2})-(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const LOCK_NAME = '.tasks.lock';
+const HEX_40 = /^[a-f0-9]{40}$/u;
 
 function compareCodeUnits(left, right) {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -114,6 +118,144 @@ function readExactFile(target, label, fsImpl) {
   }
 }
 
+function runReadOnlyGit(root, args) {
+  return execFileSync('git', ['-C', root, ...args], {
+    encoding: 'buffer',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    maxBuffer: 32 * 1024 * 1024,
+  });
+}
+
+function defaultBootstrapGit() {
+  return {
+    classifyAvailability(root, { branch, validatedHead, commits }) {
+      const currentBranch = runReadOnlyGit(root, ['rev-parse', '--abbrev-ref', 'HEAD'])
+        .toString('utf8')
+        .trim();
+      const currentHead = runReadOnlyGit(root, ['rev-parse', '--verify', 'HEAD'])
+        .toString('utf8')
+        .trim();
+      if (currentBranch !== branch || currentHead !== validatedHead) return 'missing';
+      const available = commits.map((commit) => {
+        try {
+          runReadOnlyGit(root, ['cat-file', '-e', `${commit}^{commit}`]);
+          return true;
+        } catch (error) {
+          if (error.status === 128) return false;
+          throw error;
+        }
+      });
+      if (available.every(Boolean)) return 'complete';
+      if (available.every((value) => !value)) return 'missing';
+      return 'partial';
+    },
+    attestBootstrapChain,
+    readFileAtCommit(root, commit, relativePath) {
+      return runReadOnlyGit(root, ['show', `${commit}:${relativePath}`]);
+    },
+  };
+}
+
+function projectionCompletionChain(projection) {
+  return (projection?.completionOrder ?? []).map((taskId) => projection.completions[taskId]);
+}
+
+function bootstrapValidationContext(event, graph, previousProjection) {
+  const payload = event.payload;
+  const previousChain = projectionCompletionChain(previousProjection);
+  const previousAccountedHead = previousProjection?.accountedHead ?? payload.baseSha;
+  const replacement = event.type === 'task_graph.replaced';
+  const validation = validateBootstrapChain({
+    graph,
+    completions: payload.bootstrapCompletions,
+    baseSha: payload.baseSha,
+    previousChain,
+    previousAccountedHead,
+    replacement,
+  });
+  return {
+    previousAccountedHead,
+    checkpoint:
+      validation.mode === 'activation' || validation.mode === 'snapshot'
+        ? payload.baseSha
+        : previousAccountedHead,
+  };
+}
+
+function verifyStoredBootstrapEvent({
+  root,
+  event,
+  eventBytes,
+  eventRelativePath,
+  graph,
+  previousProjection,
+  legacyBootstrapAnchor,
+  git = defaultBootstrapGit(),
+}) {
+  const completions = event.payload.bootstrapCompletions;
+  if (completions.length === 0) return true;
+  const { checkpoint, previousAccountedHead } = bootstrapValidationContext(
+    event,
+    graph,
+    previousProjection,
+  );
+  const attestation = event.payload.bootstrapAttestation;
+  if (attestation === undefined) {
+    if (!HEX_40.test(legacyBootstrapAnchor ?? '')) {
+      throw new Error('Receipt-less legacy bootstrap requires a manifest migration anchor');
+    }
+    const anchored = git.readFileAtCommit(root, legacyBootstrapAnchor, eventRelativePath);
+    if (!Buffer.from(anchored).equals(Buffer.from(eventBytes))) {
+      throw new Error('Legacy bootstrap event does not match exact bytes at the migration anchor');
+    }
+    return true;
+  }
+
+  const context = {
+    graphHash: graph.graphHash,
+    branch: event.payload.branch,
+    checkpoint,
+    validatedHead: attestation.validatedHead,
+    completions,
+  };
+  verifyBootstrapAttestation({ attestation, ...context });
+  const commits = [...new Set(completions.map((completion) => completion.endHead))];
+  const availability =
+    typeof git.classifyAvailability === 'function'
+      ? git.classifyAvailability(root, {
+          branch: event.payload.branch,
+          validatedHead: attestation.validatedHead,
+          commits,
+        })
+      : (() => {
+          if (typeof git.hasCommit !== 'function') {
+            throw new Error('Bootstrap Git adapter must classify commit availability');
+          }
+          const available = commits.map((commit) => git.hasCommit(root, commit));
+          if (available.every(Boolean)) return 'complete';
+          if (available.every((value) => !value)) return 'missing';
+          return 'partial';
+        })();
+  if (availability === 'missing') return true;
+  if (availability !== 'complete') {
+    throw new Error('Bootstrap Git evidence is partially available');
+  }
+  try {
+    const observed = (git.attestBootstrapChain ?? attestBootstrapChain)(root, {
+      branch: event.payload.branch,
+      graph,
+      checkpoint,
+      ...(event.type === 'task_graph.replaced' ? { previousAccountedHead } : {}),
+      completions,
+    });
+    verifyBootstrapAttestation({ attestation: observed.attestation, ...context });
+    verifyBootstrapAttestation({ attestation, ...context });
+  } catch (error) {
+    throw new Error(`Live bootstrap attestation failed: ${error.message}`, { cause: error });
+  }
+  return true;
+}
+
 function ensureEventsDirectory(root, initiativeId, fsImpl) {
   const initial = taskPaths(root, initiativeId);
   fsImpl.mkdirSync(initial.eventsPath, { recursive: true });
@@ -161,6 +303,7 @@ function inspectTaskFiles({
   initiativeProjection,
   initiativeSnapshots,
   resolveGraph,
+  verifyBootstrapEvent,
   fsImpl,
 }) {
   const paths = taskPaths(root, initiativeId);
@@ -189,7 +332,7 @@ function inspectTaskFiles({
     if (event.eventHash !== entry.filenameHash) {
       throw new Error('Task event filename hash does not match event hash');
     }
-    return { ...entry, event };
+    return { ...entry, bytes, event };
   });
   records.sort(
     (left, right) =>
@@ -233,6 +376,42 @@ function inspectTaskFiles({
       throw new Error(`Cannot resolve activated task graph ${events[0].payload.graphHash}`);
     }
   }
+  for (const [index, record] of records.entries()) {
+    const event = record.event;
+    if (
+      (event.type === 'task_graph.activated' || event.type === 'task_graph.replaced') &&
+      event.payload.bootstrapCompletions.length > 0
+    ) {
+      if (typeof verifyBootstrapEvent !== 'function') {
+        throw new Error('Nonempty bootstrap replay requires repository evidence verification');
+      }
+      const eventGraph =
+        event.type === 'task_graph.activated'
+          ? activationGraph
+          : resolveGraph?.(event.payload.graphHash, event.payload.taskGraph, event.payload.plan);
+      if (!eventGraph) {
+        throw new Error(`Cannot resolve bootstrap task graph ${event.payload.graphHash}`);
+      }
+      const previousProjection =
+        index === 0
+          ? undefined
+          : replayTaskEvents({
+              graph: activationGraph,
+              events: events.slice(0, index),
+              initiativeProjection,
+              initiativeSnapshots,
+              resolveGraph,
+            });
+      verifyBootstrapEvent({
+        root,
+        event,
+        eventBytes: record.bytes,
+        eventRelativePath: path.posix.join(paths.eventsRelative, record.name),
+        graph: eventGraph,
+        previousProjection,
+      });
+    }
+  }
   const projection =
     events.length === 0
       ? undefined
@@ -259,6 +438,7 @@ function loadTaskHistory({
   initiativeProjection,
   initiativeSnapshots,
   resolveGraph,
+  verifyBootstrapEvent,
   fsImpl = fs,
 }) {
   assertRoot(root, fsImpl);
@@ -270,6 +450,7 @@ function loadTaskHistory({
     initiativeProjection,
     initiativeSnapshots,
     resolveGraph,
+    verifyBootstrapEvent,
     fsImpl,
   });
 }
@@ -439,6 +620,7 @@ function appendTaskEvent({
   initiativeSnapshots,
   resolveGraph,
   validateCurrent,
+  verifyBootstrapEvent,
   fsImpl = fs,
   hostname = os.hostname,
   pid = process.pid,
@@ -503,6 +685,7 @@ function appendTaskEvent({
       initiativeProjection,
       initiativeSnapshots,
       resolveGraph,
+      verifyBootstrapEvent,
       fsImpl,
     });
     const nextSequence = history.events.length + 1;
@@ -525,6 +708,30 @@ function appendTaskEvent({
     );
     validateTaskEventEnvelope(event);
     validateTaskEventPayload(event, { initiativeId });
+    const eventName = `${String(event.sequence).padStart(6, '0')}-${event.eventHash}.json`;
+    if (
+      (event.type === 'task_graph.activated' || event.type === 'task_graph.replaced') &&
+      event.payload.bootstrapCompletions.length > 0
+    ) {
+      if (typeof verifyBootstrapEvent !== 'function') {
+        throw new Error('Nonempty bootstrap append requires repository evidence verification');
+      }
+      const eventGraph =
+        event.type === 'task_graph.activated'
+          ? history.activationGraph
+          : resolveGraph?.(event.payload.graphHash, event.payload.taskGraph, event.payload.plan);
+      if (!eventGraph) {
+        throw new Error(`Cannot resolve bootstrap task graph ${event.payload.graphHash}`);
+      }
+      verifyBootstrapEvent({
+        root,
+        event,
+        eventBytes: Buffer.from(canonicalStringify(event)),
+        eventRelativePath: path.posix.join(paths.eventsRelative, eventName),
+        graph: eventGraph,
+        previousProjection: history.projection,
+      });
+    }
     replayTaskEvents({
       graph: history.activationGraph,
       events: [...history.events, event],
@@ -534,10 +741,7 @@ function appendTaskEvent({
     });
 
     const bytes = canonicalStringify(event);
-    finalPath = path.join(
-      paths.eventsPath,
-      `${String(event.sequence).padStart(6, '0')}-${event.eventHash}.json`,
-    );
+    finalPath = path.join(paths.eventsPath, eventName);
     tempDescriptor = fsImpl.openSync(runtime.tempPath, 'wx');
     ownsTemp = true;
     tempIdentity = fileIdentity(fsImpl.fstatSync(tempDescriptor));
@@ -631,6 +835,7 @@ function appendTaskEvent({
           initiativeProjection,
           initiativeSnapshots,
           resolveGraph,
+          verifyBootstrapEvent,
           fsImpl,
           hostname: () => undefined,
           isProcessAlive: () => false,
@@ -674,6 +879,7 @@ function recoverTaskRuntimeFiles({
   initiativeProjection,
   initiativeSnapshots,
   resolveGraph,
+  verifyBootstrapEvent,
   fsImpl = fs,
   hostname = os.hostname,
   isProcessAlive = defaultIsProcessAlive,
@@ -693,6 +899,7 @@ function recoverTaskRuntimeFiles({
     initiativeProjection,
     initiativeSnapshots,
     resolveGraph,
+    verifyBootstrapEvent,
     fsImpl,
   });
   const lockExists = exists(paths.lockPath, fsImpl);
@@ -735,4 +942,5 @@ module.exports = {
   appendTaskEvent,
   loadTaskHistory,
   recoverTaskRuntimeFiles,
+  verifyStoredBootstrapEvent,
 };

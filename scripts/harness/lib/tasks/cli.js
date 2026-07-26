@@ -4,7 +4,9 @@ const {
 } = require('../workflow/evidence');
 const { loadEventHistory: loadEventHistoryDefault } = require('../workflow/store');
 const { replayEvents } = require('../workflow/projection');
+const { validateBootstrapChain, verifyBootstrapAttestation } = require('./bootstrap');
 const {
+  attestBootstrapChain: attestBootstrapChainDefault,
   collectTaskCompletionRevision: collectTaskCompletionRevisionDefault,
   collectTaskStartRevision: collectTaskStartRevisionDefault,
 } = require('./git_scope');
@@ -14,6 +16,7 @@ const {
   appendTaskEvent: appendTaskEventDefault,
   loadTaskHistory: loadTaskHistoryDefault,
   recoverTaskRuntimeFiles: recoverTaskRuntimeFilesDefault,
+  verifyStoredBootstrapEvent: verifyStoredBootstrapEventDefault,
 } = require('./store');
 const {
   formatTaskStatus: formatTaskStatusDefault,
@@ -150,31 +153,56 @@ function validateRequiredChecks(task, checks) {
   return checks;
 }
 
-function validateBootstrapCompletions(options, context, completions) {
+function completionChain(projection) {
+  return (projection?.completionOrder ?? []).map((taskId) => projection.completions[taskId]);
+}
+
+function validateAndAttestBootstrap(options, context, completions, previousProjection) {
   if (!Array.isArray(completions)) usage('--bootstrap-completions must be an array');
-  for (const completion of completions) {
-    const task = findTask(context.graph, completion.taskId);
-    validateRequiredChecks(task, completion.checks);
-    const observed = (
-      options.collectTaskCompletionRevision ?? collectTaskCompletionRevisionDefault
-    )(
-      options.root,
-      {
-        branch: context.initiativeProjection.initiative.branch,
-        startHead: completion.startHead,
-      },
-      task,
-      { endHead: completion.endHead },
-    );
-    if (
-      observed.startHead !== completion.startHead ||
-      observed.endHead !== completion.endHead ||
-      JSON.stringify(observed.changedPaths) !== JSON.stringify(completion.changedPaths)
-    ) {
-      throw new Error(`Bootstrap completion evidence mismatch for ${completion.taskId}`);
-    }
+  const baseSha = context.initiativeProjection.initiative.baseSha;
+  const previousChain = completionChain(previousProjection);
+  const previousAccountedHead = previousProjection?.accountedHead ?? baseSha;
+  const replacement = previousProjection !== undefined;
+  const validation = validateBootstrapChain({
+    graph: context.graph,
+    completions,
+    baseSha,
+    previousChain,
+    previousAccountedHead,
+    replacement,
+  });
+  if (completions.length === 0) {
+    return { attestation: undefined, validateCurrent: undefined };
   }
-  return completions;
+  const checkpoint =
+    validation.mode === 'activation' || validation.mode === 'snapshot'
+      ? baseSha
+      : previousAccountedHead;
+  const request = {
+    branch: context.initiativeProjection.initiative.branch,
+    graph: context.graph,
+    checkpoint,
+    ...(replacement ? { previousAccountedHead } : {}),
+    completions,
+  };
+  const attest = options.attestBootstrapChain ?? attestBootstrapChainDefault;
+  const attested = attest(options.root, request);
+  const verify = (attestation) =>
+    verifyBootstrapAttestation({
+      attestation,
+      graphHash: context.graph.graphHash,
+      branch: request.branch,
+      checkpoint,
+      validatedHead: completions.at(-1).endHead,
+      completions,
+    });
+  verify(attested.attestation);
+  return {
+    attestation: attested.attestation,
+    validateCurrent() {
+      verify(attest(options.root, request).attestation);
+    },
+  };
 }
 
 function requireObservedSequence(taskProjection, value) {
@@ -209,6 +237,14 @@ function defaultContextLoaders(options) {
     loadTaskHistory = loadTaskHistoryDefault,
   } = options;
   const limits = manifest.workflow.tasks.limits;
+  const verifyBootstrapEvent =
+    options.verifyBootstrapEvent ??
+    ((context) =>
+      verifyStoredBootstrapEventDefault({
+        ...context,
+        legacyBootstrapAnchor: manifest.workflow.tasks.legacyBootstrapAnchor,
+        git: options.bootstrapGit,
+      }));
 
   function loadGraphReference(initiativeId, plan, reference) {
     const validatedReference = validateArtifactReference(root, reference);
@@ -267,6 +303,7 @@ function defaultContextLoaders(options) {
       initiativeProjection,
       initiativeSnapshots,
       resolveGraph: graphResolver,
+      verifyBootstrapEvent,
     });
     return {
       graph,
@@ -311,7 +348,7 @@ function loadCurrentInitiativeContext(options, initiativeId, graphPath) {
   return initiativeContext(options, initiativeId, graphPath);
 }
 
-function appendResult(options, context, observedSequence, draft) {
+function appendResult(options, context, observedSequence, draft, validateCurrent) {
   const result = (options.appendTaskEvent ?? appendTaskEventDefault)({
     root: options.root,
     initiativeId: context.initiativeProjection.initiative.id,
@@ -321,6 +358,8 @@ function appendResult(options, context, observedSequence, draft) {
     initiativeProjection: context.initiativeProjection,
     initiativeSnapshots: context.initiativeSnapshots,
     resolveGraph: context.resolveGraph,
+    validateCurrent,
+    verifyBootstrapEvent: options.verifyBootstrapEvent,
   });
   const event = result.event ?? result;
   options.stdout.write(
@@ -388,6 +427,14 @@ async function runTaskCli(options) {
     stderr,
     clock: options.clock ?? (() => new Date()),
   };
+  normalized.verifyBootstrapEvent =
+    options.verifyBootstrapEvent ??
+    ((context) =>
+      verifyStoredBootstrapEventDefault({
+        ...context,
+        legacyBootstrapAnchor: normalized.manifest.workflow.tasks.legacyBootstrapAnchor,
+        git: normalized.bootstrapGit,
+      }));
   try {
     if (!Array.isArray(normalized.argv) || normalized.argv.length === 0) {
       usage('A task command is required');
@@ -463,25 +510,34 @@ async function runTaskCli(options) {
       const completions = flags['bootstrap-completions']
         ? parseCanonicalArgument(flags['bootstrap-completions'], '--bootstrap-completions')
         : [];
-      validateBootstrapCompletions(normalized, context, completions);
-      return appendResult(normalized, context, 0, {
-        type: 'task_graph.activated',
-        recordedAt: timestamp(normalized.clock),
-        recordedBy: { role: 'tariq' },
-        payload: {
-          initiative: {
-            sequence: context.initiativeProjection.sequence,
-            eventHash: context.initiativeProjection.latestEvent.eventHash,
+      const bootstrap = validateAndAttestBootstrap(normalized, context, completions);
+      return appendResult(
+        normalized,
+        context,
+        0,
+        {
+          type: 'task_graph.activated',
+          recordedAt: timestamp(normalized.clock),
+          recordedBy: { role: 'tariq' },
+          payload: {
+            initiative: {
+              sequence: context.initiativeProjection.sequence,
+              eventHash: context.initiativeProjection.latestEvent.eventHash,
+            },
+            spec: context.initiativeProjection.spec.current,
+            plan: context.initiativeProjection.plan.current,
+            taskGraph: context.initiativeProjection.plan.taskGraph,
+            branch: context.initiativeProjection.initiative.branch,
+            baseSha: context.initiativeProjection.initiative.baseSha,
+            graphHash: context.graph.graphHash,
+            bootstrapCompletions: completions,
+            ...(bootstrap.attestation === undefined
+              ? {}
+              : { bootstrapAttestation: bootstrap.attestation }),
           },
-          spec: context.initiativeProjection.spec.current,
-          plan: context.initiativeProjection.plan.current,
-          taskGraph: context.initiativeProjection.plan.taskGraph,
-          branch: context.initiativeProjection.initiative.branch,
-          baseSha: context.initiativeProjection.initiative.baseSha,
-          graphHash: context.graph.graphHash,
-          bootstrapCompletions: completions,
         },
-      });
+        bootstrap.validateCurrent,
+      );
     }
 
     if (command === 'claim') {
@@ -683,17 +739,22 @@ async function runTaskCli(options) {
       const completions = flags['bootstrap-completions']
         ? parseCanonicalArgument(flags['bootstrap-completions'], '--bootstrap-completions')
         : [];
-      validateBootstrapCompletions(normalized, context, completions);
       if (context.graph.graphHash === previous.graph.graphHash) {
         throw new Error('Task graph replacement graph must differ from the active graph');
       }
-      const replacementCheckpoint =
-        completions.at(-1)?.endHead ?? previous.taskProjection.accountedHead;
-      (normalized.collectTaskStartRevision ?? collectTaskStartRevisionDefault)(
-        normalized.root,
-        context.initiativeProjection.initiative.branch,
-        { expectedHead: replacementCheckpoint },
+      const bootstrap = validateAndAttestBootstrap(
+        normalized,
+        context,
+        completions,
+        previous.taskProjection,
       );
+      if (completions.length === 0) {
+        (normalized.collectTaskStartRevision ?? collectTaskStartRevisionDefault)(
+          normalized.root,
+          context.initiativeProjection.initiative.branch,
+          { expectedHead: previous.taskProjection.accountedHead },
+        );
+      }
       const resolveReplacementGraph = (graphHash, graphReference, planReference) => {
         if (
           graphHash === context.graph.graphHash &&
@@ -726,8 +787,12 @@ async function runTaskCli(options) {
             previousGraphHash: previous.graph.graphHash,
             reason: flags.reason,
             bootstrapCompletions: completions,
+            ...(bootstrap.attestation === undefined
+              ? {}
+              : { bootstrapAttestation: bootstrap.attestation }),
           },
         },
+        bootstrap.validateCurrent,
       );
     }
 
@@ -750,6 +815,7 @@ async function runTaskCli(options) {
         initiativeProjection: context.initiativeProjection,
         initiativeSnapshots: context.initiativeSnapshots,
         resolveGraph: context.resolveGraph,
+        verifyBootstrapEvent: normalized.verifyBootstrapEvent,
         dryRun: flags['dry-run'] === true,
       });
       stdout.write(canonicalStringify(result));

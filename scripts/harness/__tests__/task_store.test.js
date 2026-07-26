@@ -5,12 +5,19 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { canonicalStringify, finalizeHashedObject } = require('../lib/workflow/canonical');
-const { appendTaskEvent, loadTaskHistory, recoverTaskRuntimeFiles } = require('../lib/tasks/store');
+const { createBootstrapAttestation } = require('../lib/tasks/bootstrap');
+const {
+  appendTaskEvent,
+  loadTaskHistory,
+  recoverTaskRuntimeFiles,
+  verifyStoredBootstrapEvent,
+} = require('../lib/tasks/store');
 
 const ID = '2026-07-25-store-test';
 const EVENT_NAME = /^\d{6}-[a-f0-9]{64}\.json$/;
 const BRANCH = 'refactor/store-test';
 const HEAD = 'a'.repeat(40);
+const BOOTSTRAP_END = 'f'.repeat(40);
 const PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-store-test.md',
   sha256: 'b'.repeat(64),
@@ -86,7 +93,24 @@ function fsProxy(overrides) {
   });
 }
 
-function activationDraft() {
+function bootstrapCompletion() {
+  return {
+    taskId: 'task-01',
+    startHead: HEAD,
+    endHead: BOOTSTRAP_END,
+    changedPaths: ['scripts/harness/lib/tasks/store.js'],
+    summary: 'Imported the store implementation.',
+    checks: [
+      {
+        command: graph.tasks[0].verificationCommands[0],
+        passed: true,
+        summary: 'Focused store test passed.',
+      },
+    ],
+  };
+}
+
+function activationDraft({ completions = [], attestation } = {}) {
   return {
     type: 'task_graph.activated',
     recordedAt: '2026-07-25T00:00:00.000Z',
@@ -99,7 +123,8 @@ function activationDraft() {
       branch: BRANCH,
       baseSha: HEAD,
       graphHash: graph.graphHash,
-      bootstrapCompletions: [],
+      bootstrapCompletions: completions,
+      ...(attestation === undefined ? {} : { bootstrapAttestation: attestation }),
     },
   };
 }
@@ -491,6 +516,161 @@ void test('fails closed on corrupt, forked, symlinked, and unsupported ledger en
     () => loadTaskHistory({ root: symlinkRoot, initiativeId: ID, graph, initiativeProjection }),
     /symbolic.?link/i,
   );
+});
+
+void test('replays receipt-bearing bootstraps with live evidence or portable fallback', (t) => {
+  const completion = bootstrapCompletion();
+  const attestation = createBootstrapAttestation({
+    graphHash: graph.graphHash,
+    branch: BRANCH,
+    checkpoint: HEAD,
+    validatedHead: BOOTSTRAP_END,
+    completions: [completion],
+  });
+  for (const mode of ['live', 'portable']) {
+    const root = rootFixture(t);
+    appendActivation(root, {
+      draft: activationDraft({ completions: [completion], attestation }),
+      verifyBootstrapEvent: () => undefined,
+    });
+    let liveAttestations = 0;
+    const verifyBootstrapEvent = (context) =>
+      verifyStoredBootstrapEvent({
+        ...context,
+        legacyBootstrapAnchor: '9'.repeat(40),
+        git: {
+          hasCommit: () => mode === 'live',
+          attestBootstrapChain() {
+            liveAttestations += 1;
+            return { observedCompletions: [completion], attestation };
+          },
+          readFileAtCommit() {
+            throw new Error('Portable receipt replay must not read the migration anchor');
+          },
+        },
+      });
+
+    const history = loadTaskHistory({
+      root,
+      initiativeId: ID,
+      graph,
+      initiativeProjection,
+      verifyBootstrapEvent,
+    });
+    assert.equal(history.projection.tasks['task-01'].state, 'completed');
+    assert.equal(liveAttestations, mode === 'live' ? 1 : 0);
+  }
+});
+
+void test('rejects partial or tampered portable bootstrap evidence', (t) => {
+  const completion = bootstrapCompletion();
+  const attestation = createBootstrapAttestation({
+    graphHash: graph.graphHash,
+    branch: BRANCH,
+    checkpoint: HEAD,
+    validatedHead: BOOTSTRAP_END,
+    completions: [completion],
+  });
+  const cases = [
+    {
+      label: 'partial',
+      draft: activationDraft({ completions: [completion], attestation }),
+      git: {
+        hasCommit: () => true,
+        attestBootstrapChain: () => {
+          throw new Error('Referenced bootstrap start object is missing');
+        },
+      },
+      error: /missing|partial/i,
+    },
+    {
+      label: 'tampered',
+      draft: activationDraft({
+        completions: [completion],
+        attestation: { ...attestation, chainDigest: '0'.repeat(64) },
+      }),
+      git: {
+        hasCommit: () => false,
+        attestBootstrapChain: () => {
+          throw new Error('Portable replay must not attest missing ranges');
+        },
+      },
+      error: /attestation|digest/i,
+    },
+  ];
+
+  for (const candidate of cases) {
+    const root = rootFixture(t);
+    appendActivation(root, {
+      draft: candidate.draft,
+      verifyBootstrapEvent: () => undefined,
+    });
+    assert.throws(
+      () =>
+        loadTaskHistory({
+          root,
+          initiativeId: ID,
+          graph,
+          initiativeProjection,
+          verifyBootstrapEvent: (context) =>
+            verifyStoredBootstrapEvent({
+              ...context,
+              legacyBootstrapAnchor: '9'.repeat(40),
+              git: {
+                readFileAtCommit: () => Buffer.alloc(0),
+                ...candidate.git,
+              },
+            }),
+        }),
+      candidate.error,
+      candidate.label,
+    );
+  }
+});
+
+void test('accepts receipt-less legacy bytes only at the manifest migration anchor', (t) => {
+  for (const anchored of [true, false]) {
+    const root = rootFixture(t);
+    const completion = bootstrapCompletion();
+    const appended = appendActivation(root, {
+      draft: activationDraft({ completions: [completion] }),
+      verifyBootstrapEvent: () => undefined,
+    });
+    const storedBytes = fs.readFileSync(appended.path);
+    const verifyBootstrapEvent = (context) =>
+      verifyStoredBootstrapEvent({
+        ...context,
+        legacyBootstrapAnchor: '9'.repeat(40),
+        git: {
+          hasCommit: () => {
+            throw new Error('Legacy replay must use the migration anchor');
+          },
+          attestBootstrapChain: () => {
+            throw new Error('Legacy replay must use the migration anchor');
+          },
+          readFileAtCommit(rootPath, commit, relativePath) {
+            assert.equal(rootPath, root);
+            assert.equal(commit, '9'.repeat(40));
+            assert.match(relativePath, /task-events\/000001-/u);
+            return anchored ? storedBytes : Buffer.from('different legacy bytes');
+          },
+        },
+      });
+
+    const load = () =>
+      loadTaskHistory({
+        root,
+        initiativeId: ID,
+        graph,
+        initiativeProjection,
+        verifyBootstrapEvent,
+      });
+    if (anchored) {
+      assert.equal(load().projection.tasks['task-01'].state, 'completed');
+    } else {
+      assert.throws(load, /migration anchor|legacy bootstrap/i);
+    }
+  }
 });
 
 void test('recovers only the exact stale task token and leaves workflow runtime files untouched', (t) => {
