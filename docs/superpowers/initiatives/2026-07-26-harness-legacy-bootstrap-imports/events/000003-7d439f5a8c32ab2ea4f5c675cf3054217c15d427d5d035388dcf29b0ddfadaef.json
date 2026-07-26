@@ -1,0 +1,26 @@
+{
+  "eventHash": "7d439f5a8c32ab2ea4f5c675cf3054217c15d427d5d035388dcf29b0ddfadaef",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "691d63ac7230526b1b2feb5fc0f40ebd0e78c62bb51e3fdde86214c7c41a98f9",
+    "sequence": 2
+  },
+  "payload": {
+    "authority": {
+      "basis": "The user replied 'Proceed' to the submitted specification at SHA-256 1cb0f5a2bc47819a55ed1322d8885a6f5491ed2a0be8f9beb8a59ef7944342de.",
+      "decisionBy": "user",
+      "recordedBy": "sarah"
+    },
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+      "sha256": "1cb0f5a2bc47819a55ed1322d8885a6f5491ed2a0be8f9beb8a59ef7944342de"
+    }
+  },
+  "recordedAt": "2026-07-26T12:16:14.283Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 3,
+  "type": "spec.signed"
+}
