@@ -1,0 +1,33 @@
+{
+  "eventHash": "3182ddf055f4cd0d3868bb530f0e8114d5eddc68588c2bb90623a1d39618902c",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "payload": {
+    "baseSha": "4881847975ab6b8fc66d1e019584594feb474bb7",
+    "bootstrapCompletions": [],
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "graphHash": "d2a5ddee61e11029303fcf565bf6e710da566a1ec82283f57f76caaa5ac4bdcf",
+    "initiative": {
+      "eventHash": "c933c921e395343744f5f0b118a44b8daf8c42cce5ff98c532d728f4738bf5f7",
+      "sequence": 7
+    },
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports.md",
+      "sha256": "66107248736e4da3f66b783c04f1309ec6f777e3b337ff49a498c748a6a867e1"
+    },
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+      "sha256": "2f7231fee67b86bc4c0c26842fbb75fe5af3cfca362ed034fd9cf3332f5709da"
+    },
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-26-harness-legacy-bootstrap-imports.json",
+      "sha256": "30df8213decf0645f914aba3ab9205665bdc37edb95847fb4888e9f36f0c03a3"
+    }
+  },
+  "recordedAt": "2026-07-26T12:51:11.180Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 1,
+  "type": "task_graph.activated"
+}
