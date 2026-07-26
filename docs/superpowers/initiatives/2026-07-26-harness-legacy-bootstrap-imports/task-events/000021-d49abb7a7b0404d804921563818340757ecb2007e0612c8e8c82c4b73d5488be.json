@@ -1,0 +1,39 @@
+{
+  "eventHash": "d49abb7a7b0404d804921563818340757ecb2007e0612c8e8c82c4b73d5488be",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "52706c9f7d6befec388065defd97f62dce1d9616c927755e294bf937434132cc",
+    "sequence": 20
+  },
+  "payload": {
+    "baseSha": "4881847975ab6b8fc66d1e019584594feb474bb7",
+    "bootstrapCompletions": [],
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "graphHash": "d3025d8c0e9bc2207901fc0395d7833be6fc1337d81993e49725618a461c2d8f",
+    "initiative": {
+      "eventHash": "7ec78e8c005d29695b90bfa9ebbe1a3bf47f602b86ff9fbe05703e930fe72ab4",
+      "sequence": 21
+    },
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports-v3.md",
+      "sha256": "7e73b26c8aec1b3f2be0d08f91ebb9150edab9f705abe66f417f8b99490bf064"
+    },
+    "previousGraphHash": "b6e1dcf5f2fd2d28eeb6c09e7adf32f61c47586a956d4e62e70238408f9e86d4",
+    "reason": "Widen released Task 5 only to include the shared workflow-machine manifest fixture.",
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design-v2.md",
+      "sha256": "e154b1b321fda244020e5fda7e24c0cba3ad8bb256bf7fed7210c68d4ef3f731"
+    },
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-26-harness-legacy-bootstrap-imports-v5.json",
+      "sha256": "138f17c36100d83ffeea19dc321fee97477069d1efad550052303acf75829b9a"
+    }
+  },
+  "recordedAt": "2026-07-26T14:32:26.326Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 21,
+  "type": "task_graph.replaced"
+}

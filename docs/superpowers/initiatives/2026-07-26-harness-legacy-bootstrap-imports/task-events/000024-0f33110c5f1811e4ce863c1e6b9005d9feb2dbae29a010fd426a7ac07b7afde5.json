@@ -1,0 +1,24 @@
+{
+  "eventHash": "0f33110c5f1811e4ce863c1e6b9005d9feb2dbae29a010fd426a7ac07b7afde5",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "d34077d1a34a0fe1f0676beeab288a4257bc2ca63a2e188b158fd2b307d94d7b",
+    "sequence": 23
+  },
+  "payload": {
+    "assigneeRole": "tariq",
+    "basis": "Review the complete generic bootstrap implementation and run every registered harness and CI-parity gate.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "613fdc0206761aeccf0f238bb6eec463758c33a6e95caeae45bef76d056cf61c",
+    "startHead": "d1febd215f00a51ef399be50f7b985d2bc6d8231",
+    "taskId": "task-06"
+  },
+  "recordedAt": "2026-07-26T14:35:40.125Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 24,
+  "type": "task.claimed"
+}

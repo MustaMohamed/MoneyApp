@@ -1,0 +1,49 @@
+{
+  "eventHash": "1cc417d069160c8b622bd32a9762eba4049f6bc03d128f1d2c55bb1f65fc3f29",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "b6b07f6c0f7aebec4c1ab3066248a2be2c65e13d2e17e48076779ef86c9ef01c",
+    "sequence": 25
+  },
+  "payload": {
+    "checks": [
+      {
+        "id": "format",
+        "status": "passed"
+      },
+      {
+        "id": "lint",
+        "status": "passed"
+      },
+      {
+        "id": "typecheck",
+        "status": "passed"
+      },
+      {
+        "id": "test",
+        "status": "passed"
+      },
+      {
+        "id": "doctor",
+        "status": "passed"
+      },
+      {
+        "id": "prebuild",
+        "status": "passed"
+      }
+    ],
+    "delivery": {
+      "branch": "feat/harness-legacy-bootstrap-imports",
+      "contentDigest": "80232445b38ddedf8d3142b29fc0e952d24a6a5c1e7451247119027a7d100d3c",
+      "headSha": "faca41e5c7cc8845acd5d1b112201898101ae5eb",
+      "validationCycleId": "1f80dd7fdd0d8e9c36b762e92c4016dbde359711e282107c196d7b4fa711bead"
+    }
+  },
+  "recordedAt": "2026-07-26T14:52:11.178Z",
+  "recordedBy": {
+    "role": "system"
+  },
+  "schemaVersion": 1,
+  "sequence": 26,
+  "type": "verification.passed"
+}

@@ -1,0 +1,64 @@
+{
+  "eventHash": "afcb42fe23a37e2436367efee0691dc7e0ef7f3c8aa573b902955213b1d57d0f",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "c8a86b298d19336ee5d1a7eb8f8b4e0532b3e93d1e031dc714b68695b4c84537",
+    "sequence": 27
+  },
+  "payload": {
+    "changedPaths": [
+      "scripts/harness/lib/tasks/store.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "npm",
+          "run",
+          "format:check"
+        ],
+        "passed": true,
+        "summary": "Formatting passed with no changed files."
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "harness:check"
+        ],
+        "passed": true,
+        "summary": "All 16 generated harness targets matched their sources."
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "harness:test"
+        ],
+        "passed": true,
+        "summary": "Harness suite passed 567 tests with one expected filesystem skip."
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "verify:pr"
+        ],
+        "passed": true,
+        "summary": "All six CI parity gates passed: format, lint, typecheck, 2,049 app tests, Expo Doctor 19/19, and Android prebuild."
+      }
+    ],
+    "claimEventHash": "c8a86b298d19336ee5d1a7eb8f8b4e0532b3e93d1e031dc714b68695b4c84537",
+    "endHead": "475480959b70e1a33cb7a51c113545e4885abb67",
+    "packetHash": "4785e861b1c8415f6b8c84178f51d04ab31a1491115de9802759b72fd3d5c9ed",
+    "startHead": "319bcf1fadb476ccff48a192a5fec2c6f748a9ac",
+    "summary": "Resolved the type-aware lint finding, re-ran the complete harness suite, and passed all registered PR parity gates.",
+    "taskId": "task-06"
+  },
+  "recordedAt": "2026-07-26T14:48:59.130Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 28,
+  "type": "task.completed"
+}

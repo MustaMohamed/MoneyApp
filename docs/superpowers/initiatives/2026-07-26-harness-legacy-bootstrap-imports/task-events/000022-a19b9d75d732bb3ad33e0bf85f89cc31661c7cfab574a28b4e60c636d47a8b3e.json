@@ -1,0 +1,24 @@
+{
+  "eventHash": "a19b9d75d732bb3ad33e0bf85f89cc31661c7cfab574a28b4e60c636d47a8b3e",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "d49abb7a7b0404d804921563818340757ecb2007e0612c8e8c82c4b73d5488be",
+    "sequence": 21
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Restore the verified Task 5 implementation and add the manifest-bound workflow-machine fixture within the corrected packet.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "bc90dc1568d00fca723ed62ba7c46231f3571012493a6c137d33204d07438eff",
+    "startHead": "5ffa854d01cf37fd256d36845fbfa4bd536d5935",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:32:47.593Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 22,
+  "type": "task.claimed"
+}

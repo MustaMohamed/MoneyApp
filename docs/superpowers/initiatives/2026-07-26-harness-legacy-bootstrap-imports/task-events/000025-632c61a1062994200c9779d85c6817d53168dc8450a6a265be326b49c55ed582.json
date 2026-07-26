@@ -1,0 +1,22 @@
+{
+  "eventHash": "632c61a1062994200c9779d85c6817d53168dc8450a6a265be326b49c55ed582",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "0f33110c5f1811e4ce863c1e6b9005d9feb2dbae29a010fd426a7ac07b7afde5",
+    "sequence": 24
+  },
+  "payload": {
+    "changesRemain": true,
+    "claimEventHash": "0f33110c5f1811e4ce863c1e6b9005d9feb2dbae29a010fd426a7ac07b7afde5",
+    "packetHash": "613fdc0206761aeccf0f238bb6eec463758c33a6e95caeae45bef76d056cf61c",
+    "summary": "CI parity lint found one type-aware error in Task 5 store fallback selection; remediation is required before final validation.",
+    "taskId": "task-06"
+  },
+  "recordedAt": "2026-07-26T14:38:56.356Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 25,
+  "type": "task.failed"
+}

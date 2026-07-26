@@ -1,0 +1,24 @@
+{
+  "eventHash": "c8a86b298d19336ee5d1a7eb8f8b4e0532b3e93d1e031dc714b68695b4c84537",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "52253eb067357c7bdde801979838c95ccf962ec8bf7f5343407272ec19d85c09",
+    "sequence": 26
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Resolve the isolated store adapter lint finding and rerun the complete final gate set.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "4785e861b1c8415f6b8c84178f51d04ab31a1491115de9802759b72fd3d5c9ed",
+    "startHead": "319bcf1fadb476ccff48a192a5fec2c6f748a9ac",
+    "taskId": "task-06"
+  },
+  "recordedAt": "2026-07-26T14:40:42.166Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 27,
+  "type": "task.claimed"
+}

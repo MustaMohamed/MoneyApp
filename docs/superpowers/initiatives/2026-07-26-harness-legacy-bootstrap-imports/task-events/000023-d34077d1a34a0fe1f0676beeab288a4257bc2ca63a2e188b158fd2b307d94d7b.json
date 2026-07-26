@@ -1,0 +1,63 @@
+{
+  "eventHash": "d34077d1a34a0fe1f0676beeab288a4257bc2ca63a2e188b158fd2b307d94d7b",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "a19b9d75d732bb3ad33e0bf85f89cc31661c7cfab574a28b4e60c636d47a8b3e",
+    "sequence": 22
+  },
+  "payload": {
+    "changedPaths": [
+      "harness/legacy_bootstrap_bridges.json",
+      "harness/manifest.json",
+      "scripts/harness/__tests__/manifest.test.js",
+      "scripts/harness/__tests__/task_bootstrap.test.js",
+      "scripts/harness/__tests__/task_cli.test.js",
+      "scripts/harness/__tests__/task_git_scope.test.js",
+      "scripts/harness/__tests__/task_integration.test.js",
+      "scripts/harness/__tests__/task_projection.test.js",
+      "scripts/harness/__tests__/task_store.test.js",
+      "scripts/harness/__tests__/workflow_machine.test.js",
+      "scripts/harness/lib/manifest.js",
+      "scripts/harness/lib/tasks/bootstrap.js",
+      "scripts/harness/lib/tasks/cli.js",
+      "scripts/harness/lib/tasks/git_scope.js",
+      "scripts/harness/lib/tasks/projection.js",
+      "scripts/harness/lib/tasks/store.js"
+    ],
+    "checks": [
+      {
+        "command": [
+          "node",
+          "--test",
+          "scripts/harness/__tests__/task_integration.test.js",
+          "scripts/harness/__tests__/task_cli.test.js",
+          "scripts/harness/__tests__/task_store.test.js"
+        ],
+        "passed": true,
+        "summary": "42 focused integration, CLI, and store tests passed."
+      },
+      {
+        "command": [
+          "npm",
+          "run",
+          "harness:test"
+        ],
+        "passed": true,
+        "summary": "567 harness tests passed with one expected filesystem skip."
+      }
+    ],
+    "claimEventHash": "a19b9d75d732bb3ad33e0bf85f89cc31661c7cfab574a28b4e60c636d47a8b3e",
+    "endHead": "d1febd215f00a51ef399be50f7b985d2bc6d8231",
+    "packetHash": "bc90dc1568d00fca723ed62ba7c46231f3571012493a6c137d33204d07438eff",
+    "startHead": "5ffa854d01cf37fd256d36845fbfa4bd536d5935",
+    "summary": "Added manifest-bound portable evidence bridges, exact anchored replay verification, monotonic graph replacement, and live/fresh-checkout Phase 3 compatibility.",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:35:18.992Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 23,
+  "type": "task.completed"
+}

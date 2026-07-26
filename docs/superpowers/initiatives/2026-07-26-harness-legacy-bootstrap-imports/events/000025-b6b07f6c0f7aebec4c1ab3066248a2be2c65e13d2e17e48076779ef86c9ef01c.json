@@ -1,0 +1,33 @@
+{
+  "eventHash": "b6b07f6c0f7aebec4c1ab3066248a2be2c65e13d2e17e48076779ef86c9ef01c",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "1f80dd7fdd0d8e9c36b762e92c4016dbde359711e282107c196d7b4fa711bead",
+    "sequence": 24
+  },
+  "payload": {
+    "authority": {
+      "basis": "The generic invariant model, live and portable attestation boundaries, monotonic replay rules, exact scope enforcement, and delivery authority were reviewed inline; the only lint finding was resolved and every required check is green.",
+      "decisionBy": "tariq",
+      "recordedBy": "tariq"
+    },
+    "delivery": {
+      "branch": "feat/harness-legacy-bootstrap-imports",
+      "contentDigest": "80232445b38ddedf8d3142b29fc0e952d24a6a5c1e7451247119027a7d100d3c",
+      "headSha": "faca41e5c7cc8845acd5d1b112201898101ae5eb",
+      "validationCycleId": "1f80dd7fdd0d8e9c36b762e92c4016dbde359711e282107c196d7b4fa711bead"
+    },
+    "review": {
+      "path": "docs/superpowers/reviews/2026-07-26-harness-legacy-bootstrap-imports-review.md",
+      "sha256": "4ecce1e2b2148dbba3b16e8e4b7af98423529b44e6d951f5a006757d27542179"
+    },
+    "verdict": "approved"
+  },
+  "recordedAt": "2026-07-26T14:51:17.884Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 25,
+  "type": "review.approved"
+}

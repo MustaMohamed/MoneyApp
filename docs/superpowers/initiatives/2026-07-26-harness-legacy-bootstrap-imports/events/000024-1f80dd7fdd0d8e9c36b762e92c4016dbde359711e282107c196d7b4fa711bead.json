@@ -1,0 +1,22 @@
+{
+  "eventHash": "1f80dd7fdd0d8e9c36b762e92c4016dbde359711e282107c196d7b4fa711bead",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "6ef99a4316a9cd87daac32fa6e30f92b0657c51f14b1043e3c6a7c9008bc877a",
+    "sequence": 23
+  },
+  "payload": {
+    "delivery": {
+      "branch": "feat/harness-legacy-bootstrap-imports",
+      "contentDigest": "80232445b38ddedf8d3142b29fc0e952d24a6a5c1e7451247119027a7d100d3c",
+      "headSha": "475480959b70e1a33cb7a51c113545e4885abb67"
+    }
+  },
+  "recordedAt": "2026-07-26T14:49:10.818Z",
+  "recordedBy": {
+    "role": "dev"
+  },
+  "schemaVersion": 1,
+  "sequence": 24,
+  "type": "implementation.ready"
+}
