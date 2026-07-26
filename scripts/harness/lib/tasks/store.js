@@ -353,7 +353,11 @@ function verifyStoredBootstrapEvent({
     throw new Error('Bootstrap Git evidence is partially available');
   }
   try {
-    const observed = (git.attestBootstrapChain ?? attestBootstrapChain)(root, {
+    const attest =
+      typeof git.attestBootstrapChain === 'function'
+        ? git.attestBootstrapChain
+        : attestBootstrapChain;
+    const observed = attest(root, {
       branch: event.payload.branch,
       graph,
       checkpoint,
