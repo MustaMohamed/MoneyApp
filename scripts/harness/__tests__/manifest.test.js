@@ -24,6 +24,7 @@ function createManifest(overrides = {}) {
     machine: 'harness/workflow/state_machine.json',
     tasks: {
       directory: 'docs/superpowers/task-graphs',
+      legacyBootstrapAnchor: '4'.repeat(40),
       limits: {
         maxTasks: 40,
         maxDependencies: 12,
@@ -78,6 +79,26 @@ void test('accepts a unique repository-relative target', () => {
       }),
     ),
   );
+});
+
+void test('requires one canonical legacy bootstrap migration anchor', () => {
+  assert.equal(createManifest().workflow.tasks.legacyBootstrapAnchor, '4'.repeat(40));
+  for (const legacyBootstrapAnchor of ['', 'A'.repeat(40), '4'.repeat(39)]) {
+    assert.throws(
+      () =>
+        validateManifest(
+          createManifest({
+            workflow: {
+              tasks: {
+                ...createManifest().workflow.tasks,
+                legacyBootstrapAnchor,
+              },
+            },
+          }),
+        ),
+      /legacyBootstrapAnchor.*40-character lowercase hexadecimal/i,
+    );
+  }
 });
 
 void test('rejects parent traversal and absolute paths', () => {
@@ -590,6 +611,7 @@ void test('requires the exact bounded task graph manifest contract', () => {
   const manifest = createManifest();
   assert.deepEqual(manifest.workflow.tasks, {
     directory: 'docs/superpowers/task-graphs',
+    legacyBootstrapAnchor: '4'.repeat(40),
     limits: {
       maxTasks: 40,
       maxDependencies: 12,

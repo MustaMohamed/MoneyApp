@@ -178,7 +178,7 @@ void test('rejects unknown fields, malformed evidence, and unauthorized recorder
   );
 });
 
-void test('allows bootstrap completions only for the locked Phase 3 activation', () => {
+void test('accepts generic bootstrap completions and validates portable attestations', () => {
   const completion = {
     taskId: 'task-01',
     startHead: SHA,
@@ -187,6 +187,31 @@ void test('allows bootstrap completions only for the locked Phase 3 activation',
     summary: 'Validated an actual committed task range.',
     checks: CHECKS,
   };
+  assert.doesNotThrow(() =>
+    validateTaskEventPayload({
+      ...event('task_graph.activated'),
+      payload: {
+        ...PAYLOADS['task_graph.activated'],
+        bootstrapCompletions: [completion],
+      },
+    }),
+  );
+  const bootstrapAttestation = {
+    schemaVersion: 1,
+    validatedHead: 'c'.repeat(40),
+    ranges: [{ taskId: 'task-01', digest: 'e'.repeat(64) }],
+    chainDigest: 'f'.repeat(64),
+  };
+  assert.doesNotThrow(() =>
+    validateTaskEventPayload({
+      ...event('task_graph.activated'),
+      payload: {
+        ...PAYLOADS['task_graph.activated'],
+        bootstrapCompletions: [completion],
+        bootstrapAttestation,
+      },
+    }),
+  );
   assert.throws(
     () =>
       validateTaskEventPayload({
@@ -194,22 +219,12 @@ void test('allows bootstrap completions only for the locked Phase 3 activation',
         payload: {
           ...PAYLOADS['task_graph.activated'],
           bootstrapCompletions: [completion],
+          bootstrapAttestation: {
+            ...bootstrapAttestation,
+            ranges: [{ taskId: 'task-01', digest: 'not-a-digest' }],
+          },
         },
       }),
-    /bootstrap completions.*Phase 3/i,
-  );
-  assert.doesNotThrow(() =>
-    validateTaskEventPayload(
-      {
-        ...event('task_graph.activated', {
-          initiativeId: '2026-07-25-harness-phase-3',
-        }),
-        payload: {
-          ...PAYLOADS['task_graph.activated'],
-          bootstrapCompletions: [completion],
-        },
-      },
-      { initiativeId: '2026-07-25-harness-phase-3' },
-    ),
+    /attestation.*digest/i,
   );
 });

@@ -79,6 +79,13 @@ function strictPayload(event, keys) {
   return event.payload;
 }
 
+function graphPayload(event, keys) {
+  const required = new Set(keys);
+  const allowed = new Set([...keys, 'bootstrapAttestation']);
+  requireExactKeys(event.payload, allowed, required, `${event.type} payload`);
+  return event.payload;
+}
+
 function requireString(value, label, maximumBytes = 4096) {
   if (typeof value !== 'string' || value.trim().length === 0) {
     throw new Error(`${label} must be a nonempty string`);
@@ -210,9 +217,6 @@ function validateBootstrap(event, completions) {
   if (!Array.isArray(completions)) {
     throw new Error(`${event.type} bootstrapCompletions must be an array`);
   }
-  if (completions.length > 0 && event.initiativeId !== '2026-07-25-harness-phase-3') {
-    throw new Error('Bootstrap completions are restricted to the approved Phase 3 initiative');
-  }
   const ids = new Set();
   for (const completion of completions) {
     validateCompletion(completion, 'bootstrap completion');
@@ -220,6 +224,32 @@ function validateBootstrap(event, completions) {
       throw new Error(`bootstrap completions contain duplicate ${completion.taskId}`);
     }
     ids.add(completion.taskId);
+  }
+}
+
+function validateBootstrapAttestation(attestation, completions) {
+  if (attestation === undefined) return;
+  if (completions.length === 0) {
+    throw new Error('bootstrap attestation requires at least one bootstrap completion');
+  }
+  const keys = new Set(['schemaVersion', 'validatedHead', 'ranges', 'chainDigest']);
+  requireExactKeys(attestation, keys, keys, 'bootstrap attestation');
+  if (attestation.schemaVersion !== 1) {
+    throw new Error('bootstrap attestation schemaVersion must be 1');
+  }
+  requireHex(attestation.validatedHead, HEX_40, 'bootstrap attestation validatedHead');
+  requireHex(attestation.chainDigest, HEX_64, 'bootstrap attestation chainDigest');
+  if (!Array.isArray(attestation.ranges) || attestation.ranges.length !== completions.length) {
+    throw new Error('bootstrap attestation ranges must match bootstrap completions');
+  }
+  for (const [index, range] of attestation.ranges.entries()) {
+    const rangeKeys = new Set(['taskId', 'digest']);
+    requireExactKeys(range, rangeKeys, rangeKeys, 'bootstrap attestation range');
+    requireTaskId(range.taskId, 'bootstrap attestation range taskId');
+    requireHex(range.digest, HEX_64, 'bootstrap attestation range digest');
+    if (range.taskId !== completions[index].taskId) {
+      throw new Error('bootstrap attestation range order must match bootstrap completions');
+    }
   }
 }
 
@@ -232,6 +262,7 @@ function validateGraphBinding(event, payload, { replacement }) {
   requireHex(payload.baseSha, HEX_40, 'task graph baseSha');
   requireHex(payload.graphHash, HEX_64, 'task graph graphHash');
   validateBootstrap(event, payload.bootstrapCompletions);
+  validateBootstrapAttestation(payload.bootstrapAttestation, payload.bootstrapCompletions);
   if (replacement) {
     requireHex(payload.previousGraphHash, HEX_64, 'previousGraphHash');
     requireString(payload.reason, 'task graph replacement reason');
@@ -283,7 +314,7 @@ function validateTaskEventEnvelope(event) {
 
 const PAYLOAD_VALIDATORS = {
   'task_graph.activated': (event) => {
-    const payload = strictPayload(event, [
+    const payload = graphPayload(event, [
       'initiative',
       'spec',
       'plan',
@@ -376,7 +407,7 @@ const PAYLOAD_VALIDATORS = {
     requireString(payload.reason, 'task.released reason');
   },
   'task_graph.replaced': (event) => {
-    const payload = strictPayload(event, [
+    const payload = graphPayload(event, [
       'initiative',
       'spec',
       'plan',

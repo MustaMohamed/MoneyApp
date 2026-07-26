@@ -28,6 +28,7 @@ const TASK_LIMIT_KEYS = [
   'maxTaskTextBytes',
   'maxPacketBytes',
 ];
+const HEX_40 = /^[a-f0-9]{40}$/u;
 
 function workflowEvent(origins, destination, roles, guard) {
   return { origins, destination, roles, guard };
@@ -371,8 +372,17 @@ function validateManifest(manifest) {
   requireNonEmptyString(manifest.rules, 'rules');
   requireNonEmptyString(manifest.workflow?.machine, 'workflow.machine');
   requireObject(manifest.workflow?.tasks, 'workflow.tasks');
-  requireExactKeys(manifest.workflow.tasks, ['directory', 'limits'], 'workflow.tasks fields');
+  requireExactKeys(
+    manifest.workflow.tasks,
+    ['directory', 'legacyBootstrapAnchor', 'limits'],
+    'workflow.tasks fields',
+  );
   requireNonEmptyString(manifest.workflow.tasks.directory, 'workflow.tasks.directory');
+  if (!HEX_40.test(manifest.workflow.tasks.legacyBootstrapAnchor)) {
+    throw new Error(
+      'workflow.tasks.legacyBootstrapAnchor must be a 40-character lowercase hexadecimal commit',
+    );
+  }
   requireObject(manifest.workflow.tasks.limits, 'workflow.tasks.limits');
   requireExactKeys(manifest.workflow.tasks.limits, TASK_LIMIT_KEYS, 'workflow.tasks.limits fields');
   for (const key of TASK_LIMIT_KEYS) {

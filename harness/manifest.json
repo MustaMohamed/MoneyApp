@@ -245,6 +245,7 @@
     "machine": "harness/workflow/state_machine.json",
     "tasks": {
       "directory": "docs/superpowers/task-graphs",
+      "legacyBootstrapAnchor": "4881847975ab6b8fc66d1e019584594feb474bb7",
       "limits": {
         "maxTasks": 40,
         "maxDependencies": 12,
