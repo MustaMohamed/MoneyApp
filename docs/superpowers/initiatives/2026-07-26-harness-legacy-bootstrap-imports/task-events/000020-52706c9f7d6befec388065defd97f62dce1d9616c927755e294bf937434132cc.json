@@ -1,0 +1,21 @@
+{
+  "eventHash": "52706c9f7d6befec388065defd97f62dce1d9616c927755e294bf937434132cc",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "eae821e94c6cfe1b28b4bd629341ee81c9c934df8bd7b7475263afae32c084c8",
+    "sequence": 19
+  },
+  "payload": {
+    "claimEventHash": "eae821e94c6cfe1b28b4bd629341ee81c9c934df8bd7b7475263afae32c084c8",
+    "packetHash": "0c7a837bf66f31ef6b05342e623e8962e6135ca503b3b28d830708f6e6481d67",
+    "reason": "Task 5 must include the workflow-machine fixture that clones the manifest task contract.",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:29:37.178Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 20,
+  "type": "task.released"
+}

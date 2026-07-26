@@ -1,0 +1,24 @@
+{
+  "eventHash": "eae821e94c6cfe1b28b4bd629341ee81c9c934df8bd7b7475263afae32c084c8",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "ec4d1eb082bf1b2c842cdc3305efb3160af50472caaed486376dbba6f95367f4",
+    "sequence": 18
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Continue the preserved TDD implementation with repository-verified bridge context bounded through store, projection, and CLI replay plumbing.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "0c7a837bf66f31ef6b05342e623e8962e6135ca503b3b28d830708f6e6481d67",
+    "startHead": "18eb6ae2c551be92c04d3234eb1fbc2ea30b97ad",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T14:15:48.754Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 19,
+  "type": "task.claimed"
+}
