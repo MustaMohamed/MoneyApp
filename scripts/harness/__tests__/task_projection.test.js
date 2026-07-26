@@ -7,6 +7,8 @@ const { replayTaskEvents } = require('../lib/tasks/projection');
 const ID = '2026-07-25-example';
 const BRANCH = 'refactor/example';
 const HEAD = 'a'.repeat(40);
+const HEAD_ONE = '1'.repeat(40);
+const HEAD_TWO = '2'.repeat(40);
 const PACKET = 'b'.repeat(64);
 const PLAN = {
   path: 'docs/superpowers/plans/2026-07-25-example.md',
@@ -64,7 +66,19 @@ const initiativeProjection = {
   openBlockers: {},
 };
 
-function ledger() {
+function bootstrapCompletion(taskId, startHead, endHead, changedPath, overrides = {}) {
+  return {
+    taskId,
+    startHead,
+    endHead,
+    changedPaths: [changedPath],
+    summary: `Imported ${taskId}.`,
+    checks: CHECKS,
+    ...overrides,
+  };
+}
+
+function ledger(bootstrapCompletions = []) {
   const events = [];
   function append(type, payload, role = type.startsWith('task_graph.') ? 'tariq' : 'sarah') {
     const sequence = events.length + 1;
@@ -92,7 +106,7 @@ function ledger() {
     branch: BRANCH,
     baseSha: HEAD,
     graphHash: graph.graphHash,
-    bootstrapCompletions: [],
+    bootstrapCompletions,
   });
   return { events, append };
 }
@@ -449,4 +463,175 @@ void test('replays multiple resolved replacements only without an active claim',
       }),
     /active claim/i,
   );
+});
+
+void test('projects activation bootstrap completions in their accounted order', () => {
+  const first = bootstrapCompletion('task-01', HEAD, HEAD_ONE, 'generated/one.js');
+  const second = bootstrapCompletion('task-02', HEAD_ONE, HEAD_TWO, 'generated/two.js');
+  const value = ledger([first, second]);
+  const projection = replayTaskEvents({ graph, events: value.events, initiativeProjection });
+
+  assert.deepEqual(projection.completionOrder, ['task-01', 'task-02']);
+  assert.equal(projection.completedCount, 2);
+  assert.equal(projection.tasks['task-01'].state, 'completed');
+  assert.equal(projection.tasks['task-02'].state, 'completed');
+  assert.equal(projection.accountedHead, HEAD_TWO);
+});
+
+void test('preserves completed tasks through repeated replacements and supersedes only unfinished work', () => {
+  const first = bootstrapCompletion('task-01', HEAD, HEAD_ONE, 'generated/one.js');
+  const second = bootstrapCompletion('task-02', HEAD_ONE, HEAD_TWO, 'generated/two.js');
+  const value = ledger([first]);
+  const replacementPlan = { ...PLAN, sha256: '4'.repeat(64) };
+  const replacementTaskGraph = { ...TASK_GRAPH, sha256: '5'.repeat(64) };
+  const replacement = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: replacementPlan,
+      tasks: [
+        task('task-01', [], 'generated/one.js'),
+        task('task-02', ['task-01'], 'generated/two.js'),
+        task('task-05', ['task-02'], 'generated/five.js'),
+      ],
+    },
+    'graphHash',
+  );
+  const finalPlan = { ...PLAN, sha256: '6'.repeat(64) };
+  const finalTaskGraph = { ...TASK_GRAPH, sha256: '7'.repeat(64) };
+  const finalGraph = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: finalPlan,
+      tasks: [
+        task('task-01', [], 'generated/one.js'),
+        task('task-02', ['task-01'], 'generated/two.js'),
+        task('task-06', ['task-02'], 'generated/six.js'),
+      ],
+    },
+    'graphHash',
+  );
+  value.append('task_graph.replaced', {
+    initiative: { sequence: 7, eventHash: '8'.repeat(64) },
+    spec: SPEC,
+    plan: replacementPlan,
+    taskGraph: replacementTaskGraph,
+    branch: BRANCH,
+    baseSha: HEAD,
+    graphHash: replacement.graphHash,
+    previousGraphHash: graph.graphHash,
+    reason: 'Import the second completed task.',
+    bootstrapCompletions: [second],
+  });
+  value.append('task_graph.replaced', {
+    initiative: { sequence: 8, eventHash: '9'.repeat(64) },
+    spec: SPEC,
+    plan: finalPlan,
+    taskGraph: finalTaskGraph,
+    branch: BRANCH,
+    baseSha: HEAD,
+    graphHash: finalGraph.graphHash,
+    previousGraphHash: replacement.graphHash,
+    reason: 'Replace the remaining unfinished task.',
+    bootstrapCompletions: [],
+  });
+  const snapshots = new Map([
+    ['1'.repeat(64), initiativeProjection],
+    [
+      '8'.repeat(64),
+      {
+        ...initiativeProjection,
+        sequence: 7,
+        latestEvent: { eventHash: '8'.repeat(64) },
+        plan: { current: replacementPlan, taskGraph: replacementTaskGraph, approved: true },
+      },
+    ],
+  ]);
+  const current = {
+    ...initiativeProjection,
+    sequence: 8,
+    latestEvent: { eventHash: '9'.repeat(64) },
+    plan: { current: finalPlan, taskGraph: finalTaskGraph, approved: true },
+  };
+  const graphs = new Map([
+    [replacement.graphHash, replacement],
+    [finalGraph.graphHash, finalGraph],
+  ]);
+  const projection = replayTaskEvents({
+    graph,
+    events: value.events,
+    initiativeProjection: current,
+    initiativeSnapshots: snapshots,
+    resolveGraph: (hash) => graphs.get(hash),
+  });
+
+  assert.deepEqual(projection.completionOrder, ['task-01', 'task-02']);
+  assert.equal(projection.completedCount, 2);
+  assert.equal(projection.accountedHead, HEAD_TWO);
+  assert.equal(projection.tasks['task-01'].state, 'completed');
+  assert.equal(projection.tasks['task-02'].state, 'completed');
+  assert.equal(projection.tasks['task-03'].state, 'superseded');
+  assert.equal(projection.tasks['task-04'].state, 'superseded');
+  assert.equal(projection.tasks['task-05'].state, 'superseded');
+  assert.equal(projection.tasks['task-06'].state, 'ready');
+});
+
+void test('rejects replacement bootstrap data that hides or changes completed work', () => {
+  const first = bootstrapCompletion('task-01', HEAD, HEAD_ONE, 'generated/one.js');
+  const second = bootstrapCompletion('task-02', HEAD_ONE, HEAD_TWO, 'generated/two.js');
+  const replacementPlan = { ...PLAN, sha256: '4'.repeat(64) };
+  const replacementTaskGraph = { ...TASK_GRAPH, sha256: '5'.repeat(64) };
+  const replacement = finalizeHashedObject(
+    {
+      schemaVersion: 1,
+      initiativeId: ID,
+      plan: replacementPlan,
+      tasks: [
+        task('task-01', [], 'generated/one.js'),
+        task('task-02', ['task-01'], 'generated/two.js'),
+      ],
+    },
+    'graphHash',
+  );
+  const current = {
+    ...initiativeProjection,
+    sequence: 7,
+    latestEvent: { eventHash: '8'.repeat(64) },
+    plan: { current: replacementPlan, taskGraph: replacementTaskGraph, approved: true },
+  };
+  const snapshots = new Map([['1'.repeat(64), initiativeProjection]]);
+  const cases = [
+    [first],
+    [second, first],
+    [{ ...first, summary: 'Changed prior evidence.' }, second],
+    [first, second, second],
+  ];
+
+  for (const bootstrapCompletions of cases) {
+    const value = ledger([first, second]);
+    value.append('task_graph.replaced', {
+      initiative: { sequence: 7, eventHash: '8'.repeat(64) },
+      spec: SPEC,
+      plan: replacementPlan,
+      taskGraph: replacementTaskGraph,
+      branch: BRANCH,
+      baseSha: HEAD,
+      graphHash: replacement.graphHash,
+      previousGraphHash: graph.graphHash,
+      reason: 'Attempt to rewrite completion history.',
+      bootstrapCompletions,
+    });
+    assert.throws(
+      () =>
+        replayTaskEvents({
+          graph,
+          events: value.events,
+          initiativeProjection: current,
+          initiativeSnapshots: snapshots,
+          resolveGraph: () => replacement,
+        }),
+      /bootstrap|completed|snapshot|duplicate|prefix|reorder|hide|alter/i,
+    );
+  }
 });

@@ -1,4 +1,5 @@
 const { hashCanonicalObject } = require('../workflow/canonical');
+const { validateBootstrapChain } = require('./bootstrap');
 const { validateTaskEventEnvelope, validateTaskEventPayload } = require('./schema');
 
 function compareCodeUnits(left, right) {
@@ -152,6 +153,56 @@ function completionFromPayload(payload, eventHash, { bootstrap = false } = {}) {
   };
 }
 
+function completionEvidence(completion) {
+  return {
+    taskId: completion.taskId,
+    startHead: completion.startHead,
+    endHead: completion.endHead,
+    changedPaths: completion.changedPaths,
+    summary: completion.summary,
+    checks: completion.checks,
+  };
+}
+
+function sameCompletionEvidence(left, right) {
+  return (
+    hashCanonicalObject(completionEvidence(left), 'digest') ===
+    hashCanonicalObject(completionEvidence(right), 'digest')
+  );
+}
+
+function reconcileCompletionChain(previousChain, validation, eventHash) {
+  if (validation.mode === 'snapshot') {
+    for (const [index, previous] of previousChain.entries()) {
+      if (!sameCompletionEvidence(previous, validation.imported[index])) {
+        throw new Error(`Bootstrap snapshot cannot alter completed task ${previous.taskId}`);
+      }
+    }
+    return [
+      ...previousChain,
+      ...validation.imported
+        .slice(previousChain.length)
+        .map((completion) => completionFromPayload(completion, eventHash, { bootstrap: true })),
+    ];
+  }
+  if (validation.mode === 'extension') {
+    return [
+      ...previousChain,
+      ...validation.imported.map((completion) =>
+        completionFromPayload(completion, eventHash, { bootstrap: true }),
+      ),
+    ];
+  }
+  return validation.imported.map((completion) =>
+    completionFromPayload(completion, eventHash, { bootstrap: true }),
+  );
+}
+
+function replaceCompleted(completed, completionChain) {
+  completed.clear();
+  for (const completion of completionChain) completed.set(completion.taskId, completion);
+}
+
 function replayTaskEvents({
   graph,
   events,
@@ -171,6 +222,7 @@ function replayTaskEvents({
   const blockers = new Map();
   const supersededTasks = new Map();
   let accountedHead = initiativeProjection.initiative.baseSha;
+  let completionChain = [];
 
   for (const event of ordered) {
     const payload = event.payload;
@@ -189,17 +241,17 @@ function replayTaskEvents({
           throw new Error('Task graph activation requires initiative execution phase');
         }
         requireGraphBundle(currentGraph, payload, snapshot, 'Task graph activation');
-        for (const imported of payload.bootstrapCompletions) {
-          requireCurrentTask(byId, imported.taskId);
-          if (!dependencyComplete(byId.get(imported.taskId), completed)) {
-            throw new Error(`Bootstrap completion ${imported.taskId} has incomplete dependencies`);
-          }
-          completed.set(
-            imported.taskId,
-            completionFromPayload(imported, event.eventHash, { bootstrap: true }),
-          );
-          accountedHead = imported.endHead;
-        }
+        const validation = validateBootstrapChain({
+          graph: currentGraph,
+          completions: payload.bootstrapCompletions,
+          baseSha: payload.baseSha,
+          previousChain: [],
+          previousAccountedHead: payload.baseSha,
+          replacement: false,
+        });
+        completionChain = reconcileCompletionChain([], validation, event.eventHash);
+        replaceCompleted(completed, completionChain);
+        accountedHead = validation.accountedHead;
         break;
       }
       case 'task.claimed': {
@@ -227,7 +279,9 @@ function replayTaskEvents({
         if (!dependencyComplete(task, completed)) {
           throw new Error(`Task ${task.id} dependencies are no longer completed`);
         }
-        completed.set(task.id, completionFromPayload(payload, event.eventHash));
+        const completion = completionFromPayload(payload, event.eventHash);
+        completed.set(task.id, completion);
+        completionChain.push(completion);
         accountedHead = payload.endHead;
         activeClaim = undefined;
         latestFailure = undefined;
@@ -267,16 +321,8 @@ function replayTaskEvents({
         if (payload.previousGraphHash !== currentGraph.graphHash) {
           throw new Error('Task graph replacement previous hash is stale');
         }
-        for (const task of currentGraph.tasks) {
-          supersededTasks.set(task.id, { ...task, state: 'superseded' });
-        }
         const replacement = resolveGraph?.(payload.graphHash, payload.taskGraph, payload.plan);
         if (!replacement) throw new Error(`Cannot resolve replacement graph ${payload.graphHash}`);
-        currentGraph = replacement;
-        byId = taskMap(currentGraph);
-        completed.clear();
-        blockers.clear();
-        latestFailure = undefined;
         const snapshot = requireInitiativeReference(
           payload,
           initiativeProjection,
@@ -286,20 +332,32 @@ function replayTaskEvents({
         if (snapshot.phase !== 'execution') {
           throw new Error('Task graph replacement requires initiative execution phase');
         }
-        requireGraphBundle(currentGraph, payload, snapshot, 'Task graph replacement');
-        for (const imported of payload.bootstrapCompletions) {
-          requireCurrentTask(byId, imported.taskId);
-          if (!dependencyComplete(byId.get(imported.taskId), completed)) {
-            throw new Error(
-              `Replacement completion ${imported.taskId} has incomplete dependencies`,
-            );
+        requireGraphBundle(replacement, payload, snapshot, 'Task graph replacement');
+        const validation = validateBootstrapChain({
+          graph: replacement,
+          completions: payload.bootstrapCompletions,
+          baseSha: payload.baseSha,
+          previousChain: completionChain,
+          previousAccountedHead: accountedHead,
+          replacement: true,
+        });
+        const reconciled = reconcileCompletionChain(completionChain, validation, event.eventHash);
+
+        for (const task of currentGraph.tasks) {
+          if (!completed.has(task.id)) {
+            supersededTasks.set(task.id, { ...task, state: 'superseded' });
           }
-          completed.set(
-            imported.taskId,
-            completionFromPayload(imported, event.eventHash, { bootstrap: true }),
-          );
-          accountedHead = imported.endHead;
         }
+        currentGraph = replacement;
+        byId = taskMap(currentGraph);
+        completionChain = reconciled;
+        replaceCompleted(completed, completionChain);
+        blockers.clear();
+        latestFailure = undefined;
+        accountedHead =
+          validation.mode === 'extension' && validation.imported.length === 0
+            ? accountedHead
+            : validation.accountedHead;
         break;
       }
       default:
@@ -353,6 +411,7 @@ function replayTaskEvents({
     completions: Object.fromEntries(
       [...completed.entries()].sort(([left], [right]) => compareCodeUnits(left, right)),
     ),
+    completionOrder: completionChain.map((completion) => completion.taskId),
     completedCount: completed.size,
     totalCount: currentGraph.tasks.length,
     accountedHead,
