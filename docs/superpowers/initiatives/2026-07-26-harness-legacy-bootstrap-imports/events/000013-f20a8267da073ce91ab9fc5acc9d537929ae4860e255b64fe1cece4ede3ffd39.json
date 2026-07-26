@@ -1,0 +1,26 @@
+{
+  "eventHash": "f20a8267da073ce91ab9fc5acc9d537929ae4860e255b64fe1cece4ede3ffd39",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "c3ce45dddab614ef1eda09f02db1bcd89d5695602f7c2565979d0663e9535208",
+    "sequence": 12
+  },
+  "payload": {
+    "authority": {
+      "basis": "The user explicitly approved the generic evidence-transparent migration rule recorded in versioned spec SHA-256 e154b1b321fda244020e5fda7e24c0cba3ad8bb256bf7fed7210c68d4ef3f731.",
+      "decisionBy": "user",
+      "recordedBy": "sarah"
+    },
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design-v2.md",
+      "sha256": "e154b1b321fda244020e5fda7e24c0cba3ad8bb256bf7fed7210c68d4ef3f731"
+    }
+  },
+  "recordedAt": "2026-07-26T14:01:39.543Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 13,
+  "type": "spec.signed"
+}

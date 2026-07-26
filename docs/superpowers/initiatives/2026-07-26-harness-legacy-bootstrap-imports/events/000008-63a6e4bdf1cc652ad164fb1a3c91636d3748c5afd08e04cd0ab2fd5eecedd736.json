@@ -1,0 +1,26 @@
+{
+  "eventHash": "63a6e4bdf1cc652ad164fb1a3c91636d3748c5afd08e04cd0ab2fd5eecedd736",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "c933c921e395343744f5f0b118a44b8daf8c42cce5ff98c532d728f4738bf5f7",
+    "sequence": 7
+  },
+  "payload": {
+    "deviceQa": {
+      "mode": "not_applicable",
+      "rationale": "Harness-only migration validation has no app runtime or user interface."
+    },
+    "reason": "Add the approved generic evidence-transparent continuity rule and manifest-bound portable bridge proof for exact migration-anchor legacy events.",
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design.md",
+      "sha256": "e154b1b321fda244020e5fda7e24c0cba3ad8bb256bf7fed7210c68d4ef3f731"
+    }
+  },
+  "recordedAt": "2026-07-26T13:59:52.197Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 8,
+  "type": "spec.revised"
+}

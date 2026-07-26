@@ -1,0 +1,24 @@
+{
+  "eventHash": "8d1b54267d8a8128763a81f61a2a3b557e879a22ddb2e76890d672c2a462916e",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "593ce57c61a1ab6e70aca1c8652c0b7d75c24bf490710be07cc796548c47b56b",
+    "sequence": 9
+  },
+  "payload": {
+    "assigneeRole": "dev",
+    "basis": "Lock migration, generic bootstrap, and fresh-checkout compatibility with integration tests.",
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "mode": "inline",
+    "packetHash": "5af12c5624deafe7f84d72bb3e1e363e53e455e5677e38dc35c836f0ead1f1d1",
+    "startHead": "aad5c9f572f1d2764db63d58b9ef354ebf186e00",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T13:13:11.294Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 10,
+  "type": "task.claimed"
+}

@@ -1,0 +1,30 @@
+{
+  "eventHash": "e90cfea297052284cb931d608874aa4b14e18c32c8bf3c7bc64d81c8454b5908",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "ef6841ef7cb9538875c4d4455f259aea2b5a5a62fb9b6cc22caa349cb0e6b52b",
+    "sequence": 14
+  },
+  "payload": {
+    "authority": {
+      "basis": "The versioned six-task plan preserves completed work, adds TDD coverage and bounded production scope for portable evidence bridges, and retains complete harness and CI-parity verification.",
+      "decisionBy": "sarah",
+      "recordedBy": "sarah"
+    },
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports-v2.md",
+      "sha256": "a0ab1e03bbc72cea34fb1e9511aff779664bccbab158c989b025cfd9c394582d"
+    },
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-26-harness-legacy-bootstrap-imports-v2.json",
+      "sha256": "7bb35c4ed48dad34151ffd1cc6fbb10a590a80d7f47d951e2d4aef3dafc4ff51"
+    }
+  },
+  "recordedAt": "2026-07-26T14:01:47.838Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 15,
+  "type": "plan.approved"
+}

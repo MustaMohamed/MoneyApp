@@ -1,0 +1,21 @@
+{
+  "eventHash": "e4c52cd96335f3b38eceb6f23add3612ca280a24dbd65a5fe3dcfe37962368ef",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "8d1b54267d8a8128763a81f61a2a3b557e879a22ddb2e76890d672c2a462916e",
+    "sequence": 10
+  },
+  "payload": {
+    "claimEventHash": "8d1b54267d8a8128763a81f61a2a3b557e879a22ddb2e76890d672c2a462916e",
+    "packetHash": "5af12c5624deafe7f84d72bb3e1e363e53e455e5677e38dc35c836f0ead1f1d1",
+    "reason": "Approved spec delta requires a replacement graph with evidence-transparent migration validation in production scope.",
+    "taskId": "task-05"
+  },
+  "recordedAt": "2026-07-26T13:57:22.654Z",
+  "recordedBy": {
+    "role": "sarah"
+  },
+  "schemaVersion": 1,
+  "sequence": 11,
+  "type": "task.released"
+}

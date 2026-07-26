@@ -1,0 +1,39 @@
+{
+  "eventHash": "88dcaf9283c3e351a1cc6fc211548ee48c181b988f3204b54d1aff8e166c2614",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "e4c52cd96335f3b38eceb6f23add3612ca280a24dbd65a5fe3dcfe37962368ef",
+    "sequence": 11
+  },
+  "payload": {
+    "baseSha": "4881847975ab6b8fc66d1e019584594feb474bb7",
+    "bootstrapCompletions": [],
+    "branch": "feat/harness-legacy-bootstrap-imports",
+    "graphHash": "a15765810e18e2811a1deb5ba71720865b1747102f560bf1c3f75e48e3ad2dad",
+    "initiative": {
+      "eventHash": "e90cfea297052284cb931d608874aa4b14e18c32c8bf3c7bc64d81c8454b5908",
+      "sequence": 15
+    },
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports-v2.md",
+      "sha256": "a0ab1e03bbc72cea34fb1e9511aff779664bccbab158c989b025cfd9c394582d"
+    },
+    "previousGraphHash": "d2a5ddee61e11029303fcf565bf6e710da566a1ec82283f57f76caaa5ac4bdcf",
+    "reason": "Replace released Task 5 with the approved bounded production and test scope for generic legacy evidence bridges.",
+    "spec": {
+      "path": "docs/superpowers/specs/2026-07-26-harness-legacy-bootstrap-imports-design-v2.md",
+      "sha256": "e154b1b321fda244020e5fda7e24c0cba3ad8bb256bf7fed7210c68d4ef3f731"
+    },
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-26-harness-legacy-bootstrap-imports-v2.json",
+      "sha256": "7bb35c4ed48dad34151ffd1cc6fbb10a590a80d7f47d951e2d4aef3dafc4ff51"
+    }
+  },
+  "recordedAt": "2026-07-26T14:01:58.355Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 12,
+  "type": "task_graph.replaced"
+}

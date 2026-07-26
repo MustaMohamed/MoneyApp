@@ -1,0 +1,25 @@
+{
+  "eventHash": "ef6841ef7cb9538875c4d4455f259aea2b5a5a62fb9b6cc22caa349cb0e6b52b",
+  "initiativeId": "2026-07-26-harness-legacy-bootstrap-imports",
+  "parent": {
+    "eventHash": "f20a8267da073ce91ab9fc5acc9d537929ae4860e255b64fe1cece4ede3ffd39",
+    "sequence": 13
+  },
+  "payload": {
+    "plan": {
+      "path": "docs/superpowers/plans/2026-07-26-harness-legacy-bootstrap-imports-v2.md",
+      "sha256": "a0ab1e03bbc72cea34fb1e9511aff779664bccbab158c989b025cfd9c394582d"
+    },
+    "taskGraph": {
+      "path": "docs/superpowers/task-graphs/2026-07-26-harness-legacy-bootstrap-imports-v2.json",
+      "sha256": "7bb35c4ed48dad34151ffd1cc6fbb10a590a80d7f47d951e2d4aef3dafc4ff51"
+    }
+  },
+  "recordedAt": "2026-07-26T14:01:43.407Z",
+  "recordedBy": {
+    "role": "tariq"
+  },
+  "schemaVersion": 1,
+  "sequence": 14,
+  "type": "plan.submitted"
+}
