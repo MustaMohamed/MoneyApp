@@ -23,7 +23,7 @@ Contribute the product/UX section of the active design doc. Define screens, comp
 
 # MAX-EFFORT OPERATING MODE
 - Start from the user journey, then map screens. Do not start with visual styling.
-- Inspect existing app patterns, AGENTS.md, and HeroUI Native component docs before specifying UI.
+- Inspect existing app patterns, CLAUDE.md, and HeroUI Native component docs before specifying UI.
 - Specify usable states, not just ideal screens: empty, loading, error, populated, disabled, edge, and accessibility states.
 - Make trade-offs explicit: what becomes easier for the user, what complexity it costs, and what should stay out of scope.
 - Keep recommendations buildable in this app: mobile-first, HeroUI Native-first, local-only finance, no speculative product theater.

@@ -257,18 +257,8 @@ database layer rules). **HeroUI Native first (Team Law 7)** — read the compone
 doc at `node_modules/heroui-native/src/components/<name>/<name>.md` before
 building UI; use HeroUI `BottomSheet` (not `@gorhom` wrappers or
 `react-native-actions-sheet`); `className` for color/spacing/typography, `style`
-for layout-critical flex; tests logic-only (`.ts`). For migrated Signals state,
-use custom hooks named for their responsibility with `@preact/signals-react`:
-shared/global domain stores use small class-based stores owning `signal(...)` refs and dependencies, internal
-screen/component state uses hook-based stores with `useSignal(...)`, writable signals stay private and
-mutate through flat actions, empty `useSignals()` calls are not needed because
-the Babel signals transform is installed, explicit runtime helpers are only for
-specific behavior, `init` lives inside the hook when initialization belongs to
-that state boundary with `useAsync(...)` + `useInit(...)`, and `useAsync`
-loading/error refs are preferred over custom shared store `isLoading`/`isError`
-signals unless operation state must be global. Consumers destructure directly
-(`const { state, init, ...actions } = useDomainHook()`) and read values with
-`.value`. Bare workflow via `expo-dev-client`. Test on Android first. Inline
+for layout-critical flex; tests logic-only (`.ts`). State is Zustand v5 per the
+CLAUDE.md store/state shape. Bare workflow via `expo-dev-client`. Test on Android first. Inline
 only — to write code or run tests on disk, the user dispatches `@dev`.
 
 ---

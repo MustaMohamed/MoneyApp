@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const roots = ['.agents', '.claude/agents', '.codex/agents']
+const roots = ['.claude/agents', '.claude/skills']
   .map((dir) => path.join(root, dir))
   .filter((dir) => fs.existsSync(dir));
 
