@@ -2,7 +2,7 @@
 // NOT project source. oxlint/oxfmt ignore these paths, so passing their files to
 // `oxlint --fix` yields an empty file set and a non-zero exit ("No files found to
 // lint"), which fails the pre-commit hook. Filter those paths out of every task.
-const VENDORED_DIRS = ['/.claude/', '/.agents/'];
+const VENDORED_DIRS = ['/.claude/'];
 
 /** @param {string} file */
 const isVendored = (file) => VENDORED_DIRS.some((dir) => file.includes(dir));

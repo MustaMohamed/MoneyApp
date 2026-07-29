@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const roots = ['.agents', '.claude/agents', '.codex/agents']
+const roots = ['.claude/agents', '.claude/skills']
   .map((dir) => path.join(root, dir))
   .filter((dir) => fs.existsSync(dir));
 
@@ -39,17 +39,6 @@ function checkFrontmatter(file, text) {
   }
 }
 
-function checkToml(file, text) {
-  for (const key of ['name', 'description']) {
-    if (!new RegExp(`^${key} = ".*"$`, 'm').test(text)) {
-      errors.push(`${rel(file)}: missing or non-string ${key}`);
-    }
-  }
-  if (!/^developer_instructions = """[\s\S]*"""/m.test(text)) {
-    errors.push(`${rel(file)}: missing developer_instructions block`);
-  }
-}
-
 function runSyntax(file, cmd, args) {
   const result = spawnSync(cmd, args, { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) {
@@ -66,7 +55,6 @@ for (const dir of roots) {
     if (text.length > 0 && !text.endsWith('\n')) errors.push(`${relative}: missing final newline`);
 
     if (file.endsWith('.md')) checkFrontmatter(file, text);
-    if (file.endsWith('.toml')) checkToml(file, text);
     if (/\.(js|cjs|mjs)$/.test(file)) runSyntax(file, 'node', ['--check', file]);
     if (file.endsWith('.sh')) runSyntax(file, 'bash', ['-n', file]);
   }

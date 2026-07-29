@@ -227,3 +227,55 @@ Uniwind.setTheme(theme === "light" ? "dark" : "light");
 ```
 
 For detailed theming, fetch: `https://heroui.com/docs/native/getting-started/theming.mdx`
+
+---
+
+# MoneyApp Project Addendum
+
+<!-- MAINTENANCE: everything below this line is project-owned, NOT part of the upstream
+     heroui vendor skill (metadata above says author: heroui). If you refresh the vendor
+     skill content, re-append this addendum — deleting it orphans the HeroUI catalog and
+     sheet patterns that CLAUDE.md deliberately evicted here. -->
+
+Project-specific HeroUI usage. This section is the single source for the installed catalog and sheet patterns (evicted from CLAUDE.md per progressive disclosure).
+
+## Installed catalog (heroui-native v1.0.3 — check before writing anything)
+
+Accordion, Alert, Avatar, **BottomSheet**, Button, Card, Checkbox, Chip, CloseButton, Dialog, Input (+ InputGroup, InputOTP, TextField, TextArea, SearchField), Label, LinkButton, ListGroup, Menu (+ SubMenu), Popover, PressableFeedback, Radio (+ RadioGroup), ScrollShadow, Select, Separator, Skeleton (+ SkeletonGroup), Slider, Spinner, Surface, Switch, Tabs, TagGroup, Text, Toast, and form helpers (ControlField, Description, FieldError).
+
+Component docs: `node_modules/heroui-native/src/components/<name>/<name>.md`.
+
+## Project wrappers (`src/components/ui/`)
+
+`Screen`, `ScreenScroll`, `Text`, `EmptyState`, `FAB`, `Sheet` — compose these; never bypass them for their covered roles.
+
+## `Sheet` wrapper — every sheet in the app
+
+`src/components/ui/sheet.tsx` — thin declarative wrapper (`isOpen`/`onOpenChange`, `size`, `scrollable`, `footer`) composing HeroUI `BottomSheet`. Build new sheets on `Sheet` (or HeroUI `BottomSheet` directly). Never hand-roll a `@gorhom/bottom-sheet` wrapper — gorhom exists in the tree only as HeroUI's rendering engine.
+
+## BottomSheet — full pattern
+
+```tsx
+import { BottomSheet, Button } from 'heroui-native';
+
+<BottomSheet isOpen={isOpen} onOpenChange={setIsOpen}>
+  <BottomSheet.Trigger asChild><Button>{Strings.open}</Button></BottomSheet.Trigger>
+  <BottomSheet.Portal>
+    <BottomSheet.Overlay />
+    <BottomSheet.Content>
+      <BottomSheet.Close />
+      <BottomSheet.Title>{Strings.title}</BottomSheet.Title>
+      <BottomSheet.Description>{Strings.desc}</BottomSheet.Description>
+      {/* body */}
+    </BottomSheet.Content>
+  </BottomSheet.Portal>
+</BottomSheet>
+```
+
+- Close handling: `onOpenChange` only — `Content.onClose` fires solely on swipe-down.
+- Scrollables: `BottomSheetScrollView` / `BottomSheetFlatList` from `@gorhom/bottom-sheet` (NOT `react-native`), with `enableOverDrag={false}`, `enableDynamicSizing={false}`, fixed height via `contentContainerClassName="h-full"`.
+- Keyboard: `useBottomSheetAwareHandlers()` on `onFocus`/`onBlur` + `keyboardBehavior="extend"` on `Content`.
+
+## Card = Surface trap (device-QA-only bug class)
+
+HeroUI `Card` / `Dialog.Content` wrap `Surface`: base is `bg-surface p-4 rounded-3xl shadow-surface overflow-hidden`; the default variant adds ONLY `bg-surface`. **No border, ever.** When migrating a `View` to `Card`, pass `border border-separator`, `rounded-2xl`, and `p-0` explicitly, and kill the shadow via `style={{ elevation: 0, shadowOpacity: 0 }}` — className `shadow-none` will NOT override the custom shadow token. These are runtime visual deltas: CI stays green; only device QA or a visual diff catches them.

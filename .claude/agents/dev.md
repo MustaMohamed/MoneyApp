@@ -38,12 +38,11 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 - **app/ rules:** only `_layout.tsx` and `index.tsx`; route index files are one-line re-exports from canonical `@/modules/<domain>/screens/...` paths. Never colocate `*.hook.ts`/`*.anim.ts`/`*.store.ts`/`*.helpers.ts` in `app/`.
 - **module layout:** canonical feature code lives under `src/modules/<domain>/` with `database/`, `repositories/`, `store/`, `screens/`, and optional `components/`. Do not introduce a `data/` folder.
 - **module screen anatomy:** `index.tsx` (UI, no useState/useSharedValue) · `*.hook.ts` (logic) · `*.store.ts` (data) · `*.state.ts` (UI state) · `*.anim.ts` (Reanimated).
-- **Legacy Zustand store/state shape:** existing `.store.ts` and `.state.ts` stores expose reactive values as top-level fields; actions stay top-level. Setters spread previous store values (`set((s) => ({ ...s, x: v }))`). `reset()` is `set(INITIAL_STATE)` or `set(initialState())`. Screen hooks still return `{ state: { ...reactive values... }, ...flat actions }`.
-- **Signals migration shape:** for migrated state, use custom hooks with `@preact/signals-react`, not a Zustand compatibility adapter. Name hooks for their responsibility. Shared/global domain stores use small class-based stores that own their `signal(...)` refs and dependencies; internal screen/component state uses hook-based stores with `useSignal(...)` inside the hook. Keep writable signals private and mutate through returned flat actions. The Babel signals transform is installed, so do not add empty `useSignals()` calls for render tracking. Use explicit runtime helpers only for specific behavior (`useSignalEffect`, `untracked`, `computed`, `batch`). Put `init` inside the hook when initialization belongs to that state boundary and wire async operation state through `useAsync(...)` + `useInit(...)`; prefer `useAsync` loading/error refs over custom shared store `isLoading`/`isError` signals unless operation state must be global. Return signal refs under `state` and actions as flat functions; consumers read with `.value`.
+- **Zustand store/state shape:** follow the "Legacy Zustand store/state shape" section in CLAUDE.md exactly — it is the single source of truth for setter, reset, and consumer patterns.
 - **null vs undefined:** `null` = DB-mapped nullable columns only; absent values elsewhere = `undefined`.
 - **Enums** in `constants/enums.ts` (regular `enum`, not `const enum`). **Tokens** in `constants/theme.ts` via `ms()`/`msFont()`. **Strings** in `constants/strings.ts`. **SecureStore keys** in `constants/secure_store_keys.ts`.
 - **DB layer:** query files first param is `db: SQLiteDatabase`; verbs `get*`/`add*`/`set*`/`update*`/`delete*`. Business logic lives in stores, not queries.
-- **Tests:** logic-only (`.ts` logic/state/hook/query) in `__tests__/`, snake_case — NO `.tsx` render tests; coverage thresholds 80% lines / 95% functions / 100% branches.
+- **Tests:** logic-only (`.ts` logic/state/hook/query) in `__tests__/`, snake_case — NO `.tsx` render tests.
 - **HeroUI Native is the main UI library — use it for everything (Team Law 7).** Before building ANY UI, (1) scan the installed catalog (`ls node_modules/heroui-native/src/components/`) and (2) **read the relevant component doc(s)** at `node_modules/heroui-native/src/components/<name>/<name>.md` to confirm the primitive and its API. Build custom ONLY when no HeroUI primitive fits — that is a critical trigger requiring sign-off.
 - **Styling:** `className` (Tailwind v4 via Uniwind) for color/spacing/typography; `style` for layout-critical `flex`/`flexDirection`; `<Screen>`/`<ScreenScroll>` for routes; `cn` from `heroui-native`.
 - **Bottom sheets:** use HeroUI `BottomSheet` (`isOpen`/`onOpenChange`); for scrollable content nest `BottomSheetScrollView`/`BottomSheetFlatList` from `@gorhom/bottom-sheet`. Do NOT hand-roll a `@gorhom` wrapper or use `react-native-actions-sheet`.
@@ -52,11 +51,11 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 # WORKFLOW WHEN INVOKED
 1. Read CLAUDE.md, the design doc, and the approved plan in `docs/superpowers/plans/`.
 2. If anything is missing or ambiguous, STOP and report to @sarah — do not invent.
-3. Implement the plan step-by-step using the `executing-plans` skill (you run inline — subagent dispatch is @sarah's role). Work in the git worktree @sarah prepared; never start on `main`.
+3. Implement the plan step-by-step using the `superpowers:executing-plans` skill (you run inline — subagent dispatch is @sarah's role). Work in the git worktree @sarah prepared; never start on `main`.
 4. Convert [layla]'s test cases into Jest unit tests (mandatory).
 5. Run `npm run test:coverage` and ensure thresholds pass.
-6. Use `verification-before-completion` before reporting done.
-7. Return to @sarah, who dispatches @tariq for review. When @tariq returns changes, address them with `receiving-code-review`, then re-verify.
+6. Use `superpowers:verification-before-completion` before reporting done.
+7. Return to @sarah, who dispatches @tariq for review. When @tariq returns changes, address them with `superpowers:receiving-code-review`, then re-verify.
 8. Return a summary: files changed, tests added, manual testing notes, open questions for @tariq.
 
 # CRITICAL RULES
@@ -66,4 +65,4 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 - Never hardcode hex/spacing/radius — always tokens via `ms()`/`msFont()`.
 - Test on Android first.
 - **HeroUI Native first (Team Law 7):** read the component doc (`node_modules/heroui-native/src/components/<name>/<name>.md`) before building UI; no custom/third-party component without sign-off.
-- For bug fixes, use `systematic-debugging` — root cause before any fix.
+- For bug fixes, use `superpowers:systematic-debugging` — root cause before any fix.
