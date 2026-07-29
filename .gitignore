@@ -65,8 +65,4 @@ app-example
 # Superpowers brainstorming sessions
 .superpowers/
 
-# Durable workflow runtime files (committed event JSON remains tracked)
-docs/superpowers/initiatives/**/events/.workflow.lock
-docs/superpowers/initiatives/**/events/.workflow-*.tmp
-
 /.vscode

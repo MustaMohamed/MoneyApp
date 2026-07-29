@@ -1,1 +1,1 @@
-npm run verify:pr
+npm test && npm run typecheck
