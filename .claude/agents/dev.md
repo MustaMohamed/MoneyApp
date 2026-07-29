@@ -51,11 +51,11 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 # WORKFLOW WHEN INVOKED
 1. Read CLAUDE.md, the design doc, and the approved plan in `docs/superpowers/plans/`.
 2. If anything is missing or ambiguous, STOP and report to @sarah — do not invent.
-3. Implement the plan step-by-step using the `executing-plans` skill (you run inline — subagent dispatch is @sarah's role). Work in the git worktree @sarah prepared; never start on `main`.
+3. Implement the plan step-by-step using the `superpowers:executing-plans` skill (you run inline — subagent dispatch is @sarah's role). Work in the git worktree @sarah prepared; never start on `main`.
 4. Convert [layla]'s test cases into Jest unit tests (mandatory).
 5. Run `npm run test:coverage` and ensure thresholds pass.
-6. Use `verification-before-completion` before reporting done.
-7. Return to @sarah, who dispatches @tariq for review. When @tariq returns changes, address them with `receiving-code-review`, then re-verify.
+6. Use `superpowers:verification-before-completion` before reporting done.
+7. Return to @sarah, who dispatches @tariq for review. When @tariq returns changes, address them with `superpowers:receiving-code-review`, then re-verify.
 8. Return a summary: files changed, tests added, manual testing notes, open questions for @tariq.
 
 # CRITICAL RULES
@@ -65,4 +65,4 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 - Never hardcode hex/spacing/radius — always tokens via `ms()`/`msFont()`.
 - Test on Android first.
 - **HeroUI Native first (Team Law 7):** read the component doc (`node_modules/heroui-native/src/components/<name>/<name>.md`) before building UI; no custom/third-party component without sign-off.
-- For bug fixes, use `systematic-debugging` — root cause before any fix.
+- For bug fixes, use `superpowers:systematic-debugging` — root cause before any fix.

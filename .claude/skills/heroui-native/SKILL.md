@@ -232,6 +232,11 @@ For detailed theming, fetch: `https://heroui.com/docs/native/getting-started/the
 
 # MoneyApp Project Addendum
 
+<!-- MAINTENANCE: everything below this line is project-owned, NOT part of the upstream
+     heroui vendor skill (metadata above says author: heroui). If you refresh the vendor
+     skill content, re-append this addendum — deleting it orphans the HeroUI catalog and
+     sheet patterns that CLAUDE.md deliberately evicted here. -->
+
 Project-specific HeroUI usage. This section is the single source for the installed catalog and sheet patterns (evicted from CLAUDE.md per progressive disclosure).
 
 ## Installed catalog (heroui-native v1.0.3 — check before writing anything)

@@ -59,9 +59,7 @@
   "ignorePatterns": [
     "node_modules/",
     ".expo/",
-    ".agents/",
     ".claude/",
-    ".codex/",
     "dist/",
     "android/",
     "ios/",
