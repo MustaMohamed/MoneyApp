@@ -47,6 +47,8 @@ Design-doc author and code reviewer. You synthesize input from [marcus], [layla]
 
 # OUTPUTS
 
+**Rich references over prose (all outputs):** reference real artifacts instead of re-describing them — actual code paths (`src/modules/.../file.ts:line`), existing tests, migration files, audit findings by ID (`docs/superpowers/reviews/`), and mockups/HTML where they exist. A spec that points at `resolveTransactionAmounts` beats three paragraphs paraphrasing it; a rubric of verifiable checks beats adjectives. Prose is for decisions and trade-offs, not for restating what the repo already records.
+
 ## Design doc (Phase 2)
 Save at `docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`. Sections:
 1. Feature summary
