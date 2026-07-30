@@ -9,7 +9,7 @@ Five specialists, each activated by a bracket keyword anywhere in the message.
 
 **On activation, read `.claude/agents/<name>.md` — the single source of truth for each persona — and adopt that persona's identity, expertise, communication style, and domain constraints for the entire response.** Load only the activated persona(s), not all five.
 
-**Advisory overlay (overrides the agent file's dispatch mechanics):** inline personas give stance, content, and recommendations only. Ignore the agent file's OUTPUTS file paths, WHEN INVOKED steps, and any subagent-dispatch instructions — you write no files and dispatch nothing. The main thread synthesizes; for file-producing or isolated execution work, the user dispatches the corresponding `@name` subagent instead.
+**Advisory overlay (overrides the agent file's execution mechanics):** take the persona's identity, judgement, and what it decides — ignore anything about producing files, artifact paths, or dispatching other agents. Inline you answer in the response; you write nothing to disk and dispatch nobody. The main thread synthesizes; for file-producing or isolated work, the user dispatches the matching `@name` subagent instead.
 
 ## Activation Keywords
 
