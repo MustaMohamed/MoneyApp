@@ -4,9 +4,11 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const roots = ['.claude/agents', '.claude/skills']
+const roots = ['.claude/agents', '.claude/skills', '.claude/rules']
   .map((dir) => path.join(root, dir))
   .filter((dir) => fs.existsSync(dir));
+
+const rulesDir = path.join(root, '.claude/rules');
 
 const errors = [];
 
@@ -39,6 +41,36 @@ function checkFrontmatter(file, text) {
   }
 }
 
+// A rules file with malformed `paths` frontmatter never loads — silently. Fail loud here instead.
+function checkRulesFrontmatter(file, text) {
+  if (!text.startsWith('---\n')) {
+    errors.push(`${rel(file)}: rules file must start with --- frontmatter containing a paths list`);
+    return;
+  }
+  const end = text.indexOf('\n---\n', 4);
+  if (end === -1) {
+    errors.push(`${rel(file)}: missing closing frontmatter marker`);
+    return;
+  }
+  const yaml = text.slice(4, end);
+  if (!/^paths:\s*$/m.test(yaml)) {
+    errors.push(`${rel(file)}: missing "paths:" key in frontmatter`);
+    return;
+  }
+  const globs = [...yaml.matchAll(/^\s+-\s+"([^"]*)"\s*$/gm)].map((m) => m[1]);
+  if (globs.length === 0) {
+    errors.push(`${rel(file)}: "paths:" has no quoted glob entries (expected: - "src/**")`);
+    return;
+  }
+  for (const glob of globs) {
+    if (glob.trim() === '') errors.push(`${rel(file)}: empty glob in paths`);
+    if (/[\n\r\t{}\\]/.test(glob))
+      errors.push(`${rel(file)}: suspicious characters in glob "${glob}"`);
+    if (glob.startsWith('/'))
+      errors.push(`${rel(file)}: glob "${glob}" must be repo-relative, not absolute`);
+  }
+}
+
 function runSyntax(file, cmd, args) {
   const result = spawnSync(cmd, args, { cwd: root, encoding: 'utf8' });
   if (result.status !== 0) {
@@ -54,7 +86,10 @@ for (const dir of roots) {
     if (/[ \t]$/m.test(text)) errors.push(`${relative}: trailing whitespace`);
     if (text.length > 0 && !text.endsWith('\n')) errors.push(`${relative}: missing final newline`);
 
-    if (file.endsWith('.md')) checkFrontmatter(file, text);
+    if (file.endsWith('.md')) {
+      if (file.startsWith(rulesDir + path.sep)) checkRulesFrontmatter(file, text);
+      else checkFrontmatter(file, text);
+    }
     if (/\.(js|cjs|mjs)$/.test(file)) runSyntax(file, 'node', ['--check', file]);
     if (file.endsWith('.sh')) runSyntax(file, 'bash', ['-n', file]);
   }

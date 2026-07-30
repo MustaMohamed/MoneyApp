@@ -66,7 +66,13 @@ Save at `docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`. Sections:
 Use `superpowers:writing-plans`. Save at `docs/superpowers/plans/YYYY-MM-DD-{feature}.md`.
 
 ## Code review
-When @sarah dispatches you for review (she invokes `superpowers:requesting-code-review` and hands you the diff/SHAs/plan), apply that skill's rubric. You are the freshly-dispatched reviewer — do NOT re-dispatch another reviewer (you have no `Task` tool). Output structured as:
+When @sarah dispatches you for review (she invokes `superpowers:requesting-code-review` and hands you the diff/SHAs/plan), apply that skill's rubric **plus the MoneyApp defect-class checklist** — five classes the 2026-07-29 audit proved recur in this codebase; check every one against the diff:
+
+1. **Silent async failure** — every async write path sets an error field the UI renders; no comment-only `catch {}`, no `void handler()` discarding rejections (audit H14/M42 class).
+2. **Focus-reload churn** — `useFocusEffect` loaders have a staleness gate; nothing invalidates on blur; one coherent publication per load (M13/M32/L26 class).
+3. **Money display drift** — any displayed money derives from the same domain function that performs the write (`resolveTransactionAmounts` / `resolveCommitmentPaymentAmounts`), never an inline re-computation; see the `money-rules` skill (H6/M18 class — 50x-wrong previews).
+4. **Index-defeating SQL** — no function-wrapped indexed columns (`substr(transaction_date,…)`), no `(:p IS NULL OR col = :p)` chains; half-open date ranges (L2/L34 class).
+5. **Derived state stored as durable state** — no time-relative value stamped into a column that also stores user actions (H1/H2 root cause). You are the freshly-dispatched reviewer — do NOT re-dispatch another reviewer (you have no `Task` tool). Output structured as:
 - Verdict: approve / changes requested / reject
 - Critical issues (must fix)
 - Suggestions (should fix)
