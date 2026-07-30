@@ -91,14 +91,26 @@ function checkCommandFrontmatter(file, text) {
 const PATH_REF =
   /\b(?:src|__tests__|scripts|docs|node_modules|\.claude|\.github)\/[A-Za-z0-9_./@*<>{}[\]-]*[A-Za-z0-9_/]/g;
 
+// `@/x` resolves to `src/x`, with or without an extension, or as a directory index.
+const ALIAS_REF = /@\/[A-Za-z0-9_/.]+/g;
+const ALIAS_SUFFIXES = ['', '.ts', '.tsx', '/index.ts', '/index.tsx'];
+
 function isPlaceholder(p) {
   return /[*<>{}[\]]/.test(p) || p.includes('...') || p.includes('YYYY');
 }
 
+// Code fences are NOT skipped: the one fenced block carrying real repo paths is
+// CLAUDE.md's structure tree, which is the highest-churn content in the harness —
+// exactly what must be checked. Generic snippets use placeholders and skip themselves.
 function checkPathRefs(file, text) {
-  // Fenced code blocks hold install snippets and generic examples, not claims about this repo.
-  const prose = text.replace(/```[\s\S]*?```/g, '');
-  for (const match of new Set(prose.match(PATH_REF) ?? [])) {
+  for (const alias of new Set(text.match(ALIAS_REF) ?? [])) {
+    if (isPlaceholder(alias)) continue;
+    const base = path.join(root, 'src', alias.slice(2));
+    if (!ALIAS_SUFFIXES.some((suffix) => fs.existsSync(base + suffix))) {
+      errors.push(`${rel(file)}: references "${alias}" which does not resolve under src/`);
+    }
+  }
+  for (const match of new Set(text.match(PATH_REF) ?? [])) {
     if (isPlaceholder(match)) continue;
     if (!fs.existsSync(path.join(root, match))) {
       errors.push(`${rel(file)}: references "${match}" which does not exist`);

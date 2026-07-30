@@ -52,22 +52,36 @@ console.log(
 );
 
 // Project wrappers: the exported symbol is what a caller imports, so surface that
-// rather than the filename.
+// rather than the filename. Components and helpers are separated — the question this
+// list answers is "has someone already built this component?", and constants and
+// utility functions only add noise to it.
 const EXPORT_RE = /^export (?:default )?(?:function|const) ([A-Za-z][A-Za-z0-9_]*)/gm;
+// SCREAMING_SNAKE means constant; a bare acronym like FAB is still a component.
+const isConstant = (name) => /^[A-Z0-9]+(?:_[A-Z0-9]+)+$/.test(name);
+const isComponent = (name, file) =>
+  file.endsWith('.tsx') && /^[A-Z]/.test(name) && !isConstant(name);
 
-const wrappers = fs
-  .readdirSync(wrappersDir)
-  .filter((f) => f.endsWith('.tsx') || f.endsWith('.ts'))
-  .sort()
-  .map((file) => {
-    const source = fs.readFileSync(path.join(wrappersDir, file), 'utf8');
-    const names = [...source.matchAll(EXPORT_RE)].map((m) => m[1]);
-    return { file, names };
-  })
-  .filter((w) => w.names.length > 0);
+const wrapperComponents = [];
+const helpers = [];
 
-console.log(`\nProject wrappers (src/components/ui) — check here before building anything new\n`);
-for (const { file, names } of wrappers) {
-  console.log(`  ${names.join(', ').padEnd(34)} ${file}`);
+for (const file of fs.readdirSync(wrappersDir).sort()) {
+  if (!file.endsWith('.tsx') && !file.endsWith('.ts')) continue;
+  const source = fs.readFileSync(path.join(wrappersDir, file), 'utf8');
+  for (const [, name] of source.matchAll(EXPORT_RE)) {
+    (isComponent(name, file) ? wrapperComponents : helpers).push({ name, file });
+  }
 }
-console.log(`\n${wrappers.length} wrapper files`);
+
+function printGroup(title, entries) {
+  if (entries.length === 0) return;
+  const width = Math.max(...entries.map((e) => e.name.length)) + 2;
+  console.log(`\n${title}\n`);
+  for (const { name, file } of entries) console.log(`  ${name.padEnd(width)} ${file}`);
+}
+
+printGroup(
+  'Project components (src/components/ui) — check here before building anything new',
+  wrapperComponents,
+);
+printGroup('Helpers and constants in the same folder', helpers);
+console.log(`\n${wrapperComponents.length} project components, ${helpers.length} helpers`);
