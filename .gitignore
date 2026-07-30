@@ -52,6 +52,7 @@ app-example
 !.claude/skills/
 !.claude/agents/
 !.claude/commands/
+!.claude/rules/
 
 # generated native folders
 /ios
