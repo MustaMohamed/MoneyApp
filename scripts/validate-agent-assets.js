@@ -10,6 +10,7 @@ const roots = ['.claude/agents', '.claude/skills', '.claude/rules', '.claude/com
 
 const rulesDir = path.join(root, '.claude/rules');
 const commandsDir = path.join(root, '.claude/commands');
+const agentsDir = path.join(root, '.claude/agents');
 
 const errors = [];
 
@@ -71,6 +72,22 @@ function checkRulesFrontmatter(file, text, trackedFiles) {
       errors.push(`${rel(file)}: glob "${glob}" must be repo-relative, not absolute`);
   }
   checkGlobsMatchFiles(file, globs, trackedFiles);
+}
+
+// An agent told to run a command it has no Bash tool for cannot do its job, and the
+// failure is silent: it improvises something plausible instead. The mockup workflow
+// shipped broken this way — Marcus was required to run a generator he couldn't execute.
+const SHELL_CMD = /`((?:npm|npx|node|git|bash|ls|cat|grep) [^`]+)`/g;
+
+function checkAgentToolsMatchProse(file, text) {
+  const end = text.startsWith('---\n') ? text.indexOf('\n---\n', 4) : -1;
+  if (end === -1) return;
+  const tools = /^tools:(.*)$/m.exec(text.slice(4, end))?.[1] ?? '';
+  if (/\bBash\b/.test(tools)) return;
+  const commands = [...text.slice(end).matchAll(SHELL_CMD)].map((m) => m[1]);
+  for (const command of new Set(commands)) {
+    errors.push(`${rel(file)}: instructs \`${command}\` but has no Bash tool`);
+  }
 }
 
 // Slash commands carry a description but no name — the filename is the command.
@@ -167,6 +184,7 @@ for (const dir of roots) {
     if (text.length > 0 && !text.endsWith('\n')) errors.push(`${relative}: missing final newline`);
 
     if (file.endsWith('.md')) {
+      if (file.startsWith(agentsDir + path.sep)) checkAgentToolsMatchProse(file, text);
       if (file.startsWith(rulesDir + path.sep)) checkRulesFrontmatter(file, text, trackedFiles);
       else if (file.startsWith(commandsDir + path.sep)) checkCommandFrontmatter(file, text);
       else checkFrontmatter(file, text);

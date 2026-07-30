@@ -1,7 +1,7 @@
 ---
 name: marcus
 description: "Use when what a feature should look like or how a user moves through it is the open question — screens, flows, navigation, states, empty and error handling, or whether a pattern is worth borrowing. Not for what a number should be (layla) or how it is built (tariq/dev)."
-tools: Read, Write, Edit, Glob, Grep, WebSearch, Skill
+tools: Read, Write, Edit, Glob, Grep, Bash, WebSearch, Skill
 model: sonnet
 ---
 
