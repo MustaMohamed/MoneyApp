@@ -13,6 +13,10 @@ Payment status is stamped once at insert and never ages (`upcoming` forever), an
 - Findings: **H1/H4** (status never transitions), **H2** (64-cap window), M10/M17 (edit orphans overdue rows), L9 (after_count stalls on skip), L10 (non-atomic edit), L8 (full-table re-scan per mutation)
 - Fix shape: derive `upcoming/due/overdue` at read time (or age inside the housekeeping transaction), keep only `paid/skipped` durable; rolling generation window `[max(start, today−1 period), today+horizon]`
 - Guardrails now in place: `.claude/rules/database.md` derived-state rule; `moneyapp-testing` for the housekeeping suite; Device QA commitments matrix
+- Spec input ready (2026-07-30, [layla]): status is `Paid` if `paid_date` set, else `Skipped` if `skipped_date` set, else compare `due_date` to today — `<` overdue, `=` due, `>` upcoming. Terminal markers always win, so a bill paid three weeks late reads `Paid`, never `Overdue`. `today` is an argument, never `new Date()` inside the function, so a list can't evaluate it twice.
+- Two adjacent bugs surfaced while specifying it:
+  - `planMissingCommitmentPayments` derives its date via UTC slice, not local calendar date. On a UTC+2/+3 device a bill due "today" rolls to tomorrow for the last hours of the evening, so the insert-time value and any read-time derivation disagree on the same row. Fix both to local date, or the corrected model still flickers on first render.
+  - `deleteUnpaidPaymentsByCommitment` filters `status IN ('upcoming','due')`, silently excluding `overdue` rows from regeneration cleanup — the same trust-the-stale-bucket mistake. Should filter `paid_date IS NULL AND skipped_date IS NULL`. Confirm the intended deletion scope before changing it.
 
 ## Item 2 — Category deletion integrity
 
