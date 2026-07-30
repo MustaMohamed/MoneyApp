@@ -15,7 +15,7 @@ The `.store.ts` vs `.state.ts` split: `.store.ts` = data (form drafts, selection
 
 ## Async ownership — the canonical template
 
-`src/modules/dashboard/store/dashboard.store.ts` is the house template for async data ownership (audit-verified). Copy its shape rather than re-deriving:
+`src/modules/dashboard/screens/dashboard/dashboard.store.ts` is the house template for async data ownership (audit-verified). Copy its shape rather than re-deriving:
 
 1. **Request generation guard** — stamp every load with a monotonic id (plus month/query key where scoped); re-check the stamp after **every** `await` before publishing. A stale response must never overwrite newer state.
 2. **Staleness gate on focus** — `useFocusEffect` loaders check freshness before re-querying; never unconditionally reload on every focus, and never invalidate the snapshot on blur (that makes the gate dead code — audit M13/M32/L26 class).

@@ -13,7 +13,7 @@ HeroUI Native composes Tailwind classes into Unistyles 3 styles at build time vi
 - `cn(...)`: `import { cn } from 'heroui-native'` (no local `cn.ts`). Variants: `tv` from `tailwind-variants`.
 - Theme slots: `bg-background`, `text-foreground`, `bg-surface`, `border-separator`, `text-muted`, `text-danger`, … — see `global.css`.
 - Runtime hex (account swatches): `style={{ backgroundColor: hex }}` — `className` is build-time only.
-- Module-level theme access (outside React): import `Colors`/`GoldTokens`/`CoreTokens` from `constants/theme_tokens.ts`.
+- Module-level theme access (outside React) comes from two different files — mixing them up is a type error: `Colors`, `Size`, `Type`, `Spacing`, `Radius` live in `constants/theme.ts`; the raw palette (`CoreTokens`, `GoldTokens`, `SemanticTokens`, `InfoTokens`, `AccentTokens`, `AccentCCTokens`, `AcctTokens`) lives in `constants/theme_tokens.ts`. There is no `Colors` export in `theme_tokens.ts`.
 - Font utilities (`font-sora`, `font-inter`) only emit CSS when the matching `--font-*` variable is declared in `global.css`'s `@theme inline` block — a missing variable fails silently on device with green CI (audit H15).
 
 ## Screen layout (critical gotcha)

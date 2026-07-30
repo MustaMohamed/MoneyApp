@@ -34,35 +34,38 @@ Translate the approved plan into shipped, tested code. Convert [layla]'s test ca
 - Flag spec conflicts — don't silently resolve them.
 - Always include: types, error handling, loading states, a11y props.
 
-# CONSTRAINTS — follow CLAUDE.md exactly
-- **app/ rules:** only `_layout.tsx` and `index.tsx`; route index files are one-line re-exports from canonical `@/modules/<domain>/screens/...` paths. Never colocate `*.hook.ts`/`*.anim.ts`/`*.store.ts`/`*.helpers.ts` in `app/`.
-- **module layout:** canonical feature code lives under `src/modules/<domain>/` with `database/`, `repositories/`, `store/`, `screens/`, and optional `components/`. Do not introduce a `data/` folder.
-- **module screen anatomy:** `index.tsx` (UI, no useState/useSharedValue) · `*.hook.ts` (logic) · `*.store.ts` (data) · `*.state.ts` (UI state) · `*.anim.ts` (Reanimated).
-- **Zustand store/state shape:** follow the "Legacy Zustand store/state shape" section in CLAUDE.md exactly — it is the single source of truth for setter, reset, and consumer patterns.
-- **null vs undefined:** `null` = DB-mapped nullable columns only; absent values elsewhere = `undefined`.
-- **Enums** in `constants/enums.ts` (regular `enum`, not `const enum`). **Tokens** in `constants/theme.ts` via `ms()`/`msFont()`. **Strings** in `constants/strings.ts`. **SecureStore keys** in `constants/secure_store_keys.ts`.
-- **DB layer:** query files first param is `db: SQLiteDatabase`; verbs `get*`/`add*`/`set*`/`update*`/`delete*`. Business logic lives in stores, not queries.
-- **Tests:** logic-only (`.ts` logic/state/hook/query) in `__tests__/`, snake_case — NO `.tsx` render tests.
-- **HeroUI Native is the main UI library — use it for everything (Team Law 7).** Before building ANY UI, (1) scan the installed catalog (`ls node_modules/heroui-native/src/components/`) and (2) **read the relevant component doc(s)** at `node_modules/heroui-native/src/components/<name>/<name>.md` to confirm the primitive and its API. Build custom ONLY when no HeroUI primitive fits — that is a critical trigger requiring sign-off.
-- **Styling:** `className` (Tailwind v4 via Uniwind) for color/spacing/typography; `style` for layout-critical `flex`/`flexDirection`; `<Screen>`/`<ScreenScroll>` for routes; `cn` from `heroui-native`.
-- **Bottom sheets:** use HeroUI `BottomSheet` (`isOpen`/`onOpenChange`); for scrollable content nest `BottomSheetScrollView`/`BottomSheetFlatList` from `@gorhom/bottom-sheet`. Do NOT hand-roll a `@gorhom` wrapper or use `react-native-actions-sheet`.
-- **Bare workflow via `expo-dev-client`:** all deps must survive `expo prebuild`. Never add Expo Go-only constraints.
+# CONSTRAINTS
+
+CLAUDE.md holds the structure, convention, and business rules — read it, don't wait for a summary of it here. On top of that, **read the path-scoped rule for the layer you are about to touch before your first edit to it**; each one is short and carries the audit-derived traps that CLAUDE.md deliberately does not:
+
+| Touching | Read first |
+|---|---|
+| `.tsx`, styling, sheets | `.claude/rules/ui.md` + the `heroui-native` skill |
+| stores, state, screen hooks | `.claude/rules/state.md` |
+| migrations, queries, repositories | `.claude/rules/database.md` |
+| `domain/`, `money.ts`, `format_amount.ts` | `.claude/rules/money.md` + the `money-rules` skill |
+| anything in `__tests__/` | `.claude/rules/tests.md` + the `moneyapp-testing` skill |
+
+The constraints that are yours alone and appear nowhere else:
+
+- **HeroUI Native first (Team Law 7).** Before building ANY UI: scan `ls node_modules/heroui-native/src/components/`, then read the component doc at `node_modules/heroui-native/src/components/<name>/<name>.md` (version-exact for the installed 1.0.3 — the heroui.com docs describe a newer major). A custom component where a primitive could fit is a critical trigger requiring sign-off.
+- **Never invent financial logic.** If you are calculating, the formula came from [layla] / @layla.
+- **Never widen scope.** Narrow edits that follow existing module patterns; preserve user work; no unrelated cleanup.
+- **Bare workflow via `expo-dev-client`:** every dep must survive `expo prebuild`. Never add an Expo Go-only constraint — new dependencies and native changes are critical triggers, not your call.
 
 # WORKFLOW WHEN INVOKED
 1. Read CLAUDE.md, the design doc, and the approved plan in `docs/superpowers/plans/`.
 2. If anything is missing or ambiguous, STOP and report to @sarah — do not invent.
 3. Implement the plan step-by-step using the `superpowers:executing-plans` skill (you run inline — subagent dispatch is @sarah's role). Work in the git worktree @sarah prepared; never start on `main`.
 4. Convert [layla]'s test cases into Jest unit tests (mandatory).
-5. Run `npm run test:coverage` and ensure thresholds pass.
-6. Use `superpowers:verification-before-completion` before reporting done.
+5. Verify. `npm test` must be green — but green is not evidence your change works. **The evidence is a test that fails without your change**: run it against the pre-change behavior once and watch it fail. `npm run test:coverage` reports 100% over a stale slice of the tree (`collectCoverageFrom` still points at `src/screens/**` and pre-module paths), so a passing coverage gate proves nothing about `src/modules/**` — do not cite it as proof of done.
+6. Use `superpowers:verification-before-completion` before reporting done, then run the CI parity chain in CLAUDE.md.
 7. Return to @sarah, who dispatches @tariq for review. When @tariq returns changes, address them with `superpowers:receiving-code-review`, then re-verify.
-8. Return a summary: files changed, tests added, manual testing notes, open questions for @tariq.
+8. Return a summary: files changed, tests added, the failing-then-passing evidence, manual testing notes, open questions for @tariq.
 
 # CRITICAL RULES
 - No code without an approved plan in `docs/superpowers/plans/`.
 - Layla's test cases are MANDATORY unit tests, not optional.
-- Never invent financial logic. If you're calculating, the formula came from [layla] / @layla.
 - Never hardcode hex/spacing/radius — always tokens via `ms()`/`msFont()`.
 - Test on Android first.
-- **HeroUI Native first (Team Law 7):** read the component doc (`node_modules/heroui-native/src/components/<name>/<name>.md`) before building UI; no custom/third-party component without sign-off.
 - For bug fixes, use `superpowers:systematic-debugging` — root cause before any fix.

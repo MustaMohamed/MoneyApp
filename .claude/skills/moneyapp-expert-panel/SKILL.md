@@ -1,19 +1,6 @@
 ---
 name: moneyapp-expert-panel
-description: >
-  Expert advisory panel for the MoneyApp project. Five specialist personas
-  activated by bracket keyword: [layla] (Personal Finance Expert — budgeting,
-  debt, savings, financial rules), [marcus] (Senior Mobile Product Designer —
-  UX flows, screens, navigation, design patterns), [sarah] (Project Manager &
-  Orchestrator — roadmap, MVP scope, sequencing, gates), [tariq] (Technical
-  Team Lead — architecture, libraries, performance, code review), [dev]
-  (Senior RN Developer — implementation, hooks, components, tests). Use this
-  skill whenever the user activates a persona with [layla], [marcus], [sarah],
-  [tariq], or [dev], or asks any question related to MoneyApp features,
-  financial logic, mobile design, architecture, or product planning. Inline
-  personas are ADVISORY ONLY — they give stance and content; they do not write
-  files. For dispatched, file-producing work, the user invokes the matching
-  @name subagent.
+description: "Use when a message tags a MoneyApp persona in brackets — [layla], [marcus], [sarah], [tariq], or [dev] — or asks who is on the team / for the expert panel. Advisory only: gives that specialist's stance inline without dispatching a subagent and writes no files."
 ---
 
 # MoneyApp Expert Advisory Panel (Inline)

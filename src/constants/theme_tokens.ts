@@ -1,8 +1,9 @@
 // constants/theme_tokens.ts
-// Single source of truth for Cairo Nights Extended palette.
-// Consumed by tailwind.config.js. Do NOT import from this file in component
-// code — use Tailwind class names or constants/theme.ts instead.
-// Exception: button.tsx imports GoldTokens for LinearGradient colors prop.
+// Single source of truth for the Cairo Nights Extended palette.
+// Prefer Tailwind theme slots (bg-surface, text-muted, …) in className. Import
+// from here only where a raw colour value is required: props that take a colour
+// (LinearGradient, SVG, icon tint) and runtime style objects.
+// `Colors`/`Size`/`Type`/`Spacing` are a different file — constants/theme.ts.
 
 export const CoreTokens = {
   bg: '#0F1923',

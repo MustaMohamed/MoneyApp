@@ -27,9 +27,10 @@ Deleting a custom category with a budget or commitment row throws `FOREIGN KEY c
 
 **Tags:** `bug`, `financial-correctness` · **Effort:** M · **Blocked by:** Issue 4
 
-Preview/display bugs where the shown number diverges from the persisted one: Pay sheet up to 50× overstated (H6), transaction form EGP→USD previews (M18/M40), hardcoded "EGP" on USD credit-card fields (M19), USD rendered with 0 decimals everywhere (M22), `parseFloat` money inputs (M15/M21), adjust-balance vs revolving (M16), statement-day cycle skip (M20), archive-erases-debt copy (M12).
+Preview/display bugs where the shown number diverges from the persisted one: Pay sheet overstated (H6), transaction form EGP→USD previews (M18/M40), hardcoded "EGP" on USD credit-card fields (M19), USD rendered with 0 decimals everywhere (M22), `parseFloat` money inputs (M15/M21), adjust-balance vs revolving (M16), statement-day cycle skip (M20), archive-erases-debt copy (M12).
 
 - Fix rule: derive display from the write-path domain function (`money-rules` skill — the iron rule)
+- H6 located precisely (2026-07-30): `pay_sheet.tsx:60-63` computes `amountWatch * exchangeRateValue` unconditionally. Worst case is the EGP-commitment → USD-account pair, where the correct value divides — 500 EGP at rate 50 displays **25,000 USD against an actual debit of 10 USD (2500× over)**, not the 50× the original write-up assumed. The resolver itself is correct and already covers all four pairs (`__tests__/commitment.repository.test.ts:448`); only the preview bypasses it. Fix = route the preview through `resolveCommitmentPaymentAmounts` in `pay_sheet.hook.ts`. Note `exchange_rate_row.tsx:24-31` (`formatPreviewAmount`) hardcodes the same USD→EGP assumption and is shared — needs a direction prop, larger change.
 
 ## Item 4 — Consolidate money formatting layer
 

@@ -4,11 +4,12 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.join(__dirname, '..');
-const roots = ['.claude/agents', '.claude/skills', '.claude/rules']
+const roots = ['.claude/agents', '.claude/skills', '.claude/rules', '.claude/commands']
   .map((dir) => path.join(root, dir))
   .filter((dir) => fs.existsSync(dir));
 
 const rulesDir = path.join(root, '.claude/rules');
+const commandsDir = path.join(root, '.claude/commands');
 
 const errors = [];
 
@@ -42,7 +43,7 @@ function checkFrontmatter(file, text) {
 }
 
 // A rules file with malformed `paths` frontmatter never loads — silently. Fail loud here instead.
-function checkRulesFrontmatter(file, text) {
+function checkRulesFrontmatter(file, text, trackedFiles) {
   if (!text.startsWith('---\n')) {
     errors.push(`${rel(file)}: rules file must start with --- frontmatter containing a paths list`);
     return;
@@ -69,6 +70,69 @@ function checkRulesFrontmatter(file, text) {
     if (glob.startsWith('/'))
       errors.push(`${rel(file)}: glob "${glob}" must be repo-relative, not absolute`);
   }
+  checkGlobsMatchFiles(file, globs, trackedFiles);
+}
+
+// Slash commands carry a description but no name — the filename is the command.
+function checkCommandFrontmatter(file, text) {
+  if (!text.startsWith('---\n') || text.indexOf('\n---\n', 4) === -1) {
+    errors.push(`${rel(file)}: command must start with --- frontmatter containing a description`);
+    return;
+  }
+  const yaml = text.slice(4, text.indexOf('\n---\n', 4));
+  if (!/^description:\s*\S/m.test(yaml)) {
+    errors.push(`${rel(file)}: missing description in frontmatter`);
+  }
+}
+
+// Harness docs earn their value by pointing at real artifacts. A path that has moved
+// turns "copy this template" into a dead end the reader silently works around, so every
+// concrete repo path cited in a harness doc must resolve. Placeholders are skipped.
+const PATH_REF =
+  /\b(?:src|__tests__|scripts|docs|node_modules|\.claude|\.github)\/[A-Za-z0-9_./@*<>{}[\]-]*[A-Za-z0-9_/]/g;
+
+function isPlaceholder(p) {
+  return /[*<>{}[\]]/.test(p) || p.includes('...') || p.includes('YYYY');
+}
+
+function checkPathRefs(file, text) {
+  // Fenced code blocks hold install snippets and generic examples, not claims about this repo.
+  const prose = text.replace(/```[\s\S]*?```/g, '');
+  for (const match of new Set(prose.match(PATH_REF) ?? [])) {
+    if (isPlaceholder(match)) continue;
+    if (!fs.existsSync(path.join(root, match))) {
+      errors.push(`${rel(file)}: references "${match}" which does not exist`);
+    }
+  }
+}
+
+// A paths: glob that matches nothing is a rule that silently never loads.
+function globToRegExp(glob) {
+  let out = '';
+  for (let i = 0; i < glob.length; i++) {
+    const c = glob[i];
+    if (c === '*') {
+      if (glob[i + 1] === '*') {
+        out += glob[i + 2] === '/' ? '(?:.*/)?' : '.*';
+        i += glob[i + 2] === '/' ? 2 : 1;
+      } else {
+        out += '[^/]*';
+      }
+    } else if (c === '?') out += '[^/]';
+    else out += c.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  }
+  return new RegExp(`^${out}$`);
+}
+
+function checkGlobsMatchFiles(file, globs, trackedFiles) {
+  for (const glob of globs) {
+    const re = globToRegExp(glob);
+    if (!trackedFiles.some((f) => re.test(f))) {
+      errors.push(
+        `${rel(file)}: glob "${glob}" matches no tracked file — the rule will never load`,
+      );
+    }
+  }
 }
 
 function runSyntax(file, cmd, args) {
@@ -77,6 +141,10 @@ function runSyntax(file, cmd, args) {
     errors.push(`${rel(file)}: ${cmd} ${args.join(' ')} failed\n${result.stderr || result.stdout}`);
   }
 }
+
+const trackedFiles = spawnSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' })
+  .stdout.split('\n')
+  .filter(Boolean);
 
 for (const dir of roots) {
   for (const file of walk(dir)) {
@@ -87,17 +155,23 @@ for (const dir of roots) {
     if (text.length > 0 && !text.endsWith('\n')) errors.push(`${relative}: missing final newline`);
 
     if (file.endsWith('.md')) {
-      if (file.startsWith(rulesDir + path.sep)) checkRulesFrontmatter(file, text);
+      if (file.startsWith(rulesDir + path.sep)) checkRulesFrontmatter(file, text, trackedFiles);
+      else if (file.startsWith(commandsDir + path.sep)) checkCommandFrontmatter(file, text);
       else checkFrontmatter(file, text);
+      checkPathRefs(file, text);
     }
     if (/\.(js|cjs|mjs)$/.test(file)) runSyntax(file, 'node', ['--check', file]);
     if (file.endsWith('.sh')) runSyntax(file, 'bash', ['-n', file]);
   }
 }
 
+// CLAUDE.md is loaded into every session — hold it to the same reference standard.
+const claudeMd = path.join(root, 'CLAUDE.md');
+if (fs.existsSync(claudeMd)) checkPathRefs(claudeMd, fs.readFileSync(claudeMd, 'utf8'));
+
 if (errors.length > 0) {
   console.error(errors.join('\n'));
   process.exit(1);
 }
 
-console.log(`Agent assets validated (${roots.map(rel).join(', ')})`);
+console.log(`Agent assets validated (${roots.map(rel).join(', ')}, CLAUDE.md)`);
