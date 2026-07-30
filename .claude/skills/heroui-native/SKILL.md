@@ -8,7 +8,7 @@ metadata:
 
 # HeroUI Native in MoneyApp
 
-MoneyApp runs **heroui-native 1.0.3** on Uniwind (Tailwind v4 for React Native). Team Law 7: use a HeroUI primitive wherever one exists — building a custom component a primitive could cover is a critical trigger requiring sign-off.
+MoneyApp runs **heroui-native 1.0.3** on Uniwind (Tailwind v4 for React Native). This skill is the mechanics of Team Law 7 (stated in CLAUDE.md) — how to find the right primitive and use it correctly.
 
 ## The docs that are true for this project
 
@@ -16,29 +16,15 @@ MoneyApp runs **heroui-native 1.0.3** on Uniwind (Tailwind v4 for React Native).
 
 **heroui.com serves 2.x docs.** The site and the `scripts/*.mjs` helpers in this skill folder describe a newer major than the one installed — APIs there may not exist here. Treat them as upstream reference only, never as the spec for a change. (Those scripts also run from this skill's directory, not the repo root.)
 
-## Before building anything: check for an existing wrapper
+## Before building anything: print the inventory
 
-`src/components/ui/` already wraps most recurring needs. Building a second one is the most common wasted change in this repo.
+```bash
+npm run ui:inventory
+```
 
-| Need | Use |
-|---|---|
-| Full-screen route | `Screen` / `ScreenScroll` (never raw `SafeAreaView` — see `.claude/rules/ui.md`) |
-| Any bottom sheet | `Sheet` (`sheet.tsx`) |
-| Confirm / destructive prompt | `ConfirmDialog`, `ConfirmSheet` |
-| Text, layout box, pressable | `Text`, `Box`, `Pressable` |
-| Buttons, inputs, chips, tabs | `button.tsx`, `input.tsx`, `chip.tsx`, `SegmentedTabs` |
-| Money on screen | `AmountDisplay` |
-| Row status / type markers | `StatusBadge`, `TypeBadge` |
-| Screen + section headers | `StackHeader`, `SectionHeader`, `HeroShell` |
-| Search + filter UI | `search_filter_row.tsx`, `filter_rail.tsx`, `filter_accordion.tsx`, `month_filter.tsx`, `segment_filter.tsx` |
-| Empty / loading states | `EmptyState`, `LoadingCenter` |
-| Swipe actions, FAB, colour picker | `SwipeableRow`, `FAB`, `ColorSwatchPicker` |
+Lists the installed HeroUI catalog and every wrapper in `src/components/ui/` with its exported symbol, read from disk at the moment you run it. Building a component the repo already has is the most common wasted change here, and a written catalog would go stale on the next `npm i` — so check the output, not a list in a document.
 
-Compose or extend these; don't bypass a wrapper for the role it covers.
-
-## Installed catalog (1.0.3)
-
-accordion · alert · avatar · **bottom-sheet** · button · card · checkbox · chip · close-button · control-field · description · dialog · field-error · input · input-group · input-otp · label · link-button · list-group · menu · popover · pressable-feedback · radio · radio-group · scroll-shadow · search-field · select · separator · skeleton · skeleton-group · slider · spinner · sub-menu · surface · switch · tabs · tag-group · text · text-area · text-field · toast
+Compose or extend an existing wrapper; don't bypass one for the role it covers.
 
 ## API shape
 
@@ -81,7 +67,7 @@ HeroUI `Card` and `Dialog.Content` wrap `Surface`: base is `bg-surface p-4 round
 | Mistake | Reality |
 |---|---|
 | Fetching heroui.com docs for an API | That's 2.x. Read `node_modules/heroui-native/src/components/<name>/<name>.md`. |
-| Building a component `src/components/ui/` already has | Check the wrapper table first — this is the most common wasted change here. |
+| Building a component `src/components/ui/` already has | Run `npm run ui:inventory` first — this is the most common wasted change here. |
 | `shadow-none` on a Card | Custom shadow token wins. Use the `style` override. |
 | Handling sheet close via `Content.onClose` | Fires only on swipe-down. Use `onOpenChange`. |
 | Importing scrollables from `react-native` inside a sheet | Gesture conflict. Use the `@gorhom/bottom-sheet` variants. |

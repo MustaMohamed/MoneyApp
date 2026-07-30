@@ -17,7 +17,9 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "prepare": "husky",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package",
+    "ui:inventory": "node scripts/heroui-inventory.js",
+    "design:tokens": "node scripts/design-tokens.js"
   },
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",

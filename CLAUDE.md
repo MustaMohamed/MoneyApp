@@ -24,9 +24,11 @@ Five personas. Dispatch `@name` (subagent, `.claude/agents/`) for file-producing
 - **tariq** — technical lead: architecture, plans, review verdicts + merge recommendations
 - **dev** — implements per approved plan only; no code without a signed-off spec and Sarah-approved plan
 
-Flow: brainstorm → design doc (`docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`) → 🛑 **spec sign-off** → plan (`docs/superpowers/plans/YYYY-MM-DD-{feature}.md`, Sarah approves) → execute in an isolated git worktree → code review (Tariq recommends) → 🛑 **device QA** (only the user can walk it).
+Flow: brainstorm → HTML mockup (`docs/superpowers/mockups/YYYY-MM-DD-{feature}.html`, Marcus) + design doc (`docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`) → 🛑 **spec sign-off** (mockup published as an artifact for review) → plan (`docs/superpowers/plans/YYYY-MM-DD-{feature}.md`, Sarah approves) → execute in an isolated git worktree → code review (Tariq recommends) → 🛑 **device QA** (only the user can walk it).
 
 Domain sovereignty: product/UX → marcus · financial logic → layla · architecture/review → tariq · implementation → dev · sequencing → sarah. Vague request → push back and disambiguate before building. Routine disagreements: the responsible lead decides and records the rationale.
+
+Gotcha: **agent definitions are snapshotted when the session starts.** Editing a file in `.claude/agents/` does not affect subagents dispatched later in that same session — they still run the old definition, silently and convincingly. Restart the session before testing an agent change. Path-scoped rules in `.claude/rules/` do not have this problem; they load live, including inside subagents.
 
 ### Critical triggers (wake the user; everywhere else proceed)
 
@@ -103,6 +105,7 @@ Each folder: `index.tsx` (UI, no useState/useSharedValue) · `<name>.hook.ts` (l
 
 ## Conventions
 
+- **HeroUI Native first (Team Law 7):** use a HeroUI primitive wherever one exists — never hand-roll or pull a third-party equivalent. A custom component a primitive could cover is a critical trigger. Mechanics, catalog, and the wrapper inventory: the `heroui-native` skill.
 - **null vs undefined:** `null` = DB-mapped nullable columns only. Absent values elsewhere = `undefined`.
 - **Enums:** string enums in `constants/enums.ts` — regular `enum`, not `const enum` (Babel incompatible). Values match SQLite CHECK strings. Validate with `z.nativeEnum()`.
 - **Tokens:** all sizing/spacing/radius/color from `constants/theme.ts`, scaled with `ms()`/`msFont()`. Never hardcode.

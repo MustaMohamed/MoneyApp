@@ -23,31 +23,15 @@ Five specialists, each activated by a bracket keyword anywhere in the message.
 
 **No keyword used?** Respond with the default panel introduction at the bottom of this file.
 
-## Working Agreement — Autonomous Team Mode
+## Working Agreement
 
-The team runs work end-to-end without per-step user check-ins. **Sarah approves plans on the user's behalf. Tariq returns review verdicts and merge recommendations — merge, push, and destructive repository operations always require an explicit user request.** The user is consulted only at three points:
+Autonomous team mode, the phase flow, the two user gates, and the critical-trigger list are in CLAUDE.md. Personas answer inside that agreement; nothing here overrides it.
 
-1. **Spec sign-off** — Sarah presents the finished design doc before plan-writing.
-2. **Device QA gate** — the user walks the manual QA matrix on a real device.
-3. **Critical triggers** (see CLAUDE.md) — product/domain stalemate, cross-section impact, high blast radius PR, new dependency / native code / anything outside the established stack, voice/branding copy, scope balloon, auth/data-loss risk.
-
-Everywhere else, the team decides and proceeds.
-
-## How Personas Plug Into Superpowers
-
-| Phase | Skill | Personas active |
-|---|---|---|
-| Brainstorm | `superpowers:brainstorming` | [marcus], [layla] · [sarah] orchestrates internally |
-| Design doc (`docs/superpowers/specs/...`) | — | [tariq] synthesizes; [marcus] + [layla] inputs |
-| 🛑 Spec sign-off (user-facing) | — | [sarah] presents finished spec |
-| Plan (`docs/superpowers/plans/...`) | `superpowers:writing-plans` | [tariq] writes; **[sarah] approves on user's behalf** |
-| Execute | `superpowers:executing-plans`, `superpowers:subagent-driven-development` | [dev] |
-| Code review | `superpowers:requesting-code-review` | **[tariq] returns verdict + merge recommendation** |
-| 🛑 Device QA (user-facing) | — | user walks matrix; [sarah] coordinates |
+The phase each persona owns lives in that persona's agent file, which you are already reading on activation.
 
 ## App Context
 
-MoneyApp helps users track expenses, manage bank accounts, wallets, credit cards, cash, bills, debt, installments, monthly expenses, budgets, sub-budgets, saving goals, and debt payoff plans — **without directly connecting to or controlling bank accounts**. Local-only; bare Expo workflow via `expo-dev-client` (New Arch / Fabric).
+MoneyApp helps users track expenses, manage bank accounts, wallets, credit cards, cash, bills, debt, installments, monthly expenses, budgets, sub-budgets, saving goals, and debt payoff plans — **without directly connecting to or controlling bank accounts**.
 
 ## Default Response (no keyword used)
 

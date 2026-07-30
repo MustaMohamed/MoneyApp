@@ -56,6 +56,8 @@ Creating a budget whose name matches an existing one (case-insensitive) in the s
 
 Top wins, in order: gate sheet children behind `hasEverOpened` in `components/ui/sheet.tsx` (**H7** — one file, fixes Budget's 10-sheet eager mount app-wide); staleness gates on Budget/Commitments focus + stop Dashboard invalidate-on-blur (M13/M32/L26); hoist `formatAmount`'s `Intl` (M24 — may land with Item 4); index-friendly predicates in `budget_stats.ts` + `transactions.ts` (L2/L34); lazy swipeable action tiles (L16); move startup housekeeping off first paint (L23).
 
+- Added 2026-07-30: `commitments/detail/components/payment_history.tsx:28` renders `payments` unbounded, ascending. Combined with H2's 64-occurrence generation, an old weekly commitment puts 60+ rows inline on the detail screen and buries `DetailsCard`. Cap it (newest-first, terminal statuses only) or move the full list behind its own screen — a product call for [marcus], so pair it with Item 1 rather than fixing it blind.
+
 ## Item 8 — Real coverage gate + test-suite repairs
 
 **Tags:** `testing` · **Effort:** L · **Blocked by:** Issues 1–5 (never instrument coverage over known-broken logic)

@@ -73,3 +73,40 @@ Both agents independently reported that `.claude/rules/*.md` **auto-load inside 
 ## Finding produced by the GREEN run
 
 The money-rule test surfaced a sharper version of audit **H6**: `pay_sheet.tsx:60-63` computes `amountWatch * exchangeRateValue` unconditionally. For an EGP commitment paid from a USD account the direction should divide — 500 EGP at rate 50 shows **25,000 USD against a real debit of 10 USD (2500×, not 50×)**. Recorded against backlog Item 3.
+
+---
+
+# Round 4 — closing the article's remaining gaps
+
+Round 3 fixed what the harness said. Round 4 addressed where it still diverged from [the article](https://claude.com/blog/the-new-rules-of-context-engineering-for-claude-5-generation-models): repetition across agent files, prose where a richer reference would serve better, hand-maintained lists, and residual generic exhortation.
+
+## Repetition → single descriptions
+
+Team Law 7 was stated in five files. The root cause was that CLAUDE.md — the one file every agent loads — never stated it at all, so each downstream file re-derived it. One line in CLAUDE.md now owns it; `ui.md`, the skill, `tariq.md`, and `marcus.md` reference it by name. Same treatment for the critical-trigger list (was re-listed in `sarah.md`, `tariq.md`, and the panel skill) and the phase flow (re-tabulated in the panel skill).
+
+`MAX-EFFORT OPERATING MODE` blocks are gone from all five agents. They were generic exhortation — "work from evidence, not vibes", "read the smallest set of files needed" — the pre-Claude-5 register the article argues against. The few lines carrying real information were folded into each persona's role paragraph.
+
+## Examples → interface design
+
+Two generators replace lists that would go stale:
+
+- `npm run ui:inventory` prints the installed HeroUI catalog and every `src/components/ui/` wrapper with its exported symbol. The skill's hand-written 41-component list is deleted; the skill now tells you to run the command. A written catalog is wrong one `npm i` after it's written, and nobody notices.
+- `npm run design:tokens` emits the Cairo Nights palette, type scale, radii, spacing, and a 390pt device frame as a CSS block, read live from `global.css` and `constants/theme.ts`.
+
+## Simple specs → rich references
+
+Marcus's primary output changes from prose screen specs to an **HTML mockup** at `docs/superpowers/mockups/YYYY-MM-DD-{feature}.html`, built on the generated tokens, rendering every state (empty, loading, error, populated) as labelled device frames on one page. Gate 1 now publishes that mockup as an artifact, so sign-off reviews rendered screens rather than paragraphs describing screens. The design-doc section keeps only what a mockup can't show: JTBD, out-of-scope, flow, edge cases, success metric.
+
+Building a reference mockup caught two defects in the generator itself — the gold gradient stops live in `@theme inline` rather than the dark variant and weren't being emitted, and camelCase token names kebab-case (`bodyStrong` → `--type-body-strong`) in a way that silently falls back if guessed. Both fixed; every `var()` in the reference mockup was then verified to resolve against the generator's output.
+
+## The test that failed, and what it proved
+
+Dispatching `@marcus` to exercise the new mockup output produced a prose design doc and no mockup. The agent, asked to quote its own OUTPUTS section, returned the **pre-edit** text verbatim — including the MAX-EFFORT block deleted minutes earlier.
+
+**Agent definitions are snapshotted when the session starts.** Editing `.claude/agents/*.md` has no effect on subagents dispatched later in that same session; they run the old definition, silently and convincingly. This is the exact inverse of round 3's finding that `.claude/rules/*.md` load live, including inside subagents — and it is far more dangerous, because a stale agent still produces confident, plausible output.
+
+Now documented as a gotcha in CLAUDE.md. The practical consequence: **round 4's agent changes are unverified.** The scripts are verified, the mockup format is verified, the reference mockup renders — but whether Marcus actually builds one requires a fresh session to test. That test is outstanding.
+
+## Round 4 verdict
+
+Rating against the article moves from **A− to A**, with the caveat above. Repetition, interface design, and rich references all close; what remains is empirical — confirming in a new session that the agents behave as their rewritten definitions say.
