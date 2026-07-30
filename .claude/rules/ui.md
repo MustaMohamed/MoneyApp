@@ -13,18 +13,18 @@ HeroUI Native composes Tailwind classes into Unistyles 3 styles at build time vi
 - `cn(...)`: `import { cn } from 'heroui-native'` (no local `cn.ts`). Variants: `tv` from `tailwind-variants`.
 - Theme slots: `bg-background`, `text-foreground`, `bg-surface`, `border-separator`, `text-muted`, `text-danger`, … — see `global.css`.
 - Runtime hex (account swatches): `style={{ backgroundColor: hex }}` — `className` is build-time only.
-- Module-level theme access (outside React): import `Colors`/`GoldTokens`/`CoreTokens` from `constants/theme_tokens.ts`.
+- Module-level theme access (outside React) comes from two different files — mixing them up is a type error: `Colors`, `Size`, `Type`, `Spacing`, `Radius` live in `constants/theme.ts`; the raw palette (`CoreTokens`, `GoldTokens`, `SemanticTokens`, `InfoTokens`, `AccentTokens`, `AccentCCTokens`, `AcctTokens`) lives in `constants/theme_tokens.ts`. There is no `Colors` export in `theme_tokens.ts`.
 - Font utilities (`font-sora`, `font-inter`) only emit CSS when the matching `--font-*` variable is declared in `global.css`'s `@theme inline` block — a missing variable fails silently on device with green CI (audit H15).
 
 ## Screen layout (critical gotcha)
 
 **Every full-screen route uses `<Screen>`/`<ScreenScroll>` from `@/components/ui/screen` — never raw `SafeAreaView`.** Uniwind's `flex-1` className does not propagate reliably through `SafeAreaView` on Android Fabric — it collapses the flex chain and breaks all child layouts. `Screen` bakes `flex: 1` into the `style` prop instead. Same rule inside: use `style={{ flex: 1 }}` / `style={{ flexDirection: 'row' }}` for layout-critical containers; keep `className` for colors, padding, gap, typography.
 
-## Components — HeroUI Native (binding: Team Law 7)
+## Components — Team Law 7
 
-**Use a HeroUI Native component wherever one exists — never hand-roll or pull a third-party equivalent.** Building a custom component a HeroUI primitive could cover is a **critical trigger**: sign-off plus a written "no HeroUI primitive fits" justification. Compose/wrap a primitive that almost fits; never build parallel. Standing non-HeroUI exceptions (layout/effect pieces HeroUI lacks): `Screen`/`ScreenScroll`, `HeroShell`, `FAB`, SVG textures — extend that list only with sign-off.
+Load the **`heroui-native` skill** before building any UI: it carries the live catalog, the wrapper inventory, the `Sheet` API, and the BottomSheet patterns.
 
-The installed catalog, component docs, `Sheet` wrapper API, and full BottomSheet patterns live in the **`heroui-native` skill** — load it before building any UI. Component docs: `node_modules/heroui-native/src/components/<name>/<name>.md`.
+Standing non-HeroUI exceptions (layout/effect pieces HeroUI lacks): `Screen`/`ScreenScroll`, `HeroShell`, `FAB`, SVG textures. Extend that list only with sign-off — a custom component where a primitive fits needs a written "no HeroUI primitive fits" justification.
 
 ## Bottom sheets — the gotchas that bite
 

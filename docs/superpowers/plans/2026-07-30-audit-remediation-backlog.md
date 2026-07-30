@@ -27,9 +27,10 @@ Deleting a custom category with a budget or commitment row throws `FOREIGN KEY c
 
 **Tags:** `bug`, `financial-correctness` · **Effort:** M · **Blocked by:** Issue 4
 
-Preview/display bugs where the shown number diverges from the persisted one: Pay sheet up to 50× overstated (H6), transaction form EGP→USD previews (M18/M40), hardcoded "EGP" on USD credit-card fields (M19), USD rendered with 0 decimals everywhere (M22), `parseFloat` money inputs (M15/M21), adjust-balance vs revolving (M16), statement-day cycle skip (M20), archive-erases-debt copy (M12).
+Preview/display bugs where the shown number diverges from the persisted one: Pay sheet overstated (H6), transaction form EGP→USD previews (M18/M40), hardcoded "EGP" on USD credit-card fields (M19), USD rendered with 0 decimals everywhere (M22), `parseFloat` money inputs (M15/M21), adjust-balance vs revolving (M16), statement-day cycle skip (M20), archive-erases-debt copy (M12).
 
 - Fix rule: derive display from the write-path domain function (`money-rules` skill — the iron rule)
+- H6 located precisely (2026-07-30): `pay_sheet.tsx:60-63` computes `amountWatch * exchangeRateValue` unconditionally. Worst case is the EGP-commitment → USD-account pair, where the correct value divides — 500 EGP at rate 50 displays **25,000 USD against an actual debit of 10 USD (2500× over)**, not the 50× the original write-up assumed. The resolver itself is correct and already covers all four pairs (`__tests__/commitment.repository.test.ts:448`); only the preview bypasses it. Fix = route the preview through `resolveCommitmentPaymentAmounts` in `pay_sheet.hook.ts`. Note `exchange_rate_row.tsx:24-31` (`formatPreviewAmount`) hardcodes the same USD→EGP assumption and is shared — needs a direction prop, larger change.
 
 ## Item 4 — Consolidate money formatting layer
 
@@ -54,6 +55,8 @@ Creating a budget whose name matches an existing one (case-insensitive) in the s
 **Tags:** `performance` · **Effort:** M · **Blocked by:** Issues 1–5 (correctness first)
 
 Top wins, in order: gate sheet children behind `hasEverOpened` in `components/ui/sheet.tsx` (**H7** — one file, fixes Budget's 10-sheet eager mount app-wide); staleness gates on Budget/Commitments focus + stop Dashboard invalidate-on-blur (M13/M32/L26); hoist `formatAmount`'s `Intl` (M24 — may land with Item 4); index-friendly predicates in `budget_stats.ts` + `transactions.ts` (L2/L34); lazy swipeable action tiles (L16); move startup housekeeping off first paint (L23).
+
+- Added 2026-07-30: `commitments/detail/components/payment_history.tsx:28` renders `payments` unbounded, ascending. Combined with H2's 64-occurrence generation, an old weekly commitment puts 60+ rows inline on the detail screen and buries `DetailsCard`. Cap it (newest-first, terminal statuses only) or move the full list behind its own screen — a product call for [marcus], so pair it with Item 1 rather than fixing it blind.
 
 ## Item 8 — Real coverage gate + test-suite repairs
 

@@ -3,6 +3,7 @@ paths:
   - "src/database/**"
   - "src/modules/**/database/**"
   - "src/modules/**/repositories/**"
+  - "src/repositories/**"
 ---
 
 # Database layer rules
