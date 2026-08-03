@@ -275,6 +275,9 @@ describe('SetBudgetSheet', () => {
   });
 
   it('saves the selected 50/30/20 group atomically and refreshes categories', async () => {
+    // Pin the month: without this the store falls back to currentYearMonth(), so the
+    // assertion below passes only during the month the test was written.
+    useBudgetState.getState().setSelectedMonth('2026-07');
     const groupedCategories = [{ ...categories[0], budget_group: BudgetGroup.Need }];
     const { getByLabelText, getByTestId } = render(
       <SetBudgetSheet budgetableCategories={groupedCategories} />,
