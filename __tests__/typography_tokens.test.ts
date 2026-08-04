@@ -48,15 +48,46 @@ function tokensIn(css: string): Map<string, string> {
  * so adding one and forgetting the other is the easy mistake to make.
  */
 function registeredFaces(): Set<string> {
-  const call = /useFonts\(\{([^}]*)\}\)/s.exec(layout);
-  if (!call) throw new Error('no useFonts({ ... }) call found in _layout.tsx');
+  const call = layout.indexOf('useFonts({');
+  if (call === -1) throw new Error('no `useFonts({ ... })` call in src/app/_layout.tsx');
 
-  return new Set(
-    call[1]
-      .split(',')
-      .map((entry) => entry.split(':')[0]?.trim())
-      .filter((name): name is string => Boolean(name)),
-  );
+  // Brace-matched rather than `[^}]*`, which stops at the first nested `}` and
+  // would report a call that plainly exists as missing.
+  const open = layout.indexOf('{', call);
+  let depth = 0;
+  let close = -1;
+  for (let i = open; i < layout.length; i++) {
+    if (layout[i] === '{') depth++;
+    else if (layout[i] === '}' && --depth === 0) {
+      close = i;
+      break;
+    }
+  }
+  if (close === -1) throw new Error('could not parse the `useFonts` call — unbalanced braces');
+
+  // Top-level entries only; keys of a nested object are not registered faces.
+  const faces = new Set<string>();
+  let nesting = 0;
+  let entry = '';
+  const take = (raw: string) => {
+    const name = raw.split(':')[0]?.trim();
+    // Skips spreads and computed keys — anything not a plain identifier is not
+    // a face this can vouch for, and the set comparison below will say so.
+    if (name && /^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) faces.add(name);
+  };
+
+  for (const char of layout.slice(open + 1, close)) {
+    if ('{(['.includes(char)) nesting++;
+    else if ('})]'.includes(char)) nesting--;
+
+    if (char === ',' && nesting === 0) {
+      take(entry);
+      entry = '';
+    } else entry += char;
+  }
+  take(entry);
+
+  return faces;
 }
 
 /** Every `.ts`/`.tsx` under src/, walked without shelling out. */
@@ -96,11 +127,15 @@ describe('typography tokens', () => {
     expect(bareWeights).toEqual([]);
   });
 
-  it('every --font-* token names a face registered with useFonts', () => {
+  it('the registered faces and the token faces are exactly the same set', () => {
     const registered = registeredFaces();
-    const unloaded = [...tokensIn(globalCss)].filter(([, face]) => !registered.has(face));
+    const tokenFaces = new Set(tokensIn(globalCss).values());
 
-    expect(unloaded).toEqual([]);
+    // A token naming an unregistered face renders as nothing.
+    expect([...tokenFaces].filter((face) => !registered.has(face))).toEqual([]);
+    // A registered face with no token is ~345KB of bundle bought for nothing —
+    // the exact bloat the per-face imports removed.
+    expect([...registered].filter((face) => !tokenFaces.has(face))).toEqual([]);
   });
 
   it('FontFamily mirrors the loaded faces, so module-level and class styling agree', () => {
