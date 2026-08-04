@@ -91,7 +91,7 @@ function MetricValue({
 }): React.ReactElement {
   return (
     <Text
-      className={`font-sora font-bold ${className}`}
+      className={`font-sora-bold ${className}`}
       style={{
         flex: 1,
         textAlign: align,
@@ -130,7 +130,7 @@ function DeltaValue({
         }}
       >
         <Text
-          className="font-sora text-foreground/40 font-bold"
+          className="font-sora-bold text-foreground/40"
           style={{ fontSize: Type.micro, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas }}
         >
           —
@@ -147,7 +147,7 @@ function DeltaValue({
         color={polarityColor(delta.polarity)}
       />
       <Text
-        className={`font-sora ml-0.5 font-bold ${polarityClass(delta.polarity)}`}
+        className={`font-sora-bold ml-0.5 ${polarityClass(delta.polarity)}`}
         style={{ fontSize: Type.micro, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.deltas }}
       >
         {delta.label}
@@ -320,7 +320,7 @@ export function TotalsStrip({
             }}
           >
             <Text
-              className={`font-inter font-bold ${presentation.captionClassName}`}
+              className={`font-inter-bold ${presentation.captionClassName}`}
               style={{ fontSize: Type.chip, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
               numberOfLines={1}
             >
@@ -328,7 +328,7 @@ export function TotalsStrip({
             </Text>
             {deltas && previousLabel ? (
               <Text
-                className="font-inter text-foreground/45 font-bold uppercase"
+                className="font-inter-bold text-foreground/45 uppercase"
                 style={{ fontSize: Type.chip, lineHeight: TRANSACTIONS_TOTALS_GEOMETRY.caption }}
               >
                 {Strings.totalsVsPrev(previousLabel)}

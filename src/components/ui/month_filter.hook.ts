@@ -30,8 +30,8 @@ interface PickerMonth {
 
 const selectedMonthClassName = 'bg-accent items-center rounded-xl py-2.5';
 const unselectedMonthClassName = 'bg-default/60 items-center rounded-xl py-2.5';
-const selectedLabelClassName = 'font-inter text-accent-foreground text-[12px] font-bold';
-const unselectedLabelClassName = 'font-inter text-foreground text-[12px] font-semibold';
+const selectedLabelClassName = 'font-inter-bold text-accent-foreground text-[12px]';
+const unselectedLabelClassName = 'font-inter-semibold text-foreground text-[12px]';
 
 export function useMonthFilter({ selectedMonth, onSelectedMonthChange }: MonthFilterProps) {
   const selectedLabel = formatMonthYear(selectedMonth);

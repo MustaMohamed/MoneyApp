@@ -39,7 +39,7 @@ export default function MoreAccountsScreen() {
           </Animated.View>
 
           <Animated.Text entering={headlineEntering}>
-            <Text variant="title" className="font-soraBold text-foreground text-center">
+            <Text variant="title" className="font-sora-bold text-foreground text-center">
               {Strings.n3AccountSaved}
             </Text>
           </Animated.Text>
@@ -75,7 +75,7 @@ export default function MoreAccountsScreen() {
                 className="h-7 w-7 items-center justify-center rounded-[6px]"
                 style={{ backgroundColor: 'rgba(201,151,58,0.12)' }}
               >
-                <Text className="text-gold-500 font-soraBold text-[16px]">+</Text>
+                <Text className="text-gold-500 font-sora-bold text-[16px]">+</Text>
               </Box>
               <Text variant="body" className="text-muted">
                 {Strings.o5AddAnother}

@@ -52,7 +52,7 @@ export default function SpendingPlanDetailScreen() {
 
       {state.viewState === 'notFound' ? (
         <View className="flex-1 items-center justify-center gap-4 px-6">
-          <Text className="font-sora text-muted text-center text-[14px] font-semibold">
+          <Text className="font-sora-semibold text-muted text-center text-[14px]">
             {Strings.budgetPlansDetailNotFound}
           </Text>
           <Button
@@ -67,7 +67,7 @@ export default function SpendingPlanDetailScreen() {
 
       {state.viewState === 'error' ? (
         <View className="flex-1 items-center justify-center gap-4 px-6">
-          <Text className="font-sora text-muted text-center text-[14px] font-semibold">
+          <Text className="font-sora-semibold text-muted text-center text-[14px]">
             {state.errorMessage}
           </Text>
           <Button
@@ -86,10 +86,10 @@ export default function SpendingPlanDetailScreen() {
               <SpendingPlanDetailSummary detail={plan.detail} />
 
               <View className="mt-3 flex-row items-center justify-between gap-3 px-4">
-                <Text className="font-inter text-content-secondary text-[13px] font-semibold uppercase">
+                <Text className="font-inter-semibold text-content-secondary text-[13px] uppercase">
                   {Strings.budgetPlansDetailCategories}
                 </Text>
-                <Text className="font-inter text-content-secondary text-[13px] font-medium">
+                <Text className="font-inter-medium text-content-secondary text-[13px]">
                   {plan.detail.totalSpentLabel}
                 </Text>
               </View>
@@ -105,10 +105,10 @@ export default function SpendingPlanDetailScreen() {
                       size={Size.iconXs}
                       color={Colors.dark.gold}
                     />
-                    <Text className="font-inter text-content-secondary flex-1 text-[14px] font-medium">
+                    <Text className="font-inter-medium text-content-secondary flex-1 text-[14px]">
                       {plan.detail.flexibleRow.label}
                     </Text>
-                    <Text className="font-sora text-foreground text-[15px] font-semibold">
+                    <Text className="font-sora-semibold text-foreground text-[15px]">
                       {plan.detail.flexibleRow.amountLabel}
                     </Text>
                   </View>

@@ -37,10 +37,10 @@ export function SpendingPlanDateRange({
           onPress={() => openDatePicker('start')}
           className="bg-background border-border min-h-12 flex-1 rounded-lg border px-3 py-2"
         >
-          <Text className="font-inter text-muted text-[11px] font-medium">
+          <Text className="font-inter-medium text-muted text-[11px]">
             {Strings.budgetPlanStartDate}
           </Text>
-          <Text className="font-sora text-foreground mt-0.5 text-[12px] font-semibold">
+          <Text className="font-sora-semibold text-foreground mt-0.5 text-[12px]">
             {startDate ? formatShortDate(startDate) : '-'}
           </Text>
         </PressableFeedback>
@@ -50,10 +50,10 @@ export function SpendingPlanDateRange({
           onPress={() => openDatePicker('end')}
           className="bg-background border-border min-h-12 flex-1 rounded-lg border px-3 py-2"
         >
-          <Text className="font-inter text-muted text-[11px] font-medium">
+          <Text className="font-inter-medium text-muted text-[11px]">
             {Strings.budgetPlanEndDate}
           </Text>
-          <Text className="font-sora text-foreground mt-0.5 text-[12px] font-semibold">
+          <Text className="font-sora-semibold text-foreground mt-0.5 text-[12px]">
             {endDate ? formatShortDate(endDate) : '-'}
           </Text>
         </PressableFeedback>

@@ -5,9 +5,9 @@ import { View } from 'react-native';
 import { formatAmount } from '@/utils/format_amount';
 
 const SIZE_AMOUNT: Record<string, string> = {
-  sm: 'font-sora text-[13px] font-bold',
-  md: 'font-sora text-[18px] font-bold',
-  lg: 'font-sora text-[28px] font-bold',
+  sm: 'font-sora-bold text-[13px]',
+  md: 'font-sora-bold text-[18px]',
+  lg: 'font-sora-bold text-[28px]',
 };
 
 const SIZE_CURRENCY: Record<string, string> = {

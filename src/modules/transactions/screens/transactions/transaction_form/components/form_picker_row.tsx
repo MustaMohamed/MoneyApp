@@ -48,7 +48,7 @@ export function FormPickerRow({
           </ListGroup.ItemDescription>
           <ListGroup.ItemTitle
             numberOfLines={1}
-            className={cn('font-sora font-semibold', valueClassName)}
+            className={cn('font-sora-semibold', valueClassName)}
             style={[{ fontSize: Type.bodyStrong }, valueStyle]}
           >
             {value}

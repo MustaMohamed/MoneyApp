@@ -186,9 +186,9 @@ export function StatCards({
           <NetWorthSkeleton />
         ) : (
           <>
-            <Text className="text-lg font-bold" style={{ color: netColor }} numberOfLines={1}>
+            <Text className="font-sora-bold text-lg" style={{ color: netColor }} numberOfLines={1}>
               {formatAmount(netWorthEgp)}{' '}
-              <Text className="text-muted text-xs font-medium">EGP</Text>
+              <Text className="font-inter-medium text-muted text-xs">EGP</Text>
             </Text>
             <View
               className="bg-default flex-row overflow-hidden rounded"
@@ -215,7 +215,7 @@ export function StatCards({
                     {Strings.dashAssetsLabel} ({assetsCount})
                   </Text>
                 </View>
-                <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
+                <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
                   {formatAmount(assetsEgp)}
                 </Text>
               </View>
@@ -236,7 +236,7 @@ export function StatCards({
                     {Strings.dashLiabilitiesLabel} ({liabilitiesCount})
                   </Text>
                 </View>
-                <Text className="text-foreground text-xs font-semibold" numberOfLines={1}>
+                <Text className="font-sora-semibold text-foreground text-xs" numberOfLines={1}>
                   {formatAmount(liabilitiesEgp)}
                 </Text>
               </View>
@@ -276,13 +276,13 @@ export function StatCards({
           </>
         ) : (
           <>
-            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+            <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
               {formatAmount(monthSpentEgp)}{' '}
-              <Text className="text-muted text-xs font-medium">EGP</Text>
+              <Text className="font-inter-medium text-muted text-xs">EGP</Text>
             </Text>
-            <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+            <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
               {formatAmount(monthSpentUsd, 0)}{' '}
-              <Text className="text-muted text-xs font-medium">USD</Text>
+              <Text className="font-inter-medium text-muted text-xs">USD</Text>
             </Text>
             <View
               className="flex-row items-center justify-between"
@@ -300,7 +300,7 @@ export function StatCards({
                   }}
                 >
                   <MaterialCommunityIcons name={deltaIcon} size={ms(11)} color={deltaColor} />
-                  <Text className="text-xs font-semibold" style={{ color: deltaColor }}>
+                  <Text className="font-sora-semibold text-xs" style={{ color: deltaColor }}>
                     {monthSpendDeltaPct == null ? '—' : `${Math.abs(monthSpendDeltaPct)}%`}
                   </Text>
                 </View>

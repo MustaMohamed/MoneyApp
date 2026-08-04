@@ -56,7 +56,7 @@ export function AccountRow({
         </Box>
 
         <Box style={{ flex: 1 }} className="gap-0.5">
-          <Text variant="body" className="font-soraBold text-foreground" numberOfLines={1}>
+          <Text variant="body" className="font-sora-bold text-foreground" numberOfLines={1}>
             {account.name}
           </Text>
           <Text variant="caption" className="text-muted">
@@ -66,7 +66,7 @@ export function AccountRow({
 
         <Text
           variant="body"
-          className="font-soraBold"
+          className="font-sora-bold"
           style={{ color: isCC ? SemanticTokens.negative : SemanticTokens.positive }}
         >
           {formattedBalance}

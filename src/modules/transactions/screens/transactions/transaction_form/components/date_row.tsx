@@ -46,7 +46,7 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
             {Strings.addTxDateLabel}
           </Text>
           <Text
-            className="font-sora text-foreground font-semibold"
+            className="font-sora-semibold text-foreground"
             style={{ fontSize: Type.bodyStrong }}
           >
             {formatted}

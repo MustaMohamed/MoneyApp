@@ -158,9 +158,9 @@ describe('SegmentedTabs', () => {
       'className',
       expect.stringContaining('gap-0.5'),
     );
-    expect(getByText('All')).toHaveProp('className', 'text-[11px] font-bold');
+    expect(getByText('All')).toHaveProp('className', 'font-inter-bold text-[11px]');
     expect(getByText('Overdue')).toHaveProp('className', 'text-[11px]');
-    expect(getByText('Overdue')).not.toHaveProp('className', 'font-bold');
+    expect(getByText('Overdue')).not.toHaveProp('className', 'font-inter-bold');
   });
 
   it('renders optional colored leading icons', () => {

@@ -134,7 +134,7 @@ export default function CategoriesScreen() {
         {!state.isAtLimit ? (
           <Button label={Strings.categoriesAddBtn} variant="primary" onPress={openAddSheet} />
         ) : (
-          <Text className="text-muted font-inter-regular py-3 text-center text-xs">
+          <Text className="text-muted font-inter py-3 text-center text-xs">
             {Strings.categoriesLimitMsg}
           </Text>
         )}

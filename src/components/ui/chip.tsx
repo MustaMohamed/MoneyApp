@@ -85,8 +85,8 @@ export function SelectablePill({
       ) : null}
       <Chip.Label
         className={cn(
-          'font-inter text-[11px]',
-          selected ? 'text-accent font-semibold' : 'text-foreground/70 font-medium',
+          'text-[11px]',
+          selected ? 'text-accent font-inter-semibold' : 'text-foreground/70 font-inter-medium',
         )}
       >
         {label}

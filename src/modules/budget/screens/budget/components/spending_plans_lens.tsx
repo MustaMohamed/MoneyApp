@@ -57,10 +57,10 @@ export function SpendingPlansLens({
               color={Colors.dark.text2}
             />
           </View>
-          <Text className="font-sora text-foreground mt-4 text-center text-[18px] font-semibold">
+          <Text className="font-sora-semibold text-foreground mt-4 text-center text-[18px]">
             {Strings.budgetPlansEmptyTitle}
           </Text>
-          <Text className="font-inter text-muted mt-2 max-w-[280px] text-center text-[14px] leading-5 font-medium">
+          <Text className="font-inter-medium text-muted mt-2 max-w-[280px] text-center text-[14px] leading-5">
             {Strings.budgetPlansEmptyBody}
           </Text>
           <Button

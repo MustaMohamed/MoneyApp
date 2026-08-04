@@ -197,7 +197,7 @@ export default function BudgetScreen() {
 
           {state.hasBudgets ? (
             <>
-              <Typography className="font-inter text-muted mx-4 mt-4 mb-1 text-[11px] font-medium uppercase">
+              <Typography className="font-inter-medium text-muted mx-4 mt-4 mb-1 text-[11px] uppercase">
                 {state.categoriesSummary.categoryCountLabel}
               </Typography>
               {state.rows.map((row) => (

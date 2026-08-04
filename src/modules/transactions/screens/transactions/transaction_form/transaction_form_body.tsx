@@ -287,7 +287,7 @@ export function TransactionFormBody(props: Props): React.ReactElement {
                     : (budgetLookupError ?? selectedBudget?.name ?? Strings.addTxPickBudgetTitle)
                 }
                 valueClassName={
-                  budgetLookupError ? 'font-inter text-danger font-medium' : 'text-foreground'
+                  budgetLookupError ? 'font-inter-medium text-danger' : 'text-foreground'
                 }
                 valueStyle={{ fontSize: budgetLookupError ? Type.caption : Type.body }}
                 prefix={

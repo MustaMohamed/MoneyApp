@@ -37,7 +37,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
         <View className="flex-1">
           <View className="flex-row items-center gap-2">
             <Card.Title
-              className="font-sora text-foreground max-w-[70%] shrink text-[19px] font-semibold"
+              className="font-sora-semibold text-foreground max-w-[70%] shrink text-[19px]"
               numberOfLines={1}
             >
               {row.name}
@@ -51,7 +51,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
               accessibilityLabel={row.card.statusLabel}
               className="min-h-6 px-2 py-0"
             >
-              <Chip.Label className="font-inter text-[11.5px] font-semibold capitalize">
+              <Chip.Label className="font-inter-semibold text-[11.5px] capitalize">
                 {row.card.statusLabel}
               </Chip.Label>
             </Chip>
@@ -69,10 +69,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
           accessibilityLabel={row.card.balanceAccessibilityLabel}
           className="items-end"
         >
-          <Text
-            className="font-sora text-[20px] font-bold"
-            style={{ color: row.card.balanceColor }}
-          >
+          <Text className="font-sora-bold text-[20px]" style={{ color: row.card.balanceColor }}>
             {row.card.balanceAmountLabel}
           </Text>
           <Text className="font-inter text-content-secondary text-[11.5px]">
@@ -83,10 +80,10 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
 
       <Card.Body pointerEvents="none" className="mt-1">
         <View className="flex-row items-center justify-between gap-3">
-          <Text className="font-inter text-foreground shrink text-[14px] font-medium">
+          <Text className="font-inter-medium text-foreground shrink text-[14px]">
             {row.card.spentLabel}
           </Text>
-          <Text className="font-inter text-content-secondary text-[13px] font-semibold">
+          <Text className="font-inter-semibold text-content-secondary text-[13px]">
             {row.card.percentageLabel}
           </Text>
         </View>
@@ -115,7 +112,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
         </View>
 
         {row.card.paceLabel === undefined ? null : (
-          <Text className="font-inter text-content-secondary mt-0.5 text-[13px] font-medium">
+          <Text className="font-inter-medium text-content-secondary mt-0.5 text-[13px]">
             {row.card.paceLabel}
           </Text>
         )}
@@ -139,7 +136,7 @@ export function SpendingPlanCard({ row, onOpenDetails, onDelete }: SpendingPlanC
                 accessibilityLabel={chip.accessibilityLabel}
                 className="bg-background min-h-7.5 min-w-7.5 rounded-full p-0"
               >
-                <Chip.Label className="font-inter text-foreground text-[14px] font-semibold">
+                <Chip.Label className="font-inter-semibold text-foreground text-[14px]">
                   {chip.label}
                 </Chip.Label>
               </Chip>

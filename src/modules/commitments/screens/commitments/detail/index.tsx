@@ -31,10 +31,7 @@ export default function CommitmentDetailScreen() {
               hitSlop={8}
               className="min-w-[44px] items-center justify-center px-1"
             >
-              <Text
-                className="font-inter text-[15px] font-semibold"
-                style={{ color: GoldTokens[500] }}
-              >
+              <Text className="font-inter-semibold text-[15px]" style={{ color: GoldTokens[500] }}>
                 {Strings.commitmentsDetailEdit}
               </Text>
             </PressableFeedback>

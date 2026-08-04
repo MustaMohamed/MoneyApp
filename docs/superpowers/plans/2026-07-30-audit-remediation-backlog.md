@@ -48,9 +48,13 @@ Preview/display bugs where the shown number diverges from the persisted one: Pay
 
 Creating a budget whose name matches an existing one (case-insensitive) in the same category+month silently overwrites the existing limit via the natural-key upsert arm (**H3**). Also: budget edit rewrites the category's global `budget_group` across all months (M9); unassigned-income clamp ignores plans (M8).
 
-## Item 6 — Cairo Nights typography actually renders
+## Item 6 — Cairo Nights typography actually renders ✅ DONE
 
-**Tags:** `bug`, `design-system` · **Effort:** M · **Blocked by:** — · **Needs a design call first**
+**Tags:** `bug`, `design-system` · **Effort:** M · **Blocked by:** — · **Shipped 2026-08-04, pending device QA**
+
+Resolved by adopting the family-per-weight model. `global.css` now declares eight `--font-*` family tokens in `@theme inline`, all 243 font class usages across ~80 files were migrated from family+weight pairs to single family classes (`font-sora font-semibold` → `font-sora-semibold`), `Inter_700Bold` was added to the loaded set so every combination maps to a real face, and 20 camelCase classes (`font-soraBold`) that had never been valid Tailwind were corrected. HeroUI's four weight tokens sit in `@layer theme` instead, so they satisfy `var()` without becoming Tailwind family utilities. `__tests__/typography_tokens.test.ts` now enforces every link in the chain. Verified against a real `expo export` bundle: all eight classes compile to loaded faces. **Still needs the device QA typography check** — nothing below the bundle can be proven from CI.
+
+Original write-up follows.
 
 `font-sora`/`font-inter` emit no CSS — no `--font-*` variables exist in `global.css` `@theme inline`; ~347 usages across ~90 files are inert; app ships in Roboto/system (**H15**). Add the font variables + weight families. **Device-QA-only verification** — the `/qa` always-run typography check is the acceptance test.
 

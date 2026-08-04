@@ -31,7 +31,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
           >
             <Typography
               style={{ fontSize: Type.chipMeta }}
-              className="font-inter text-foreground font-bold"
+              className="font-inter-bold text-foreground"
             >
               {budget.usedLabel}
             </Typography>
@@ -43,7 +43,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             <Typography
               numberOfLines={2}
               style={{ fontSize: Type.caption }}
-              className="font-sora text-foreground flex-1 font-semibold"
+              className="font-sora-semibold text-foreground flex-1"
             >
               {budget.name}
             </Typography>
@@ -59,7 +59,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
               <Chip.Label
                 numberOfLines={1}
                 style={{ fontSize: Type.chipMeta }}
-                className="font-inter text-info font-semibold"
+                className="font-inter-semibold text-info"
               >
                 {budget.shareLabel}
               </Chip.Label>
@@ -73,7 +73,7 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
         <View className="min-w-12 items-end">
           <Typography
             style={{ color: budget.ringColor, fontSize: Type.meta }}
-            className="font-sora font-bold"
+            className="font-sora-bold"
           >
             {budget.balanceAmountLabel}
           </Typography>

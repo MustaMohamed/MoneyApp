@@ -65,9 +65,12 @@ export function NetWorthBreakdownSheet({
           <Text variant="hint" className="text-muted text-xs tracking-wide uppercase">
             {Strings.dashboardBreakdownNetWorthLabel}
           </Text>
-          <Text className="mt-1 font-bold" style={{ color: Colors.dark.gold, fontSize: ms(28) }}>
+          <Text
+            className="font-sora-bold mt-1"
+            style={{ color: Colors.dark.gold, fontSize: ms(28) }}
+          >
             {formatAmount(netWorthEgp)}{' '}
-            <Text className="text-muted text-base font-medium">EGP</Text>
+            <Text className="font-inter-medium text-muted text-base">EGP</Text>
           </Text>
           <Text variant="caption" className="text-muted mt-1">
             {rate > 0 ? `≈ ${formatAmount(netWorthUsd, 0)} USD` : '— USD'}
@@ -154,7 +157,7 @@ export function NetWorthBreakdownSheet({
               <View className="bg-separator mt-1 mb-2 h-px" />
               <View className="flex-row justify-between" style={{ flexDirection: 'row' }}>
                 <Text className="text-muted">{Strings.dashboardBreakdownTotalDebt}</Text>
-                <Text className="font-bold" style={{ color: Colors.dark.gold }}>
+                <Text className="font-sora-bold" style={{ color: Colors.dark.gold }}>
                   {formatAmount(totalDebt)}
                 </Text>
               </View>
@@ -201,8 +204,8 @@ function LegendRow({
         )}
         <View>
           <View style={{ flexDirection: 'row', gap: ms(4) }}>
-            <Text className="text-foreground font-semibold">{label}</Text>
-            {count !== undefined && <Text className="text-muted font-normal">({count})</Text>}
+            <Text className="font-inter-semibold text-foreground">{label}</Text>
+            {count !== undefined && <Text className="font-inter text-muted">({count})</Text>}
           </View>
           {caption && (
             <Text variant="caption" className="text-muted">
@@ -211,7 +214,7 @@ function LegendRow({
           )}
         </View>
       </View>
-      <Text className="font-semibold" style={valueColor ? { color: valueColor } : undefined}>
+      <Text className="font-sora-semibold" style={valueColor ? { color: valueColor } : undefined}>
         {negative ? `−${formatAmount(value)}` : formatAmount(value)}
       </Text>
     </View>
@@ -231,7 +234,7 @@ function AccountSubRow({ account }: { account: AccountRow }) {
       <Text variant="caption" className="text-muted">
         {account.name}
       </Text>
-      <Text variant="caption" className="text-foreground font-medium">
+      <Text variant="caption" className="font-inter-medium text-foreground">
         {formatAmount(account.balanceEgp)}
       </Text>
     </View>

@@ -29,7 +29,7 @@ export default function WelcomeScreen() {
           </Animated.View>
 
           <Animated.View entering={headlineEntering} className="items-center gap-1">
-            <Text variant="hero" className="font-soraExtra text-center">
+            <Text variant="hero" className="font-sora-extrabold text-center">
               {Strings.o1Headline}
             </Text>
             <Text variant="body" className="text-muted mt-1 text-center">

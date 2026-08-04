@@ -46,7 +46,7 @@ export function AddCard({ width, onPress }: AddCardProps) {
           >
             <MaterialCommunityIcons name="plus" size={ms(25)} color={ACCENT} />
           </View>
-          <Text variant="caption" className="font-semibold" style={{ color: ACCENT }}>
+          <Text variant="caption" className="font-inter-semibold" style={{ color: ACCENT }}>
             {Strings.emptyAccountsCta}
           </Text>
         </View>

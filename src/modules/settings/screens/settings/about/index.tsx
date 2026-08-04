@@ -23,17 +23,17 @@ export default function AboutScreen() {
 
           <Text className="text-foreground font-sora-bold mb-1 text-xl">MoneyApp</Text>
 
-          <Text className="text-muted font-inter-regular text-sm">
+          <Text className="text-muted font-inter text-sm">
             {Strings.aboutVersion(state.version)}
           </Text>
-          <Text className="text-muted font-inter-regular mt-0.5 text-sm">
+          <Text className="text-muted font-inter mt-0.5 text-sm">
             {Strings.aboutBuild(state.build)}
           </Text>
         </View>
 
         {/* Data locality notice */}
         <View className="bg-surface border-border mx-4 mt-4 rounded-xl border px-4 py-4">
-          <Text className="text-muted font-inter-regular text-center text-sm leading-5">
+          <Text className="text-muted font-inter text-center text-sm leading-5">
             {Strings.aboutDataNotice}
           </Text>
         </View>

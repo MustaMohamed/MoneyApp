@@ -31,7 +31,7 @@ export function RuleContributorRow({ contributor }: RuleContributorRowProps) {
       <View style={{ flex: 1 }}>
         <Text
           style={{ fontSize: Type.caption }}
-          className="font-sora text-foreground font-semibold"
+          className="font-sora-semibold text-foreground"
           numberOfLines={1}
         >
           {contributor.name}
@@ -45,7 +45,7 @@ export function RuleContributorRow({ contributor }: RuleContributorRowProps) {
       <View className="max-w-[46%] items-end">
         <Text
           style={{ fontSize: Type.caption }}
-          className="font-sora text-foreground text-right font-semibold"
+          className="font-sora-semibold text-foreground text-right"
           numberOfLines={2}
         >
           {presentation.resultLabel}

@@ -100,7 +100,7 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
                 color={Colors.shared.cairoGold}
               />
             </View>
-            <Text variant="caption" className="text-foreground font-semibold">
+            <Text variant="caption" className="font-inter-semibold text-foreground">
               {Strings.budgetTitle}
             </Text>
           </View>
@@ -150,10 +150,10 @@ export function BudgetCard({ summary, yearMonth, isLoading, onPress }: Props) {
                 justifyContent: 'space-between',
               }}
             >
-              <Text className="text-muted text-[11px] font-semibold">
+              <Text className="font-inter-semibold text-muted text-[11px]">
                 {Strings.budgetCategoryCountLabel(summary.categoryCount)}
               </Text>
-              <Text className="text-[11px] font-bold" style={{ color: bandColor }}>
+              <Text className="font-sora-bold text-[11px]" style={{ color: bandColor }}>
                 {`${progressPct}% ${Strings.budgetUsedSuffix}`}
               </Text>
             </View>
@@ -175,8 +175,8 @@ function Figure({
 }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text className="text-muted text-[10px] font-semibold uppercase">{label}</Text>
-      <Text className={`font-sora text-[14px] font-bold ${valueClassName}`} numberOfLines={1}>
+      <Text className="font-inter-semibold text-muted text-[10px] uppercase">{label}</Text>
+      <Text className={`font-sora-bold text-[14px] ${valueClassName}`} numberOfLines={1}>
         {value}
       </Text>
     </View>

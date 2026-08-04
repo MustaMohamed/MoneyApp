@@ -31,7 +31,7 @@ export function FiftyThirtyTwentyLens({
       <View className="mx-4 mt-4 mb-1 flex-row items-end justify-between">
         <Text
           style={{ fontSize: Type.micro }}
-          className="font-inter text-content-secondary font-semibold uppercase"
+          className="font-inter-semibold text-content-secondary uppercase"
         >
           {Strings.budget5030BreakdownTitle}
         </Text>

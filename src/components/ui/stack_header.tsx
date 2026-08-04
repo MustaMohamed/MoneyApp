@@ -34,7 +34,7 @@ export function StackHeader({ title, onBack, right }: StackHeaderProps) {
         <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
       </PressableFeedback>
       <Typography
-        className="font-sora text-foreground flex-1 text-center font-semibold"
+        className="font-sora-semibold text-foreground flex-1 text-center"
         style={{ fontSize: Type.title }}
         numberOfLines={1}
       >

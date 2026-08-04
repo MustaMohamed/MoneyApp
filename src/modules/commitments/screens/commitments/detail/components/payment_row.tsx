@@ -29,14 +29,14 @@ export function PaymentRow({ payment, commitment, showDivider = true }: Props) {
     >
       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: statusColor }} />
       <View style={{ flex: 1 }}>
-        <Text className="font-inter text-foreground text-[15px] font-medium">
+        <Text className="font-inter-medium text-foreground text-[15px]">
           {formatMonthYear(payment.due_date)}
         </Text>
         <Text className="font-inter mt-0.5 text-[12px]" style={{ color: statusColor }}>
           {statusLabel}
         </Text>
       </View>
-      <Text className="font-sora text-foreground text-[15px] font-semibold">{amountText}</Text>
+      <Text className="font-sora-semibold text-foreground text-[15px]">{amountText}</Text>
     </View>
   );
 }

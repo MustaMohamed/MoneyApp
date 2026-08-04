@@ -143,7 +143,7 @@ export function PaySheet({ commitment, payment }: Props) {
               </View>
               {commitment ? (
                 <View className="bg-default border-border rounded-md border px-3 py-2">
-                  <Text className="font-sora text-muted text-[15px] font-semibold">
+                  <Text className="font-sora-semibold text-muted text-[15px]">
                     {commitment.currency}
                   </Text>
                 </View>
@@ -175,7 +175,7 @@ export function PaySheet({ commitment, payment }: Props) {
                     color={state.selectedAccount.color ?? CoreTokens.text2}
                   />
                   <View style={{ flex: 1 }}>
-                    <Text className="font-sora text-foreground text-[15px] font-semibold">
+                    <Text className="font-sora-semibold text-foreground text-[15px]">
                       {state.selectedAccount.name}
                     </Text>
                     <Text className="font-inter text-muted text-[12px]">
@@ -217,7 +217,7 @@ export function PaySheet({ commitment, payment }: Props) {
           {/* Converted total (conditional) */}
           {state.requiresRate && convertedTotal != null ? (
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end' }} className="mt-2">
-              <Text className="font-sora text-foreground text-[15px] font-semibold">
+              <Text className="font-sora-semibold text-foreground text-[15px]">
                 = {numberFmt.format(convertedTotal)} {state.selectedAccount?.currency}
               </Text>
             </View>

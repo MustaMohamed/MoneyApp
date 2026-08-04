@@ -44,7 +44,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
             <View className="flex-row items-center gap-1.5">
               <Text
                 style={{ flexShrink: 1, fontSize: Type.body, minWidth: 0 }}
-                className="font-sora text-foreground font-semibold"
+                className="font-sora-semibold text-foreground"
                 numberOfLines={1}
               >
                 {presentation.groupLabel}
@@ -64,7 +64,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
               >
                 <Chip.Label
                   style={{ fontSize: Type.chipMeta }}
-                  className="font-inter font-bold uppercase"
+                  className="font-inter-bold uppercase"
                 >
                   {presentation.statusLabel}
                 </Chip.Label>
@@ -81,7 +81,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
           <View style={{ width: Size.budgetRuleValueColumn }} className="items-end">
             <Text
               style={{ color: presentation.varianceColor, fontSize: Type.bodyStrong }}
-              className="font-sora font-bold"
+              className="font-sora-bold"
               numberOfLines={1}
             >
               {presentation.varianceLabel}
@@ -116,7 +116,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
               </Text>
               <Text
                 style={{ fontSize: Type.caption }}
-                className="font-sora text-foreground mt-px text-center font-semibold"
+                className="font-sora-semibold text-foreground mt-px text-center"
               >
                 {metric.value}
               </Text>
@@ -145,7 +145,7 @@ export function RuleBucketRow({ bucket, isExpanded, onManage }: RuleBucketRowPro
           onPress={() => onManage(bucket.group)}
           className="min-h-10 justify-between rounded-none px-3"
         >
-          <Button.Label className="font-inter text-foreground font-semibold">
+          <Button.Label className="font-inter-semibold text-foreground">
             {presentation.manageLabel}
           </Button.Label>
           <MaterialCommunityIcons name="arrow-right" size={Size.iconXs} color={Colors.dark.text2} />

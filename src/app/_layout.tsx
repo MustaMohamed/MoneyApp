@@ -1,11 +1,15 @@
 import '../../global.css';
-import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold } from '@expo-google-fonts/inter';
-import {
-  Sora_400Regular,
-  Sora_600SemiBold,
-  Sora_700Bold,
-  Sora_800ExtraBold,
-} from '@expo-google-fonts/sora';
+// Per-face imports, not the package root. Each package's index re-exports every
+// weight it ships (20 for Inter, 8 for Sora), and Metro pulls the whole graph —
+// so importing from the root bundles ~26 .ttf files to use 8.
+import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
+import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { Sora_400Regular } from '@expo-google-fonts/sora/400Regular';
+import { Sora_600SemiBold } from '@expo-google-fonts/sora/600SemiBold';
+import { Sora_700Bold } from '@expo-google-fonts/sora/700Bold';
+import { Sora_800ExtraBold } from '@expo-google-fonts/sora/800ExtraBold';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -42,6 +46,7 @@ export default function RootLayout() {
     Inter_400Regular,
     Inter_500Medium,
     Inter_600SemiBold,
+    Inter_700Bold,
     Sora_400Regular,
     Sora_600SemiBold,
     Sora_700Bold,

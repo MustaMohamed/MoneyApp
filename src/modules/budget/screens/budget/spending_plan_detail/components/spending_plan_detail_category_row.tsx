@@ -46,7 +46,7 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
       )}
 
       <View className="min-w-0 flex-1">
-        <Text className="font-inter text-foreground text-[15px] font-semibold" numberOfLines={1}>
+        <Text className="font-inter-semibold text-foreground text-[15px]" numberOfLines={1}>
           {row.categoryName}
         </Text>
         <Text
@@ -59,12 +59,10 @@ export function SpendingPlanDetailCategoryRow({ row }: SpendingPlanDetailCategor
       </View>
 
       <View className="items-end">
-        <Text className="font-sora text-foreground text-[15px] font-semibold">
-          {row.amountLabel}
-        </Text>
+        <Text className="font-sora-semibold text-foreground text-[15px]">{row.amountLabel}</Text>
         {row.kind === 'allocated' ? (
           <Text
-            className="font-inter text-content-secondary mt-px text-[11.5px] font-medium"
+            className="font-inter-medium text-content-secondary mt-px text-[11.5px]"
             style={{ color: row.balanceColor }}
           >
             {row.balanceLabel}

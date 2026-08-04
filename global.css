@@ -40,6 +40,25 @@
     /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
     --info: 73 158 224; /* #4A9EE0 — Transfer accent */
     --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
+
+    /*
+     * HeroUI Native's font contract. Its component CSS resolves type through
+     * `font-family: var(--font-<weight>)` — 33 call sites across 19 components
+     * since 1.0.7 — so these must exist or every HeroUI primitive renders
+     * unweighted. Body/label surfaces, hence Inter per Cairo Nights.
+     *
+     * Deliberately NOT in `@theme inline`. Tailwind resolves `font-<x>` against
+     * the family namespace before the weight namespace, so declaring these as
+     * theme tokens would turn `font-semibold` / `font-bold` / `font-medium`
+     * into family utilities and silently re-point ~211 existing usages — 60 of
+     * which pair a family class with a weight class, where the hijacked weight
+     * class would override the intended Sora. As plain custom properties they
+     * satisfy `var()` without generating a single utility.
+     */
+    --font-normal: Inter_400Regular;
+    --font-medium: Inter_500Medium;
+    --font-semibold: Inter_600SemiBold;
+    --font-bold: Inter_700Bold;
   }
 
   @variant light {
@@ -79,6 +98,25 @@
     /* §7: Transfer + CC Payment accent colors (promoted from hardcoded hex) */
     --info: 73 158 224; /* #4A9EE0 — Transfer accent */
     --accent-cc: 155 115 212; /* #9B73D4 — CC Payment accent */
+
+    /*
+     * HeroUI Native's font contract. Its component CSS resolves type through
+     * `font-family: var(--font-<weight>)` — 33 call sites across 19 components
+     * since 1.0.7 — so these must exist or every HeroUI primitive renders
+     * unweighted. Body/label surfaces, hence Inter per Cairo Nights.
+     *
+     * Deliberately NOT in `@theme inline`. Tailwind resolves `font-<x>` against
+     * the family namespace before the weight namespace, so declaring these as
+     * theme tokens would turn `font-semibold` / `font-bold` / `font-medium`
+     * into family utilities and silently re-point ~211 existing usages — 60 of
+     * which pair a family class with a weight class, where the hijacked weight
+     * class would override the intended Sora. As plain custom properties they
+     * satisfy `var()` without generating a single utility.
+     */
+    --font-normal: Inter_400Regular;
+    --font-medium: Inter_500Medium;
+    --font-semibold: Inter_600SemiBold;
+    --font-bold: Inter_700Bold;
   }
 }
 
@@ -125,4 +163,20 @@
 
   /* Semantic aliases matching NativeWind-era class names used in §2 screens */
   --color-negative: var(--danger);
+
+  /*
+   * Font families. React Native registers each loaded face as its own family —
+   * there is no "Sora at weight 600", only a font literally named
+   * Sora_600SemiBold — so weight is part of the family token, not a separate
+   * `font-weight` declaration. Every name here must match a face loaded in
+   * src/app/_layout.tsx and mirrored in constants/theme.ts `FontFamily`.
+   */
+  --font-sora: Sora_400Regular;
+  --font-sora-semibold: Sora_600SemiBold;
+  --font-sora-bold: Sora_700Bold;
+  --font-sora-extrabold: Sora_800ExtraBold;
+  --font-inter: Inter_400Regular;
+  --font-inter-medium: Inter_500Medium;
+  --font-inter-semibold: Inter_600SemiBold;
+  --font-inter-bold: Inter_700Bold;
 }

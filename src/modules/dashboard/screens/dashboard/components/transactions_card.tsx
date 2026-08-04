@@ -87,7 +87,7 @@ function MetricValue({
 }): React.ReactElement {
   return (
     <Text
-      className={`font-sora text-[14px] font-bold ${className}`}
+      className={`font-sora-bold text-[14px] ${className}`}
       style={{ flex: 1, textAlign: align }}
       numberOfLines={1}
       adjustsFontSizeToFit
@@ -120,7 +120,7 @@ function DeltaValue({
           alignItems: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center',
         }}
       >
-        <Text className="font-sora text-foreground/40 text-[11px] font-bold">—</Text>
+        <Text className="font-sora-bold text-foreground/40 text-[11px]">—</Text>
       </View>
     );
   }
@@ -132,7 +132,7 @@ function DeltaValue({
         size={ms(12)}
         color={polarityColor(delta.polarity)}
       />
-      <Text className={`font-sora ml-0.5 text-[11px] font-bold ${polarityClass(delta.polarity)}`}>
+      <Text className={`font-sora-bold ml-0.5 text-[11px] ${polarityClass(delta.polarity)}`}>
         {delta.label}
       </Text>
     </View>
@@ -264,7 +264,7 @@ export function TransactionsCard({
                 color={SemanticTokens.info}
               />
             </View>
-            <Text variant="caption" className="text-foreground font-semibold">
+            <Text variant="caption" className="font-inter-semibold text-foreground">
               {Strings.transactions}
             </Text>
           </View>
@@ -319,7 +319,7 @@ export function TransactionsCard({
                   ))}
                 </View>
                 {previousLabel ? (
-                  <Text className="font-inter text-foreground/45 text-center text-[9px] font-bold tracking-wide uppercase">
+                  <Text className="font-inter-bold text-foreground/45 text-center text-[9px] tracking-wide uppercase">
                     {Strings.totalsVsPrev(previousLabel)}
                   </Text>
                 ) : null}

@@ -44,7 +44,7 @@ function ToolButton(props: ToolButtonProps) {
         size={ms(15)}
         color={props.isDisabled ? Colors.dark.text3 : props.color}
       />
-      <Typography className="font-inter text-foreground text-[11px] font-semibold">
+      <Typography className="font-inter-semibold text-foreground text-[11px]">
         {props.label}
       </Typography>
     </PressableFeedback>

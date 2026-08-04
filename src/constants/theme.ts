@@ -72,6 +72,7 @@ export const FontFamily = {
   interRegular: 'Inter_400Regular',
   interMedium: 'Inter_500Medium',
   interSemi: 'Inter_600SemiBold',
+  interBold: 'Inter_700Bold',
 } as const;
 
 /** Typography scale — font sizes only. Use FontFamily separately. */

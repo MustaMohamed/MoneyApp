@@ -17,7 +17,7 @@ export function NoAccountsEmpty({ onAddAccount }: Props): React.ReactElement {
     <View className="flex-1 items-center justify-center gap-4 px-6 py-8">
       <MaterialCommunityIcons name="bank-off" size={Size.emptyStateIcon} color={CoreTokens.text2} />
       <Text
-        className="font-sora text-foreground text-center font-semibold"
+        className="font-sora-semibold text-foreground text-center"
         style={{ fontSize: Type.emptyTitle }}
       >
         {Strings.addTxNoAccountsTitle}

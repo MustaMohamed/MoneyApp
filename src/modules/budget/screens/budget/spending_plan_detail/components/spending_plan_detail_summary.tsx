@@ -23,18 +23,15 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
               accessibilityRole="text"
               accessibilityLabel={detail.balanceAccessibilityLabel}
             >
-              <Text
-                className="font-sora text-[31px] font-bold"
-                style={{ color: detail.balanceColor }}
-              >
+              <Text className="font-sora-bold text-[31px]" style={{ color: detail.balanceColor }}>
                 {detail.balanceAmountLabel}
-                <Text className="font-inter text-content-secondary text-[13px] font-medium">
+                <Text className="font-inter-medium text-content-secondary text-[13px]">
                   {' '}
                   {detail.balanceMetaLabel}
                 </Text>
               </Text>
             </View>
-            <Text className="font-inter text-content-secondary mt-px text-[13px] font-medium">
+            <Text className="font-inter-medium text-content-secondary mt-px text-[13px]">
               {detail.dateLabel}
             </Text>
           </View>
@@ -47,17 +44,15 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
             accessibilityLabel={detail.statusLabel}
             className="min-h-6 px-2 py-0"
           >
-            <Chip.Label className="font-inter text-[11.5px] font-semibold capitalize">
+            <Chip.Label className="font-inter-semibold text-[11.5px] capitalize">
               {detail.statusLabel}
             </Chip.Label>
           </Chip>
         </View>
 
         <View className="mt-1 flex-row items-center justify-between gap-3">
-          <Text className="font-inter text-foreground text-[14px] font-medium">
-            {detail.spentLabel}
-          </Text>
-          <Text className="font-inter text-content-secondary text-[13px] font-semibold">
+          <Text className="font-inter-medium text-foreground text-[14px]">{detail.spentLabel}</Text>
+          <Text className="font-inter-semibold text-content-secondary text-[13px]">
             {detail.percentageLabel}
           </Text>
         </View>
@@ -99,7 +94,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
                 <Text className="font-inter text-content-secondary text-center text-[11.5px]">
                   {metric.label}
                 </Text>
-                <Text className="font-sora text-foreground mt-px text-center text-[15px] font-semibold">
+                <Text className="font-sora-semibold text-foreground mt-px text-center text-[15px]">
                   {metric.value}
                 </Text>
               </View>
@@ -121,7 +116,7 @@ export function SpendingPlanDetailSummary({ detail }: SpendingPlanDetailSummaryP
                   color={insight.color}
                 />
                 <Text
-                  className="font-inter text-content-secondary flex-1 text-[13px] font-medium"
+                  className="font-inter-medium text-content-secondary flex-1 text-[13px]"
                   numberOfLines={2}
                 >
                   {insight.label}

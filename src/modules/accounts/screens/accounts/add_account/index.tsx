@@ -194,7 +194,7 @@ export default function AddAccountAppScreen() {
 
             {/* Interest Tracking */}
             <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
-              <Typography className="font-inter text-foreground text-[15px] font-semibold">
+              <Typography className="font-inter-semibold text-foreground text-[15px]">
                 {Strings.o4InterestLabel}
               </Typography>
               <Switch

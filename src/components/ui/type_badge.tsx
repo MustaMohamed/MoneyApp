@@ -32,7 +32,7 @@ const wrap = tv({
 });
 
 const labelVariants = tv({
-  base: 'font-inter font-semibold',
+  base: 'font-inter-semibold',
   variants: {
     type: {
       commitment: 'text-accent',

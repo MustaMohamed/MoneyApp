@@ -70,10 +70,10 @@ export function FilterAccordionShell({
           <Accordion.Trigger className="gap-0 px-0 py-0" style={{ padding: 0, gap: 0 }}>
             <View className="flex-row items-center justify-between" style={{ flex: 1 }}>
               <View className="flex-row items-center gap-2">
-                <Text className="font-inter text-[13px] font-semibold">{title}</Text>
+                <Text className="font-inter-semibold text-[13px]">{title}</Text>
                 {count > 0 ? (
                   <View className="bg-accent/15 min-w-[18px] items-center rounded-full px-1.5">
-                    <Text className="font-inter text-accent text-[10px] font-bold">{count}</Text>
+                    <Text className="font-inter-bold text-accent text-[10px]">{count}</Text>
                   </View>
                 ) : null}
               </View>
@@ -148,7 +148,7 @@ export function AmountRangeFilterContent({
       />
       <View className="flex-row gap-2">
         <View className="flex-1">
-          <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
+          <Text className="font-inter-semibold text-foreground/55 mb-1 text-[10px] uppercase">
             {Strings.filterAmountMinLabel}
           </Text>
           <View
@@ -166,7 +166,7 @@ export function AmountRangeFilterContent({
           </View>
         </View>
         <View className="flex-1">
-          <Text className="font-inter text-foreground/55 mb-1 text-[10px] font-semibold uppercase">
+          <Text className="font-inter-semibold text-foreground/55 mb-1 text-[10px] uppercase">
             {Strings.filterAmountMaxLabel}
           </Text>
           <View
@@ -192,7 +192,7 @@ export function AmountRangeFilterContent({
         {rangeError ? (
           <Text
             accessibilityRole="alert"
-            className="font-inter text-danger text-[11px] font-medium"
+            className="font-inter-medium text-danger text-[11px]"
             numberOfLines={1}
           >
             {rangeError}

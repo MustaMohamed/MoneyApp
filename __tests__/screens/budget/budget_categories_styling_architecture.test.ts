@@ -135,8 +135,8 @@ describe('budget categories presentation architecture', () => {
 
     expect(parent).toMatch(/numberOfLines=\{2\}/);
     expect(child).toMatch(/numberOfLines=\{2\}/);
-    expect(parent).toContain('className="font-sora text-foreground flex-1 font-semibold"');
-    expect(child).toContain('className="font-sora text-foreground flex-1 font-semibold"');
+    expect(parent).toContain('className="font-sora-semibold text-foreground flex-1"');
+    expect(child).toContain('className="font-sora-semibold text-foreground flex-1"');
   });
 
   it('keeps ledger controls accessible and explains unassigned spending', () => {
@@ -165,7 +165,7 @@ describe('budget categories presentation architecture', () => {
     expect(unassigned).toContain('text-foreground');
     expect(unassigned).not.toContain('warning');
     expect(parent).toContain('border-border bg-default');
-    expect(parent).toContain('className="font-inter text-foreground flex-1 font-semibold"');
+    expect(parent).toContain('className="font-inter-semibold text-foreground flex-1"');
     expect(parent).not.toContain('text-accent');
     expect(parent).not.toContain('Colors.dark.gold');
   });

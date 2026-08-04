@@ -42,10 +42,10 @@ export function SpendingPlanAllocationChip({
         testID={`spending-plan-allocation-chip-copy:${allocation.categoryId}`}
         className="items-start"
       >
-        <Text className="font-inter text-foreground text-[13px] font-semibold" numberOfLines={1}>
+        <Text className="font-inter-semibold text-foreground text-[13px]" numberOfLines={1}>
           {allocation.amountLabel}
         </Text>
-        <Text className="font-inter text-content-secondary text-[11px] font-semibold">
+        <Text className="font-inter-semibold text-content-secondary text-[11px]">
           {allocation.percentageLabel}
         </Text>
       </View>

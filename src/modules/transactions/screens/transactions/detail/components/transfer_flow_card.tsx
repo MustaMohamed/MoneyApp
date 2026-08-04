@@ -45,7 +45,7 @@ function Cell({
   const inner = (
     <View className="flex-1 items-center">
       <Text
-        className="font-inter text-foreground/55 font-semibold tracking-wide uppercase"
+        className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
         style={{ fontSize: Type.compactBadge }}
       >
         {label}
@@ -58,14 +58,14 @@ function Cell({
         />
       </View>
       <Text
-        className="font-inter text-foreground mt-1 font-semibold"
+        className="font-inter-semibold text-foreground mt-1"
         style={{ fontSize: Type.detail }}
         numberOfLines={1}
       >
         {account.name}
       </Text>
       <Text
-        className="font-sora text-foreground/85 mt-0.5 font-semibold"
+        className="font-sora-semibold text-foreground/85 mt-0.5"
         style={{ fontSize: Type.micro }}
         numberOfLines={1}
       >

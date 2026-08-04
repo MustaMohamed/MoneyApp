@@ -56,7 +56,7 @@ export function BudgetSummaryHeader({
       <View className="flex-row items-center justify-between gap-2">
         <Text
           style={{ fontSize: Type.meta, letterSpacing: LetterSpacing.eyebrow }}
-          className="font-inter text-content-secondary shrink font-semibold uppercase"
+          className="font-inter-semibold text-content-secondary shrink uppercase"
           numberOfLines={1}
         >
           {eyebrowLabel}
@@ -64,7 +64,7 @@ export function BudgetSummaryHeader({
         {eyebrowTrailingLabel ? (
           <Text
             style={{ fontSize: Type.meta }}
-            className="font-inter text-content-secondary shrink-0 font-semibold"
+            className="font-inter-semibold text-content-secondary shrink-0"
             numberOfLines={1}
           >
             {eyebrowTrailingLabel}
@@ -76,13 +76,13 @@ export function BudgetSummaryHeader({
         {hasData ? (
           <Text
             style={{ color: balanceColor, fontSize: Type.summary }}
-            className="font-sora shrink font-bold"
+            className="font-sora-bold shrink"
             numberOfLines={2}
           >
             {balanceLabel}
             <Text
               style={{ fontSize: Type.meta }}
-              className="font-inter text-content-secondary font-medium"
+              className="font-inter-medium text-content-secondary"
             >
               {' '}
               {balanceMetaLabel}
@@ -91,7 +91,7 @@ export function BudgetSummaryHeader({
         ) : (
           <Text
             style={{ fontSize: Type.title }}
-            className="font-sora text-foreground flex-1 font-bold"
+            className="font-sora-bold text-foreground flex-1"
             numberOfLines={2}
           >
             {emptyLabel}
@@ -102,7 +102,7 @@ export function BudgetSummaryHeader({
             {trailingLabel ? (
               <Text
                 style={{ fontSize: Type.meta }}
-                className="font-inter text-content-secondary shrink font-semibold"
+                className="font-inter-semibold text-content-secondary shrink"
                 numberOfLines={1}
               >
                 {trailingLabel}
@@ -119,10 +119,7 @@ export function BudgetSummaryHeader({
                 size={Size.iconMicro}
                 color={Colors.dark.gold}
               />
-              <Text
-                style={{ fontSize: Type.micro }}
-                className="font-inter text-accent font-semibold"
-              >
+              <Text style={{ fontSize: Type.micro }} className="font-inter-semibold text-accent">
                 {trailingActionLabel}
               </Text>
             </PressableFeedback>
@@ -136,17 +133,14 @@ export function BudgetSummaryHeader({
             animation="disable-all"
             className="min-h-7 px-2 py-0"
           >
-            <Chip.Label
-              style={{ fontSize: Type.meta }}
-              className="font-inter font-semibold capitalize"
-            >
+            <Chip.Label style={{ fontSize: Type.meta }} className="font-inter-semibold capitalize">
               {trailingChipLabel}
             </Chip.Label>
           </Chip>
         ) : trailingLabel ? (
           <Text
             style={{ fontSize: Type.meta }}
-            className="font-inter text-content-secondary shrink font-semibold"
+            className="font-inter-semibold text-content-secondary shrink"
             numberOfLines={1}
           >
             {trailingLabel}
@@ -172,13 +166,13 @@ export function BudgetSummarySpentRow({
     <View className="mt-0.5 flex-row items-center justify-between gap-2">
       <Text
         style={{ flex: 1, fontSize: Type.bodyStrong }}
-        className="font-inter text-content-secondary font-medium"
+        className="font-inter-medium text-content-secondary"
         numberOfLines={2}
       >
-        <Text className="font-inter text-foreground font-semibold">{spentLabel}</Text>
+        <Text className="font-inter-semibold text-foreground">{spentLabel}</Text>
         {connectorLabel ? ` ${connectorLabel} ` : ''}
         {plannedLabel ? (
-          <Text className="font-inter text-foreground font-semibold">{plannedLabel}</Text>
+          <Text className="font-inter-semibold text-foreground">{plannedLabel}</Text>
         ) : null}
       </Text>
       <Text
@@ -219,8 +213,8 @@ function BudgetSummaryMetric({ item }: { item: BudgetSummaryMetricItem }) {
         style={{ fontSize: Type.bodyStrong }}
         className={
           item.tone === 'warning'
-            ? 'font-sora text-warning mt-px text-center font-semibold'
-            : 'font-sora text-foreground mt-px text-center font-semibold'
+            ? 'font-sora-semibold text-warning mt-px text-center'
+            : 'font-sora-semibold text-foreground mt-px text-center'
         }
       >
         {item.value}
@@ -259,7 +253,7 @@ export function BudgetSummaryStatusRow({ items }: { items: BudgetSummaryStatusIt
           <Text
             style={{ fontSize: Type.detail }}
             numberOfLines={2}
-            className="font-inter text-content-secondary shrink text-center font-medium"
+            className="font-inter-medium text-content-secondary shrink text-center"
           >
             {item.label}
           </Text>

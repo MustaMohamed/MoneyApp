@@ -54,7 +54,7 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
             />
           </View>
           <Text
-            className="font-sora text-foreground text-center font-semibold"
+            className="font-sora-semibold text-foreground text-center"
             style={{ fontSize: Type.bodyStrong }}
           >
             {Strings.addTxBudgetEmptyTitle}
@@ -97,7 +97,7 @@ export function BudgetPickerSheet(props: BudgetPickerSheetProps) {
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text
-                      className="font-sora text-foreground font-semibold"
+                      className="font-sora-semibold text-foreground"
                       style={{ fontSize: Type.body }}
                       numberOfLines={1}
                     >

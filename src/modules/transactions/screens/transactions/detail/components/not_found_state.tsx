@@ -9,7 +9,7 @@ export function NotFoundState(): React.ReactElement {
   return (
     <View className="flex-1 items-center justify-center px-8">
       <Text
-        className="font-sora text-foreground/85 text-center font-bold"
+        className="font-sora-bold text-foreground/85 text-center"
         style={{ fontSize: Type.subhead }}
       >
         {Strings.detailNotFoundTitle}
