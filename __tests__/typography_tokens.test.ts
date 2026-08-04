@@ -39,6 +39,26 @@ function tokensIn(css: string): Map<string, string> {
   return new Map([...css.matchAll(TOKEN)].map(([, name, face]) => [name, face]));
 }
 
+/**
+ * Face names registered with `useFonts({ ... })`.
+ *
+ * Deliberately not "does the name appear in _layout.tsx" — an import alone
+ * satisfies that, and an imported-but-unregistered face is bundled, never
+ * loaded, and renders as nothing. The import block sits far from the call,
+ * so adding one and forgetting the other is the easy mistake to make.
+ */
+function registeredFaces(): Set<string> {
+  const call = /useFonts\(\{([^}]*)\}\)/s.exec(layout);
+  if (!call) throw new Error('no useFonts({ ... }) call found in _layout.tsx');
+
+  return new Set(
+    call[1]
+      .split(',')
+      .map((entry) => entry.split(':')[0]?.trim())
+      .filter((name): name is string => Boolean(name)),
+  );
+}
+
 /** Every `.ts`/`.tsx` under src/, walked without shelling out. */
 function sourceFiles(dir = 'src'): string[] {
   return readdirSync(resolve(process.cwd(), dir), { withFileTypes: true }).flatMap((entry) => {
@@ -76,8 +96,9 @@ describe('typography tokens', () => {
     expect(bareWeights).toEqual([]);
   });
 
-  it('every --font-* token names a face loaded in _layout.tsx', () => {
-    const unloaded = [...tokensIn(globalCss)].filter(([, face]) => !layout.includes(face));
+  it('every --font-* token names a face registered with useFonts', () => {
+    const registered = registeredFaces();
+    const unloaded = [...tokensIn(globalCss)].filter(([, face]) => !registered.has(face));
 
     expect(unloaded).toEqual([]);
   });
