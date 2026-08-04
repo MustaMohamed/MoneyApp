@@ -16,7 +16,7 @@ export function UnassignedSpendingRow({ amountLabel }: { amountLabel: string }) 
       <View style={{ flex: 1 }}>
         <Typography
           style={{ fontSize: Type.micro }}
-          className="font-inter text-foreground font-semibold"
+          className="font-inter-semibold text-foreground"
         >
           {Strings.budgetCategoriesUnassignedSpending}
         </Typography>
@@ -24,10 +24,7 @@ export function UnassignedSpendingRow({ amountLabel }: { amountLabel: string }) 
           {Strings.budgetCategoriesUnassignedExplanation}
         </Typography>
       </View>
-      <Typography
-        style={{ fontSize: Type.micro }}
-        className="font-sora text-foreground font-semibold"
-      >
+      <Typography style={{ fontSize: Type.micro }} className="font-sora-semibold text-foreground">
         {amountLabel}
       </Typography>
     </View>

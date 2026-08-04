@@ -37,7 +37,7 @@ export default function CurrencyScreen() {
             >
               {formatAmount(rate, 2)}
             </Typography>
-            <Typography className="text-muted font-inter-regular mt-1 text-xs">
+            <Typography className="text-muted font-inter mt-1 text-xs">
               {Strings.currencyRateSub}
             </Typography>
             {isManualOverride && (
@@ -45,7 +45,7 @@ export default function CurrencyScreen() {
                 {Strings.currencyManualLabel}
               </Chip>
             )}
-            <Typography className="text-muted font-inter-regular mt-3 text-xs">
+            <Typography className="text-muted font-inter mt-3 text-xs">
               {Strings.currencyLastFetched}: {formattedDate}
             </Typography>
           </Card.Body>
@@ -75,7 +75,7 @@ export default function CurrencyScreen() {
                   <Typography className="text-foreground font-inter-medium text-base">
                     {Strings.currencyManualLabel}
                   </Typography>
-                  <Typography className="text-muted font-inter-regular mt-0.5 text-xs">
+                  <Typography className="text-muted font-inter mt-0.5 text-xs">
                     {Strings.currencyManualSub}
                   </Typography>
                 </View>
@@ -120,7 +120,7 @@ export default function CurrencyScreen() {
         </View>
 
         {/* Footer note — EGP immutability */}
-        <Typography className="text-muted font-inter-regular mx-6 mt-6 mb-8 text-center text-xs">
+        <Typography className="text-muted font-inter mx-6 mt-6 mb-8 text-center text-xs">
           {Strings.currencyFooterNote}
         </Typography>
       </ScreenScroll>

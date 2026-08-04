@@ -61,14 +61,14 @@ export function IncomeSheet() {
                     : undefined
                 }
                 suffix={
-                  <Typography className="font-inter text-muted text-[13px] font-semibold">
+                  <Typography className="font-inter-semibold text-muted text-[13px]">
                     {Strings.currencyEgp}
                   </Typography>
                 }
                 isInvalid={errorMessage !== undefined}
                 errorMessage={errorMessage}
                 isDisabled={state.saving}
-                className="font-sora text-foreground text-[20px] font-bold"
+                className="font-sora-bold text-foreground text-[20px]"
                 accessibilityLabel={amountAccessibilityLabel}
                 accessibilityHint={errorMessage}
               />

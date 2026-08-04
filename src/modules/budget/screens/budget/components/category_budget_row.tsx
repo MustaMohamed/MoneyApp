@@ -54,7 +54,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                 <Typography
                   numberOfLines={2}
                   style={{ fontSize: Type.body }}
-                  className="font-sora text-foreground flex-1 font-semibold"
+                  className="font-sora-semibold text-foreground flex-1"
                 >
                   {row.name}
                 </Typography>
@@ -70,7 +70,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                   <Chip.Label
                     numberOfLines={1}
                     style={{ color: row.ringColor, fontSize: Type.chipMeta }}
-                    className="font-inter font-bold uppercase"
+                    className="font-inter-bold uppercase"
                   >
                     {row.statusLabel}
                   </Chip.Label>
@@ -83,7 +83,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             <View className="items-end">
               <Typography
                 style={{ color: row.ringColor, fontSize: Type.bodyStrong }}
-                className="font-sora font-bold"
+                className="font-sora-bold"
               >
                 {row.balanceAmountLabel}
               </Typography>
@@ -129,7 +129,7 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             </View>
             <Typography
               style={{ fontSize: Type.micro }}
-              className="font-inter text-foreground flex-1 font-semibold"
+              className="font-inter-semibold text-foreground flex-1"
             >
               {Strings.budgetViewCategoryDetails(row.name)}
             </Typography>

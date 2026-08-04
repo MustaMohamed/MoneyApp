@@ -67,7 +67,7 @@ export function AccountPickerSheet({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Typography className="font-sora text-foreground text-[15px] font-semibold">
+                <Typography className="font-sora-semibold text-foreground text-[15px]">
                   {item.name}
                 </Typography>
                 <Typography className="font-inter text-muted text-[12px]">

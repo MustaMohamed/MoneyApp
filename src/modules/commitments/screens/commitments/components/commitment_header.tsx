@@ -19,7 +19,7 @@ export function CommitmentHeader({ title, onBack, right, large = true }: Commitm
   if (!onBack) {
     return (
       <View className="border-separator h-14 justify-center border-b px-4">
-        <Text className="font-sora text-foreground text-[20px] font-semibold">{title}</Text>
+        <Text className="font-sora-semibold text-foreground text-[20px]">{title}</Text>
       </View>
     );
   }
@@ -32,7 +32,7 @@ export function CommitmentHeader({ title, onBack, right, large = true }: Commitm
       <BackButton onPress={onBack} />
       <Text
         className={cn(
-          'font-sora text-foreground flex-1 text-center font-semibold',
+          'font-sora-semibold text-foreground flex-1 text-center',
           large ? 'text-[20px]' : 'text-[17px]',
         )}
         numberOfLines={large ? 1 : undefined}

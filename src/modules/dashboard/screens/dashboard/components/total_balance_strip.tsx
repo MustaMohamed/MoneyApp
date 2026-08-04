@@ -31,7 +31,7 @@ export function TotalBalanceStrip({ assetsEgp, accountsCount }: TotalBalanceStri
           <RNText className="text-muted text-xs tracking-wide uppercase">
             {Strings.dashboardTotalBalance}
           </RNText>
-          <RNText className="text-accent mt-1 text-2xl font-bold">
+          <RNText className="font-sora-bold text-accent mt-1 text-2xl">
             {formatAmount(assetsEgp)} <RNText className="text-muted text-base">EGP</RNText>
           </RNText>
         </View>
@@ -39,7 +39,7 @@ export function TotalBalanceStrip({ assetsEgp, accountsCount }: TotalBalanceStri
           <RNText className="text-muted text-xs tracking-wide uppercase">
             {Strings.dashboardAccountsLabel}
           </RNText>
-          <RNText className="text-foreground mt-1 text-base font-semibold">
+          <RNText className="font-sora-semibold text-foreground mt-1 text-base">
             {String(accountsCount)}
           </RNText>
         </View>

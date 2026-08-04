@@ -83,14 +83,14 @@ export function ReassignCategorySheet({
       scrollable
       footer={footer}
     >
-      <Typography className="font-inter-regular text-muted mb-1 px-4 text-base">
+      <Typography className="font-inter text-muted mb-1 px-4 text-base">
         {Strings.categoriesReassignSubtitle(linkedCount)}
       </Typography>
-      <Typography className="font-inter-regular text-muted mb-4 px-4 text-base">
+      <Typography className="font-inter text-muted mb-4 px-4 text-base">
         {Strings.categoriesReassignBody}
       </Typography>
       {errorMessage ? (
-        <Typography className="font-inter text-danger mb-2 px-4 text-sm font-medium">
+        <Typography className="font-inter-medium text-danger mb-2 px-4 text-sm">
           {errorMessage}
         </Typography>
       ) : null}

@@ -66,7 +66,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
             {state.isEdit ? (
               <View className="bg-default border-border mb-3 flex-row items-center justify-between rounded-lg border px-2 py-2 opacity-70">
                 <Text
-                  className="font-inter text-foreground font-semibold"
+                  className="font-inter-semibold text-foreground"
                   style={{ fontSize: Type.caption }}
                 >
                   {state.editingCategoryName ?? Strings.budgetPickCategory}
@@ -92,7 +92,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                       />
                     </View>
                     <Text
-                      className="font-inter text-foreground font-semibold"
+                      className="font-inter-semibold text-foreground"
                       style={{ fontSize: Type.caption }}
                     >
                       {state.selectedCategory.name}
@@ -100,7 +100,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                   </View>
                 ) : (
                   <Text
-                    className="font-inter text-muted font-semibold"
+                    className="font-inter-semibold text-muted"
                     style={{ fontSize: Type.caption }}
                   >
                     {Strings.budgetPickCategory}
@@ -112,7 +112,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
               </PressableFeedback>
             )}
 
-            <Text className="font-inter text-muted mb-1 text-[11px] font-medium">
+            <Text className="font-inter-medium text-muted mb-1 text-[11px]">
               {Strings.budgetNameLabel}
             </Text>
             <Controller
@@ -159,7 +159,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
               )}
             />
 
-            <Text className="font-inter text-muted mt-3 mb-1 text-[11px] font-medium">
+            <Text className="font-inter-medium text-muted mt-3 mb-1 text-[11px]">
               {Strings.budgetMonthlyLimitLabel}
             </Text>
             <Controller
@@ -198,7 +198,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
                       accessibilityLabel={Strings.budgetMonthlyLimitLabel}
                     />
                     <Text
-                      className="font-inter text-muted font-semibold"
+                      className="font-inter-semibold text-muted"
                       style={{ fontSize: Type.caption }}
                     >
                       {Strings.currencyEgp}
@@ -213,7 +213,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
               )}
             />
 
-            <Text className="font-inter text-muted mt-4 mb-1 text-[11px] font-medium">
+            <Text className="font-inter-medium text-muted mt-4 mb-1 text-[11px]">
               {Strings.budget5030GroupPickerLabel}
             </Text>
             <RadioGroup
@@ -228,7 +228,7 @@ export function SetBudgetSheet(props: SetBudgetSheetProps) {
               ))}
             </RadioGroup>
             {state.errorMessage ? (
-              <Text className="font-inter text-danger mt-2 text-sm font-medium">
+              <Text className="font-inter-medium text-danger mt-2 text-sm">
                 {state.errorMessage}
               </Text>
             ) : null}

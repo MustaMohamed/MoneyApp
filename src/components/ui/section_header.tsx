@@ -15,7 +15,7 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
       className="mx-4 mt-4 mb-2 flex-row items-center justify-between"
       style={{ flexDirection: 'row' }}
     >
-      <Typography className="font-inter text-muted text-[12px] font-semibold tracking-wide uppercase">
+      <Typography className="font-inter-semibold text-muted text-[12px] tracking-wide uppercase">
         {title}
       </Typography>
       {count !== undefined && count > 0 ? (
@@ -26,7 +26,7 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
           }}
         >
           <Typography
-            className="font-sora text-[12px] font-bold"
+            className="font-sora-bold text-[12px]"
             style={{ color: Colors.shared.cairoGold }}
           >
             {count}

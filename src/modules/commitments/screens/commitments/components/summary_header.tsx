@@ -99,7 +99,7 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
               <Text className="font-inter text-muted text-[10px] tracking-wide uppercase">
                 {Strings.commitmentsTotalCommitted}
               </Text>
-              <Text className="font-sora text-foreground text-[16px] font-bold" numberOfLines={1}>
+              <Text className="font-sora-bold text-foreground text-[16px]" numberOfLines={1}>
                 {totalsLine}
               </Text>
             </View>
@@ -107,7 +107,7 @@ export function SummaryHeader({ counts, totalsByCurrency, isLoading = false }: S
               style={{ backgroundColor: `${GoldTokens[500]}22` }}
               className="rounded-full px-2 py-0.5"
             >
-              <Text className="font-sora text-[13px] font-bold" style={{ color: GoldTokens[500] }}>
+              <Text className="font-sora-bold text-[13px]" style={{ color: GoldTokens[500] }}>
                 {progressPct}%
               </Text>
             </View>
@@ -141,7 +141,7 @@ function Stat({ icon, color, value }: { icon: IconName; color: string; value: nu
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1">
       <MaterialCommunityIcons name={icon} size={13} color={color} />
-      <Text className="font-sora text-[11px] font-semibold" style={{ color }}>
+      <Text className="font-sora-semibold text-[11px]" style={{ color }}>
         {value}
       </Text>
     </View>

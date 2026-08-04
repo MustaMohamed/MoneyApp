@@ -49,13 +49,13 @@ export function DetailHero({ commitment, category, payment, recurrenceLabel }: P
           />
         </View>
         <Text
-          className="font-sora text-foreground mb-1 text-center text-[28px] font-extrabold"
+          className="font-sora-extrabold text-foreground mb-1 text-center text-[28px]"
           numberOfLines={1}
         >
           {commitment.name}
         </Text>
         <Text
-          className="font-inter text-[16px] font-semibold"
+          className="font-inter-semibold text-[16px]"
           style={{ color: iconColor, opacity: 0.85 }}
           numberOfLines={1}
         >

@@ -50,7 +50,7 @@ export function DetailHero({
             }}
           >
             <Text
-              className="font-inter font-semibold"
+              className="font-inter-semibold"
               style={{ color: heroColor, fontSize: Type.overline }}
             >
               {badgeLabel}
@@ -59,7 +59,7 @@ export function DetailHero({
           {tx.commitment_payment_id != null ? <TypeBadge type="commitment" size="md" /> : null}
         </View>
         <Text
-          className="font-sora leading-none font-extrabold"
+          className="font-sora-extrabold leading-none"
           style={{ color: heroColor, fontSize: Type.detailHero }}
         >
           {amountText}
@@ -79,7 +79,7 @@ export function DetailHero({
               color={categoryColor}
             />
             <Text
-              className="font-inter font-semibold"
+              className="font-inter-semibold"
               style={{ color: categoryColor, fontSize: Type.micro }}
             >
               {category.name}
@@ -87,7 +87,7 @@ export function DetailHero({
           </View>
         ) : null}
         <Text
-          className="font-inter text-foreground/70 mt-2 text-center font-medium"
+          className="font-inter-medium text-foreground/70 mt-2 text-center"
           style={{ fontSize: Type.bodyStrong }}
         >
           {title}

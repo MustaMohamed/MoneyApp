@@ -50,7 +50,7 @@ export default function AddAccountScreen() {
         className="items-center justify-between px-4"
       >
         <BackButton onPress={onBack} />
-        <Text variant="title" className="font-soraBold">
+        <Text variant="title" className="font-sora-bold">
           {Strings.o4Title}
         </Text>
         <Box className="h-9 w-9" />
@@ -63,7 +63,7 @@ export default function AddAccountScreen() {
         keyboardShouldPersistTaps="handled"
       >
         {/* Account Type */}
-        <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+        <Text variant="hint" className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest">
           {Strings.o4SectionType}
         </Text>
         <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
@@ -79,7 +79,7 @@ export default function AddAccountScreen() {
 
         {/* Account Name */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text variant="hint" className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionName}
           </Text>
           <Controller
@@ -109,7 +109,7 @@ export default function AddAccountScreen() {
 
         {/* Currency */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text variant="hint" className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionCurrency}
           </Text>
           <SegmentedTabs<Currency>
@@ -127,7 +127,7 @@ export default function AddAccountScreen() {
 
         {/* Balance */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text variant="hint" className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionBalance}
           </Text>
           <Controller
@@ -157,7 +157,7 @@ export default function AddAccountScreen() {
 
         {/* Color picker */}
         <Box className="pt-1">
-          <Text variant="hint" className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest">
+          <Text variant="hint" className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest">
             {Strings.o4SectionColor}
           </Text>
           <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
@@ -186,7 +186,7 @@ export default function AddAccountScreen() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
+                className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionRevolving}
               </Text>
@@ -208,7 +208,7 @@ export default function AddAccountScreen() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
+                className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionLimit}
               </Text>
@@ -241,7 +241,7 @@ export default function AddAccountScreen() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
+                className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionMinPayment}
               </Text>
@@ -266,7 +266,7 @@ export default function AddAccountScreen() {
             <Box className="pt-1">
               <Text
                 variant="hint"
-                className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
+                className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest"
               >
                 {Strings.o4SectionDueDay}
               </Text>
@@ -287,7 +287,7 @@ export default function AddAccountScreen() {
 
             {/* Interest Tracking — native Switch (spec §2.4) */}
             <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
-              <Text variant="body" className="font-interSemi text-foreground">
+              <Text variant="body" className="font-inter-semibold text-foreground">
                 {Strings.o4InterestLabel}
               </Text>
               <Switch
@@ -306,7 +306,7 @@ export default function AddAccountScreen() {
               <Animated.View entering={aprEntering} exiting={aprExiting} className="pt-1">
                 <Text
                   variant="hint"
-                  className="font-soraBold text-gold-500 pt-2 pb-2 tracking-widest"
+                  className="font-sora-bold text-gold-500 pt-2 pb-2 tracking-widest"
                 >
                   {Strings.o4SectionApr}
                 </Text>

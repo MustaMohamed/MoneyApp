@@ -231,7 +231,7 @@ export function AddEditCategorySheet({
           {Strings.categoriesIconLabel}
         </Typography>
         {iconError ? (
-          <Typography testID="icon-error" className="font-inter-regular text-danger mt-1 text-xs">
+          <Typography testID="icon-error" className="font-inter text-danger mt-1 text-xs">
             {iconError}
           </Typography>
         ) : null}

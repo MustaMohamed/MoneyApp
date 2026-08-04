@@ -54,7 +54,7 @@ export function MonthFilter(props: MonthFilterProps) {
           className="bg-accent h-8 flex-1 items-center justify-center rounded-full px-2.5"
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xxs }}>
-            <Text className="font-sora text-accent-foreground text-[11px] font-bold">
+            <Text className="font-sora-bold text-accent-foreground text-[11px]">
               {monthFilter.state.selectedLabel}
             </Text>
             <MaterialCommunityIcons
@@ -94,7 +94,7 @@ export function MonthFilter(props: MonthFilterProps) {
               accessibilityLabel={Strings.monthPickerPreviousYearA11y}
               onPress={monthFilter.onPreviousPickerYear}
             />
-            <Text className="font-sora text-foreground text-[17px] font-bold">
+            <Text className="font-sora-bold text-foreground text-[17px]">
               {monthFilter.state.pickerYear}
             </Text>
             <IconButton

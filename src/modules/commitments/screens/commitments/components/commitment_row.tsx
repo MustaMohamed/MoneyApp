@@ -104,7 +104,7 @@ function CommitmentRowComponent({
           />
         </View>
         <Box style={{ flex: 1 }}>
-          <Text className="font-inter text-foreground text-[15px] font-medium" numberOfLines={1}>
+          <Text className="font-inter-medium text-foreground text-[15px]" numberOfLines={1}>
             {commitment?.name ?? '—'}
           </Text>
           <Text className="font-inter text-muted mt-0.5 text-[11px]" numberOfLines={1}>
@@ -112,7 +112,7 @@ function CommitmentRowComponent({
           </Text>
         </Box>
         <View style={{ alignItems: 'flex-end' }} className="gap-1">
-          <Text className="font-sora text-foreground text-[15px] font-bold">
+          <Text className="font-sora-bold text-foreground text-[15px]">
             {showTilde ? '~' : ''}
             {formattedAmount} {payment.currency}
           </Text>

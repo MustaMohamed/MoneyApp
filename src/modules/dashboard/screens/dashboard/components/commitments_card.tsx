@@ -155,7 +155,7 @@ export function CommitmentsCard({
                 color={Colors.shared.cairoGold}
               />
             </View>
-            <Text variant="caption" className="text-foreground font-semibold">
+            <Text variant="caption" className="font-inter-semibold text-foreground">
               {Strings.dashboardCommitmentsTitle}
             </Text>
           </View>
@@ -176,7 +176,7 @@ export function CommitmentsCard({
                 <Text variant="hint" className="text-muted text-xs uppercase">
                   {Strings.commitmentsTotalCommitted}
                 </Text>
-                <Text className="text-foreground text-lg font-bold" numberOfLines={1}>
+                <Text className="font-sora-bold text-foreground text-lg" numberOfLines={1}>
                   {totalsLine}
                 </Text>
               </View>
@@ -188,7 +188,10 @@ export function CommitmentsCard({
                   backgroundColor: Colors.shared.cairoGold + '22',
                 }}
               >
-                <Text className="text-base font-bold" style={{ color: Colors.shared.cairoGold }}>
+                <Text
+                  className="font-sora-bold text-base"
+                  style={{ color: Colors.shared.cairoGold }}
+                >
                   {progressPct}%
                 </Text>
               </View>
@@ -227,7 +230,7 @@ function Stat({ icon, color, value }: { icon: IconName; color: string; value: nu
   return (
     <View className="flex-row items-center" style={{ flexDirection: 'row', gap: ms(4) }}>
       <MaterialCommunityIcons name={icon} size={ms(13)} color={color} />
-      <Text variant="caption" style={{ color }} className="font-semibold">
+      <Text variant="caption" style={{ color }} className="font-inter-semibold">
         {value}
       </Text>
     </View>

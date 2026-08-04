@@ -67,7 +67,7 @@ export function ConfirmDialog({
           className="bg-surface border-border w-full rounded-2xl border p-5"
           style={{ shadowOpacity: 0, elevation: 0 }}
         >
-          <Dialog.Title className="text-foreground font-soraBold mb-2 text-xl">
+          <Dialog.Title className="text-foreground font-sora-bold mb-2 text-xl">
             {title}
           </Dialog.Title>
           <Dialog.Description className="text-muted mb-2 text-[15px] leading-6">

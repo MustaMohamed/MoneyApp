@@ -23,7 +23,7 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
   return (
     <>
       <View className="flex-row items-center justify-between py-4">
-        <Text className="font-inter text-foreground text-[12px] font-semibold">
+        <Text className="font-inter-semibold text-foreground text-[12px]">
           {Strings.budgetPlanAllocateByCategory}
         </Text>
         <Switch
@@ -42,7 +42,7 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
           ) : null}
           {props.selectedCategories.map((category) => (
             <View key={category.id} className="flex-row items-center justify-between gap-3">
-              <Text className="font-inter text-foreground flex-1 text-[12px] font-semibold">
+              <Text className="font-inter-semibold text-foreground flex-1 text-[12px]">
                 {category.name}
               </Text>
               <Input
@@ -55,9 +55,9 @@ export function SpendingPlanAllocations(props: SpendingPlanAllocationsProps) {
                 onBlur={props.onBlur}
                 keyboardType="number-pad"
                 placeholder={Strings.zeroAmountPlaceholder}
-                className="border-border bg-background font-sora text-foreground h-9 min-h-0 w-32 px-2 text-[12px] font-bold"
+                className="border-border bg-background font-sora-bold text-foreground h-9 min-h-0 w-32 px-2 text-[12px]"
                 suffix={
-                  <Text className="font-inter text-muted text-[12px] font-semibold">
+                  <Text className="font-inter-semibold text-muted text-[12px]">
                     {Strings.currencyEgp}
                   </Text>
                 }

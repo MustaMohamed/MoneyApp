@@ -48,13 +48,13 @@ export function NoteCard({ note }: Props): React.ReactElement | null {
           />
         </View>
         <Text
-          className="font-inter text-foreground/55 font-semibold tracking-wide uppercase"
+          className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
           style={{ fontSize: Type.overline }}
         >
           {Strings.detailNote}
         </Text>
       </View>
-      <Text className="font-inter text-foreground font-medium" style={{ fontSize: Type.meta }}>
+      <Text className="font-inter-medium text-foreground" style={{ fontSize: Type.meta }}>
         {trimmed}
       </Text>
     </Card>

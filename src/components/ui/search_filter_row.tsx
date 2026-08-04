@@ -96,7 +96,7 @@ export function SearchFilterRow({
             style={FILTER_BADGE_STYLE}
           >
             <Text
-              className="font-inter text-accent-foreground font-bold"
+              className="font-inter-bold text-accent-foreground"
               style={FILTER_BADGE_TEXT_STYLE}
             >
               {activeFilterCount}

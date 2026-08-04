@@ -85,13 +85,13 @@ export function DetailRow({
       </ListGroup.ItemPrefix>
       <ListGroup.ItemContent className="min-w-0">
         <ListGroup.ItemDescription
-          className="font-inter text-foreground/55 font-semibold tracking-wide uppercase"
+          className="font-inter-semibold text-foreground/55 tracking-wide uppercase"
           style={{ fontSize: Type.overline }}
         >
           {label}
         </ListGroup.ItemDescription>
         <ListGroup.ItemTitle
-          className={`font-inter mt-0.5 ${muted ? 'text-foreground/60 italic' : 'font-medium'}`}
+          className={`mt-0.5 ${muted ? 'font-inter text-foreground/60 italic' : 'font-inter-medium'}`}
           style={{ fontSize: Type.meta }}
           numberOfLines={1}
         >
@@ -111,7 +111,7 @@ export function DetailRow({
         <ListGroup.ItemSuffix>
           <View className={`rounded-full border px-2 py-0.5 ${tone.bg} ${tone.border}`}>
             <Text
-              className={`font-inter font-semibold ${tone.text}`}
+              className={`font-inter-semibold ${tone.text}`}
               style={{ fontSize: Type.compactBadge }}
             >
               {badge}

@@ -14,7 +14,7 @@ export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
     <View className="bg-background px-4 pt-3 pb-1.5">
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: Spacing.xs }}>
         <Text
-          className="font-inter text-muted flex-1 font-semibold tracking-wide uppercase"
+          className="font-inter-semibold text-muted flex-1 tracking-wide uppercase"
           style={{ fontSize: Type.overline }}
           numberOfLines={1}
         >
@@ -22,7 +22,7 @@ export function DateHeader({ label, contextLabel }: Props): React.ReactElement {
         </Text>
         {contextLabel ? (
           <Text
-            className="font-inter text-accent max-w-[55%] text-right font-bold"
+            className="font-inter-bold text-accent max-w-[55%] text-right"
             style={{ fontSize: Type.overline }}
             numberOfLines={1}
           >

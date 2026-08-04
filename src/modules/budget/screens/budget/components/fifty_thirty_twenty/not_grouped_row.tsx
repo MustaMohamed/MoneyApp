@@ -14,10 +14,7 @@ export function NotGroupedRow({ value }: { value: NonNullable<BudgetRuleLensVM['
         <MaterialCommunityIcons name="shape-outline" size={Size.iconXs} color={Colors.dark.text2} />
       </View>
       <View style={{ flex: 1 }}>
-        <Text
-          style={{ fontSize: Type.caption }}
-          className="font-sora text-foreground font-semibold"
-        >
+        <Text style={{ fontSize: Type.caption }} className="font-sora-semibold text-foreground">
           {presentation.titleLabel}
         </Text>
         <Text style={{ fontSize: Type.micro }} className="font-inter text-content-secondary">
@@ -26,7 +23,7 @@ export function NotGroupedRow({ value }: { value: NonNullable<BudgetRuleLensVM['
       </View>
       <Text
         style={{ fontSize: Type.micro }}
-        className="font-inter text-content-secondary max-w-[46%] text-right font-medium"
+        className="font-inter-medium text-content-secondary max-w-[46%] text-right"
         numberOfLines={2}
       >
         {presentation.amountsLabel}

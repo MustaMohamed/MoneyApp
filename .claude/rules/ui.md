@@ -14,7 +14,8 @@ HeroUI Native composes Tailwind classes into Unistyles 3 styles at build time vi
 - Theme slots: `bg-background`, `text-foreground`, `bg-surface`, `border-separator`, `text-muted`, `text-danger`, … — see `global.css`.
 - Runtime hex (account swatches): `style={{ backgroundColor: hex }}` — `className` is build-time only.
 - Module-level theme access (outside React) comes from two different files — mixing them up is a type error: `Colors`, `Size`, `Type`, `Spacing`, `Radius` live in `constants/theme.ts`; the raw palette (`CoreTokens`, `GoldTokens`, `SemanticTokens`, `InfoTokens`, `AccentTokens`, `AccentCCTokens`, `AcctTokens`) lives in `constants/theme_tokens.ts`. There is no `Colors` export in `theme_tokens.ts`.
-- Font utilities (`font-sora`, `font-inter`) only emit CSS when the matching `--font-*` variable is declared in `global.css`'s `@theme inline` block — a missing variable fails silently on device with green CI (audit H15).
+- **Fonts are family-per-weight — never pair a family class with a weight class.** React Native registers each loaded face as its own family, so there is no "Sora at 600", only `Sora_600SemiBold`. One class carries both: `font-sora-semibold`, not `font-sora font-semibold`. The eight legal classes are `font-sora{,-semibold,-bold,-extrabold}` and `font-inter{,-medium,-semibold,-bold}`; each maps to a `--font-*` token in `global.css` `@theme inline` and to a face loaded in `src/app/_layout.tsx`. A bare Tailwind weight class (`font-bold`) emits `font-weight`, which Android cannot use to pick among custom faces — it fails silently with green CI (audit H15). `__tests__/typography_tokens.test.ts` enforces the whole chain.
+- HeroUI resolves its own type through `--font-normal/-medium/-semibold/-bold`. Those live in the `@layer theme` block, deliberately **not** in `@theme inline`: as theme tokens they would become family utilities and hijack every bare weight class in the app.
 
 ## Screen layout (critical gotcha)
 
@@ -38,7 +39,7 @@ Standing non-HeroUI exceptions (layout/effect pieces HeroUI lacks): `Screen`/`Sc
 
 All values in `constants/theme.ts`, scaled with `ms()`/`msFont()`. Never hardcode hex/spacing/radius.
 
-- **Typography:** Sora (numbers, headings, CTAs) · Inter (body, labels, secondary).
+- **Typography:** Sora (numbers, headings, CTAs) · Inter (body, labels, secondary). That split decides which family class a given element takes — anything rendering `formatAmount()`, a count, or a percentage is a number.
 - **Numbers:** `Intl.NumberFormat('en-US', { style: 'decimal' })` → `122,300`.
 - **CTA:** `Size.ctaHeight` (52) · `Radius.cta` (13) · gold gradient on midnight-blue text.
 - **Strings:** all user-visible copy in `constants/strings.ts`.

@@ -137,7 +137,7 @@ export function HeroCard({
       ) : (
         <>
           <Text
-            className="mt-3 mb-2 px-3 font-bold"
+            className="font-sora-bold mt-3 mb-2 px-3"
             style={{ color: Colors.dark.gold, fontSize: ms(32) }}
           >
             {formatAmount(assetsEgp)} <Text style={{ fontSize: ms(16), opacity: 0.8 }}>EGP</Text>

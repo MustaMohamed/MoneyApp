@@ -120,7 +120,7 @@ function TransactionRowComponent({
             <View testID="transaction-row-content-track" style={{ flex: 1, minWidth: 0 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-1.5">
                 <Text
-                  className="font-sora text-foreground min-w-0 shrink font-bold"
+                  className="font-sora-bold text-foreground min-w-0 shrink"
                   style={{ fontSize: Type.meta }}
                   numberOfLines={1}
                 >
@@ -129,7 +129,7 @@ function TransactionRowComponent({
                 {isCommitmentOwned ? <TypeBadge type="commitment" /> : null}
                 {!isCommitmentOwned && presentation.ownershipLabel ? (
                   <Text
-                    className="font-inter text-info shrink-0 font-bold"
+                    className="font-inter-bold text-info shrink-0"
                     style={{ fontSize: Type.chip }}
                     numberOfLines={1}
                   >
@@ -138,7 +138,7 @@ function TransactionRowComponent({
                 ) : null}
               </View>
               <Text
-                className="font-inter text-foreground/55 mt-0.5 font-medium"
+                className="font-inter-medium text-foreground/55 mt-0.5"
                 style={{ fontSize: Type.overline }}
                 numberOfLines={1}
               >
@@ -165,7 +165,7 @@ function TransactionRowComponent({
               style={{ width: TRANSACTION_ROW_VALUE_WIDTH, alignItems: 'flex-end', flexShrink: 0 }}
             >
               <Text
-                className={`font-sora font-bold ${presentation.amountClassName}`}
+                className={`font-sora-bold ${presentation.amountClassName}`}
                 style={{ fontSize: Type.body }}
                 numberOfLines={1}
                 adjustsFontSizeToFit
@@ -180,7 +180,7 @@ function TransactionRowComponent({
               >
                 {presentation.secondaryAmount ? (
                   <Text
-                    className="font-inter text-foreground/60 font-medium"
+                    className="font-inter-medium text-foreground/60"
                     style={{ fontSize: Type.overline }}
                     numberOfLines={1}
                     adjustsFontSizeToFit

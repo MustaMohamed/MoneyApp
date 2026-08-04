@@ -210,7 +210,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
             >
               <Text
                 variant="title"
-                className="text-foreground font-bold"
+                className="font-sora-bold text-foreground"
                 numberOfLines={1}
                 style={{ flex: 1, fontSize: msFont(17) }}
               >
@@ -226,7 +226,7 @@ export function AccountCard({ account, rate, stats, width, onPress }: AccountCar
                   paddingVertical: ms(2),
                 }}
               >
-                <Text variant="caption" className="text-muted font-semibold">
+                <Text variant="caption" className="font-inter-semibold text-muted">
                   {account.currency}
                 </Text>
               </View>

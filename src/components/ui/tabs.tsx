@@ -197,7 +197,9 @@ export function SegmentedTabs<T extends string>({
           numberOfLines={1}
           adjustsFontSizeToFit={isCompact || segmentWidth != null}
           minimumFontScale={0.85}
-          className={isCompact ? (isSelected ? 'text-[11px] font-bold' : 'text-[11px]') : undefined}
+          className={
+            isCompact ? (isSelected ? 'font-inter-bold text-[11px]' : 'text-[11px]') : undefined
+          }
           style={[
             isCompact || segmentWidth != null ? { flexShrink: 1 } : undefined,
             isSolidGold && isSelected ? { color: Colors.shared.midnightBlue } : undefined,

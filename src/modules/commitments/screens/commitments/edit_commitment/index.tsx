@@ -27,7 +27,7 @@ export default function EditCommitmentScreen() {
             accessibilityRole="button"
             accessibilityLabel={Strings.commitmentsDeactivate}
           >
-            <Typography className="font-inter text-danger text-[15px] font-semibold">
+            <Typography className="font-inter-semibold text-danger text-[15px]">
               {Strings.commitmentsDeactivate}
             </Typography>
           </PressableFeedback>

@@ -317,7 +317,7 @@ export function CommitmentFormBody({
           </Text>
           <View style={{ flexDirection: 'row', alignItems: 'center' }} className="gap-2">
             {selectedCategory ? (
-              <Text className="font-sora text-foreground flex-1 text-[15px] font-semibold">
+              <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
                 {selectedCategory.name}
               </Text>
             ) : (
@@ -358,7 +358,7 @@ export function CommitmentFormBody({
             <Text
               className={
                 startDate
-                  ? 'font-sora text-foreground flex-1 text-[15px] font-semibold'
+                  ? 'font-sora-semibold text-foreground flex-1 text-[15px]'
                   : 'font-inter text-muted flex-1 text-[15px]'
               }
             >
@@ -409,7 +409,7 @@ export function CommitmentFormBody({
                   size={ms(16)}
                   color={selectedAccount.color ?? CoreTokens.text2}
                 />
-                <Text className="font-sora text-foreground flex-1 text-[15px] font-semibold">
+                <Text className="font-sora-semibold text-foreground flex-1 text-[15px]">
                   {selectedAccount.name}
                 </Text>
               </>

@@ -32,7 +32,7 @@ export default function ReadyScreen() {
         </Animated.View>
 
         <Animated.Text entering={headlineEntering}>
-          <Text variant="hero" className="font-soraExtra text-foreground text-center">
+          <Text variant="hero" className="font-sora-extrabold text-foreground text-center">
             {Strings.o6Title}
           </Text>
         </Animated.Text>
@@ -61,7 +61,7 @@ export default function ReadyScreen() {
               </Text>
               <Text
                 variant="body"
-                className={cn('font-soraBold', row.gold ? 'text-gold-500' : 'text-foreground')}
+                className={cn('font-sora-bold', row.gold ? 'text-gold-500' : 'text-foreground')}
               >
                 {row.value}
               </Text>

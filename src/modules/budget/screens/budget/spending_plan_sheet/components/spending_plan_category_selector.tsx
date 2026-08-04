@@ -20,7 +20,7 @@ export function SpendingPlanCategorySelector({
   const extraCount = Math.max(0, selectedCategories.length - 3);
   return (
     <>
-      <Text className="font-inter text-muted mt-3 mb-2 text-[11px] font-medium">
+      <Text className="font-inter-medium text-muted mt-3 mb-2 text-[11px]">
         {Strings.budgetPlanCategories}
       </Text>
       <PressableFeedback
@@ -46,7 +46,7 @@ export function SpendingPlanCategorySelector({
             </Chip>
           ) : null}
           {selectedCategories.length === 0 ? (
-            <Text className="font-inter text-muted text-[12px] font-semibold">
+            <Text className="font-inter-semibold text-muted text-[12px]">
               {Strings.budgetPlanPickCategories}
             </Text>
           ) : null}

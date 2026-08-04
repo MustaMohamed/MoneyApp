@@ -56,9 +56,7 @@ export function CurrentCycleCard({ payment, commitment, onMarkAsPaid, onSkip }: 
           className="gap-2"
         >
           <View style={{ flex: 1 }}>
-            <Text className="font-sora text-foreground text-[15px] font-semibold">
-              {amountText}
-            </Text>
+            <Text className="font-sora-semibold text-foreground text-[15px]">{amountText}</Text>
             <Text className="font-inter text-muted text-[11px]">
               {formatShortDate(payment.due_date)}
             </Text>
