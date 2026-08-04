@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Text as HeroText } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
@@ -44,9 +44,9 @@ function ToolButton(props: ToolButtonProps) {
         size={ms(15)}
         color={props.isDisabled ? Colors.dark.text3 : props.color}
       />
-      <HeroText className="font-inter text-foreground text-[11px] font-semibold">
+      <Typography className="font-inter text-foreground text-[11px] font-semibold">
         {props.label}
-      </HeroText>
+      </Typography>
     </PressableFeedback>
   );
 }

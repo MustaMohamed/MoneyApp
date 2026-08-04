@@ -42,9 +42,7 @@ describe('budget categories presentation architecture', () => {
     ).toContain("import { Text } from '@/components/ui/text'");
     expect(
       source('src/modules/budget/screens/budget/components/category_budget_row.tsx'),
-    ).toContain(
-      "import { Accordion, Chip, PressableFeedback, Text as HeroText } from 'heroui-native'",
-    );
+    ).toContain("import { Accordion, Chip, PressableFeedback, Typography } from 'heroui-native'");
   });
 
   it('keeps route templates free of hook-local UI state', () => {

@@ -50,9 +50,14 @@ Creating a budget whose name matches an existing one (case-insensitive) in the s
 
 ## Item 6 — Cairo Nights typography actually renders
 
-**Tags:** `bug`, `design-system` · **Effort:** S · **Blocked by:** —
+**Tags:** `bug`, `design-system` · **Effort:** M · **Blocked by:** — · **Needs a design call first**
 
 `font-sora`/`font-inter` emit no CSS — no `--font-*` variables exist in `global.css` `@theme inline`; ~347 usages across ~90 files are inert; app ships in Roboto/system (**H15**). Add the font variables + weight families. **Device-QA-only verification** — the `/qa` always-run typography check is the acceptance test.
+
+- Widened 2026-08-04 by heroui-native 1.0.8 (PR #182). 1.0.3 styled its own text with Tailwind **weight** utilities (`font-medium` → `font-weight: 500`); 1.0.8 replaced them with **family** references (`font-family: var(--font-medium)`) in 33 places across 19 component CSS files. `--font-normal/-medium/-semibold/-bold` are defined by nobody — not Tailwind v4 (it ships `--font-weight-medium` for weight and `--font-sans/serif/mono` for families; `--font-medium` is neither), not heroui's own `variables.css`/`theme.css`, and not `global.css`. HeroUI documents no contract for them. So HeroUI's primitives now render with no weight at all: `--font-medium` alone covers Button, Card, Dialog, Chip, Label, ListGroup, Menu, Popover, Tabs, BottomSheet, Toast, Alert, Avatar, Select, Slider, TagGroup. `text.css` uses all four, so `Typography weight="bold"` is inert — that is every tab screen header (`<Typography.Heading type="h3" weight="bold">`).
+- **Why the obvious fix is wrong.** Declaring `--font-medium` and friends inside `@theme inline` makes them Tailwind *family* tokens, and Tailwind resolves `font-<x>` against the family namespace before the weight namespace. That silently re-points **211** existing weight-utility usages (`font-semibold` ×111, `font-bold` ×55, `font-medium` ×39, `font-normal` ×4, `font-extrabold` ×2), and **60 files** pair a family class with a weight class (`className="font-sora … font-semibold"`) where the hijacked weight class would override the intended Sora family. Doing this blind makes typography worse, not better.
+- **The call to make:** whether MoneyApp adopts heroui's family-per-weight model wholesale (define the tokens, migrate the 211 weight utilities to family classes) or scopes the tokens so they satisfy heroui without entering Tailwind's utility namespace — plain custom properties in the existing `@layer theme` block resolve `var(--font-medium)` without generating a `font-medium` family utility, but that split has not been verified against Uniwind's compiler and would leave two competing conventions in the codebase. Either way it is a design-system decision (marcus/tariq), and which family each weight token names (Inter vs Sora) is part of it.
+- Loaded families available today (`src/app/_layout.tsx`): `Inter_400Regular`, `Inter_500Medium`, `Inter_600SemiBold`, `Sora_400Regular`, `Sora_600SemiBold`, `Sora_700Bold`, `Sora_800ExtraBold`. Names are mirrored in `constants/theme.ts` as `FontFamily`.
 
 ## Item 7 — Bounded render + query performance
 

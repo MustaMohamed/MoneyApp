@@ -25,7 +25,7 @@ describe('tab screen headers', () => {
 
     expect(imports).toMatch(/\bSurface\b/);
     expect(imports).toMatch(/\bSeparator\b/);
-    expect(imports).toMatch(/\bText\b/);
+    expect(imports).toMatch(/\bTypography\b/);
     expect(text).toContain('<Surface');
     expect(text).toContain('<Separator');
   });

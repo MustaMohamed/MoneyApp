@@ -1,4 +1,4 @@
-import { Alert, Separator, Surface, Text as HeroText } from 'heroui-native';
+import { Alert, Separator, Surface, Typography } from 'heroui-native';
 import { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -206,9 +206,9 @@ export default function CommitmentsScreen() {
     <Screen edges={['top']}>
       <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
         <View style={{ minHeight: Size.headerHeight, justifyContent: 'center' }}>
-          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+          <Typography.Heading type="h3" weight="bold" truncate className="font-sora">
             {Strings.commitmentsTitle}
-          </HeroText.Heading>
+          </Typography.Heading>
         </View>
       </Surface>
       <Separator />

@@ -45,10 +45,10 @@ jest.mock('expo-router', () => ({
 }));
 jest.mock('heroui-native', () => {
   const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
-  function HeroText({ children }: { children?: ReactNode }) {
+  function Typography({ children }: { children?: ReactNode }) {
     return <Text>{children}</Text>;
   }
-  HeroText.Heading = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
+  Typography.Heading = ({ children }: { children?: ReactNode }) => <Text>{children}</Text>;
   const Alert = ({ children }: { children?: ReactNode }) => (
     <View testID="refresh-error-alert">{children}</View>
   );
@@ -59,7 +59,7 @@ jest.mock('heroui-native', () => {
     Alert,
     Separator: () => <View testID="separator" />,
     Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
-    Text: HeroText,
+    Typography,
   };
 });
 jest.mock('@/components/ui/screen', () => ({

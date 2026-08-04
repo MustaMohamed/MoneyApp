@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Text as HeroText } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
@@ -14,22 +14,22 @@ export function UnassignedSpendingRow({ amountLabel }: { amountLabel: string }) 
         </View>
       </View>
       <View style={{ flex: 1 }}>
-        <HeroText
+        <Typography
           style={{ fontSize: Type.micro }}
           className="font-inter text-foreground font-semibold"
         >
           {Strings.budgetCategoriesUnassignedSpending}
-        </HeroText>
-        <HeroText style={{ fontSize: Type.chip }} className="font-inter text-muted">
+        </Typography>
+        <Typography style={{ fontSize: Type.chip }} className="font-inter text-muted">
           {Strings.budgetCategoriesUnassignedExplanation}
-        </HeroText>
+        </Typography>
       </View>
-      <HeroText
+      <Typography
         style={{ fontSize: Type.micro }}
         className="font-sora text-foreground font-semibold"
       >
         {amountLabel}
-      </HeroText>
+      </Typography>
     </View>
   );
 }

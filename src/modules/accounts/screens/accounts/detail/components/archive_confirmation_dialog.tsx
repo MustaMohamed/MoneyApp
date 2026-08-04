@@ -1,4 +1,4 @@
-import { Text } from 'heroui-native';
+import { Typography } from 'heroui-native';
 
 import { ConfirmDialog } from '@/components/ui/confirm_dialog';
 import { AccountType } from '@/constants/enums';
@@ -36,9 +36,9 @@ export function ArchiveConfirmationDialog({
       onCancel={onClose}
     >
       {isCC ? (
-        <Text className="text-accent font-inter mb-2 text-[11px]">
+        <Typography className="text-accent font-inter mb-2 text-[11px]">
           {Strings.accountDetailArchiveCCWarning}
-        </Text>
+        </Typography>
       ) : null}
     </ConfirmDialog>
   );

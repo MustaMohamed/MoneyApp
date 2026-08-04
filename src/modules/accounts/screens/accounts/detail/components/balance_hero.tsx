@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Text } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -45,9 +45,9 @@ export function BalanceHero({ account }: BalanceHeroProps) {
       <View className="px-4 py-4">
         {/* Label + type chip row */}
         <View style={{ flexDirection: 'row' }} className="items-center justify-between">
-          <Text className="text-foreground/70 font-inter text-[11px] tracking-wider uppercase">
+          <Typography className="text-foreground/70 font-inter text-[11px] tracking-wider uppercase">
             {Strings.accountDetailBalance}
-          </Text>
+          </Typography>
           <StatusBadge
             label={TYPE_LABEL[account.type]}
             color={color}
@@ -57,7 +57,7 @@ export function BalanceHero({ account }: BalanceHeroProps) {
         </View>
 
         {/* Balance */}
-        <Text
+        <Typography
           numberOfLines={1}
           className={
             isCC
@@ -66,16 +66,16 @@ export function BalanceHero({ account }: BalanceHeroProps) {
           }
         >
           {formatAmount(account.current_balance)} {account.currency}
-        </Text>
+        </Typography>
 
         {/* Context caption */}
-        <Text
+        <Typography
           className="text-foreground/55 font-inter mt-1 text-[11px]"
           style={caption.color ? { color: caption.color } : undefined}
         >
           {caption.text}
           {caption.adjusted ? ` · ${Strings.accountHeroAdjusted}` : ''}
-        </Text>
+        </Typography>
       </View>
     </HeroShell>
   );

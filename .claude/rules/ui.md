@@ -32,7 +32,7 @@ Standing non-HeroUI exceptions (layout/effect pieces HeroUI lacks): `Screen`/`Sc
 - Scrollables inside sheets come from `@gorhom/bottom-sheet` (`BottomSheetScrollView`/`BottomSheetFlatList`), NOT `react-native`; set `enableOverDrag={false}`, `enableDynamicSizing={false}`, fixed height via `contentContainerClassName="h-full"`.
 - Keyboard-aware inputs: `useBottomSheetAwareHandlers()` on `onFocus`/`onBlur` + `keyboardBehavior="extend"` on `Content`.
 - Every sheet goes through `components/ui/sheet.tsx` (HeroUI-backed) or HeroUI `BottomSheet` directly. `@gorhom/bottom-sheet` stays in the tree only as HeroUI's rendering engine — never hand-roll a gorhom wrapper.
-- HeroUI `Card`/`Dialog.Content` wrap `Surface` — **no border, ever, by default**; see the Card = Surface trap in the `heroui-native` skill before migrating a `View` to `Card`.
+- HeroUI `Card` and `Dialog.Content` ship with **no border, ever, by default**, and carry a custom shadow token that `shadow-none` cannot override; see the Card = Surface trap in the `heroui-native` skill before migrating a `View` to `Card`.
 
 ## Design System — Cairo Nights
 

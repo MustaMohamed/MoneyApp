@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { PressableFeedback, Text } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 import { useEffect } from 'react';
 import { type Control, useController } from 'react-hook-form';
 import { type BlurEvent, FlatList, type FocusEvent, StyleSheet, View } from 'react-native';
@@ -197,9 +197,9 @@ export function AddEditCategorySheet({
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+        <Typography className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesNameLabel.toUpperCase()}
-        </Text>
+        </Typography>
         <NameField
           control={control}
           placeholder={Strings.categoriesNamePlaceholder}
@@ -210,9 +210,9 @@ export function AddEditCategorySheet({
 
         {!isEditing && (
           <>
-            <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+            <Typography className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
               {Strings.categoriesTypeLabel}
-            </Text>
+            </Typography>
             <SegmentedTabs<CategoryType>
               segments={[
                 { value: CategoryType.Expense, label: Strings.categoriesTabExpense },
@@ -227,13 +227,13 @@ export function AddEditCategorySheet({
           </>
         )}
 
-        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+        <Typography className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesIconLabel}
-        </Text>
+        </Typography>
         {iconError ? (
-          <Text testID="icon-error" className="font-inter-regular text-danger mt-1 text-xs">
+          <Typography testID="icon-error" className="font-inter-regular text-danger mt-1 text-xs">
             {iconError}
-          </Text>
+          </Typography>
         ) : null}
         <FlatList
           data={CATEGORY_ICONS}
@@ -261,9 +261,9 @@ export function AddEditCategorySheet({
           style={styles.iconGrid}
         />
 
-        <Text className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
+        <Typography className="font-inter-medium text-muted mt-3 mb-1 text-xs tracking-wider">
           {Strings.categoriesColorLabel}
-        </Text>
+        </Typography>
         <View style={styles.colorRow}>
           {AccountColors.map((c) => (
             <PressableFeedback
