@@ -68,6 +68,9 @@ Top wins, in order: gate sheet children behind `hasEverOpened` in `components/ui
 
 Coverage config measures 0.6% of source (**H10**) — replace allowlist with denylist over `src/**`; `runMigrations` has zero tests (**H11**) — bridge-driven runner suite; de-vacuous the over-mocked atomicity tests (M33/M34); retire source-text-assertion suites (M35). **Needs user decision first:** the logic-only test policy vs the 40 existing `.tsx` render suites (M36).
 
+- Added 2026-08-03: `budget.state.ts:59` — `initialState()` reads `currentYearMonth()` off the system clock with no seam, so `.claude/rules/tests.md` ("time is an input, never `new Date()`") can only be honoured by every consumer remembering to pin the month in `beforeEach`. One test forgot and went red on 2026-08-01 while its PR badge still showed green. Structural fix: an optional `now` parameter on `initialState()`/`reset()`. Production change — do not fold into a test or deps PR.
+- A sound date-sweep instrument exists and found **zero** date-dependent tests across 221 suites at seven clock positions (control, month/year boundaries, a leap day): subclass `Date` so `new Date()`/`Date.now()` shift while `new Date(<args>)`, `Date.parse`, and `Date.UTC` stay literal, and never touch timers. `jest.useFakeTimers()` is the wrong tool here — it breaks `waitFor` in 15 suites at any date, including an offset-zero control.
+
 ## Item 9 — Module boundaries + legacy retirement
 
 **Tags:** `refactor` · **Effort:** L · **Blocked by:** Issue 8 (coverage guards the refactor)

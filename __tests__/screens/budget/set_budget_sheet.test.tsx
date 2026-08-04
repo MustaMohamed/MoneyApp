@@ -184,6 +184,10 @@ const existingBudget = {
 
 beforeEach(() => {
   useBudgetState.getState().reset();
+  // reset() re-seeds selectedMonth from currentYearMonth(), i.e. the system clock, so
+  // any yearMonth assertion is only true during the month it was written. Pin a month
+  // that can never be "now" — that keeps assertions honest instead of self-fulfilling.
+  useBudgetState.getState().setSelectedMonth('2026-01');
   useSetBudgetSheetState.getState().reset();
   mockSetBudget.mockClear();
   mockLoadCategories.mockClear();
@@ -289,7 +293,7 @@ describe('SetBudgetSheet', () => {
         categoryId: 'housing',
         name: 'Monthly housing',
         limit: 700,
-        yearMonth: '2026-07',
+        yearMonth: '2026-01',
         categoryGroup: BudgetGroup.Need,
       }),
     );
