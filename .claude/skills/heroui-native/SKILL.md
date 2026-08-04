@@ -26,6 +26,8 @@ Lists the installed HeroUI catalog and every wrapper in `src/components/ui/` wit
 
 Compose or extend an existing wrapper; don't bypass one for the role it covers.
 
+**Two catalog entries are not usable as-is.** `GlassView` and the `blur` overlay variant need `expo-blur`, an optional peer this project does not install — the library catches the missing module and silently falls back to a solid backdrop (and only ever blurs on iOS anyway), so a `GlassView` renders as nothing you asked for rather than failing loudly. Adding `expo-blur` is a new dependency, i.e. critical trigger 4. `ThemeBackground` ships no local doc; read its source before using it.
+
 ## API shape
 
 - **Compound components, always.** `Card.Header` / `Card.Body` / `Card.Title` / `Card.Description` / `Card.Footer` — Title and Description go *inside* Body. Don't flatten to props.

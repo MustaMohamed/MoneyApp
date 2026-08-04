@@ -1,5 +1,4 @@
-import { cn } from 'heroui-native';
-import { Typography } from 'heroui-native';
+import { Typography, cn } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
