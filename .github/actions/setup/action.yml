@@ -6,17 +6,23 @@ description: >-
 runs:
   using: composite
   steps:
+    # Matches the local dev runtime, so the pre-push CI parity chain in CLAUDE.md
+    # is actual parity. Node 20 went EOL in April 2026 and is below lint-staged
+    # 17's floor (>=22.22.1).
     - uses: actions/setup-node@v5
       with:
-        node-version: '20'
+        node-version: '24'
         cache: npm
 
+    # The node major is part of the cache key on purpose: node_modules carries
+    # native modules built against the Node ABI (better-sqlite3), so a cache
+    # written under one major must never be restored under another.
     - name: Restore node_modules
       id: node-modules
       uses: actions/cache@v4
       with:
         path: node_modules
-        key: node-modules-${{ runner.os }}-node20-${{ hashFiles('package-lock.json', 'patches/**') }}
+        key: node-modules-${{ runner.os }}-node24-${{ hashFiles('package-lock.json', 'patches/**') }}
 
     - name: Install (cache miss)
       if: steps.node-modules.outputs.cache-hit != 'true'
