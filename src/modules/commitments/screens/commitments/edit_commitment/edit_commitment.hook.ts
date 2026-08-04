@@ -88,7 +88,7 @@ export function useEditCommitment() {
       // regeneratePayments invalidates the URL paymentId on the detail screen
       // underneath, so pop to list instead of router.back() (which would land
       // on a "Commitment not found" screen).
-      router.dismissTo('/commitments' as Parameters<typeof router.dismissTo>[0]);
+      router.dismissTo('/commitments');
     } catch {
       setSaveError(Strings.commitmentsSaveError);
     } finally {
@@ -107,7 +107,7 @@ export function useEditCommitment() {
       await deactivateCommitment(id);
       setDeactivateDialogVisible(false);
       reset();
-      router.replace('/commitments' as Parameters<typeof router.replace>[0]);
+      router.replace('/commitments');
     } catch {
       // error logged by store
     } finally {

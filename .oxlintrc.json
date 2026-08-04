@@ -89,7 +89,7 @@
         "typescript/no-unsafe-member-access": "warn",
         "typescript/no-unsafe-call": "warn",
         "typescript/no-unsafe-argument": "warn",
-        "typescript/no-unnecessary-type-assertion": "warn",
+        "typescript/no-unnecessary-type-assertion": "off",
         "typescript/no-unnecessary-condition": "warn",
         "typescript/no-unsafe-enum-comparison": "warn",
         "typescript/no-floating-promises": "warn",

@@ -115,7 +115,7 @@ export function useCategories() {
   const handleSave = useCallback(
     async (data: NewCategoryInput | UpdateCategoryInput) => {
       if (editingCategory) {
-        await updateCategory(editingCategory.id, data as UpdateCategoryInput);
+        await updateCategory(editingCategory.id, data);
       } else {
         // addCategory throws 'already exists' on name+type collision — caller catches
         // and surfaces as categoriesErrNameDuplicate form error (TC-06)
@@ -200,7 +200,6 @@ export function useCategories() {
     () =>
       categories.filter(
         (c) =>
-          // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
           c.type === categoryToDelete?.type &&
           // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
           c.id !== categoryToDelete?.id,

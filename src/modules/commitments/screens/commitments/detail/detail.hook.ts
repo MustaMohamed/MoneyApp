@@ -183,7 +183,7 @@ export function useCommitmentDetail() {
 
   const goToEdit = useCallback(() => {
     if (!commitment) return;
-    router.push(`/commitments/${commitment.id}/edit` as Parameters<typeof router.push>[0]);
+    router.push(`/commitments/${commitment.id}/edit`);
   }, [commitment]);
 
   const goBack = useCallback(() => {

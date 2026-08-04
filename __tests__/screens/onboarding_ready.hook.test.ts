@@ -11,7 +11,7 @@ import {
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('@/modules/onboarding/store/onboarding.store', () => {
-  // oxlint-disable-next-line typescript/no-unsafe-assignment, typescript/no-unsafe-return -- Jest requireActual is typed as any; this preserves the real class export while mocking the hook facade.
+  // oxlint-disable-next-line typescript/no-unsafe-assignment -- Jest requireActual is typed as any; this preserves the real class export while mocking the hook facade.
   const actual = jest.requireActual('@/modules/onboarding/store/onboarding.store');
   // oxlint-disable-next-line typescript/no-unsafe-return -- spreading requireActual preserves real exports in this Jest module factory.
   return { ...actual, useOnboardingStore: jest.fn() };

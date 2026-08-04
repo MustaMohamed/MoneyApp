@@ -18,10 +18,7 @@ export function useTabsLayout() {
   );
 
   const handleAddAccount = useCallback(() => router.push('/accounts/add_account'), [router]);
-  const handleAddCommitment = useCallback(
-    () => router.push('/commitments/add' as Parameters<typeof router.push>[0]),
-    [router],
-  );
+  const handleAddCommitment = useCallback(() => router.push('/commitments/add'), [router]);
 
   return {
     state: {
