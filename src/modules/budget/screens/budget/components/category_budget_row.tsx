@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Accordion, Chip, PressableFeedback, Text as HeroText } from 'heroui-native';
+import { Accordion, Chip, PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -51,13 +51,13 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
             </View>
             <View style={{ flex: 1 }}>
               <View className="flex-row items-start gap-1.5">
-                <HeroText
+                <Typography
                   numberOfLines={2}
                   style={{ fontSize: Type.body }}
                   className="font-sora text-foreground flex-1 font-semibold"
                 >
                   {row.name}
-                </HeroText>
+                </Typography>
                 <Chip
                   size="sm"
                   variant="soft"
@@ -76,20 +76,20 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                   </Chip.Label>
                 </Chip>
               </View>
-              <HeroText style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
+              <Typography style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
                 {row.spentPlannedUsedLabel}
-              </HeroText>
+              </Typography>
             </View>
             <View className="items-end">
-              <HeroText
+              <Typography
                 style={{ color: row.ringColor, fontSize: Type.bodyStrong }}
                 className="font-sora font-bold"
               >
                 {row.balanceAmountLabel}
-              </HeroText>
-              <HeroText style={{ fontSize: Type.chip }} className="font-inter text-muted">
+              </Typography>
+              <Typography style={{ fontSize: Type.chip }} className="font-inter text-muted">
                 {row.balanceMetaLabel}
-              </HeroText>
+              </Typography>
             </View>
             <Accordion.Indicator isAnimatedStyleActive={false}>
               <MaterialCommunityIcons
@@ -127,12 +127,12 @@ function CategoryBudgetRowComponent(props: CategoryBudgetRowProps) {
                 />
               </View>
             </View>
-            <HeroText
+            <Typography
               style={{ fontSize: Type.micro }}
               className="font-inter text-foreground flex-1 font-semibold"
             >
               {Strings.budgetViewCategoryDetails(row.name)}
-            </HeroText>
+            </Typography>
             <MaterialCommunityIcons
               name="chevron-right"
               size={Size.iconXs}

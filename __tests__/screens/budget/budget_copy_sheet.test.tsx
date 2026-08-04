@@ -97,7 +97,7 @@ jest.mock('heroui-native', () => {
       </Pressable>
     ),
     SkeletonGroup,
-    Text: { Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text> },
+    Typography: { Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text> },
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),
   };
 });

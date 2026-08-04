@@ -1,4 +1,4 @@
-import { Text } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -15,9 +15,9 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
       className="mx-4 mt-4 mb-2 flex-row items-center justify-between"
       style={{ flexDirection: 'row' }}
     >
-      <Text className="font-inter text-muted text-[12px] font-semibold tracking-wide uppercase">
+      <Typography className="font-inter text-muted text-[12px] font-semibold tracking-wide uppercase">
         {title}
-      </Text>
+      </Typography>
       {count !== undefined && count > 0 ? (
         <View
           className="rounded-full px-2 py-0.5"
@@ -25,12 +25,12 @@ export function SectionHeader({ title, count }: SectionHeaderProps) {
             backgroundColor: `${Colors.shared.cairoGold}22`,
           }}
         >
-          <Text
+          <Typography
             className="font-sora text-[12px] font-bold"
             style={{ color: Colors.shared.cairoGold }}
           >
             {count}
-          </Text>
+          </Typography>
         </View>
       ) : null}
     </View>

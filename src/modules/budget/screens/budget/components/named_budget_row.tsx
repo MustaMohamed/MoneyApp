@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Chip, Menu, PressableFeedback, Text as HeroText } from 'heroui-native';
+import { Chip, Menu, PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Strings } from '@/constants/strings';
@@ -29,24 +29,24 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
             size={Size.budgetNamedRing}
             stroke={Size.budgetRingStroke}
           >
-            <HeroText
+            <Typography
               style={{ fontSize: Type.chipMeta }}
               className="font-inter text-foreground font-bold"
             >
               {budget.usedLabel}
-            </HeroText>
+            </Typography>
           </BudgetRing>
         </View>
 
         <View style={{ flex: 1 }}>
           <View className="flex-row items-start gap-1.5">
-            <HeroText
+            <Typography
               numberOfLines={2}
               style={{ fontSize: Type.caption }}
               className="font-sora text-foreground flex-1 font-semibold"
             >
               {budget.name}
-            </HeroText>
+            </Typography>
             <Chip
               size="sm"
               variant="soft"
@@ -65,21 +65,21 @@ export function NamedBudgetRow({ budget, onEdit, onDelete }: NamedBudgetRowProps
               </Chip.Label>
             </Chip>
           </View>
-          <HeroText style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
+          <Typography style={{ fontSize: Type.micro }} className="font-inter text-muted mt-0.5">
             {budget.spentPlannedLabel}
-          </HeroText>
+          </Typography>
         </View>
 
         <View className="min-w-12 items-end">
-          <HeroText
+          <Typography
             style={{ color: budget.ringColor, fontSize: Type.meta }}
             className="font-sora font-bold"
           >
             {budget.balanceAmountLabel}
-          </HeroText>
-          <HeroText style={{ fontSize: Type.chipMeta }} className="font-inter text-muted">
+          </Typography>
+          <Typography style={{ fontSize: Type.chipMeta }} className="font-inter text-muted">
             {budget.balanceMetaLabel}
-          </HeroText>
+          </Typography>
         </View>
       </View>
 

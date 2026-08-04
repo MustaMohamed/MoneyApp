@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Text } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -24,9 +24,9 @@ export function StatusBadge({ label, color, icon, size = 'sm' }: StatusBadgeProp
       {icon != null ? (
         <MaterialCommunityIcons name={icon} size={ICON_SIZE[size]} color={color} />
       ) : null}
-      <Text className={LABEL_CLASS[size]} style={{ color }}>
+      <Typography className={LABEL_CLASS[size]} style={{ color }}>
         {label}
-      </Text>
+      </Typography>
     </View>
   );
 }

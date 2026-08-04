@@ -11,7 +11,7 @@ jest.mock('@/modules/commitments/screens/commitments/commitments.hook', () => ({
 }));
 jest.mock('heroui-native', () => {
   const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
-  const HeroText = {
+  const Typography = {
     Heading: ({ children }: { children?: ReactNode }) => <Text>{children}</Text>,
   };
   const SkeletonGroupRoot = ({ children }: { children?: ReactNode }) => (
@@ -32,7 +32,7 @@ jest.mock('heroui-native', () => {
     Separator: () => <View testID="separator" />,
     Spinner: () => <Text>spinner</Text>,
     Surface: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
-    Text: HeroText,
+    Typography,
     SkeletonGroup: Object.assign(SkeletonGroupRoot, { Item: SkeletonGroupItem }),
     PressableFeedback: ({ children }: { children?: ReactNode }) => <View>{children}</View>,
     cn: (...args: Array<string | false | null | undefined>) => args.filter(Boolean).join(' '),

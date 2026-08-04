@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { Alert, Separator, Surface, Text as HeroText } from 'heroui-native';
+import { Alert, Separator, Surface, Typography } from 'heroui-native';
 import React, { useCallback } from 'react';
 import { RefreshControl, View } from 'react-native';
 
@@ -106,9 +106,9 @@ export default function BudgetScreen() {
           className="flex-row items-center justify-between gap-2"
           style={{ minHeight: Size.headerHeight }}
         >
-          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+          <Typography.Heading type="h3" weight="bold" truncate className="font-sora">
             {Strings.budgetTitle}
-          </HeroText.Heading>
+          </Typography.Heading>
         </View>
       </Surface>
       <Separator />
@@ -197,9 +197,9 @@ export default function BudgetScreen() {
 
           {state.hasBudgets ? (
             <>
-              <HeroText className="font-inter text-muted mx-4 mt-4 mb-1 text-[11px] font-medium uppercase">
+              <Typography className="font-inter text-muted mx-4 mt-4 mb-1 text-[11px] font-medium uppercase">
                 {state.categoriesSummary.categoryCountLabel}
-              </HeroText>
+              </Typography>
               {state.rows.map((row) => (
                 <CategoryBudgetRow
                   key={row.categoryId}

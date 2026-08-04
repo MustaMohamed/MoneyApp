@@ -1,4 +1,4 @@
-import { Text as HeroText } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 
@@ -34,9 +34,9 @@ export function IncomeSheet() {
       }
     >
       <View className="px-4 pt-2">
-        <HeroText className="font-inter text-muted mb-4 text-[12px] leading-5">
+        <Typography className="font-inter text-muted mb-4 text-[12px] leading-5">
           {Strings.incomeSheetDescription(state.monthLabel)}
-        </HeroText>
+        </Typography>
         <Controller
           control={control}
           name="amountText"
@@ -61,9 +61,9 @@ export function IncomeSheet() {
                     : undefined
                 }
                 suffix={
-                  <HeroText className="font-inter text-muted text-[13px] font-semibold">
+                  <Typography className="font-inter text-muted text-[13px] font-semibold">
                     {Strings.currencyEgp}
-                  </HeroText>
+                  </Typography>
                 }
                 isInvalid={errorMessage !== undefined}
                 errorMessage={errorMessage}

@@ -1,4 +1,4 @@
-import { Switch, Text } from 'heroui-native';
+import { Switch, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller, useWatch } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
@@ -169,9 +169,9 @@ export default function AddAccountAppScreen() {
                   />
                 )}
               />
-              <Text className="text-muted font-inter mt-1 text-[11px]">
+              <Typography className="text-muted font-inter mt-1 text-[11px]">
                 {Strings.o4MinPaymentHint}
-              </Text>
+              </Typography>
             </Box>
 
             {/* Due Day */}
@@ -194,9 +194,9 @@ export default function AddAccountAppScreen() {
 
             {/* Interest Tracking */}
             <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
-              <Text className="font-inter text-foreground text-[15px] font-semibold">
+              <Typography className="font-inter text-foreground text-[15px] font-semibold">
                 {Strings.o4InterestLabel}
-              </Text>
+              </Typography>
               <Switch
                 isSelected={interestTracking}
                 onSelectedChange={(v) => form.setValue('interest_tracking', v)}
@@ -222,7 +222,9 @@ export default function AddAccountAppScreen() {
                     />
                   )}
                 />
-                <Text className="text-muted font-inter mt-1 text-[11px]">{Strings.o4AprHint}</Text>
+                <Typography className="text-muted font-inter mt-1 text-[11px]">
+                  {Strings.o4AprHint}
+                </Typography>
                 <FormErrorText message={errors.apr?.message} />
               </Animated.View>
             )}

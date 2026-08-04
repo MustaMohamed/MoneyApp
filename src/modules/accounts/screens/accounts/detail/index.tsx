@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { ListGroup, PressableFeedback, Separator, Text } from 'heroui-native';
+import { ListGroup, PressableFeedback, Separator, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
@@ -73,9 +73,9 @@ export default function AccountDetailScreen() {
                 hitSlop={hitSlop}
                 className="bg-gold-500 border-gold-500 h-9 w-9 items-center justify-center rounded-[8px] border"
               >
-                <Text className="font-sora-bold text-accent-foreground text-[11px]">
+                <Typography className="font-sora-bold text-accent-foreground text-[11px]">
                   {Strings.accountDetailSave}
-                </Text>
+                </Typography>
               </PressableFeedback>
             ) : (
               <PressableFeedback
@@ -86,9 +86,9 @@ export default function AccountDetailScreen() {
                 hitSlop={hitSlop}
                 className="bg-surface border-border h-9 w-9 items-center justify-center rounded-[8px] border"
               >
-                <Text className="font-sora-bold text-accent text-[11px]">
+                <Typography className="font-sora-bold text-accent text-[11px]">
                   {Strings.accountDetailEdit}
-                </Text>
+                </Typography>
               </PressableFeedback>
             )
           }

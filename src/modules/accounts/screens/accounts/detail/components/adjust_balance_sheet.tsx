@@ -1,4 +1,4 @@
-import { Text } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -103,7 +103,7 @@ export function AdjustBalanceSheet({
               isInvalid={!!error}
             />
           </View>
-          <Text className="text-muted font-sora-bold text-[15px]">{currency}</Text>
+          <Typography className="text-muted font-sora-bold text-[15px]">{currency}</Typography>
         </Box>
         <FormErrorText message={error || undefined} />
       </Box>

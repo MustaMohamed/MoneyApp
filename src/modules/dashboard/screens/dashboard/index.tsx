@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { Button, Separator, Surface, Tabs, Text as HeroText } from 'heroui-native';
+import { Button, Separator, Surface, Tabs, Typography } from 'heroui-native';
 import React, { useCallback, useEffect, useMemo } from 'react';
 import { RefreshControl, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -105,9 +105,9 @@ export default function DashboardScreen() {
             gap: Spacing.sm,
           }}
         >
-          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+          <Typography.Heading type="h3" weight="bold" truncate className="font-sora">
             MoneyApp
-          </HeroText.Heading>
+          </Typography.Heading>
           <Button
             variant="ghost"
             size="sm"

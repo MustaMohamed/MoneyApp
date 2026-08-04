@@ -1,4 +1,4 @@
-import { Accordion, Card, Chip, Text } from 'heroui-native';
+import { Accordion, Card, Chip, Typography } from 'heroui-native';
 import { Controller } from 'react-hook-form';
 import { View } from 'react-native';
 
@@ -29,25 +29,25 @@ export default function CurrencyScreen() {
           style={{ elevation: 0, shadowOpacity: 0 }}
         >
           <Card.Body className="p-5">
-            <Text className="text-muted font-inter-medium mb-1 text-xs tracking-wider uppercase">
+            <Typography className="text-muted font-inter-medium mb-1 text-xs tracking-wider uppercase">
               {Strings.currencyRateLabel}
-            </Text>
-            <Text
+            </Typography>
+            <Typography
               className={`font-sora-bold text-4xl ${isManualOverride ? 'text-accent' : 'text-foreground'}`}
             >
               {formatAmount(rate, 2)}
-            </Text>
-            <Text className="text-muted font-inter-regular mt-1 text-xs">
+            </Typography>
+            <Typography className="text-muted font-inter-regular mt-1 text-xs">
               {Strings.currencyRateSub}
-            </Text>
+            </Typography>
             {isManualOverride && (
               <Chip color="accent" variant="soft" size="sm" className="mt-2 self-start">
                 {Strings.currencyManualLabel}
               </Chip>
             )}
-            <Text className="text-muted font-inter-regular mt-3 text-xs">
+            <Typography className="text-muted font-inter-regular mt-3 text-xs">
               {Strings.currencyLastFetched}: {formattedDate}
-            </Text>
+            </Typography>
           </Card.Body>
         </Card>
 
@@ -72,19 +72,19 @@ export default function CurrencyScreen() {
             <Accordion.Item value="manual-override">
               <Accordion.Trigger>
                 <View style={{ flex: 1 }}>
-                  <Text className="text-foreground font-inter-medium text-base">
+                  <Typography className="text-foreground font-inter-medium text-base">
                     {Strings.currencyManualLabel}
-                  </Text>
-                  <Text className="text-muted font-inter-regular mt-0.5 text-xs">
+                  </Typography>
+                  <Typography className="text-muted font-inter-regular mt-0.5 text-xs">
                     {Strings.currencyManualSub}
-                  </Text>
+                  </Typography>
                 </View>
                 <Accordion.Indicator />
               </Accordion.Trigger>
               <Accordion.Content>
-                <Text className="text-accent font-sora-bold mb-2 text-xs tracking-widest uppercase">
+                <Typography className="text-accent font-sora-bold mb-2 text-xs tracking-widest uppercase">
                   {Strings.currencyRateLabel}
-                </Text>
+                </Typography>
                 <Controller
                   control={control}
                   name="rate"
@@ -120,9 +120,9 @@ export default function CurrencyScreen() {
         </View>
 
         {/* Footer note — EGP immutability */}
-        <Text className="text-muted font-inter-regular mx-6 mt-6 mb-8 text-center text-xs">
+        <Typography className="text-muted font-inter-regular mx-6 mt-6 mb-8 text-center text-xs">
           {Strings.currencyFooterNote}
-        </Text>
+        </Typography>
       </ScreenScroll>
     </Screen>
   );

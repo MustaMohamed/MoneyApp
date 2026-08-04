@@ -1,4 +1,4 @@
-import { PressableFeedback, Text as HeroText } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 
 import { Strings } from '@/constants/strings';
 
@@ -27,9 +27,9 @@ export default function EditCommitmentScreen() {
             accessibilityRole="button"
             accessibilityLabel={Strings.commitmentsDeactivate}
           >
-            <HeroText className="font-inter text-danger text-[15px] font-semibold">
+            <Typography className="font-inter text-danger text-[15px] font-semibold">
               {Strings.commitmentsDeactivate}
-            </HeroText>
+            </Typography>
           </PressableFeedback>
         }
       />

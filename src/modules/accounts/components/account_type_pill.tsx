@@ -1,5 +1,5 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { PressableFeedback, Text, cn } from 'heroui-native';
+import { PressableFeedback, Typography, cn } from 'heroui-native';
 import React from 'react';
 import Animated, {
   useAnimatedStyle,
@@ -81,9 +81,9 @@ export function TypePill({
         )}
       >
         <MaterialCommunityIcons name={option.icon} size={18} color={iconColor} />
-        <Text className={cn('font-sora-bold', isSelected ? 'text-gold-600' : 'text-muted')}>
+        <Typography className={cn('font-sora-bold', isSelected ? 'text-gold-600' : 'text-muted')}>
           {option.label}
-        </Text>
+        </Typography>
       </PressableFeedback>
     </Animated.View>
   );

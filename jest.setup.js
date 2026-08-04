@@ -73,10 +73,10 @@ jest.mock('heroui-native', () => {
   InputGroup.Prefix = passThrough(View);
   InputGroup.Suffix = passThrough(View);
   const Surface = passThrough(View);
-  const Text = passThrough(RNText);
-  Text.Heading = passThrough(RNText);
-  Text.Paragraph = passThrough(RNText);
-  Text.Code = passThrough(RNText);
+  const Typography = passThrough(RNText);
+  Typography.Heading = passThrough(RNText);
+  Typography.Paragraph = passThrough(RNText);
+  Typography.Code = passThrough(RNText);
   const PressableFeedback = passThrough(View);
   const Spinner = passThrough(View);
 
@@ -222,7 +222,7 @@ jest.mock('heroui-native', () => {
     ListGroup,
     Separator,
     Surface,
-    Text,
+    Typography,
     useTextField: () => ({ isDisabled: false, isInvalid: false, isRequired: false }),
     useThemeColor: () => ['#D4A44C'],
   };

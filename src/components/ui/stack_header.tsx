@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
-import { PressableFeedback, Text } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -33,13 +33,13 @@ export function StackHeader({ title, onBack, right }: StackHeaderProps) {
       >
         <MaterialCommunityIcons name="chevron-left" size={Size.iconBack} color={CoreTokens.text2} />
       </PressableFeedback>
-      <Text
+      <Typography
         className="font-sora text-foreground flex-1 text-center font-semibold"
         style={{ fontSize: Type.title }}
         numberOfLines={1}
       >
         {title}
-      </Text>
+      </Typography>
       {right ?? <View className="w-9" />}
     </View>
   );

@@ -1,5 +1,5 @@
 import { cn } from 'heroui-native';
-import { Text } from 'heroui-native';
+import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
@@ -37,8 +37,8 @@ export function AmountDisplay({
       style={{ flexDirection: 'row', alignItems: 'baseline' }}
       className={cn('gap-1', className)}
     >
-      <Text className={SIZE_AMOUNT[size]}>{formatAmount(amount, decimals)}</Text>
-      <Text className={SIZE_CURRENCY[size]}>{currency}</Text>
+      <Typography className={SIZE_AMOUNT[size]}>{formatAmount(amount, decimals)}</Typography>
+      <Typography className={SIZE_CURRENCY[size]}>{currency}</Typography>
     </View>
   );
 }

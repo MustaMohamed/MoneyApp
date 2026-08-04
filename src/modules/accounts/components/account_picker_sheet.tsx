@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetScrollView } from '@gorhom/bottom-sheet';
-import { PressableFeedback, Text } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 import { View } from 'react-native';
 
 import { Sheet } from '@/components/ui/sheet';
@@ -67,12 +67,12 @@ export function AccountPickerSheet({
                 />
               </View>
               <View style={{ flex: 1 }}>
-                <Text className="font-sora text-foreground text-[15px] font-semibold">
+                <Typography className="font-sora text-foreground text-[15px] font-semibold">
                   {item.name}
-                </Text>
-                <Text className="font-inter text-muted text-[12px]">
+                </Typography>
+                <Typography className="font-inter text-muted text-[12px]">
                   {formatAmount(item.current_balance)} {item.currency}
-                </Text>
+                </Typography>
               </View>
               {isSelected ? (
                 <MaterialCommunityIcons

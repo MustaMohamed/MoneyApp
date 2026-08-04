@@ -1,6 +1,6 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { BottomSheetFlatList } from '@gorhom/bottom-sheet';
-import { PressableFeedback, Text } from 'heroui-native';
+import { PressableFeedback, Typography } from 'heroui-native';
 import { StyleSheet, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -83,14 +83,16 @@ export function ReassignCategorySheet({
       scrollable
       footer={footer}
     >
-      <Text className="font-inter-regular text-muted mb-1 px-4 text-base">
+      <Typography className="font-inter-regular text-muted mb-1 px-4 text-base">
         {Strings.categoriesReassignSubtitle(linkedCount)}
-      </Text>
-      <Text className="font-inter-regular text-muted mb-4 px-4 text-base">
+      </Typography>
+      <Typography className="font-inter-regular text-muted mb-4 px-4 text-base">
         {Strings.categoriesReassignBody}
-      </Text>
+      </Typography>
       {errorMessage ? (
-        <Text className="font-inter text-danger mb-2 px-4 text-sm font-medium">{errorMessage}</Text>
+        <Typography className="font-inter text-danger mb-2 px-4 text-sm font-medium">
+          {errorMessage}
+        </Typography>
       ) : null}
 
       <BottomSheetFlatList
@@ -112,7 +114,9 @@ export function ReassignCategorySheet({
                 color={item.color}
               />
             </View>
-            <Text className="font-inter-medium text-foreground flex-1 text-base">{item.name}</Text>
+            <Typography className="font-inter-medium text-foreground flex-1 text-base">
+              {item.name}
+            </Typography>
             {selectedId === item.id && (
               <MaterialCommunityIcons
                 name="check-circle"

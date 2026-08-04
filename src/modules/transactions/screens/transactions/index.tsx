@@ -1,4 +1,4 @@
-import { Separator, Surface, Text as HeroText } from 'heroui-native';
+import { Separator, Surface, Typography } from 'heroui-native';
 import React, { useCallback, useMemo } from 'react';
 import { RefreshControl, SectionList, View } from 'react-native';
 import type { SectionListData, SectionListRenderItemInfo } from 'react-native';
@@ -173,9 +173,9 @@ export default function TransactionsScreen(): React.ReactElement {
     <Screen edges={['top']}>
       <Surface variant="transparent" className="rounded-none px-4 py-0 shadow-none">
         <View style={{ minHeight: Size.headerHeight, justifyContent: 'center' }}>
-          <HeroText.Heading type="h3" weight="bold" truncate className="font-sora">
+          <Typography.Heading type="h3" weight="bold" truncate className="font-sora">
             {Strings.transactions}
-          </HeroText.Heading>
+          </Typography.Heading>
         </View>
       </Surface>
       <Separator />
