@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, type ColorValue } from 'react-native';
 
 import { FAB } from '@/components/ui/fab';
 import { Strings } from '@/constants/strings';
@@ -12,7 +12,10 @@ import { useTabsLayout } from './tabs.hook';
 
 type MCIName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-function tabIcon(name: MCIName, color: string) {
+// `color` is ColorValue, not string: expo-router 57 types tabBarIcon's color as
+// ColorValue (string | OpaqueColorValue), and MaterialCommunityIcons accepts the
+// same union — so it passes straight through.
+function tabIcon(name: MCIName, color: ColorValue) {
   return <MaterialCommunityIcons name={name} size={24} color={color} />;
 }
 

@@ -28,7 +28,7 @@
   },
   "settings": {
     "react": {
-      "version": "19.2.0"
+      "version": "19.2.3"
     }
   },
   "rules": {
@@ -57,6 +57,16 @@
     "typescript/no-unsafe-return": "error",
     "typescript/no-unsafe-type-assertion": "error",
     "typescript/no-unsafe-enum-comparison": "error",
+    // Stays "error" on purpose. SDK 57 pulled @react-native-community/datetimepicker
+    // 8.6.0 -> 9.1.0, which deprecated `onChange` in favour of separate onValueChange /
+    // onDismiss / onNeutralButtonPress props. `onChange` still works, so the 9 call
+    // sites carry a targeted oxlint-disable-next-line rather than a blanket override —
+    // that keeps this rule live for every OTHER deprecation in those same files.
+    // The migration is deliberately not in the SDK 57 PR: it is behavioural, not
+    // mechanical. Android cancel currently arrives as onChange(event.type ===
+    // 'dismissed') and becomes onDismiss(), and the date-picker suites drive the old
+    // shape via fireEvent(..., 'change', { type: 'set' }). Getting that wrong breaks
+    // cancel silently, so it ships on its own branch behind its own device QA.
     "typescript/no-deprecated": "error",
     "typescript/no-unnecessary-condition": "error",
     "typescript/no-unnecessary-type-assertion": "error",

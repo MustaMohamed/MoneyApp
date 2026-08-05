@@ -66,6 +66,7 @@ export function SpendingPlanDateRange({
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           themeVariant="dark"
+          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
           onChange={(event, date) => onDateChange(datePickerTarget, event, date)}
         />
       ) : null}

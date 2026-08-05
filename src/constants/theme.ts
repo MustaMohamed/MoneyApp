@@ -138,8 +138,9 @@ export const Size = {
   // Estimate only — does NOT track landscape collapse (~32pt on iOS) or scaled
   // tabBarLabelStyle (accessibility text sizes can push this past 56). The FAB
   // offset adds a 16dp gap on top so small overshoot is visually harmless. If a
-  // future screen needs an accurate value, expose useBottomTabBarHeight() via
-  // context from a wrapper component inside a <Tabs.Screen>.
+  // future screen needs an accurate value, expose useBottomTabBarHeight() (from
+  // 'expo-router/js-tabs' since SDK 56 — @react-navigation/bottom-tabs is no
+  // longer a dependency) via context from a wrapper inside a <Tabs.Screen>.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
   compactChipHeight: ms(28),

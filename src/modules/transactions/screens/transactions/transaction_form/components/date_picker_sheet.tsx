@@ -55,6 +55,7 @@ export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement
           display="spinner"
           themeVariant="dark"
           maximumDate={props.maximumDate}
+          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
           onChange={props.onChange}
         />
       </View>

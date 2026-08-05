@@ -19,8 +19,23 @@ module.exports = {
     '<rootDir>/.worktrees/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],
+  // `standard-navigation` is here because expo-router 57 depends on it and it ships
+  // untranspiled ESM. npm nests it at expo-router/node_modules/standard-navigation/,
+  // and this pattern tests every `node_modules/` segment in a path — so the nested
+  // segment matched the ignore rule even though the outer `expo-router` one did not.
+  // Without it, any suite reaching expo-router's exports barrel dies at import with
+  // "Cannot use import statement outside a module". Read the two summary lines
+  // separately when that happens: `Test Suites:` does report the failure, but
+  // `Tests:` shows every remaining test passing (`2049 passed, 2049 total`) because
+  // a suite that dies at import contributes no test results at all. Compare the
+  // total against the known baseline (2055) — that is the number that moves.
+  //
+  // There is deliberately no `react-navigation` entry: SDK 56 dropped those packages
+  // and expo-router vendors its own copy at expo-router/build/react-navigation/, which
+  // is inside an already-allowed package rather than a node_modules entry of its own.
+  // Seeing that path in a stack trace is not a reason to add one back.
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|standard-navigation|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
   ],
   // src/screens/**/*.hook.ts and src/utils/use_layout_init.hook.ts are excluded from
   // collectCoverageFrom. These files were added per plan Task 4.8 and trialled
