@@ -93,8 +93,8 @@ describe('transaction date picker', () => {
 
     await fireEvent(
       screen.getByTestId('date-picker-ios'),
-      'change',
-      { type: 'set' },
+      'valueChange',
+      { nativeEvent: { timestamp: 0, utcOffset: 0 } },
       new Date(2026, 6, 12, 12),
     );
 
@@ -113,8 +113,8 @@ describe('transaction date picker', () => {
     await fireEvent.press(screen.getByTestId('date-row'));
     await fireEvent(
       screen.getByTestId('date-picker-ios'),
-      'change',
-      { type: 'set' },
+      'valueChange',
+      { nativeEvent: { timestamp: 0, utcOffset: 0 } },
       new Date(2026, 6, 12, 12),
     );
     await fireEvent.press(screen.getByTestId('date-picker-cancel'));
@@ -139,14 +139,37 @@ describe('transaction date picker', () => {
 
     await fireEvent(
       screen.getByTestId('date-picker-android'),
-      'change',
-      { type: 'set' },
+      'valueChange',
+      { nativeEvent: { timestamp: 0, utcOffset: 0 } },
       new Date(2026, 6, 11, 12),
     );
 
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith('2026-07-11');
     expect(screen.queryByTestId('date-picker-android')).toBeNull();
+  });
+
+  // datetimepicker 9 moved Android cancel off `onChange({ type: 'dismissed' })` and
+  // onto its own `onDismiss()`. Under the old shape a single handler closed the
+  // picker for both outcomes; now that is two code paths, and a dismiss path that
+  // forgot to close would strand the store with the picker marked open — invisible
+  // on screen, because the native dialog has already gone.
+  it('closes the Android picker on dismiss without applying a date', async () => {
+    setPlatform('android');
+    const onChange = jest.fn();
+    const screen = await render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
+
+    await fireEvent.press(screen.getByTestId('date-row'));
+    expect(screen.getByTestId('date-picker-android')).toBeTruthy();
+
+    await fireEvent(screen.getByTestId('date-picker-android'), 'dismiss');
+
+    expect(onChange).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('date-picker-android')).toBeNull();
+    expect(useDatePickerSheetState.getState()).toMatchObject({
+      showAndroidPicker: false,
+      activeOwnerId: undefined,
+    });
   });
 
   it('does not mount the iOS sheet picker on Android before the date row is pressed', async () => {

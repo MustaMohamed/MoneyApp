@@ -1,4 +1,6 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+  type DateTimePickerChangeEvent,
+} from '@react-native-community/datetimepicker';
 import { View } from 'react-native';
 
 import { Button } from '@/components/ui/button';
@@ -10,7 +12,7 @@ interface DatePickerSheetProps {
   isOpen: boolean;
   value: Date;
   maximumDate: Date;
-  onChange: (event: DateTimePickerEvent, date?: Date) => void;
+  onValueChange: (event: DateTimePickerChangeEvent, date: Date) => void;
   onCancel: () => void;
   onDone: () => void;
   onCloseComplete: () => void;
@@ -55,8 +57,7 @@ export function DatePickerSheet(props: DatePickerSheetProps): React.ReactElement
           display="spinner"
           themeVariant="dark"
           maximumDate={props.maximumDate}
-          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-          onChange={props.onChange}
+          onValueChange={props.onValueChange}
         />
       </View>
     </Sheet>

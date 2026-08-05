@@ -1,4 +1,4 @@
-import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import type { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
@@ -43,8 +43,8 @@ export function useTransactionDatePicker(
     else openAndroid(ownerId, value);
   }
 
-  function changeIos(_event: DateTimePickerEvent, date?: Date) {
-    if (date) setDraftDate(ownerId, toLocalDateString(date));
+  function changeIos(_event: DateTimePickerChangeEvent, date: Date) {
+    setDraftDate(ownerId, toLocalDateString(date));
   }
 
   function cancelIos() {
@@ -59,10 +59,19 @@ export function useTransactionDatePicker(
     onChange(nextDate);
   }
 
-  function changeAndroid(event: DateTimePickerEvent, date?: Date) {
+  // datetimepicker 9 split the old single `onChange` in two. Both halves keep the
+  // owner guard and still close the picker — under `onChange` that close ran before
+  // the `event.type === 'set'` check, so it happened on cancel too, and dropping it
+  // from the dismiss path would strand the store with the picker marked open.
+  function selectAndroid(_event: DateTimePickerChangeEvent, date: Date) {
     if (useDatePickerSheetState.getState().activeOwnerId !== ownerId) return;
     closeAndroid(ownerId);
-    if (event.type === 'set' && date) onChange(toLocalDateString(date));
+    onChange(toLocalDateString(date));
+  }
+
+  function dismissAndroid() {
+    if (useDatePickerSheetState.getState().activeOwnerId !== ownerId) return;
+    closeAndroid(ownerId);
   }
 
   return {
@@ -78,6 +87,7 @@ export function useTransactionDatePicker(
     cancelIos,
     commitIos,
     completeIosClose: () => completeIosClose(ownerId),
-    changeAndroid,
+    selectAndroid,
+    dismissAndroid,
   };
 }

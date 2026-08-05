@@ -169,10 +169,7 @@ export function CommitmentFormBody({
       DateTimePickerAndroid.open({
         value: startDateAsDate,
         mode: 'date',
-        // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-        onChange: (_, d) => {
-          if (d) form.setValue('startDate', toLocalDateString(d), SET_OPTS);
-        },
+        onValueChange: (_, d) => form.setValue('startDate', toLocalDateString(d), SET_OPTS),
       });
     } else {
       setShowStartDatePicker(!showStartDatePicker);
@@ -382,10 +379,7 @@ export function CommitmentFormBody({
             mode="date"
             display="spinner"
             themeVariant="dark"
-            // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-            onChange={(_, d) => {
-              if (d) form.setValue('startDate', toLocalDateString(d), SET_OPTS);
-            }}
+            onValueChange={(_, d) => form.setValue('startDate', toLocalDateString(d), SET_OPTS)}
           />
         ) : null}
 
