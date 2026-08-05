@@ -89,6 +89,12 @@
         "typescript/no-unsafe-member-access": "warn",
         "typescript/no-unsafe-call": "warn",
         "typescript/no-unsafe-argument": "warn",
+        // Off, not "warn": jest types requireMock/mockResolvedValue as `any`, so
+        // this rule's "the receiver accepts the original type" detection is
+        // structurally always true in tests and can only delete intent — it
+        // rewrote `as unknown as Response` to `as unknown`. It was also the sole
+        // source of a non-deterministic autofix (four identical --fix runs touched
+        // 3/5/6/4 different test files). Costs 7 real findings here; worth it.
         "typescript/no-unnecessary-type-assertion": "off",
         "typescript/no-unnecessary-condition": "warn",
         "typescript/no-unsafe-enum-comparison": "warn",

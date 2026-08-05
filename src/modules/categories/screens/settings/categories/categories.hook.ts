@@ -199,10 +199,10 @@ export function useCategories() {
   const reassignOptions = useMemo(
     () =>
       categories.filter(
-        (c) =>
-          c.type === categoryToDelete?.type &&
-          // oxlint-disable-next-line typescript/no-unnecessary-condition -- categoryToDelete can be null despite narrowing context
-          c.id !== categoryToDelete?.id,
+        // Only the first access needs `?.`. Category.type is required, so a null
+        // categoryToDelete makes that comparison false and `&&` short-circuits —
+        // which is why TypeScript narrows it to non-null on the right-hand side.
+        (c) => c.type === categoryToDelete?.type && c.id !== categoryToDelete.id,
       ),
     [categories, categoryToDelete],
   );
