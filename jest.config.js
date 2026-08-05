@@ -24,9 +24,11 @@ module.exports = {
   // and this pattern tests every `node_modules/` segment in a path — so the nested
   // segment matched the ignore rule even though the outer `expo-router` one did not.
   // Without it, any suite reaching expo-router's exports barrel dies at import with
-  // "Cannot use import statement outside a module" — which jest reports as a suite
-  // that failed to RUN, so the pass/fail line stays green and only the total test
-  // count drops.
+  // "Cannot use import statement outside a module". Read the two summary lines
+  // separately when that happens: `Test Suites:` does report the failure, but
+  // `Tests:` shows every remaining test passing (`2049 passed, 2049 total`) because
+  // a suite that dies at import contributes no test results at all. Compare the
+  // total against the known baseline (2055) — that is the number that moves.
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
   ],
