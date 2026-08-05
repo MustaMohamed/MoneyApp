@@ -14,6 +14,10 @@ paths:
 - **Time is an input, never `new Date()`.** Fixed ISO strings; month-end (day 31 in a 30-day month) and leap-year cases are required for any date arithmetic.
 - Migration suites: at least one must drive the real `runMigrations(db)`, not `MIGRATIONS.map(m => m.up).join()` (audit H11).
 
-Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. The 40 legacy `.tsx` render suites are a known exception pending a policy decision — don't add to them, and don't delete them either.
+Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. New tests follow that; the 40 `.tsx` render suites are a settled exception, not a pending one.
+
+**Render-suite policy (resolved 2026-08-05): keep the files, don't add to them, prune by reading.** This reverses the 2026-05-23 "delete them all" stance, on measurement rather than preference — so don't "restore" the older policy. 130 `fireEvent` calls live across 25 of those suites, and **none of the 25 has a `.test.ts` counterpart anywhere in the tree**, so deleting them drops that wiring coverage on the floor with nothing inheriting it.
+
+The prunable part is smaller than a grep suggests, which is the trap: `toHaveStyle` appears 63 times but is mostly deliberate skeleton/layout-parity guards worth keeping, while only 4 assertions are the audit M35 brittleness class (asserting exact Tailwind class strings). Judge each one by what it would catch, never by matcher name — and note that removing the last style assertion from a test empties it, which is a deletion wearing a refactor's clothes. The "assert behavior, not source text" rule above still governs anything new.
 
 The coverage gate (`npm run test:coverage`) currently measures a stale slice of the tree, so green is necessary but not sufficient — see `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md` Item 8.
