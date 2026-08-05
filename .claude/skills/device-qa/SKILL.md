@@ -7,13 +7,13 @@ description: Use when preparing, running, or recording the manual Device QA gate
 
 ## Overview
 
-Device QA is the second user-facing gate: **only the user can walk it, on a real device (Android first).** This skill's job is to make the gate concrete — assemble the right checklist for the change, hand it to the user, and record the verdict. A whole class of MoneyApp bugs is invisible to CI and only surfaces here: fonts that silently don't render (audit H15 — the app shipped months in the wrong typeface with green CI), HeroUI `Card`/`Surface` visual deltas, Android Fabric flex collapse, and animation jank.
+Device QA is gate 3, the last user-facing gate before a merge: **only the user can walk it, on a real device (Android first).** This skill's job is to make the gate concrete — assemble the right checklist for the change, hand it to the user, and record the verdict. A whole class of MoneyApp bugs is invisible to CI and only surfaces here: fonts that silently don't render (audit H15 — the app shipped months in the wrong typeface with green CI), HeroUI `Card`/`Surface` visual deltas, Android Fabric flex collapse, and animation jank.
 
 ## Running a QA pass
 
 1. **Scope it:** list the screens the change touches (from the diff), plus the *always-run* checks below.
 2. **Assemble the checklist:** relevant area matrices + always-run checks. Present it to the user as a numbered list they can walk top-to-bottom.
-3. **Record the verdict:** results land in `docs/superpowers/qa/YYYY-MM-DD-{feature}.md` — per item: pass / fail (with what was seen) / skipped. A fail routes back to execution with the failing item as the repro.
+3. **Record the verdict:** results land under `## Device QA` in the task file, `docs/scopes/MA-<scope>/tasks/MA-nnn.md` — per item: pass / fail (with what was seen) / skipped. A fail routes back to step 6 with the failing item as the repro. (Pre-`/scope` passes live in `docs/superpowers/qa/`; that folder is frozen history.)
 
 ## Always-run checks (every QA pass, ~2 min)
 
