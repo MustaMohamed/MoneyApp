@@ -16,7 +16,7 @@ This design specifies:
 
 1. The identifier scheme for scopes, milestones, and tasks.
 2. The on-disk layout and the contract of each file the workflow reads or writes.
-3. The agent roster, including four new reviewer agents.
+3. The agent roster: four new reviewer agents, and what changes in each of the five existing ones.
 4. The granularity contract that decides where one task ends and the next begins.
 5. The nine steps, with owner, inputs, outputs, and exit criteria for each.
 6. The division of labour between the two code reviews, and the condition under which the second one is deleted.
@@ -152,7 +152,21 @@ New agent tool grants:
 - `@impl-reviewer` — `Read, Write, Edit, Glob, Grep, Bash, Skill`. Runs tests and the CI parity chain; writes only under `docs/scopes/`, never fixes code itself.
 - `@pr-reviewer` — `Read, Write, Edit, Glob, Grep, Bash, Skill`. Uses `gh` for PR and CI state; writes only under `docs/scopes/`.
 
-`@tariq` gains `WebFetch` — step 4 requires web research and he currently has `WebSearch` only.
+### Adapting the existing five
+
+None of the five is reusable unedited. Each hardcodes an output path or a hand-off name that this design invalidates, and those failures are silent — an agent writes a plan to `docs/superpowers/plans/`, reports success, and the orchestrator never finds it.
+
+- **`@sarah` — rewrite.** The whole `PHASE FLOW` section is the seven phases. It becomes the nine steps plus the state machine, the resume table, the three gates, and the retry caps. **She gains `Write` and `Edit`:** she currently holds `Task, Read, Glob, Grep, Bash, Skill`, and without write access she cannot record the status transitions that make an interrupted scope resumable. That grant is what the durability of this whole design rests on.
+- **`@tariq` — rewrite.** Design-doc target moves to `docs/scopes/<scope>/spec.md` and plan target into the task file. He gains step 2, decomposition, which is genuinely new work and is where the granularity contract binds. He gains `WebFetch`; step 4 requires web research and he holds `WebSearch` only. He loses the review section entirely — see below.
+- **`@dev` — surgery.** Reads its plan from the task file rather than `docs/superpowers/plans/`. Hands review findings to `@impl-reviewer` and `@pr-reviewer`, not `@tariq`. Gains the explicit self-review pass in step 6, and gains resume behaviour: on re-entry at `implementing` it inspects the existing branch and worktree before writing anything. **Stays `model: sonnet`** — it implements a plan opus wrote and opus reviewed, then passes two more opus gates; the review loop is what catches its misses, and this is the step that runs most often.
+- **`@marcus` — path fixes only.** Mockup to `assets/`, `## Product & UX` into `spec.md`. His mockup discipline, four-states-minimum rule, `ui:inventory` check, and token sourcing are workflow-agnostic and stay verbatim.
+- **`@layla` — one path fix.** `## Financial Logic` into `spec.md`. Nothing else changes; her rounding rules, EGP/USD direction constraint, and test-case-table contract do not depend on how work is sequenced.
+
+### The defect checklist moves to a rule
+
+`@tariq`'s five-class MoneyApp defect checklist — silent async failure, focus-reload churn, money display drift, index-defeating SQL, derived state stored as durable state — moves out of his agent file into **`.claude/rules/review.md`**, path-scoped to `src/**`.
+
+Two reasons. Path-scoped rules load **live inside subagents**, so unlike an agent file they are not snapshotted at session start and a correction takes effect immediately. And one copy scoped to the source tree reaches both readers: `@impl-reviewer` reviews against it at step 7, and `@dev` has it loaded during step 6, so the five classes get caught before a reviewer is ever dispatched rather than after. A checklist that only the reviewer can see guarantees the defects keep being written.
 
 ## Task granularity
 
@@ -178,9 +192,9 @@ A scope landing in single digits is the expected shape. Tasks are never subdivid
 
 **5 — Plan review.** `@plan-reviewer` checks the plan against the task and the spec: does it achieve the task, is every claim about the codebase true, are the tests sufficient, does it follow `.claude/rules/`, does it overreach the task. It **edits the plan** to fix what it finds and appends its verdict. Exit: approved.
 
-**6 — Implementation.** `@dev` implements in an isolated worktree, strictly to the plan. On completion it self-reviews the diff against the plan and the task, fixes what it finds including error paths and edge cases, and commits.
+**6 — Implementation.** `@dev` implements in an isolated worktree, strictly to the plan. On re-entry after an interruption it inspects the existing branch and worktree before writing anything. On completion it self-reviews the diff against the plan, the task, and `.claude/rules/review.md`, fixes what it finds including error paths and edge cases, and commits.
 
-**7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist from `@tariq`'s file — silent async failure, focus-reload churn, money display drift, index-defeating SQL, derived state stored as durable state. It runs the CI parity chain. Findings go back to `@dev`, who fixes and returns. On approval the branch is pushed and a PR is opened. Exit: PR open, CI running.
+**7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist in `.claude/rules/review.md`. It runs the CI parity chain. Findings go back to `@dev`, who fixes and returns. On approval the branch is pushed and a PR is opened. Exit: PR open, CI running.
 
 **8 — PR review.** `@pr-reviewer` reviews the pull request against its exclusive domain below, and **only** that domain. Findings return to `@dev` and the task re-enters step 6. On approval the user is notified with a short summary — what was done, in bullets, no diff walkthrough. 🛑 **Gate 3.**
 
@@ -194,7 +208,7 @@ Two code reviews on one change is only worth the gate if the second one is looki
 2. **Merge-base drift.** Step 7 reviewed the diff against the commit the worktree forked from. By step 8 `main` has moved, including tasks from this same scope. `@pr-reviewer` reviews against current `main` and hunts the semantic conflict that `git` merges cleanly — a renamed store field, a changed repository signature, a migration number now taken.
 3. **The commit that will actually land.** Squash subject, body, and task ID; PR title and description against the task's `Details`.
 4. **Diff membership.** Files that should not be in the PR at all: generated output, `ios/`, `android/`, `.env`, stray patches, debug logging, a snapshot updated instead of fixed.
-5. **Step 7 escapes.** If a five-class defect-checklist violation reaches step 8, it is recorded in the task file as an escape as well as fixed. Repeated escapes mean `@impl-reviewer`'s rubric needs tightening, and that signal is only visible from here.
+5. **Step 7 escapes.** If a violation of `.claude/rules/review.md` reaches step 8, it is recorded in the task file as an escape as well as fixed. Repeated escapes mean the rule or `@impl-reviewer` needs tightening, and that signal is only visible from here.
 
 It does not re-run the defect checklist, re-derive whether the diff matches the plan, or re-litigate approach. Those are step 7's, and duplicating them is the failure mode this section exists to prevent.
 
@@ -228,14 +242,17 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 
 - **New:** `.claude/agents/{task-reviewer,plan-reviewer,impl-reviewer,pr-reviewer}.md`
 - **New:** `.claude/commands/scope.md`
+- **New:** `.claude/rules/review.md` — the five-class defect checklist, path-scoped to `src/**`
 - **New:** `docs/scopes/` with a `TEMPLATES.md` holding the four file contracts
-- **Rewritten:** `.claude/agents/sarah.md` — phase flow becomes the nine steps and the state machine
-- **Rewritten:** CLAUDE.md `Workflow` and `Team` sections; `Project Structure` gains `docs/scopes/`
-- **Amended:** `.claude/agents/tariq.md` — task breakdown added, `WebFetch` granted, plan target moves into the task file
-- **Amended:** `.claude/agents/dev.md` — reads its plan from the task file; handles resuming a partially implemented branch
+- **Rewritten:** `.claude/agents/sarah.md` — the nine steps and the state machine; gains `Write` and `Edit`
+- **Rewritten:** `.claude/agents/tariq.md` — gains step 2 decomposition and `WebFetch`; spec and plan targets move; loses the review section to `.claude/rules/review.md`
+- **Rewritten:** CLAUDE.md `Workflow` and `Team` sections; `Project Structure` gains `docs/scopes/`; the `.claude/rules/` list gains `review.md`
+- **Amended:** `.claude/agents/dev.md` — plan read from the task file, findings received from the two reviewers, explicit self-review pass, resume of a partial branch; stays `model: sonnet`
+- **Amended:** `.claude/agents/marcus.md` — mockup to `assets/`, `## Product & UX` into `spec.md`
+- **Amended:** `.claude/agents/layla.md` — `## Financial Logic` into `spec.md`
 - **Amended:** `.claude/commands/status.md` — reads `tasks.md`
 - **Deleted:** `.claude/commands/feature.md`
-- **Unchanged:** `.claude/rules/`, all project skills, `/ci`, `/qa`, the CI parity chain
+- **Unchanged:** the five existing `.claude/rules/` files, all project skills, `/ci`, `/qa`, the CI parity chain
 
 ## Risks
 
@@ -249,4 +266,4 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 
 ## Non-goals
 
-Migrating the 60-plus existing documents under `docs/superpowers/`. Changing the CI workflow or the parity chain. Changing `.claude/rules/` or any skill. Automating the merge — merging, pushing, and destructive repository operations continue to require an explicit user request.
+Migrating the 60-plus existing documents under `docs/superpowers/`. Changing the CI workflow or the parity chain. Editing any of the five existing path-scoped rules or any skill — `.claude/rules/review.md` is added, none of the current rules are touched. Automating the merge — merging, pushing, and destructive repository operations continue to require an explicit user request.
