@@ -10,8 +10,8 @@ import {
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
 describe('CommitmentSearchRow', () => {
-  it('renders compact input and trailing filter button with matching height', () => {
-    const { getByLabelText } = render(
+  it('renders compact input and trailing filter button with matching height', async () => {
+    const { getByLabelText } = await render(
       <CommitmentSearchRow
         value=""
         onChange={jest.fn()}
@@ -32,8 +32,8 @@ describe('CommitmentSearchRow', () => {
     expect(getByLabelText('Filter')).toHaveProp('style', COMMITMENT_FILTER_BUTTON_STYLE);
   });
 
-  it('shows the active filter badge only when advanced filters are applied', () => {
-    const empty = render(
+  it('shows the active filter badge only when advanced filters are applied', async () => {
+    const empty = await render(
       <CommitmentSearchRow
         value=""
         onChange={jest.fn()}
@@ -43,7 +43,7 @@ describe('CommitmentSearchRow', () => {
     );
     expect(empty.queryByText('2')).toBeNull();
 
-    const active = render(
+    const active = await render(
       <CommitmentSearchRow
         value=""
         onChange={jest.fn()}
@@ -58,8 +58,8 @@ describe('CommitmentSearchRow', () => {
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
   });
 
-  it('keeps stable search geometry when search has text', () => {
-    const active = render(
+  it('keeps stable search geometry when search has text', async () => {
+    const active = await render(
       <CommitmentSearchRow
         value="rent"
         onChange={jest.fn()}
@@ -74,10 +74,10 @@ describe('CommitmentSearchRow', () => {
     );
   });
 
-  it('routes search changes and clearing through the controlled handler', () => {
+  it('routes search changes and clearing through the controlled handler', async () => {
     const onChange = jest.fn();
     const onOpenFilter = jest.fn();
-    const { getByLabelText } = render(
+    const { getByLabelText } = await render(
       <CommitmentSearchRow
         value="rent"
         onChange={onChange}
@@ -86,13 +86,13 @@ describe('CommitmentSearchRow', () => {
       />,
     );
 
-    fireEvent.changeText(getByLabelText('Search commitments…'), 'gym');
+    await fireEvent.changeText(getByLabelText('Search commitments…'), 'gym');
     expect(onChange).toHaveBeenCalledWith('gym');
 
-    fireEvent.press(getByLabelText('Clear search'));
+    await fireEvent.press(getByLabelText('Clear search'));
     expect(onChange).toHaveBeenLastCalledWith('');
 
-    fireEvent.press(getByLabelText('Filter, 1 active'));
+    await fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();
   });
 });

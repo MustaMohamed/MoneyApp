@@ -26,12 +26,12 @@ function setup() {
 describe('useAddAccountApp', () => {
   beforeEach(setup);
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useAddAccountApp())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useAddAccountApp())).resolves.toBeDefined();
   });
 
-  it('returns form, handleSave, and onBack', () => {
-    const { result } = renderHook(() => useAddAccountApp());
+  it('returns form, handleSave, and onBack', async () => {
+    const { result } = await renderHook(() => useAddAccountApp());
     expect(result.current.form).toBeDefined();
     expect(typeof result.current.handleSave).toBe('function');
     expect(typeof result.current.onBack).toBe('function');

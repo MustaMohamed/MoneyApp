@@ -238,11 +238,11 @@ afterEach(() => {
 });
 
 describe('useDashboard', () => {
-  it('schedules one captured snapshot request on focus and invalidates on cleanup', () => {
-    renderHook(() => useDashboard());
+  it('schedules one captured snapshot request on focus and invalidates on cleanup', async () => {
+    await renderHook(() => useDashboard());
 
     let cleanup: void | (() => void);
-    act(() => {
+    await act(() => {
       cleanup = mockCapturedFocusCallback?.();
     });
 
@@ -250,7 +250,7 @@ describe('useDashboard', () => {
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
     expect(ensureSnapshot).not.toHaveBeenCalled();
 
-    act(() => {
+    await act(() => {
       void mockScheduledTasks[0].callback();
     });
     expect(ensureSnapshot).toHaveBeenCalledWith({
@@ -258,7 +258,7 @@ describe('useDashboard', () => {
       now: new Date('2026-07-23T10:00:00.000Z'),
     });
 
-    act(() => {
+    await act(() => {
       cleanup?.();
     });
     expect(mockScheduledTasks[0].cancel).toHaveBeenCalledTimes(1);
@@ -266,7 +266,7 @@ describe('useDashboard', () => {
   });
 
   it('refreshes and retries immediately with a newly captured month key', async () => {
-    const { result } = renderHook(() => useDashboard());
+    const { result } = await renderHook(() => useDashboard());
 
     await act(async () => result.current.refresh());
     expect(runAfterInteractions).not.toHaveBeenCalled();
@@ -283,16 +283,16 @@ describe('useDashboard', () => {
     });
   });
 
-  it('supersedes and revalidates after a transaction mutation while Dashboard stays focused', () => {
-    const { rerender } = renderHook(() => useDashboard());
+  it('supersedes and revalidates after a transaction mutation while Dashboard stays focused', async () => {
+    const { rerender } = await renderHook(() => useDashboard());
 
-    act(() => {
+    await act(() => {
       mockCapturedFocusCallback?.();
     });
     expect(revalidateAfterMutation).not.toHaveBeenCalled();
 
     transactionStoreState.mutationVersion += 1;
-    rerender({});
+    await rerender({});
 
     expect(revalidateAfterMutation).toHaveBeenCalledTimes(1);
     expect(revalidateAfterMutation).toHaveBeenCalledWith({
@@ -301,15 +301,15 @@ describe('useDashboard', () => {
     });
   });
 
-  it('leaves an unfocused mutation for the next focus snapshot request', () => {
-    const { rerender } = renderHook(() => useDashboard());
+  it('leaves an unfocused mutation for the next focus snapshot request', async () => {
+    const { rerender } = await renderHook(() => useDashboard());
 
     transactionStoreState.mutationVersion += 1;
-    rerender({});
+    await rerender({});
 
     expect(revalidateAfterMutation).not.toHaveBeenCalled();
 
-    act(() => {
+    await act(() => {
       mockCapturedFocusCallback?.();
       void mockScheduledTasks[0].callback();
     });
@@ -318,9 +318,9 @@ describe('useDashboard', () => {
     expect(revalidateAfterMutation).not.toHaveBeenCalled();
   });
 
-  it('derives every Dashboard section from one matching snapshot', () => {
+  it('derives every Dashboard section from one matching snapshot', async () => {
     const currentSnapshot = dashboardStoreState.snapshot;
-    const { result } = renderHook(() => useDashboard());
+    const { result } = await renderHook(() => useDashboard());
 
     expect(result.current.state.accounts).toBe(currentSnapshot?.accounts);
     expect(result.current.state.statsMap).toBe(currentSnapshot?.statsMap);
@@ -369,10 +369,10 @@ describe('useDashboard', () => {
     });
   });
 
-  it('uses the refresh indicator without reloading warm cards', () => {
+  it('uses the refresh indicator without reloading warm cards', async () => {
     dashboardStoreState.status = 'refreshing';
 
-    const { result } = renderHook(() => useDashboard());
+    const { result } = await renderHook(() => useDashboard());
 
     expect(result.current.state.presentation).toMatchObject({
       showDashboardBody: true,
@@ -385,11 +385,11 @@ describe('useDashboard', () => {
     expect(result.current.state.budget.loading).toBe(false);
   });
 
-  it('maps initial errors without selecting the accounts empty state', () => {
+  it('maps initial errors without selecting the accounts empty state', async () => {
     dashboardStoreState.snapshot = undefined;
     dashboardStoreState.status = 'initialError';
 
-    const { result } = renderHook(() => useDashboard());
+    const { result } = await renderHook(() => useDashboard());
 
     expect(result.current.state.presentation).toMatchObject({
       showInitialError: true,
@@ -400,28 +400,28 @@ describe('useDashboard', () => {
     expect(result.current.state.transactions.previous).toBeNull();
   });
 
-  it('projects non-interactive overview state while a matching snapshot is unavailable', () => {
+  it('projects non-interactive overview state while a matching snapshot is unavailable', async () => {
     dashboardStoreState.snapshot = undefined;
     dashboardStoreState.status = 'initialLoading';
     dashboardStoreState.requestedKey = '2026-08';
     dashboardUiState.selectedSegment = 'accounts';
     dashboardUiState.isBreakdownVisible = true;
 
-    const { result } = renderHook(() => useDashboard());
+    const { result } = await renderHook(() => useDashboard());
 
     expect(result.current.state.selectedSegment).toBe('overview');
     expect(result.current.state.isBreakdownVisible).toBe(false);
     expect(setBreakdownVisible).toHaveBeenCalledWith(false);
   });
 
-  it('ignores financial interaction requests while a matching snapshot is unavailable', () => {
+  it('ignores financial interaction requests while a matching snapshot is unavailable', async () => {
     dashboardStoreState.snapshot = undefined;
     dashboardStoreState.status = 'initialLoading';
     dashboardStoreState.requestedKey = '2026-08';
 
-    const { result } = renderHook(() => useDashboard());
+    const { result } = await renderHook(() => useDashboard());
 
-    act(() => {
+    await act(() => {
       result.current.setSelectedSegment('accounts');
       result.current.setBreakdownVisible(true);
     });
@@ -430,22 +430,22 @@ describe('useDashboard', () => {
     expect(setBreakdownVisible).not.toHaveBeenCalled();
   });
 
-  it('re-derives currency values without starting a snapshot request', () => {
-    const { result, rerender } = renderHook(() => useDashboard());
+  it('re-derives currency values without starting a snapshot request', async () => {
+    const { result, rerender } = await renderHook(() => useDashboard());
 
     expect(result.current.state.netWorth.assetsEgp).toBe(5000);
     currencyState.rate = 55;
-    rerender({});
+    await rerender({});
 
     expect(result.current.state.netWorth.assetsEgp).toBe(5500);
     expect(ensureSnapshot).not.toHaveBeenCalled();
     expect(refreshSnapshot).not.toHaveBeenCalled();
   });
 
-  it('retains Dashboard navigation and UI actions', () => {
-    const { result } = renderHook(() => useDashboard());
+  it('retains Dashboard navigation and UI actions', async () => {
+    const { result } = await renderHook(() => useDashboard());
 
-    act(() => {
+    await act(() => {
       result.current.setBreakdownVisible(true);
       result.current.setSelectedSegment('accounts');
       result.current.goToAccount('account-id');

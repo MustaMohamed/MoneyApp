@@ -223,14 +223,14 @@ describe('CommitmentsScreen', () => {
     mockUseCommitments();
   });
 
-  it('keeps the shared filter rail mounted when the commitments list is empty', () => {
-    const { getByTestId, getByText } = render(<CommitmentsScreen />);
+  it('keeps the shared filter rail mounted when the commitments list is empty', async () => {
+    const { getByTestId, getByText } = await render(<CommitmentsScreen />);
 
     expect(getByTestId('commitments-filter-rail')).toBeTruthy();
     expect(getByText('2026-08')).toBeTruthy();
   });
 
-  it('renders the compact search row and advanced filter sheet when commitments exist', () => {
+  it('renders the compact search row and advanced filter sheet when commitments exist', async () => {
     mockUseCommitments({
       hasCommitments: true,
       isEmpty: true,
@@ -238,7 +238,7 @@ describe('CommitmentsScreen', () => {
       activeFilterCount: 2,
     });
 
-    const { getByTestId, getByText } = render(<CommitmentsScreen />);
+    const { getByTestId, getByText } = await render(<CommitmentsScreen />);
 
     expect(getByTestId('commitment-search-row')).toBeTruthy();
     expect(getByText('search:rent')).toBeTruthy();
@@ -246,7 +246,7 @@ describe('CommitmentsScreen', () => {
     expect(getByText('Commitment filter sheet')).toBeTruthy();
   });
 
-  it('passes payments loading state to the summary header', () => {
+  it('passes payments loading state to the summary header', async () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
@@ -255,12 +255,12 @@ describe('CommitmentsScreen', () => {
       sections: [{ title: 'Due', data: [makePayment()] }],
     });
 
-    const { getByText } = render(<CommitmentsScreen />);
+    const { getByText } = await render(<CommitmentsScreen />);
 
     expect(getByText('Summary loading:true')).toBeTruthy();
   });
 
-  it('shows row skeletons instead of the list spinner while payments load', () => {
+  it('shows row skeletons instead of the list spinner while payments load', async () => {
     mockUseCommitments({
       hasCommitments: true,
       paymentsLoaded: false,
@@ -269,13 +269,13 @@ describe('CommitmentsScreen', () => {
       sections: [],
     });
 
-    const { getByTestId, queryByText } = render(<CommitmentsScreen />);
+    const { getByTestId, queryByText } = await render(<CommitmentsScreen />);
 
     expect(getByTestId('commitment-row-skeletons')).toBeTruthy();
     expect(queryByText('spinner')).toBeNull();
   });
 
-  it('keeps the summary and search row mounted during the first commitments load', () => {
+  it('keeps the summary and search row mounted during the first commitments load', async () => {
     mockUseCommitments({
       commitmentsLoaded: false,
       paymentsLoaded: false,
@@ -285,7 +285,7 @@ describe('CommitmentsScreen', () => {
       sections: [],
     });
 
-    const { getByTestId, getByText, queryByText } = render(<CommitmentsScreen />);
+    const { getByTestId, getByText, queryByText } = await render(<CommitmentsScreen />);
 
     expect(getByText('Summary loading:true')).toBeTruthy();
     expect(getByTestId('commitment-search-row')).toBeTruthy();
@@ -293,7 +293,7 @@ describe('CommitmentsScreen', () => {
     expect(queryByText('No commitments')).toBeNull();
   });
 
-  it('keeps loaded commitment rows visible while manually refreshing loaded commitments', () => {
+  it('keeps loaded commitment rows visible while manually refreshing loaded commitments', async () => {
     mockUseCommitments({
       commitmentsLoaded: true,
       paymentsLoaded: true,
@@ -302,14 +302,14 @@ describe('CommitmentsScreen', () => {
       sections: [{ title: 'Due', data: [makePayment()] }],
     });
 
-    const { getByText, queryByTestId } = render(<CommitmentsScreen />);
+    const { getByText, queryByTestId } = await render(<CommitmentsScreen />);
 
     expect(getByText('Summary loading:false')).toBeTruthy();
     expect(getByText('Commitment row')).toBeTruthy();
     expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });
 
-  it('does not show row skeletons behind a filtered empty state while refreshing', () => {
+  it('does not show row skeletons behind a filtered empty state while refreshing', async () => {
     mockUseCommitments({
       commitmentsLoaded: true,
       paymentsLoaded: true,
@@ -321,20 +321,20 @@ describe('CommitmentsScreen', () => {
       sections: [],
     });
 
-    const { getByText, queryByTestId } = render(<CommitmentsScreen />);
+    const { getByText, queryByTestId } = await render(<CommitmentsScreen />);
 
     expect(getByText('filtered')).toBeTruthy();
     expect(queryByTestId('commitment-row-skeletons')).toBeNull();
   });
 
-  it('wires controlled search changes and open filter actions from the search row', () => {
+  it('wires controlled search changes and open filter actions from the search row', async () => {
     mockUseCommitments({ hasCommitments: true, isEmpty: true });
 
-    const { getByText } = render(<CommitmentsScreen />);
+    const { getByText } = await render(<CommitmentsScreen />);
 
-    fireEvent.press(getByText('change search'));
-    fireEvent.press(getByText('clear search'));
-    fireEvent.press(getByText('open filters'));
+    await fireEvent.press(getByText('change search'));
+    await fireEvent.press(getByText('clear search'));
+    await fireEvent.press(getByText('open filters'));
 
     expect(setSearchQueryMock).toHaveBeenCalledWith('rent');
     expect(setSearchQueryMock).toHaveBeenLastCalledWith('');
@@ -342,7 +342,7 @@ describe('CommitmentsScreen', () => {
     expect(openFilterMock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows filtered empty state when search or advanced filters are active', () => {
+  it('shows filtered empty state when search or advanced filters are active', async () => {
     mockUseCommitments({
       hasCommitments: true,
       isEmpty: true,
@@ -350,7 +350,7 @@ describe('CommitmentsScreen', () => {
       hasListFilters: true,
     });
 
-    const { getByText } = render(<CommitmentsScreen />);
+    const { getByText } = await render(<CommitmentsScreen />);
 
     expect(getByText('filtered')).toBeTruthy();
   });

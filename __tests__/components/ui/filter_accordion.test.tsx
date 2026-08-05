@@ -98,9 +98,9 @@ jest.mock('@/components/ui/input', () => {
 });
 
 describe('FilterAccordionShell', () => {
-  it('renders title, count, collapsed summary, and children', () => {
+  it('renders title, count, collapsed summary, and children', async () => {
     const onToggle = jest.fn();
-    const { getByText } = render(
+    const { getByText } = await render(
       <FilterAccordionShell
         title="Accounts"
         count={2}
@@ -126,12 +126,12 @@ describe('FilterAccordionShell', () => {
     expect(getByText('2')).toBeTruthy();
     expect(getByText('CIB, Cash')).toBeTruthy();
     expect(getByText('CIB')).toBeTruthy();
-    fireEvent.press(getByText('Accounts'));
+    await fireEvent.press(getByText('Accounts'));
     expect(onToggle).toHaveBeenCalled();
   });
 
-  it('hides summary while expanded', () => {
-    const { queryByText } = render(
+  it('hides summary while expanded', async () => {
+    const { queryByText } = await render(
       <FilterAccordionShell
         title="Categories"
         count={0}
@@ -148,9 +148,9 @@ describe('FilterAccordionShell', () => {
 });
 
 describe('FilterOptionPillList', () => {
-  it('renders options and calls onToggle with the option id', () => {
+  it('renders options and calls onToggle with the option id', async () => {
     const onToggle = jest.fn();
-    const { getByLabelText } = render(
+    const { getByLabelText } = await render(
       <FilterOptionPillList
         options={[
           {
@@ -164,17 +164,17 @@ describe('FilterOptionPillList', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText('Food category filter'));
+    await fireEvent.press(getByLabelText('Food category filter'));
     expect(onToggle).toHaveBeenCalledWith('food');
   });
 });
 
 describe('AmountRangeFilterContent', () => {
-  it('renders currency tabs and min/max inputs', () => {
+  it('renders currency tabs and min/max inputs', async () => {
     const onChangeCurrency = jest.fn();
     const onChangeMinText = jest.fn();
     const onChangeMaxText = jest.fn();
-    const { getByLabelText, getByPlaceholderText, getByText } = render(
+    const { getByLabelText, getByPlaceholderText, getByText } = await render(
       <AmountRangeFilterContent
         amountCurrency={Currency.EGP}
         minValue="100"
@@ -188,19 +188,19 @@ describe('AmountRangeFilterContent', () => {
 
     expect(getByLabelText('Amount currency')).toBeTruthy();
     expect(getByText('EGP selected')).toBeTruthy();
-    fireEvent.press(getByText('USD'));
+    await fireEvent.press(getByText('USD'));
     expect(onChangeCurrency).toHaveBeenCalledWith(Currency.USD);
 
-    fireEvent.changeText(getByPlaceholderText('0'), '200');
+    await fireEvent.changeText(getByPlaceholderText('0'), '200');
     expect(onChangeMinText).toHaveBeenCalledWith('200');
 
-    fireEvent.changeText(getByPlaceholderText('∞'), '500');
+    await fireEvent.changeText(getByPlaceholderText('∞'), '500');
     expect(onChangeMaxText).toHaveBeenCalledWith('500');
     expect(getByText(Strings.filterAmountMinLabel)).toBeTruthy();
     expect(getByText(Strings.filterAmountMaxLabel)).toBeTruthy();
   });
 
-  it('reserves validation slots while amount errors appear and clear', () => {
+  it('reserves validation slots while amount errors appear and clear', async () => {
     const baseProps = {
       amountCurrency: Currency.EGP,
       minValue: '500',
@@ -210,14 +210,14 @@ describe('AmountRangeFilterContent', () => {
       onChangeMaxText: jest.fn(),
       accessibilityLabel: 'Amount currency',
     };
-    const screen = render(<AmountRangeFilterContent {...baseProps} />);
+    const screen = await render(<AmountRangeFilterContent {...baseProps} />);
 
     expect(screen.getAllByTestId('amount-field-error-slot')).toHaveLength(2);
     expect(screen.getByTestId('amount-range-error-slot')).toHaveStyle({
       height: FILTER_AMOUNT_ERROR_SLOT_HEIGHT,
     });
 
-    screen.rerender(
+    await screen.rerender(
       <AmountRangeFilterContent
         {...baseProps}
         minError="Enter a valid minimum"

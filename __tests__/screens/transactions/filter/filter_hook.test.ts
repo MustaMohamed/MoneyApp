@@ -14,53 +14,53 @@ beforeEach(() => {
 });
 
 describe('useFilterSheet apply/reset behavior', () => {
-  it('disables Apply when draft and applied filters match', () => {
-    const { result } = renderHook(() => useFilterSheet());
+  it('disables Apply when draft and applied filters match', async () => {
+    const { result } = await renderHook(() => useFilterSheet());
 
     expect(result.current.state.canApply).toBe(false);
   });
 
-  it('enables Apply when the draft has new filters', () => {
-    const { result } = renderHook(() => useFilterSheet());
+  it('enables Apply when the draft has new filters', async () => {
+    const { result } = await renderHook(() => useFilterSheet());
 
-    act(() => result.current.toggleAccountId('a1'));
+    await act(() => result.current.toggleAccountId('a1'));
 
     expect(result.current.state.draftCount).toBe(1);
     expect(result.current.state.canApply).toBe(true);
   });
 
-  it('allows Reset then Apply to clear already-applied filters', () => {
+  it('allows Reset then Apply to clear already-applied filters', async () => {
     useTransactionsScreenStore
       .getState()
       .setAppliedFilters({ ...EMPTY_FILTERS, accountIds: ['a1'] });
     useFilterStore.getState().setDraft({ ...EMPTY_FILTERS, accountIds: ['a1'] });
 
-    const { result } = renderHook(() => useFilterSheet());
+    const { result } = await renderHook(() => useFilterSheet());
     expect(result.current.state.canApply).toBe(false);
 
-    act(() => result.current.resetDraft());
+    await act(() => result.current.resetDraft());
     expect(result.current.state.draft).toEqual(EMPTY_FILTERS);
     expect(result.current.state.draftCount).toBe(0);
     expect(result.current.state.canApply).toBe(true);
 
-    act(() => result.current.applyDraft());
+    await act(() => result.current.applyDraft());
     expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS);
   });
 
-  it('tracks amount-currency changes only when an amount range is active', () => {
-    const { result } = renderHook(() => useFilterSheet());
+  it('tracks amount-currency changes only when an amount range is active', async () => {
+    const { result } = await renderHook(() => useFilterSheet());
 
-    act(() => result.current.setAmountCurrency(Currency.USD));
+    await act(() => result.current.setAmountCurrency(Currency.USD));
     expect(result.current.state.canApply).toBe(false);
 
-    act(() => result.current.setAmountMin(100));
+    await act(() => result.current.setAmountMin(100));
     expect(result.current.state.canApply).toBe(true);
   });
 
-  it('preserves malformed amount text, shows an error, and blocks Apply', () => {
-    const { result } = renderHook(() => useFilterSheet());
+  it('preserves malformed amount text, shows an error, and blocks Apply', async () => {
+    const { result } = await renderHook(() => useFilterSheet());
 
-    act(() => result.current.setAmountMinText('50abc'));
+    await act(() => result.current.setAmountMinText('50abc'));
 
     expect(result.current.state.amountMinText).toBe('50abc');
     expect(result.current.state.amountMinError).toBeTruthy();
@@ -68,10 +68,10 @@ describe('useFilterSheet apply/reset behavior', () => {
     expect(result.current.state.canReset).toBe(true);
   });
 
-  it('blocks a reversed range until the bounds are ordered', () => {
-    const { result } = renderHook(() => useFilterSheet());
+  it('blocks a reversed range until the bounds are ordered', async () => {
+    const { result } = await renderHook(() => useFilterSheet());
 
-    act(() => {
+    await act(() => {
       result.current.setAmountMinText('500');
       result.current.setAmountMaxText('100');
     });
@@ -79,16 +79,16 @@ describe('useFilterSheet apply/reset behavior', () => {
     expect(result.current.state.amountRangeError).toBeTruthy();
     expect(result.current.state.canApply).toBe(false);
 
-    act(() => result.current.setAmountMaxText('600'));
+    await act(() => result.current.setAmountMaxText('600'));
     expect(result.current.state.amountRangeError).toBeUndefined();
     expect(result.current.state.canApply).toBe(true);
   });
 
-  it('does not publish an invalid draft when apply is invoked defensively', () => {
-    const { result } = renderHook(() => useFilterSheet());
+  it('does not publish an invalid draft when apply is invoked defensively', async () => {
+    const { result } = await renderHook(() => useFilterSheet());
 
-    act(() => result.current.setAmountMaxText('-1'));
-    act(() => result.current.applyDraft());
+    await act(() => result.current.setAmountMaxText('-1'));
+    await act(() => result.current.applyDraft());
 
     expect(useTransactionsScreenStore.getState().appliedFilters).toEqual(EMPTY_FILTERS);
   });

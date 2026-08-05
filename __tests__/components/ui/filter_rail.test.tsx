@@ -53,8 +53,8 @@ const filters = [
 ] as const;
 
 describe('FilterRail', () => {
-  it('uses compact rounded rail spacing', () => {
-    const { getByTestId } = render(
+  it('uses compact rounded rail spacing', async () => {
+    const { getByTestId } = await render(
       <FilterRail
         selectedMonth="2026-08"
         onSelectedMonthChange={jest.fn()}
@@ -83,8 +83,8 @@ describe('FilterRail', () => {
     );
   });
 
-  it('renders the selected month and every dynamic filter', () => {
-    const { getByText } = render(
+  it('renders the selected month and every dynamic filter', async () => {
+    const { getByText } = await render(
       <FilterRail
         selectedMonth="2026-08"
         onSelectedMonthChange={jest.fn()}
@@ -101,9 +101,9 @@ describe('FilterRail', () => {
     expect(getByText('Expense')).toBeTruthy();
   });
 
-  it('changes to the previous and next month from the step buttons', () => {
+  it('changes to the previous and next month from the step buttons', async () => {
     const onSelectedMonthChange = jest.fn();
-    const { getByLabelText, rerender } = render(
+    const { getByLabelText, rerender } = await render(
       <FilterRail
         selectedMonth="2026-01"
         onSelectedMonthChange={onSelectedMonthChange}
@@ -114,10 +114,10 @@ describe('FilterRail', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterPreviousA11y));
+    await fireEvent.press(getByLabelText(Strings.monthFilterPreviousA11y));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2025-12');
 
-    rerender(
+    await rerender(
       <FilterRail
         selectedMonth="2026-12"
         onSelectedMonthChange={onSelectedMonthChange}
@@ -128,13 +128,13 @@ describe('FilterRail', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterNextA11y));
+    await fireEvent.press(getByLabelText(Strings.monthFilterNextA11y));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2027-01');
   });
 
-  it('opens the picker and changes to the selected month', () => {
+  it('opens the picker and changes to the selected month', async () => {
     const onSelectedMonthChange = jest.fn();
-    const { getByLabelText, getByText } = render(
+    const { getByLabelText, getByText } = await render(
       <FilterRail
         selectedMonth="2026-08"
         onSelectedMonthChange={onSelectedMonthChange}
@@ -145,16 +145,16 @@ describe('FilterRail', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
+    await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
     expect(getByText(Strings.monthPickerTitle)).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Nov 2026'));
+    await fireEvent.press(getByLabelText('Nov 2026'));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2026-11');
   });
 
-  it('selects a dynamic filter by value', () => {
+  it('selects a dynamic filter by value', async () => {
     const onSelectedFilterChange = jest.fn();
-    const { getByText } = render(
+    const { getByText } = await render(
       <FilterRail
         selectedMonth="2026-08"
         onSelectedMonthChange={jest.fn()}
@@ -165,7 +165,7 @@ describe('FilterRail', () => {
       />,
     );
 
-    fireEvent.press(getByText('Expense'));
+    await fireEvent.press(getByText('Expense'));
     expect(onSelectedFilterChange).toHaveBeenCalledWith('expense');
   });
 });

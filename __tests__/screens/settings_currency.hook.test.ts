@@ -38,41 +38,41 @@ function setup() {
 describe('useCurrencyScreen', () => {
   beforeEach(setup);
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useCurrencyScreen())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useCurrencyScreen())).resolves.toBeDefined();
   });
 
-  it('rate is exposed from store', () => {
-    const { result } = renderHook(() => useCurrencyScreen());
+  it('rate is exposed from store', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
     expect(result.current.state.rate).toBe(50);
   });
 
-  it('fetchError is exposed from screen state', () => {
-    const { result } = renderHook(() => useCurrencyScreen());
+  it('fetchError is exposed from screen state', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
     expect(result.current.state.fetchError).toBe('');
   });
 
-  it('does not expose isManualPanelOpen (Accordion owns expansion state)', () => {
-    const { result } = renderHook(() => useCurrencyScreen());
+  it('does not expose isManualPanelOpen (Accordion owns expansion state)', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
     expect(
       (result.current.state as unknown as Record<string, unknown>).isManualPanelOpen,
     ).toBeUndefined();
   });
 
-  it('does not expose setManualPanelOpen (Accordion owns expansion state)', () => {
-    const { result } = renderHook(() => useCurrencyScreen());
+  it('does not expose setManualPanelOpen (Accordion owns expansion state)', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
     expect(
       (result.current as unknown as Record<string, unknown>).setManualPanelOpen,
     ).toBeUndefined();
   });
 
-  it('does not expose goBack (Expo Router stack handles back navigation)', () => {
-    const { result } = renderHook(() => useCurrencyScreen());
+  it('does not expose goBack (Expo Router stack handles back navigation)', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
     expect((result.current as unknown as Record<string, unknown>).goBack).toBeUndefined();
   });
 
-  it('formattedDate is exposed from state (null lastFetched → never-fetched string)', () => {
-    const { result } = renderHook(() => useCurrencyScreen());
+  it('formattedDate is exposed from state (null lastFetched → never-fetched string)', async () => {
+    const { result } = await renderHook(() => useCurrencyScreen());
     expect(typeof result.current.state.formattedDate).toBe('string');
     expect(result.current.state.formattedDate.length).toBeGreaterThan(0);
   });
@@ -100,7 +100,7 @@ describe('useCurrencyScreen', () => {
       fetchRate: jest.fn().mockRejectedValue(new Error('Network error')),
       setManualRate: jest.fn().mockResolvedValue(undefined),
     }));
-    const { result } = renderHook(() => useCurrencyScreen());
+    const { result } = await renderHook(() => useCurrencyScreen());
     await result.current.handleFetchRate();
     expect(setFetchErrorMock).toHaveBeenCalledWith('Could not update rate. Try again.');
   });
@@ -128,7 +128,7 @@ describe('useCurrencyScreen', () => {
       fetchRate: jest.fn().mockResolvedValue(undefined),
       setManualRate: jest.fn().mockResolvedValue(undefined),
     }));
-    const { result } = renderHook(() => useCurrencyScreen());
+    const { result } = await renderHook(() => useCurrencyScreen());
     await result.current.handleFetchRate();
     // First call should clear the error
     expect(setFetchErrorMock).toHaveBeenCalledWith('');
@@ -143,9 +143,9 @@ describe('useCurrencyScreen', () => {
       fetchRate: jest.fn().mockResolvedValue(undefined),
       setManualRate,
     }));
-    const { result } = renderHook(() => useCurrencyScreen());
+    const { result } = await renderHook(() => useCurrencyScreen());
 
-    act(() => result.current.form.setValue('rate', '50abc'));
+    await act(() => result.current.form.setValue('rate', '50abc'));
     await act(async () => result.current.handleSaveManualRate());
 
     expect(setManualRate).not.toHaveBeenCalled();
@@ -160,9 +160,9 @@ describe('useCurrencyScreen', () => {
       fetchRate: jest.fn().mockResolvedValue(undefined),
       setManualRate,
     }));
-    const { result } = renderHook(() => useCurrencyScreen());
+    const { result } = await renderHook(() => useCurrencyScreen());
 
-    act(() => result.current.form.setValue('rate', '5,000'));
+    await act(() => result.current.form.setValue('rate', '5,000'));
     await act(async () => result.current.handleSaveManualRate());
 
     expect(setManualRate).toHaveBeenCalledWith(5000);
@@ -189,9 +189,9 @@ describe('useCurrencyScreen', () => {
       fetchRate: jest.fn().mockResolvedValue(undefined),
       setManualRate,
     }));
-    const { result } = renderHook(() => useCurrencyScreen());
+    const { result } = await renderHook(() => useCurrencyScreen());
 
-    act(() => result.current.form.setValue('rate', '48.5'));
+    await act(() => result.current.form.setValue('rate', '48.5'));
     await act(async () => {
       await result.current.handleSaveManualRate();
     });

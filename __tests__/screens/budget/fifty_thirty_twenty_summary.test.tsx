@@ -51,8 +51,8 @@ function vm(income: number | null, budgets: Budget[] = []) {
 }
 
 describe('MonthlyRuleSummary', () => {
-  it('renders the explanatory no-income state from its presentation VM', () => {
-    const screen = render(
+  it('renders the explanatory no-income state from its presentation VM', async () => {
+    const screen = await render(
       <MonthlyRuleSummary vm={vm(null, [budget()])} onEditIncome={jest.fn()} />,
     );
 
@@ -61,8 +61,8 @@ describe('MonthlyRuleSummary', () => {
     expect(screen.getByText('Set income')).toBeTruthy();
   });
 
-  it('renders the explanatory no-budget state from its presentation VM', () => {
-    const screen = render(<MonthlyRuleSummary vm={vm(20_000)} onEditIncome={jest.fn()} />);
+  it('renders the explanatory no-budget state from its presentation VM', async () => {
+    const screen = await render(<MonthlyRuleSummary vm={vm(20_000)} onEditIncome={jest.fn()} />);
 
     expect(screen.getByText('No category budgets planned for May')).toBeTruthy();
     expect(screen.getByText('0% planned')).toBeTruthy();

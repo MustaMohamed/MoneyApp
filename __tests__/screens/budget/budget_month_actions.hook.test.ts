@@ -193,8 +193,8 @@ beforeEach(() => {
 });
 
 describe('useBudget month actions', () => {
-  it('composes the monthly rule lens from the selected month profile', () => {
-    const { result } = renderHook(() => useBudget());
+  it('composes the monthly rule lens from the selected month profile', async () => {
+    const { result } = await renderHook(() => useBudget());
 
     expect(result.current.state.ruleLens.summary).toMatchObject({
       income: 10000,
@@ -210,36 +210,36 @@ describe('useBudget month actions', () => {
     expect(result.current.state.expandedBudgetGroup).toBe(BudgetGroup.Need);
   });
 
-  it('switches to Categories and expands the first category in the managed rule group', () => {
-    const { result } = renderHook(() => useBudget());
+  it('switches to Categories and expands the first category in the managed rule group', async () => {
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.manageRuleGroup(BudgetGroup.Need));
+    await act(() => result.current.manageRuleGroup(BudgetGroup.Need));
 
     expect(setLensTabMock).toHaveBeenCalledWith('categories');
     expect(setExpandedCategoryIdMock).toHaveBeenCalledWith('food');
     expect(openAddWithContextMock).not.toHaveBeenCalled();
   });
 
-  it('targets a zero-activity category already assigned to the managed group', () => {
-    const { result } = renderHook(() => useBudget());
+  it('targets a zero-activity category already assigned to the managed group', async () => {
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.manageRuleGroup(BudgetGroup.Want));
+    await act(() => result.current.manageRuleGroup(BudgetGroup.Want));
 
     expect(setLensTabMock).toHaveBeenCalledWith('categories');
     expect(setExpandedCategoryIdMock).toHaveBeenCalledWith(undefined);
     expect(openAddWithContextMock).toHaveBeenCalledWith('car', BudgetGroup.Want);
   });
 
-  it('uses the category default when editing before monthly group snapshots exist', () => {
+  it('uses the category default when editing before monthly group snapshots exist', async () => {
     setupStores('2026-07', null, {}, 'budget-food-jul');
 
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     expect(result.current.state.editingRow?.categoryGroup).toBe(BudgetGroup.Need);
   });
 
   it('preserves controlled rule expansion while refreshing', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.refresh();
@@ -249,11 +249,11 @@ describe('useBudget month actions', () => {
     expect(setExpandedBudgetGroupMock).not.toHaveBeenCalled();
   });
 
-  it('opens income editing with the explicitly selected past month', () => {
+  it('opens income editing with the explicitly selected past month', async () => {
     setupStores('2000-05');
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.openIncomeSheet());
+    await act(() => result.current.openIncomeSheet());
 
     expect(useIncomeSheetState.getState()).toMatchObject({
       isOpen: true,
@@ -262,17 +262,17 @@ describe('useBudget month actions', () => {
     });
   });
 
-  it('changes UI selection and explicitly loads the selected month', () => {
-    const { result } = renderHook(() => useBudget());
+  it('changes UI selection and explicitly loads the selected month', async () => {
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.setSelectedMonth('2026-06'));
+    await act(() => result.current.setSelectedMonth('2026-06'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-06');
     expect(loadBudgetMock).toHaveBeenCalledWith('2026-06');
   });
 
   it('refreshes the selected month without reloading successful category data', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.refresh();
@@ -286,7 +286,7 @@ describe('useBudget month actions', () => {
 
   it('reloads categories during refresh only when no successful category data exists', async () => {
     setupStores('2026-07', 10000, undefined, undefined, { categoriesLoaded: false });
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.refresh();
@@ -295,13 +295,13 @@ describe('useBudget month actions', () => {
     expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('uses income suggestion and formulas only from a matching month snapshot', () => {
+  it('uses income suggestion and formulas only from a matching month snapshot', async () => {
     setupStores('2026-07', 10000, undefined, undefined, {
       loadedMonth: '2026-06',
       incomeSuggestion: 22000,
     });
 
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     expect(result.current.state.rows).toEqual([]);
     expect(result.current.state.ruleLens.summary.hasIncome).toBe(false);
@@ -309,8 +309,8 @@ describe('useBudget month actions', () => {
     expect(result.current.state.presentation).toBe('coldLoading');
   });
 
-  it('groups multiple named budgets under one category and counts category spend once', () => {
-    const { result } = renderHook(() => useBudget());
+  it('groups multiple named budgets under one category and counts category spend once', async () => {
+    const { result } = await renderHook(() => useBudget());
 
     expect(result.current.state.rows).toEqual(
       expect.arrayContaining([
@@ -341,10 +341,10 @@ describe('useBudget month actions', () => {
     ]);
   });
 
-  it('opens copy with cleared selection and requests the targeted preview', () => {
-    const { result } = renderHook(() => useBudget());
+  it('opens copy with cleared selection and requests the targeted preview', async () => {
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.openCopy());
+    await act(() => result.current.openCopy());
 
     expect(clearCopySelectionMock).toHaveBeenCalledTimes(1);
     expect(openCopyMock).toHaveBeenCalledWith();
@@ -352,7 +352,7 @@ describe('useBudget month actions', () => {
   });
 
   it('copies selected source-month budgets into the selected month', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.copySelectedBudgets(['budget-food-jun']);
@@ -362,24 +362,24 @@ describe('useBudget month actions', () => {
     expect(closeCopyMock).toHaveBeenCalledTimes(1);
   });
 
-  it('changes source month by clearing selection and requesting only the new preview', () => {
-    const { result } = renderHook(() => useBudget());
+  it('changes source month by clearing selection and requesting only the new preview', async () => {
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.setCopySourceMonth('2026-05'));
+    await act(() => result.current.setCopySourceMonth('2026-05'));
 
     expect(setCopySourceMonthMock).toHaveBeenCalledWith('2026-05');
     expect(clearCopySelectionMock).toHaveBeenCalledTimes(1);
     expect(loadCopyPreviewMock).toHaveBeenCalledWith('2026-05', '2026-07');
   });
 
-  it('retries only the current copy preview', () => {
+  it('retries only the current copy preview', async () => {
     setupStores('2026-07', 10000, undefined, undefined, {
       copySheetVisible: true,
       copyPreviewError: true,
     });
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => result.current.retryCopyPreview());
+    await act(() => result.current.retryCopyPreview());
 
     expect(loadCopyPreviewMock).toHaveBeenCalledWith('2026-06', '2026-07');
     expect(loadBudgetMock).not.toHaveBeenCalled();
@@ -391,7 +391,7 @@ describe('useBudget month actions', () => {
       copySheetVisible: true,
       copyBusy: true,
     });
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.copySelectedBudgets(['budget-food-jun']);
@@ -404,7 +404,7 @@ describe('useBudget month actions', () => {
   it('keeps copy state open and reports an operational error when persistence fails', async () => {
     setupStores('2026-07', 10000, undefined, undefined, { copySheetVisible: true });
     copyBudgetsToMonthMock.mockRejectedValueOnce(new Error('copy failed'));
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.copySelectedBudgets(['budget-food-jun']);
@@ -419,7 +419,7 @@ describe('useBudget month actions', () => {
 
   it('closes once after committed copy even when its snapshot reload records a read failure', async () => {
     copyBudgetsToMonthMock.mockResolvedValueOnce(undefined);
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.copySelectedBudgets(['budget-food-jun']);
@@ -430,7 +430,7 @@ describe('useBudget month actions', () => {
   });
 
   it('removes a budget from the selected month', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     await act(async () => {
       await result.current.removeBudgetForMonth({ id: 'budget-food-jul', name: 'Monthly Food' });

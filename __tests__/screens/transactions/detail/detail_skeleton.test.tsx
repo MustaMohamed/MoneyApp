@@ -25,14 +25,14 @@ jest.mock('heroui-native', () => {
 });
 
 describe('TransactionDetailSkeleton', () => {
-  it('uses a neutral loading surface when transaction geometry is unknown', () => {
-    const { getByTestId, queryByTestId } = render(<TransactionDetailSkeleton />);
+  it('uses a neutral loading surface when transaction geometry is unknown', async () => {
+    const { getByTestId, queryByTestId } = await render(<TransactionDetailSkeleton />);
 
     expect(getByTestId('transaction-detail-neutral-loading')).toBeTruthy();
     expect(queryByTestId('transaction-detail-skeleton-rows')).toBeNull();
   });
 
-  it('matches the optional transfer, metadata, note, and action sections', () => {
+  it('matches the optional transfer, metadata, note, and action sections', async () => {
     const transaction: Transaction = {
       id: 'transfer-1',
       type: TransactionType.Transfer,
@@ -55,7 +55,7 @@ describe('TransactionDetailSkeleton', () => {
       created_at: '2026-07-19T12:00:00.000Z',
       updated_at: '2026-07-19T12:00:00.000Z',
     };
-    const { getAllByTestId, getByTestId } = render(
+    const { getAllByTestId, getByTestId } = await render(
       <TransactionDetailSkeleton transaction={transaction} />,
     );
 

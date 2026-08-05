@@ -56,21 +56,21 @@ function setup() {
 describe('useCategories', () => {
   beforeEach(setup);
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useCategories())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useCategories())).resolves.toBeDefined();
   });
 
-  it('customCategories defaults to empty array', () => {
-    const { result } = renderHook(() => useCategories());
+  it('customCategories defaults to empty array', async () => {
+    const { result } = await renderHook(() => useCategories());
     expect(result.current.state.customCategories).toEqual([]);
   });
 
-  it('exposes whether category data has loaded', () => {
-    const { result } = renderHook(() => useCategories());
+  it('exposes whether category data has loaded', async () => {
+    const { result } = await renderHook(() => useCategories());
     expect(result.current.state.hasLoaded).toBe(false);
   });
 
-  it('exposes the category load error state', () => {
+  it('exposes the category load error state', async () => {
     attachMockSelectorStore(useCategoryStore as unknown as jest.Mock, () => ({
       categories: [],
       hasLoaded: false,
@@ -83,7 +83,7 @@ describe('useCategories', () => {
       getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
     }));
 
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
     expect(result.current.state.loadError).toBe(true);
   });
 
@@ -100,7 +100,7 @@ describe('useCategories', () => {
       reassignAndDelete: jest.fn().mockResolvedValue(undefined),
       getCategoryTransactionCount: jest.fn().mockResolvedValue(0),
     }));
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await expect(result.current.retryLoad()).resolves.toBeUndefined();
     expect(loadCategories).toHaveBeenCalledTimes(1);

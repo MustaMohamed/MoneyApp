@@ -57,35 +57,35 @@ describe('useSheetVisibilityStore', () => {
 });
 
 describe('useAnySheetOpen', () => {
-  it('returns false when count is 0', () => {
-    const { result } = renderHook(() => useAnySheetOpen());
+  it('returns false when count is 0', async () => {
+    const { result } = await renderHook(() => useAnySheetOpen());
     expect(result.current).toBe(false);
   });
 
-  it('returns true when count is 1', () => {
-    const { result } = renderHook(() => useAnySheetOpen());
-    act(() => {
+  it('returns true when count is 1', async () => {
+    const { result } = await renderHook(() => useAnySheetOpen());
+    await act(() => {
       useSheetVisibilityStore.getState().increment();
     });
     expect(result.current).toBe(true);
   });
 
-  it('returns true when count is greater than 1 (stacked sheets)', () => {
-    const { result } = renderHook(() => useAnySheetOpen());
-    act(() => {
+  it('returns true when count is greater than 1 (stacked sheets)', async () => {
+    const { result } = await renderHook(() => useAnySheetOpen());
+    await act(() => {
       useSheetVisibilityStore.getState().increment();
       useSheetVisibilityStore.getState().increment();
     });
     expect(result.current).toBe(true);
   });
 
-  it('returns false again after all sheets are closed', () => {
-    const { result } = renderHook(() => useAnySheetOpen());
-    act(() => {
+  it('returns false again after all sheets are closed', async () => {
+    const { result } = await renderHook(() => useAnySheetOpen());
+    await act(() => {
       useSheetVisibilityStore.getState().increment();
     });
     expect(result.current).toBe(true);
-    act(() => {
+    await act(() => {
       useSheetVisibilityStore.getState().decrement();
     });
     expect(result.current).toBe(false);

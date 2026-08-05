@@ -171,22 +171,22 @@ describe('TransactionsScreen', () => {
     expect(template).not.toContain('useTransactionStore');
   });
 
-  it('shows row skeletons instead of the list spinner during first load', () => {
-    const { getByTestId, queryByText } = render(<TransactionsScreen />);
+  it('shows row skeletons instead of the list spinner during first load', async () => {
+    const { getByTestId, queryByText } = await render(<TransactionsScreen />);
 
     expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
     expect(queryByText('spinner')).toBeNull();
   });
 
-  it('keeps scope controls fixed while summary and search scroll with the ledger', () => {
-    const { getByTestId } = render(<TransactionsScreen />);
+  it('keeps scope controls fixed while summary and search scroll with the ledger', async () => {
+    const { getByTestId } = await render(<TransactionsScreen />);
 
     expect(getByTestId('transactions-filter-rail')).toBeTruthy();
     expect(getByTestId('transactions-list-header')).toBeTruthy();
     expect(getByTestId('transactions-list')).toHaveProp('ListHeaderComponent');
   });
 
-  it('does not show row skeletons after loaded transactions render', () => {
+  it('does not show row skeletons after loaded transactions render', async () => {
     mockUseTransactions({
       emptyVariant: 'none',
       listStatus: 'ready',
@@ -222,15 +222,15 @@ describe('TransactionsScreen', () => {
       ],
     });
 
-    const { getByText, queryByTestId } = render(<TransactionsScreen />);
+    const { getByText, queryByTestId } = await render(<TransactionsScreen />);
 
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
 
-  it('tracks list movement separately from its persistence boundaries', () => {
+  it('tracks list movement separately from its persistence boundaries', async () => {
     const hook = mockUseTransactions();
-    const { getByTestId } = render(<TransactionsScreen />);
+    const { getByTestId } = await render(<TransactionsScreen />);
     const event = {
       nativeEvent: {
         contentOffset: { x: 0, y: 100 },
@@ -239,18 +239,24 @@ describe('TransactionsScreen', () => {
       },
     };
 
-    fireEvent.scroll(getByTestId('transactions-list'), event);
-    fireEvent(getByTestId('transactions-list'), 'scrollEndDrag', event);
-    fireEvent(getByTestId('transactions-list'), 'momentumScrollEnd', event);
+    await fireEvent.scroll(getByTestId('transactions-list'), event);
+    await fireEvent(getByTestId('transactions-list'), 'scrollEndDrag', event);
+    await fireEvent(getByTestId('transactions-list'), 'momentumScrollEnd', event);
 
-    expect(hook.onListScroll).toHaveBeenCalledWith(event);
+    // RNTL 14 builds a full synthetic event and deep-merges the passed props into
+    // it, so the handler no longer receives exactly `event` — match partially.
+    const received = expect.objectContaining({
+      nativeEvent: expect.objectContaining(event.nativeEvent),
+    });
+
+    expect(hook.onListScroll).toHaveBeenCalledWith(received);
     expect(hook.onListScrollEnd).toHaveBeenCalledTimes(2);
-    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(1, event);
-    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(2, event);
+    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(1, received);
+    expect(hook.onListScrollEnd).toHaveBeenNthCalledWith(2, received);
     expect(getByTestId('transactions-list')).toHaveProp('scrollEventThrottle', 100);
   });
 
-  it('keeps loaded transactions visible while manually refreshing loaded transactions', () => {
+  it('keeps loaded transactions visible while manually refreshing loaded transactions', async () => {
     mockUseTransactions({
       emptyVariant: 'none',
       listStatus: 'refreshing',
@@ -292,14 +298,14 @@ describe('TransactionsScreen', () => {
       ],
     });
 
-    const { getByText, queryByTestId } = render(<TransactionsScreen />);
+    const { getByText, queryByTestId } = await render(<TransactionsScreen />);
 
     expect(getByText('Totals loading:false')).toBeTruthy();
     expect(getByText('Transaction row')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();
   });
 
-  it('shows matching row skeletons during a new filter query transition', () => {
+  it('shows matching row skeletons during a new filter query transition', async () => {
     mockUseTransactions({
       emptyVariant: 'none',
       listStatus: 'initialLoading',
@@ -308,13 +314,13 @@ describe('TransactionsScreen', () => {
       sections: [],
     });
 
-    const { getByTestId, queryByText } = render(<TransactionsScreen />);
+    const { getByTestId, queryByText } = await render(<TransactionsScreen />);
 
     expect(getByTestId('transaction-row-skeletons')).toBeTruthy();
     expect(queryByText('filtered')).toBeNull();
   });
 
-  it('does not show row skeletons behind a filtered empty state while refreshing', () => {
+  it('does not show row skeletons behind a filtered empty state while refreshing', async () => {
     mockUseTransactions({
       emptyVariant: 'noResults',
       listStatus: 'refreshing',
@@ -324,7 +330,7 @@ describe('TransactionsScreen', () => {
       sections: [],
     });
 
-    const { getByText, queryByTestId } = render(<TransactionsScreen />);
+    const { getByText, queryByTestId } = await render(<TransactionsScreen />);
 
     expect(getByText('filtered')).toBeTruthy();
     expect(queryByTestId('transaction-row-skeletons')).toBeNull();

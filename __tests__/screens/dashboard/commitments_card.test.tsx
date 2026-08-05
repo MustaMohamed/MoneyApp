@@ -78,8 +78,8 @@ jest.mock('heroui-native', () => {
 });
 
 describe('CommitmentsCard skeleton loading', () => {
-  it('shows skeleton slots instead of committed totals while loading', () => {
-    const { queryByText, getAllByTestId, queryByTestId } = render(
+  it('shows skeleton slots instead of committed totals while loading', async () => {
+    const { queryByText, getAllByTestId, queryByTestId } = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
         totalsByCurrency={new Map([['EGP', 5000]])}
@@ -97,8 +97,8 @@ describe('CommitmentsCard skeleton loading', () => {
     expect(queryByText(Strings.dashboardCommitmentsTitle)).toBeTruthy();
   });
 
-  it('preserves the natural card frame while loading', () => {
-    const loading = render(
+  it('preserves the natural card frame while loading', async () => {
+    const loading = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
         totalsByCurrency={new Map([['EGP', 5000]])}
@@ -107,7 +107,7 @@ describe('CommitmentsCard skeleton loading', () => {
         onPress={jest.fn()}
       />,
     );
-    const loaded = render(
+    const loaded = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
         totalsByCurrency={new Map([['EGP', 5000]])}
@@ -123,8 +123,8 @@ describe('CommitmentsCard skeleton loading', () => {
     expect(loaded.getByTestId('dashboard-commitments-card')).not.toHaveStyle({ height: ms(128) });
   });
 
-  it('matches the loaded commitments row geometry while loading', () => {
-    const { getAllByTestId, getByTestId } = render(
+  it('matches the loaded commitments row geometry while loading', async () => {
+    const { getAllByTestId, getByTestId } = await render(
       <CommitmentsCard
         counts={{ paid: 1, overdue: 2, due: 3, upcoming: 4, skipped: 5, total: 10 }}
         totalsByCurrency={new Map([['EGP', 5000]])}

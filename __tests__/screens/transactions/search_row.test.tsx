@@ -10,8 +10,8 @@ import {
 jest.mock('@expo/vector-icons/MaterialCommunityIcons', () => () => null);
 
 describe('SearchRow', () => {
-  it('renders the compact search input and trailing filter button', () => {
-    const { getByLabelText } = render(
+  it('renders the compact search input and trailing filter button', async () => {
+    const { getByLabelText } = await render(
       <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={0} />,
     );
 
@@ -28,13 +28,13 @@ describe('SearchRow', () => {
     expect(getByLabelText('Filter')).toHaveProp('style', FILTER_BUTTON_COMPACT_STYLE);
   });
 
-  it('shows the active-filter badge only when advanced filters are applied', () => {
-    const empty = render(
+  it('shows the active-filter badge only when advanced filters are applied', async () => {
+    const empty = await render(
       <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={0} />,
     );
     expect(empty.queryByText('2')).toBeNull();
 
-    const active = render(
+    const active = await render(
       <SearchRow value="" onChange={jest.fn()} onOpenFilter={jest.fn()} activeFilterCount={2} />,
     );
     expect(active.getByText('2')).toBeTruthy();
@@ -44,8 +44,8 @@ describe('SearchRow', () => {
     expect(active.getByLabelText('Filter, 2 active')).toBeTruthy();
   });
 
-  it('keeps stable search geometry when search has text', () => {
-    const active = render(
+  it('keeps stable search geometry when search has text', async () => {
+    const active = await render(
       <SearchRow
         value="coffee"
         onChange={jest.fn()}
@@ -60,10 +60,10 @@ describe('SearchRow', () => {
     );
   });
 
-  it('routes search changes and clearing through the controlled handler', () => {
+  it('routes search changes and clearing through the controlled handler', async () => {
     const onChange = jest.fn();
     const onOpenFilter = jest.fn();
-    const { getByLabelText } = render(
+    const { getByLabelText } = await render(
       <SearchRow
         value="coffee"
         onChange={onChange}
@@ -72,13 +72,13 @@ describe('SearchRow', () => {
       />,
     );
 
-    fireEvent.changeText(getByLabelText('Search transactions…'), 'rent');
+    await fireEvent.changeText(getByLabelText('Search transactions…'), 'rent');
     expect(onChange).toHaveBeenCalledWith('rent');
 
-    fireEvent.press(getByLabelText('Clear search'));
+    await fireEvent.press(getByLabelText('Clear search'));
     expect(onChange).toHaveBeenLastCalledWith('');
 
-    fireEvent.press(getByLabelText('Filter, 1 active'));
+    await fireEvent.press(getByLabelText('Filter, 1 active'));
     expect(onOpenFilter).toHaveBeenCalled();
   });
 });

@@ -33,28 +33,28 @@ describe('useWelcome', () => {
     setup();
   });
 
-  it('defaults selected to onboarding store baseCurrency (EGP)', () => {
-    const { result } = renderHook(() => useWelcome());
+  it('defaults selected to onboarding store baseCurrency (EGP)', async () => {
+    const { result } = await renderHook(() => useWelcome());
     expect(result.current.state.selected).toBe(Currency.EGP);
   });
 
-  it('defaults selected to USD if store baseCurrency is USD', () => {
+  it('defaults selected to USD if store baseCurrency is USD', async () => {
     setup(Currency.USD);
-    const { result } = renderHook(() => useWelcome());
+    const { result } = await renderHook(() => useWelcome());
     expect(result.current.state.selected).toBe(Currency.USD);
   });
 
-  it('setSelected updates the selected currency', () => {
-    const { result } = renderHook(() => useWelcome());
-    act(() => {
+  it('setSelected updates the selected currency', async () => {
+    const { result } = await renderHook(() => useWelcome());
+    await act(() => {
       result.current.setSelected(Currency.USD);
     });
     expect(result.current.state.selected).toBe(Currency.USD);
   });
 
   it('onContinue calls setBaseCurrency with selected currency', async () => {
-    const { result } = renderHook(() => useWelcome());
-    act(() => {
+    const { result } = await renderHook(() => useWelcome());
+    await act(() => {
       result.current.setSelected(Currency.USD);
     });
     await act(async () => {
@@ -64,7 +64,7 @@ describe('useWelcome', () => {
   });
 
   it('onContinue calls setStep with N2', async () => {
-    const { result } = renderHook(() => useWelcome());
+    const { result } = await renderHook(() => useWelcome());
     await act(async () => {
       await result.current.onContinue();
     });
@@ -72,7 +72,7 @@ describe('useWelcome', () => {
   });
 
   it('onContinue navigates to /(onboarding)/add_account', async () => {
-    const { result } = renderHook(() => useWelcome());
+    const { result } = await renderHook(() => useWelcome());
     await act(async () => {
       await result.current.onContinue();
     });

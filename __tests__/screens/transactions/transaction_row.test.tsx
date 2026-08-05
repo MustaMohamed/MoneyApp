@@ -66,8 +66,8 @@ function transaction(commitmentPaymentId: string | null): Transaction {
 describe('TransactionRow ownership actions', () => {
   beforeEach(() => mockSwipeableRow.mockClear());
 
-  it('does not expose generic swipe actions for a commitment-owned transaction', () => {
-    render(
+  it('does not expose generic swipe actions for a commitment-owned transaction', async () => {
+    await render(
       <TransactionRow
         tx={transaction('payment-1')}
         onPress={jest.fn()}
@@ -81,8 +81,8 @@ describe('TransactionRow ownership actions', () => {
     );
   });
 
-  it('keeps edit and delete actions for an ordinary transaction', () => {
-    render(
+  it('keeps edit and delete actions for an ordinary transaction', async () => {
+    await render(
       <TransactionRow
         tx={transaction(null)}
         onPress={jest.fn()}
@@ -94,7 +94,7 @@ describe('TransactionRow ownership actions', () => {
     expect(mockSwipeableRow.mock.calls[0][0].actions).toHaveLength(2);
   });
 
-  it('uses stable icon, content, and value tracks for long row content', () => {
+  it('uses stable icon, content, and value tracks for long row content', async () => {
     const source: Account = {
       id: 'account',
       name: 'A very long source account name that must truncate',
@@ -115,7 +115,7 @@ describe('TransactionRow ownership actions', () => {
       created_at: '2026-07-19T12:00:00.000Z',
       updated_at: '2026-07-19T12:00:00.000Z',
     };
-    const screen = render(
+    const screen = await render(
       <TransactionRow
         tx={transaction(null)}
         account={source}
@@ -140,7 +140,7 @@ describe('TransactionRow ownership actions', () => {
     expect(TRANSACTION_ROW_HEIGHT).toBe(ms(60));
   });
 
-  it('renders the destination native amount for transfers', () => {
+  it('renders the destination native amount for transfers', async () => {
     const source = {
       id: 'account',
       name: 'USD wallet',
@@ -171,7 +171,7 @@ describe('TransactionRow ownership actions', () => {
     transfer.to_account_id = destination.id;
     transfer.category_id = null;
 
-    const { getByText } = render(
+    const { getByText } = await render(
       <TransactionRow
         tx={transfer}
         account={source}

@@ -68,8 +68,8 @@ jest.mock('heroui-native', () => {
 });
 
 describe('SummaryHeader skeleton loading', () => {
-  it('does not render final-looking empty values while payments load', () => {
-    const { queryByText, getAllByTestId, queryByTestId } = render(
+  it('does not render final-looking empty values while payments load', async () => {
+    const { queryByText, getAllByTestId, queryByTestId } = await render(
       <SummaryHeader
         counts={{ paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 }}
         totalsByCurrency={new Map()}
@@ -83,8 +83,8 @@ describe('SummaryHeader skeleton loading', () => {
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(5);
   });
 
-  it('matches the loaded summary row geometry while loading', () => {
-    const { getAllByTestId, getByTestId } = render(
+  it('matches the loaded summary row geometry while loading', async () => {
+    const { getAllByTestId, getByTestId } = await render(
       <SummaryHeader
         counts={{ paid: 0, overdue: 0, due: 0, upcoming: 0, skipped: 0, total: 0 }}
         totalsByCurrency={new Map()}

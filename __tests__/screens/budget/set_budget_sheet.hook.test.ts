@@ -8,7 +8,7 @@ beforeEach(() => useSetBudgetSheetState.getState().reset());
 describe('useSetBudgetSheetSave', () => {
   it('reports rejection and preserves sheet selection for retry', async () => {
     useSetBudgetSheetState.getState().initAddMode('cat_food');
-    const { result } = renderHook(() => useSetBudgetSheetSave());
+    const { result } = await renderHook(() => useSetBudgetSheetSave());
 
     let saved = true;
     await act(async () => {
@@ -29,10 +29,10 @@ describe('useSetBudgetSheetSave', () => {
       resolveSave = resolve;
     });
     const operation = jest.fn(() => pendingSave);
-    const { result } = renderHook(() => useSetBudgetSheetSave());
+    const { result } = await renderHook(() => useSetBudgetSheetSave());
 
     let firstSave!: Promise<boolean>;
-    act(() => {
+    await act(() => {
       firstSave = result.current.runSave(operation);
     });
     await act(async () => {

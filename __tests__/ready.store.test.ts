@@ -3,8 +3,8 @@ import { act } from '@testing-library/react-native';
 import { useAppReadyStore } from '@/store/ready.store';
 
 describe('useAppReadyStore', () => {
-  beforeEach(() => {
-    act(() => useAppReadyStore.getState().reset());
+  beforeEach(async () => {
+    await act(() => useAppReadyStore.getState().reset());
   });
 
   it('starts in the initializing state', () => {

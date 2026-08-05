@@ -18,9 +18,9 @@ import { TypeTabs } from '@/modules/transactions/screens/transactions/transactio
 describe('TypeTabs', () => {
   beforeEach(() => mockSegmentedTabs.mockClear());
 
-  it('uses the canonical compact HeroUI segmented control with stable labels', () => {
+  it('uses the canonical compact HeroUI segmented control with stable labels', async () => {
     const onSelect = jest.fn();
-    render(
+    await render(
       <TypeTabs
         active={TransactionType.Expense}
         incomeLabel="Transfer in"

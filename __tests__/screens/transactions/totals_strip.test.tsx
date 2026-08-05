@@ -37,8 +37,8 @@ describe('TotalsStrip', () => {
     expect(TRANSACTIONS_EXPENSE_SHARE_RAIL_CLASS_NAME).toBe('bg-default overflow-hidden');
   });
 
-  it('shows the previous-period comparison caption', () => {
-    const { getByText, queryAllByTestId } = render(
+  it('shows the previous-period comparison caption', async () => {
+    const { getByText, queryAllByTestId } = await render(
       <TotalsStrip
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 14500 }}
@@ -50,8 +50,8 @@ describe('TotalsStrip', () => {
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
   });
 
-  it('exposes the bounded expense share as a progress value', () => {
-    const { getByTestId } = render(
+  it('exposes the bounded expense share as a progress value', async () => {
+    const { getByTestId } = await render(
       <TotalsStrip
         current={{ incomeEgp: 1_000, expenseEgp: 1_500, netEgp: -500 }}
         previous={null}
@@ -92,8 +92,8 @@ describe('TotalsStrip', () => {
       totals: { incomeEgp: 100, expenseEgp: -50, netEgp: 150 },
       label: Strings.totalsNetCredit,
     },
-  ])('renders the $label edge state in the shared caption slot', ({ totals, label }) => {
-    const { getByTestId, getByText } = render(
+  ])('renders the $label edge state in the shared caption slot', async ({ totals, label }) => {
+    const { getByTestId, getByText } = await render(
       <TotalsStrip current={totals} previous={null} previousLabel="June 2026" />,
     );
 

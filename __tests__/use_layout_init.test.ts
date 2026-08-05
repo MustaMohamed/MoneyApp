@@ -57,10 +57,10 @@ async function flushStartup() {
 describe('useAppInit', () => {
   let consoleWarnSpy: jest.SpyInstance;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.clearAllMocks();
     consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
-    act(() => useAppReadyStore.getState().reset());
+    await act(() => useAppReadyStore.getState().reset());
     mockGetDb.mockResolvedValue({});
     mockRunMigrations.mockResolvedValue(undefined);
     mockInitOnboarding.mockResolvedValue({ complete: false, step: 'N1' });
@@ -75,7 +75,7 @@ describe('useAppInit', () => {
     const currency = deferred<void>();
     mockLoadRate.mockReturnValueOnce(currency.promise);
 
-    renderHook(() => useAppInit());
+    await renderHook(() => useAppInit());
     await flushStartup();
 
     expect(useAppReadyStore.getState().status).toBe('initializing');
@@ -99,7 +99,7 @@ describe('useAppInit', () => {
   ])('publishes fatalError when required %s initialization fails', async (_, fail) => {
     fail();
 
-    renderHook(() => useAppInit());
+    await renderHook(() => useAppInit());
     await flushStartup();
 
     expect(useAppReadyStore.getState()).toMatchObject({ status: 'fatalError' });
@@ -108,10 +108,10 @@ describe('useAppInit', () => {
   it('does not let a stale failed attempt replace a successful retry', async () => {
     const firstDb = deferred<unknown>();
     mockGetDb.mockReturnValueOnce(firstDb.promise).mockResolvedValueOnce({});
-    const { result } = renderHook(() => useAppInit());
+    const { result } = await renderHook(() => useAppInit());
     await flushStartup();
 
-    act(() => result.current.retry());
+    await act(() => result.current.retry());
     await flushStartup();
     expect(useAppReadyStore.getState().status).toBe('ready');
 
@@ -125,7 +125,7 @@ describe('useAppInit', () => {
     mockInitOnboarding.mockResolvedValue({ complete: true, step: 'N4' });
     mockEnsureHousekeepingCurrent.mockReturnValue(generate.promise);
 
-    renderHook(() => useAppInit());
+    await renderHook(() => useAppInit());
     await flushStartup();
 
     expect(useAppReadyStore.getState().status).toBe('ready');
@@ -138,7 +138,7 @@ describe('useAppInit', () => {
     mockInitOnboarding.mockResolvedValue({ complete: true, step: 'N4' });
     mockEnsureHousekeepingCurrent.mockRejectedValue(new Error('housekeeping'));
 
-    renderHook(() => useAppInit());
+    await renderHook(() => useAppInit());
     await flushStartup();
 
     expect(useAppReadyStore.getState().status).toBe('ready');
@@ -150,7 +150,7 @@ describe('useAppInit', () => {
   });
 
   it('skips housekeeping before onboarding completes', async () => {
-    renderHook(() => useAppInit());
+    await renderHook(() => useAppInit());
     await flushStartup();
 
     expect(mockEnsureHousekeepingCurrent).not.toHaveBeenCalled();

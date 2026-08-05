@@ -278,9 +278,9 @@ function createEditHookState(
   };
 }
 
-function renderAdd(overrides: Partial<TransactionFormHookResult['state']> = {}) {
+async function renderAdd(overrides: Partial<TransactionFormHookResult['state']> = {}) {
   mockUseAddTransaction.mockReturnValue(createHookState(overrides));
-  return render(
+  return await render(
     <AddTransactionSession
       sessionId={1}
       onRegisterSubmit={jest.fn()}
@@ -297,26 +297,26 @@ describe('transaction form sessions', () => {
     useTransactionFormState.getState().openAdd();
   });
 
-  it('keeps stable loading and error bodies with a retry action', () => {
-    const loading = renderAdd();
+  it('keeps stable loading and error bodies with a retry action', async () => {
+    const loading = await renderAdd();
     expect(loading.getByTestId('transaction-form-loading')).toBeTruthy();
-    loading.unmount();
+    await loading.unmount();
 
-    const error = renderAdd({ formDataLoadError: true });
-    fireEvent.press(error.getByTestId('transaction-form-retry'));
+    const error = await renderAdd({ formDataLoadError: true });
+    await fireEvent.press(error.getByTestId('transaction-form-retry'));
     expect(mockRetry).toHaveBeenCalledTimes(1);
   });
 
-  it('mounts Add pickers closed so the first press can open an existing HeroUI sheet', () => {
-    const screen = renderAdd({ formDataReady: true });
+  it('mounts Add pickers closed so the first press can open an existing HeroUI sheet', async () => {
+    const screen = await renderAdd({ formDataReady: true });
 
     expect(screen.getAllByTestId('account-picker')).toHaveLength(2);
     expect(screen.getByTestId('category-picker')).toBeTruthy();
     expect(screen.getByTestId('budget-picker')).toBeTruthy();
   });
 
-  it('renders the ready Add form and keeps its nested pickers mounted', () => {
-    const screen = renderAdd({
+  it('renders the ready Add form and keeps its nested pickers mounted', async () => {
+    const screen = await renderAdd({
       formDataReady: true,
       showAccountPicker: true,
       closingPickers: ['category'],
@@ -328,7 +328,7 @@ describe('transaction form sessions', () => {
   });
 
   it('hides the Add footer when no account exists', async () => {
-    const screen = renderAdd({ formDataReady: true, hasAccounts: false });
+    const screen = await renderAdd({ formDataReady: true, hasAccounts: false });
 
     await waitFor(() =>
       expect(useTransactionFormState.getState().footer).toMatchObject({
@@ -336,7 +336,7 @@ describe('transaction form sessions', () => {
         disabled: true,
       }),
     );
-    fireEvent.press(screen.getByTestId('transaction-form-no-accounts'));
+    await fireEvent.press(screen.getByTestId('transaction-form-no-accounts'));
     expect(mockRequestAccountCreation).toHaveBeenCalledWith(1);
   });
 
@@ -347,7 +347,7 @@ describe('transaction form sessions', () => {
     );
     const registerSubmit = jest.fn<void, [number, (() => Promise<void>) | undefined]>();
 
-    const screen = render(
+    const screen = await render(
       <EditTransactionSession
         sessionId={2}
         tx={tx}
@@ -377,11 +377,11 @@ describe('transaction form sessions', () => {
     expect(mockHandleSave).toHaveBeenCalledTimes(1);
   });
 
-  it('mounts Edit pickers closed so the first press can open an existing HeroUI sheet', () => {
+  it('mounts Edit pickers closed so the first press can open an existing HeroUI sheet', async () => {
     useTransactionFormState.getState().openEdit(tx);
     mockUseEditTransaction.mockReturnValue(createEditHookState({ formDataReady: true }));
 
-    const screen = render(
+    const screen = await render(
       <EditTransactionSession
         sessionId={2}
         tx={tx}

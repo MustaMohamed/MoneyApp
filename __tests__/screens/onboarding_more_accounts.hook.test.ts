@@ -64,18 +64,18 @@ describe('useMoreAccounts', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useMoreAccounts())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useMoreAccounts())).resolves.toBeDefined();
   });
 
-  it('accounts reflects account store state', () => {
-    const { result } = renderHook(() => useMoreAccounts());
+  it('accounts reflects account store state', async () => {
+    const { result } = await renderHook(() => useMoreAccounts());
     expect(result.current.accounts).toHaveLength(2);
     expect(result.current.accounts[0].name).toBe('CIB Savings');
   });
 
   it('handleContinue calls setStep with N4', async () => {
-    const { result } = renderHook(() => useMoreAccounts());
+    const { result } = await renderHook(() => useMoreAccounts());
     await act(async () => {
       await result.current.handleContinue();
     });
@@ -83,16 +83,16 @@ describe('useMoreAccounts', () => {
   });
 
   it('handleContinue navigates to /(onboarding)/ready', async () => {
-    const { result } = renderHook(() => useMoreAccounts());
+    const { result } = await renderHook(() => useMoreAccounts());
     await act(async () => {
       await result.current.handleContinue();
     });
     expect(mockPush).toHaveBeenCalledWith('/(onboarding)/ready');
   });
 
-  it('handleAddAnother navigates to /(onboarding)/add_account with isAddingMore=true', () => {
-    const { result } = renderHook(() => useMoreAccounts());
-    act(() => {
+  it('handleAddAnother navigates to /(onboarding)/add_account with isAddingMore=true', async () => {
+    const { result } = await renderHook(() => useMoreAccounts());
+    await act(() => {
       result.current.handleAddAnother();
     });
     expect(mockPush).toHaveBeenCalledWith({

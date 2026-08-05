@@ -66,9 +66,9 @@ jest.mock('heroui-native', () => {
 });
 
 describe('TransactionsCard', () => {
-  it('renders dashboard transaction summary and opens transactions on press', () => {
+  it('renders dashboard transaction summary and opens transactions on press', async () => {
     const onPress = jest.fn();
-    const { getByText, getByLabelText, queryAllByTestId } = render(
+    const { getByText, getByLabelText, queryAllByTestId } = await render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
@@ -86,12 +86,12 @@ describe('TransactionsCard', () => {
     expect(getByText(Strings.totalsVsPrev('June 2026'))).toBeTruthy();
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
 
-    fireEvent.press(getByLabelText(Strings.transactions));
+    await fireEvent.press(getByLabelText(Strings.transactions));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('shows skeleton slots instead of totals while loading', () => {
-    const { queryByText, getAllByTestId, queryByTestId } = render(
+  it('shows skeleton slots instead of totals while loading', async () => {
+    const { queryByText, getAllByTestId, queryByTestId } = await render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
@@ -109,8 +109,8 @@ describe('TransactionsCard', () => {
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 
-  it('preserves the natural card frame while loading', () => {
-    const loading = render(
+  it('preserves the natural card frame while loading', async () => {
+    const loading = await render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
@@ -120,7 +120,7 @@ describe('TransactionsCard', () => {
         onPress={jest.fn()}
       />,
     );
-    const loaded = render(
+    const loaded = await render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}
@@ -137,8 +137,8 @@ describe('TransactionsCard', () => {
     expect(loaded.getByTestId('dashboard-transactions-card')).not.toHaveStyle({ height: ms(128) });
   });
 
-  it('matches the loaded transactions row geometry while loading', () => {
-    const { getAllByTestId, getByTestId } = render(
+  it('matches the loaded transactions row geometry while loading', async () => {
+    const { getAllByTestId, getByTestId } = await render(
       <TransactionsCard
         current={{ incomeEgp: 25000, expenseEgp: 13000, netEgp: 12000 }}
         previous={{ incomeEgp: 22800, expenseEgp: 11300, netEgp: 11500 }}

@@ -111,7 +111,7 @@ describe('useEditTransaction', () => {
     useAccountStore.setState({ loadAccounts, loadAccountLookup });
     useCategoryStore.setState({ loadCategories });
 
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useEditTransaction(mockTxExpense, jest.fn(), jest.fn(), {
         status: 'ready',
         retry,
@@ -124,7 +124,7 @@ describe('useEditTransaction', () => {
     expect(loadAccountLookup).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
-    act(() => result.current.retryFormData());
+    await act(() => result.current.retryFormData());
     expect(retry).toHaveBeenCalledTimes(1);
   });
 
@@ -139,9 +139,9 @@ describe('useEditTransaction', () => {
     };
     useEditTransactionStore.getState().loadFromTx(usdTx);
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() => useEditTransaction(usdTx, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    act(() => result.current.setExchangeRate('50abc'));
+    await act(() => result.current.setExchangeRate('50abc'));
 
     await act(async () => result.current.handleSave());
 
@@ -157,7 +157,7 @@ describe('useEditTransaction', () => {
       account_id: mockAccountCC.id,
     };
     useEditTransactionStore.getState().loadFromTx(creditTx);
-    const { result } = renderHook(() => useEditTransaction(creditTx, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() => useEditTransaction(creditTx, jest.fn(), jest.fn()));
 
     expect(result.current.state.isCardCredit).toBe(true);
     expect(result.current.state.visibleCategories).toEqual([mockCategoryFood, mockCategoryShop]);
@@ -175,8 +175,8 @@ describe('useEditTransaction', () => {
     };
     useEditTransactionStore.getState().loadFromTx(creditTx);
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(creditTx, jest.fn(), jest.fn()));
-    act(() => result.current.selectCategory(mockCategoryIncome));
+    const { result } = await renderHook(() => useEditTransaction(creditTx, jest.fn(), jest.fn()));
+    await act(() => result.current.selectCategory(mockCategoryIncome));
 
     await act(async () => result.current.handleSave());
 
@@ -191,7 +191,9 @@ describe('useEditTransaction', () => {
     });
     jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockReturnValue(pendingBudgets);
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
 
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(true));
     expect(result.current.state.showBudgetField).toBe(true);
@@ -210,7 +212,7 @@ describe('useEditTransaction', () => {
       .mockResolvedValueOnce([mockBudget('b1')])
       .mockImplementationOnce(() => new Promise<Budget[]>(() => {}));
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
 
     await act(async () => {
@@ -230,7 +232,7 @@ describe('useEditTransaction', () => {
       .mockRejectedValueOnce(new Error('database unavailable'))
       .mockResolvedValueOnce([mockBudget('b1')]);
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
 
     await waitFor(() => expect(result.current.state.errors.budget).toBeDefined());
     expect(result.current.state.budgetId).toBe('b1');
@@ -238,7 +240,7 @@ describe('useEditTransaction', () => {
     await act(async () => result.current.handleSave());
     expect(updateTx).not.toHaveBeenCalled();
 
-    act(() => result.current.retryBudgetLookup());
+    await act(() => result.current.retryBudgetLookup());
     expect(result.current.state.errors.budget).toBeUndefined();
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('b1'));
   });
@@ -247,9 +249,9 @@ describe('useEditTransaction', () => {
     installMockUpdateTransaction(() => Promise.reject(new Error('write failed')));
     const onClose = jest.fn();
     const onSaved = jest.fn();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, onClose, onSaved));
+    const { result } = await renderHook(() => useEditTransaction(mockTxExpense, onClose, onSaved));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    act(() => result.current.setNote('keep this edit'));
+    await act(() => result.current.setNote('keep this edit'));
 
     await act(async () => result.current.handleSave());
 
@@ -263,11 +265,13 @@ describe('useEditTransaction', () => {
 
   it('preserves edits while the sheet close animation is running', async () => {
     useTransactionFormState.getState().openEdit(mockTxExpense);
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    act(() => result.current.setNote('keep through close'));
+    await act(() => result.current.setNote('keep through close'));
 
-    act(() => {
+    await act(() => {
       useTransactionFormState.getState().requestClose();
     });
 
@@ -283,12 +287,14 @@ describe('useEditTransaction', () => {
     const onSaved = jest.fn(() => {
       expect(useEditTransactionState.getState().saving).toBe(true);
     });
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), onSaved));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), onSaved),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
     let firstSave: Promise<void>;
     let secondSave: Promise<void>;
-    act(() => {
+    await act(() => {
       firstSave = result.current.handleSave();
       secondSave = result.current.handleSave();
     });
@@ -307,7 +313,9 @@ describe('useEditTransaction', () => {
     const loadAccounts = jest.fn().mockRejectedValue(new Error('refresh failed'));
     const onSaved = jest.fn();
     useAccountStore.setState({ loadAccounts });
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), onSaved));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), onSaved),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
 
     await act(async () => result.current.handleSave());
@@ -318,7 +326,9 @@ describe('useEditTransaction', () => {
   });
 
   it('initializes amount, category, note, date from the loaded tx', async () => {
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(useEditTransactionStore.getState().amountStr).toBe('50');
     expect(result.current.state.categoryId).toBe('c1');
@@ -327,7 +337,9 @@ describe('useEditTransaction', () => {
   });
 
   it('lock policy: type / selectedAccount / selectedToAccount are read-only', async () => {
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(result.current.state.type).toBe(TransactionType.Expense);
     expect(result.current.state.selectedAccount?.id).toBe('a1');
@@ -338,17 +350,21 @@ describe('useEditTransaction', () => {
   });
 
   it('allows category change', async () => {
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
-    act(() => result.current.selectCategory(mockCategoryShop));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
+    await act(() => result.current.selectCategory(mockCategoryShop));
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     expect(result.current.state.categoryId).toBe('c2');
   });
 
   it('calls updateTransaction with new values on save', async () => {
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
-    act(() => result.current.setAmountStr('75'));
+    await act(() => result.current.setAmountStr('75'));
     await act(async () => {
       await result.current.handleSave();
     });
@@ -363,7 +379,9 @@ describe('useEditTransaction', () => {
 
   it('preserves the original transaction_time on save (no time UI in edit either)', async () => {
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
     await waitFor(() => expect(result.current.state.budgetsLoading).toBe(false));
     await act(async () => {
       await result.current.handleSave();
@@ -381,7 +399,9 @@ describe('useEditTransaction', () => {
       .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
       .mockResolvedValue([mockBudget('b1')]);
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
 
     await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(1));
     expect(result.current.state.selectedBudget).toBeNull();
@@ -395,9 +415,11 @@ describe('useEditTransaction', () => {
     jest
       .spyOn(budgetRepository, 'getBudgetsForCategoryMonth')
       .mockImplementation(async (categoryId) => (categoryId === 'c2' ? [shopBudget] : []));
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
 
-    act(() => result.current.selectCategory(mockCategoryShop));
+    await act(() => result.current.selectCategory(mockCategoryShop));
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('shop'));
   });
 
@@ -409,10 +431,10 @@ describe('useEditTransaction', () => {
       .mockImplementation(async (_categoryId, month) =>
         month === '2026-05' ? [mockBudget('may-budget')] : [mockBudget('june-budget')],
       );
-    const { result } = renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() => useEditTransaction(assignedTx, jest.fn(), jest.fn()));
 
     await waitFor(() => expect(result.current.state.selectedBudget?.id).toBe('may-budget'));
-    act(() => result.current.setDate('2026-06-02'));
+    await act(() => result.current.setDate('2026-06-02'));
 
     await waitFor(() => expect(result.current.state.availableBudgets[0]?.id).toBe('june-budget'));
     expect(result.current.state.selectedBudget?.id).toBe('june-budget');
@@ -422,10 +444,12 @@ describe('useEditTransaction', () => {
     const budget = mockBudget('b1');
     jest.spyOn(budgetRepository, 'getBudgetsForCategoryMonth').mockResolvedValue([budget]);
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
 
     await waitFor(() => expect(result.current.state.availableBudgets).toEqual([budget]));
-    act(() => result.current.selectBudget(budget));
+    await act(() => result.current.selectBudget(budget));
     await act(async () => result.current.handleSave());
 
     expect(updateTx).toHaveBeenCalledWith('t1', expect.objectContaining({ budget_id: 'b1' }));
@@ -438,9 +462,11 @@ describe('useEditTransaction', () => {
         month === '2026-06' ? [mockBudget('june-1'), mockBudget('june-2')] : [],
       );
     const updateTx = installMockUpdateTransaction();
-    const { result } = renderHook(() => useEditTransaction(mockTxExpense, jest.fn(), jest.fn()));
+    const { result } = await renderHook(() =>
+      useEditTransaction(mockTxExpense, jest.fn(), jest.fn()),
+    );
 
-    act(() => result.current.setDate('2026-06-02'));
+    await act(() => result.current.setDate('2026-06-02'));
     await waitFor(() => expect(result.current.state.availableBudgets).toHaveLength(2));
     expect(result.current.state.selectedBudget).toBeNull();
     await act(async () => result.current.handleSave());

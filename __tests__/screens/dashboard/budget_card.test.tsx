@@ -46,9 +46,9 @@ jest.mock('heroui-native', () => {
 });
 
 describe('BudgetCard', () => {
-  it('renders current-month budget summary and opens budget on press', () => {
+  it('renders current-month budget summary and opens budget on press', async () => {
     const onPress = jest.fn();
-    const { getByText, getByLabelText, queryAllByTestId } = render(
+    const { getByText, getByLabelText, queryAllByTestId } = await render(
       <BudgetCard
         summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
         yearMonth="2026-07"
@@ -64,12 +64,12 @@ describe('BudgetCard', () => {
     expect(getByText('2 categories')).toBeTruthy();
     expect(queryAllByTestId('skeleton-item')).toHaveLength(0);
 
-    fireEvent.press(getByLabelText(Strings.budgetTitle));
+    await fireEvent.press(getByLabelText(Strings.budgetTitle));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it('shows skeleton slots instead of summary numbers while loading', () => {
-    const { queryByText, getAllByTestId } = render(
+  it('shows skeleton slots instead of summary numbers while loading', async () => {
+    const { queryByText, getAllByTestId } = await render(
       <BudgetCard
         summary={{ budgeted: 8000, spent: 2000, left: 6000, pct: 0.25, categoryCount: 2 }}
         yearMonth="2026-07"

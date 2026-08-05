@@ -235,27 +235,27 @@ describe('useCommitments', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useCommitments())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useCommitments())).resolves.toBeDefined();
   });
 
-  it('isEmpty is true when no payments', () => {
-    const { result } = renderHook(() => useCommitments());
+  it('isEmpty is true when no payments', async () => {
+    const { result } = await renderHook(() => useCommitments());
     expect(result.current.state.isEmpty).toBe(true);
   });
 
-  it('cancels pending focus reload work on cleanup', () => {
-    renderHook(() => useCommitments());
+  it('cancels pending focus reload work on cleanup', async () => {
+    await renderHook(() => useCommitments());
 
     let cleanup: void | (() => void);
-    act(() => {
+    await act(() => {
       cleanup = capturedFocusCallback?.();
     });
 
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
     expect(loadMonthSnapshotMock).not.toHaveBeenCalled();
 
-    act(() => {
+    await act(() => {
       cleanup?.();
       mockInteractionTasks[0]?.callback();
     });
@@ -265,9 +265,9 @@ describe('useCommitments', () => {
   });
 
   it('focus delegates all housekeeping and snapshot ownership to one selected-month load', async () => {
-    renderHook(() => useCommitments());
+    await renderHook(() => useCommitments());
 
-    act(() => {
+    await act(() => {
       capturedFocusCallback?.();
     });
     await act(async () => {
@@ -285,7 +285,7 @@ describe('useCommitments', () => {
   });
 
   it('pull-to-refresh reloads immediately without waiting for interactions', async () => {
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
     runAfterInteractions.mockClear();
 
     await act(async () => {
@@ -300,7 +300,7 @@ describe('useCommitments', () => {
 
   it('contains selected-month load rejection at the navigation event boundary', async () => {
     setSelectedMonthMock.mockRejectedValueOnce(new Error('month load failed'));
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     await expect(result.current.navigateMonth('next')).resolves.toBeUndefined();
 
@@ -309,7 +309,7 @@ describe('useCommitments', () => {
 
   it('contains refresh rejection after the store records its load error', async () => {
     loadMonthSnapshotMock.mockRejectedValueOnce(new Error('refresh failed'));
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     await expect(result.current.onRefresh()).resolves.toBeUndefined();
 
@@ -317,7 +317,7 @@ describe('useCommitments', () => {
     expect(setRefreshingMock).toHaveBeenLastCalledWith(false);
   });
 
-  it('does not derive rows or summary from a stale month snapshot', () => {
+  it('does not derive rows or summary from a stale month snapshot', async () => {
     setup({
       selectedMonth: '2026-05',
       loadedMonth: '2026-04',
@@ -325,7 +325,7 @@ describe('useCommitments', () => {
       payments: [makePayment('payment', CommitmentPaymentStatus.Due)],
     });
 
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.presentation).toBe('coldLoading');
@@ -340,17 +340,17 @@ describe('useCommitments', () => {
     { commitmentsLoaded: true, paymentsLoaded: false },
   ])(
     'requires both commitment and payment data before publishing a matching snapshot',
-    ({ commitmentsLoaded, paymentsLoaded }) => {
+    async ({ commitmentsLoaded, paymentsLoaded }) => {
       setup({ commitmentsLoaded, paymentsLoaded });
 
-      const { result } = renderHook(() => useCommitments());
+      const { result } = await renderHook(() => useCommitments());
 
       expect(result.current.state.hasLoaded).toBe(false);
       expect(result.current.state.presentation).toBe('coldLoading');
     },
   );
 
-  it('publishes a cold error without exposing stale month data', () => {
+  it('publishes a cold error without exposing stale month data', async () => {
     setup({
       selectedMonth: '2026-05',
       loadedMonth: '2026-04',
@@ -359,20 +359,20 @@ describe('useCommitments', () => {
       loadError: true,
     });
 
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.presentation).toBe('coldError');
     expect(result.current.state.sections).toEqual([]);
   });
 
-  it('keeps matching rows visible when a warm refresh fails', () => {
+  it('keeps matching rows visible when a warm refresh fails', async () => {
     setup({
       commitments: [makeCommitment('commitment-payment')],
       payments: [makePayment('payment', CommitmentPaymentStatus.Due)],
       loadError: true,
     });
 
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hasLoaded).toBe(true);
     expect(result.current.state.presentation).toBe('contentWithError');
@@ -380,7 +380,7 @@ describe('useCommitments', () => {
     expect(result.current.state.counts.total).toBe(1);
   });
 
-  it('keeps a selected-month payment visible after its parent deactivates', () => {
+  it('keeps a selected-month payment visible after its parent deactivates', async () => {
     const inactiveParent = makeCommitment('commitment-payment', { is_active: 0 });
     const paidPayment = makePayment('payment', CommitmentPaymentStatus.Paid);
     setup({
@@ -388,7 +388,7 @@ describe('useCommitments', () => {
       payments: [paidPayment],
     });
 
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.hasCommitments).toBe(true);
     expect(result.current.state.commitmentsById.get(inactiveParent.id)).toBe(inactiveParent);
@@ -396,14 +396,14 @@ describe('useCommitments', () => {
   });
 
   it('selectMonth delegates to the commitment store selected month', async () => {
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     await act(async () => result.current.selectMonth('2026-08'));
 
     expect(setSelectedMonthMock).toHaveBeenCalledWith('2026-08');
   });
 
-  it('keeps selected status immediate while deferring section regrouping', () => {
+  it('keeps selected status immediate while deferring section regrouping', async () => {
     mockUseDeferredValue.mockImplementation((value) =>
       value === CommitmentPaymentStatus.Paid ? 'all' : value,
     );
@@ -415,7 +415,7 @@ describe('useCommitments', () => {
       ],
     });
 
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     expect(mockUseDeferredValue).toHaveBeenCalledWith(CommitmentPaymentStatus.Paid);
     expect(result.current.state.statusFilter).toBe(CommitmentPaymentStatus.Paid);
@@ -424,7 +424,7 @@ describe('useCommitments', () => {
     ).toEqual(['overdue-payment', 'paid-payment']);
   });
 
-  it('combines status, search, and advanced filters before grouping sections', () => {
+  it('combines status, search, and advanced filters before grouping sections', async () => {
     const payments = [
       makePayment('internet', CommitmentPaymentStatus.Due),
       makePayment('gym', CommitmentPaymentStatus.Due),
@@ -461,7 +461,7 @@ describe('useCommitments', () => {
       },
     });
 
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     expect(result.current.state.activeFilterCount).toBe(2);
     expect(result.current.state.hasListFilters).toBe(true);
@@ -472,7 +472,7 @@ describe('useCommitments', () => {
 
   it('navigateMonth moves January to previous December', async () => {
     setup({ selectedMonth: '2026-01' });
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     await act(async () => result.current.navigateMonth('prev'));
 
@@ -481,7 +481,7 @@ describe('useCommitments', () => {
 
   it('navigateMonth moves December to next January', async () => {
     setup({ selectedMonth: '2026-12' });
-    const { result } = renderHook(() => useCommitments());
+    const { result } = await renderHook(() => useCommitments());
 
     await act(async () => result.current.navigateMonth('next'));
 

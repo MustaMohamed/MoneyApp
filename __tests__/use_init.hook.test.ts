@@ -13,31 +13,31 @@ describe('useInit', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('runs init on mount', () => {
+  it('runs init on mount', async () => {
     const init = jest.fn();
 
-    renderHook(() => useInit(init));
+    await renderHook(() => useInit(init));
 
     expect(init).toHaveBeenCalledTimes(1);
   });
 
-  it('does not re-run when the hook rerenders', () => {
+  it('does not re-run when the hook rerenders', async () => {
     const init = jest.fn();
 
-    const { rerender } = renderHook(() => useInit(init));
+    const { rerender } = await renderHook(() => useInit(init));
     expect(init).toHaveBeenCalledTimes(1);
 
-    rerender({});
+    await rerender({});
 
     expect(init).toHaveBeenCalledTimes(1);
   });
 
-  it('runs init once per mounted hook instance', () => {
+  it('runs init once per mounted hook instance', async () => {
     const init = jest.fn();
 
-    const first = renderHook(() => useInit(init));
-    first.unmount();
-    renderHook(() => useInit(init));
+    const first = await renderHook(() => useInit(init));
+    await first.unmount();
+    await renderHook(() => useInit(init));
 
     expect(init).toHaveBeenCalledTimes(2);
   });
@@ -48,7 +48,7 @@ describe('useInit', () => {
       throw error;
     });
 
-    renderHook(() => useInit(init));
+    await renderHook(() => useInit(init));
 
     await act(async () => {
       await Promise.resolve();

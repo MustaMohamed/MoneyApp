@@ -121,7 +121,7 @@ describe('useTransactionDetail loading', () => {
     const pending = deferred<typeof linkedTransaction>();
     getById.mockReturnValue(pending.promise);
 
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
 
     expect(result.current.state.viewState).toBe('loading');
     expect(result.current.state.tx).toBeNull();
@@ -133,15 +133,15 @@ describe('useTransactionDetail loading', () => {
 
   it('distinguishes a missing transaction from a repository failure', async () => {
     getById.mockResolvedValue(null);
-    const missing = renderHook(() => useTransactionDetail('missing'));
+    const missing = await renderHook(() => useTransactionDetail('missing'));
     await waitFor(() => expect(missing.result.current.state.viewState).toBe('notFound'));
-    missing.unmount();
+    await missing.unmount();
 
     useTxDetailStore.getState().reset();
     useTxDetailState.getState().reset();
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     getById.mockRejectedValue(new Error('db unavailable'));
-    const failed = renderHook(() => useTransactionDetail('failed'));
+    const failed = await renderHook(() => useTransactionDetail('failed'));
 
     await waitFor(() => expect(failed.result.current.state.viewState).toBe('firstLoadError'));
     expect(failed.result.current.state.tx).toBeNull();
@@ -149,12 +149,12 @@ describe('useTransactionDetail loading', () => {
   });
 
   it('keeps ready content visible while revalidating', async () => {
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     const pending = deferred<typeof linkedTransaction>();
     getById.mockReturnValueOnce(pending.promise);
 
-    act(() => result.current.reload());
+    await act(() => result.current.reload());
 
     expect(result.current.state.viewState).toBe('refreshing');
     expect(result.current.state.revalidating).toBe(true);
@@ -179,7 +179,7 @@ describe('useTransactionDetail loading', () => {
     getById.mockResolvedValue({ ...linkedTransaction, budget_id: budget.id });
     mockGetBudgetById.mockReturnValue(pendingBudget.promise);
 
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(mockGetBudgetById).toHaveBeenCalledWith('budget-1');
@@ -194,7 +194,7 @@ describe('useTransactionDetail loading', () => {
     const pendingLookup = deferred<void>();
     loadAccountLookup.mockReturnValueOnce(pendingLookup.promise);
 
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
@@ -208,7 +208,7 @@ describe('useTransactionDetail loading', () => {
     mockGetBudgetById.mockRejectedValue(new Error('budget unavailable'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
@@ -224,7 +224,7 @@ describe('useTransactionDetail loading', () => {
     loadAccountLookup.mockRejectedValue(new Error('account unavailable'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
 
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     expect(result.current.state.tx?.id).toBe(linkedTransaction.id);
@@ -237,13 +237,13 @@ describe('useTransactionDetail loading', () => {
   });
 
   it('keeps ready content and exposes retry when revalidation fails', async () => {
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
     const pending = deferred<typeof linkedTransaction>();
     getById.mockReturnValueOnce(pending.promise);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    act(() => result.current.reload());
+    await act(() => result.current.reload());
     pending.reject(new Error('refresh failed'));
 
     await waitFor(() => expect(result.current.state.refreshError).toBe(true));
@@ -257,12 +257,15 @@ describe('useTransactionDetail loading', () => {
     getById.mockImplementation((id: string) =>
       id === linkedTransaction.id ? Promise.resolve(linkedTransaction) : nextPending.promise,
     );
-    const { result, rerender } = renderHook(({ id }: { id: string }) => useTransactionDetail(id), {
-      initialProps: { id: linkedTransaction.id },
-    });
+    const { result, rerender } = await renderHook(
+      ({ id }: { id: string }) => useTransactionDetail(id),
+      {
+        initialProps: { id: linkedTransaction.id },
+      },
+    );
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-    rerender({ id: 'transaction-2' });
+    await rerender({ id: 'transaction-2' });
 
     expect(result.current.state.viewState).toBe('loading');
     expect(result.current.state.tx).toBeNull();
@@ -289,7 +292,7 @@ describe('useTransactionDetail commitment navigation', () => {
       created_at: '2026-04-18T10:00:00.000Z',
       updated_at: '2026-04-18T10:00:00.000Z',
     });
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
     await act(async () => result.current.openCommitment());
@@ -302,7 +305,7 @@ describe('useTransactionDetail commitment navigation', () => {
 
   it('does not navigate when the linked payment no longer exists', async () => {
     mockGetCommitmentPaymentById.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
     await act(async () => result.current.openCommitment());
@@ -318,12 +321,12 @@ describe('useTransactionDetail route actions', () => {
   it('owns back, account, and edit navigation outside the screen template', async () => {
     const ordinaryTransaction = { ...linkedTransaction, commitment_payment_id: null };
     getById.mockResolvedValue(ordinaryTransaction);
-    const { result } = renderHook(() => useTransactionDetail(ordinaryTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(ordinaryTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-    act(() => result.current.goBack());
-    act(() => result.current.openAccount('account-2'));
-    act(() => result.current.openEdit());
+    await act(() => result.current.goBack());
+    await act(() => result.current.openAccount('account-2'));
+    await act(() => result.current.openEdit());
 
     expect(router.back).toHaveBeenCalledTimes(1);
     expect(router.push).toHaveBeenCalledWith('/accounts/account-2');
@@ -331,10 +334,10 @@ describe('useTransactionDetail route actions', () => {
   });
 
   it('does not open the generic edit flow for a commitment-owned transaction', async () => {
-    const { result } = renderHook(() => useTransactionDetail(linkedTransaction.id));
+    const { result } = await renderHook(() => useTransactionDetail(linkedTransaction.id));
     await waitFor(() => expect(result.current.state.viewState).toBe('ready'));
 
-    act(() => result.current.openEdit());
+    await act(() => result.current.openEdit());
 
     expect(openEdit).not.toHaveBeenCalled();
   });

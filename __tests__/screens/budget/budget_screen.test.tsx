@@ -607,64 +607,64 @@ describe('BudgetScreen', () => {
     mockUseBudget();
   });
 
-  it('shows the monthly skeleton footprint until budget data is ready', () => {
-    const { getByTestId, getByText, queryByText } = render(<BudgetScreen />);
+  it('shows the monthly skeleton footprint until budget data is ready', async () => {
+    const { getByTestId, getByText, queryByText } = await render(<BudgetScreen />);
 
     expect(getByTestId('budget-screen-skeleton')).toBeTruthy();
     expect(getByText('skeleton:categories')).toBeTruthy();
     expect(queryByText('summary-card')).toBeNull();
   });
 
-  it('uses the plans skeleton footprint while the plans tab is loading', () => {
+  it('uses the plans skeleton footprint while the plans tab is loading', async () => {
     mockUseBudget({ lensTab: 'plans' });
 
-    const { getByText } = render(<BudgetScreen />);
+    const { getByText } = await render(<BudgetScreen />);
 
     expect(getByText('skeleton:plans')).toBeTruthy();
   });
 
-  it('wires month, expansion, income, and manage actions to the rule lens', () => {
+  it('wires month, expansion, income, and manage actions to the rule lens', async () => {
     const budget = mockUseBudget({
       hasLoaded: true,
       lensTab: 'fiftythirty',
       expandedBudgetGroup: BudgetGroup.Want,
     });
 
-    render(<BudgetScreen />);
+    await render(<BudgetScreen />);
 
     expect(screen.getByText('rule-month:2026-07')).toBeTruthy();
     expect(screen.getByText('rule-expanded:want')).toBeTruthy();
-    fireEvent.press(screen.getByLabelText('edit rule income'));
-    fireEvent.press(screen.getByLabelText('expand needs'));
-    fireEvent.press(screen.getByLabelText('manage needs'));
+    await fireEvent.press(screen.getByLabelText('edit rule income'));
+    await fireEvent.press(screen.getByLabelText('expand needs'));
+    await fireEvent.press(screen.getByLabelText('manage needs'));
     expect(budget.openIncomeSheet).toHaveBeenCalledTimes(1);
     expect(budget.setExpandedBudgetGroup).toHaveBeenCalledWith(BudgetGroup.Need);
     expect(budget.manageRuleGroup).toHaveBeenCalledWith(BudgetGroup.Need);
   });
 
-  it('shows a retry action when the initial load fails', () => {
+  it('shows a retry action when the initial load fails', async () => {
     const hook = mockUseBudget({ loadError: true });
 
-    const { getByText, queryByTestId } = render(<BudgetScreen />);
+    const { getByText, queryByTestId } = await render(<BudgetScreen />);
 
     expect(queryByTestId('budget-screen-skeleton')).toBeNull();
     expect(getByText('Could not load your budget.')).toBeTruthy();
-    fireEvent.press(getByText('Try again'));
+    await fireEvent.press(getByText('Try again'));
     expect(hook.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a non-blocking retry alert when refreshing loaded data fails', () => {
+  it('shows a non-blocking retry alert when refreshing loaded data fails', async () => {
     const hook = mockUseBudget({ hasLoaded: true, loadError: true });
 
-    const { getByText, getByTestId } = render(<BudgetScreen />);
+    const { getByText, getByTestId } = await render(<BudgetScreen />);
 
     expect(getByTestId('refresh-error-alert')).toBeTruthy();
     expect(getByText('summary-card')).toBeTruthy();
-    fireEvent.press(getByText('Try again'));
+    await fireEvent.press(getByText('Try again'));
     expect(hook.refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the compact monthly workspace after data loads', () => {
+  it('renders the compact monthly workspace after data loads', async () => {
     mockUseBudget({
       hasLoaded: true,
       hasBudgets: true,
@@ -697,7 +697,7 @@ describe('BudgetScreen', () => {
       rows: [categoryRow('food', 'Food', 3000, 500, [namedBudget('budget-food', 'Food', 3000)])],
     });
 
-    const { getByText, queryByLabelText, queryByTestId } = render(<BudgetScreen />);
+    const { getByText, queryByLabelText, queryByTestId } = await render(<BudgetScreen />);
 
     expect(queryByTestId('budget-screen-skeleton')).toBeNull();
     expect(getByText('summary-card')).toBeTruthy();
@@ -711,7 +711,7 @@ describe('BudgetScreen', () => {
     expect(getByText('budget:Food:3000')).toBeTruthy();
   });
 
-  it('wires pull-to-refresh to the budget hook', () => {
+  it('wires pull-to-refresh to the budget hook', async () => {
     const refresh = jest.fn();
     mockUseBudget({ hasLoaded: true, refreshing: true });
     mockedUseBudget.mockReturnValue({
@@ -719,7 +719,7 @@ describe('BudgetScreen', () => {
       refresh,
     });
 
-    render(<BudgetScreen />);
+    await render(<BudgetScreen />);
 
     expect(screen.queryByTestId('budget-screen-skeleton')).toBeNull();
     expect(screen.getByText('summary-card')).toBeTruthy();
@@ -729,7 +729,7 @@ describe('BudgetScreen', () => {
     expect(refresh).toHaveBeenCalledTimes(1);
   });
 
-  it('renders multiple named budgets inside one category and keeps add budget enabled', () => {
+  it('renders multiple named budgets inside one category and keeps add budget enabled', async () => {
     mockUseBudget({
       hasLoaded: true,
       hasBudgets: true,
@@ -755,7 +755,7 @@ describe('BudgetScreen', () => {
       ],
     });
 
-    const { getByText } = render(<BudgetScreen />);
+    const { getByText } = await render(<BudgetScreen />);
 
     expect(getByText('category:Food:2')).toBeTruthy();
     expect(getByText('budget:Monthly Food:5000')).toBeTruthy();
@@ -763,7 +763,7 @@ describe('BudgetScreen', () => {
     expect(getByText('category-disabled:false')).toBeTruthy();
   });
 
-  it('routes tool rail actions through the budget hook', () => {
+  it('routes tool rail actions through the budget hook', async () => {
     const openCopy = jest.fn();
     const openAdd = jest.fn();
     mockedUseBudget.mockReturnValue({
@@ -821,17 +821,17 @@ describe('BudgetScreen', () => {
       goToCategory: jest.fn(),
     });
 
-    const { getByLabelText, queryByLabelText } = render(<BudgetScreen />);
+    const { getByLabelText, queryByLabelText } = await render(<BudgetScreen />);
 
-    fireEvent.press(getByLabelText('copy budget'));
-    fireEvent.press(getByLabelText('add budget category'));
+    await fireEvent.press(getByLabelText('copy budget'));
+    await fireEvent.press(getByLabelText('add budget category'));
 
     expect(openCopy).toHaveBeenCalledTimes(1);
     expect(openAdd).toHaveBeenCalledTimes(1);
     expect(queryByLabelText('plan budget')).toBeNull();
   });
 
-  it('renders spending plans from the plans tab', () => {
+  it('renders spending plans from the plans tab', async () => {
     mockUseBudget({
       hasLoaded: true,
       lensTab: 'plans',
@@ -865,7 +865,9 @@ describe('BudgetScreen', () => {
       },
     });
 
-    const { getByText, queryByLabelText, queryByText, queryByTestId } = render(<BudgetScreen />);
+    const { getByText, queryByLabelText, queryByText, queryByTestId } = await render(
+      <BudgetScreen />,
+    );
 
     expect(getByText('tab:plans')).toBeTruthy();
     expect(getByText('rail:plans')).toBeTruthy();
@@ -879,7 +881,7 @@ describe('BudgetScreen', () => {
     expect(queryByText('Temporary budgets')).toBeNull();
   });
 
-  it('runs the plan tool action from the plans tab rail', () => {
+  it('runs the plan tool action from the plans tab rail', async () => {
     const openPlanTool = jest.fn();
     mockedUseBudget.mockReturnValue({
       state: {
@@ -911,14 +913,14 @@ describe('BudgetScreen', () => {
       goToCategory: jest.fn(),
     });
 
-    const { getByLabelText } = render(<BudgetScreen />);
+    const { getByLabelText } = await render(<BudgetScreen />);
 
-    fireEvent.press(getByLabelText('plan budget'));
+    await fireEvent.press(getByLabelText('plan budget'));
 
     expect(openPlanTool).toHaveBeenCalledTimes(1);
   });
 
-  it('opens plan details from the plans list', () => {
+  it('opens plan details from the plans list', async () => {
     const openPlanDetails = jest.fn();
     mockedUseBudget.mockReturnValue({
       state: {
@@ -951,9 +953,9 @@ describe('BudgetScreen', () => {
       goToCategory: jest.fn(),
     });
 
-    const { getByLabelText } = render(<BudgetScreen />);
+    const { getByLabelText } = await render(<BudgetScreen />);
 
-    fireEvent.press(getByLabelText('open plan plan_trip'));
+    await fireEvent.press(getByLabelText('open plan plan_trip'));
 
     expect(openPlanDetails).toHaveBeenCalledWith('plan_trip');
   });
@@ -991,15 +993,15 @@ describe('BudgetScreen', () => {
       goToCategory: jest.fn(),
     });
 
-    const { findByText, getByLabelText, rerender } = render(<BudgetScreen />);
+    const { findByText, getByLabelText, rerender } = await render(<BudgetScreen />);
 
-    fireEvent.press(getByLabelText('delete plan plan_trip'));
+    await fireEvent.press(getByLabelText('delete plan plan_trip'));
 
     expect(removeSpendingPlanForMonth).not.toHaveBeenCalled();
-    rerender(<BudgetScreen />);
+    await rerender(<BudgetScreen />);
     expect(await findByText('plan-delete:Alexandria weekend')).toBeTruthy();
 
-    fireEvent.press(getByLabelText('confirm plan delete'));
+    await fireEvent.press(getByLabelText('confirm plan delete'));
 
     await waitFor(() =>
       expect(removeSpendingPlanForMonth).toHaveBeenCalledWith({
@@ -1009,7 +1011,7 @@ describe('BudgetScreen', () => {
     );
   });
 
-  it('keeps copy enabled when the default source month has no rows', () => {
+  it('keeps copy enabled when the default source month has no rows', async () => {
     mockUseBudget({
       hasLoaded: true,
       month: '2026-09',
@@ -1017,12 +1019,12 @@ describe('BudgetScreen', () => {
       copyRows: [],
     });
 
-    const { getByText } = render(<BudgetScreen />);
+    const { getByText } = await render(<BudgetScreen />);
 
     expect(getByText('copy-disabled:false')).toBeTruthy();
   });
 
-  it('passes source month changes from the copy sheet to the budget hook', () => {
+  it('passes source month changes from the copy sheet to the budget hook', async () => {
     const setCopySourceMonth = jest.fn();
     mockedUseBudget.mockReturnValue({
       state: {
@@ -1054,15 +1056,15 @@ describe('BudgetScreen', () => {
       goToCategory: jest.fn(),
     });
 
-    const { getByLabelText, getByText } = render(<BudgetScreen />);
+    const { getByLabelText, getByText } = await render(<BudgetScreen />);
 
     expect(getByText('copy-source:2026-06')).toBeTruthy();
-    fireEvent.press(getByLabelText('change copy source'));
+    await fireEvent.press(getByLabelText('change copy source'));
 
     expect(setCopySourceMonth).toHaveBeenCalledWith('2026-05');
   });
 
-  it('routes child budget edit and delete actions by budget id', () => {
+  it('routes child budget edit and delete actions by budget id', async () => {
     const openEdit = jest.fn();
     mockUseBudget({
       hasLoaded: true,
@@ -1079,10 +1081,10 @@ describe('BudgetScreen', () => {
       openEdit,
     });
 
-    const { getByLabelText } = render(<BudgetScreen />);
+    const { getByLabelText } = await render(<BudgetScreen />);
 
-    fireEvent.press(getByLabelText('edit Alexandria Trip Food'));
-    fireEvent.press(getByLabelText('delete Alexandria Trip Food'));
+    await fireEvent.press(getByLabelText('edit Alexandria Trip Food'));
+    await fireEvent.press(getByLabelText('delete Alexandria Trip Food'));
 
     expect(openEdit).toHaveBeenCalledWith('budget-trip-food');
     expect(mockRequestDelete).toHaveBeenCalledWith({

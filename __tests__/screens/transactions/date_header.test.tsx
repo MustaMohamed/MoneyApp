@@ -7,15 +7,15 @@ jest.mock('heroui-native', () => ({
 }));
 
 describe('DateHeader', () => {
-  it('renders only the date label when no context is provided', () => {
-    const { getByText, queryByText } = render(<DateHeader label="Today" />);
+  it('renders only the date label when no context is provided', async () => {
+    const { getByText, queryByText } = await render(<DateHeader label="Today" />);
 
     expect(getByText('Today')).toBeTruthy();
     expect(queryByText('CIB + Food')).toBeNull();
   });
 
-  it('renders right-aligned applied-filter context when provided', () => {
-    const { getByText } = render(<DateHeader label="Today" contextLabel="CIB + Food" />);
+  it('renders right-aligned applied-filter context when provided', async () => {
+    const { getByText } = await render(<DateHeader label="Today" contextLabel="CIB + Food" />);
 
     expect(getByText('Today')).toBeTruthy();
     expect(getByText('CIB + Food')).toBeTruthy();

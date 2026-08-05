@@ -118,8 +118,8 @@ afterEach(() => {
 });
 
 describe('useBudget spending plans', () => {
-  it('derives spending plan rows and summary for the selected month', () => {
-    const { result } = renderHook(() => useBudget());
+  it('derives spending plan rows and summary for the selected month', async () => {
+    const { result } = await renderHook(() => useBudget());
 
     const planRow = result.current.state.spendingPlanRows[0];
     expect(planRow).toEqual(
@@ -195,8 +195,8 @@ describe('useBudget spending plans', () => {
     expect(result.current.state.hasSpendingPlans).toBe(true);
   });
 
-  it('routes plan cards to the full-screen plan details screen', () => {
-    const { result } = renderHook(() => useBudget());
+  it('routes plan cards to the full-screen plan details screen', async () => {
+    const { result } = await renderHook(() => useBudget());
 
     result.current.openPlanDetails('plan_trip');
 
