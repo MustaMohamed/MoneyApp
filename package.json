@@ -73,7 +73,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-native": "^5.4.3",
-    "@testing-library/react-native": "^13.3.3",
+    "@testing-library/react-native": "^14.0.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/jest": "~29.5.14",
     "@types/react": "~19.2.17",
@@ -90,6 +90,7 @@
     "oxlint-tsgolint": "7.0.2001",
     "patch-package": "^8.0.1",
     "react-test-renderer": "19.2.0",
+    "test-renderer": "^1.2.0",
     "typescript": "~5.9.2"
   },
   "engines": {
