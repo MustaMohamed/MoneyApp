@@ -17,9 +17,11 @@ This design specifies:
 1. The identifier scheme for scopes, milestones, and tasks.
 2. The on-disk layout and the contract of each file the workflow reads or writes.
 3. The agent roster, including four new reviewer agents.
-4. The nine steps, with owner, inputs, outputs, and exit criteria for each.
-5. The orchestrator: its state machine, resume behaviour, stop points, and retry caps.
-6. Branch, commit, pull-request, device-QA, and cleanup mechanics.
+4. The granularity contract that decides where one task ends and the next begins.
+5. The nine steps, with owner, inputs, outputs, and exit criteria for each.
+6. The division of labour between the two code reviews, and the condition under which the second one is deleted.
+7. The orchestrator: its state machine, resume behaviour, stop points, and retry caps.
+8. Branch, commit, pull-request, device-QA, and cleanup mechanics.
 
 It does not change any application code, the path-scoped rules in `.claude/rules/`, the project skills, or the pre-push CI parity chain.
 
@@ -152,13 +154,25 @@ New agent tool grants:
 
 `@tariq` gains `WebFetch` — step 4 requires web research and he currently has `WebSearch` only.
 
+## Task granularity
+
+One task is one pull request. The test is not size, it is independence: **a task is correctly cut when merging it alone leaves `main` working.** A small task that leaves `main` broken is mis-cut; a larger one that ships a coherent behaviour is not.
+
+Three rules follow from that, binding on `@tariq` at step 2 and enforced by `@task-reviewer` at step 3:
+
+- **Split** a task whose plan would cross more than one module boundary under `src/modules/`, or whose implementation would leave a screen referencing a store field, migration, or repository method that does not exist yet.
+- **Merge** two tasks that would always be reviewed together, that share a migration, or where one exists only to make the other compile.
+- **Split the scope, not the task list,** when a scope exceeds roughly twelve tasks. Twelve tasks is twelve device-QA-and-merge sittings; past that the scope is too large to be one scope, and the answer is two scopes shipped in sequence rather than a longer queue.
+
+A scope landing in single digits is the expected shape. Tasks are never subdivided to make diffs look small — that trades one review gate for three and breaks the independence rule.
+
 ## The nine steps
 
 **1 — Brainstorm.** Main thread, `superpowers:brainstorming`, `[marcus]` and `[layla]` consulted inline. Output `scope.md`, plus an HTML mockup in `assets/` when the scope has UI. Exit: the user locks it. 🛑 **Gate 1.**
 
-**2 — Spec and tasks.** `@tariq` writes `spec.md` from the locked scope, embedding `@marcus`'s UX section and `@layla`'s financial-logic section, then decomposes it into milestones and tasks and writes `tasks.md` and one file per task. Task details stay behavioural. Exit: every task has title, summary, and details, and `tasks.md` lists them all.
+**2 — Spec and tasks.** `@tariq` writes `spec.md` from the locked scope, embedding `@marcus`'s UX section and `@layla`'s financial-logic section, then decomposes it into milestones and tasks per **Task granularity** above and writes `tasks.md` and one file per task. Task details stay behavioural. Exit: every task has title, summary, and details, `tasks.md` lists them all, and each one would leave `main` working if merged alone.
 
-**3 — Task review.** `@task-reviewer` reads `spec.md` and every task file and checks five things: full coverage of the spec with no gap and no task outside it, correct granularity, no technical decisions leaking into `Details`, no hidden dependency between tasks that the order violates, and a correct execution order. It **edits** rather than reports — splitting, merging, rewriting, and reordering as needed — then writes the final order into `tasks.md`. Exit: a reviewed, ordered list. 🛑 **Gate 2.**
+**3 — Task review.** `@task-reviewer` reads `spec.md` and every task file and checks five things: full coverage of the spec with no gap and no task outside it, granularity against the three rules above, no technical decisions leaking into `Details`, no hidden dependency between tasks that the order violates, and a correct execution order. It **edits** rather than reports — splitting, merging, rewriting, and reordering as needed — then writes the final order into `tasks.md`. If applying the rules leaves more than twelve tasks, it says so and recommends the scope split rather than ordering a queue it believes is too long. Exit: a reviewed, ordered list. 🛑 **Gate 2.**
 
 **4 — Plan.** `@tariq` takes the first `todo` task, researches the codebase and the web, and appends a plan to the task file with `superpowers:writing-plans`. Two parts: a high-level bullet summary of what will be implemented, then the executable detail — ordered steps, files touched, tests that prove it, verification command, explicit non-goals.
 
@@ -168,9 +182,23 @@ New agent tool grants:
 
 **7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist from `@tariq`'s file — silent async failure, focus-reload churn, money display drift, index-defeating SQL, derived state stored as durable state. It runs the CI parity chain. Findings go back to `@dev`, who fixes and returns. On approval the branch is pushed and a PR is opened. Exit: PR open, CI running.
 
-**8 — PR review.** `@pr-reviewer` reviews the pull request as a whole, which is a different question from step 7 and must stay so: commit history readable, PR description matching the task, CI results on the real runner, interaction with tasks merged since this branch forked, and defects only visible once the change is assembled. Findings return to `@dev` and the task re-enters step 6. On approval the user is notified with a short summary — what was done, in bullets, no diff walkthrough. 🛑 **Gate 3.**
+**8 — PR review.** `@pr-reviewer` reviews the pull request against its exclusive domain below, and **only** that domain. Findings return to `@dev` and the task re-enters step 6. On approval the user is notified with a short summary — what was done, in bullets, no diff walkthrough. 🛑 **Gate 3.**
 
 **9 — Human approval.** The user walks device QA and merges, or asks for the merge. The orchestrator then deletes the worktree and the local branch, appends the outcome to the task file, sets status `done`, and moves to the next task.
+
+## What step 8 sees that step 7 cannot
+
+Two code reviews on one change is only worth the gate if the second one is looking somewhere the first structurally could not. `@pr-reviewer`'s rubric is therefore restricted to five things that do not exist yet when `@impl-reviewer` runs:
+
+1. **Real-runner CI.** Step 7 ran the parity chain locally against an existing install. CI runs on a clean checkout with a fresh resolve and the `prebuild-check` job. This repository has a history of failures that appear only there — nested `node_modules` defeating jest's `transformIgnorePatterns`, a config plugin that kills `expo prebuild`, `expo-doctor` validating against Expo's live requirement table.
+2. **Merge-base drift.** Step 7 reviewed the diff against the commit the worktree forked from. By step 8 `main` has moved, including tasks from this same scope. `@pr-reviewer` reviews against current `main` and hunts the semantic conflict that `git` merges cleanly — a renamed store field, a changed repository signature, a migration number now taken.
+3. **The commit that will actually land.** Squash subject, body, and task ID; PR title and description against the task's `Details`.
+4. **Diff membership.** Files that should not be in the PR at all: generated output, `ios/`, `android/`, `.env`, stray patches, debug logging, a snapshot updated instead of fixed.
+5. **Step 7 escapes.** If a five-class defect-checklist violation reaches step 8, it is recorded in the task file as an escape as well as fixed. Repeated escapes mean `@impl-reviewer`'s rubric needs tightening, and that signal is only visible from here.
+
+It does not re-run the defect checklist, re-derive whether the diff matches the plan, or re-litigate approach. Those are step 7's, and duplicating them is the failure mode this section exists to prevent.
+
+**Tripwire.** If across one complete scope `@pr-reviewer` raises nothing outside these five, it is a ceremonial gate. Collapse it into step 7 and delete the agent rather than keeping a review that only costs time.
 
 ## Orchestrator
 
@@ -213,11 +241,11 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 
 **Agent definitions snapshot at session start.** The four new reviewers and the rewritten `sarah` cannot be exercised in the session that creates them. The first real run must happen in a fresh session, and that is also the only way to test a correction to any of them.
 
-**Four reviewer files drift toward each other.** Each gets a rubric that is genuinely distinct, and step 8 in particular is defined by what step 7 cannot see. If in practice `@pr-reviewer` starts repeating `@impl-reviewer`, the honest fix is to merge them rather than keep a ceremonial gate.
+**Four reviewer files drift toward each other.** Handled structurally rather than by intent: `@pr-reviewer`'s rubric is a closed list of five things that do not exist at step 7, and it is instructed not to re-run step 7's checks. The tripwire in that section is the exit condition — one full scope producing nothing outside the five means the agent gets deleted, not defended.
 
 **Global task numbering collides across concurrent scopes.** Two scopes planned in parallel can both claim `MA-043`. `@task-reviewer` re-scans and renumbers at step 3, which is before any branch or PR carries the number.
 
-**Per-task PRs multiply merges.** A twelve-task scope is twelve device-QA-and-merge sittings. If that proves too heavy in practice, the lever is task granularity at step 2, not batching PRs.
+**Per-task PRs multiply merges.** Twelve tasks is twelve device-QA-and-merge sittings, and the queue is the user's time, not the agents'. The granularity contract caps it: merge-if-always-reviewed-together at step 2, enforcement at step 3, and a hard recommendation to split the scope past twelve. The remaining exposure is a scope whose tasks are genuinely independent and genuinely numerous — a migration sweep, say — where the honest answer is that it is two scopes.
 
 ## Non-goals
 
