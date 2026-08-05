@@ -2,38 +2,65 @@
 
 React Native (Expo) personal finance app — local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `moneyapp-expert-panel` (inline personas).
+Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `moneyapp-expert-panel` (inline personas).
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
 ## Workflow
 
-**Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`)
+**Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID — `feat/MA-042-slug`)
 
-**Autonomous team mode.** The team runs work end-to-end without per-step check-ins. The user is consulted at exactly three points: the **spec sign-off gate**, the **device QA gate**, and the **critical triggers** below. Sarah approves plans on the user's behalf; Tariq returns review verdicts and merge recommendations. **Merge, push, and destructive repository operations always require an explicit user request.**
+**Autonomous team mode.** `/scope` runs a scope end to end. The user is consulted at exactly three gates plus the **critical triggers** below; between gate 2 and gate 3 the team runs without check-ins. Sarah approves plans on the user's behalf. **The merge and every destructive repository operation always require an explicit user request** — pushing a task branch and opening its PR are part of step 7 and are authorised by this workflow.
 
 **CI parity before pushing to a PR branch** — run the chain in `Commands`. CI is the last line of defence, not the first.
 
+### The nine steps
+
+Everything for a scope lives in `docs/scopes/MA-<slug>/` — see [TEMPLATES.md](docs/scopes/TEMPLATES.md) for the file contracts and the ID scheme.
+
+| # | Step | Owner | Produces |
+|---|---|---|---|
+| 1 | Brainstorm | main thread + `[marcus]` `[layla]`, `@marcus` mockup | `scope.md`, `assets/` |
+| 2 | Spec and task breakdown | `@tariq` | `spec.md`, `tasks.md`, `tasks/MA-nnn.md` |
+| 3 | Task review and ordering | `@task-reviewer` | corrected, ordered `tasks.md` |
+| 4 | Plan | `@tariq` | `## Plan` in the task file |
+| 5 | Plan review | `@plan-reviewer` | `## Plan review` |
+| 6 | Implement, self-review, commit | `@dev` | commits in an isolated worktree |
+| 7 | Local review, then push and open PR | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
+| 8 | PR review | `@pr-reviewer` | `## PR review` |
+| 9 | Device QA and merge | the user | merged PR |
+
+Steps 4–8 run per task, in `tasks.md` order, one task at a time.
+
+🛑 **Gate 1** after step 1 — the user locks `scope.md`, mockup published as an artifact.
+🛑 **Gate 2** after step 3 — the user sees the ordered task list before any code exists.
+🛑 **Gate 3** after step 8 — the user walks device QA and merges.
+
+**Status on disk is what makes an interrupted scope resumable.** Sarah writes it to the task file's frontmatter and then to `tasks.md` before dispatching the next step; frontmatter wins if they disagree. `todo` · `planning` · `ready` · `implementing` · `in-review` · `awaiting-human` · `done` · `blocked`. A `blocked` task halts the scope — never skip past it, the order encodes dependencies. Each review gate allows three rounds; the fourth blocks the task and reports.
+
+Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repo for step 9.
+
 ## Team
 
-Five personas. Dispatch `@name` (subagent, `.claude/agents/`) for file-producing work; use `[name]` inline (`moneyapp-expert-panel` skill) for advisory consults. Detailed phase mechanics live in Sarah's agent file — skills are authoritative for each phase, personas contribute content.
+Five personas plus four reviewers. Dispatch `@name` (subagent, `.claude/agents/`) for file-producing work; use `[name]` inline (`moneyapp-expert-panel` skill) for advisory consults. Detailed step mechanics live in Sarah's agent file.
 
-- **sarah** — orchestration lead: sequences phases, approves plans, owns escalation
+- **sarah** — orchestration lead: sequences steps, approves plans, owns status on disk and escalation
 - **marcus** — product designer: flows, screens, design system
 - **layla** — financial domain: formulas, rules, categories
-- **tariq** — technical lead: architecture, plans, review verdicts + merge recommendations
-- **dev** — implements per approved plan only; no code without a signed-off spec and Sarah-approved plan
+- **tariq** — technical lead: architecture, spec, task breakdown, plans
+- **dev** — implements per approved plan only; no code without a spec and a reviewer-approved plan
+- **task-reviewer · plan-reviewer · impl-reviewer · pr-reviewer** — each reviews only artifacts it did not author
 
-Flow: brainstorm → HTML mockup (`docs/superpowers/mockups/YYYY-MM-DD-{feature}.html`, Marcus) + design doc (`docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`) → 🛑 **spec sign-off** (mockup published as an artifact for review) → plan (`docs/superpowers/plans/YYYY-MM-DD-{feature}.md`, Sarah approves) → execute in an isolated git worktree → code review (Tariq recommends) → 🛑 **device QA** (only the user can walk it).
+No agent reviews its own output; that is the point of the four. `@pr-reviewer` is deliberately restricted to what step 7 could not see — real-runner CI, drift against a moved `main`, the squashed commit, diff membership, step 7 escapes. If it stops finding anything outside those, collapse it into step 7 rather than keeping a ceremonial gate.
 
-Domain sovereignty: product/UX → marcus · financial logic → layla · architecture/review → tariq · implementation → dev · sequencing → sarah. Vague request → push back and disambiguate before building. Routine disagreements: the responsible lead decides and records the rationale.
+Domain sovereignty: product/UX → marcus · financial logic → layla · architecture → tariq · implementation → dev · review verdicts → the reviewer for that gate · sequencing → sarah. Vague request → push back and disambiguate before building. Routine disagreements: the responsible lead decides and records the rationale.
 
 Gotcha: **agent definitions are snapshotted when the session starts.** Editing a file in `.claude/agents/` does not affect subagents dispatched later in that same session — they still run the old definition, silently and convincingly. Restart the session before testing an agent change. Path-scoped rules in `.claude/rules/` do not have this problem; they load live, including inside subagents.
 
 ### Critical triggers (wake the user; everywhere else proceed)
 
 1. Product/domain disagreement Marcus and Layla cannot resolve
-2. Cross-section impact — a decision binds a future section non-obviously
+2. Cross-scope impact — a decision binds a future scope or task non-obviously
 3. High blast radius — feature-flag flip, V1 deletion, migration with data-loss risk
 4. New dependency, native code change, anything outside the established stack
 5. User-facing copy with voice/branding weight (field labels and error messages stay team-decided)
@@ -41,7 +68,7 @@ Gotcha: **agent definitions are snapshotted when the session starts.** Editing a
 7. Auth / secure store / data-loss surface
 8. Manual device QA — always
 
-Not critical (team decides): field-level UX, naming, file structure, test approach, code style, sequencing within a section, hex→token swaps, a11y polish, minor dep bumps.
+Not critical (team decides): field-level UX, naming, file structure, test approach, code style, task order within a scope, hex→token swaps, a11y polish, minor dep bumps.
 
 ## Tech Stack
 
@@ -84,6 +111,8 @@ src/test_helpers/     test-only helpers imported through @/test_helpers
 src/screens/          legacy — one dev-only primitives screen; add nothing here
 src/utils/            responsive.ts · use_zod_form.hook.ts · use_layout_init.hook.ts · onboarding_nav.ts
 __tests__/            snake_case tests — policy: logic-only .ts (legacy .tsx render tests exist, slated for cleanup)
+docs/scopes/          workflow state: one folder per scope (see TEMPLATES.md)
+docs/superpowers/     frozen history — specs, plans, reviews, QA from the pre-/scope flow
 ```
 
 New domain work belongs under `src/modules/<domain>/` using the existing module shape: `database/`, `repositories/`, `store/`, `screens/`, optional `components/`. No `data/` folder. Root `src/store/`, `src/repositories/`, and most `src/database/` domain files are compatibility surfaces — do not add new consumers.

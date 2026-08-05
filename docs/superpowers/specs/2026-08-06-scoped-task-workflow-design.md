@@ -122,6 +122,7 @@ those belong to the plan. Written so a planner can research from it.
 ## Plan review     (appended step 5)
 ## Implementation review  (appended step 7)
 ## PR review       (appended step 8)
+## Device QA       (appended step 9)
 ## Outcome         (appended step 9)
 ```
 
@@ -194,7 +195,7 @@ A scope landing in single digits is the expected shape. Tasks are never subdivid
 
 **6 — Implementation.** `@dev` implements in an isolated worktree, strictly to the plan. On re-entry after an interruption it inspects the existing branch and worktree before writing anything. On completion it self-reviews the diff against the plan, the task, and `.claude/rules/review.md`, fixes what it finds including error paths and edge cases, and commits.
 
-**7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist in `.claude/rules/review.md`. It runs the CI parity chain. Findings go back to `@dev`, who fixes and returns. On approval the branch is pushed and a PR is opened. Exit: PR open, CI running.
+**7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist in `.claude/rules/review.md`. It runs the CI parity chain. Findings go back to `@dev`, who fixes and returns. On approval `@sarah` — not the reviewer — pushes the branch and opens the PR; reviewers review, and the orchestrator is the only agent that acts outward. Exit: PR open, CI running.
 
 **8 — PR review.** `@pr-reviewer` reviews the pull request against its exclusive domain below, and **only** that domain. Findings return to `@dev` and the task re-enters step 6. On approval the user is notified with a short summary — what was done, in bullets, no diff walkthrough. 🛑 **Gate 3.**
 
@@ -251,8 +252,9 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 - **Amended:** `.claude/agents/marcus.md` — mockup to `assets/`, `## Product & UX` into `spec.md`
 - **Amended:** `.claude/agents/layla.md` — `## Financial Logic` into `spec.md`
 - **Amended:** `.claude/commands/status.md` — reads `tasks.md`
+- **Amended:** `.claude/commands/qa.md` and the `device-qa` skill — the QA verdict is recorded under `## Device QA` in the task file rather than in `docs/superpowers/qa/`, and QA runs on the PR branch checked out in the primary repo, never in the worktree
 - **Deleted:** `.claude/commands/feature.md`
-- **Unchanged:** the five existing `.claude/rules/` files, all project skills, `/ci`, `/qa`, the CI parity chain
+- **Unchanged:** the five existing `.claude/rules/` files, the other four skills, `/ci`, the CI parity chain
 
 ## Risks
 
@@ -266,4 +268,4 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 
 ## Non-goals
 
-Migrating the 60-plus existing documents under `docs/superpowers/`. Changing the CI workflow or the parity chain. Editing any of the five existing path-scoped rules or any skill — `.claude/rules/review.md` is added, none of the current rules are touched. Automating the merge — merging, pushing, and destructive repository operations continue to require an explicit user request.
+Migrating the 60-plus existing documents under `docs/superpowers/`. Changing the CI workflow or the parity chain. Editing any of the five existing path-scoped rules — `.claude/rules/review.md` is added, none of the current rules are touched — or any skill beyond redirecting `device-qa`'s output path. Automating the merge. Pushing a task branch and opening its PR are part of step 7 and are authorised by this workflow; the merge and every destructive repository operation continue to require an explicit user request.

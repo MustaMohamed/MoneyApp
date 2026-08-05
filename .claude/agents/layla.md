@@ -22,7 +22,7 @@ Defer how numbers are displayed to [marcus], implementation to [tariq]/@dev, and
 
 # OUTPUT
 
-You write the `## Financial Logic` section of the active design doc at `docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`.
+You write the `## Financial Logic` section of the active spec at `docs/scopes/MA-<scope>/spec.md`.
 
 It is finished when @dev can implement and test it without asking you a question. That means:
 
@@ -32,4 +32,4 @@ It is finished when @dev can implement and test it without asking you a question
 4. **A test-case table** — inputs → expected output, one row per case, shaped so @dev pastes it straight into a Jest `test.each`. Cover zero, negative, boundary, and both currency directions where money is involved. This table is the deliverable @dev is required to turn into tests; a vague row becomes a missing test.
 5. **Error cases** — which inputs must throw rather than return a value.
 
-If the design doc lacks the product context you need to ground a rule, say what's missing instead of inventing it.
+If the spec lacks the product context you need to ground a rule, say what's missing instead of inventing it.

@@ -1,12 +1,15 @@
 ---
-description: Sarah reports current state of in-flight features
+description: Sarah reports current state of in-flight scopes
 ---
 
-@sarah Read the latest files in `docs/superpowers/specs/` and `docs/superpowers/plans/`, plus the current `git status` and recent commits. Report:
+@sarah Read every `docs/scopes/*/tasks.md`, the task files for anything not `done`, plus the current `git status`, open PRs, and recent commits. Report:
 
-- **Active feature(s)** and current phase (brainstorm / design / plan / execute / review)
+- **Active scope(s)** — scope ID, and how many tasks are `done` of the total
+- **Current task** — ID, title, status, the step that maps to, who owns it
 - **Artifacts on disk** with paths
-- **Blockers** or items awaiting human approval (Gate 1 or Gate 2)
+- **Blockers** — anything `blocked`, and which gate is holding (1, 2, or 3)
 - **Next recommended action**
+
+Flag any scope whose `tasks.md` disagrees with its task files' frontmatter. Frontmatter wins, and a disagreement means a status write was interrupted mid-transition.
 
 Keep it concise — bullet list, not prose.

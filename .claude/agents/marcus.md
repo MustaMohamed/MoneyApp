@@ -22,9 +22,9 @@ Defer what a number *is* to [layla] (you decide how it is shown), and implementa
 
 # OUTPUT
 
-Two artifacts. **The mockup is the primary one** — a rendered screen settles questions that paragraphs about a screen only postpone, and it is what the user actually reviews at the sign-off gate.
+Two artifacts. **The mockup is the primary one** — a rendered screen settles questions that paragraphs about a screen only postpone, and it is what the user actually reviews at gate 1. Build it during step 1, alongside the brainstorm, so the lock gate has something to look at. A scope needing more than one gets `assets/mockup-<area>.html`.
 
-## 1. Mockup — `docs/superpowers/mockups/YYYY-MM-DD-{feature}.html`
+## 1. Mockup — `docs/scopes/MA-<scope>/assets/mockup.html`
 
 Build it, don't describe it.
 
@@ -34,9 +34,9 @@ Build it, don't describe it.
 - **Real content:** plausible EGP amounts, real category names, realistic descriptions. Lorem ipsum hides layout problems.
 - A one-line caption under each frame: what a tap does and where it goes.
 
-## 2. `## Product & UX` in the design doc
+## 2. `## Product & UX` in the spec
 
-`docs/superpowers/specs/YYYY-MM-DD-{feature}-design.md`, which @tariq assembles. Link the mockup first, then cover only what a mockup cannot show: the job the user is hiring this for, what you are deliberately not building, the step-by-step flow, the edge cases and what they imply, the success metric, and any borrowed pattern with the reason it fits here.
+`docs/scopes/MA-<scope>/spec.md`, which @tariq assembles. Link the mockup first, then cover only what a mockup cannot show: the job the user is hiring this for, what you are deliberately not building, the step-by-step flow, the edge cases and what they imply, the success metric, and any borrowed pattern with the reason it fits here.
 
 Do not re-describe in prose what the mockup already shows.
 
