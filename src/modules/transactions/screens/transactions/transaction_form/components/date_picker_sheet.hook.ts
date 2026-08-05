@@ -43,7 +43,7 @@ export function useTransactionDatePicker(
     else openAndroid(ownerId, value);
   }
 
-  function changeIos(_event: DateTimePickerChangeEvent, date: Date) {
+  function selectIos(_event: DateTimePickerChangeEvent, date: Date) {
     setDraftDate(ownerId, toLocalDateString(date));
   }
 
@@ -88,7 +88,7 @@ export function useTransactionDatePicker(
       maximumDate: new Date(),
     },
     open,
-    changeIos,
+    selectIos,
     cancelIos,
     commitIos,
     completeIosClose: () => completeIosClose(ownerId),

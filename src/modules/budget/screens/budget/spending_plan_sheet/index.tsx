@@ -55,7 +55,7 @@ export function SpendingPlanSheet(props: SpendingPlanSheetProps) {
             datePickerTarget={state.datePickerTarget}
             datePickerValue={state.datePickerValue}
             openDatePicker={actions.openDatePicker}
-            onDateSelect={actions.selectDate}
+            onDatePickerSelect={actions.selectDate}
             onDatePickerDismiss={actions.dismissDatePicker}
           />
           <SpendingPlanCategorySelector

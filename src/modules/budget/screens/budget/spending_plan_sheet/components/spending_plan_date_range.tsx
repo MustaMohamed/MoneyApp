@@ -15,7 +15,7 @@ interface SpendingPlanDateRangeProps {
   datePickerTarget: SpendingPlanDatePickerTarget | undefined;
   datePickerValue: Date;
   openDatePicker: (target: SpendingPlanDatePickerTarget) => void;
-  onDateSelect: (
+  onDatePickerSelect: (
     target: SpendingPlanDatePickerTarget,
     event: DateTimePickerChangeEvent,
     date: Date,
@@ -29,7 +29,7 @@ export function SpendingPlanDateRange({
   datePickerTarget,
   datePickerValue,
   openDatePicker,
-  onDateSelect,
+  onDatePickerSelect,
   onDatePickerDismiss,
 }: SpendingPlanDateRangeProps) {
   return (
@@ -70,7 +70,7 @@ export function SpendingPlanDateRange({
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           themeVariant="dark"
-          onValueChange={(event, date) => onDateSelect(datePickerTarget, event, date)}
+          onValueChange={(event, date) => onDatePickerSelect(datePickerTarget, event, date)}
           onDismiss={onDatePickerDismiss}
         />
       ) : null}

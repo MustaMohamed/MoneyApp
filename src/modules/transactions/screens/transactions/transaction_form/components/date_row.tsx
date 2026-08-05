@@ -72,7 +72,7 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
           isOpen={picker.state.isOpen}
           value={picker.state.pickerDate}
           maximumDate={picker.state.maximumDate}
-          onValueChange={picker.changeIos}
+          onValueChange={picker.selectIos}
           onCancel={picker.cancelIos}
           onDone={picker.commitIos}
           onCloseComplete={picker.completeIosClose}
