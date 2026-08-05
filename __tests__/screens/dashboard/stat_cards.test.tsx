@@ -75,8 +75,8 @@ const baseProps = {
 };
 
 describe('StatCards skeleton loading', () => {
-  it('skeletonizes month-spend numbers while loading without hiding net-worth numbers', () => {
-    const { queryByText, getByText, getAllByTestId } = render(
+  it('skeletonizes month-spend numbers while loading without hiding net-worth numbers', async () => {
+    const { queryByText, getByText, getAllByTestId } = await render(
       <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading />,
     );
 
@@ -87,8 +87,8 @@ describe('StatCards skeleton loading', () => {
     expect(getAllByTestId('dashboard-month-spend-skeleton-footer-item')).toHaveLength(3);
   });
 
-  it('skeletonizes net-worth numbers while loading without hiding month-spend numbers', () => {
-    const { queryByTestId, queryByText, getByText, getAllByTestId } = render(
+  it('skeletonizes net-worth numbers while loading without hiding month-spend numbers', async () => {
+    const { queryByTestId, queryByText, getByText, getAllByTestId } = await render(
       <StatCards {...baseProps} netWorthLoading monthSpendLoading={false} />,
     );
 
@@ -101,9 +101,9 @@ describe('StatCards skeleton loading', () => {
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 
-  it('preserves both stat card natural frames while loading', () => {
-    const loading = render(<StatCards {...baseProps} netWorthLoading monthSpendLoading />);
-    const loaded = render(
+  it('preserves both stat card natural frames while loading', async () => {
+    const loading = await render(<StatCards {...baseProps} netWorthLoading monthSpendLoading />);
+    const loaded = await render(
       <StatCards {...baseProps} netWorthLoading={false} monthSpendLoading={false} />,
     );
 
@@ -115,8 +115,8 @@ describe('StatCards skeleton loading', () => {
     expect(loaded.getByTestId('dashboard-month-spend-card')).not.toHaveStyle({ height: ms(132) });
   });
 
-  it('uses loaded-row heights for dashboard stat skeletons', () => {
-    const { getAllByTestId, getByTestId } = render(
+  it('uses loaded-row heights for dashboard stat skeletons', async () => {
+    const { getAllByTestId, getByTestId } = await render(
       <StatCards {...baseProps} netWorthLoading monthSpendLoading />,
     );
 

@@ -81,7 +81,7 @@ afterEach(() => {
 
 describe('useSpendingPlanDetail', () => {
   it('loads by id even when an edit moved the plan outside the route month', async () => {
-    const { result } = renderHook(() => useSpendingPlanDetail());
+    const { result } = await renderHook(() => useSpendingPlanDetail());
     await act(async () => {
       mockFocusEffect.mock.calls[0][0]();
     });
@@ -95,7 +95,7 @@ describe('useSpendingPlanDetail', () => {
     mockGetDetails
       .mockRejectedValueOnce(new Error('database unavailable'))
       .mockResolvedValueOnce({ plan, spend: { cat_food: 1200 } });
-    const { result } = renderHook(() => useSpendingPlanDetail());
+    const { result } = await renderHook(() => useSpendingPlanDetail());
     await act(async () => {
       mockFocusEffect.mock.calls[0][0]();
     });
@@ -121,13 +121,13 @@ describe('useSpendingPlanDetail', () => {
       )
       .mockResolvedValueOnce({ plan: secondPlan, spend: {} });
 
-    const { result, rerender } = renderHook(() => useSpendingPlanDetail());
-    act(() => {
+    const { result, rerender } = await renderHook(() => useSpendingPlanDetail());
+    await act(() => {
       mockFocusEffect.mock.calls[0][0]();
     });
 
     mockRouteParams = { id: 'plan_second', month: '2026-07' };
-    rerender({});
+    await rerender({});
     await act(async () => {
       mockFocusEffect.mock.calls.at(-1)?.[0]();
     });

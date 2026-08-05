@@ -259,19 +259,19 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
     setupMocks();
   });
 
-  it('exposes linkedCount in state (default 0)', () => {
-    const { result } = renderHook(() => useCategories());
+  it('exposes linkedCount in state (default 0)', async () => {
+    const { result } = await renderHook(() => useCategories());
     expect(result.current.state.linkedCount).toBe(0);
   });
 
-  it('exposes isDeleting in state (default false)', () => {
-    const { result } = renderHook(() => useCategories());
+  it('exposes isDeleting in state (default false)', async () => {
+    const { result } = await renderHook(() => useCategories());
     expect(result.current.state.isDeleting).toBe(false);
   });
 
   it('handleDeletePress calls getCategoryTransactionCount with correct id (TC-03)', async () => {
     capturedGetCategoryTransactionCount.mockResolvedValueOnce(0);
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await act(async () => {
       await result.current.handleDeletePress(fakeExpenseCategory);
@@ -282,7 +282,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
 
   it('handleDeletePress opens DeleteConfirmationDialog when count = 0 (TC-03)', async () => {
     capturedGetCategoryTransactionCount.mockResolvedValueOnce(0);
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await act(async () => {
       await result.current.handleDeletePress(fakeExpenseCategory);
@@ -294,7 +294,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
 
   it('handleDeletePress opens ReassignSheet when count > 0 (TC-01, TC-02)', async () => {
     capturedGetCategoryTransactionCount.mockResolvedValueOnce(47);
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await act(async () => {
       await result.current.handleDeletePress(fakeExpenseCategory);
@@ -306,7 +306,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
 
   it('handleDeletePress stores the count in linkedCount before branching', async () => {
     capturedGetCategoryTransactionCount.mockResolvedValueOnce(47);
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await act(async () => {
       await result.current.handleDeletePress(fakeExpenseCategory);
@@ -317,7 +317,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
 
   it('handleDeletePress calls setIsDeleting(true) then setIsDeleting(false) — finally block', async () => {
     capturedGetCategoryTransactionCount.mockResolvedValueOnce(0);
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await act(async () => {
       await result.current.handleDeletePress(fakeExpenseCategory);
@@ -329,7 +329,7 @@ describe('useCategories — linkedCount + isDeleting in hook state', () => {
 
   it('handleDeletePress calls setIsDeleting(false) in finally even when count query throws (TC-09)', async () => {
     capturedGetCategoryTransactionCount.mockRejectedValueOnce(new Error('DB error'));
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     // The hook has try/finally (no catch) so the error propagates, but
     // setIsDeleting(false) is guaranteed to run in the finally block first.
@@ -366,7 +366,7 @@ describe('useCategories — handleSave name-duplicate error (TC-06)', () => {
     const dupError = new Error('A category named "Food" already exists in expense');
     setupMocks({ addCategory: jest.fn().mockRejectedValue(dupError) });
 
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await expect(
       act(async () => {
@@ -397,7 +397,7 @@ describe('useCategories — handleReassignConfirm error propagation (TC-09)', ()
       categoryToDelete: fakeExpenseCategory,
     });
 
-    const { result } = renderHook(() => useCategories());
+    const { result } = await renderHook(() => useCategories());
 
     await expect(
       act(async () => {

@@ -18,8 +18,8 @@ jest.mock('heroui-native', () => {
 });
 
 describe('TransactionRowsSkeleton', () => {
-  it('shares the loaded row track dimensions', () => {
-    const { getAllByTestId } = render(<TransactionRowsSkeleton />);
+  it('shares the loaded row track dimensions', async () => {
+    const { getAllByTestId } = await render(<TransactionRowsSkeleton />);
 
     expect(getAllByTestId('transaction-row-skeleton-icon')[0]).toHaveStyle({
       width: ms(36),
@@ -31,8 +31,8 @@ describe('TransactionRowsSkeleton', () => {
     }
   });
 
-  it('reserves optional note and secondary-amount tracks on every row', () => {
-    const { getAllByTestId } = render(<TransactionRowsSkeleton />);
+  it('reserves optional note and secondary-amount tracks on every row', async () => {
+    const { getAllByTestId } = await render(<TransactionRowsSkeleton />);
 
     expect(getAllByTestId('transaction-row-skeleton-note')).toHaveLength(5);
     expect(getAllByTestId('transaction-row-skeleton-secondary-amount')).toHaveLength(5);

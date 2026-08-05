@@ -62,18 +62,18 @@ describe('useAddCommitment', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useAddCommitment())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useAddCommitment())).resolves.toBeDefined();
   });
 
-  it('saving defaults to false', () => {
-    const { result } = renderHook(() => useAddCommitment());
+  it('saving defaults to false', async () => {
+    const { result } = await renderHook(() => useAddCommitment());
     expect(result.current.state.saving).toBe(false);
   });
 
   it('leaves payment generation to the commitment mutation owner', async () => {
-    const { result } = renderHook(() => useAddCommitment());
-    act(() => {
+    const { result } = await renderHook(() => useAddCommitment());
+    await act(() => {
       result.current.form.setValue('name', 'Rent');
       result.current.form.setValue('amount', 5000);
       result.current.form.setValue('categoryId', 'category-rent');
@@ -91,8 +91,8 @@ describe('useAddCommitment', () => {
   it('allows only one committed add while the first submit is in flight', async () => {
     const save = deferred<void>();
     addCommitmentMock.mockReturnValueOnce(save.promise);
-    const { result } = renderHook(() => useAddCommitment());
-    act(() => {
+    const { result } = await renderHook(() => useAddCommitment());
+    await act(() => {
       result.current.form.setValue('name', 'Rent');
       result.current.form.setValue('amount', 5000);
       result.current.form.setValue('categoryId', 'category-rent');
@@ -100,7 +100,7 @@ describe('useAddCommitment', () => {
 
     let firstSubmit!: Promise<void>;
     let secondSubmit!: Promise<void>;
-    act(() => {
+    await act(() => {
       firstSubmit = result.current.onSubmit();
       secondSubmit = result.current.onSubmit();
     });

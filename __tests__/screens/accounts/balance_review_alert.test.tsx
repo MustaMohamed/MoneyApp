@@ -25,37 +25,37 @@ jest.mock('@/components/ui/button', () => {
 });
 
 describe('BalanceReviewAlert', () => {
-  it('offers adjustment as the primary action and confirmation as the secondary action', () => {
+  it('offers adjustment as the primary action and confirmation as the secondary action', async () => {
     const onAdjust = jest.fn();
     const onConfirm = jest.fn();
-    const screen = render(
+    const screen = await render(
       <BalanceReviewAlert onAdjust={onAdjust} onConfirm={onConfirm} isConfirming={false} />,
     );
 
     expect(screen.getByText(Strings.accountBalanceReviewTitle)).toBeTruthy();
-    fireEvent.press(screen.getByText(Strings.accountBalanceReviewAdjust));
-    fireEvent.press(screen.getByText(Strings.accountBalanceReviewConfirm));
+    await fireEvent.press(screen.getByText(Strings.accountBalanceReviewAdjust));
+    await fireEvent.press(screen.getByText(Strings.accountBalanceReviewConfirm));
 
     expect(onAdjust).toHaveBeenCalledTimes(1);
     expect(onConfirm).toHaveBeenCalledTimes(1);
   });
 
-  it('locks both actions while confirmation is running', () => {
+  it('locks both actions while confirmation is running', async () => {
     const onAdjust = jest.fn();
     const onConfirm = jest.fn();
-    const screen = render(
+    const screen = await render(
       <BalanceReviewAlert onAdjust={onAdjust} onConfirm={onConfirm} isConfirming />,
     );
 
-    fireEvent.press(screen.getByText(Strings.accountBalanceReviewAdjust));
-    fireEvent.press(screen.getByText('Loading...'));
+    await fireEvent.press(screen.getByText(Strings.accountBalanceReviewAdjust));
+    await fireEvent.press(screen.getByText('Loading...'));
 
     expect(onAdjust).not.toHaveBeenCalled();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
-  it('renders an inline error without replacing the review guidance', () => {
-    const screen = render(
+  it('renders an inline error without replacing the review guidance', async () => {
+    const screen = await render(
       <BalanceReviewAlert
         onAdjust={jest.fn()}
         onConfirm={jest.fn()}

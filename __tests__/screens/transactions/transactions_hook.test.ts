@@ -191,18 +191,18 @@ describe('useTransactions screen orchestration', () => {
     jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
   });
 
-  it('owns opening the global add transaction form', () => {
-    const { result } = renderHook(() => useTransactions());
+  it('owns opening the global add transaction form', async () => {
+    const { result } = await renderHook(() => useTransactions());
 
-    act(() => result.current.openAddTransaction());
+    await act(() => result.current.openAddTransaction());
 
     expect(mockOpenAdd).toHaveBeenCalledTimes(1);
   });
 
   it('owns the delete confirmation lifecycle', async () => {
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
-    act(() => result.current.requestDelete('tx-1'));
+    await act(() => result.current.requestDelete('tx-1'));
     expect(result.current.state.pendingDeleteId).toBe('tx-1');
 
     await act(async () => result.current.confirmDelete());
@@ -214,7 +214,7 @@ describe('useTransactions screen orchestration', () => {
 
 describe('useTransactions monthly totals', () => {
   it('keeps totals independent from search and filters', async () => {
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
     await waitFor(() => {
       expect(getPeriodTotals).toHaveBeenCalledTimes(2);
@@ -222,7 +222,7 @@ describe('useTransactions monthly totals', () => {
     jest.mocked(getPeriodTotals).mockClear();
     setQuery.mockClear();
 
-    act(() => {
+    await act(() => {
       useTransactionsScreenStore.getState().setSearchQuery('coffee');
       useTransactionsScreenStore.getState().setActiveFilter(TransactionType.Expense);
       useTransactionsScreenStore.getState().setAppliedFilters({
@@ -252,13 +252,13 @@ describe('useTransactions monthly totals', () => {
       .mockResolvedValueOnce(initialPrevious)
       .mockReturnValue(new Promise(() => {}));
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     await waitFor(() => {
       expect(result.current.state.totals?.current).toEqual(initialCurrent);
     });
 
-    act(() => {
+    await act(() => {
       result.current.setSelectedMonth('2026-06');
     });
 
@@ -275,7 +275,7 @@ describe('useTransactions monthly totals', () => {
       .mockResolvedValueOnce(initialCurrent)
       .mockResolvedValueOnce(initialPrevious);
 
-    const first = renderHook(() => useTransactions());
+    const first = await renderHook(() => useTransactions());
 
     await waitFor(() => {
       expect(first.result.current.state.totals).toEqual({
@@ -284,10 +284,10 @@ describe('useTransactions monthly totals', () => {
       });
     });
 
-    first.unmount();
+    await first.unmount();
     jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
 
-    const second = renderHook(() => useTransactions());
+    const second = await renderHook(() => useTransactions());
 
     expect(second.result.current.state.totals).toEqual({
       current: initialCurrent,
@@ -308,7 +308,7 @@ describe('useTransactions monthly totals', () => {
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
     jest.mocked(getPeriodTotals).mockRejectedValue(new Error('db down'));
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     await waitFor(() => {
       expect(result.current.state.totals).toBeNull();
@@ -330,7 +330,7 @@ describe('useTransactions monthly totals', () => {
       .mockResolvedValueOnce(refreshedCurrent)
       .mockResolvedValueOnce(refreshedPrevious);
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     await waitFor(() => {
       expect(result.current.state.totals).toEqual({
@@ -357,7 +357,7 @@ describe('useTransactions query ownership', () => {
     jest.mocked(getPeriodTotals).mockReturnValue(new Promise(() => {}));
   });
 
-  it('does not render rows owned by a different query', () => {
+  it('does not render rows owned by a different query', async () => {
     setupStores({
       transactions: [TRANSACTION],
       queryKey: getTransactionQueryKey({ ...JULY_QUERY, search: 'old' }),
@@ -365,7 +365,7 @@ describe('useTransactions query ownership', () => {
       status: 'ready',
     });
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     expect(result.current.state.sections).toEqual([]);
     expect(result.current.state.listStatus).toBe('initialLoading');
@@ -373,22 +373,22 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.paginationError).toBe(false);
   });
 
-  it('renders rows only when the snapshot matches the active controls', () => {
+  it('renders rows only when the snapshot matches the active controls', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     expect(result.current.state.sections).toHaveLength(1);
     expect(result.current.state.sections[0].data).toEqual([TRANSACTION]);
     expect(result.current.state.listStatus).toBe('ready');
   });
 
-  it('hides the previous snapshot immediately when controls change', () => {
+  it('hides the previous snapshot immediately when controls change', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
     expect(result.current.state.sections).toHaveLength(1);
 
-    act(() => {
+    await act(() => {
       useTransactionsScreenStore.getState().setSearchQuery('rent');
     });
 
@@ -396,24 +396,27 @@ describe('useTransactions query ownership', () => {
     expect(result.current.state.listStatus).toBe('initialLoading');
   });
 
-  it('keeps ready rows available while the current snapshot refreshes', () => {
+  it('keeps ready rows available while the current snapshot refreshes', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'refreshing' });
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     expect(result.current.state.sections).toHaveLength(1);
     expect(result.current.state.refreshing).toBe(true);
     expect(result.current.state.showInitialSkeleton).toBe(false);
   });
 
-  it('never presents the previous month rows during a month transition', () => {
+  it('never presents the previous month rows during a month transition', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
-    const { result, rerender } = renderHook((_props: Record<string, never>) => useTransactions(), {
-      initialProps: {},
-    });
+    const { result, rerender } = await renderHook(
+      (_props: Record<string, never>) => useTransactions(),
+      {
+        initialProps: {},
+      },
+    );
     expect(result.current.state.sections[0].data).toEqual([TRANSACTION]);
 
-    act(() => {
+    await act(() => {
       result.current.setSelectedMonth('2026-06');
     });
 
@@ -429,29 +432,29 @@ describe('useTransactions query ownership', () => {
       snapshotKey: getTransactionQueryKey(JUNE_QUERY),
       status: 'ready',
     };
-    rerender({});
+    await rerender({});
 
     expect(result.current.state.sections).toHaveLength(1);
     expect(result.current.state.sections[0].data).toEqual([JUNE_TRANSACTION]);
   });
 
-  it('preserves list controls and scroll context across detail navigation remounts', () => {
+  it('preserves list controls and scroll context across detail navigation remounts', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
-    const first = renderHook(() => useTransactions());
+    const first = await renderHook(() => useTransactions());
 
-    act(() => {
+    await act(() => {
       first.result.current.setSelectedMonth('2026-06');
       first.result.current.setSearchQuery('coffee');
       first.result.current.setActiveFilter(TransactionType.Expense);
     });
-    act(() => {
+    await act(() => {
       first.result.current.onListScrollEnd({
         nativeEvent: { contentOffset: { y: 284 } },
       });
     });
-    first.unmount();
+    await first.unmount();
 
-    const second = renderHook(() => useTransactions());
+    const second = await renderHook(() => useTransactions());
 
     expect(second.result.current.state).toMatchObject({
       selectedMonth: '2026-06',
@@ -468,20 +471,20 @@ describe('useTransactions query ownership', () => {
       transactions: [TRANSACTION],
       status: 'ready',
     };
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
     await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
     expect(mockFocusEffectCallback).toBeDefined();
 
     let firstCleanup: void | (() => void) = undefined;
-    act(() => {
+    await act(() => {
       firstCleanup = mockFocusEffectCallback?.();
     });
-    act(() => firstCleanup?.());
+    await act(() => firstCleanup?.());
     refresh.mockClear();
     jest.mocked(getPeriodTotals).mockClear();
 
-    act(() => {
+    await act(() => {
       mockFocusEffectCallback?.();
     });
 
@@ -504,9 +507,9 @@ describe('useTransactions query ownership', () => {
       snapshotKey: undefined,
       status: 'initialLoading',
     });
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
-    act(() => {
+    await act(() => {
       mockFocusEffectCallback?.();
     });
     transactionStoreState = {
@@ -530,18 +533,18 @@ describe('useTransactions query ownership', () => {
       transactions: [TRANSACTION],
       status: 'ready',
     };
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
     await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
     let firstCleanup: void | (() => void) = undefined;
-    act(() => {
+    await act(() => {
       firstCleanup = mockFocusEffectCallback?.();
       firstCleanup?.();
     });
     refresh.mockClear();
     jest.mocked(getPeriodTotals).mockClear();
 
-    act(() => {
+    await act(() => {
       mockFocusEffectCallback?.();
     });
     transactionStoreState = {
@@ -549,7 +552,7 @@ describe('useTransactions query ownership', () => {
       transactions: [{ ...TRANSACTION, note: 'new snapshot' }],
       replacementRequestId: 2,
     };
-    act(() => {
+    await act(() => {
       const totalsStore = useTransactionsScreenStore.getState();
       const requestId = totalsStore.beginTotalsRequest('2026-07', true);
       useTransactionsState.getState().beginTotalsLoad(true);
@@ -575,9 +578,9 @@ describe('useTransactions query ownership', () => {
       status: 'ready',
       replacementRequestId: 3,
     };
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
-    act(() => {
+    await act(() => {
       mockFocusEffectCallback?.();
     });
     transactionStoreState = {
@@ -599,9 +602,9 @@ describe('useTransactions query ownership', () => {
       status: 'ready',
       replacementRequestId: 4,
     };
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
-    act(() => {
+    await act(() => {
       mockFocusEffectCallback?.();
     });
     transactionStoreState = {
@@ -624,14 +627,14 @@ describe('useTransactions query ownership', () => {
       transactions: [TRANSACTION],
       status: 'ready',
     };
-    renderHook(() => useTransactions());
+    await renderHook(() => useTransactions());
 
     await waitFor(() => expect(getPeriodTotals).toHaveBeenCalledTimes(2));
     refresh.mockClear();
     jest.mocked(getPeriodTotals).mockClear();
 
     let cleanup: void | (() => void) = undefined;
-    act(() => {
+    await act(() => {
       cleanup = mockFocusEffectCallback?.();
       cleanup?.();
     });
@@ -644,17 +647,17 @@ describe('useTransactions query ownership', () => {
     expect(getPeriodTotals).not.toHaveBeenCalled();
   });
 
-  it('tracks scrolling without publishing offsets until the screen blurs', () => {
+  it('tracks scrolling without publishing offsets until the screen blurs', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
     let cleanup: void | (() => void) = undefined;
-    act(() => {
+    await act(() => {
       cleanup = mockFocusEffectCallback?.();
     });
     const listener = jest.fn();
     const unsubscribe = useTransactionsState.subscribe(listener);
 
-    act(() => {
+    await act(() => {
       result.current.onListScroll({
         nativeEvent: { contentOffset: { y: 96 } },
       });
@@ -669,27 +672,27 @@ describe('useTransactions query ownership', () => {
     expect(useTransactionsState.getState().scrollOffset).toBe(0);
     expect(listener).not.toHaveBeenCalled();
 
-    act(() => cleanup?.());
+    await act(() => cleanup?.());
 
     expect(useTransactionsState.getState().scrollOffset).toBe(284);
     expect(listener).toHaveBeenCalledTimes(1);
     unsubscribe();
   });
 
-  it('does not persist a late scroll event under a newly selected query', () => {
+  it('does not persist a late scroll event under a newly selected query', async () => {
     setupStores({ transactions: [TRANSACTION], status: 'ready' });
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
     let cleanup: void | (() => void) = undefined;
-    act(() => {
+    await act(() => {
       cleanup = mockFocusEffectCallback?.();
     });
     const staleScrollHandler = result.current.onListScroll;
 
-    act(() => {
+    await act(() => {
       staleScrollHandler({ nativeEvent: { contentOffset: { y: 284 } } });
       result.current.setSelectedMonth('2026-06');
     });
-    act(() => {
+    await act(() => {
       staleScrollHandler({ nativeEvent: { contentOffset: { y: 420 } } });
       cleanup?.();
     });
@@ -710,15 +713,18 @@ describe('useTransactions query ownership', () => {
     useTransactionsState.getState().activateScrollQuery(queryKey);
     useTransactionsState.getState().setScrollOffset(queryKey, 284);
     const scrollTo = jest.fn();
-    const { result, rerender } = renderHook((_props: Record<string, never>) => useTransactions(), {
-      initialProps: {},
-    });
+    const { result, rerender } = await renderHook(
+      (_props: Record<string, never>) => useTransactions(),
+      {
+        initialProps: {},
+      },
+    );
     Object.defineProperty(result.current.state.listRef, 'current', {
       configurable: true,
       value: { getScrollResponder: () => ({ scrollTo }) },
     });
 
-    act(() => {
+    await act(() => {
       mockFocusEffectCallback?.();
     });
     expect(scrollTo).not.toHaveBeenCalled();
@@ -729,7 +735,7 @@ describe('useTransactions query ownership', () => {
       snapshotKey: queryKey,
       status: 'ready',
     };
-    rerender({});
+    await rerender({});
 
     await waitFor(() => {
       expect(scrollTo).toHaveBeenCalledWith({ y: 284, animated: false });
@@ -745,7 +751,7 @@ describe('useTransactions query ownership', () => {
     jest.mocked(getPeriodTotals).mockRejectedValue(new Error('totals unavailable'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
     expect(result.current.state.showFirstLoadError).toBe(true);
@@ -758,7 +764,7 @@ describe('useTransactions query ownership', () => {
     jest.mocked(getPeriodTotals).mockRejectedValue(new Error('totals unavailable'));
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
-    const { result } = renderHook(() => useTransactions());
+    const { result } = await renderHook(() => useTransactions());
 
     await waitFor(() => expect(result.current.state.totalsStatus).toBe('firstLoadError'));
     expect(result.current.state.loadErrorVariant).toBe('totals');

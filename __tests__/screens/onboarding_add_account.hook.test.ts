@@ -51,32 +51,32 @@ describe('useAddAccount', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useAddAccount())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useAddAccount())).resolves.toBeDefined();
   });
 
-  it('default selected_color is AcctTokens.midnight.rich', () => {
-    const { result } = renderHook(() => useAddAccount());
+  it('default selected_color is AcctTokens.midnight.rich', async () => {
+    const { result } = await renderHook(() => useAddAccount());
     expect(result.current.form.getValues('selected_color')).toBe(AcctTokens.midnight.rich);
   });
 
-  it('default selected_type is Bank', () => {
-    const { result } = renderHook(() => useAddAccount());
+  it('default selected_type is Bank', async () => {
+    const { result } = await renderHook(() => useAddAccount());
     expect(result.current.form.getValues('selected_type')).toBe(AccountType.Bank);
   });
 
-  it('onBack without isAddingMore targets /(onboarding)/welcome', () => {
-    const { result } = renderHook(() => useAddAccount());
-    act(() => {
+  it('onBack without isAddingMore targets /(onboarding)/welcome', async () => {
+    const { result } = await renderHook(() => useAddAccount());
+    await act(() => {
       result.current.onBack();
     });
     expect(mockBackOrReplace).toHaveBeenCalledWith(expect.anything(), '/(onboarding)/welcome');
   });
 
-  it('onBack with isAddingMore targets /(onboarding)/more_accounts', () => {
+  it('onBack with isAddingMore targets /(onboarding)/more_accounts', async () => {
     setup(true);
-    const { result } = renderHook(() => useAddAccount());
-    act(() => {
+    const { result } = await renderHook(() => useAddAccount());
+    await act(() => {
       result.current.onBack();
     });
     expect(mockBackOrReplace).toHaveBeenCalledWith(

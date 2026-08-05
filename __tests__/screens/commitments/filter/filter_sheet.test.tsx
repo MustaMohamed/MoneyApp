@@ -130,8 +130,8 @@ describe('CommitmentFilterSheet', () => {
     jest.clearAllMocks();
   });
 
-  it('renders all advanced filter sections', () => {
-    const { getByText } = render(<CommitmentFilterSheet />);
+  it('renders all advanced filter sections', async () => {
+    const { getByText } = await render(<CommitmentFilterSheet />);
 
     expect(getByText(Strings.filterTitle)).toBeTruthy();
     expect(getByText('Accounts section')).toBeTruthy();
@@ -141,8 +141,8 @@ describe('CommitmentFilterSheet', () => {
     expect(getByText('Recurrence section')).toBeTruthy();
   });
 
-  it('renders Reset and Apply as equal-width themed footer buttons', () => {
-    const { getByText, getByTestId } = render(<CommitmentFilterSheet />);
+  it('renders Reset and Apply as equal-width themed footer buttons', async () => {
+    const { getByText, getByTestId } = await render(<CommitmentFilterSheet />);
 
     expect(COMMITMENT_FILTER_SHEET_ACTION_STYLE).toEqual({ flex: 1 });
     expect(getByText(`secondary:${Strings.filterReset}`)).toBeTruthy();
@@ -155,13 +155,13 @@ describe('CommitmentFilterSheet', () => {
     );
   });
 
-  it('wires Reset and Apply actions from the footer', () => {
-    const { getByText } = render(<CommitmentFilterSheet />);
+  it('wires Reset and Apply actions from the footer', async () => {
+    const { getByText } = await render(<CommitmentFilterSheet />);
 
-    fireEvent.press(getByText(`secondary:${Strings.filterReset}`));
+    await fireEvent.press(getByText(`secondary:${Strings.filterReset}`));
     expect(mockResetDraft).toHaveBeenCalled();
 
-    fireEvent.press(getByText(`primary:${Strings.filterApplyWithCount(3)}`));
+    await fireEvent.press(getByText(`primary:${Strings.filterApplyWithCount(3)}`));
     expect(mockApplyDraft).toHaveBeenCalled();
   });
 });

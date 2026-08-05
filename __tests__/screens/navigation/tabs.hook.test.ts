@@ -28,10 +28,10 @@ describe('useTabsLayout', () => {
     useTransactionFormState.getState().reset();
   });
 
-  it('opens Add globally without navigating away from the current tab', () => {
-    const { result } = renderHook(() => useTabsLayout());
+  it('opens Add globally without navigating away from the current tab', async () => {
+    const { result } = await renderHook(() => useTabsLayout());
 
-    act(() => result.current.handleAddTransaction());
+    await act(() => result.current.handleAddTransaction());
 
     expect(mockPush).not.toHaveBeenCalled();
     expect(useTransactionFormState.getState()).toMatchObject({

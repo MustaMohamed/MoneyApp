@@ -126,8 +126,8 @@ describe('TransactionFormHost', () => {
     useTransactionFormState.getState().reset();
   });
 
-  it('mounts one closed shell before any form is requested', () => {
-    render(<TransactionFormHost />);
+  it('mounts one closed shell before any form is requested', async () => {
+    await render(<TransactionFormHost />);
 
     expect(mockSheetFrames.at(-1)).toMatchObject({
       instanceId: 1,
@@ -138,11 +138,11 @@ describe('TransactionFormHost', () => {
     expect(mockEditSession).not.toHaveBeenCalled();
   });
 
-  it('opens Add through the existing shell instance', () => {
-    render(<TransactionFormHost />);
+  it('opens Add through the existing shell instance', async () => {
+    await render(<TransactionFormHost />);
     const closedInstance = mockSheetFrames.at(-1)?.instanceId;
 
-    act(() => useTransactionFormState.getState().openAdd());
+    await act(() => useTransactionFormState.getState().openAdd());
 
     expect(mockSheetFrames.at(-1)).toMatchObject({
       instanceId: closedInstance,
@@ -153,12 +153,12 @@ describe('TransactionFormHost', () => {
     expect(mockEditSession).not.toHaveBeenCalled();
   });
 
-  it('keeps the session mounted until the shell finishes closing', () => {
-    render(<TransactionFormHost />);
-    act(() => useTransactionFormState.getState().openEdit(createTransaction()));
+  it('keeps the session mounted until the shell finishes closing', async () => {
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openEdit(createTransaction()));
     const openFrame = mockSheetFrames.at(-1);
 
-    act(() => openFrame?.onOpenChange(false));
+    await act(() => openFrame?.onOpenChange(false));
 
     expect(mockSheetFrames.at(-1)).toMatchObject({
       instanceId: openFrame?.instanceId,
@@ -166,18 +166,18 @@ describe('TransactionFormHost', () => {
     });
     expect(mockEditSession.mock.lastCall?.[0]).toMatchObject({ sessionId: 1 });
 
-    act(() => mockSheetFrames.at(-1)?.onCloseComplete());
+    await act(() => mockSheetFrames.at(-1)?.onCloseComplete());
 
     expect(useTransactionFormState.getState().phase).toBe('closed');
     expect(mockEditSession).toHaveBeenCalledTimes(2);
   });
 
-  it('renders the Save footer from matching session state', () => {
-    render(<TransactionFormHost />);
-    act(() => useTransactionFormState.getState().openAdd());
+  it('renders the Save footer from matching session state', async () => {
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openAdd());
     const sessionId = useTransactionFormState.getState().sessionId;
 
-    act(() =>
+    await act(() =>
       useTransactionFormState.getState().publishFooter(sessionId, {
         visible: true,
         saving: false,
@@ -203,45 +203,45 @@ describe('TransactionFormHost', () => {
           resolveSubmit = resolve;
         }),
     );
-    const { result } = renderHook(() => useTransactionFormHost());
-    act(() => result.current.registerSubmit(sessionId, submit));
+    const { result } = await renderHook(() => useTransactionFormHost());
+    await act(() => result.current.registerSubmit(sessionId, submit));
 
-    act(() => {
+    await act(() => {
       result.current.handleSave();
       result.current.handleSave();
     });
     expect(submit).toHaveBeenCalledTimes(1);
 
     await act(async () => resolveSubmit());
-    act(() => result.current.handleSave());
+    await act(() => result.current.handleSave());
     expect(submit).toHaveBeenCalledTimes(2);
   });
 
-  it('ignores a stale session save callback after another form opens', () => {
+  it('ignores a stale session save callback after another form opens', async () => {
     const onEditSaved = jest.fn();
-    render(<TransactionFormHost />);
-    act(() => useTransactionFormState.getState().openEdit(createTransaction(), onEditSaved));
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openEdit(createTransaction(), onEditSaved));
     const oldSessionId = useTransactionFormState.getState().sessionId;
     const staleOnSaved = mockEditSession.mock.lastCall?.[0].onSaved;
 
-    act(() => useTransactionFormState.getState().openAdd());
-    act(() => staleOnSaved?.(oldSessionId));
+    await act(() => useTransactionFormState.getState().openAdd());
+    await act(() => staleOnSaved?.(oldSessionId));
 
     expect(useTransactionFormState.getState()).toMatchObject({ mode: 'add', phase: 'open' });
     expect(onEditSaved).not.toHaveBeenCalled();
   });
 
-  it('navigates to account creation only after the form finishes closing', () => {
-    render(<TransactionFormHost />);
-    act(() => useTransactionFormState.getState().openAdd());
+  it('navigates to account creation only after the form finishes closing', async () => {
+    await render(<TransactionFormHost />);
+    await act(() => useTransactionFormState.getState().openAdd());
     const sessionId = useTransactionFormState.getState().sessionId;
     const requestAccountCreation = mockAddSession.mock.lastCall?.[0].onRequestAccountCreation;
 
-    act(() => requestAccountCreation?.(sessionId));
+    await act(() => requestAccountCreation?.(sessionId));
     expect(mockPush).not.toHaveBeenCalled();
     expect(useTransactionFormState.getState().phase).toBe('closing');
 
-    act(() => mockSheetFrames.at(-1)?.onCloseComplete());
+    await act(() => mockSheetFrames.at(-1)?.onCloseComplete());
     expect(mockPush).toHaveBeenCalledWith('/accounts/add_account');
   });
 });

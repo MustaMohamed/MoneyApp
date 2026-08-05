@@ -24,39 +24,39 @@ describe('transaction detail actions', () => {
     expect(template).not.toContain('useTransactionFormState');
   });
 
-  it('shows only the owning commitment action for a linked transaction', () => {
+  it('shows only the owning commitment action for a linked transaction', async () => {
     const onViewCommitment = jest.fn();
-    const screen = render(<ActionRow onViewCommitment={onViewCommitment} />);
+    const screen = await render(<ActionRow onViewCommitment={onViewCommitment} />);
 
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
     expect(screen.queryByText(Strings.detailDeleteButton)).toBeNull();
-    fireEvent.press(screen.getByText(Strings.viewCommitment));
+    await fireEvent.press(screen.getByText(Strings.viewCommitment));
     expect(onViewCommitment).toHaveBeenCalledTimes(1);
   });
 
-  it('puts edit in the standard header for an ordinary transaction', () => {
+  it('puts edit in the standard header for an ordinary transaction', async () => {
     const onBack = jest.fn();
     const onEdit = jest.fn();
-    const screen = render(
+    const screen = await render(
       <DetailHeader editable refreshing={false} onBack={onBack} onEdit={onEdit} />,
     );
 
-    fireEvent.press(screen.getByLabelText(Strings.detailEditAccessibility));
+    await fireEvent.press(screen.getByLabelText(Strings.detailEditAccessibility));
     expect(onEdit).toHaveBeenCalledTimes(1);
-    fireEvent.press(screen.getByLabelText(Strings.goBackAccessibility));
+    await fireEvent.press(screen.getByLabelText(Strings.goBackAccessibility));
     expect(onBack).toHaveBeenCalledTimes(1);
   });
 
-  it('reserves the header action slot without exposing edit for owned transactions', () => {
-    const screen = render(
+  it('reserves the header action slot without exposing edit for owned transactions', async () => {
+    const screen = await render(
       <DetailHeader editable={false} refreshing={false} onBack={jest.fn()} onEdit={jest.fn()} />,
     );
 
     expect(screen.queryByLabelText(Strings.detailEditAccessibility)).toBeNull();
   });
 
-  it('uses the reserved header action slot for refresh progress', () => {
-    const screen = render(
+  it('uses the reserved header action slot for refresh progress', async () => {
+    const screen = await render(
       <DetailHeader editable refreshing onBack={jest.fn()} onEdit={jest.fn()} />,
     );
 
@@ -64,8 +64,8 @@ describe('transaction detail actions', () => {
     expect(screen.queryByLabelText(Strings.detailEditAccessibility)).toBeNull();
   });
 
-  it('shows only delete at the bottom for an ordinary transaction', () => {
-    const screen = render(<ActionRow onDelete={jest.fn()} />);
+  it('shows only delete at the bottom for an ordinary transaction', async () => {
+    const screen = await render(<ActionRow onDelete={jest.fn()} />);
 
     expect(screen.queryByText(Strings.detailEditButton)).toBeNull();
     expect(screen.getByText(Strings.detailDeleteButton)).toBeTruthy();

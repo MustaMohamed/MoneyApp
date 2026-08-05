@@ -26,11 +26,11 @@ jest.mock('heroui-native', () => {
 });
 
 describe('BudgetToolRail', () => {
-  it('renders compact icon actions and calls available handlers', () => {
+  it('renders compact icon actions and calls available handlers', async () => {
     const onCopy = jest.fn();
     const onAddCategory = jest.fn();
     const onPlan = jest.fn();
-    const { getByLabelText, getByTestId, getByText } = render(
+    const { getByLabelText, getByTestId, getByText } = await render(
       <BudgetToolRail
         onCopy={onCopy}
         onAddCategory={onAddCategory}
@@ -45,17 +45,17 @@ describe('BudgetToolRail', () => {
     expect(getByText('Budget')).toBeTruthy();
     expect(getByTestId('icon-wallet-plus-outline')).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Copy budget'));
-    fireEvent.press(getByLabelText('Add budget'));
+    await fireEvent.press(getByLabelText('Copy budget'));
+    await fireEvent.press(getByLabelText('Add budget'));
 
     expect(onCopy).toHaveBeenCalledTimes(1);
     expect(onAddCategory).toHaveBeenCalledTimes(1);
     expect(onPlan).not.toHaveBeenCalled();
   });
 
-  it('uses an add-plan icon in the plans rail', () => {
+  it('uses an add-plan icon in the plans rail', async () => {
     const onPlan = jest.fn();
-    const { getByLabelText, getByTestId, getByText, queryByText } = render(
+    const { getByLabelText, getByTestId, getByText, queryByText } = await render(
       <BudgetToolRail
         variant="plans"
         onCopy={jest.fn()}
@@ -72,13 +72,13 @@ describe('BudgetToolRail', () => {
     expect(queryByText('Copy')).toBeNull();
     expect(queryByText('Budget')).toBeNull();
 
-    fireEvent.press(getByLabelText('Plan'));
+    await fireEvent.press(getByLabelText('Plan'));
     expect(onPlan).toHaveBeenCalledTimes(1);
   });
 
-  it('can disable copy when there is no source month budget to copy', () => {
+  it('can disable copy when there is no source month budget to copy', async () => {
     const onCopy = jest.fn();
-    const { getByLabelText } = render(
+    const { getByLabelText } = await render(
       <BudgetToolRail
         onCopy={onCopy}
         onAddCategory={jest.fn()}
@@ -89,7 +89,7 @@ describe('BudgetToolRail', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText('Copy budget'));
+    await fireEvent.press(getByLabelText('Copy budget'));
     expect(onCopy).not.toHaveBeenCalled();
   });
 });

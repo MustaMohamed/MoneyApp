@@ -22,17 +22,17 @@ function createCounterStore() {
 }
 
 describe('createMoneyAppSelectors', () => {
-  it('exposes top-level state selectors and action selectors', () => {
+  it('exposes top-level state selectors and action selectors', async () => {
     const useCounterStore = createCounterStore();
 
-    const countHook = renderHook(() => useCounterStore.useState.count());
-    const labelHook = renderHook(() => useCounterStore.useState.label());
-    const incrementHook = renderHook(() => useCounterStore.use.increment());
+    const countHook = await renderHook(() => useCounterStore.useState.count());
+    const labelHook = await renderHook(() => useCounterStore.useState.label());
+    const incrementHook = await renderHook(() => useCounterStore.use.increment());
 
     expect(countHook.result.current).toBe(0);
     expect(labelHook.result.current).toBe('zero');
 
-    act(() => {
+    await act(() => {
       incrementHook.result.current();
     });
 

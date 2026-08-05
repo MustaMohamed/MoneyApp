@@ -94,18 +94,18 @@ describe('useEditCommitment', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useEditCommitment())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useEditCommitment())).resolves.toBeDefined();
   });
 
-  it('saving defaults to false', () => {
-    const { result } = renderHook(() => useEditCommitment());
+  it('saving defaults to false', async () => {
+    const { result } = await renderHook(() => useEditCommitment());
     expect(result.current.state.saving).toBe(false);
   });
 
   it('keeps the form open and publishes a retryable error when update fails', async () => {
     updateCommitmentMock.mockRejectedValueOnce(new Error('regeneration failed'));
-    const { result } = renderHook(() => useEditCommitment());
+    const { result } = await renderHook(() => useEditCommitment());
 
     await act(async () => {
       await result.current.onSubmit();

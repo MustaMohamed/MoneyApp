@@ -200,11 +200,11 @@ afterEach(() => {
 });
 
 describe('useBudget — month rollover', () => {
-  it('exposes unloaded state until categories and budget data settle', () => {
+  it('exposes unloaded state until categories and budget data settle', async () => {
     categoriesLoadedState = false;
     budgetLoadedState = false;
     budgetLoadedMonthState = undefined;
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
     expect(result.current.state.hasLoaded).toBe(false);
   });
@@ -212,7 +212,7 @@ describe('useBudget — month rollover', () => {
   it('preserves the selected month when the screen regains focus', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     setupStores();
-    const { result, rerender } = renderHook(() => useBudget());
+    const { result, rerender } = await renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     // A month boundary passes while the screen stays mounted.
@@ -221,33 +221,33 @@ describe('useBudget — month rollover', () => {
       capturedFocusCallback?.();
       await Promise.resolve();
     });
-    rerender(undefined);
+    await rerender(undefined);
 
     expect(result.current.state.month).toBe('2026-05');
     expect(resetSelectedMonthToCurrentMock).not.toHaveBeenCalled();
   });
 
-  it('cancels pending focus reload work without changing the selected month', () => {
+  it('cancels pending focus reload work without changing the selected month', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     setupStores();
-    const { result, rerender } = renderHook(() => useBudget());
+    const { result, rerender } = await renderHook(() => useBudget());
     expect(result.current.state.month).toBe('2026-05');
 
     loadCategoriesMock.mockClear();
     loadBudgetMock.mockClear();
     jest.setSystemTime(new Date('2026-06-15T12:00:00'));
     let cleanup: void | (() => void);
-    act(() => {
+    await act(() => {
       cleanup = capturedFocusCallback?.();
     });
-    rerender(undefined);
+    await rerender(undefined);
 
     expect(result.current.state.month).toBe('2026-05');
     expect(runAfterInteractions).toHaveBeenCalledTimes(1);
     expect(loadCategoriesMock).not.toHaveBeenCalled();
     expect(loadBudgetMock).not.toHaveBeenCalled();
 
-    act(() => {
+    await act(() => {
       cleanup?.();
       mockInteractionTasks[0]?.callback();
     });
@@ -258,9 +258,9 @@ describe('useBudget — month rollover', () => {
   });
 
   it('loads the focused selected month and refreshes through the same store key', async () => {
-    const { result } = renderHook(() => useBudget());
+    const { result } = await renderHook(() => useBudget());
 
-    act(() => {
+    await act(() => {
       capturedFocusCallback?.();
       mockInteractionTasks[0]?.callback();
     });
@@ -273,11 +273,11 @@ describe('useBudget — month rollover', () => {
     expect(loadCategoriesMock).not.toHaveBeenCalled();
   });
 
-  it('loads categories on focus only when no successful category data exists', () => {
+  it('loads categories on focus only when no successful category data exists', async () => {
     categoriesLoadedState = false;
-    renderHook(() => useBudget());
+    await renderHook(() => useBudget());
 
-    act(() => {
+    await act(() => {
       capturedFocusCallback?.();
       mockInteractionTasks[0]?.callback();
     });
@@ -285,19 +285,19 @@ describe('useBudget — month rollover', () => {
     expect(loadCategoriesMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not schedule a second focused budget request when categories become warm', () => {
+  it('does not schedule a second focused budget request when categories become warm', async () => {
     categoriesLoadedState = false;
-    const { rerender } = renderHook(() => useBudget());
+    const { rerender } = await renderHook(() => useBudget());
     const initialFocusCallback = capturedFocusCallback;
 
-    act(() => {
+    await act(() => {
       capturedFocusCallback?.();
       mockInteractionTasks[0]?.callback();
     });
     expect(loadBudgetMock).toHaveBeenCalledTimes(1);
 
     categoriesLoadedState = true;
-    rerender(undefined);
+    await rerender(undefined);
 
     expect(capturedFocusCallback).toBe(initialFocusCallback);
     expect(mockInteractionTasks).toHaveLength(1);
@@ -306,37 +306,37 @@ describe('useBudget — month rollover', () => {
 });
 
 describe('useCategoryDetail — month rollover', () => {
-  it('does not expose stale detail values while the requested month is loading', () => {
+  it('does not expose stale detail values while the requested month is loading', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     mockRouteMonth = '2026-06';
     categoriesState = [category('cat-1')];
     budgetRowsState = [budget('budget-may', 'Monthly Food')];
     budgetLoadedMonthState = '2026-05';
 
-    const { result } = renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.liveMonth).toBeUndefined();
     expect(result.current.state.history.monthsTotal).toBe(0);
   });
 
-  it('reports a failed requested-month load so the screen can offer retry', () => {
+  it('reports a failed requested-month load so the screen can offer retry', async () => {
     mockRouteMonth = '2026-06';
     budgetLoadedMonthState = '2026-05';
     budgetLoadErrorState = true;
 
-    const { result } = renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.hasLoaded).toBe(false);
     expect(result.current.state.loadError).toBe(true);
   });
 
-  it('does not query categories again when category detail opens warm', () => {
+  it('does not query categories again when category detail opens warm', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     categoriesLoadedState = true;
-    renderHook(() => useCategoryDetail());
+    await renderHook(() => useCategoryDetail());
 
-    act(() => {
+    await act(() => {
       capturedFocusCallback?.();
     });
 
@@ -348,7 +348,7 @@ describe('useCategoryDetail — month rollover', () => {
     ['2026-04', 'completed'],
     ['2026-05', 'provisional'],
     ['2026-06', 'planned'],
-  ] as const)('classifies selected %s details as %s', (selectedMonth, lifecycle) => {
+  ] as const)('classifies selected %s details as %s', async (selectedMonth, lifecycle) => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     mockRouteMonth = selectedMonth;
     budgetLoadedMonthState = selectedMonth;
@@ -357,7 +357,7 @@ describe('useCategoryDetail — month rollover', () => {
       { ...budget('budget-selected', 'Monthly Food'), effective_from: selectedMonth },
     ];
 
-    const { result } = renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.liveMonth?.lifecycle).toBe(lifecycle);
     expect(result.current.state.daysLeft).toBe(lifecycle === 'provisional' ? 16 : undefined);
@@ -365,7 +365,7 @@ describe('useCategoryDetail — month rollover', () => {
 
   it('refreshes month when the screen regains focus after a month boundary', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
-    const { result } = renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
     expect(result.current.state.month).toBe('2026-05');
 
     jest.setSystemTime(new Date('2026-06-15T12:00:00'));
@@ -377,21 +377,21 @@ describe('useCategoryDetail — month rollover', () => {
     expect(result.current.state.month).toBe('2026-06');
   });
 
-  it('opens edit with the only live-month named budget id', () => {
+  it('opens edit with the only live-month named budget id', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     categoriesState = [category('cat-1')];
     budgetRowsState = [budget('budget-food-main', 'Monthly Food')];
 
-    const { result } = renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.canEditLiveBudget).toBe(true);
-    act(() => result.current.editBudget());
+    await act(() => result.current.editBudget());
 
     expect(mockRouterBack).toHaveBeenCalledTimes(1);
     expect(openEditMock).toHaveBeenCalledWith('budget-food-main');
   });
 
-  it('does not open aggregate edit when the live month has multiple named budgets', () => {
+  it('does not open aggregate edit when the live month has multiple named budgets', async () => {
     jest.setSystemTime(new Date('2026-05-15T12:00:00'));
     categoriesState = [category('cat-1')];
     budgetRowsState = [
@@ -399,10 +399,10 @@ describe('useCategoryDetail — month rollover', () => {
       budget('budget-food-trip', 'Trip Food'),
     ];
 
-    const { result } = renderHook(() => useCategoryDetail());
+    const { result } = await renderHook(() => useCategoryDetail());
 
     expect(result.current.state.canEditLiveBudget).toBe(false);
-    act(() => result.current.editBudget());
+    await act(() => result.current.editBudget());
 
     expect(mockRouterBack).not.toHaveBeenCalled();
     expect(openEditMock).not.toHaveBeenCalled();

@@ -46,8 +46,8 @@ const cardCredit: Transaction = {
 };
 
 describe('DetailHero', () => {
-  it('renders the presentation-ready card-credit identity instead of generic income', () => {
-    const screen = render(
+  it('renders the presentation-ready card-credit identity instead of generic income', async () => {
+    const screen = await render(
       <DetailHero
         tx={cardCredit}
         amountText="+250 EGP"

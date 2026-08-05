@@ -82,8 +82,8 @@ describe('TransactionFormBody geometry', () => {
     expect(TRANSACTION_FORM_CONTENT_CONTAINER_STYLE.paddingBottom).toBe(777);
   });
 
-  it('reserves validation geometry before and after errors appear', () => {
-    const { rerender } = render(<TransactionFormBody {...baseProps} />);
+  it('reserves validation geometry before and after errors appear', async () => {
+    const { rerender } = await render(<TransactionFormBody {...baseProps} />);
 
     for (const id of [
       'amount-error-slot',
@@ -94,7 +94,7 @@ describe('TransactionFormBody geometry', () => {
       expect(screen.getByTestId(id)).toHaveStyle({ minHeight: TRANSACTION_FORM_ERROR_SLOT_HEIGHT });
     }
 
-    rerender(
+    await rerender(
       <TransactionFormBody
         {...baseProps}
         amountError="Amount is required"
@@ -110,8 +110,8 @@ describe('TransactionFormBody geometry', () => {
     expect(screen.getByText('Could not save transaction')).toBeTruthy();
   });
 
-  it('keeps long picker values in one truncating content column', () => {
-    render(
+  it('keeps long picker values in one truncating content column', async () => {
+    await render(
       <TransactionFormBody
         {...baseProps}
         selectedAccount={{
@@ -143,10 +143,10 @@ describe('TransactionFormBody geometry', () => {
     );
   });
 
-  it('exposes stable picker-row semantics and delegates presses', () => {
+  it('exposes stable picker-row semantics and delegates presses', async () => {
     const onOpenAccountPicker = jest.fn();
     const onOpenCategoryPicker = jest.fn();
-    render(
+    await render(
       <TransactionFormBody
         {...baseProps}
         onOpenAccountPicker={onOpenAccountPicker}
@@ -158,8 +158,8 @@ describe('TransactionFormBody geometry', () => {
     expect(screen.getByTestId('from-account-row')).toHaveProp('accessibilityState', {
       disabled: false,
     });
-    fireEvent.press(screen.getByTestId('from-account-row'));
-    fireEvent.press(screen.getByTestId('category-row'));
+    await fireEvent.press(screen.getByTestId('from-account-row'));
+    await fireEvent.press(screen.getByTestId('category-row'));
     expect(onOpenAccountPicker).toHaveBeenCalledTimes(1);
     expect(onOpenCategoryPicker).toHaveBeenCalledTimes(1);
   });

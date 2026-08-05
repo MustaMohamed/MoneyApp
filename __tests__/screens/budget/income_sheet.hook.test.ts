@@ -27,7 +27,7 @@ describe('useIncomeSheet', () => {
     const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, 12000, '2026-07', 'July 2026');
-    const { result } = renderHook(() => useIncomeSheet());
+    const { result } = await renderHook(() => useIncomeSheet());
 
     await act(async () => result.current.save());
 
@@ -39,9 +39,9 @@ describe('useIncomeSheet', () => {
     const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
-    const { result } = renderHook(() => useIncomeSheet());
+    const { result } = await renderHook(() => useIncomeSheet());
 
-    act(() => result.current.setAmountText('5,000'));
+    await act(() => result.current.setAmountText('5,000'));
     await act(async () => result.current.save());
 
     expect(setExpectedIncome).toHaveBeenCalledWith('2026-07', 5000);
@@ -51,9 +51,9 @@ describe('useIncomeSheet', () => {
     const setExpectedIncome = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, null, '2026-07', 'July 2026');
-    const { result } = renderHook(() => useIncomeSheet());
+    const { result } = await renderHook(() => useIncomeSheet());
 
-    act(() => result.current.setAmountText('12000abc'));
+    await act(() => result.current.setAmountText('12000abc'));
     await act(async () => result.current.save());
 
     expect(setExpectedIncome).not.toHaveBeenCalled();
@@ -66,7 +66,7 @@ describe('useIncomeSheet', () => {
     const setExpectedIncome = jest.fn(() => pendingSave.promise);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, 12000, '2026-06', 'June 2026');
-    const { result } = renderHook(() => useIncomeSheet());
+    const { result } = await renderHook(() => useIncomeSheet());
 
     let savePromise: Promise<void> | undefined;
     await act(async () => {
@@ -100,9 +100,9 @@ describe('useIncomeSheet', () => {
     const setExpectedIncome = jest.fn(() => pendingSave.promise);
     useBudgetStore.setState({ setExpectedIncome });
     useIncomeSheetState.getState().open(null, null, '2026-06', 'June 2026');
-    const { result } = renderHook(() => useIncomeSheet());
+    const { result } = await renderHook(() => useIncomeSheet());
 
-    act(() => result.current.setAmountText('12000'));
+    await act(() => result.current.setAmountText('12000'));
     let savePromise: Promise<void> | undefined;
     await act(async () => {
       savePromise = result.current.save();

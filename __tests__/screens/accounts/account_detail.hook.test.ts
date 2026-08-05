@@ -100,17 +100,17 @@ function setup() {
 describe('useAccountDetail', () => {
   beforeEach(setup);
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useAccountDetail())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useAccountDetail())).resolves.toBeDefined();
   });
 
-  it('account is undefined when accounts list is empty', () => {
-    const { result } = renderHook(() => useAccountDetail());
+  it('account is undefined when accounts list is empty', async () => {
+    const { result } = await renderHook(() => useAccountDetail());
     expect(result.current.state.account).toBeUndefined();
   });
 
-  it('returns local UI state as plain booleans', () => {
-    const { result } = renderHook(() => useAccountDetail());
+  it('returns local UI state as plain booleans', async () => {
+    const { result } = await renderHook(() => useAccountDetail());
 
     expect(result.current.state.isEditing).toBe(false);
     expect(result.current.state.isAdjustVisible).toBe(false);
@@ -122,8 +122,8 @@ describe('useAccountDetail', () => {
     expect(result.current.state.balanceReviewError).toBeUndefined();
   });
 
-  it('exposes the handler surface the screen consumes', () => {
-    const { result } = renderHook(() => useAccountDetail());
+  it('exposes the handler surface the screen consumes', async () => {
+    const { result } = await renderHook(() => useAccountDetail());
     expect(typeof result.current.handleSave).toBe('function');
     expect(typeof result.current.handleAdjustBalance).toBe('function');
     expect(typeof result.current.handleArchive).toBe('function');
@@ -133,7 +133,7 @@ describe('useAccountDetail', () => {
 
   it('confirms the legacy card balance without changing its amount', async () => {
     mockConfirmBalanceReviewed.mockResolvedValue(undefined);
-    const { result } = renderHook(() => useAccountDetail());
+    const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.handleConfirmBalanceReviewed());
 
@@ -146,7 +146,7 @@ describe('useAccountDetail', () => {
   it('surfaces confirmation failures in screen state', async () => {
     const consoleError = jest.spyOn(console, 'error').mockImplementation();
     mockConfirmBalanceReviewed.mockRejectedValue(new Error('db error'));
-    const { result } = renderHook(() => useAccountDetail());
+    const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.handleConfirmBalanceReviewed());
 
@@ -158,7 +158,7 @@ describe('useAccountDetail', () => {
 
   it('ignores another confirmation while one is active', async () => {
     mockDetailState({ isConfirmingBalanceReview: true });
-    const { result } = renderHook(() => useAccountDetail());
+    const { result } = await renderHook(() => useAccountDetail());
 
     await act(() => result.current.handleConfirmBalanceReviewed());
 
@@ -166,21 +166,21 @@ describe('useAccountDetail', () => {
     expect(mockSetConfirmingBalanceReview).not.toHaveBeenCalled();
   });
 
-  it('leaves edit mode instead of navigating back when editing', () => {
+  it('leaves edit mode instead of navigating back when editing', async () => {
     mockDetailState({ isEditing: true });
-    const { result } = renderHook(() => useAccountDetail());
+    const { result } = await renderHook(() => useAccountDetail());
 
-    act(() => result.current.onBack());
+    await act(() => result.current.onBack());
 
     expect(mockSetEditing).toHaveBeenCalledWith(false);
     expect(mockBack).not.toHaveBeenCalled();
   });
 
-  it('prevents navigation removal while editing and exits edit mode', () => {
+  it('prevents navigation removal while editing and exits edit mode', async () => {
     mockDetailState({ isEditing: true });
     const preventDefault = jest.fn();
 
-    renderHook(() => useAccountDetail());
+    await renderHook(() => useAccountDetail());
     const beforeRemoveHandler = mockAddListener.mock.calls.find(
       ([event]) => event === 'beforeRemove',
     )?.[1];
@@ -190,11 +190,11 @@ describe('useAccountDetail', () => {
     expect(mockSetEditing).toHaveBeenCalledWith(false);
   });
 
-  it('reads latest edit state when a registered beforeRemove handler fires later', () => {
+  it('reads latest edit state when a registered beforeRemove handler fires later', async () => {
     const store = mockDetailState({ isEditing: false });
     const preventDefault = jest.fn();
 
-    renderHook(() => useAccountDetail());
+    await renderHook(() => useAccountDetail());
     const beforeRemoveHandler = mockAddListener.mock.calls.find(
       ([event]) => event === 'beforeRemove',
     )?.[1];

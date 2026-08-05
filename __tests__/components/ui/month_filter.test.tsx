@@ -19,8 +19,8 @@ jest.mock('@/components/ui/sheet', () => ({
 }));
 
 describe('MonthFilter', () => {
-  it('uses compact controls inside the filter rail', () => {
-    const { getByTestId, getByText } = render(
+  it('uses compact controls inside the filter rail', async () => {
+    const { getByTestId, getByText } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
 
@@ -42,8 +42,8 @@ describe('MonthFilter', () => {
     );
   });
 
-  it('shows the selected month without the extra label', () => {
-    const { getByText, queryByText } = render(
+  it('shows the selected month without the extra label', async () => {
+    const { getByText, queryByText } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={jest.fn()} />,
     );
 
@@ -51,48 +51,50 @@ describe('MonthFilter', () => {
     expect(queryByText(Strings.monthFilterLabel)).toBeNull();
   });
 
-  it('changes to the previous and next month from the step buttons', () => {
+  it('changes to the previous and next month from the step buttons', async () => {
     const onSelectedMonthChange = jest.fn();
-    const { getByLabelText, rerender } = render(
+    const { getByLabelText, rerender } = await render(
       <MonthFilter selectedMonth="2026-01" onSelectedMonthChange={onSelectedMonthChange} />,
     );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterPreviousA11y));
+    await fireEvent.press(getByLabelText(Strings.monthFilterPreviousA11y));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2025-12');
 
-    rerender(<MonthFilter selectedMonth="2026-12" onSelectedMonthChange={onSelectedMonthChange} />);
+    await rerender(
+      <MonthFilter selectedMonth="2026-12" onSelectedMonthChange={onSelectedMonthChange} />,
+    );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterNextA11y));
+    await fireEvent.press(getByLabelText(Strings.monthFilterNextA11y));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2027-01');
   });
 
-  it('opens the picker and changes to the selected month', () => {
+  it('opens the picker and changes to the selected month', async () => {
     const onSelectedMonthChange = jest.fn();
-    const { getByLabelText, getByText, queryByText } = render(
+    const { getByLabelText, getByText, queryByText } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={onSelectedMonthChange} />,
     );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
+    await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
     expect(getByText(Strings.monthPickerTitle)).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Nov 2026'));
+    await fireEvent.press(getByLabelText('Nov 2026'));
 
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2026-11');
     expect(queryByText(Strings.monthPickerTitle)).toBeNull();
   });
 
-  it('changes picker year before selecting a month', () => {
+  it('changes picker year before selecting a month', async () => {
     const onSelectedMonthChange = jest.fn();
-    const { getByLabelText, getByText } = render(
+    const { getByLabelText, getByText } = await render(
       <MonthFilter selectedMonth="2026-08" onSelectedMonthChange={onSelectedMonthChange} />,
     );
 
-    fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
-    fireEvent.press(getByLabelText(Strings.monthPickerNextYearA11y));
+    await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('August 2026')));
+    await fireEvent.press(getByLabelText(Strings.monthPickerNextYearA11y));
 
     expect(getByText('2027')).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Feb 2027'));
+    await fireEvent.press(getByLabelText('Feb 2027'));
     expect(onSelectedMonthChange).toHaveBeenCalledWith('2027-02');
   });
 });

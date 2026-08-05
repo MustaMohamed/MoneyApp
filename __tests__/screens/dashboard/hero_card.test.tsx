@@ -84,8 +84,8 @@ const baseProps = {
 };
 
 describe('HeroCard skeleton loading', () => {
-  it('skeletonizes balance and metadata while account totals load', () => {
-    const { getAllByTestId, getByTestId, getByText, queryByTestId, queryByText } = render(
+  it('skeletonizes balance and metadata while account totals load', async () => {
+    const { getAllByTestId, getByTestId, getByText, queryByTestId, queryByText } = await render(
       <HeroCard {...baseProps} isLoading />,
     );
 
@@ -102,9 +102,9 @@ describe('HeroCard skeleton loading', () => {
     expect(getAllByTestId('dashboard-hero-skeleton-pill')).toHaveLength(3);
   });
 
-  it('preserves the natural card frame while loading', () => {
-    const loading = render(<HeroCard {...baseProps} isLoading />);
-    const loaded = render(<HeroCard {...baseProps} isLoading={false} />);
+  it('preserves the natural card frame while loading', async () => {
+    const loading = await render(<HeroCard {...baseProps} isLoading />);
+    const loaded = await render(<HeroCard {...baseProps} isLoading={false} />);
 
     expect(loading.getByTestId('dashboard-hero-card')).not.toHaveStyle({ height: ms(178) });
     expect(loaded.getByTestId('dashboard-hero-card')).not.toHaveStyle({ height: ms(178) });
@@ -112,8 +112,8 @@ describe('HeroCard skeleton loading', () => {
     expect(loaded.getByTestId('dashboard-hero-card')).not.toHaveStyle({ minHeight: ms(148) });
   });
 
-  it('matches the loaded amount and pill row geometry while loading', () => {
-    const { getAllByTestId, getByTestId } = render(<HeroCard {...baseProps} isLoading />);
+  it('matches the loaded amount and pill row geometry while loading', async () => {
+    const { getAllByTestId, getByTestId } = await render(<HeroCard {...baseProps} isLoading />);
 
     expect(getByTestId('dashboard-hero-skeleton-amount')).toHaveStyle({ height: ms(35) });
     expect(getByTestId('dashboard-hero-skeleton-pills-row')).toHaveStyle({

@@ -187,9 +187,9 @@ describe('50/30/20 rule ledger', () => {
     [10_000, BudgetGroup.Savings, 1_000, 'Below target'],
   ] as const)(
     'renders the %s income, %s, %s planned state as %s',
-    (income, group, planned, expectedStatus) => {
+    async (income, group, planned, expectedStatus) => {
       const bucket = statusBucket({ income, group, planned });
-      const screen = render(
+      const screen = await render(
         <RuleLedger
           buckets={[bucket]}
           expandedGroup={undefined}
@@ -204,8 +204,8 @@ describe('50/30/20 rule ledger', () => {
     },
   );
 
-  it('renders each approved status while keeping contributors collapsed', () => {
-    const screen = render(
+  it('renders each approved status while keeping contributors collapsed', async () => {
+    const screen = await render(
       <RuleLedger
         buckets={ruleLens().buckets}
         expandedGroup={undefined}
@@ -220,9 +220,9 @@ describe('50/30/20 rule ledger', () => {
     expect(screen.queryByText('A very long essential household category name')).toBeNull();
   });
 
-  it('renders the expanded contributor result and dispatches its manage action', () => {
+  it('renders the expanded contributor result and dispatches its manage action', async () => {
     const onManageGroup = jest.fn();
-    const screen = render(
+    const screen = await render(
       <RuleLedger
         buckets={ruleLens().buckets}
         expandedGroup={BudgetGroup.Need}
@@ -236,12 +236,12 @@ describe('50/30/20 rule ledger', () => {
       1,
     );
     expect(screen.getByText('6,500 / 6,000')).toBeTruthy();
-    fireEvent.press(screen.getByText('Manage Needs budgets'));
+    await fireEvent.press(screen.getByText('Manage Needs budgets'));
     expect(onManageGroup).toHaveBeenCalledWith(BudgetGroup.Need);
   });
 
-  it('preserves the expanded contributor skeleton during refresh', () => {
-    const screen = render(
+  it('preserves the expanded contributor skeleton during refresh', async () => {
+    const screen = await render(
       <BudgetScreenSkeleton
         variant="fiftythirty"
         preserveLayout

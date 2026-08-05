@@ -46,8 +46,15 @@ jest.mock('@/components/ui/sheet', () => ({
 jest.mock('@/components/ui/button', () => ({
   Button: ({ label, ...props }: { label: string }) => {
     const ReactLocal = jest.requireActual<typeof import('react')>('react');
-    const { View: RNView } = jest.requireActual<typeof import('react-native')>('react-native');
-    return ReactLocal.createElement(RNView, { ...props, accessibilityLabel: label }, label);
+    const { View: RNView, Text: RNText } =
+      jest.requireActual<typeof import('react-native')>('react-native');
+    // The label goes inside <Text>: a bare string child of <View> is an
+    // Invariant Violation at RN runtime, which RNTL 14 now enforces in tests too.
+    return ReactLocal.createElement(
+      RNView,
+      { ...props, accessibilityLabel: label },
+      ReactLocal.createElement(RNText, null, label),
+    );
   },
 }));
 
@@ -76,15 +83,15 @@ describe('transaction date picker', () => {
     Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
   });
 
-  it('keeps iOS changes in a draft until Done is pressed', () => {
+  it('keeps iOS changes in a draft until Done is pressed', async () => {
     setPlatform('ios');
     const onChange = jest.fn();
-    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
+    const screen = await render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
 
-    fireEvent.press(screen.getByTestId('date-row'));
+    await fireEvent.press(screen.getByTestId('date-row'));
     expect(screen.getByTestId('date-picker-sheet')).toBeTruthy();
 
-    fireEvent(
+    await fireEvent(
       screen.getByTestId('date-picker-ios'),
       'change',
       { type: 'set' },
@@ -92,25 +99,25 @@ describe('transaction date picker', () => {
     );
 
     expect(onChange).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByTestId('date-picker-done'));
+    await fireEvent.press(screen.getByTestId('date-picker-done'));
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(onChange).toHaveBeenCalledWith('2026-07-12');
     expect(screen.queryByTestId('date-picker-sheet')).toBeNull();
   });
 
-  it('discards the iOS draft when Cancel is pressed', () => {
+  it('discards the iOS draft when Cancel is pressed', async () => {
     setPlatform('ios');
     const onChange = jest.fn();
-    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
+    const screen = await render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
 
-    fireEvent.press(screen.getByTestId('date-row'));
-    fireEvent(
+    await fireEvent.press(screen.getByTestId('date-row'));
+    await fireEvent(
       screen.getByTestId('date-picker-ios'),
       'change',
       { type: 'set' },
       new Date(2026, 6, 12, 12),
     );
-    fireEvent.press(screen.getByTestId('date-picker-cancel'));
+    await fireEvent.press(screen.getByTestId('date-picker-cancel'));
 
     expect(onChange).not.toHaveBeenCalled();
     expect(useDatePickerSheetState.getState()).toMatchObject({
@@ -118,19 +125,19 @@ describe('transaction date picker', () => {
       draftDate: '2026-07-10',
     });
     expect(screen.getByTestId('date-picker-sheet-closed')).toBeTruthy();
-    fireEvent(screen.getByTestId('date-picker-sheet-closed'), 'touchEnd');
+    await fireEvent(screen.getByTestId('date-picker-sheet-closed'), 'touchEnd');
     expect(screen.queryByTestId('date-picker-sheet-closed')).toBeNull();
   });
 
-  it('applies an Android selection exactly once and dismisses its native picker', () => {
+  it('applies an Android selection exactly once and dismisses its native picker', async () => {
     setPlatform('android');
     const onChange = jest.fn();
-    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
+    const screen = await render(<DateRow ownerId="add-1" value="2026-07-10" onChange={onChange} />);
 
-    fireEvent.press(screen.getByTestId('date-row'));
+    await fireEvent.press(screen.getByTestId('date-row'));
     expect(screen.getByTestId('date-picker-android')).toBeTruthy();
 
-    fireEvent(
+    await fireEvent(
       screen.getByTestId('date-picker-android'),
       'change',
       { type: 'set' },
@@ -142,25 +149,29 @@ describe('transaction date picker', () => {
     expect(screen.queryByTestId('date-picker-android')).toBeNull();
   });
 
-  it('does not mount the iOS sheet picker on Android before the date row is pressed', () => {
+  it('does not mount the iOS sheet picker on Android before the date row is pressed', async () => {
     setPlatform('android');
-    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
+    const screen = await render(
+      <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
+    );
 
     expect(screen.queryByTestId('date-picker-ios')).toBeNull();
     expect(screen.queryByTestId('date-picker-android')).toBeNull();
 
-    fireEvent.press(screen.getByTestId('date-row'));
+    await fireEvent.press(screen.getByTestId('date-row'));
 
     expect(screen.getByTestId('date-picker-android')).toBeTruthy();
     expect(screen.queryByTestId('date-picker-ios')).toBeNull();
   });
 
-  it('keeps a fixed compact trigger while the iOS sheet is open', () => {
+  it('keeps a fixed compact trigger while the iOS sheet is open', async () => {
     setPlatform('ios');
-    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
+    const screen = await render(
+      <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
+    );
     expect(screen.getByTestId('date-row')).toHaveStyle({ height: DATE_ROW_HEIGHT });
 
-    fireEvent.press(screen.getByTestId('date-row'));
+    await fireEvent.press(screen.getByTestId('date-row'));
 
     expect(screen.getByTestId('date-row')).toHaveStyle({ height: DATE_ROW_HEIGHT });
     expect(screen.getByTestId('date-picker-done')).toHaveProp(
@@ -169,9 +180,11 @@ describe('transaction date picker', () => {
     );
   });
 
-  it('announces the compact date trigger as a button with its selected value', () => {
+  it('announces the compact date trigger as a button with its selected value', async () => {
     setPlatform('ios');
-    const screen = render(<DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />);
+    const screen = await render(
+      <DateRow ownerId="add-1" value="2026-07-10" onChange={jest.fn()} />,
+    );
     expect(screen.getByTestId('date-row')).toHaveProp('accessibilityRole', 'button');
     expect(screen.getByTestId('date-row')).toHaveProp(
       'accessibilityLabel',
@@ -179,7 +192,7 @@ describe('transaction date picker', () => {
     );
   });
 
-  it('keeps the active owner open when an older form owner unmounts', () => {
+  it('keeps the active owner open when an older form owner unmounts', async () => {
     setPlatform('ios');
     const OldAndNewOwners = ({ showOld }: { showOld: boolean }) => (
       <>
@@ -187,18 +200,18 @@ describe('transaction date picker', () => {
         <DateRow ownerId="edit-new" value="2026-07-11" onChange={jest.fn()} />
       </>
     );
-    const screen = render(<OldAndNewOwners showOld />);
+    const screen = await render(<OldAndNewOwners showOld />);
 
-    fireEvent.press(screen.getAllByTestId('date-row')[1]);
+    await fireEvent.press(screen.getAllByTestId('date-row')[1]);
     expect(screen.getAllByTestId('date-picker-sheet')).toHaveLength(1);
 
-    screen.rerender(<OldAndNewOwners showOld={false} />);
+    await screen.rerender(<OldAndNewOwners showOld={false} />);
 
     expect(screen.getByTestId('date-picker-sheet')).toBeTruthy();
     expect(useDatePickerSheetState.getState().activeOwnerId).toBe('edit-new');
   });
 
-  it('keeps a newly opened Add form closed when an older picker session was retained', () => {
+  it('keeps a newly opened Add form closed when an older picker session was retained', async () => {
     setPlatform('ios');
     useTransactionFormState.getState().openAdd();
     const oldSessionId = useTransactionFormState.getState().sessionId;
@@ -209,7 +222,9 @@ describe('transaction date picker', () => {
     useTransactionFormState.getState().openAdd();
     const newOwnerId = `add:${useTransactionFormState.getState().sessionId}`;
 
-    const screen = render(<DateRow ownerId={newOwnerId} value="2026-07-20" onChange={jest.fn()} />);
+    const screen = await render(
+      <DateRow ownerId={newOwnerId} value="2026-07-20" onChange={jest.fn()} />,
+    );
 
     expect(newOwnerId).not.toBe(oldOwnerId);
     expect(screen.queryByTestId('date-picker-sheet')).toBeNull();

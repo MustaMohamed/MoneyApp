@@ -147,32 +147,32 @@ describe('useCommitmentDetail', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useCommitmentDetail())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useCommitmentDetail())).resolves.toBeDefined();
   });
 
-  it('payment is undefined when store has no matching payment', () => {
-    const { result } = renderHook(() => useCommitmentDetail());
+  it('payment is undefined when store has no matching payment', async () => {
+    const { result } = await renderHook(() => useCommitmentDetail());
     expect(result.current.state.payment).toBeUndefined();
   });
 
-  it('allPayments starts as empty array', () => {
-    const { result } = renderHook(() => useCommitmentDetail());
+  it('allPayments starts as empty array', async () => {
+    const { result } = await renderHook(() => useCommitmentDetail());
     expect(result.current.state.allPayments).toEqual([]);
   });
 
-  it('viewState is loading (from mocked store initial state)', () => {
-    const { result } = renderHook(() => useCommitmentDetail());
+  it('viewState is loading (from mocked store initial state)', async () => {
+    const { result } = await renderHook(() => useCommitmentDetail());
     expect(result.current.state.viewState).toBe('loading');
   });
 
-  it('skipConfirmVisible starts as false', () => {
-    const { result } = renderHook(() => useCommitmentDetail());
+  it('skipConfirmVisible starts as false', async () => {
+    const { result } = await renderHook(() => useCommitmentDetail());
     expect(result.current.state.skipConfirmVisible).toBe(false);
   });
 
-  it('exposes all required action functions', () => {
-    const { result } = renderHook(() => useCommitmentDetail());
+  it('exposes all required action functions', async () => {
+    const { result } = await renderHook(() => useCommitmentDetail());
     expect(typeof result.current.openPaySheet).toBe('function');
     expect(typeof result.current.skipPayment).toBe('function');
     expect(typeof result.current.confirmSkip).toBe('function');
@@ -186,7 +186,7 @@ describe('useCommitmentDetail', () => {
     paymentsState = [payment];
     const historyError = new Error('history refresh failed');
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const { result, rerender } = renderHook(() => useCommitmentDetail());
+    const { result, rerender } = await renderHook(() => useCommitmentDetail());
     await act(async () => {
       await Promise.resolve();
     });
@@ -206,7 +206,7 @@ describe('useCommitmentDetail', () => {
     );
 
     paymentsState = [{ ...payment, status: CommitmentPaymentStatus.Skipped }];
-    rerender({});
+    await rerender({});
     await act(async () => {
       await Promise.resolve();
     });

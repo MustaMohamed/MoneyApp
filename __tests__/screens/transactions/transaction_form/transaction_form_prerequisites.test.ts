@@ -79,9 +79,12 @@ describe('useTransactionFormPrerequisites', () => {
     useTransactionFormState.getState().openAdd();
     const sessionId = useTransactionFormState.getState().sessionId;
 
-    const { result } = renderHook(() => useTransactionFormPrerequisites(sessionId, 'add', null), {
-      wrapper: StrictModeWrapper,
-    });
+    const { result } = await renderHook(
+      () => useTransactionFormPrerequisites(sessionId, 'add', null),
+      {
+        wrapper: StrictModeWrapper,
+      },
+    );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(loadAccounts).toHaveBeenCalledTimes(1);
@@ -103,10 +106,12 @@ describe('useTransactionFormPrerequisites', () => {
     useTransactionFormState.getState().openAdd();
     const sessionId = useTransactionFormState.getState().sessionId;
 
-    const { result } = renderHook(() => useTransactionFormPrerequisites(sessionId, 'add', null));
+    const { result } = await renderHook(() =>
+      useTransactionFormPrerequisites(sessionId, 'add', null),
+    );
 
     await waitFor(() => expect(result.current.status).toBe('error'));
-    act(() => result.current.retry());
+    await act(() => result.current.retry());
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(loadAccounts).toHaveBeenCalledTimes(2);
   });
@@ -127,11 +132,11 @@ describe('useTransactionFormPrerequisites', () => {
     useTransactionFormState.getState().openAdd();
     const firstSessionId = useTransactionFormState.getState().sessionId;
 
-    renderHook(() => useTransactionFormPrerequisites(firstSessionId, 'add', null));
+    await renderHook(() => useTransactionFormPrerequisites(firstSessionId, 'add', null));
     await waitFor(() => expect(loadAccounts).toHaveBeenCalledTimes(1));
 
-    act(() => useTransactionFormState.getState().openEdit(createTransaction()));
-    act(resolveAccounts);
+    await act(() => useTransactionFormState.getState().openEdit(createTransaction()));
+    await act(resolveAccounts);
     await act(async () => Promise.resolve());
 
     expect(useTransactionFormState.getState()).toMatchObject({
@@ -151,7 +156,9 @@ describe('useTransactionFormPrerequisites', () => {
     useTransactionFormState.getState().openEdit(tx);
     const sessionId = useTransactionFormState.getState().sessionId;
 
-    const { result } = renderHook(() => useTransactionFormPrerequisites(sessionId, 'edit', tx));
+    const { result } = await renderHook(() =>
+      useTransactionFormPrerequisites(sessionId, 'edit', tx),
+    );
 
     await waitFor(() => expect(result.current.status).toBe('ready'));
     expect(loadAccountLookup).toHaveBeenCalledWith([archived.id]);

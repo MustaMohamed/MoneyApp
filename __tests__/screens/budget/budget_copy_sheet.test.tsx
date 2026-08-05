@@ -126,13 +126,13 @@ const rows: BudgetCopyRowVM[] = [
 ];
 
 describe('BudgetCopySheet', () => {
-  it('renders checklist rows and applies selected categories', () => {
+  it('renders checklist rows and applies selected categories', async () => {
     const onToggleBudget = jest.fn();
     const onSelectAll = jest.fn();
     const onClearSelection = jest.fn();
     const onApply = jest.fn();
 
-    const { getByText, getByLabelText } = render(
+    const { getByText, getByLabelText } = await render(
       <BudgetCopySheet
         isOpen
         sourceMonth="2026-06"
@@ -162,21 +162,21 @@ describe('BudgetCopySheet', () => {
     expect(getByText('Fuel')).toBeTruthy();
     expect(getByText('Car / New')).toBeTruthy();
 
-    fireEvent.press(getByLabelText('Toggle Fuel'));
+    await fireEvent.press(getByLabelText('Toggle Fuel'));
     expect(onToggleBudget).toHaveBeenCalledWith('budget-car');
 
-    fireEvent.press(getByText('Select all'));
+    await fireEvent.press(getByText('Select all'));
     expect(onSelectAll).toHaveBeenCalledTimes(1);
 
-    fireEvent.press(getByText('Clear'));
+    await fireEvent.press(getByText('Clear'));
     expect(onClearSelection).toHaveBeenCalledTimes(1);
 
-    fireEvent.press(getByText('Apply'));
+    await fireEvent.press(getByText('Apply'));
     expect(onApply).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps checkbox controls compact instead of stretching them over the full row', () => {
-    const { getAllByTestId } = render(
+  it('keeps checkbox controls compact instead of stretching them over the full row', async () => {
+    const { getAllByTestId } = await render(
       <BudgetCopySheet
         isOpen
         sourceMonth="2026-06"
@@ -203,8 +203,8 @@ describe('BudgetCopySheet', () => {
     ]);
   });
 
-  it('keeps unchecked checkbox controls visibly bordered on the row surface', () => {
-    const { getAllByTestId } = render(
+  it('keeps unchecked checkbox controls visibly bordered on the row surface', async () => {
+    const { getAllByTestId } = await render(
       <BudgetCopySheet
         isOpen
         sourceMonth="2026-06"
@@ -231,9 +231,9 @@ describe('BudgetCopySheet', () => {
     ]);
   });
 
-  it('opens a direct month picker for changing the copy source month', () => {
+  it('opens a direct month picker for changing the copy source month', async () => {
     const onSourceMonthChange = jest.fn();
-    const { getByLabelText, queryByLabelText } = render(
+    const { getByLabelText, queryByLabelText } = await render(
       <BudgetCopySheet
         isOpen
         sourceMonth="2026-06"
@@ -257,15 +257,15 @@ describe('BudgetCopySheet', () => {
     expect(queryByLabelText(Strings.monthFilterPreviousA11y)).toBeNull();
     expect(queryByLabelText(Strings.monthFilterNextA11y)).toBeNull();
 
-    fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('June 2026')));
-    fireEvent.press(getByLabelText('May 2026'));
+    await fireEvent.press(getByLabelText(Strings.monthFilterOpenA11y('June 2026')));
+    await fireEvent.press(getByLabelText('May 2026'));
 
     expect(onSourceMonthChange).toHaveBeenCalledWith('2026-05');
   });
 
-  it('disables apply when nothing is selected', () => {
+  it('disables apply when nothing is selected', async () => {
     const onApply = jest.fn();
-    const { getByText } = render(
+    const { getByText } = await render(
       <BudgetCopySheet
         isOpen
         sourceMonth="2026-06"
@@ -286,12 +286,12 @@ describe('BudgetCopySheet', () => {
       />,
     );
 
-    fireEvent.press(getByText('Apply'));
+    await fireEvent.press(getByText('Apply'));
     expect(onApply).not.toHaveBeenCalled();
   });
 
-  it('shows an empty message when the selected source month has no budgets', () => {
-    const { getByText, queryByText } = render(
+  it('shows an empty message when the selected source month has no budgets', async () => {
+    const { getByText, queryByText } = await render(
       <BudgetCopySheet
         isOpen
         sourceMonth="2026-06"

@@ -63,8 +63,8 @@ const filters = [
 ] as const;
 
 describe('SegmentFilter', () => {
-  it('renders every dynamic filter option', () => {
-    const { getByLabelText, getByText } = render(
+  it('renders every dynamic filter option', async () => {
+    const { getByLabelText, getByText } = await render(
       <SegmentFilter
         selectedFilter="all"
         onSelectedFilterChange={jest.fn()}
@@ -79,8 +79,8 @@ describe('SegmentFilter', () => {
     expect(getByText('Paid')).toBeTruthy();
   });
 
-  it('forwards icon metadata and equal segment width to the shared tabs', () => {
-    const { getByTestId, getByText } = render(
+  it('forwards icon metadata and equal segment width to the shared tabs', async () => {
+    const { getByTestId, getByText } = await render(
       <SegmentFilter
         selectedFilter="all"
         onSelectedFilterChange={jest.fn()}
@@ -98,8 +98,8 @@ describe('SegmentFilter', () => {
     expect(getByText('calendar-clock-outline')).toBeTruthy();
   });
 
-  it('requests minimum scrolling to keep the selected filter visible', () => {
-    const { getByText } = render(
+  it('requests minimum scrolling to keep the selected filter visible', async () => {
+    const { getByText } = await render(
       <SegmentFilter
         selectedFilter="paid"
         onSelectedFilterChange={jest.fn()}
@@ -111,9 +111,9 @@ describe('SegmentFilter', () => {
     expect(getByText('visible')).toBeTruthy();
   });
 
-  it('selects a dynamic filter by value', () => {
+  it('selects a dynamic filter by value', async () => {
     const onSelectedFilterChange = jest.fn();
-    const { getByLabelText } = render(
+    const { getByLabelText } = await render(
       <SegmentFilter
         selectedFilter="all"
         onSelectedFilterChange={onSelectedFilterChange}
@@ -122,7 +122,7 @@ describe('SegmentFilter', () => {
       />,
     );
 
-    fireEvent.press(getByLabelText('Due soon commitments'));
+    await fireEvent.press(getByLabelText('Due soon commitments'));
     expect(onSelectedFilterChange).toHaveBeenCalledWith('due');
   });
 });

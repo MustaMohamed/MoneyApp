@@ -56,7 +56,7 @@ describe('useSpendingPlanSheet', () => {
     const setSpendingPlan = jest.fn().mockResolvedValue(undefined);
     useBudgetStore.setState({ setSpendingPlan });
     const onSaved = jest.fn().mockResolvedValue(undefined);
-    const { result } = renderHook(() =>
+    const { result } = await renderHook(() =>
       useSpendingPlanSheet({ budgetableCategories: categories, onSaved }),
     );
 

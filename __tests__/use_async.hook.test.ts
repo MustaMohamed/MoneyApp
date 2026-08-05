@@ -16,10 +16,10 @@ describe('useAsync', () => {
   it('sets loading while the wrapped promise is pending and returns the resolved value', async () => {
     const pending = deferred<number>();
     const fn = jest.fn((amount: number) => pending.promise.then((value) => value + amount));
-    const { result } = renderHook(() => useAsync(fn));
+    const { result } = await renderHook(() => useAsync(fn));
 
     let call!: Promise<number>;
-    act(() => {
+    await act(() => {
       call = result.current(2);
     });
 
@@ -41,7 +41,7 @@ describe('useAsync', () => {
     const fn = jest.fn(async () => {
       throw error;
     });
-    const { result } = renderHook(() => useAsync(fn));
+    const { result } = await renderHook(() => useAsync(fn));
 
     await act(async () => {
       await expect(result.current()).rejects.toBe(error);
@@ -56,7 +56,7 @@ describe('useAsync', () => {
     const fn = jest.fn(() => {
       throw error;
     });
-    const { result } = renderHook(() => useAsync(fn));
+    const { result } = await renderHook(() => useAsync(fn));
 
     await act(async () => {
       await expect(result.current()).rejects.toBe(error);
@@ -68,10 +68,10 @@ describe('useAsync', () => {
 
   it('wraps synchronous return values in a promise', async () => {
     const fn = jest.fn((amount: number) => amount + 1);
-    const { result } = renderHook(() => useAsync(fn));
+    const { result } = await renderHook(() => useAsync(fn));
 
     let call!: Promise<number>;
-    act(() => {
+    await act(() => {
       call = result.current(41);
     });
 
@@ -87,11 +87,11 @@ describe('useAsync', () => {
       .fn<Promise<string>, []>()
       .mockReturnValueOnce(first.promise)
       .mockReturnValueOnce(second.promise);
-    const { result } = renderHook(() => useAsync(fn));
+    const { result } = await renderHook(() => useAsync(fn));
 
     let firstCall!: Promise<string>;
     let secondCall!: Promise<string>;
-    act(() => {
+    await act(() => {
       firstCall = result.current();
       secondCall = result.current();
     });
@@ -118,7 +118,7 @@ describe('useAsync', () => {
       .fn<Promise<string>, []>()
       .mockRejectedValueOnce(new Error('first failed'))
       .mockResolvedValueOnce('ok');
-    const { result } = renderHook(() => useAsync(fn));
+    const { result } = await renderHook(() => useAsync(fn));
 
     await act(async () => {
       await expect(result.current()).rejects.toThrow('first failed');

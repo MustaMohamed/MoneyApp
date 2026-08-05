@@ -59,8 +59,8 @@ jest.mock('heroui-native', () => {
 });
 
 describe('TotalsStrip skeleton loading', () => {
-  it('keeps the totals card footprint while totals are loading', () => {
-    const { queryByText, getAllByTestId, queryByTestId } = render(
+  it('keeps the totals card footprint while totals are loading', async () => {
+    const { queryByText, getAllByTestId, queryByTestId } = await render(
       <TotalsStrip current={null} previous={null} previousLabel="June 2026" isLoading />,
     );
 
@@ -69,8 +69,8 @@ describe('TotalsStrip skeleton loading', () => {
     expect(getAllByTestId('skeleton-item').length).toBeGreaterThanOrEqual(4);
   });
 
-  it('matches the loaded totals row geometry while loading', () => {
-    const { getAllByTestId, getByTestId } = render(
+  it('matches the loaded totals row geometry while loading', async () => {
+    const { getAllByTestId, getByTestId } = await render(
       <TotalsStrip current={null} previous={null} previousLabel="June 2026" isLoading />,
     );
 
@@ -89,15 +89,15 @@ describe('TotalsStrip skeleton loading', () => {
     });
   });
 
-  it('uses the same four geometry slots as loaded totals', () => {
-    const loaded = render(
+  it('uses the same four geometry slots as loaded totals', async () => {
+    const loaded = await render(
       <TotalsStrip
         current={{ incomeEgp: 1_000, expenseEgp: 500, netEgp: 500 }}
         previous={null}
         previousLabel="June 2026"
       />,
     );
-    const loading = render(
+    const loading = await render(
       <TotalsStrip current={null} previous={null} previousLabel="June 2026" isLoading />,
     );
 
@@ -120,8 +120,8 @@ describe('TotalsStrip skeleton loading', () => {
     expect(loading.getByTestId('transactions-totals-skeleton-previous-label')).toBeTruthy();
   });
 
-  it('reserves the caption slot even before the previous month label resolves', () => {
-    const { getByTestId } = render(
+  it('reserves the caption slot even before the previous month label resolves', async () => {
+    const { getByTestId } = await render(
       <TotalsStrip current={null} previous={null} previousLabel={null} isLoading />,
     );
 

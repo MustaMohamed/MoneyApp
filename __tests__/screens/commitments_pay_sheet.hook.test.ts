@@ -200,7 +200,7 @@ describe('usePaySheet', () => {
   it('prefills the fixed amount from amount_due when the sheet is visible on mount', async () => {
     // Start with visible=true so the prefill useEffect fires on first render
     paySheetStateInner = { ...paySheetStateInner, visible: true };
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // prefill runs in a useEffect; flush microtasks
     await act(async () => {});
     expect(result.current.form.getValues('amount')).toBe(15);
@@ -208,41 +208,41 @@ describe('usePaySheet', () => {
   });
 
   it('starts with rateOverride false on open', async () => {
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // rateOverride starts false (initial state, sheet not yet opened)
     expect(result.current.state.rateOverride).toBe(false);
   });
 
   it('toggleRateOverride flips the flag', async () => {
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
     // Initial state: rateOverride = false
     expect(result.current.state.rateOverride).toBe(false);
     // Toggle: calls setRateOverride(!false) = setRateOverride(true)
-    act(() => result.current.toggleRateOverride());
+    await act(() => result.current.toggleRateOverride());
     expect(mockPaySheetState.setRateOverride).toHaveBeenCalledWith(true);
   });
 
   it('setPaidDate writes an ISO string into the form (date-picker upgrade)', async () => {
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    act(() => result.current.setPaidDate('2026-05-20'));
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => result.current.setPaidDate('2026-05-20'));
     expect(result.current.form.getValues('paid_date')).toBe('2026-05-20');
   });
 
   // Render-safety + default cases (folded in from the former pay_sheet.hook.test.ts
   // during §8 cleanup — that file duplicated this hook's mock setup).
-  it('renders without throwing when commitment and payment are undefined', () => {
-    expect(() => renderHook(() => usePaySheet(undefined, undefined))).not.toThrow();
+  it('renders without throwing when commitment and payment are undefined', async () => {
+    await expect(renderHook(() => usePaySheet(undefined, undefined))).resolves.toBeDefined();
   });
 
-  it('saving defaults to false', () => {
-    const { result } = renderHook(() => usePaySheet(undefined, undefined));
+  it('saving defaults to false', async () => {
+    const { result } = await renderHook(() => usePaySheet(undefined, undefined));
     expect(result.current.state.saving).toBe(false);
   });
 
   it('captures the EGP reporting rate for a USD commitment paid from a USD account', async () => {
     mockAccounts = [{ id: 'acc-usd', currency: Currency.USD } as unknown as Account];
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    act(() => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
       result.current.form.setValue('account_id', 'acc-usd');
       result.current.form.setValue('amount', 15);
       result.current.form.setValue('paid_date', '2026-05-20');
@@ -260,8 +260,8 @@ describe('usePaySheet', () => {
 
   it('snapshots the entered rate when the payment crosses currencies', async () => {
     mockAccounts = [{ id: 'acc-egp', currency: Currency.EGP } as unknown as Account];
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    act(() => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amount', 15);
       result.current.form.setValue('paid_date', '2026-05-20');
@@ -280,8 +280,8 @@ describe('usePaySheet', () => {
     const refreshError = new Error('account refresh failed');
     mockLoadAccounts.mockRejectedValueOnce(refreshError);
     const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-    const { result } = renderHook(() => usePaySheet(fixedCommitment, duePayment));
-    act(() => {
+    const { result } = await renderHook(() => usePaySheet(fixedCommitment, duePayment));
+    await act(() => {
       result.current.form.setValue('account_id', 'acc-egp');
       result.current.form.setValue('amount', 15);
       result.current.form.setValue('paid_date', '2026-05-20');

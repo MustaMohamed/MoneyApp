@@ -86,8 +86,8 @@ const segments = [
 ] as const;
 
 describe('SegmentedTabs', () => {
-  it('keeps the active indicator inside the scroll view for scrollable layout', () => {
-    const { getByTestId } = render(
+  it('keeps the active indicator inside the scroll view for scrollable layout', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -99,8 +99,8 @@ describe('SegmentedTabs', () => {
     expect(within(getByTestId('tabs-scroll-view')).getByTestId('tabs-indicator')).toBeTruthy();
   });
 
-  it('applies a fixed width to every scrollable segment when provided', () => {
-    const { getByTestId } = render(
+  it('applies a fixed width to every scrollable segment when provided', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -116,8 +116,8 @@ describe('SegmentedTabs', () => {
     });
   });
 
-  it('uses local visible-scroll behavior instead of HeroUI edge alignment', () => {
-    const { getByTestId } = render(
+  it('uses local visible-scroll behavior instead of HeroUI edge alignment', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="overdue"
@@ -134,8 +134,8 @@ describe('SegmentedTabs', () => {
     expect(getByTestId('tabs-scroll-view')).toHaveProp('onLayout', expect.any(Function));
   });
 
-  it('renders compact segments with tighter spacing and a bolder selected label', () => {
-    const { getByTestId, getByText } = render(
+  it('renders compact segments with tighter spacing and a bolder selected label', async () => {
+    const { getByTestId, getByText } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -163,8 +163,8 @@ describe('SegmentedTabs', () => {
     expect(getByText('Overdue')).not.toHaveProp('className', 'font-inter-bold');
   });
 
-  it('renders optional colored leading icons', () => {
-    const { getByTestId } = render(
+  it('renders optional colored leading icons', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[
           {
@@ -183,8 +183,8 @@ describe('SegmentedTabs', () => {
     });
   });
 
-  it('uses selected label color for selected solid-gold icons', () => {
-    const { getByTestId } = render(
+  it('uses selected label color for selected solid-gold icons', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[
           {
@@ -204,8 +204,8 @@ describe('SegmentedTabs', () => {
     });
   });
 
-  it('paints the selected solid-gold trigger immediately while the indicator settles', () => {
-    const { getByTestId } = render(
+  it('paints the selected solid-gold trigger immediately while the indicator settles', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -222,8 +222,8 @@ describe('SegmentedTabs', () => {
     expect(getByTestId('tabs-trigger-overdue')).not.toHaveProp('style');
   });
 
-  it('keeps the solid-gold indicator rounded', () => {
-    const { getByTestId } = render(
+  it('keeps the solid-gold indicator rounded', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"
@@ -239,8 +239,8 @@ describe('SegmentedTabs', () => {
     });
   });
 
-  it('uses a larger compact radius so the selected fill matches the pill border', () => {
-    const { getByTestId } = render(
+  it('uses a larger compact radius so the selected fill matches the pill border', async () => {
+    const { getByTestId } = await render(
       <SegmentedTabs
         segments={[...segments]}
         value="all"

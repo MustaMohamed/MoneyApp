@@ -71,43 +71,43 @@ describe('useReady', () => {
     setup();
   });
 
-  it('renders without throwing', () => {
-    expect(() => renderHook(() => useReady())).not.toThrow();
+  it('renders without throwing', async () => {
+    await expect(renderHook(() => useReady())).resolves.toBeDefined();
   });
 
-  it('rows has exactly 3 items (no Security row)', () => {
-    const { result } = renderHook(() => useReady());
+  it('rows has exactly 3 items (no Security row)', async () => {
+    const { result } = await renderHook(() => useReady());
     expect(result.current.state.rows).toHaveLength(3);
   });
 
-  it('rows contains Currency, Accounts, and TotalBalance', () => {
-    const { result } = renderHook(() => useReady());
+  it('rows contains Currency, Accounts, and TotalBalance', async () => {
+    const { result } = await renderHook(() => useReady());
     const labels = result.current.state.rows.map((r) => r.label);
     expect(labels).toContain(Strings.o6Currency);
     expect(labels).toContain(Strings.o6Accounts);
     expect(labels).toContain(Strings.o6TotalBalance);
   });
 
-  it('TotalBalance value reflects sum of account.current_balance', () => {
-    const { result } = renderHook(() => useReady());
+  it('TotalBalance value reflects sum of account.current_balance', async () => {
+    const { result } = await renderHook(() => useReady());
     const balanceRow = result.current.state.rows.find((r) => r.label === Strings.o6TotalBalance);
     // 5000 + 200 = 5200 → formatted as "5,200 EGP"
     expect(balanceRow?.value).toContain('5,200');
   });
 
-  it('loads accounts for restart directly on the ready step', () => {
-    renderHook(() => useReady());
+  it('loads accounts for restart directly on the ready step', async () => {
+    await renderHook(() => useReady());
 
     expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
   });
 
-  it('completing defaults to false', () => {
-    const { result } = renderHook(() => useReady());
+  it('completing defaults to false', async () => {
+    const { result } = await renderHook(() => useReady());
     expect(result.current.state.completing).toBe(false);
   });
 
   it('handleComplete calls completeOnboarding', async () => {
-    const { result } = renderHook(() => useReady());
+    const { result } = await renderHook(() => useReady());
     await act(async () => {
       await result.current.handleComplete();
     });
@@ -117,10 +117,10 @@ describe('useReady', () => {
   it('double-tap guard: handleComplete ignores a second press while completion is pending', async () => {
     const pending = deferred<void>();
     mockCompleteOnboarding.mockReturnValueOnce(pending.promise);
-    const { result } = renderHook(() => useReady());
+    const { result } = await renderHook(() => useReady());
 
     let firstCall!: Promise<void>;
-    act(() => {
+    await act(() => {
       firstCall = result.current.handleComplete();
     });
 

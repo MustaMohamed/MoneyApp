@@ -1,6 +1,5 @@
 import { fireEvent, render } from '@testing-library/react-native';
 import React from 'react';
-import { TextInput } from 'react-native';
 
 import { Currency, TransactionType } from '@/constants/enums';
 import { useAddTransactionStore } from '@/modules/transactions/screens/transactions/transaction_form/add_transaction.store';
@@ -27,8 +26,8 @@ import { AmountHero } from '@/modules/transactions/screens/transactions/transact
 describe('AmountHero', () => {
   beforeEach(() => useAddTransactionStore.getState().reset());
 
-  it('does not focus or select the amount when the sheet opens', () => {
-    const { getByTestId } = render(
+  it('does not focus or select the amount when the sheet opens', async () => {
+    const { getByTestId } = await render(
       <AmountHero
         onChange={jest.fn()}
         type={TransactionType.Expense}
@@ -41,12 +40,12 @@ describe('AmountHero', () => {
     expect(getByTestId('amount-hero-value')).not.toHaveProp('selectTextOnFocus', true);
   });
 
-  it('allows the amount to remain empty while the user edits', () => {
+  it('allows the amount to remain empty while the user edits', async () => {
     useAddTransactionStore.getState().setAmountStr('125');
     const onChange = jest.fn((value: string) =>
       useAddTransactionStore.getState().setAmountStr(value),
     );
-    const { getByTestId } = render(
+    const { getByTestId } = await render(
       <AmountHero
         onChange={onChange}
         type={TransactionType.Expense}
@@ -55,16 +54,16 @@ describe('AmountHero', () => {
       />,
     );
 
-    fireEvent.changeText(getByTestId('amount-hero-value'), '');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '');
 
     expect(onChange).toHaveBeenCalledWith('');
   });
 
-  it('keeps only one decimal separator and two fraction digits', () => {
+  it('keeps only one decimal separator and two fraction digits', async () => {
     const onChange = jest.fn((value: string) =>
       useAddTransactionStore.getState().setAmountStr(value),
     );
-    const { UNSAFE_getByType } = render(
+    const { getByTestId } = await render(
       <AmountHero
         onChange={onChange}
         type={TransactionType.Expense}
@@ -73,14 +72,14 @@ describe('AmountHero', () => {
       />,
     );
 
-    fireEvent.changeText(UNSAFE_getByType(TextInput), '1a2.345.6');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '1a2.345.6');
 
     expect(onChange).toHaveBeenCalledWith('12.34');
   });
 
-  it('normalizes a leading decimal to a value accepted by submission parsing', () => {
+  it('normalizes a leading decimal to a value accepted by submission parsing', async () => {
     const onChange = jest.fn();
-    const { getByTestId } = render(
+    const { getByTestId } = await render(
       <AmountHero
         onChange={onChange}
         type={TransactionType.Expense}
@@ -89,7 +88,7 @@ describe('AmountHero', () => {
       />,
     );
 
-    fireEvent.changeText(getByTestId('amount-hero-value'), '.5');
+    await fireEvent.changeText(getByTestId('amount-hero-value'), '.5');
 
     expect(onChange).toHaveBeenCalledWith('0.5');
   });
