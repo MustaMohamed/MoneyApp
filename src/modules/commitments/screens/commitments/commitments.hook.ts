@@ -257,11 +257,11 @@ export function useCommitments() {
   }, [setRefreshing, reloadSelectedMonth, selectedMonth]);
 
   const goToDetail = useCallback((paymentId: string) => {
-    router.push(`/commitments/${paymentId}` as Parameters<typeof router.push>[0]);
+    router.push(`/commitments/${paymentId}`);
   }, []);
 
   const goToAdd = useCallback(() => {
-    router.push('/commitments/add' as Parameters<typeof router.push>[0]);
+    router.push('/commitments/add');
   }, []);
 
   const goToEdit = useCallback((commitmentId: string | undefined) => {
@@ -269,7 +269,7 @@ export function useCommitments() {
       console.warn('[goToEdit] commitment id is undefined — skipping navigation');
       return;
     }
-    router.push(`/commitments/${commitmentId}/edit` as Parameters<typeof router.push>[0]);
+    router.push(`/commitments/${commitmentId}/edit`);
   }, []);
 
   const handleOpenFilter = useCallback(() => {
