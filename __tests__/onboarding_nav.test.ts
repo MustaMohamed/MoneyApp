@@ -1,13 +1,13 @@
-import type { Href, Router } from 'expo-router';
+import type { Href, ImperativeRouter } from 'expo-router';
 
 import { backOrReplace } from '@/utils/onboarding_nav';
 
-function makeRouter(canGoBack: boolean): Router {
+function makeRouter(canGoBack: boolean): ImperativeRouter {
   return {
     canGoBack: jest.fn(() => canGoBack),
     back: jest.fn(),
     replace: jest.fn(),
-  } as unknown as Router;
+  } as unknown as ImperativeRouter;
 }
 
 describe('backOrReplace', () => {

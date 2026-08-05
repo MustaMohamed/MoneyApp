@@ -69,6 +69,7 @@ export function PaySheet({ commitment, payment }: Props) {
       DateTimePickerAndroid.open({
         value: paidDateAsDate,
         mode: 'date',
+        // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
         onChange: (_, d) => {
           if (d) setPaidDate(toLocalDateString(d));
         },
@@ -250,6 +251,7 @@ export function PaySheet({ commitment, payment }: Props) {
                 mode="date"
                 display="spinner"
                 themeVariant="dark"
+                // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
                 onChange={(_, d) => {
                   if (d) setPaidDate(toLocalDateString(d));
                 }}

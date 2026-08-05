@@ -62,6 +62,7 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
           mode="date"
           display="default"
           maximumDate={picker.state.maximumDate}
+          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
           onChange={picker.changeAndroid}
         />
       ) : null}

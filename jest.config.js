@@ -19,8 +19,16 @@ module.exports = {
     '<rootDir>/.worktrees/',
   ],
   modulePathIgnorePatterns: ['<rootDir>/.claude/'],
+  // `standard-navigation` is here because expo-router 57 depends on it and it ships
+  // untranspiled ESM. npm nests it at expo-router/node_modules/standard-navigation/,
+  // and this pattern tests every `node_modules/` segment in a path — so the nested
+  // segment matched the ignore rule even though the outer `expo-router` one did not.
+  // Without it, any suite reaching expo-router's exports barrel dies at import with
+  // "Cannot use import statement outside a module" — which jest reports as a suite
+  // that failed to RUN, so the pass/fail line stays green and only the total test
+  // count drops.
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
   ],
   // src/screens/**/*.hook.ts and src/utils/use_layout_init.hook.ts are excluded from
   // collectCoverageFrom. These files were added per plan Task 4.8 and trialled
