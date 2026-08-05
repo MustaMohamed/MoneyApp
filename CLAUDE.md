@@ -55,7 +55,7 @@ No agent reviews its own output; that is the point of the four. `@pr-reviewer` i
 
 Domain sovereignty: product/UX → marcus · financial logic → layla · architecture → tariq · implementation → dev · review verdicts → the reviewer for that gate · sequencing → sarah. Vague request → push back and disambiguate before building. Routine disagreements: the responsible lead decides and records the rationale.
 
-Gotcha: **agent definitions are snapshotted when the session starts.** Editing a file in `.claude/agents/` does not affect subagents dispatched later in that same session — they still run the old definition, silently and convincingly. Restart the session before testing an agent change. Path-scoped rules in `.claude/rules/` do not have this problem; they load live, including inside subagents.
+Gotcha: **editing an agent definition is snapshotted at session start; creating a new one is not.** A *new* file in `.claude/agents/` registers and becomes dispatchable immediately, but *editing* an existing one does not affect subagents dispatched later in that same session — they still run the old definition, silently and convincingly. The dangerous combination is doing both at once: the new agent is live while the orchestrator that is supposed to dispatch it is not. Restart the session before testing any agent change. Path-scoped rules in `.claude/rules/` have neither problem; they load live, including inside subagents.
 
 ### Critical triggers (wake the user; everywhere else proceed)
 

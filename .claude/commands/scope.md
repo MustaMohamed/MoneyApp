@@ -4,7 +4,9 @@ description: Run a scope end to end through the nine-step workflow
 
 @sarah Run the following through the nine-step scoped workflow. The steps, gates, status vocabulary, retry caps, and git rules are in your agent file and in CLAUDE.md — follow them as written.
 
-**If the argument names an existing scope** (`MA-<slug>`), resume it: read `docs/scopes/MA-<slug>/tasks.md`, take the first task that is not `done`, and re-enter at the step its status maps to. **Otherwise** treat it as a new idea and start at step 1.
+**If the argument names an existing scope** (`MA-<slug>`), resume it: read `docs/scopes/MA-<slug>/tasks.md`, take the first task that is not `done`, and re-enter at the step its status maps to. **Otherwise** treat it as a new idea: name the scope, create `docs/scopes/MA-<slug>/{tasks,assets}/`, and start at step 1.
+
+Step 1 uses `superpowers:brainstorming`, which defaults to writing a design doc into `docs/superpowers/specs/`. **Override it** — step 1's output is `docs/scopes/MA-<slug>/scope.md`, written in plain language for me. The agent-facing spec is step 2 and belongs to @tariq.
 
 Stop at exactly three gates — after step 1, after step 3, after step 8 — and on a critical trigger. Nowhere else.
 

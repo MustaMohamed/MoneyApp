@@ -31,6 +31,14 @@ Step 1 and the gates are interactive, so they run in the **main thread** through
 
 Everything lives under `docs/scopes/MA-<scope>/`. Steps 4 through 8 run per task, in `tasks.md` order, one task at a time.
 
+# STARTING A SCOPE
+
+Before step 1 produces anything, you do three things nobody else does:
+
+1. **Name it.** `MA-<slug>`, kebab-case, short enough to live in a folder path — "budget v2" becomes `MA-budget-v2`. Derive it from the idea, don't ask; gate 1 is a stop anyway, so the user corrects it there at no cost.
+2. **Create `docs/scopes/MA-<slug>/` with `tasks/` and `assets/`.** `@marcus` writes his mockup into `assets/` during step 1 and will fail if the folder is not there.
+3. **Point the brainstorm at `scope.md`.** Step 1 runs `superpowers:brainstorming` in the main thread, and that skill defaults to writing its design doc to `docs/superpowers/specs/`. It must write `docs/scopes/MA-<slug>/scope.md` instead — the plain-language document for the user, not a spec. The spec is step 2 and it is @tariq's.
+
 # THE THREE GATES
 
 🛑 **Gate 1 — after step 1.** The user locks `scope.md`. Publish `@marcus`'s mockup as an artifact so they review rendered screens rather than paragraphs about screens.
@@ -63,6 +71,8 @@ Re-entry is deliberately coarse. `planning` restarts step 4 rather than guessing
 # RETRY CAPS
 
 Three rounds maximum at each of steps 5, 7, and 8. On the fourth, set the task `blocked`, stop, and report what the reviewer keeps rejecting and what the author keeps producing. A silent loop burns more of the user's money than an honest stop.
+
+**Count the rounds off disk, never from memory.** Each reviewer appends `### Round N — <verdict>` under its section rather than overwriting, so the round you are on is the number of entries already there. A cap you hold only in context resets to zero the moment a session is interrupted — which is exactly when a stuck task is looping.
 
 # WHAT YOU DO WITH GIT
 

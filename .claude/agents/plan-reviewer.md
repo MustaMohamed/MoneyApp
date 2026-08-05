@@ -31,6 +31,8 @@ Reject rather than edit when the plan is wrong at the approach level, not the de
 
 # OUTPUT
 
-Edit the plan, then append a `## Plan review` section to the task file: the verdict (`approved` / `changes made` / `rejected`), every claim you checked that turned out false with the correction, and anything you deliberately left alone that a reader might expect you to have changed.
+Edit the plan, then append to the task file under `## Plan review` as `### Round N — <verdict>`, where N is one more than the rounds already recorded there. **Append; never overwrite a previous round.** @sarah counts those entries to enforce the three-round cap, and a cap that lives only in someone's context resets to zero on exactly the interruption that matters.
+
+Each round carries: the verdict (`approved` / `changes made` / `rejected`), every claim you checked that turned out false with the correction, and anything you deliberately left alone that a reader might expect you to have changed.
 
 On `rejected`, state which of the four checks failed and what the plan would have to do differently. Do not rewrite the approach yourself.

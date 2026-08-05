@@ -128,6 +128,8 @@ those belong to the plan. Written so a planner can research from it.
 
 The "no technical decisions in `Details`" rule is load-bearing: it is what keeps step 4 a real research step rather than a transcription of choices already made. `@task-reviewer` enforces it.
 
+The three review sections **accumulate `### Round N` entries and are never overwritten** — that is what makes the retry cap durable across an interrupted session. `@tariq` writes the plan into `## Plan` here rather than to a file of its own; `superpowers:writing-plans` supplies the structure but its default target, `docs/superpowers/plans/`, is wrong under this design and a plan written there is one `@dev` and `@plan-reviewer` will not find.
+
 ## Agents
 
 Personas keep their domains. The four reviewers are named by role rather than given personas, because they own no domain and `@plan-reviewer` states its job where a first name does not.
@@ -183,7 +185,7 @@ A scope landing in single digits is the expected shape. Tasks are never subdivid
 
 ## The nine steps
 
-**1 — Brainstorm.** Main thread, `superpowers:brainstorming`, `[marcus]` and `[layla]` consulted inline. Output `scope.md`, plus an HTML mockup in `assets/` when the scope has UI. Exit: the user locks it. 🛑 **Gate 1.**
+**1 — Brainstorm.** `@sarah` first names the scope (`MA-<slug>`, derived not asked — gate 1 is a stop anyway) and creates `docs/scopes/MA-<slug>/{tasks,assets}/`, without which `@marcus` has nowhere to put the mockup. Then the main thread runs `superpowers:brainstorming` with `[marcus]` and `[layla]` inline. **That skill defaults to writing its design doc into `docs/superpowers/specs/` and must be overridden** — step 1's output is `scope.md`. Plus an HTML mockup in `assets/` when the scope has UI. Exit: the user locks it. 🛑 **Gate 1.**
 
 **2 — Spec and tasks.** `@tariq` writes `spec.md` from the locked scope, embedding `@marcus`'s UX section and `@layla`'s financial-logic section, then decomposes it into milestones and tasks per **Task granularity** above and writes `tasks.md` and one file per task. Task details stay behavioural. Exit: every task has title, summary, and details, `tasks.md` lists them all, and each one would leave `main` working if merged alone.
 
@@ -227,6 +229,8 @@ It stops in exactly four places: after step 1, after step 3, after step 8, and o
 
 Between gate 2 and gate 3 it runs steps 4 through 8 per task without check-ins, including the reviewer rejection loops. Each of the three review gates — plan, local, PR — allows **at most three rounds**. On the fourth, the task goes `blocked`, the orchestrator stops, and it reports what the reviewer keeps rejecting and what `@dev` keeps producing. A silent loop is worse than a stop.
 
+**The count lives on disk, not in context.** Each reviewer appends `### Round N — <verdict>` under its section rather than overwriting, and the round is the number of entries already there. A cap held only in the orchestrator's context resets to zero when a session is interrupted — and the task whose session gets killed is disproportionately the one that is looping, so an in-memory cap fails in exactly the case it exists for.
+
 Status is written to the task file's frontmatter and then to `tasks.md` at every transition, before the next step is dispatched. That write is what makes a killed session resumable.
 
 ## Branch, commit, PR
@@ -258,7 +262,7 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 
 ## Risks
 
-**Agent definitions snapshot at session start.** The four new reviewers and the rewritten `sarah` cannot be exercised in the session that creates them. The first real run must happen in a fresh session, and that is also the only way to test a correction to any of them.
+**Edited agent definitions snapshot at session start; newly created ones do not.** Observed while building this: the four new reviewers registered and became dispatchable immediately, while `sarah`, `tariq`, `dev`, `marcus`, and `layla` continue running the definitions they had when the session began. So a first run in the creating session would pair new reviewers with a `sarah` who knows nothing about them — worse than not running at all, because it half-works. The first real `/scope` needs a fresh session, and so does every subsequent correction to an existing agent. `.claude/rules/review.md` is exempt: rules load live inside subagents, which is a large part of why the defect checklist lives there.
 
 **Four reviewer files drift toward each other.** Handled structurally rather than by intent: `@pr-reviewer`'s rubric is a closed list of five things that do not exist at step 7, and it is instructed not to re-run step 7's checks. The tripwire in that section is the exit condition — one full scope producing nothing outside the five means the agent gets deleted, not defended.
 

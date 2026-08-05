@@ -114,6 +114,20 @@ and naming them here turns planning into transcription.
 ## Outcome                 (step 9)
 ```
 
+**The three review sections accumulate rounds; they are never overwritten.**
+
+```markdown
+## Implementation review
+
+### Round 1 — changes requested
+...
+
+### Round 2 — approved
+...
+```
+
+That is how the three-round cap survives an interrupted session: @sarah counts the entries on disk rather than trusting a number held in context, and a task that is looping is precisely the one whose session gets killed.
+
 ---
 
 ## Task granularity

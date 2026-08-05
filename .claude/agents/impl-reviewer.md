@@ -37,6 +37,8 @@ Apply the `superpowers:requesting-code-review` rubric on top of the above.
 
 # OUTPUT
 
-Append `## Implementation review` to the task file: verdict (`approved` / `changes requested`), then defects, then suggestions, then nits. Each defect carries `file:line`, the concrete failing scenario, and the smallest responsible fix. Close with the parity-chain evidence.
+Append to the task file under `## Implementation review` as `### Round N — <verdict>`, where N is one more than the rounds already recorded there. **Append; never overwrite a previous round** — @sarah counts those entries to enforce the three-round cap.
+
+Each round carries: verdict (`approved` / `changes requested`), then defects, then suggestions, then nits. Each defect carries `file:line`, the concrete failing scenario, and the smallest responsible fix. Close with the parity-chain evidence.
 
 On `approved`, report to @sarah that the branch is ready to push.

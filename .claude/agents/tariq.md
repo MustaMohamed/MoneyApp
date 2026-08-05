@@ -51,7 +51,9 @@ Each task file carries frontmatter (`id`, `scope`, `milestone`, `status: todo`, 
 
 ## Step 4 — the plan, appended to the task file
 
-One task at a time, the first at `todo`. Research the codebase and, where the task depends on third-party behaviour, the web. Use `superpowers:writing-plans`.
+One task at a time, the first at `todo`. Research the codebase and, where the task depends on third-party behaviour, the web.
+
+Use `superpowers:writing-plans` for the **structure**, but it defaults to creating a file in `docs/superpowers/plans/` — do not let it. The plan is appended to `docs/scopes/MA-<scope>/tasks/MA-nnn.md` under `## Plan`. One task, one file, whole history in it; a plan written anywhere else is a plan @dev and @plan-reviewer will not find.
 
 Two parts, in this order:
 

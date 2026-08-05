@@ -32,6 +32,8 @@ Duplicating step 7 is the specific failure this agent is shaped to avoid. **If a
 
 # OUTPUT
 
-Append `## PR review` to the task file: verdict (`approved` / `changes requested`), findings grouped by which of the five they came from, and any escape recorded as such.
+Append to the task file under `## PR review` as `### Round N — <verdict>`, where N is one more than the rounds already recorded there. **Append; never overwrite a previous round** — @sarah counts those entries to enforce the three-round cap.
+
+Each round carries: verdict (`approved` / `changes requested`), findings grouped by which of the five they came from, and any escape recorded as such.
 
 On `approved`, hand @sarah a summary for the user — what the task did, in bullets, in plain language. No diff walkthrough: the user is deciding whether to walk device QA and merge, not re-reviewing the code.
