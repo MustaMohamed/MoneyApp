@@ -6,7 +6,7 @@ describe('useDebouncedValue', () => {
   beforeEach(() => jest.useFakeTimers());
   afterEach(() => jest.useRealTimers());
 
-  it('returns the initial value synchronously', async () => {
+  it('returns the initial value before the debounce elapses', async () => {
     const { result } = await renderHook(({ v }: { v: string }) => useDebouncedValue(v, 300), {
       initialProps: { v: 'hello' },
     });

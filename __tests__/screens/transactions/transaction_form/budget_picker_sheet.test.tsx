@@ -79,9 +79,11 @@ describe('BudgetPickerSheet', () => {
     expect(mockSheet).toHaveBeenLastCalledWith(
       expect.objectContaining({ size: 'md', scrollable: true }),
     );
-    // The old `UNSAFE_getByProps({ role: 'radiogroup' })` reached into a composite
-    // component, which Test Renderer no longer exposes. Radio semantics are covered
-    // behaviourally by the accessibilityState assertion below.
+    // Was `UNSAFE_getByProps({ role: 'radiogroup' })`, which reached into a
+    // composite component Test Renderer no longer exposes. The primitive puts
+    // role="radio" on each item's host element, so assert that instead — it
+    // distinguishes a radio from a checkbox, which accessibilityState alone does not.
+    expect(screen.getByTestId('budget-picker-row-budget-12')).toHaveProp('role', 'radio');
     expect(screen.getByTestId('budget-picker-list')).toBeTruthy();
     expect(screen.getByTestId('budget-picker-row-budget-12')).toHaveProp('accessibilityState', {
       checked: true,

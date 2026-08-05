@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "jsx-a11y", "import"],
+  "plugins": ["react", "typescript", "jsx-a11y", "import", "jest"],
   "jsPlugins": [
     {
       "name": "expo",
@@ -32,6 +32,16 @@
     }
   },
   "rules": {
+    // The jest plugin is enabled for this rule alone: RNTL 14 made the async
+    // APIs return Promises, and `expect(p).resolves.X` without `await` passes
+    // silently. With ~70 `.resolves` sites now, that footgun needs a guard.
+    "jest/valid-expect": "error",
+    // The plugin's other default-on rules would add 21 warnings unrelated to
+    // this change (17 require-to-throw-message, 3 no-conditional-expect,
+    // 1 expect-expect). Worth a look, but on their own branch.
+    "jest/require-to-throw-message": "off",
+    "jest/no-conditional-expect": "off",
+    "jest/expect-expect": "off",
     "react/react-in-jsx-scope": "off",
     "react/display-name": "off",
     "expo/use-dom-exports": "error",
