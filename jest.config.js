@@ -29,8 +29,13 @@ module.exports = {
   // `Tests:` shows every remaining test passing (`2049 passed, 2049 total`) because
   // a suite that dies at import contributes no test results at all. Compare the
   // total against the known baseline (2055) — that is the number that moves.
+  //
+  // There is deliberately no `react-navigation` entry: SDK 56 dropped those packages
+  // and expo-router vendors its own copy at expo-router/build/react-navigation/, which
+  // is inside an already-allowed package rather than a node_modules entry of its own.
+  // Seeing that path in a stack trace is not a reason to add one back.
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|standard-navigation|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
+    'node_modules/(?!((jest-)?react-native|@react-native(-community)?|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|standard-navigation|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-reanimated))',
   ],
   // src/screens/**/*.hook.ts and src/utils/use_layout_init.hook.ts are excluded from
   // collectCoverageFrom. These files were added per plan Task 4.8 and trialled
