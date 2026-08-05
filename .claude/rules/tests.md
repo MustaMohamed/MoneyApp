@@ -14,6 +14,15 @@ paths:
 - **Time is an input, never `new Date()`.** Fixed ISO strings; month-end (day 31 in a 30-day month) and leap-year cases are required for any date arithmetic.
 - Migration suites: at least one must drive the real `runMigrations(db)`, not `MIGRATIONS.map(m => m.up).join()` (audit H11).
 
-Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. The 40 legacy `.tsx` render suites are a known exception pending a policy decision — don't add to them, and don't delete them either.
+Placement and naming: `__tests__/`, `snake_case`, logic-only `.ts`. New tests follow that; the 40 `.tsx` render suites are a settled exception, not a pending one.
+
+**Render-suite policy (resolves audit M36, decided 2026-08-05): keep the files, don't add to them, prune by reading.** This reverses the earlier "delete them all" stance (recorded at audit M36) on measurement rather than preference — so don't "restore" the older policy. ~105 `fireEvent` interactions live across 25 of those suites, and none of the 25 has a same-named `.test.ts` counterpart; four have partial relatives (`set_budget_sheet.hook`/`.state`, `filter_rail_usage`, `budget_copy_sheet_geometry`) but none of those exercises a render→handler binding. Delete the suites and that wiring coverage goes with nothing inheriting it.
+
+**Keep vs prune, by what the assertion binds to — not by matcher name:**
+
+- **Keep** style assertions bound to a token or named geometry constant (`ms()`, `Type.*`, `TRANSACTION_ROW_HEIGHT`). This is not the brittle part and never was: 62 of the 63 `toHaveStyle` assertions bind to one (the lone exception is a bare literal in `transaction_row.test.tsx`), and the dominant pattern — asserting skeleton and loaded states share a height — is a real regression guard. A token-bound assertion survives the `tv()` extraction that breaks a `className` one.
+- **Prune** assertions on `className` strings and on file contents. Both are audit M35, whose definition is *raw source text*, with Tailwind classes only its most visible form. They live in `tabs`, `filter_rail`, `month_filter`, `set_budget_sheet`, `budget_copy_sheet` (`className`, in three shapes: exact string, `expect.stringContaining`, and `.props.className` + `toEqual`) and in `transactions.screen`, `detail_screen_actions` (`readFileSync` + `not.toContain`). The last two are named in M35's own file list.
+
+Grep undercounts this every time — the three `className` shapes need three different patterns, and a bare `grep -c fireEvent` counts 25 import bindings as calls. Find candidates by grep, then decide by reading. When pruning empties a test, that is a deletion wearing a refactor's clothes: either replace the assertion with a behavioural one, or leave the test and say why. The "assert behavior, not source text" rule above still governs anything new.
 
 The coverage gate (`npm run test:coverage`) currently measures a stale slice of the tree, so green is necessary but not sufficient — see `docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md` Item 8.

@@ -75,7 +75,7 @@ Top wins, in order: gate sheet children behind `hasEverOpened` in `components/ui
 
 **Tags:** `testing` · **Effort:** L · **Blocked by:** Issues 1–5 (never instrument coverage over known-broken logic)
 
-Coverage config measures 0.6% of source (**H10**) — replace allowlist with denylist over `src/**`; `runMigrations` has zero tests (**H11**) — bridge-driven runner suite; de-vacuous the over-mocked atomicity tests (M33/M34); retire source-text-assertion suites (M35). **Needs user decision first:** the logic-only test policy vs the 40 existing `.tsx` render suites (M36).
+Coverage config measures 0.6% of source (**H10**) — replace allowlist with denylist over `src/**`; `runMigrations` has zero tests (**H11**) — bridge-driven runner suite; de-vacuous the over-mocked atomicity tests (M33/M34); retire source-text-assertion suites (M35). **M36 decided 2026-08-05** (was blocking this item): keep the 40 `.tsx` render suites, don't add to them, prune their `className` and file-content assertions — recorded in `.claude/rules/tests.md`, which carries the keep/prune discriminator. Note the M35 work above overlaps it: `transactions.screen` and `detail_screen_actions` appear in M35's own file list *and* are two of the 40.
 
 - Added 2026-08-03: `budget.state.ts:59` — `initialState()` reads `currentYearMonth()` off the system clock with no seam, so `.claude/rules/tests.md` ("time is an input, never `new Date()`") can only be honoured by every consumer remembering to pin the month in `beforeEach`. One test forgot and went red on 2026-08-01 while its PR badge still showed green. Structural fix: an optional `now` parameter on `initialState()`/`reset()`. Production change — do not fold into a test or deps PR.
 - A sound date-sweep instrument exists and found **zero** date-dependent tests across 221 suites at seven clock positions (control, month/year boundaries, a leap day): subclass `Date` so `new Date()`/`Date.now()` shift while `new Date(<args>)`, `Date.parse`, and `Date.UTC` stay literal, and never touch timers. `jest.useFakeTimers()` is the wrong tool here — it breaks `waitFor` in 15 suites at any date, including an offset-zero control.
@@ -88,4 +88,4 @@ Retire compat surfaces (9 dead re-export stubs L20, `src/screens/` orphan tree L
 
 ---
 
-**Not scheduled (user decisions):** goals tab stub visibility (L18) · render-test policy (M36) · `ON DELETE` schema migration (Item 2 follow-up).
+**Not scheduled (user decisions):** goals tab stub visibility (L18) · `ON DELETE` schema migration (Item 2 follow-up). *(Render-test policy (M36) decided 2026-08-05 — see Item 8.)*
