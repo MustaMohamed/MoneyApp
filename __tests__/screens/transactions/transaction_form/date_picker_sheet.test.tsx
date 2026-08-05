@@ -215,6 +215,32 @@ describe('transaction date picker', () => {
     );
   });
 
+  // The owner check on the select half is load-bearing: it gates the caller's
+  // onChange, so a late selection from a picker whose owner has been superseded must
+  // not write into the new owner's form. (The dismiss half needs no such check —
+  // closeAndroid already no-ops unless activeOwnerId matches.)
+  it('ignores an Android selection from an owner that no longer holds the picker', async () => {
+    setPlatform('android');
+    const staleOnChange = jest.fn();
+    const screen = await render(
+      <DateRow ownerId="add-stale" value="2026-07-10" onChange={staleOnChange} />,
+    );
+
+    await fireEvent.press(screen.getByTestId('date-row'));
+    // A different owner takes over while the stale picker is still mounted.
+    useDatePickerSheetState.getState().openAndroid('edit-new', '2026-07-15');
+
+    await fireEvent(
+      screen.getByTestId('date-picker-android'),
+      'valueChange',
+      { nativeEvent: { timestamp: 0, utcOffset: 0 } },
+      new Date(2026, 6, 11, 12),
+    );
+
+    expect(staleOnChange).not.toHaveBeenCalled();
+    expect(useDatePickerSheetState.getState().activeOwnerId).toBe('edit-new');
+  });
+
   it('keeps the active owner open when an older form owner unmounts', async () => {
     setPlatform('ios');
     const OldAndNewOwners = ({ showOld }: { showOld: boolean }) => (
