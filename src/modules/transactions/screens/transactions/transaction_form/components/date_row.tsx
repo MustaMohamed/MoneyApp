@@ -62,8 +62,8 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
           mode="date"
           display="default"
           maximumDate={picker.state.maximumDate}
-          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-          onChange={picker.changeAndroid}
+          onValueChange={picker.selectAndroid}
+          onDismiss={picker.dismissAndroid}
         />
       ) : null}
 
@@ -72,7 +72,7 @@ export function DateRow({ ownerId, value, onChange }: Props): React.ReactElement
           isOpen={picker.state.isOpen}
           value={picker.state.pickerDate}
           maximumDate={picker.state.maximumDate}
-          onChange={picker.changeIos}
+          onValueChange={picker.selectIos}
           onCancel={picker.cancelIos}
           onDone={picker.commitIos}
           onCloseComplete={picker.completeIosClose}

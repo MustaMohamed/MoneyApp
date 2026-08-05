@@ -1,4 +1,4 @@
-import type { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import type { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { useEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -216,13 +216,20 @@ export function useSpendingPlanSheet({
       useSpendingPlanSheetStore.getState().setAllocation(categoryId, parseOptionalAmount(text)),
     openDatePicker: (target: SpendingPlanDatePickerTarget) =>
       useSpendingPlanSheetState.getState().openDatePicker(target),
-    changeDate: (target: SpendingPlanDatePickerTarget, event: DateTimePickerEvent, date?: Date) => {
-      if (event.type === 'set' && date) {
-        const next = toLocalDateString(date);
-        if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
-        if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
-      }
+    // datetimepicker 9 split the old single `onChange` in two. Closing the picker
+    // was unconditional under `onChange` — it ran outside the `event.type === 'set'`
+    // check — so both halves must still close it, or cancelling leaves the picker
+    // mounted with no way back out.
+    selectDate: (
+      target: SpendingPlanDatePickerTarget,
+      _event: DateTimePickerChangeEvent,
+      date: Date,
+    ) => {
+      const next = toLocalDateString(date);
+      if (target === 'start') useSpendingPlanSheetStore.getState().setStartDate(next);
+      if (target === 'end') useSpendingPlanSheetStore.getState().setEndDate(next);
       useSpendingPlanSheetState.getState().closeDatePicker();
     },
+    dismissDatePicker: () => useSpendingPlanSheetState.getState().closeDatePicker(),
   };
 }

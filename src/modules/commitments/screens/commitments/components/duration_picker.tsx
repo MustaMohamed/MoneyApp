@@ -46,10 +46,7 @@ export function DurationPicker({
       DateTimePickerAndroid.open({
         value: endDateAsDate,
         mode: 'date',
-        // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-        onChange: (_, d) => {
-          if (d) form.setValue('endDate', toLocalDateString(d), SET_OPTS);
-        },
+        onValueChange: (_, d) => form.setValue('endDate', toLocalDateString(d), SET_OPTS),
       });
     } else {
       setShowEndDatePicker(!showEndDatePicker);
@@ -128,10 +125,7 @@ export function DurationPicker({
           mode="date"
           display="spinner"
           themeVariant="dark"
-          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-          onChange={(_, d) => {
-            if (d) form.setValue('endDate', toLocalDateString(d), SET_OPTS);
-          }}
+          onValueChange={(_, d) => form.setValue('endDate', toLocalDateString(d), SET_OPTS)}
         />
       ) : null}
       {dateError ? <Text className="font-inter text-danger text-[11px]">{dateError}</Text> : null}

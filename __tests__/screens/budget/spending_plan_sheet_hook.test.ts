@@ -69,4 +69,50 @@ describe('useSpendingPlanSheet', () => {
     expect(onSaved).toHaveBeenCalledTimes(1);
     expect(useBudgetState.getState().planSheetVisible).toBe(false);
   });
+
+  // datetimepicker 9 split the old single `onChange` into onValueChange + onDismiss.
+  // Closing the picker used to be unconditional — it ran outside the
+  // `event.type === 'set'` check — so both halves have to close it now. A dismiss
+  // path that forgot would leave datePickerTarget set, which keeps the picker
+  // mounted with no way back out.
+  it('closes the date picker on dismiss without changing either date', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    const { startDate, endDate } = useSpendingPlanSheetStore.getState();
+
+    await act(() => result.current.openDatePicker('end'));
+    expect(useSpendingPlanSheetState.getState().datePickerTarget).toBe('end');
+
+    await act(() => result.current.dismissDatePicker());
+
+    expect(useSpendingPlanSheetState.getState().datePickerTarget).toBeUndefined();
+    expect(useSpendingPlanSheetStore.getState()).toMatchObject({ startDate, endDate });
+  });
+
+  it('applies a selected date to the targeted field and closes the picker', async () => {
+    const { result } = await renderHook(() =>
+      useSpendingPlanSheet({ budgetableCategories: categories }),
+    );
+    await waitFor(() =>
+      expect(useSpendingPlanSheetStore.getState().selectedCategoryIds).toEqual(['cat_food']),
+    );
+    const { startDate } = useSpendingPlanSheetStore.getState();
+
+    await act(() => result.current.openDatePicker('end'));
+    await act(() =>
+      result.current.selectDate(
+        'end',
+        { nativeEvent: { timestamp: 0, utcOffset: 0 } },
+        new Date(2026, 6, 21, 12),
+      ),
+    );
+
+    expect(useSpendingPlanSheetStore.getState().endDate).toBe('2026-07-21');
+    expect(useSpendingPlanSheetStore.getState().startDate).toBe(startDate);
+    expect(useSpendingPlanSheetState.getState().datePickerTarget).toBeUndefined();
+  });
 });

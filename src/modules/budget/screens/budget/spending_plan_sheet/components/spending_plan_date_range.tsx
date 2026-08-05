@@ -1,4 +1,6 @@
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import DateTimePicker, {
+  type DateTimePickerChangeEvent,
+} from '@react-native-community/datetimepicker';
 import { PressableFeedback } from 'heroui-native';
 import { Platform, View } from 'react-native';
 
@@ -13,11 +15,12 @@ interface SpendingPlanDateRangeProps {
   datePickerTarget: SpendingPlanDatePickerTarget | undefined;
   datePickerValue: Date;
   openDatePicker: (target: SpendingPlanDatePickerTarget) => void;
-  onDateChange: (
+  onDatePickerSelect: (
     target: SpendingPlanDatePickerTarget,
-    event: DateTimePickerEvent,
-    date?: Date,
+    event: DateTimePickerChangeEvent,
+    date: Date,
   ) => void;
+  onDatePickerDismiss: () => void;
 }
 
 export function SpendingPlanDateRange({
@@ -26,7 +29,8 @@ export function SpendingPlanDateRange({
   datePickerTarget,
   datePickerValue,
   openDatePicker,
-  onDateChange,
+  onDatePickerSelect,
+  onDatePickerDismiss,
 }: SpendingPlanDateRangeProps) {
   return (
     <>
@@ -66,8 +70,8 @@ export function SpendingPlanDateRange({
           mode="date"
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           themeVariant="dark"
-          // oxlint-disable-next-line typescript/no-deprecated -- see datetimepicker note in .oxlintrc.json
-          onChange={(event, date) => onDateChange(datePickerTarget, event, date)}
+          onValueChange={(event, date) => onDatePickerSelect(datePickerTarget, event, date)}
+          onDismiss={onDatePickerDismiss}
         />
       ) : null}
     </>
