@@ -59,5 +59,5 @@ Verdict: pass / fail → route back with items {n, m}
 |---|---|
 | "CI is green, QA is a formality" | H15 shipped for months with green CI. The visual class only exists here. |
 | Testing only the changed screen | Balance math and money previews leak across screens — always-run checks exist for that. |
-| QA on the simulator only | Simulator is fine for smoke; the gate itself is a real device (fonts, perf, gestures differ). |
+| QA on the simulator only | Simulator is fine for smoke; the gate itself is a real device (fonts, perf, gestures differ). Use the `emulator-verify` skill to clear the mechanical failures *before* handing the user this checklist — it never substitutes for the gate. |
 | Walking it without recording | An unrecorded pass can't route a fail back to execution. Use the template. |
