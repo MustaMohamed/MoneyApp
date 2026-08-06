@@ -829,6 +829,38 @@ table.t td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--separator);
 .tint-a { background: color-mix(in srgb, var(--accent) 9%, transparent); }
 .tint-b { background: color-mix(in srgb, var(--success) 8%, transparent); }
 .prose-frame { min-height: auto !important; padding: var(--space-lg); }
+
+/* ---------------------------------------------------------------------------
+   NARROW VIEWPORTS — phone review.
+   The frames are 390 pt ACCURATE, not merely 390 pt wide: every measurement
+   this page argues from is composed at that width. So they are never reflowed
+   — they are zoomed to fit. `zoom` (unlike `transform: scale`) also scales
+   layout height, so the page collapses correctly instead of leaving dead space
+   under every frame.
+   Fixed 390 pt + 48 pt body padding needs 438 pt; a phone gives 375–430. That
+   gap is why the page overflowed horizontally on mobile.
+   --------------------------------------------------------------------------- */
+/* 31 frames stack to roughly 46,000 px. Painting that in one go is what kills
+   a phone browser. content-visibility skips the off-screen frames entirely and
+   contain-intrinsic-size keeps the scrollbar honest while they are skipped. */
+.fw { content-visibility: auto; contain-intrinsic-size: auto 920px; }
+
+@media (max-width: 460px) {
+  body { padding: 20px 8px 64px; }
+  .wrap { max-width: 100%; }
+  .grid { gap: 26px 0; }
+  .fw { width: 100%; }
+  /* min(1, …) so a 430 pt phone never scales the frame UP past its true size. */
+  .device { zoom: min(1, calc((100vw - 16px) / 390)); }
+
+  /* Rationale tables carry inline min-widths (400–520) that would overflow. */
+  .grid > div { min-width: 0 !important; overflow-x: auto; }
+  table.t { font-size: var(--type-caption); }
+
+  .doc-h1 { font-size: 26px; }
+  .sec-h { font-size: 20px; }
+  .sec-p, .doc-lede, .note { max-width: 100%; }
+}
 </style>
 </head>
 <body>
