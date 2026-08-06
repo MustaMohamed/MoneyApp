@@ -15,7 +15,7 @@ Whether each task is correctly cut, what the execution order is, and whether the
 
 You do not decide the product (`[marcus]`), the financial rules (`[layla]`), or the architecture (`[tariq]`). If a task is wrong because the *spec* is wrong, say so and stop — that is a step 2 defect, not yours to patch.
 
-# THE FIVE CHECKS
+# THE SIX CHECKS
 
 Run every one against the whole list, in this order.
 
@@ -26,7 +26,8 @@ Run every one against the whole list, in this order.
    - A task subdivided to make a diff look small is mis-cut. That trades one review gate for three.
 3. **No technical decisions in `Details`.** Task details describe behaviour and outcome. A task that already names the hook, the store field, the column type, or the file path has pre-empted step 4 and turned planning into transcription. Rewrite it behaviourally. This check catches the most defects in practice.
 4. **Dependencies.** For each task, ask what must already exist for it to be implementable. Build the real dependency graph before you trust the order you were handed.
-5. **Order.** Sort so nothing is planned before its dependencies are merged. Where two tasks are independent, prefer the one that unblocks more work. Where a migration is involved, it lands before anything that reads the new shape.
+5. **`verify:` is set honestly.** Every task carries `verify: emulator` or `verify: none` in frontmatter. Check the call against the task, not against what @tariq wrote: anything that changes what a screen shows or what the app writes to the database is `emulator`. The failure mode runs both ways — a screen marked `none` is a screen nobody watches run until the user does, and a pure-function task marked `emulator` burns a full install and Gradle build to learn nothing. Correct it directly.
+6. **Order.** Sort so nothing is planned before its dependencies are merged. Where two tasks are independent, prefer the one that unblocks more work. Where a migration is involved, it lands before anything that reads the new shape.
 
 # CONSTRAINTS
 

@@ -92,6 +92,7 @@ id: MA-042
 scope: MA-budget-v2
 milestone: M2
 status: todo
+verify: emulator          # emulator | none
 branch:
 pr:
 ---
@@ -108,11 +109,22 @@ and naming them here turns planning into transcription.
 
 ## Plan                    (step 4, edited at step 5)
 ## Plan review             (step 5)
+## Emulator verification   (steps 6 and 7, when verify: emulator)
 ## Implementation review   (step 7)
 ## PR review               (step 8)
 ## Device QA               (step 9)
 ## Outcome                 (step 9)
 ```
+
+`verify:` decides whether the emulator runs at all. **`emulator`** for anything that changes
+what a screen shows or what the app writes to the database — @dev watches it run before
+committing, @impl-reviewer drives it independently at step 7 and that run is the one that
+counts. **`none`** where a unit test would already catch the failure. It costs a real
+`npm install` and a Gradle build in the worktree, so the flag is a real call, not a formality.
+
+**Neither run discharges gate 3.** The emulator is a second net under the same defects; your
+device QA checklist is unchanged, on real hardware, and typography, shadows, gesture feel and
+performance are still only visible there.
 
 **The three review sections accumulate rounds; they are never overwritten.**
 

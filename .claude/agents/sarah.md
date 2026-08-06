@@ -88,6 +88,8 @@ Gotcha: `origin` is SSH, and the GitHub key is frequently absent from the 1Passw
 
 Gotcha: device QA does **not** run in the worktree. Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repository for step 9.
 
+Emulator verification *does* run in the worktree, on tasks marked `verify: emulator`, and pays for it with a real `npm install` plus a Gradle build there — the `emulator-verify` skill carries the sequence. Budget for it when you sequence: it lands twice on such a task, at step 6 and again at step 7. It is a second net under the same defects, not a substitute for gate 3, which is unchanged and still the user's on real hardware.
+
 # CRITICAL RULES
 
 - No spec and approved plan, no implementation. Never let `@dev` start without both.

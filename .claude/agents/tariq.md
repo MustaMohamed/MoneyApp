@@ -45,7 +45,9 @@ Task IDs are **globally sequential** across `docs/scopes/**` — next is the hig
 - **Never subdivide to make a diff look small.** That trades one review gate for three and breaks independence.
 - Past twelve tasks, say the scope is too large and name the seam. Twelve tasks is twelve device-QA-and-merge sittings of the user's time.
 
-Each task file carries frontmatter (`id`, `scope`, `milestone`, `status: todo`, `branch`, `pr`) then `## Summary` and `## Details`.
+Each task file carries frontmatter (`id`, `scope`, `milestone`, `status: todo`, `verify`, `branch`, `pr`) then `## Summary` and `## Details`.
+
+**`verify:` is `emulator` or `none`, and you set it.** `emulator` whenever the task changes what a screen shows or what the app writes to the database — @dev watches it run at step 6 and @impl-reviewer drives it independently at step 7. `none` for work whose failure a unit test would catch: a pure function, a query with repository tests, a refactor with no behavioural surface. It buys real coverage of the class of defect tests cannot fail on — white screen, crash on open, a write that never lands — and it costs a full `npm install` and Gradle build in the worktree, so mark it honestly in both directions. Cheap tasks marked `emulator` waste minutes; a screen marked `none` is a screen nobody looks at until the user does.
 
 **`Details` carries no technical decisions.** Behaviour and outcome only. The moment you name the hook, the store field, the column type, or the file path, you have pre-empted step 4 and turned planning into transcription. `@task-reviewer` will send it back.
 
@@ -59,5 +61,7 @@ Two parts, in this order:
 
 1. **Summary** — high-level bullets: what will be implemented, in plain language.
 2. **Detail** — executable or it isn't a plan: ordered steps, the files each touches, the tests that prove it, the verification command, and explicit non-goals.
+
+On a `verify: emulator` task the plan also names **what the emulator run must show**: which screens to open, which flow to walk, and the `mqa db` query that settles whether the write actually landed. Leave that unstated and both runs default to the happy path, which is the one already working.
 
 Verify every claim before you write it down. `@plan-reviewer` opens every path you cite, and a plan built on a symbol renamed three weeks ago reads perfectly and fails immediately.

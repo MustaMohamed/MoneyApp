@@ -189,19 +189,35 @@ A scope landing in single digits is the expected shape. Tasks are never subdivid
 
 **2 — Spec and tasks.** `@tariq` writes `spec.md` from the locked scope, embedding `@marcus`'s UX section and `@layla`'s financial-logic section, then decomposes it into milestones and tasks per **Task granularity** above and writes `tasks.md` and one file per task. Task details stay behavioural. Exit: every task has title, summary, and details, `tasks.md` lists them all, and each one would leave `main` working if merged alone.
 
-**3 — Task review.** `@task-reviewer` reads `spec.md` and every task file and checks five things: full coverage of the spec with no gap and no task outside it, granularity against the three rules above, no technical decisions leaking into `Details`, no hidden dependency between tasks that the order violates, and a correct execution order. It **edits** rather than reports — splitting, merging, rewriting, and reordering as needed — then writes the final order into `tasks.md`. If applying the rules leaves more than twelve tasks, it says so and recommends the scope split rather than ordering a queue it believes is too long. Exit: a reviewed, ordered list. 🛑 **Gate 2.**
+**3 — Task review.** `@task-reviewer` reads `spec.md` and every task file and checks six things: full coverage of the spec with no gap and no task outside it, granularity against the three rules above, no technical decisions leaking into `Details`, no hidden dependency between tasks that the order violates, an honest `verify:` flag, and a correct execution order. It **edits** rather than reports — splitting, merging, rewriting, and reordering as needed — then writes the final order into `tasks.md`. If applying the rules leaves more than twelve tasks, it says so and recommends the scope split rather than ordering a queue it believes is too long. Exit: a reviewed, ordered list. 🛑 **Gate 2.**
 
 **4 — Plan.** `@tariq` takes the first `todo` task, researches the codebase and the web, and appends a plan to the task file with `superpowers:writing-plans`. Two parts: a high-level bullet summary of what will be implemented, then the executable detail — ordered steps, files touched, tests that prove it, verification command, explicit non-goals.
 
 **5 — Plan review.** `@plan-reviewer` checks the plan against the task and the spec: does it achieve the task, is every claim about the codebase true, are the tests sufficient, does it follow `.claude/rules/`, does it overreach the task. It **edits the plan** to fix what it finds and appends its verdict. Exit: approved.
 
-**6 — Implementation.** `@dev` implements in an isolated worktree, strictly to the plan. On re-entry after an interruption it inspects the existing branch and worktree before writing anything. On completion it self-reviews the diff against the plan, the task, and `.claude/rules/review.md`, fixes what it finds including error paths and edge cases, and commits.
+**6 — Implementation.** `@dev` implements in an isolated worktree, strictly to the plan. On re-entry after an interruption it inspects the existing branch and worktree before writing anything. On completion it self-reviews the diff against the plan, the task, and `.claude/rules/review.md`, fixes what it finds including error paths and edge cases. On a `verify: emulator` task it then watches the change actually run before committing — see **Emulator verification** below.
 
-**7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist in `.claude/rules/review.md`. It runs the CI parity chain. Findings go back to `@dev`, who fixes and returns. On approval `@sarah` — not the reviewer — pushes the branch and opens the PR; reviewers review, and the orchestrator is the only agent that acts outward. Exit: PR open, CI running.
+**7 — Local review.** `@impl-reviewer` reviews the diff against the plan and the task before anything is pushed, applying the `superpowers:requesting-code-review` rubric plus the five-class MoneyApp defect checklist in `.claude/rules/review.md`. It runs the CI parity chain, and on a `verify: emulator` task drives the emulator itself rather than reading `@dev`'s screenshots. Findings go back to `@dev`, who fixes and returns. On approval `@sarah` — not the reviewer — pushes the branch and opens the PR; reviewers review, and the orchestrator is the only agent that acts outward. Exit: PR open, CI running.
 
 **8 — PR review.** `@pr-reviewer` reviews the pull request against its exclusive domain below, and **only** that domain. Findings return to `@dev` and the task re-enters step 6. On approval the user is notified with a short summary — what was done, in bullets, no diff walkthrough. 🛑 **Gate 3.**
 
 **9 — Human approval.** The user walks device QA and merges, or asks for the merge. The orchestrator then deletes the worktree and the local branch, appends the outcome to the task file, sets status `done`, and moves to the next task.
+
+## Emulator verification
+
+The `emulator-verify` skill drives the app on an Android emulator: install, tap, screenshot, and read the SQLite it wrote. It closes the gap between "tests pass" and "it works" for the class of defect a test cannot fail on — a white screen, a crash on open, a field that never takes focus, a write that never lands.
+
+It runs on tasks whose frontmatter carries `verify: emulator`, set by `@tariq` at step 2 and checked by `@task-reviewer` at step 3: anything that changes what a screen shows or what the app writes. Work whose failure a unit test would already catch is `verify: none` and skips it, because a run costs a real `npm install` and a Gradle build in the worktree.
+
+**Twice, with different mandates.** `@dev` runs it at step 6 as a self-check before committing — the cheapest possible fix point. `@impl-reviewer` runs it again at step 7, and that run is the authoritative one: it walks the task's acceptance behaviour rather than the happy path `@dev` chose to demonstrate, and asserts against `mqa db` rather than the screen. A screenshot supplied by the author is the author's claim about the author's work, which is precisely what the four-reviewer design exists to distrust.
+
+Three mechanics decide whether a run means anything, and all three fail silently:
+
+- **A worktree's `node_modules` is symlinked.** That passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes, so the app runs with no screens. It also breaks `mqa db`, which resolves its root from the script's own location and so needs the worktree's `better-sqlite3`. A real `npm install` is required.
+- **`adb reverse` is global per device.** `mqa launch` reverses `tcp:$PORT`, and a worktree sharing 8081 with the primary repo's Metro loads *that* bundle: the app runs, the screens render, the run goes green, and nothing under review was executed. The worktree needs its own port.
+- **The CI parity chain deletes the APK.** It ends in `expo prebuild --no-install`, which regenerates `android/`. Verify before running the chain, or rebuild after it.
+
+**It does not discharge gate 3.** The user's device QA checklist is unchanged and still walked on real hardware — typography, shadows, gesture feel, and cold-start performance are visible nowhere else, and the emulator run is deliberately positioned as a second net under the same defects rather than a reason to trust them less.
 
 ## What step 8 sees that step 7 cannot
 
@@ -256,6 +272,7 @@ After merge the orchestrator removes the worktree and deletes the local branch. 
 - **Amended:** `.claude/agents/marcus.md` — mockup to `assets/`, `## Product & UX` into `spec.md`
 - **Amended:** `.claude/agents/layla.md` — `## Financial Logic` into `spec.md`
 - **Amended:** `.claude/commands/status.md` — reads `tasks.md`
+- **Amended:** the `emulator-verify` skill — a worktree section covering the real `npm install`, the private Metro port, and the parity chain's APK deletion; `@dev`, `@impl-reviewer`, `@tariq`, and `@task-reviewer` for the `verify:` flag and the two runs
 - **Amended:** `.claude/commands/qa.md` and the `device-qa` skill — the QA verdict is recorded under `## Device QA` in the task file rather than in `docs/superpowers/qa/`, and QA runs on the PR branch checked out in the primary repo, never in the worktree
 - **Deleted:** `.claude/commands/feature.md`
 - **Unchanged:** the five existing `.claude/rules/` files, the other four skills, `/ci`, the CI parity chain
