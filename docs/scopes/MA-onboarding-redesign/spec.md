@@ -394,9 +394,34 @@ Approved. Five additions to `Size` in `src/constants/theme.ts`, all `ms()`-scale
 | `Size.summaryValueSlot` | `ms(52)` | The N4 40 px number, including `Exchange rate needed` |
 | `Size.summaryCaptionSlot` | `ms(34)` | The N4 two-line caption |
 | `Size.statusTrack` | `ms(34)` | The footer footnote ↔ error swap |
-| `Size.fieldHeight` | `ms(44)` | Input height — HeroUI derives it from padding + font size, so 44 is written down nowhere |
+| `Size.fieldHeight` | **`48`, unscaled** | Field height — matches HeroUI `Input`'s own `min-height: calc(var(--spacing) * 12)` = 48, which never passes through `ms()`. **Corrected 2026-08-06 — see below.** |
 
-**Why this is worth five constants:** the zero-shift contract is the reason this scope exists, and today it is only assertable by eyeballing a device. As tokens it is assertable in a `.test.ts` that never opens a simulator. Cost is five lines plus one test; the alternative is four numbers scattered across six components that drift silently. `Size.fieldHeight` is an alias of the existing `Size.dialogButton` value and equals `TouchSize.min` — that coincidence is why nobody wrote it down, and why it will drift the first time `dialogButton` changes.
+**Why this is worth five constants:** the zero-shift contract is the reason this scope exists, and today it is only assertable by eyeballing a device. As tokens it is assertable in a `.test.ts` that never opens a simulator. Cost is five lines plus one test; the alternative is four numbers scattered across six components that drift silently.
+
+**`Size.fieldHeight` — corrected 2026-08-06, @sarah's ruling. MA-006, MA-007 and MA-009 plan against this row; read it before planning them.**
+
+This row previously read `ms(44)`, justified by "HeroUI derives input height from padding + font size, so 44 is written down nowhere." **That premise was false and the value was wrong.** 48 is written down, explicitly and unscaled:
+
+- `node_modules/heroui-native/src/styles/components/input.css:9` — `.input__input { min-height: calc(var(--spacing) * 12); }`
+- `--spacing: 0.25rem`, Uniwind resolves `rem` as `value * 16` → **`min-height: 48`**, a raw dp value that never passes through `ms()`
+- The project wrapper `src/components/ui/input.tsx:42,56` adds only `py-2 text-[16px]` (~32 content box), so the 48 floor governs on every device
+
+Text inputs were therefore never at risk. **The colour trigger row was.** It is a custom composition with no floor, and this spec requires it to match the fields:
+
+| Phone | HeroUI `Input` renders | Trigger row at `ms(44)` |
+|---|---|---|
+| 320pt | 48 | **37** — breaches `TouchSize.min` |
+| 360pt | 48 | 41 |
+| 375pt | 48 | 42 |
+| 390pt | 48 | 44 |
+
+On every phone at or below 390pt the trigger row would be 6–11pt shorter than the fields directly above and below it. The mockup's stated 44 was never achievable, so matching the primitive **executes** this spec's own requirement — fields and colour trigger the same height — rather than overriding the design.
+
+Cost, stated: form rows are 4pt taller than drawn at the 390pt reference width, and a fixed 48 does not scale on large phones — already true of every HeroUI `Input` shipping today, so this makes the trigger row consistent with existing behaviour rather than introducing new behaviour. Restoring the visual 44 would mean overriding the primitive's `min-height` app-wide: a separate scope, and a far larger change than this token.
+
+Downstream, any tappable row sized from this token still uses `Math.max(Size.fieldHeight, TouchSize.min)`. That is now belt-and-braces rather than load-bearing — keep it, because it costs nothing and survives someone editing the token.
+
+**Known gap, not blocking:** `scripts/design-tokens.js` emits only values written as `ms()`/`msFont()` calls, so `--size-field-height` is absent from the generated CSS and the next mockup will hand-write it. One regex at `scripts/design-tokens.js:45`; `fieldHeight` is the only bare literal in the `Size` block.
 
 `scripts/design-tokens.js` gains `Colors.shared` and `AcctTokens` emission so the next mockup does not have to re-declare them by hand (mockup rationale, item 1).
 
