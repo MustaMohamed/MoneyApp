@@ -10,7 +10,7 @@ Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes 
 
 | ID | Title | Status | Verify | Branch | PR |
 |---|---|---|---|---|---|
-| MA-001 | Colour families, geometry tokens, and the 32-colour palette | in-review | none | `feat/MA-001-color-and-geometry-tokens` | — |
+| MA-001 | Colour families, geometry tokens, and the 32-colour palette | in-review | none | `feat/MA-001-color-and-geometry-tokens` | [#194](https://github.com/MustaMohamed/MoneyApp/pull/194) |
 | MA-002 | Spike: gradient-filled headline, with the flat fallback | todo | emulator | — | — |
 | MA-003 | Cross Fan logo — launcher, adaptive, splash, in-app mark | todo | emulator | — | — |
 | MA-004 | Onboarding shell: four fixed tracks and an honest busy CTA | todo | emulator | — | — |
