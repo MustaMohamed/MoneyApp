@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
+import { DisplayHeadline } from '@/components/ui/display_headline';
 import { Input } from '@/components/ui/input';
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
@@ -76,6 +77,11 @@ export default function PrimitivesPreview() {
       <Pressable className="bg-surface-secondary mb-8 rounded-[12px] p-4">
         <Text>Press me — opacity 0.7 feedback, hitSlop 12</Text>
       </Pressable>
+
+      <Text variant="body" className="mb-2">
+        DisplayHeadline
+      </Text>
+      <DisplayHeadline style={{ marginBottom: 32 }}>Finally clear.</DisplayHeadline>
     </ScrollView>
   );
 }
