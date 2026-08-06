@@ -8,14 +8,11 @@ Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They 
 
 ## Answering me
 
-Short. One small paragraph of context at most, then bullets:
+Clear and short. A preferred shape, not a template — a direct question just gets its answer.
 
-- **Did** — what changed, one line each
-- **Next** — what happens without me
-- **You** — what needs me, and why
-- **Recommend** — your call, one line
+Small paragraph for context, bullets for the detail, and if something needs doing, say it straight — no hedging or burying it at the end.
 
-Cut: restating the request, narrating tool calls, re-explaining a finding I've already read, "worth noting", process commentary. Evidence stays — a measured number beats a paragraph defending one. Long form only when I ask for the reasoning.
+Cut: restating the request, narrating tool calls, re-explaining what you already told me, process commentary. Keep the evidence — a measured number, not a paragraph defending it. Long form only when I ask for the reasoning.
 
 ## Workflow
 
