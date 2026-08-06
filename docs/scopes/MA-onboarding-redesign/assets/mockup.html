@@ -827,6 +827,21 @@ table.t td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--separator);
      the rationale names the exact glyph string for @dev.
      ===================================================================== -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <!-- Headline gradient — restored at the user's request after round 5 shipped
+         the flat-gold fallback. Round 4's two stops (gold-400 → Nile soft) with a
+         third added at 45%: it holds the gold through "Finally" so the turn to
+         teal lands on "clear.", instead of washing teal across the whole line.
+         Every stop clears AA on --background: 9.55 / 7.78 / 6.15.
+         Needs react-native-svg <Text> + <LinearGradient>. See the risk note in
+         section B — this is a real spike for @tariq, not a resolved decision. -->
+    <linearGradient id="grad-headline" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e0b968"/>
+      <stop offset="0.45" stop-color="#d4a44c"/>
+      <stop offset="1" stop-color="#5ba597"/>
+    </linearGradient>
+  </defs>
+
   <!-- account types (TYPE_OPTIONS in account_type_pill.tsx) -->
   <symbol id="i-bank" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2 2 7v2h20V7L12 2zM3 11h2v8H3v-8zm4 0h2v8H7v-8zm4 0h2v8h-2v-8zm4 0h2v8h-2v-8zm4 0h2v8h-2v-8zM2 20h20v2H2v-2z"/></symbol>
   <symbol id="i-cellphone-nfc" viewBox="0 0 24 24"><path fill="currentColor" d="M6 2h8a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 3v13h8V5H6z"/><path fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" d="M18 8.2a5.2 5.2 0 0 1 0 7.6M20.6 5.8a8.6 8.6 0 0 1 0 12.4"/></symbol>
@@ -872,12 +887,15 @@ table.t td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--separator);
 
 <h1 class="doc-h1">Onboarding — round 5</h1>
 <p class="doc-lede">
-  Two corrections on round 4. <b>The device keyboard is native, not drawn</b> — C3 no longer renders a custom keypad.
-  <b>Round 4's "not glassmorphism" claim didn't survive contact with its own CSS</b> — gradient fills and inset white
-  highlights on nearly every surface, stripped and replaced with HeroUI's actual defaults: flat semantic fills,
-  generous radii, one nearly-invisible shadow token. Two gradient surfaces remain, both pre-existing shipped
-  component code you explicitly chose (the N2 selected account-type tile, the N4 hero) — everything else is flat.
-  <b>Nothing else moves</b> — the four-track shell, the permanent message rail, the reserved credit slot and the fixed
+  Two corrections on round 4, plus one reversal. <b>The device keyboard is native, not drawn</b> — C3 no longer
+  renders a custom keypad. <b>Round 4's "not glassmorphism" claim didn't survive contact with its own CSS</b> —
+  gradient fills and inset white highlights on nearly every surface, stripped and replaced with HeroUI's actual
+  defaults: flat semantic fills, generous radii, one nearly-invisible shadow token.
+  <b>The one exception, at your call: “Finally clear.” keeps its gradient</b> — round 5 had flattened it, you compared
+  both and chose the colour back, so it returns with a third stop that holds gold through “Finally” and lands the teal
+  on “clear.” Everything else that glowed is now a flat fill or a border. Three expressive surfaces in 31 frames: the
+  N2 selected account-type tile, the N4 hero — both pre-existing shipped component code you chose — and that headline.
+  <b>Nothing moves</b> — the four-track shell, the permanent message rail, the reserved credit slot and the fixed
   N4 slots are unchanged from round 3.
 </p>
 <p class="doc-sub">
@@ -989,14 +1007,15 @@ table.t td { padding: 7px 10px 7px 0; border-bottom: 1px solid var(--separator);
   <p class="sec-p">
 A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:</b> a giant <code>01</code> ghost
     numeral at 5% opacity tied to step 1 of 4, a 34&nbsp;pt gold rule, and a 42&nbsp;px left-aligned headline — no card
-    stack, no illustration, no centred block. <b>Aurora owns the light, revised:</b> round 4 gave this a gradient-filled
-    <code>Finally clear.</code> and a radial-gradient halo under the selected currency row — both are gone. The headline
-    is now flat <code>--accent</code> gold text, same size and position, zero layout change. Selection is now HeroUI's
-    own language — accent border, <code>--accent-soft</code> fill, the <code>Radio</code> circle turning solid accent —
-    not a glow. What survives from Aurora is the two-hue ambient wash behind the whole screen (gold top-left, Nile teal
-    right), which is a base-canvas colour, not a material sitting on a surface; see the rationale for why that one
-    stayed. <b>Round 3 keeps the semantics:</b> this is still a <code>RadioGroup</code> of two 76&nbsp;pt rows that each
-    state the consequence of the choice, not a tablist.
+    stack, no illustration, no centred block. <b>Aurora's light survives in exactly one place:</b> the gradient-filled
+    <code>Finally clear.</code> Round 5 replaced it with flat gold; the user compared both and chose the gradient back,
+    so it returns — now with a third stop at 45% that holds the gold through “Finally” and lets the turn to teal land on
+    “clear.”, rather than washing teal across the whole line. The radial-gradient halo that used to sit under the
+    selected currency row does <em>not</em> come back: selection is HeroUI's own language — accent border,
+    <code>--accent-soft</code> fill, the <code>Radio</code> circle turning solid accent. Light marks the brand moment;
+    colour marks state. The two-hue ambient wash behind the screen (gold top-left, Nile teal right) also stays — a
+    base-canvas colour, not a material sitting on a surface. <b>Round 3 keeps the semantics:</b> this is still a
+    <code>RadioGroup</code> of two 76&nbsp;pt rows that each state the consequence of the choice, not a tablist.
   </p>
 
   <div class="grid">
@@ -1018,7 +1037,9 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <div class="b-headline" style="color:var(--accent)">Finally clear.</div>
+            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+              <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
+            </svg>
           </div>
 
           <div class="b-body-col rise-2 mt12">
@@ -1079,7 +1100,9 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <div class="b-headline" style="color:var(--accent)">Finally clear.</div>
+            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+              <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
+            </svg>
           </div>
           <div class="b-body-col mt12">
             <div class="vr"></div>
@@ -1135,7 +1158,9 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <div class="b-headline" style="color:var(--accent)">Finally clear.</div>
+            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+              <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
+            </svg>
           </div>
           <div class="b-body-col mt12">
             <div class="vr"></div>
@@ -1191,7 +1216,9 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <div class="b-headline" style="color:var(--accent)">Finally clear.</div>
+            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+              <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
+            </svg>
           </div>
           <div class="b-body-col mt12">
             <div class="vr"></div>
@@ -1252,14 +1279,24 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
 
   </div>
 
-  <div class="note">
-    <b>“Finally clear.” — resolved, not deferred.</b> Round 4 drew this as gradient-filled text (gold&nbsp;400 →
-    Nile soft), which meant <code>react-native-svg</code>'s <code>Text</code> with a <code>LinearGradient</code> fill —
-    nothing in this codebase does that today, and it was flagged as an unverified spike two rounds running. Round 5
-    ships the fallback instead of spiking it: <b>flat <code>--accent</code> gold text</b>, plain <code>Typography</code>,
-    same size, same position, same line break. No <code>SvgText</code>, no gradient fill, no accessibility-label
-    workaround for text that isn't real text — it's just text now. Contrast: <code>--accent</code> #D4A44C on
-    <code>--background</code> is <b>7.78:1</b>, comfortably past the 6.13:1 the gradient's darkest stop measured.
+  <div class="note risk">
+    <b>“Finally clear.” — the user's call, and the one spike this design still carries.</b>
+    Round 5 shipped flat gold and closed this out. The user compared it against round 4's gradient and chose the
+    gradient: it “gives feeling”. That is a legitimate call on a brand moment, it is the only screen where the app gets
+    to be expressive rather than functional, and it is now the design. <b>What it costs is honesty about the risk, not
+    the decision.</b>
+    <br><br>
+    Gradient-filled text means <code>react-native-svg</code>'s <code>Text</code> with a <code>LinearGradient</code>
+    fill, and <b>nothing in this codebase does that today</b>. <b>@tariq spikes it on a real mid-range Android device
+    at step 2</b>, checking three things specifically: that it scales with dynamic type rather than rasterising at a
+    fixed size; that the accessibility label survives (the frames carry <code>role="img"</code> +
+    <code>aria-label="Finally clear."</code> because SVG text is <em>not</em> read as text); and that it does not
+    regress first-paint on the app's very first screen.
+    <br><br>
+    <b>The fallback is flat <code>--accent</code> gold and costs nothing</b> — same size, same position, same line
+    break, zero layout change. If the spike is anything but clean, ship the fallback; nothing structural depends on
+    this. Contrast passes either way: the three stops measure <b>9.55</b>, <b>7.78</b> and <b>6.15</b> against
+    <code>--background</code>, all clear of AA, and the flat fallback is 7.78.
   </div>
 </div>
 
@@ -2774,11 +2811,17 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
     staggered rise-ins instead, which are HeroUI-neutral (plain opacity/translateY, not a material effect).
   </p>
   <p class="sec-p">
-    <b>The gradient headline — resolved, not deferred.</b> "Finally clear." was the one unverified thing on round 4's
-    page: gradient-filled <code>SvgText</code>, needing a spike nothing in this codebase has done, flagged two rounds
-    running. Given the user is explicitly asking for normal, the spike doesn't get to stay open a third round — it
-    ships the fallback that was always the zero-cost option: flat <code>--accent</code> gold text, same size, same
-    position, plain <code>Typography</code>. See the updated note in section B.
+    <b>The gradient headline — reversed by the user, and correctly.</b> Round 5 stripped it to flat gold on the
+    reasoning that "normal" should also retire an unverified spike. The user reviewed both side by side and chose the
+    gradient back: it "gives feeling". They are right about the thing that matters — N1 is the one screen in this flow
+    whose job is to make someone feel like the app is worth setting up, and flat gold on a flat background does not do
+    that. The mistake in round 5 was bundling a <em>brand</em> decision into a <em>material</em> correction: stripping
+    glass off ordinary surfaces was right, and it should not have taken the one expressive element with it.
+    <br><br>
+    So the gradient returns, with one refinement rather than a straight revert: a third stop at 45% holds gold through
+    "Finally" so the turn to teal lands on "clear." The engineering risk is unchanged and is <b>not</b> resolved — see
+    the risk note in section B. It is a step-2 spike for @tariq with a zero-cost fallback, which is a normal thing for
+    a design to carry, not a defect.
   </p>
 
   <h3 style="font-family:var(--font-display);font-size:var(--type-title);margin:26px 0 8px">Why a per-section mix reads as one design and not three</h3>
@@ -2826,7 +2869,7 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
         <tr><td>Ambient wash (N1)</td><td>2 × <code>RadialGradient</code> in one full-screen <code>Svg</code></td><td>One SVG, one screen, static. Cheapest thing on this page. No blur — <code>expo-blur</code> is not used anywhere.</td></tr>
         <tr><td>Everything else round 4 glowed</td><td>flat <code>background-color</code> / <code>color-mix()</code> tint, or nothing</td><td><b>Zero.</b> Currency-row, colour-dot and swatch halos were each a <code>View</code> + <code>RadialGradient</code> underlay; all three are gone, replaced by a colour/border change that was already being computed for the selected state.</td></tr>
         <tr><td>Broadsheet ghost numeral</td><td><code>Text</code> at 5% opacity, absolutely positioned</td><td><b>Zero</b> — one text node. No image, no vector art.</td></tr>
-        <tr><td>Headline "Finally clear."</td><td>flat <code>Typography</code>, <code>color: var(--accent)</code></td><td><b>Zero.</b> Was a <code>SvgText</code> + <code>LinearGradient</code> spike; retired in favour of the fallback. See section B.</td></tr>
+        <tr><td>Headline "Finally clear."</td><td><code>SvgText</code> + 3-stop <code>LinearGradient</code></td><td><b>Unverified — the one open spike.</b> One SVG text node on one screen, static, no animation. @tariq spikes it at step 2; flat <code>--accent</code> gold is the zero-cost fallback with identical geometry. See section B.</td></tr>
         <tr><td>CTA</td><td>HeroUI primary <code>Button</code>: flat fill, <code>border-width: 0</code></td><td><b>Zero.</b> No shimmer, no ring, no sheen — see the shimmer note above.</td></tr>
         <tr><td>Surfaces (fields, list groups, sheet, switches, tiles)</td><td>flat <code>background-color</code>, hairline <code>border</code></td><td><b>Zero</b> new nodes. <code>elevation</code>/<code>shadow*</code> unused except the sheet's single <code>--shadow-overlay</code> token.</td></tr>
       </table>
@@ -3010,9 +3053,11 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
     headlines</b> — 42&nbsp;px on N1 and the 40&nbsp;px hero number — and both have a documented answer: the headline
     reflows into the scroll viewport (N1 has ~130&nbsp;pt of slack at base size), and the number takes the 28&nbsp;px
     step-down rung. Progress announces “Step 2 of 4”; the segments themselves are hidden from assistive tech. Swatches
-    announce “Nile Teal, rich, selected”. The status track is a live region. The headline is now plain
-    <code>Typography</code>, so it needs no accessibility-label workaround — the SVG-text approach it replaced would
-    have needed one, because SVG text isn't read as text.
+    announce “Nile Teal, rich, selected”. The status track is a live region. <b>The gradient headline carries an explicit
+    <code>accessibilityLabel</code> and <code>accessibilityRole="image"</code></b>, because SVG text is not read as
+    text by a screen reader — that label is not optional decoration, it is the only thing standing between a blind user
+    and a silent first screen. It is also the first thing to verify in @tariq's spike, alongside whether the text
+    scales with dynamic type rather than rasterising at a fixed size.
   </p>
 
   <h3 style="font-family:var(--font-display);font-size:var(--type-title);margin:26px 0 8px">What I am deliberately not building</h3>
