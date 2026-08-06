@@ -192,6 +192,16 @@ export const Size = {
   sheetHandle: { width: ms(36), height: ms(4) },
   dialogButton: ms(44),
   hairline: ms(1),
+  // Zero-shift contract — spec.md § "The zero-shift contract". These five are
+  // fixed tracks that must not change height when their contents swap.
+  fieldMessageTrack: ms(20), // helper <-> error rail under every field
+  summaryValueSlot: ms(52), // N4 value slot, sized for Type.amountEntry (40)
+  summaryCaptionSlot: ms(34), // N4 two-line caption
+  statusTrack: ms(34), // footer footnote <-> error track
+  // Field height. UNSCALED, matching HeroUI Input's own `min-height: 48`
+  // (heroui-native/src/styles/components/input.css:9 — spacing 0.25rem x 12).
+  // Deliberately not ms()-scaled: see @sarah's ruling, note 5 below.
+  fieldHeight: 48,
 } as const;
 
 /**
