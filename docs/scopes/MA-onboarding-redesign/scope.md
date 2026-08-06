@@ -4,7 +4,7 @@
 
 The four onboarding screens a new user walks through on first launch — welcome, add your first account, add more accounts, ready to start — get rebuilt as one coherent Cairo Nights experience. The app also picks up its real logo: the "Cross Fan" mark, three fanned account cards behind the folded MoneyApp symbol.
 
-You already designed and locked all of this on 23 July, under the old workflow that has since been replaced. That work survived; the process around it did not. This scope carries the design forward into the current nine-step flow.
+You designed and locked a version of this on 23 July, under the old workflow that has since been replaced. **The visual design is being restarted from scratch** — neither the July look nor the three directions explored since are carried forward. What survives from July is the functional detail: which fields exist, what validates, what the numbers must do. The new design works inside MoneyApp's existing design system — the same tokens, type, and component library the rest of the app already uses — so this stays contained to onboarding rather than becoming a re-skin of the whole app.
 
 ## Why now
 
@@ -37,8 +37,18 @@ There is also a real bug waiting on the last screen. The "Ready" summary adds up
 
 ## Open questions
 
-**1. The logo reads "Mi", not "M".** The teal accent dot sits directly on top of the vertical stroke at the right of the folded mark — dot over stem is the anatomy of a lowercase "i". At launcher size, where the fine detail drops out first, Marcus expects it to read as "Mi", which also collides with an existing phone brand. His recommendation is to keep the accent but shift it up and to the right so it sits over the card's corner rather than the stroke — a one-line change to the artwork, not a redesign. **Do you want that nudge, or ship the mark exactly as locked?**
+**1. What does choosing USD on the first screen actually promise?** The welcome screen offers EGP and USD as equal choices. But the rest of the app is built with EGP as its home currency — transactions store an EGP amount alongside the original, and the saved exchange rate is specifically a USD rate. So "base currency = USD" is a promise the summary screen can display but the rest of the app may not keep: a budget or dashboard total elsewhere could quietly assume EGP.
 
-**2. What does choosing USD on the first screen actually promise?** The welcome screen offers EGP and USD as equal choices. But the rest of the app is built with EGP as its home currency — transactions store an EGP amount alongside the original, and the saved exchange rate is specifically a USD rate. So "base currency = USD" is a promise the summary screen can display but the rest of the app may not keep: a budget or dashboard total elsewhere could quietly assume EGP. Two ways out — reword the welcome screen so the choice reads as "which currency do you think in" rather than "which currency the app runs on", or commit to making base currency mean the same thing everywhere. The second is considerably more work and reaches outside onboarding. **Which way?**
+Marcus has designed for the cheap answer: the screen asks **"Which currency do you think in?"** and each option states a *display* consequence — "Every total in the app is shown in EGP" / "Totals convert to USD using the rate you save." That is honest under the current architecture. The expensive answer — making base currency mean the same thing in every module — reaches well outside onboarding and would be its own scope. **Take the cheap answer, or open the expensive one?**
 
-**3. Your original mockup is gone, so the one attached is a rebuild.** The approved HTML from July lived in a scratch folder that was never committed and no longer exists. Marcus reconstructed the screens from the written design, which is detailed enough to do that faithfully — but you are reviewing a reconstruction, not the file you signed off. **Worth checking it still matches what you remember approving.**
+**2. Secondary text is 4% under the accessibility floor, app-wide.** The muted text colour (`--content-secondary`) computes 4.33:1 on the app background and 3.77:1 on cards. The AA standard for text below ~19px is 4.5:1, so both miss — narrowly, but they miss. *(Verified independently, not taken on the designer's word.)*
+
+Inside onboarding this is handled by rule: anything you must actually read is full-strength, and the muted colour is confined to genuinely redundant labels. The side effect is that the screens read flatter than the July version — hierarchy is carried by size and weight instead of colour. Lightening the token fixes it everywhere in one line, but that line touches every screen in the app. **Leave it and live with the rule, or lighten it as a separate piece of work?**
+
+**3. The logo accent — confirm or revert.** The teal dot originally sat on the vertical stroke of the folded mark; dot over stem is the anatomy of a lowercase "i", so at launcher size it read as "Mi". Marcus has **already drawn it nudged** onto the card's corner instead. It's a one-line change to the artwork, not a redesign. **Confirm the nudge, or revert to the mark exactly as locked in July?**
+
+### Decided by the team (revertible — say so if you disagree)
+
+- **32 colours, not 24.** Sixteen families needs four new colour entries; twelve families would fit the same grid with none. Marcus prefers 32 because at 24 the picker stops reading as a complete chart. No migration either way.
+- **The credit-card hint row stays.** It costs about 60pt of permanent space on the four account types that never use it, and buys the thing this scope exists to fix: the card fields open exactly where the placeholder was, instead of the page growing under your thumb.
+- **The separate "revolving balance" field is dropped.** Two "how much do you owe" boxes on a first-ever screen is a comprehension trap. If the database column needs a value at creation, Layla derives it rather than asking a fifth question.
