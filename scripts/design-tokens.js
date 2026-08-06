@@ -46,9 +46,38 @@ function readNumericGroup(source, name) {
   ].map((m) => [m[1], m[2]]);
 }
 
-const theme = fs.readFileSync(path.join(root, 'src/constants/theme.ts'), 'utf8');
+// Colors.shared and AcctTokens are nested objects of hex literals, so neither
+// readColors (global.css) nor readNumericGroup (ms()/msFont()) can see them.
+// Without these a mockup has to hand-copy the brand gradient stops and all 32
+// account swatches — which is exactly what the round-4 mockup had to do.
+function readSharedColors(source) {
+  const block = /\n {2}shared: \{([\s\S]*?)\n {2}\},/.exec(source);
+  if (!block) throw new Error('theme.ts: could not find the Colors.shared block');
+  return [...block[1].matchAll(/^\s*([A-Za-z][A-Za-z0-9]*):\s*'(#[0-9a-fA-F]{3,8})'/gm)].map(
+    (m) => [m[1], m[2]],
+  );
+}
 
-const kebab = (s) => s.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+function readAcctTokens(source) {
+  const block = /export const AcctTokens = \{([\s\S]*?)\n\} as const/.exec(source);
+  if (!block) throw new Error('theme_tokens.ts: could not find the AcctTokens block');
+  const families = [
+    ...block[1].matchAll(
+      /^\s*([A-Za-z][A-Za-z0-9]*):\s*\{\s*rich:\s*'(#[0-9a-fA-F]{6})',\s*soft:\s*'(#[0-9a-fA-F]{6})'\s*\}/gm,
+    ),
+  ].map((m) => [m[1], m[2], m[3]]);
+  if (!families.length) throw new Error('theme_tokens.ts: AcctTokens parsed to zero families');
+  return families;
+}
+
+const theme = fs.readFileSync(path.join(root, 'src/constants/theme.ts'), 'utf8');
+const themeTokens = fs.readFileSync(path.join(root, 'src/constants/theme_tokens.ts'), 'utf8');
+
+const kebab = (s) =>
+  s
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/([a-zA-Z])(\d)/g, '$1-$2')
+    .toLowerCase();
 
 const out = [];
 out.push('<style>');
@@ -69,6 +98,19 @@ for (const [group, prefix] of [
   for (const [name, value] of readNumericGroup(theme, group)) {
     out.push(`  --${prefix}-${kebab(name)}: ${value}px;`);
   }
+}
+
+out.push('');
+out.push('  /* constants/theme.ts -> Colors.shared */');
+for (const [name, value] of readSharedColors(theme)) {
+  out.push(`  --${kebab(name)}: ${value};`);
+}
+
+out.push('');
+out.push('  /* constants/theme_tokens.ts -> AcctTokens: 16 families x rich/soft */');
+for (const [family, rich, soft] of readAcctTokens(themeTokens)) {
+  out.push(`  --acct-${kebab(family)}-r: ${rich};`);
+  out.push(`  --acct-${kebab(family)}-s: ${soft};`);
 }
 
 out.push('');
