@@ -1,10 +1,10 @@
+import { Strings } from '@/constants/strings';
+import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 import {
   ACCOUNT_PALETTE,
   contrastRatio,
   findAccountColor,
 } from '@/modules/accounts/constants/account_palette';
-import { Strings } from '@/constants/strings';
-import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 
 describe('contrastRatio', () => {
   // Two known answers pin the WCAG formula, so the assertions below that use it
