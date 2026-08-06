@@ -6,6 +6,17 @@ Path-scoped rules in `.claude/rules/` load automatically when working with match
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
+## Answering me
+
+Short. One small paragraph of context at most, then bullets:
+
+- **Did** — what changed, one line each
+- **Next** — what happens without me
+- **You** — what needs me, and why
+- **Recommend** — your call, one line
+
+Cut: restating the request, narrating tool calls, re-explaining a finding I've already read, "worth noting", process commentary. Evidence stays — a measured number beats a paragraph defending one. Long form only when I ask for the reasoning.
+
 ## Workflow
 
 **Always branch before any work. Never commit to `main`.** (`feat/x`, `refactor/x`, `fix/x`, `perf/x`; task branches add the ID — `feat/MA-042-slug`)
