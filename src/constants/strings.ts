@@ -84,6 +84,25 @@ export const Strings = {
   typePhysicalSavings: 'Savings',
   typeCreditCard: 'Credit Card',
 
+  // Account colour families — the 32-swatch palette. Names are locked design
+  // (assets/locked-design-2026-07-23.md), not new copy.
+  accountColorMidnight: 'Royal Midnight',
+  accountColorGold: 'Cairo Gold',
+  accountColorNile: 'Nile Teal',
+  accountColorPaprika: 'Paprika',
+  accountColorPlum: 'Plum',
+  accountColorLapis: 'Lapis Blue',
+  accountColorRose: 'Rose',
+  accountColorSand: 'Sand',
+  accountColorAmethyst: 'Amethyst',
+  accountColorEmerald: 'Emerald',
+  accountColorSaffron: 'Saffron',
+  accountColorSteel: 'Steel Blue',
+  accountColorJade: 'Jade',
+  accountColorIndigo: 'Indigo',
+  accountColorCoral: 'Coral',
+  accountColorGraphite: 'Graphite',
+
   // More Accounts
   o5Subtitle: 'Got other accounts? Add them now — or skip and do it later.',
   o5AddAnother: 'Add another account',

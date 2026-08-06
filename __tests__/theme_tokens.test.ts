@@ -43,14 +43,22 @@ describe('theme_tokens', () => {
     expect(Object.keys(AccentTokens)).not.toContain('rose');
   });
 
-  it('AcctTokens has 12 families each with rich and soft', () => {
+  it('AcctTokens has 16 families each with rich and soft', () => {
     const families = Object.keys(AcctTokens);
-    expect(families).toHaveLength(12);
+    expect(families).toHaveLength(16);
     families.forEach((family) => {
       const swatch = AcctTokens[family as keyof typeof AcctTokens];
       expect(swatch).toHaveProperty('rich');
       expect(swatch).toHaveProperty('soft');
     });
+  });
+
+  it('all 32 AcctTokens swatches are distinct colours', () => {
+    // A duplicated hex makes two families indistinguishable in the 32-swatch
+    // sheet and makes the hex->family lookup in account_palette.ts ambiguous.
+    // The length assertion above cannot catch a copy-paste; this one can.
+    const swatches = Object.values(AcctTokens).flatMap((s) => [s.rich, s.soft]);
+    expect(new Set(swatches.map((h) => h.toUpperCase())).size).toBe(swatches.length);
   });
 
   it('AcctTokens includes plum and rose swatches', () => {

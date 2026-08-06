@@ -48,7 +48,7 @@ export const AccentTokens = {
   sand: '#C9A876',
 } as const;
 
-// 12 families × Rich/Soft.
+// 16 families × Rich/Soft.
 // Rich = card/tile background.
 // Soft = list-row dot or avatar chip on surface/surfaceEl.
 export const AcctTokens = {
@@ -64,4 +64,8 @@ export const AcctTokens = {
   emerald: { rich: '#4CAF82', soft: '#7AC9A4' },
   saffron: { rich: '#D4830A', soft: '#E8A848' },
   steel: { rich: '#4A6FA5', soft: '#7894C0' },
+  jade: { rich: '#147D64', soft: '#52B49A' },
+  indigo: { rich: '#3D4A9A', soft: '#7784D4' },
+  coral: { rich: '#C8544F', soft: '#E4867E' },
+  graphite: { rich: '#3F4A57', soft: '#7E8996' },
 } as const;
