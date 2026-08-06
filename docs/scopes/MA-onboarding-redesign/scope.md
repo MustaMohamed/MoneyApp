@@ -45,7 +45,18 @@ You approved every screen without separately answering the three open questions.
 
 **1. USD promises display, not architecture.** The approved welcome screen asks *"Which currency do you think in?"* and each option states a display consequence. That is the cheap answer, and it is honest under the current architecture where EGP is the storage currency. **The expensive answer — base currency meaning the same thing in every module — is explicitly NOT in this scope** and would be its own piece of work.
 
-**2. The secondary-text colour is not being changed.** It stays 4% under the AA floor app-wide, handled inside onboarding by rule: anything a user must read is full-strength, the muted colour is confined to genuinely redundant labels. Lightening the token remains a separate cross-scope job.
+**2. The secondary-text colour — RE-OPENED 2026-08-06. This one still needs you.**
+
+I recorded this as settled. That was wrong, and a reviewer caught it. The question offered "leave it and live with the rule" versus "lighten the token as separate work" — and **both options produce identical approved screens**, so approving the frames could not possibly have chosen between them. I read silence as an answer.
+
+Worse, the approved frames **contradict the rule that made "leave it" acceptable**. The rule was that the muted colour is confined to genuinely redundant labels. In the mockup it also carries: an error-recovery instruction, the N3 explanation of what skipping means, the helper text under the APR toggle, and — most awkwardly — **the two currency sentences that decision 1 above rests on**. None of those is redundant; they are all text a user has to read.
+
+The contrast figures are not in question: 4.33:1 on the background, 3.77:1 on cards, against a 4.5:1 floor for text under ~19px. **What is in question is whether onboarding can honestly claim to handle it by rule when the design puts load-bearing copy in that colour.**
+
+**Your call, and it's a real one:**
+- **Lighten the token** — one line, fixes it everywhere, touches every screen in the app. Its own piece of work.
+- **Keep the token, change onboarding** — move the four offending strings to full-strength copy. Contained to this scope, but the screens get visually flatter, which is what you rejected in round 3.
+- **Accept it as-is** — a deliberate, recorded AA miss on first-run copy. Legitimate if chosen knowingly; not legitimate as something I decided for you.
 
 **3. The logo accent keeps the nudge.** Every approved frame shows the teal dot on the card corner rather than over the stem, so it no longer reads as "Mi" at launcher size.
 
