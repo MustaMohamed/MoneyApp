@@ -35,7 +35,27 @@ There is also a real bug waiting on the last screen. The "Ready" summary adds up
 - No new libraries and no native code.
 - No sign-in, PIN, biometrics, cloud sync, or bank connections.
 
-## Open questions
+## Status
+
+**Gate 1 passed — design approved 2026-08-06** (round 5, mockup `assets/mockup.html`, commit `1b422269`). Step 2 in progress.
+
+## Decisions resolved at gate 1
+
+You approved every screen without separately answering the three open questions. Each follows from what the approved screens actually show, so they are recorded here as settled rather than left hanging. **Say so if any of these is not what you meant — reversing them is cheap now and expensive once tasks exist.**
+
+**1. USD promises display, not architecture.** The approved welcome screen asks *"Which currency do you think in?"* and each option states a display consequence. That is the cheap answer, and it is honest under the current architecture where EGP is the storage currency. **The expensive answer — base currency meaning the same thing in every module — is explicitly NOT in this scope** and would be its own piece of work.
+
+**2. The secondary-text colour is not being changed.** It stays 4% under the AA floor app-wide, handled inside onboarding by rule: anything a user must read is full-strength, the muted colour is confined to genuinely redundant labels. Lightening the token remains a separate cross-scope job.
+
+**3. The logo accent keeps the nudge.** Every approved frame shows the teal dot on the card corner rather than over the stem, so it no longer reads as "Mi" at launcher size.
+
+Team decisions from gate 1 also stand: 32 colours (not 24), the credit-card hint row stays, and the separate "revolving balance" field is dropped.
+
+## Carried into the build
+
+One thing in the approved design is **not yet proven to work**: the gradient-filled "Finally clear." headline needs a technique nothing in the app uses today. It gets checked early, and if it doesn't hold up, flat gold replaces it with no change to layout or spacing. Nothing else depends on the outcome.
+
+## Original open questions (for the record)
 
 **1. What does choosing USD on the first screen actually promise?** The welcome screen offers EGP and USD as equal choices. But the rest of the app is built with EGP as its home currency — transactions store an EGP amount alongside the original, and the saved exchange rate is specifically a USD rate. So "base currency = USD" is a promise the summary screen can display but the rest of the app may not keep: a budget or dashboard total elsewhere could quietly assume EGP.
 
