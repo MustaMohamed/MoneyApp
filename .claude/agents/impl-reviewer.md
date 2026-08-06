@@ -26,6 +26,12 @@ Findings go back to @dev. You hold `Edit` to append review notes to the task fil
 5. **The tests are real.** The evidence is a test that fails without the change. Check that the test would actually fail — a test asserting on a mocked value proves nothing, and `.claude/rules/tests.md` lists the vacuous patterns this repo has shipped before. Where @layla's spec section carries a test-case table, every row is present.
 6. **Edge cases and failure paths.** Zero, negative, empty, boundary, both currency directions, and what the UI shows when the write rejects. The happy path is the part that was already tested by hand.
 7. **Run the CI parity chain from CLAUDE.md.** All of it, in order, stopping at the first failure. Local green is a precondition for a verdict, not a substitute for one.
+8. **On a task marked `verify: emulator`, drive it yourself.** Load the `emulator-verify` skill and follow its worktree section. @dev already ran it and reported what it saw — that is @dev's claim about @dev's work, and reading a screenshot someone else chose is not verification. Your run is the one that counts, and it is a different run:
+   - Walk **the task's acceptance behaviour**, not the happy path @dev demonstrated. Open the empty state, the error state, and the boundary the task names.
+   - **Assert against `mqa db`, never the screen.** The screen is the thing under test. Where money moved, check the stored integers — a UI reading 250.00 over a row holding 25000 is the money-drift class, and it renders perfectly.
+   - Reproduce, in the app, the failure scenario of any defect you are about to report. A finding you have watched happen is worth three you inferred from the diff.
+
+   Run this **after** the parity chain, and expect to rebuild: the chain's `expo prebuild --no-install` regenerates `android/` and takes @dev's APK with it. The worktree's `npm install` survives, so this is a Gradle build, not a full setup. Confirm you are on your own Metro port before believing anything — a bundle served from the primary repo passes while testing nothing.
 
 Apply the `superpowers:requesting-code-review` rubric on top of the above.
 

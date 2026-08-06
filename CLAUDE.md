@@ -25,8 +25,8 @@ Everything for a scope lives in `docs/scopes/MA-<slug>/` — see [TEMPLATES.md](
 | 3 | Task review and ordering | `@task-reviewer` | corrected, ordered `tasks.md` |
 | 4 | Plan | `@tariq` | `## Plan` in the task file |
 | 5 | Plan review | `@plan-reviewer` | `## Plan review` |
-| 6 | Implement, self-review, commit | `@dev` | commits in an isolated worktree |
-| 7 | Local review, then push and open PR | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
+| 6 | Implement, self-review, verify on emulator, commit | `@dev` | commits in an isolated worktree |
+| 7 | Local review + independent emulator run, then push and open PR | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
 | 8 | PR review | `@pr-reviewer` | `## PR review` |
 | 9 | Device QA and merge | the user | merged PR |
 
@@ -38,7 +38,9 @@ Steps 4–8 run per task, in `tasks.md` order, one task at a time.
 
 **Status on disk is what makes an interrupted scope resumable.** Sarah writes it to the task file's frontmatter and then to `tasks.md` before dispatching the next step; frontmatter wins if they disagree. `todo` · `planning` · `ready` · `implementing` · `in-review` · `awaiting-human` · `done` · `blocked`. A `blocked` task halts the scope — never skip past it, the order encodes dependencies. Each review gate allows three rounds; the fourth blocks the task and reports.
 
-Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repo for step 9.
+**Emulator verification** runs on tasks whose frontmatter says `verify: emulator` — anything changing what a screen shows or what the app writes. `@dev` watches it run at step 6, `@impl-reviewer` drives it independently at step 7, and the `emulator-verify` skill carries the mechanics. It is a second net under the same defects: **gate 3 is unchanged**, on real hardware, and typography, shadows, gesture feel and performance are visible nowhere else.
+
+Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repo for step 9. Emulator verification *does* run there, and pays with a real `npm install` and a Gradle build; give the worktree its own Metro port, because `adb reverse` is global per device and sharing 8081 silently serves the primary repo's bundle.
 
 ## Team
 
