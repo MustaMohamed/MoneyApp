@@ -36,13 +36,23 @@ Everything for a scope lives in `docs/scopes/MA-<slug>/` — see [TEMPLATES.md](
 | 6 | Implement, self-review, verify on emulator, commit | `@dev` | commits in an isolated worktree |
 | 7 | Local review + independent emulator run, then push and open PR | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
 | 8 | PR review | `@pr-reviewer` | `## PR review` |
-| 9 | Device QA and merge | the user | merged PR |
+| 9 | Device QA and merge, then sync and clean | the user merges · `@sarah` cleans | merged PR, task `done`, local tree clean |
 
 Steps 4–8 run per task, in `tasks.md` order, one task at a time.
 
 🛑 **Gate 1** after step 1 — the user locks `scope.md`, mockup published as an artifact.
 🛑 **Gate 2** after step 3 — the user sees the ordered task list before any code exists.
 🛑 **Gate 3** after step 8 — the user walks device QA and merges.
+
+**Step 9 does not end at the merge.** The moment I say a PR is merged, Sarah does all of this without being asked — a stale tree is how the next task gets planned against the wrong `main`:
+
+1. `git checkout main` and pull.
+2. Mark the task `done` in **both** the frontmatter and `tasks.md`.
+3. Delete the merged local branch and `git remote prune origin`.
+4. Remove the task's worktree if it had one, and `git worktree prune`.
+5. **`npm ci` if the merge moved `package-lock.json`** — otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.
+
+Gotcha: **squash-merged branches never appear in `git branch --merged`**, because the squash commit shares no history with them. Deleting on that basis leaves every task branch behind and forces `-D` later, on faith. Check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
 
 **Status on disk is what makes an interrupted scope resumable.** Sarah writes it to the task file's frontmatter and then to `tasks.md` before dispatching the next step; frontmatter wins if they disagree. `todo` · `planning` · `ready` · `implementing` · `in-review` · `awaiting-human` · `done` · `blocked`. A `blocked` task halts the scope — never skip past it, the order encodes dependencies. Each review gate allows three rounds; the fourth blocks the task and reports.
 
