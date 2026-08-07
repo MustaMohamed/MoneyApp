@@ -109,6 +109,37 @@ describe('useMoreAccounts', () => {
     expect(mockSetStep).not.toHaveBeenCalled();
   });
 
+  it('handleAddAnother is inert while handleContinue is in flight — no navigate, no double-navigate on completion', async () => {
+    let resolveSetStep!: (value: OnboardingStep) => void;
+    mockSetStep.mockImplementationOnce(
+      () =>
+        new Promise<OnboardingStep>((resolve) => {
+          resolveSetStep = resolve;
+        }),
+    );
+    const { result } = await renderHook(() => useMoreAccounts());
+
+    let continuePromise!: Promise<void>;
+    await act(async () => {
+      continuePromise = result.current.handleContinue();
+    });
+
+    // Tap "+ Add another account" while the N3 -> N4 step write is still in flight.
+    await act(async () => {
+      result.current.handleAddAnother();
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSetStep(OnboardingStep.N4);
+      await continuePromise;
+    });
+
+    // Only the in-flight transition's own navigate lands, exactly once.
+    expect(mockReplace.mock.calls).toEqual([['/(onboarding)/ready']]);
+  });
+
   it('onBack writes N1 and replaces to welcome', async () => {
     const { result } = await renderHook(() => useMoreAccounts());
     await act(async () => {

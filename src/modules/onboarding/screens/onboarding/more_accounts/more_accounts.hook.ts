@@ -33,6 +33,18 @@ export function useMoreAccounts() {
   useInit(() => useMoreAccountsTransitionState.getState().reset());
 
   const handleAddAnother = () => {
+    const state = useMoreAccountsTransitionState.getState();
+    // Same re-entry gate every other control on this screen uses: while
+    // handleContinue's N3->N4 step write is in flight, this must not open a
+    // route that write can then replace out from under the user (D1).
+    if (state.busy) return;
+    // Decision 3's invariant — invalidate() immediately before every
+    // navigate — applied here too, so a completion that was already in
+    // flight before this tap (there is none, given the busy guard above,
+    // but a future caller reaching this navigate some other way) cannot
+    // land on a stale session.
+    state.invalidate();
+
     // replace, not push — the only remaining push inside the group would
     // otherwise leave [more_accounts, add_account] on the stack, and the
     // add-more N2's own back (which must replace to more_accounts) would

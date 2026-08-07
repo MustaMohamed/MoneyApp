@@ -161,6 +161,23 @@ describe('useReady', () => {
     expect(result.current.state.rows).toHaveLength(3);
   });
 
+  it('a failed back write reports its own message, not a stale failed-completion message', async () => {
+    mockCompleteOnboarding.mockRejectedValueOnce(new Error('boom'));
+    mockSetStep.mockRejectedValueOnce(new Error('boom'));
+    const { result } = await renderHook(() => useReady());
+
+    await act(async () => {
+      await result.current.handleComplete();
+    });
+    expect(result.current.state.statusMessage).toBe(Strings.n4CompleteError);
+
+    await act(async () => {
+      await result.current.onBack();
+    });
+
+    expect(result.current.state.statusMessage).toBe(Strings.onboardingBackSaveError);
+  });
+
   it('onBack writes N3 and replaces to more_accounts', async () => {
     const { result } = await renderHook(() => useReady());
     await act(async () => {

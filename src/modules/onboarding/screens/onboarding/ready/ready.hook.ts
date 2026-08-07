@@ -90,7 +90,19 @@ export function useReady() {
     state: {
       rows,
       completing: complete.isLoading,
-      statusMessage: complete.isError ? Strings.n4CompleteError : backStatusMessage,
+      // backStatusMessage takes precedence: begin() clears it on every back
+      // attempt and fail() sets it, so it is non-empty only in the window
+      // where the back write — not the completion write — is the one that
+      // actually failed. Without this ordering a failed back after a failed
+      // completion re-renders "Couldn't finish setup" pointing at the wrong
+      // control (`complete.isError` only clears on the *next* complete()
+      // call — `use_async.hook.ts:23`).
+      statusMessage:
+        backStatusMessage !== ''
+          ? backStatusMessage
+          : complete.isError
+            ? Strings.n4CompleteError
+            : '',
       busy,
     },
     handleComplete,
