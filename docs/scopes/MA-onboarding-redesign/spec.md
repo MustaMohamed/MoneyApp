@@ -515,7 +515,7 @@ Signatures are indicative; the exact shape is settled per task at step 4. They a
 | `resolveStartingNetPosition(input)` | Pure. `{ accounts, baseCurrency, rate, rateUpdatedAt }` → `{ kind: 'amount', value } \| { kind: 'rate-needed', foreignCount }`. The table above is its test suite. |
 | `selectReadySummaryState(outcome, accounts, baseCurrency, rate)` | Pure. Outcome + snapshot → which of F1–F7, plus the resolved caption/pill copy. |
 | `Button` `loadingLabel?: string` | When `isLoading`, renders `loadingLabel ?? Strings.loading` and a `Spinner`. Every existing call site is unchanged by omission. |
-| `OnboardingShell` | `{ step, title, statusMessage, statusTone, cta, children }`. Owns all four tracks. N1 passes a brand header variant. |
+| `OnboardingShell` | **Corrected 2026-08-07 at MA-005 step 5 against the shipped MA-004 code** (`src/modules/onboarding/components/onboarding_shell/index.tsx:11-22`): `{ step, title?, onBack?, footnote, statusMessage?, cta, children }`. There is **no `statusTone`** — the tone is derived from message presence inside `resolveStatusTrack` (`onboarding_shell.geometry.ts:79-93`), so a message is the only thing that can turn the track red and an empty message preserves the footnote. `footnote` is **required**; the track is never empty. Owns all four tracks. N1 passes a brand header variant (omit `title`); a `title` without `onBack` renders a `w-9` spacer, not a chevron. |
 
 ### Known design/codebase disagreements
 
