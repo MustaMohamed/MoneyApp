@@ -2,14 +2,14 @@ import React from 'react';
 import Animated from 'react-native-reanimated';
 
 import { GeoIllustration } from '@/components/geo_illustration';
-import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { ScreenScroll } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
 
 import { useWelcomeAnim } from './welcome.anim';
 import { useWelcome } from './welcome.hook';
@@ -19,9 +19,21 @@ export default function WelcomeScreen() {
   const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
 
   return (
-    <Screen>
-      <ProgressDots totalSteps={4} currentStep={1} />
-
+    <OnboardingShell
+      step={1}
+      footnote={Strings.n1Footnote}
+      cta={
+        <Animated.View entering={ctaEntering}>
+          <Button
+            variant="primary"
+            label={Strings.o1Cta}
+            onPress={() => {
+              void onContinue();
+            }}
+          />
+        </Animated.View>
+      }
+    >
       <ScreenScroll>
         <Box style={{ flex: 1 }} className="items-center justify-center gap-6 px-4">
           <Animated.View entering={illustrationEntering}>
@@ -62,18 +74,6 @@ export default function WelcomeScreen() {
           </Box>
         </Box>
       </ScreenScroll>
-
-      <Box className="border-separator border-t px-4 pt-2 pb-6">
-        <Animated.View entering={ctaEntering}>
-          <Button
-            variant="primary"
-            label={Strings.o1Cta}
-            onPress={() => {
-              void onContinue();
-            }}
-          />
-        </Animated.View>
-      </Box>
-    </Screen>
+    </OnboardingShell>
   );
 }

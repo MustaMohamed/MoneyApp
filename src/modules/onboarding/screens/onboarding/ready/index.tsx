@@ -3,13 +3,12 @@ import { cn } from 'heroui-native';
 import React from 'react';
 import Animated from 'react-native-reanimated';
 
-import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
+import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
 
 import { useReadyAnim } from './ready.anim';
 import { useReady } from './ready.hook';
@@ -23,9 +22,25 @@ export default function ReadyScreen() {
     useReadyAnim();
 
   return (
-    <Screen>
-      <ProgressDots totalSteps={4} currentStep={4} />
-
+    <OnboardingShell
+      step={4}
+      title={Strings.n4HeaderTitle}
+      footnote={Strings.n4Footnote}
+      cta={
+        <Animated.View entering={ctaEntering}>
+          <Button
+            variant="primary"
+            label={Strings.o6Cta}
+            onPress={() => {
+              void handleComplete();
+            }}
+            isDisabled={completing}
+            isLoading={completing}
+            loadingLabel={Strings.n4CtaBusy}
+          />
+        </Animated.View>
+      }
+    >
       <Box style={{ flex: 1 }} className="items-center justify-center gap-4 px-4">
         <Animated.View entering={checkEntering}>
           <MaterialCommunityIcons name="check-circle" size={64} color={SemanticTokens.positive} />
@@ -69,20 +84,6 @@ export default function ReadyScreen() {
           ))}
         </Box>
       </Box>
-
-      {/* CTA bar */}
-      <Box className="border-separator border-t px-4 pt-2 pb-6">
-        <Animated.View entering={ctaEntering}>
-          <Button
-            variant="primary"
-            label={Strings.o6Cta}
-            onPress={() => {
-              void handleComplete();
-            }}
-            isDisabled={completing}
-          />
-        </Animated.View>
-      </Box>
-    </Screen>
+    </OnboardingShell>
   );
 }

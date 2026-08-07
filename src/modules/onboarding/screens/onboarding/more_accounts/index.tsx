@@ -4,14 +4,13 @@ import { PressableFeedback } from 'heroui-native';
 import React from 'react';
 import Animated from 'react-native-reanimated';
 
-import { ProgressDots } from '@/components/progress_dots';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { Screen } from '@/components/ui/screen';
 import { Text } from '@/components/ui/text';
 import { Strings } from '@/constants/strings';
 import { SemanticTokens } from '@/constants/theme_tokens';
 import type { Account } from '@/modules/accounts/store/account.store';
+import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
 
 import { AccountRow } from './components/account_row';
 import { useMoreAccountsAnim } from './more_accounts.anim';
@@ -22,9 +21,20 @@ export default function MoreAccountsScreen() {
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering } = useMoreAccountsAnim();
 
   return (
-    <Screen>
-      <ProgressDots totalSteps={4} currentStep={3} />
-
+    <OnboardingShell
+      step={3}
+      title={Strings.n3HeaderTitle}
+      footnote={Strings.n3Footnote}
+      cta={
+        <Button
+          variant="primary"
+          label={Strings.o5Cta}
+          onPress={() => {
+            void handleContinue();
+          }}
+        />
+      }
+    >
       <Box style={{ flex: 1 }} className="px-4">
         {/* Success header */}
         <Box className="items-center gap-3 pt-8 pb-6">
@@ -88,17 +98,6 @@ export default function MoreAccountsScreen() {
           {Strings.o5SettingsHint}
         </Text>
       </Box>
-
-      {/* CTA */}
-      <Box className="border-separator border-t px-4 pt-2 pb-6">
-        <Button
-          variant="primary"
-          label={Strings.o5Cta}
-          onPress={() => {
-            void handleContinue();
-          }}
-        />
-      </Box>
-    </Screen>
+    </OnboardingShell>
   );
 }

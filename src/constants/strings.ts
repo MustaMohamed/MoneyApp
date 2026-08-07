@@ -21,7 +21,6 @@ export const Strings = {
   o1Cta: 'Get Started',
 
   // Add Account
-  o4Title: 'Add Account',
   o4Subtitle: 'Start by adding one account — you can add more next.',
   o4SectionType: 'ACCOUNT TYPE',
   o4SectionName: 'ACCOUNT NAME',
@@ -57,6 +56,25 @@ export const Strings = {
   // Add Another?
   n3AccountSaved: 'Account saved',
   n3AddMoreSubtitle: 'Want to add another? You can add credit cards, cash wallets, and more.',
+
+  // N-shell — MA-004. Mockup § A (A1-A3) and the per-route frames B1/C1/E1/F1.
+  onboardingStepOf: (step: number) => `Step ${step} of 4`,
+  onboardingProgressA11y: (step: number, name: string) => `Step ${step} of 4, ${name}`,
+  n1StepName: 'Choose your currency',
+  n2StepName: 'Add your first account',
+  n3StepName: 'Add more accounts',
+  n4StepName: 'Review and finish',
+  n1HeaderWordmark: 'MoneyApp',
+  n1HeaderSetup: 'Setup',
+  n2HeaderTitle: 'Add your first account', // mockup.html:1334
+  n3HeaderTitle: 'Your accounts', // mockup.html:2004
+  n4HeaderTitle: 'Ready to start', // mockup.html:2319
+  n1Footnote: 'You can change this later in Settings.',
+  n2Footnote: 'Saved on this phone. Nothing is uploaded.',
+  n3Footnote: 'One account is enough to start. You can add more any time.',
+  n4Footnote: 'This is your starting point, not your net worth.',
+  n2CtaBusy: 'Saving…',
+  n4CtaBusy: 'Opening…',
 
   // Credit-card field hints
   o4MinPaymentHint: 'Copy from your latest statement. Leave blank if your card is new.',
