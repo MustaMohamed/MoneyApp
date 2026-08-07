@@ -1037,7 +1037,7 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+            <svg viewBox="0 0 358 52" width="358" height="52" role="heading" aria-level="1" aria-label="Finally clear." style="display:block;margin-top:-2px">
               <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
             </svg>
           </div>
@@ -1100,7 +1100,7 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+            <svg viewBox="0 0 358 52" width="358" height="52" role="heading" aria-level="1" aria-label="Finally clear." style="display:block;margin-top:-2px">
               <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
             </svg>
           </div>
@@ -1158,7 +1158,7 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+            <svg viewBox="0 0 358 52" width="358" height="52" role="heading" aria-level="1" aria-label="Finally clear." style="display:block;margin-top:-2px">
               <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
             </svg>
           </div>
@@ -1216,7 +1216,7 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
             <div class="t-over">Private by design</div>
             <div class="b-rule mt8"></div>
             <div class="b-headline mt12">Your money.</div>
-            <svg viewBox="0 0 358 52" width="358" height="52" role="img" aria-label="Finally clear." style="display:block;margin-top:-2px">
+            <svg viewBox="0 0 358 52" width="358" height="52" role="heading" aria-level="1" aria-label="Finally clear." style="display:block;margin-top:-2px">
               <text x="0" y="42" font-family="Sora, 'Avenir Next', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="42" letter-spacing="-0.4" fill="url(#grad-headline)">Finally clear.</text>
             </svg>
           </div>
@@ -1289,7 +1289,7 @@ A three-way mix, and the seam is deliberate. <b>Broadsheet owns the composition:
     Gradient-filled text means <code>react-native-svg</code>'s <code>Text</code> with a <code>LinearGradient</code>
     fill, and <b>nothing in this codebase does that today</b>. <b>@tariq spikes it on a real mid-range Android device
     at step 2</b>, checking three things specifically: that it scales with dynamic type rather than rasterising at a
-    fixed size; that the accessibility label survives (the frames carry <code>role="img"</code> +
+    fixed size; that the accessibility label survives (the frames carry <code>role="heading" aria-level="1"</code> +
     <code>aria-label="Finally clear."</code> because SVG text is <em>not</em> read as text); and that it does not
     regress first-paint on the app's very first screen.
     <br><br>

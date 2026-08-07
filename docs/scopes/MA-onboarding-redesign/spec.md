@@ -123,7 +123,7 @@ Contrast against `--background` #0F1923: `--foreground` ≈ 18:1 · `--warning` 
 
 Targets: currency rows 358 × 76 · type tiles 114 × 76 · fields and colour trigger 44 tall · colour tiles 41.25 × 44 + hitSlop 2 → 45.25 × 44 · back button 36 visual + hitSlop 8 → 52 · `Add another account` 52.
 
-**The gradient headline carries `accessibilityRole="image"` and an explicit `accessibilityLabel`** — SVG text is not read as text by a screen reader. That label is the only thing between a blind user and a silent first screen.
+**The headline carries `accessibilityRole="header"` and an explicit `accessibilityLabel`** — SVG text is not read as text by a screen reader. That label is the only thing between a blind user and a silent first screen. (`header`, not `image`, per @marcus 2026-08-06 — the role describes what the element is to a user, not how it is drawn; `image` makes TalkBack announce "image" after the words, and `header` keeps both MA-002 treatments identical to a screen reader.)
 
 ### Motion budget — mockup § *Motion inventory*
 
@@ -435,7 +435,7 @@ src/constants/
 
 src/components/ui/
   button.tsx                        + optional loadingLabel, + Spinner while loading
-  gradient_headline.tsx             MA-002 deliverable (or its flat fallback)
+  display_headline.tsx              MA-002 deliverable — one treatment, see MA-002 § Spike result
 
 src/modules/accounts/               ← owns account creation, everywhere
   constants/account_palette.ts      the 32-entry canonical palette

@@ -95,6 +95,8 @@ export const Type = {
   summary: msFont(31),
   detailHero: msFont(30),
   amountEntry: msFont(40),
+  /** N1 headline — mockup § B, `.b-headline`, 42px. */
+  display: msFont(42),
 } as const;
 
 /** Tracking values for compact labels and eyebrow copy. */
