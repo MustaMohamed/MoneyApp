@@ -59,6 +59,23 @@ describe('assets/icon.png — launcher tile', () => {
     // for the light appearance. Any transparent pixel becomes white on iOS.
     expect(minAlpha(img)).toBe(255);
   });
+
+  it('is byte-identical to the verified master raster', () => {
+    // The launcher tile is a copy, never a re-render: keeping the rasterizer
+    // out of its trust chain is why the geometry assertions below are the only
+    // thing the derived artwork needs to earn. Every other check here would
+    // pass on a solid disc of the right size — this one would not.
+    const master = path.join(
+      __dirname,
+      '..',
+      'docs',
+      'scopes',
+      'MA-onboarding-redesign',
+      'assets',
+      'moneyapp-logo-cross-fan.png',
+    );
+    expect(fs.readFileSync(asset('icon.png')).equals(fs.readFileSync(master))).toBe(true);
+  });
 });
 
 describe('assets/adaptive-icon.png — Android adaptive foreground', () => {
