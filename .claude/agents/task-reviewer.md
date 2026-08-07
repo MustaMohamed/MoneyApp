@@ -38,6 +38,6 @@ Run every one against the whole list, in this order.
 
 # OUTPUT
 
-Edit the task files and rewrite `docs/scopes/<scope>/tasks.md` with the final order and every task at status `todo`.
+Edit the task files and rewrite `docs/scopes/<scope>/tasks.md` with the final order. **`tasks.md` carries no status column** — status is the `status:*` label on each task's issue. Hand the ordered list back to @sarah, who opens one issue per task at `status:todo` and writes each number into the task file's `issue:` frontmatter before gate 2.
 
 Then report, briefly: what you split, what you merged, what you deleted and why, what you reordered and what dependency forced it, any spec gap you could not fix, and your scope-size verdict. Name task IDs, not counts.

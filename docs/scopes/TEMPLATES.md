@@ -6,7 +6,7 @@ Every scope lives in `docs/scopes/MA-<slug>/`. Four files, four different reader
 docs/scopes/MA-budget-v2/
   scope.md      step 1 — for the user. Locked at gate 1, never edited after.
   spec.md       step 2 — for agents. Exhaustive and dry.
-  tasks.md      the ordered index and status table.
+  tasks.md      the ordered index. Links each task's issue; carries no status.
   tasks/
     MA-042.md   one per task, grown through steps 2, 4, 5, 7, 8, 9.
   assets/       mockup.html, screenshots, reference material.
@@ -68,19 +68,32 @@ For agents. Assembled by @tariq from the locked `scope.md`, embedding @marcus's 
 
 ## `tasks.md`
 
-The index. Rewritten by @task-reviewer at step 3 and refreshed by @sarah at every status transition.
+The index. Rewritten by @task-reviewer at step 3. **It carries no status**, so after step 3 it only changes when a branch or PR link appears — a status transition never touches it.
 
 ```markdown
 # MA-budget-v2 — Tasks
 
 ## M1 — Foundation
-| ID | Title | Status | Branch | PR |
+| ID | Title | Issue | Branch | PR |
 |---|---|---|---|---|
-| MA-042 | Spending plan header | done | — | #201 |
-| MA-043 | Category rollup query | implementing | feat/MA-043-category-rollup | — |
+| MA-042 | Spending plan header | #187 | — | #201 |
+| MA-043 | Category rollup query | #188 | feat/MA-043-category-rollup | — |
 ```
 
-Statuses: `todo` · `planning` · `ready` · `implementing` · `in-review` · `awaiting-human` · `done` · `blocked`.
+**Status lives on the issue**, as exactly one `status:*` label: `status:todo` · `status:planning` · `status:ready` · `status:implementing` · `status:in-review` · `status:awaiting-human` · `status:blocked`. There is no `status:done` — **`done` is the issue being closed**, done by the merge itself through `Closes #N` in the PR body, so it cannot drift from reality even if the session dies.
+
+@sarah opens one issue per task at step 3, right after the list is ordered and before gate 2, so the user sees the board at the same moment they see the task list.
+
+### What the issue holds, and what it must not
+
+The issue carries **the task definition and its status. Nothing else.** Summary, the metadata table (scope, milestone, verify, requires, branch, PR), a link to the task file, and the `status:*` label.
+
+**The plan, the three review verdicts, and every implementation note stay in `tasks/MA-nnn.md` on the task branch.** They are not copied to the issue, not summarised there, and not linked round-trip. Two reasons, and both bite immediately if ignored:
+
+- They are **reviewed with the code they describe.** A plan in an issue is a plan nobody diffs; a plan in the task file arrives in the same PR as the implementation it justifies, which is the only place a reviewer can check one against the other.
+- The task file is **versioned with the branch.** A verdict written at step 5 against the code as it stood then stays pinned to that commit. An issue comment floats free of the tree and silently starts describing code that has since changed.
+
+The rule of thumb: if it would ever need to be read *as of a particular commit*, it belongs in the task file. If it answers "where is this task now", it belongs on the issue.
 
 ## `tasks/MA-nnn.md`
 
@@ -91,7 +104,7 @@ Written at step 2, appended to at steps 4, 5, 7, 8, and 9. One file carries the 
 id: MA-042
 scope: MA-budget-v2
 milestone: M2
-status: todo
+issue: 187                # status of record — the issue's status:* label
 verify: emulator          # emulator | none
 branch:
 pr:
