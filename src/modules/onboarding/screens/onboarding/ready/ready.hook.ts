@@ -54,6 +54,11 @@ export function useReady() {
 
   const handleComplete = async () => {
     if (complete.isLoading) return;
+    // Same contract as begin(): every writer of the status track clears it
+    // when its own attempt starts. useAsync does this for isError at
+    // use_async.hook.ts:23; a stale backStatusMessage needs the mirror, or a
+    // completion attempted after a failed back keeps naming the chevron.
+    useReadyTransitionState.getState().reset();
     try {
       await complete();
     } catch {
@@ -91,12 +96,11 @@ export function useReady() {
       rows,
       completing: complete.isLoading,
       // backStatusMessage takes precedence: begin() clears it on every back
-      // attempt and fail() sets it, so it is non-empty only in the window
-      // where the back write — not the completion write — is the one that
-      // actually failed. Without this ordering a failed back after a failed
-      // completion re-renders "Couldn't finish setup" pointing at the wrong
-      // control (`complete.isError` only clears on the *next* complete()
-      // call — `use_async.hook.ts:23`).
+      // attempt, and handleComplete's own reset() now clears it at the start
+      // of every completion attempt too — so it is non-empty only in the
+      // window where the back write is the one that actually failed, and a
+      // completion attempted afterwards correctly overwrites it with
+      // n4CompleteError instead of leaving it pointing at the chevron.
       statusMessage:
         backStatusMessage !== ''
           ? backStatusMessage
