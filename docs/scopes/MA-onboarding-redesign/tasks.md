@@ -2,36 +2,38 @@
 
 Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes dependencies — a `blocked` task halts the scope, never skip past it.
 
+**Status is not in this file.** Each task's status is the `status:*` label on its GitHub issue, and a closed issue means `done`. This table carries the issue link; the status behind it is live, so nothing here goes stale and no PR is needed to move a task forward. Query it with `list_issues(labels: ["status:blocked"])` rather than reading a column.
+
 **Task IDs confirmed at MA-001.** Re-scanned `docs/scopes/**`: no task file exists anywhere outside this folder, so there is no collision and this scope opens the global sequence. Every `MA-042`/`MA-043`/`MA-044` in the tree is an illustration inside a fenced template block in `docs/scopes/TEMPLATES.md`, the frozen workflow spec, or an agent file. @tariq's call was right.
 
 **Eleven of twelve carry `verify: emulator`.** This scope is screens, one shared form on the live first-run path, and a shared primitive that changes what every loading button in the app renders. MA-001 is the only task whose entire failure surface a unit test reaches — it touches no `.tsx` file at all, which is how that claim is made checkable rather than asserted.
 
 ## M1 — Foundations
 
-| ID | Title | Status | Verify | Branch | PR |
+| ID | Title | Issue | Verify | Branch | PR |
 |---|---|---|---|---|---|
-| MA-001 | Colour families, geometry tokens, and the 32-colour palette | done | none | `feat/MA-001-color-and-geometry-tokens` | [#194](https://github.com/MustaMohamed/MoneyApp/pull/194) |
-| MA-002 | Spike: gradient-filled headline, with the flat fallback | done | emulator | `feat/MA-002-gradient-headline-spike` | [#198](https://github.com/MustaMohamed/MoneyApp/pull/198) |
-| MA-003 | Cross Fan logo — launcher, adaptive, splash, in-app mark | awaiting-human | emulator | `claude/ma-003-l0m5si` | [#202](https://github.com/MustaMohamed/MoneyApp/pull/202) |
-| MA-004 | Onboarding shell: four fixed tracks and an honest busy CTA | todo | emulator | — | — |
-| MA-005 | Onboarding resume: route resolver, persist-before-navigate, locked gestures | todo | emulator | — | — |
+| MA-001 | Colour families, geometry tokens, and the 32-colour palette | [#203](https://github.com/MustaMohamed/MoneyApp/issues/203) | none | `feat/MA-001-color-and-geometry-tokens` | [#194](https://github.com/MustaMohamed/MoneyApp/pull/194) |
+| MA-002 | Spike: gradient-filled headline, with the flat fallback | [#204](https://github.com/MustaMohamed/MoneyApp/issues/204) | emulator | `feat/MA-002-gradient-headline-spike` | [#198](https://github.com/MustaMohamed/MoneyApp/pull/198) |
+| MA-003 | Cross Fan logo — launcher, adaptive, splash, in-app mark | [#205](https://github.com/MustaMohamed/MoneyApp/issues/205) | emulator | `claude/ma-003-l0m5si` | [#202](https://github.com/MustaMohamed/MoneyApp/pull/202) |
+| MA-004 | Onboarding shell: four fixed tracks and an honest busy CTA | [#206](https://github.com/MustaMohamed/MoneyApp/issues/206) | emulator | — | — |
+| MA-005 | Onboarding resume: route resolver, persist-before-navigate, locked gestures | [#207](https://github.com/MustaMohamed/MoneyApp/issues/207) | emulator | — | — |
 
 ## M2 — The shared account form
 
-| ID | Title | Status | Verify | Branch | PR |
+| ID | Title | Issue | Verify | Branch | PR |
 |---|---|---|---|---|---|
-| MA-006 | 32-colour bottom sheet replaces the swatch rows | todo | emulator | — | — |
-| MA-007 | The shared account form, adopted by Settings | todo | emulator | — | — |
-| MA-008 | Onboarding adopts the shared account form | todo | emulator | — | — |
-| MA-009 | Account form redesign: type grid, message rails, credit slot | todo | emulator | — | — |
+| MA-006 | 32-colour bottom sheet replaces the swatch rows | [#208](https://github.com/MustaMohamed/MoneyApp/issues/208) | emulator | — | — |
+| MA-007 | The shared account form, adopted by Settings | [#209](https://github.com/MustaMohamed/MoneyApp/issues/209) | emulator | — | — |
+| MA-008 | Onboarding adopts the shared account form | [#210](https://github.com/MustaMohamed/MoneyApp/issues/210) | emulator | — | — |
+| MA-009 | Account form redesign: type grid, message rails, credit slot | [#211](https://github.com/MustaMohamed/MoneyApp/issues/211) | emulator | — | — |
 
 ## M3 — The onboarding screens
 
-| ID | Title | Status | Verify | Branch | PR |
+| ID | Title | Issue | Verify | Branch | PR |
 |---|---|---|---|---|---|
-| MA-010 | N1 Welcome | todo | emulator | — | — |
-| MA-011 | N3 Add more accounts | todo | emulator | — | — |
-| MA-012 | N4 Ready — the corrected starting net position | todo | emulator | — | — |
+| MA-010 | N1 Welcome | [#212](https://github.com/MustaMohamed/MoneyApp/issues/212) | emulator | — | — |
+| MA-011 | N3 Add more accounts | [#213](https://github.com/MustaMohamed/MoneyApp/issues/213) | emulator | — | — |
+| MA-012 | N4 Ready — the corrected starting net position | [#214](https://github.com/MustaMohamed/MoneyApp/issues/214) | emulator | — | — |
 
 ## Blockers
 

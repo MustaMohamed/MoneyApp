@@ -34,7 +34,7 @@ Everything for a scope lives in `docs/scopes/MA-<slug>/` — see [TEMPLATES.md](
 | 4 | Plan | `@tariq` | `## Plan` in the task file |
 | 5 | Plan review | `@plan-reviewer` | `## Plan review` |
 | 6 | Implement, self-review, verify on emulator, commit | `@dev` | commits in an isolated worktree |
-| 7 | Local review + independent emulator run, then push and open PR | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
+| 7 | Local review + independent emulator run, then push and open PR with `Closes #N` | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
 | 8 | PR review | `@pr-reviewer` | `## PR review` |
 | 9 | Device QA and merge, then sync and clean | the user merges · `@sarah` cleans | merged PR, task `done`, local tree clean |
 
@@ -54,7 +54,9 @@ Steps 4–8 run per task, in `tasks.md` order, one task at a time.
 
 Gotcha: **squash-merged branches never appear in `git branch --merged`**, because the squash commit shares no history with them. Deleting on that basis leaves every task branch behind and forces `-D` later, on faith. Check `gh pr list --head <branch> --state all` and delete only what reads `MERGED`.
 
-**Status on disk is what makes an interrupted scope resumable.** Sarah writes it to the task file's frontmatter and then to `tasks.md` before dispatching the next step; frontmatter wins if they disagree. `todo` · `planning` · `ready` · `implementing` · `in-review` · `awaiting-human` · `done` · `blocked`. A `blocked` task halts the scope — never skip past it, the order encodes dependencies. Each review gate allows three rounds; the fourth blocks the task and reports.
+**Status lives on the task's GitHub issue, not on disk.** Every task has one issue; the task file's frontmatter carries its number as `issue:`, and `tasks.md` links it. Sarah sets the `status:*` label before dispatching the next step — that write is what makes an interrupted scope resumable, and it costs no commit and no PR. `status:todo` · `status:planning` · `status:ready` · `status:implementing` · `status:in-review` · `status:awaiting-human` · `status:blocked`; **`done` is the issue being closed**, which the merge does by itself via `Closes #N` in the PR body. Exactly one `status:*` label at a time — replace, never add. A `status:blocked` task halts the scope; never skip past it, the order encodes dependencies. Each review gate allows three rounds; the fourth blocks the task and reports.
+
+Gotcha: **status is now a network read.** With no GitHub reachable, a scope cannot resume — the task file no longer answers "where was I". That is the price of killing the drift that a status column kept producing, and it is the right trade because the state that matters is on GitHub anyway (branch, PR, merge). Never re-add a status field to the frontmatter or a Status column to `tasks.md` as a "cache"; two sources of truth is the thing being deleted here.
 
 **Emulator verification** runs on tasks whose frontmatter says `verify: emulator` — anything changing what a screen shows or what the app writes. `@dev` watches it run at step 6, `@impl-reviewer` drives it independently at step 7, and the `emulator-verify` skill carries the mechanics. It is a second net under the same defects: **gate 3 is unchanged**, on real hardware, and typography, shadows, gesture feel and performance are visible nowhere else.
 
@@ -64,7 +66,7 @@ Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules`
 
 Five personas plus four reviewers. Dispatch `@name` (subagent, `.claude/agents/`) for file-producing work; use `[name]` inline (`moneyapp-expert-panel` skill) for advisory consults. Detailed step mechanics live in Sarah's agent file.
 
-- **sarah** — orchestration lead: sequences steps, approves plans, owns status on disk and escalation
+- **sarah** — orchestration lead: sequences steps, approves plans, owns the status label on each task's issue and escalation
 - **marcus** — product designer: flows, screens, design system
 - **layla** — financial domain: formulas, rules, categories
 - **tariq** — technical lead: architecture, spec, task breakdown, plans

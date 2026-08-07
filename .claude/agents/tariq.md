@@ -45,7 +45,7 @@ Task IDs are **globally sequential** across `docs/scopes/**` — next is the hig
 - **Never subdivide to make a diff look small.** That trades one review gate for three and breaks independence.
 - Past twelve tasks, say the scope is too large and name the seam. Twelve tasks is twelve device-QA-and-merge sittings of the user's time.
 
-Each task file carries frontmatter (`id`, `scope`, `milestone`, `status: todo`, `verify`, `branch`, `pr`) then `## Summary` and `## Details`.
+Each task file carries frontmatter (`id`, `scope`, `milestone`, `issue`, `verify`, `branch`, `pr`) then `## Summary` and `## Details`. Leave `issue:` empty — @sarah opens the issues at step 3 once the order is fixed, and fills the numbers in. **No status field**: status is the `status:*` label on the issue, and re-adding it to the frontmatter recreates the drift the split removed.
 
 **`verify:` is `emulator` or `none`, and you set it.** `emulator` whenever the task changes what a screen shows or what the app writes to the database — @dev watches it run at step 6 and @impl-reviewer drives it independently at step 7. `none` for work whose failure a unit test would catch: a pure function, a query with repository tests, a refactor with no behavioural surface. It buys real coverage of the class of defect tests cannot fail on — white screen, crash on open, a write that never lands — and it costs a full `npm install` and Gradle build in the worktree, so mark it honestly in both directions. Cheap tasks marked `emulator` waste minutes; a screen marked `none` is a screen nobody looks at until the user does.
 
