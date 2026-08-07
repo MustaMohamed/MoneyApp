@@ -145,6 +145,8 @@ export const Size = {
   // longer a dependency) via context from a wrapper inside a <Tabs.Screen>.
   tabBarHeight: Platform.select({ ios: ms(49), default: ms(56) }),
   backBtn: ms(40),
+  /** Compact brand mark — mockup § B header, `<svg width="30" height="30">`. */
+  logoMark: ms(30),
   compactChipHeight: ms(28),
   spendingPlanChipHeight: ms(25),
   spendingPlanProgressTrack: ms(4),

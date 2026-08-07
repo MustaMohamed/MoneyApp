@@ -5,8 +5,10 @@ import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { DisplayHeadline } from '@/components/ui/display_headline';
 import { Input } from '@/components/ui/input';
+import { LogoMark } from '@/components/ui/logo_mark';
 import { Pressable } from '@/components/ui/pressable';
 import { Text } from '@/components/ui/text';
+import { Strings } from '@/constants/strings';
 
 export default function PrimitivesPreview() {
   if (!__DEV__) return null;
@@ -82,6 +84,11 @@ export default function PrimitivesPreview() {
         DisplayHeadline
       </Text>
       <DisplayHeadline style={{ marginBottom: 32 }}>Finally clear.</DisplayHeadline>
+
+      <Text variant="body" className="mb-2">
+        LogoMark
+      </Text>
+      <LogoMark style={{ marginBottom: 32 }} accessibilityLabel={Strings.logoMarkA11y} />
     </ScrollView>
   );
 }

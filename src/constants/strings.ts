@@ -1,5 +1,6 @@
 export const Strings = {
   loading: 'Loading...',
+  logoMarkA11y: 'MoneyApp logo',
   tabHome: 'Home',
   tabTransactions: 'Transactions',
   tabCommitments: 'Commitments',

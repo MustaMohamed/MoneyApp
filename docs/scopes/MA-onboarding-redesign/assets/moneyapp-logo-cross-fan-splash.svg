@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="back-card" x1="28" y1="18" x2="100" y2="69">
+      <stop offset="0" stop-color="#344A67" />
+      <stop offset="1" stop-color="#213149" />
+    </linearGradient>
+    <linearGradient id="middle-card" x1="23" y1="31" x2="101" y2="85">
+      <stop offset="0" stop-color="#63B6F0" />
+      <stop offset="1" stop-color="#377FB8" />
+    </linearGradient>
+    <linearGradient id="front-card" x1="17" y1="45" x2="103" y2="103">
+      <stop offset="0" stop-color="#E8C878" />
+      <stop offset="1" stop-color="#C68F32" />
+    </linearGradient>
+  </defs>
+  <!-- expo-splash-screen source. The master's cards group, recentred on the
+       canvas centre (its own ink bbox centres at 512,508.5) and scaled 1.8249 so
+       the ink fills ~88% of this 1024 canvas — contain-fit into the app.json
+       imageWidth:100dp box (withAndroidSplashImages.js:100-124), the mark reads
+       ~88dp wide, well inside the 135.76dp clipping threshold.
+       The gradients above are carried over verbatim and are inert (see plan
+       fact 6); they are kept so this file diffs cleanly against the master. -->
+  <g transform="translate(512 512) scale(1.8249) translate(-512 -508.5)">
+    <g transform="translate(170 170) scale(5.7)">
+      <rect x="28" y="18" width="72" height="51" rx="15" fill="url(#back-card)" transform="rotate(8 64 43.5)" />
+      <rect x="23" y="31" width="78" height="54" rx="16" fill="url(#middle-card)" transform="rotate(-8 62 58)" />
+      <g transform="rotate(1.5 60 74)">
+        <rect x="17" y="45" width="86" height="58" rx="17" fill="url(#front-card)" />
+        <path d="M37 88V64c0-4 5-6 8-3l15 16 15-16c3-3 8-1 8 3v24" fill="none" stroke="#0F1923" stroke-linecap="round" stroke-linejoin="round" stroke-width="9" />
+        <rect x="84" y="55" width="9" height="9" rx="4.5" fill="#4DBB93" />
+      </g>
+    </g>
+  </g>
+</svg>
