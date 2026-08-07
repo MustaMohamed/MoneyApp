@@ -16,7 +16,7 @@ Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes 
 | MA-002 | Spike: gradient-filled headline, with the flat fallback | [#204](https://github.com/MustaMohamed/MoneyApp/issues/204) | emulator | `feat/MA-002-gradient-headline-spike` | [#198](https://github.com/MustaMohamed/MoneyApp/pull/198) |
 | MA-003 | Cross Fan logo — launcher, adaptive, splash, in-app mark | [#205](https://github.com/MustaMohamed/MoneyApp/issues/205) | emulator | `claude/ma-003-l0m5si` | [#202](https://github.com/MustaMohamed/MoneyApp/pull/202) |
 | MA-004 | Onboarding shell: four fixed tracks and an honest busy CTA | [#206](https://github.com/MustaMohamed/MoneyApp/issues/206) | emulator | `claude/ma-004-task-wkjda9` | [#217](https://github.com/MustaMohamed/MoneyApp/pull/217) |
-| MA-005 | Onboarding resume: route resolver, persist-before-navigate, locked gestures | [#207](https://github.com/MustaMohamed/MoneyApp/issues/207) | emulator | — | — |
+| MA-005 | Onboarding resume: route resolver, persist-before-navigate, locked gestures | [#207](https://github.com/MustaMohamed/MoneyApp/issues/207) | emulator | `feat/MA-005-onboarding-resume` | [#218](https://github.com/MustaMohamed/MoneyApp/pull/218) |
 
 ## M2 — The shared account form
 
