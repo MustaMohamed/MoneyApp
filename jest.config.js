@@ -60,7 +60,6 @@ module.exports = {
     'src/utils/responsive.ts',
     'src/utils/format_amount.ts',
     'src/utils/format_date.ts',
-    'src/utils/onboarding_nav.ts',
     'src/utils/run_after_interactions.ts',
     'src/screens/**/*.store.ts',
     'src/screens/**/*.state.ts',

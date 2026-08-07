@@ -73,8 +73,21 @@ export const Strings = {
   n2Footnote: 'Saved on this phone. Nothing is uploaded.',
   n3Footnote: 'One account is enough to start. You can add more any time.',
   n4Footnote: 'This is your starting point, not your net worth.',
+  n1CtaBusy: 'Saving…',
   n2CtaBusy: 'Saving…',
+  n3CtaBusy: 'Opening…',
   n4CtaBusy: 'Opening…',
+  n1StepSaveError:
+    "Couldn't save your choice. Check you have free storage, then tap Continue again.",
+  n2SaveError: "Couldn't save that. Tap Save and continue to try again.",
+  n3StepSaveError: "Couldn't move on. Your accounts are saved — tap Review setup to try again.",
+  n4CompleteError:
+    "Couldn't finish setup. Your accounts are saved — tap Open my dashboard to try again.",
+  // Not one of the plan's six named keys — needed for the four back-chevron
+  // writes (N2/N3 → N1, N4 → N3), which the plan specifies functionally
+  // (Decision 4) but does not give copy for. Reused across all of them
+  // rather than one key per screen, since the failure mode is identical.
+  onboardingBackSaveError: "Couldn't go back. Tap the back arrow to try again.",
 
   // Credit-card field hints
   o4MinPaymentHint: 'Copy from your latest statement. Leave blank if your card is new.',

@@ -17,14 +17,21 @@ import { useMoreAccountsAnim } from './more_accounts.anim';
 import { useMoreAccounts } from './more_accounts.hook';
 
 export default function MoreAccountsScreen() {
-  const { accounts, initialCount, handleAddAnother, handleContinue } = useMoreAccounts();
+  const { accounts, initialCount, handleAddAnother, handleContinue, onBack, state } =
+    useMoreAccounts();
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering } = useMoreAccountsAnim();
 
   return (
     <OnboardingShell
       step={3}
       title={Strings.n3HeaderTitle}
+      onBack={() => {
+        // onBack catches its own failure inside runOnboardingTransition and
+        // resolves; void discards no rejection.
+        void onBack();
+      }}
       footnote={Strings.n3Footnote}
+      statusMessage={state.statusMessage}
       cta={
         <Button
           variant="primary"
@@ -32,6 +39,9 @@ export default function MoreAccountsScreen() {
           onPress={() => {
             void handleContinue();
           }}
+          isDisabled={state.busy}
+          isLoading={state.busy}
+          loadingLabel={Strings.n3CtaBusy}
         />
       }
     >

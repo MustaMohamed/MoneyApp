@@ -22,14 +22,21 @@ export default function WelcomeScreen() {
     <OnboardingShell
       step={1}
       footnote={Strings.n1Footnote}
+      statusMessage={state.statusMessage}
       cta={
         <Animated.View entering={ctaEntering}>
           <Button
             variant="primary"
             label={Strings.o1Cta}
             onPress={() => {
+              // onContinue catches its own failure inside
+              // runOnboardingTransition and resolves; void discards no
+              // rejection.
               void onContinue();
             }}
+            isDisabled={state.busy}
+            isLoading={state.busy}
+            loadingLabel={Strings.n1CtaBusy}
           />
         </Animated.View>
       }
