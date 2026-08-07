@@ -3,6 +3,7 @@ import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
 import {
   ACCOUNT_PALETTE,
   contrastRatio,
+  DEFAULT_ACCOUNT_COLOR,
   findAccountColor,
 } from '@/modules/accounts/constants/account_palette';
 
@@ -108,5 +109,27 @@ describe('findAccountColor', () => {
     // the N3 dots must not crash if one ever does.
     expect(findAccountColor('#3D7A5F')).toBeUndefined();
     expect(findAccountColor('')).toBeUndefined();
+  });
+});
+
+describe('DEFAULT_ACCOUNT_COLOR', () => {
+  it('is the first palette entry and resolves through findAccountColor', () => {
+    // MA-006: the detail screen used to fall back to AccountColors[0] in
+    // constants/theme.ts (also #1B2B4B) while drawing swatches from a list it
+    // was not part of. They agreed on that one entry, which is why nobody
+    // noticed. Binding the default to the palette is what stops them diverging
+    // if either list is ever re-ordered.
+    expect(DEFAULT_ACCOUNT_COLOR).toBe(ACCOUNT_PALETTE[0]?.hex);
+    expect(findAccountColor(DEFAULT_ACCOUNT_COLOR)).toBeDefined();
+  });
+});
+
+describe('tone labels', () => {
+  it('every entry carries the tone label for its own tone', () => {
+    for (const entry of ACCOUNT_PALETTE) {
+      expect(entry.toneLabel).toBe(
+        entry.tone === 'rich' ? Strings.accountColorToneRich : Strings.accountColorToneSoft,
+      );
+    }
   });
 });

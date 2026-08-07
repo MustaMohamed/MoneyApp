@@ -21,6 +21,8 @@ export type AccountColorEntry = {
   family: AccountColorFamily;
   familyLabel: string;
   tone: AccountColorTone;
+  /** Display name for the tone — the sheet and the trigger row never build this string. */
+  toneLabel: string;
   hex: string;
   /** Colour a check glyph must be drawn in to stay legible on `hex`. */
   tickColor: string;
@@ -43,6 +45,11 @@ const FAMILY_LABELS: Record<AccountColorFamily, string> = {
   indigo: Strings.accountColorIndigo,
   coral: Strings.accountColorCoral,
   graphite: Strings.accountColorGraphite,
+};
+
+const TONE_LABELS: Record<AccountColorTone, string> = {
+  rich: Strings.accountColorToneRich,
+  soft: Strings.accountColorToneSoft,
 };
 
 /** The only two colours a tick is ever drawn in — mockup --foreground / --accent-foreground. */
@@ -92,6 +99,7 @@ function entriesForTone(tone: AccountColorTone): AccountColorEntry[] {
       family,
       familyLabel: FAMILY_LABELS[family],
       tone,
+      toneLabel: TONE_LABELS[tone],
       hex,
       tickColor: pickTickColor(hex),
     };
@@ -109,3 +117,11 @@ const BY_HEX = new Map(ACCOUNT_PALETTE.map((entry) => [entry.hex.toUpperCase(), 
 export function findAccountColor(hex: string): AccountColorEntry | undefined {
   return BY_HEX.get(hex.toUpperCase());
 }
+
+/**
+ * The colour an account falls back to when it has none. Both Accounts-module
+ * form paths and the detail screen's `?? ` fallback read this one constant —
+ * before MA-006 the detail screen fell back to AccountColors[0] in
+ * constants/theme.ts while drawing swatches from a different list.
+ */
+export const DEFAULT_ACCOUNT_COLOR: string = AcctTokens.midnight.rich;
