@@ -12,7 +12,7 @@ Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes 
 |---|---|---|---|---|---|
 | MA-001 | Colour families, geometry tokens, and the 32-colour palette | done | none | `feat/MA-001-color-and-geometry-tokens` | [#194](https://github.com/MustaMohamed/MoneyApp/pull/194) |
 | MA-002 | Spike: gradient-filled headline, with the flat fallback | done | emulator | `feat/MA-002-gradient-headline-spike` | [#198](https://github.com/MustaMohamed/MoneyApp/pull/198) |
-| MA-003 | Cross Fan logo — launcher, adaptive, splash, in-app mark | todo | emulator | — | — |
+| MA-003 | Cross Fan logo — launcher, adaptive, splash, in-app mark | planning | emulator | `claude/ma-003-l0m5si` | — |
 | MA-004 | Onboarding shell: four fixed tracks and an honest busy CTA | todo | emulator | — | — |
 | MA-005 | Onboarding resume: route resolver, persist-before-navigate, locked gestures | todo | emulator | — | — |
 
