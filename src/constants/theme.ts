@@ -202,6 +202,7 @@ export const Size = {
   summaryValueSlot: ms(52), // N4 value slot, sized for Type.amountEntry (40)
   summaryCaptionSlot: ms(34), // N4 two-line caption
   statusTrack: ms(34), // footer footnote <-> error track
+  progressRail: ms(55), // onboarding progress rail — bar + step label, fixed
   // Field height. UNSCALED, matching HeroUI Input's own `min-height: 48`
   // (heroui-native/src/styles/components/input.css:9 — spacing 0.25rem x 12).
   // Deliberately not ms()-scaled: see @sarah's ruling, note 5 below.

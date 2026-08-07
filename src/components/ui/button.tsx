@@ -1,10 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Button as HButton, cn, type ButtonSize, type ButtonVariant } from 'heroui-native';
+import { Button as HButton, Spinner, cn, type ButtonSize, type ButtonVariant } from 'heroui-native';
 import React from 'react';
 import { StyleSheet, type PressableProps } from 'react-native';
 
-import { Strings } from '@/constants/strings';
 import { GoldTokens } from '@/constants/theme_tokens';
+
+import { resolveButtonContent } from './button.content';
 
 export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled'> {
   variant?: ButtonVariant;
@@ -14,6 +15,8 @@ export interface ButtonProps extends Omit<PressableProps, 'children' | 'disabled
   isDisabled?: boolean;
   /** RN convention. When set and isDisabled is not, maps to HeroUI Native's `isDisabled`. */
   disabled?: boolean;
+  /** When isLoading, replaces Strings.loading. Omitted keeps today's default. */
+  loadingLabel?: string;
   className?: string;
 }
 
@@ -24,11 +27,17 @@ export function Button({
   isDisabled,
   disabled,
   label,
+  loadingLabel,
   className,
   ...props
 }: ButtonProps) {
   const disabledState = isDisabled ?? disabled;
-  const content = isLoading ? Strings.loading : label;
+  const { text, showSpinner, spinnerColor } = resolveButtonContent({
+    variant,
+    label,
+    isLoading,
+    loadingLabel,
+  });
 
   if (variant === 'primary') {
     return (
@@ -46,7 +55,8 @@ export function Button({
           style={[StyleSheet.absoluteFill, { borderRadius: 13 }]}
           pointerEvents="none"
         />
-        <HButton.Label className="text-accent-foreground">{content}</HButton.Label>
+        {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
+        <HButton.Label className="text-accent-foreground">{text}</HButton.Label>
       </HButton>
     );
   }
@@ -59,7 +69,8 @@ export function Button({
       className={className}
       {...props}
     >
-      <HButton.Label>{content}</HButton.Label>
+      {showSpinner ? <Spinner size="sm" color={spinnerColor} /> : null}
+      <HButton.Label>{text}</HButton.Label>
     </HButton>
   );
 }

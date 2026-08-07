@@ -5,17 +5,16 @@ import { Switch } from 'react-native';
 import Animated from 'react-native-reanimated';
 
 import { TYPE_OPTIONS, TypePill } from '@/components/account_type_pill';
-import { ProgressDots } from '@/components/progress_dots';
-import { BackButton } from '@/components/ui/back_button';
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Screen, ScreenScroll } from '@/components/ui/screen';
+import { ScreenScroll } from '@/components/ui/screen';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { Text } from '@/components/ui/text';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
+import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
 
 import { useAddAccountAnim } from './add_account.anim';
 import { useAddAccount, ACCOUNT_COLORS } from './add_account.hook';
@@ -43,21 +42,27 @@ export default function AddAccountScreen() {
   const isCreditCard = selectedType === AccountType.CreditCard;
 
   return (
-    <Screen>
-      {/* Header */}
-      <Box
-        style={{ flexDirection: 'row', height: 56 }}
-        className="items-center justify-between px-4"
-      >
-        <BackButton onPress={onBack} />
-        <Text variant="title" className="font-sora-bold">
-          {Strings.o4Title}
-        </Text>
-        <Box className="h-9 w-9" />
-      </Box>
-
-      <ProgressDots totalSteps={4} currentStep={2} />
-
+    <OnboardingShell
+      step={2}
+      title={Strings.n2HeaderTitle}
+      onBack={onBack}
+      footnote={Strings.n2Footnote}
+      cta={
+        <Animated.View style={btnAnim}>
+          <Button
+            variant="primary"
+            label={Strings.o4Cta}
+            onPress={() => {
+              triggerBtnPress();
+              void handleSave();
+            }}
+            isDisabled={isSubmitting}
+            isLoading={isSubmitting}
+            loadingLabel={Strings.n2CtaBusy}
+          />
+        </Animated.View>
+      }
+    >
       <ScreenScroll
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 24 }}
         keyboardShouldPersistTaps="handled"
@@ -341,21 +346,6 @@ export default function AddAccountScreen() {
           </Animated.View>
         )}
       </ScreenScroll>
-
-      {/* CTA bar */}
-      <Box className="border-separator border-t px-4 pt-2 pb-6">
-        <Animated.View style={btnAnim}>
-          <Button
-            variant="primary"
-            label={Strings.o4Cta}
-            onPress={() => {
-              triggerBtnPress();
-              void handleSave();
-            }}
-            isDisabled={isSubmitting}
-          />
-        </Animated.View>
-      </Box>
-    </Screen>
+    </OnboardingShell>
   );
 }
