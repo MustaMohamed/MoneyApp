@@ -1,12 +1,14 @@
 import { renderHook, act } from '@testing-library/react-native';
 
 import { OnboardingStep } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { useMoreAccounts } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.hook';
+import { useMoreAccountsTransitionState } from '@/modules/onboarding/screens/onboarding/more_accounts/more_accounts.state';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('expo-router', () => ({
-  useRouter: jest.fn(() => ({ push: jest.fn() })),
+  useRouter: jest.fn(() => ({ replace: jest.fn() })),
   useFocusEffect: jest.fn(),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
@@ -16,7 +18,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
-const mockPush = jest.fn();
+const mockReplace = jest.fn();
 
 const fakeAccounts = [
   {
@@ -41,7 +43,7 @@ const fakeAccounts = [
 
 function setup(accounts = fakeAccounts) {
   const { useRouter } = require('expo-router');
-  (useRouter as jest.Mock).mockReturnValue({ push: mockPush });
+  (useRouter as jest.Mock).mockReturnValue({ replace: mockReplace });
 
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
@@ -61,6 +63,7 @@ function setup(accounts = fakeAccounts) {
 describe('useMoreAccounts', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useMoreAccountsTransitionState.getState().reset();
     setup();
   });
 
@@ -74,30 +77,44 @@ describe('useMoreAccounts', () => {
     expect(result.current.accounts[0].name).toBe('CIB Savings');
   });
 
-  it('handleContinue calls setStep with N4', async () => {
+  it('handleContinue persists N4 and replaces (not pushes) to ready', async () => {
     const { result } = await renderHook(() => useMoreAccounts());
     await act(async () => {
       await result.current.handleContinue();
     });
     expect(mockSetStep).toHaveBeenCalledWith(OnboardingStep.N4);
+    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/ready');
   });
 
-  it('handleContinue navigates to /(onboarding)/ready', async () => {
+  it('a rejecting step write does not navigate, sets the status message, and leaves accounts untouched', async () => {
+    mockSetStep.mockRejectedValueOnce(new Error('boom'));
     const { result } = await renderHook(() => useMoreAccounts());
     await act(async () => {
       await result.current.handleContinue();
     });
-    expect(mockPush).toHaveBeenCalledWith('/(onboarding)/ready');
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(result.current.state.statusMessage).toBe(Strings.n3StepSaveError);
+    expect(result.current.accounts).toHaveLength(2);
   });
 
-  it('handleAddAnother navigates to /(onboarding)/add_account with isAddingMore=true', async () => {
+  it('handleAddAnother replaces (not pushes) to add_account with isAddingMore=true and writes no step', async () => {
     const { result } = await renderHook(() => useMoreAccounts());
     await act(() => {
       result.current.handleAddAnother();
     });
-    expect(mockPush).toHaveBeenCalledWith({
+    expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/(onboarding)/add_account',
       params: { isAddingMore: 'true' },
     });
+    expect(mockSetStep).not.toHaveBeenCalled();
+  });
+
+  it('onBack writes N1 and replaces to welcome', async () => {
+    const { result } = await renderHook(() => useMoreAccounts());
+    await act(async () => {
+      await result.current.onBack();
+    });
+    expect(mockSetStep).toHaveBeenCalledWith(OnboardingStep.N1);
+    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/welcome');
   });
 });

@@ -15,8 +15,9 @@ import { useReady } from './ready.hook';
 
 export default function ReadyScreen() {
   const {
-    state: { rows, completing },
+    state: { rows, completing, statusMessage },
     handleComplete,
+    onBack,
   } = useReady();
   const { checkEntering, headlineEntering, subtitleEntering, rowEntering, ctaEntering } =
     useReadyAnim();
@@ -25,7 +26,13 @@ export default function ReadyScreen() {
     <OnboardingShell
       step={4}
       title={Strings.n4HeaderTitle}
+      onBack={() => {
+        // onBack catches its own failure inside runOnboardingTransition and
+        // resolves; void discards no rejection.
+        void onBack();
+      }}
       footnote={Strings.n4Footnote}
+      statusMessage={statusMessage}
       cta={
         <Animated.View entering={ctaEntering}>
           <Button

@@ -20,7 +20,7 @@ import { useAddAccountAnim } from './add_account.anim';
 import { useAddAccount, ACCOUNT_COLORS } from './add_account.hook';
 
 export default function AddAccountScreen() {
-  const { form, handleSave, onBack } = useAddAccount();
+  const { form, handleSave, onBack, state } = useAddAccount();
   const {
     btnAnim,
     triggerBtnPress,
@@ -45,8 +45,13 @@ export default function AddAccountScreen() {
     <OnboardingShell
       step={2}
       title={Strings.n2HeaderTitle}
-      onBack={onBack}
+      onBack={() => {
+        // onBack catches its own failure inside runOnboardingTransition and
+        // resolves; void discards no rejection.
+        void onBack();
+      }}
       footnote={Strings.n2Footnote}
+      statusMessage={state.statusMessage}
       cta={
         <Animated.View style={btnAnim}>
           <Button

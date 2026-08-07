@@ -1,21 +1,34 @@
+import { useRouter } from 'expo-router';
+
+import { OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import { runOnboardingTransition } from '@/modules/onboarding/domain/onboarding_transition';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
 import { useAsync } from '@/utils/use_async.hook';
 import { useInit } from '@/utils/use_init.hook';
 
 import { computeTotalBalance } from './ready.helpers';
+import { useReadyTransitionState } from './ready.state';
 
 type SummaryRow = { label: string; value: string; gold: boolean };
 
 export function useReady() {
+  const router = useRouter();
   const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
   const completeOnboarding = useOnboardingStore.getState().completeOnboarding;
+  const setStep = useOnboardingStore.getState().setStep;
   const complete = useAsync(completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
   const loadAccounts = useAccountStore.getState().loadAccounts;
+  const backStatusMessage = useReadyTransitionState.useState.statusMessage();
+  const busy = useReadyTransitionState.useState.busy();
 
   useInit(loadAccounts);
+  // Belt and braces for an entry path that does not go through the runner —
+  // invalidate() already clears this on every successful exit, but a fresh
+  // mount should never be able to show a message from a previous visit.
+  useInit(() => useReadyTransitionState.getState().reset());
 
   const total = computeTotalBalance(accounts);
   const formattedTotal = new Intl.NumberFormat('en-US').format(total);
@@ -41,11 +54,46 @@ export function useReady() {
 
   const handleComplete = async () => {
     if (complete.isLoading) return;
-    await complete();
+    try {
+      await complete();
+    } catch {
+      // complete.isError is already set by useAsync (use_async.hook.ts:39)
+      // and rendered via state.statusMessage below. The CTA is the retry;
+      // no second button appears.
+    }
+  };
+
+  const onBack = async () => {
+    // A live back button during the completion write is a race this task's
+    // own back chevron would otherwise introduce.
+    if (complete.isLoading) return;
+
+    const session = useReadyTransitionState.getState().begin();
+    if (session === null) return;
+
+    await runOnboardingTransition({
+      session,
+      api: useReadyTransitionState.getState(),
+      navigate: (href) => router.replace(href),
+      desiredStep: OnboardingStep.N3,
+      readAccountCount: () => useAccountStore.getState().accounts.length,
+      persist: async (resolve) => {
+        const resolved = resolve();
+        await setStep(resolved);
+        return resolved;
+      },
+      errorMessage: Strings.onboardingBackSaveError,
+    });
   };
 
   return {
-    state: { rows, completing: complete.isLoading },
+    state: {
+      rows,
+      completing: complete.isLoading,
+      statusMessage: complete.isError ? Strings.n4CompleteError : backStatusMessage,
+      busy,
+    },
     handleComplete,
+    onBack,
   };
 }
