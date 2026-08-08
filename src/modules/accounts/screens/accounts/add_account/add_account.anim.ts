@@ -1,6 +1,4 @@
 import {
-  FadeInDown,
-  FadeOutUp,
   useAnimatedStyle,
   useSharedValue,
   withSequence,
@@ -22,14 +20,5 @@ export function useAddAccountAnim() {
     );
   };
 
-  return {
-    btnAnim,
-    triggerBtnPress,
-    ccEntering: FadeInDown.duration(250),
-    ccExiting: FadeOutUp.duration(200),
-    aprEntering: FadeInDown.duration(200),
-    aprExiting: FadeOutUp.duration(150),
-    errorEntering: FadeInDown.duration(150),
-    errorExiting: FadeOutUp.duration(100),
-  };
+  return { btnAnim, triggerBtnPress };
 }
