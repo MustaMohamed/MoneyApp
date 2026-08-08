@@ -2,8 +2,8 @@
 import '@/utils/zod_config';
 import { AccountType, Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import type { Account } from '@/store/account.store';
-import { createAddAccountSchema } from '@/utils/schemas/add_account.schema';
+import type { Account } from '@/modules/accounts/store/account.store';
+import { createAddAccountSchema } from '@/modules/accounts/utils/add_account.schema';
 
 const emptyAccounts: Account[] = [];
 
@@ -92,6 +92,37 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
 
     it('balance of 0 → valid', () => {
       expect(fieldErrors(baseData({ balance: '0' })).balance).toBeUndefined();
+    });
+  });
+
+  describe('balance — the MA-007 case table', () => {
+    it.each([
+      ['5,000', true],
+      ['5,000.50', true],
+      ['1,234,567.89', true],
+      ['  7  ', true],
+      ['0', true],
+      ['00.5', true],
+      ['5abc', false],
+      ['5.5.5', false],
+      ['0x10', false],
+      ['1e3', false],
+      ['1_000', false],
+      ['.5', false],
+      ['5.', false],
+      ['12,34', false],
+      ['', false],
+      ['abc', false],
+      ['-3', false],
+      ['Infinity', false],
+      ['٥', false],
+    ])('balance %p → accepted: %p', (balance, accepted) => {
+      const errs = fieldErrors(baseData({ balance }));
+      expect(errs.balance === undefined).toBe(accepted);
+    });
+
+    it('rejects with errBalanceInvalid, not a generic message', () => {
+      expect(fieldErrors(baseData({ balance: '5abc' })).balance).toBe(Strings.errBalanceInvalid);
     });
   });
 
