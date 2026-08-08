@@ -1,6 +1,6 @@
 import { Switch, Typography } from 'heroui-native';
 import React from 'react';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Strings } from '@/constants/strings';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
-import { useAccountFormAnim } from './account_form.anim';
+import { useCreditCardFieldsAnim } from './account_form.anim';
 
 export interface CreditCardFieldsProps {
   form: UseFormReturn<AddAccountFormData>;
@@ -23,11 +23,11 @@ export interface CreditCardFieldsProps {
  * it separate means MA-009's diff does not touch account_form.tsx.
  */
 export function CreditCardFields({ form }: CreditCardFieldsProps) {
-  const {
-    control,
-    formState: { errors },
-  } = form;
-  const { aprEntering, aprExiting } = useAccountFormAnim();
+  const { control } = form;
+  // useFormState, not form.formState — see account_form.tsx's comment; the
+  // same memoized-prop bailout applies here (MA-007 round 2, D1).
+  const { errors } = useFormState({ control });
+  const { aprEntering, aprExiting } = useCreditCardFieldsAnim();
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
 
   return (

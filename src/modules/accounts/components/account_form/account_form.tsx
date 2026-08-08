@@ -1,5 +1,5 @@
 import React from 'react';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
@@ -35,10 +35,14 @@ export interface AccountFormProps {
  * view lives inside OnboardingShell's viewport.
  */
 export function AccountForm({ form, ownerId }: AccountFormProps) {
-  const {
-    control,
-    formState: { errors },
-  } = form;
+  const { control } = form;
+  // useFormState subscribes this component directly to formState changes.
+  // Reading `form.formState.errors` off the prop instead reads a stable
+  // useRef whose identity never changes — with the React Compiler on
+  // (app.json's experiments.reactCompiler), the host's cached element skips
+  // re-rendering this subtree on a validation change and every field error
+  // renders as invisible until an unrelated re-render happens to catch up.
+  const { errors } = useFormState({ control });
   const { ccEntering, ccExiting } = useAccountFormAnim();
   const selectedType = useWatch({ control, name: 'selected_type' });
   const selectedCurrency = useWatch({ control, name: 'currency' });

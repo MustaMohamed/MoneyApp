@@ -217,7 +217,19 @@ describe('toNewAccountInput — credit vs non-credit', () => {
     expect(result.minimum_payment).toBeNull();
     expect(result.statement_due_day).toBeNull();
     expect(result.apr).toBeNull();
-    expect(result.interest_tracking).toBe(0);
+  });
+
+  // interest_tracking is not one of the fields isCC gates — it is written
+  // unconditionally, unchanged from add_account.hook.ts:50-55 pre-MA-007 —
+  // because the UI never exposes its Switch outside CreditCardFields, so a
+  // Bank draft has no path to set it true today. Asserted here with the
+  // field forced true (baseData's default is already false, which the case
+  // above would let pass with no gate at all) so the assertion pins the
+  // unconditional write rather than restating the default. Widening the
+  // gate is MA-009's call, not this task's.
+  it('interest_tracking is written unconditionally, not gated by isCC', () => {
+    const data = baseData({ selected_type: AccountType.Bank, interest_tracking: true });
+    expect(toNewAccountInput(data, { sortOrder: 0 }).interest_tracking).toBe(1);
   });
 
   it('AccountType.CreditCard persists every filled credit field', () => {
