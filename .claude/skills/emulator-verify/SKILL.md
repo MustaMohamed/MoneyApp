@@ -24,15 +24,44 @@ examples below assume `M=.claude/skills/emulator-verify/mqa.sh`.
 | Command | Does |
 |---|---|
 | `mqa boot` / `install` / `launch` | start AVD · install `app-debug.apk` · deep-link into the dev client |
+| `mqa needs-build [base]` | **ask before you build.** Exits 0 (rebuild) only if the native surface moved |
+| `mqa build` | Gradle debug APK for the device's own ABI only — ~100MB, not ~300MB |
 | `mqa reset` | `pm clear` — next launch starts at N1, for fresh-onboarding runs |
+| `mqa walk <script.sh>` / `step <label>` | run a whole scenario in one call; `step` prints a separator |
 | `mqa ui` | every visible text and content-desc |
 | `mqa find <label>` / `tap <label>` | locate / tap by exact label |
+| `mqa park` | drag the dev-client Tools bubble out of the way for the session |
 | `mqa type <text>` · `clear` · `key <code>` · `back` | text entry and navigation |
 | `mqa shot [name]` | screenshot → path you can Read |
 | `mqa db "<sql>"` | query the on-device database |
 | `mqa logs [n]` | recent JS errors and crashes |
 
 `MQA_SERIAL` targets a specific device; `MQA_PORT` a non-8081 Metro.
+
+## Scope the walk before you run it
+
+**If a unit test can assert it, the emulator must not.** The emulator's job is
+wiring (screen → mapping → SQLite), native and render behaviour, and pixels —
+not arithmetic a pure function already covers. Re-typing a parser's case table
+into a form proves nothing the parser's own suite does not, at roughly a hundred
+times the cost.
+
+This is not a style preference; it was measured. Two independent walks of MA-007,
+same branch, same defect surface:
+
+| | 9 scenarios, driven per interaction | 4 scenarios, scoped and scripted |
+|---|---|---|
+| Tool calls | 415 | 132 |
+| Tokens | 473k | 220k |
+| Found the regression | no | **yes** |
+
+The wide walk spent its budget re-proving unit-tested arithmetic through a UI and
+missed a live defect. The scoped one had room left to chase an anomaly. Going
+wide is not the safe choice — it is the one that runs out of attention.
+
+Add a scenario only when you can say **what device-only failure it catches**.
+Four is a normal size. If a claim can be checked with `mqa db`, check it there
+rather than reading it off a screen.
 
 ## Three ordering rules
 
@@ -63,14 +92,35 @@ worktree, which needs three things the worktree does not have by default.
    `jest`, and lint, but it breaks device builds — expo-router resolves zero routes and you
    get a running app with no screens. It also breaks `mqa db`: this script resolves its root
    from **its own location**, so the worktree's copy needs the worktree's `better-sqlite3`.
-2. **An actual build.** `mqa install` wants `android/app/build/outputs/apk/debug/app-debug.apk`
-   and `android/` is gitignored, so a fresh worktree has neither:
+2. **An APK — but usually not a new one.** `mqa install` wants
+   `android/app/build/outputs/apk/debug/app-debug.apk`, and `android/` is
+   gitignored, so a fresh worktree has none. **Ask before building:**
 
    ```bash
    npm install
-   npx expo prebuild --platform android
-   ( cd android && ./gradlew assembleDebug )
+   mqa needs-build            # exits 0 to rebuild, 1 to reuse
    ```
+
+   A rebuild is mandatory only when the **native surface** moved —
+   `package.json`, `package-lock.json`, `app.json`, `eas.json`, `patches/`, or
+   anything under `android/`/`ios/`. Everything else reaches the device over
+   Metro, so a dev client already installed is current by construction: point it
+   at this worktree's Metro and the branch under test is what runs. Most task
+   diffs are JS-only, and a skipped Gradle build is the single largest saving
+   available in this workflow.
+
+   When you do need one:
+
+   ```bash
+   npx expo prebuild --platform android
+   mqa build                  # device's own ABI only
+   mqa install
+   ```
+
+   `mqa build` passes `-PreactNativeArchitectures=<device abi>`. The default
+   four-ABI debug APK is ~300MB and overflows the emulator's `/data`; the
+   single-ABI one is ~100MB, and the emulator cannot execute the other three
+   anyway.
 
 3. **Its own Metro, on its own port.** This is the one that produces a false pass.
    `mqa launch` runs `adb reverse tcp:$PORT tcp:$PORT`, and **`adb reverse` is global per
@@ -88,14 +138,52 @@ worktree, which needs three things the worktree does not have by default.
    and a change you made should be visible on the first screen you look at. If it is not,
    assume the wrong bundle before assuming the change failed.
 
-**Order this against the CI parity chain deliberately.** The chain ends in
-`expo prebuild --no-install`, which regenerates `android/` and takes the built APK with it.
-So verify *before* running the chain, or rebuild after it — a chain run between your build
-and your `mqa install` leaves you installing nothing, or worse, whatever was there before.
+**Run the CI parity chain first, then build once.** The chain ends in
+`expo prebuild --no-install`, which regenerates `android/` and deletes the built
+APK with it. The old advice here was to verify *before* the chain — which
+guaranteed that step 7 rebuilt everything step 6 had just built. Invert it:
+parity chain → `needs-build` → build if required → install once, and steps 6 and
+7 share that APK. The APK survives, because nothing after it regenerates
+`android/`.
 
-Cost is a full install and Gradle build per task, which is why only tasks marked
-`verify: emulator` pay it. Between step 6 and step 7 the worktree persists, so `npm install`
-happens once; the build does not survive the parity chain, so step 7 rebuilds.
+Cost, once ordered this way, is at most **one** Gradle build per task rather than
+two, and for a JS-only diff it is zero — which is why only tasks marked
+`verify: emulator` pay anything at all. `npm install` happens once per worktree.
+
+## Drive the walk from a script, not one call at a time
+
+Each `tap` → dump → `find` round trip carries a full UI hierarchy back. A form
+fill is ~6 interactions; a four-scenario walk driven that way is a hundred-odd
+round trips and most of the cost of the whole run. Write the scenario once and
+run it in a single call:
+
+```bash
+cat > /tmp/walk.sh <<'SH'
+$MQA step "1 — save 5,000 from Settings"
+$MQA tap 'Add Account'; $MQA tap 'Name'; $MQA type 'Walk 1'
+$MQA tap 'Opening balance'; $MQA type '5,000'
+$MQA tap 'Save'
+$MQA db "select name, opening_balance, current_balance from accounts order by id desc limit 1"
+
+$MQA step "2 — double tap inserts one row"
+$MQA db "select count(*) as before from accounts"
+SH
+mqa walk /tmp/walk.sh
+```
+
+`mqa walk` exports `$MQA` and runs the script under `-euo pipefail`, so the first
+failed step stops the walk instead of letting later assertions read a screen that
+never arrived. `mqa step` just prints a separator, which is what makes one long
+output readable afterwards.
+
+Run `mqa park` once at the start. The dev client's floating **Tools** bubble
+lives in a window `uiautomator` never dumps, so it silently captures taps near
+the header's right-hand action even from coordinates outside its reported bounds
+— worth several wasted calls per walk before anyone notices.
+
+Screenshot only what is genuinely visual. `mqa ui` is text, and `grep -c` over it
+answers "did this message render?" far more cheaply than an image — that exact
+check is what distinguished a real regression from a clean run on MA-007.
 
 ## Verifying logic, not just pixels
 
@@ -123,8 +211,11 @@ user's gate: this is "verified on emulator", never "QA passed".
 
 | Mistake | Reality |
 |---|---|
-| "It installed, so the build is current" | A fresh `android/` proves nothing — the CI-parity chain ends in `expo prebuild --no-install`, which regenerates the project *and deletes any APK already built there* without building a new one. Check `android/app/build/outputs/`; running the parity chain means rebuilding before you can install again. |
-| Install fails with an opaque `IOException` | Emulator `/data` is full, not a build problem. `mqa install` prints free space; a debug APK needs ~400MB. `pm trim-caches` does not help — uninstall stale dev builds. |
+| "It installed, so the build is current" | A fresh `android/` proves nothing — `expo prebuild --no-install` regenerates the project *and deletes any APK already built there* without building a new one. Check `android/app/build/outputs/`. Run the parity chain **before** you build, and this stops being a trap rather than a thing to remember. |
+| Install fails with an opaque `IOException` | Emulator `/data` is full, not a build problem. `mqa install` prints free space; a four-ABI debug APK needs ~400MB, which is most of why `mqa build` emits one ABI. `pm trim-caches` does not help — uninstall stale dev builds. |
+| Rebuilding because the branch changed | The branch reaching the device is Metro's job, not the APK's. Ask `mqa needs-build` — only a native-surface change (`package*.json`, `app.json`, `eas.json`, `patches/`, `android/`, `ios/`) invalidates an installed dev client. |
+| Going wide "to be safe" | Measured on MA-007: the 9-scenario walk cost 2× the 4-scenario one **and missed the defect the short one found**. Breadth spent on unit-testable claims buys nothing and crowds out the attention that catches anomalies. |
+| A walk driven one tool call per tap | Every round trip carries a whole UI hierarchy. Put the scenario in a script and run `mqa walk`. |
 | Tapping by screenshot coordinates | Read them from `mqa find`. RN wraps a Pressable around a same-labelled Text; only the `clickable` node responds. `find` sorts those first and `tap` refuses a text-only match rather than firing a no-op that reports success. |
 | Typing a value containing `&`, `;`, `'` or `$` | The text reaches the *device's* shell. `mqa type` single-quotes it; a raw `adb shell input text` truncates at the metacharacter **and still exits 0**, so it looks like it worked. Account and category names are exactly where this bites. |
 | Treating a green emulator run as QA | Gate 3 is the user's, on real hardware. This produces evidence for it, not a verdict. |
