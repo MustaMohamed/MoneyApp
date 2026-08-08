@@ -135,6 +135,21 @@ export const Strings = {
   accountColorCoral: 'Coral',
   accountColorGraphite: 'Graphite',
 
+  // Account colour sheet — MA-006, mockup § D (D1, D2) and C1's trigger row
+  accountColorSectionLabel: 'ACCOUNT COLOUR',
+  accountColorSheetTitle: 'Account colour',
+  accountColorSheetCta: 'Use this colour',
+  accountColorToneRich: 'Rich',
+  accountColorToneSoft: 'Soft',
+  accountColorToneRichHint: 'for cards and tiles',
+  accountColorToneSoftHint: 'same 16 families, lighter',
+  accountColorToneRichCaption: 'Rich · deeper tone, used on cards and tiles',
+  accountColorToneSoftCaption: 'Soft · lighter tone, used for list dots and chips',
+  accountColorCustom: 'Custom colour',
+  accountColorSwatchA11y: (family: string, tone: string) => `${family}, ${tone.toLowerCase()}`,
+  accountColorTriggerA11y: (family: string, tone: string) =>
+    `Account colour: ${family}, ${tone.toLowerCase()}`,
+
   // More Accounts
   o5Subtitle: 'Got other accounts? Add them now — or skip and do it later.',
   o5AddAnother: 'Add another account',

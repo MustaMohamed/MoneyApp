@@ -1,9 +1,6 @@
 import { renderHook } from '@testing-library/react-native';
 
-import {
-  useAddAccountApp,
-  ACCOUNT_COLORS,
-} from '@/modules/accounts/screens/accounts/add_account/add_account.hook';
+import { useAddAccountApp } from '@/modules/accounts/screens/accounts/add_account/add_account.hook';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
 import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
@@ -35,9 +32,5 @@ describe('useAddAccountApp', () => {
     expect(result.current.form).toBeDefined();
     expect(typeof result.current.handleSave).toBe('function');
     expect(typeof result.current.onBack).toBe('function');
-  });
-
-  it('exports the 12-entry ACCOUNT_COLORS preset row', () => {
-    expect(ACCOUNT_COLORS).toHaveLength(12);
   });
 });

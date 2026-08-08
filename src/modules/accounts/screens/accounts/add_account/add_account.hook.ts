@@ -2,29 +2,12 @@ import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 
 import { AccountType, Currency } from '@/constants/enums';
-import { AcctTokens } from '@/constants/theme_tokens';
 import { useInit } from '@/utils/use_init.hook';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
 import { useAccountStore } from '../../../store/account.store';
 import { createAddAccountSchema, type AddAccountFormData } from '../../../utils/add_account.schema';
-
-// 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4), mirroring
-// onboarding/add_account. Exported so index.tsx renders the picker row.
-export const ACCOUNT_COLORS = [
-  AcctTokens.midnight.rich,
-  AcctTokens.gold.rich,
-  AcctTokens.nile.rich,
-  AcctTokens.paprika.rich,
-  AcctTokens.plum.rich,
-  AcctTokens.lapis.rich,
-  AcctTokens.rose.rich,
-  AcctTokens.sand.rich,
-  AcctTokens.amethyst.rich,
-  AcctTokens.emerald.rich,
-  AcctTokens.saffron.rich,
-  AcctTokens.steel.rich,
-] as const;
 
 export function useAddAccountApp() {
   const router = useRouter();
@@ -43,7 +26,7 @@ export function useAddAccountApp() {
       name: '',
       balance: '',
       selected_type: AccountType.Bank,
-      selected_color: AcctTokens.midnight.rich,
+      selected_color: DEFAULT_ACCOUNT_COLOR,
       currency: Currency.EGP,
       interest_tracking: false,
       credit_limit: '',

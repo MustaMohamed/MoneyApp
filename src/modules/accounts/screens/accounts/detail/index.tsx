@@ -5,7 +5,6 @@ import { Controller } from 'react-hook-form';
 import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
-import { ColorSwatchPicker } from '@/components/ui/color_swatch_picker';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
@@ -14,7 +13,7 @@ import { StackHeader } from '@/components/ui/stack_header';
 import { Strings } from '@/constants/strings';
 import { CoreTokens, SemanticTokens } from '@/constants/theme_tokens';
 
-import { ACCOUNT_COLORS } from '../add_account/add_account.hook';
+import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { useAccountDetailAnim } from './account_detail.anim';
 import { useAccountDetail } from './account_detail.hook';
 import { AdjustBalanceSheet } from './components/adjust_balance_sheet';
@@ -130,12 +129,11 @@ export default function AccountDetailScreen() {
             />
             <FormErrorText message={errors.name?.message} />
 
-            <FormSectionLabel>{Strings.o4SectionColor}</FormSectionLabel>
             <Controller
               control={control}
               name="color"
               render={({ field: { value, onChange } }) => (
-                <ColorSwatchPicker colors={ACCOUNT_COLORS} value={value} onChange={onChange} />
+                <AccountColorField ownerId="accounts/detail" value={value} onChange={onChange} />
               )}
             />
           </Animated.View>

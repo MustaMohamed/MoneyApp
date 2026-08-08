@@ -4,9 +4,9 @@ import { z } from 'zod';
 import { useShallow } from 'zustand/react/shallow';
 
 import { Strings } from '@/constants/strings';
-import { AccountColors } from '@/constants/theme';
 import { useZodForm } from '@/utils/use_zod_form.hook';
 
+import { DEFAULT_ACCOUNT_COLOR } from '../../../constants/account_palette';
 import { useAccountStore } from '../../../store/account.store';
 import { useAccountDetailState } from './account_detail.state';
 
@@ -86,13 +86,13 @@ export function useAccountDetail() {
   const form = useZodForm(editSchema, {
     defaultValues: {
       name: account?.name ?? '',
-      color: account?.color ?? AccountColors[0],
+      color: account?.color ?? DEFAULT_ACCOUNT_COLOR,
     },
   });
 
   useEffect(() => {
     if (account) {
-      form.reset({ name: account.name, color: account.color ?? AccountColors[0] });
+      form.reset({ name: account.name, color: account.color ?? DEFAULT_ACCOUNT_COLOR });
     }
   }, [account, form]);
 
