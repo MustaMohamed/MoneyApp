@@ -1,5 +1,5 @@
 import { Input } from 'heroui-native';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import { View } from 'react-native';
 
 import { SelectablePill } from '@/components/ui/chip';
@@ -30,7 +30,10 @@ const PERIODS: { key: RecurrencePeriod; label: string }[] = [
 
 export function RecurrencePicker({ form, recurrencePreset, onPresetChange }: Props) {
   const recurrencePeriod = useWatch({ control: form.control, name: 'recurrencePeriod' });
-  const everyError = form.formState.errors.recurrenceEvery?.message;
+  // useFormState, not form.formState — `form` is a prop, so reading formState
+  // off it subscribes nothing here and this error would render stale (MA-007).
+  const { errors } = useFormState({ control: form.control });
+  const everyError = errors.recurrenceEvery?.message;
 
   return (
     <View className="bg-default gap-2 rounded-2xl px-3 py-3">

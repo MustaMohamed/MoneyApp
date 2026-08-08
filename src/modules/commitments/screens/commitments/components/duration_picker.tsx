@@ -1,7 +1,7 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { Input, PressableFeedback } from 'heroui-native';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 
 import { SelectablePill } from '@/components/ui/chip';
@@ -35,8 +35,11 @@ export function DurationPicker({
   setShowEndDatePicker,
 }: Props) {
   const endDate = useWatch({ control: form.control, name: 'endDate' });
-  const countError = form.formState.errors.endAfterCount?.message;
-  const dateError = form.formState.errors.endDate?.message;
+  // useFormState, not form.formState — `form` is a prop, so reading formState
+  // off it subscribes nothing here and these errors would render stale (MA-007).
+  const { errors } = useFormState({ control: form.control });
+  const countError = errors.endAfterCount?.message;
+  const dateError = errors.endDate?.message;
 
   const endDateAsDate = endDate ? new Date(endDate + 'T00:00:00') : new Date();
   const formattedEndDate = endDate ? formatLongDate(endDate) : Strings.commitmentDateInputFormat;

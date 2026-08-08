@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/oxlint/configuration_schema.json",
+  "plugins": [],
+  "jsPlugins": [
+    {
+      "name": "moneyapp",
+      "specifier": "../oxlint-plugin-moneyapp.mjs"
+    }
+  ],
+  "categories": {},
+  "rules": {
+    "moneyapp/no-formstate-off-prop": "error"
+  }
+}

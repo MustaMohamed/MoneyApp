@@ -3,7 +3,7 @@ import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/d
 import { router } from 'expo-router';
 import { Input, PressableFeedback } from 'heroui-native';
 import { useEffect, useMemo } from 'react';
-import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 import { Platform, View } from 'react-native';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -122,12 +122,15 @@ export function CommitmentFormBody({
 
   useEffect(() => () => useCommitmentFormBodyState.getState().reset(), []);
 
+  // useFormState, not form.formState — `form` is a prop, so reading formState
+  // off it subscribes nothing here and these errors would render stale (MA-007).
+  const { errors: formErrors } = useFormState({ control: form.control });
   const errors = {
-    name: form.formState.errors.name?.message,
-    amount: form.formState.errors.amount?.message,
-    category: form.formState.errors.categoryId?.message,
-    startDate: form.formState.errors.startDate?.message,
-    notes: form.formState.errors.notes?.message,
+    name: formErrors.name?.message,
+    amount: formErrors.amount?.message,
+    category: formErrors.categoryId?.message,
+    startDate: formErrors.startDate?.message,
+    notes: formErrors.notes?.message,
   };
 
   const startDateAsDate = startDate ? new Date(startDate + 'T00:00:00') : new Date();

@@ -5,6 +5,10 @@
     {
       "name": "expo",
       "specifier": "eslint-plugin-expo"
+    },
+    {
+      "name": "moneyapp",
+      "specifier": "./scripts/oxlint-plugin-moneyapp.mjs"
     }
   ],
   "env": {
@@ -44,6 +48,12 @@
     "jest/expect-expect": "off",
     "react/react-in-jsx-scope": "off",
     "react/display-name": "off",
+    // MA-007 (PR #220): reading `formState` off a `UseFormReturn` prop does not
+    // subscribe the reading component, so with React Compiler on its field
+    // errors render stale — validation blocks the submit and nothing is shown.
+    // No Jest test can catch it (React Compiler is gated on a Metro-only Babel
+    // caller flag), so this rule is the only automated guard there is.
+    "moneyapp/no-formstate-off-prop": "error",
     "expo/use-dom-exports": "error",
     "expo/no-env-var-destructuring": "error",
     "expo/no-dynamic-env-var": "error",
@@ -74,11 +84,16 @@
     "android/",
     "ios/",
     "coverage/",
-    "uniwind.d.ts"
+    "uniwind.d.ts",
+    // Violates `moneyapp/no-formstate-off-prop` on purpose. Linted explicitly,
+    // against its own config, by __tests__/oxlint_no_formstate_off_prop.test.ts.
+    "scripts/__fixtures__/"
   ],
   "overrides": [
     {
-      "files": ["scripts/**/*.{ts,tsx,js}", "metro.config.js", "babel.config.js"],
+      // `mjs` is here for the local oxlint plugin: it walks an untyped ESTree,
+      // so every node access is `any` by construction.
+      "files": ["scripts/**/*.{ts,tsx,js,mjs}", "metro.config.js", "babel.config.js"],
       "rules": {
         "typescript/no-unsafe-assignment": "warn",
         "typescript/no-explicit-any": "warn",
