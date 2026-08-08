@@ -22,7 +22,7 @@ Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes 
 
 | ID | Title | Issue | Verify | Branch | PR |
 |---|---|---|---|---|---|
-| MA-006 | 32-colour bottom sheet replaces the swatch rows | [#208](https://github.com/MustaMohamed/MoneyApp/issues/208) | emulator | — | — |
+| MA-006 | 32-colour bottom sheet replaces the swatch rows | [#208](https://github.com/MustaMohamed/MoneyApp/issues/208) | emulator | `feat/MA-006-color-sheet` | [#219](https://github.com/MustaMohamed/MoneyApp/pull/219) |
 | MA-007 | The shared account form, adopted by Settings | [#209](https://github.com/MustaMohamed/MoneyApp/issues/209) | emulator | — | — |
 | MA-008 | Onboarding adopts the shared account form | [#210](https://github.com/MustaMohamed/MoneyApp/issues/210) | emulator | — | — |
 | MA-009 | Account form redesign: type grid, message rails, credit slot | [#211](https://github.com/MustaMohamed/MoneyApp/issues/211) | emulator | — | — |
