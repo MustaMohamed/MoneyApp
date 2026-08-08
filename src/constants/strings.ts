@@ -102,6 +102,7 @@ export const Strings = {
   errBalanceInvalid: 'Please enter a valid amount',
   errCreditLimitRequired: 'Credit limit is required for credit cards',
   errAprRequired: "Please enter your card's APR",
+  errAccountSaveFailed: "Couldn't save that account. Tap Save Account to try again.",
 
   // Generic Zod error map fallbacks
   errRequired: 'This field is required',
@@ -246,6 +247,7 @@ export const Strings = {
   // Add Account screen (U4 — main app)
   u4Title: 'Add Account',
   u4Cta: 'Save Account',
+  u4CtaBusy: 'Saving…',
 
   // Adjust Balance sheet
   adjustBalanceTitle: 'Adjust Balance',
