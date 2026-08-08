@@ -187,6 +187,75 @@ cmd_launch() {
 
 cmd_reset() { need_device; a shell pm clear "$PKG" >/dev/null; echo "app data cleared — 'launch' next; the DB is recreated on first run"; }
 
+# --- build decision ----------------------------------------------------------
+# The Gradle build is the single most expensive step in a verification run, and
+# most task diffs do not need one. These three commands make "do I have to
+# rebuild?" a question with a checkable answer instead of a habit.
+
+cmd_abi() { need_device; a shell getprop ro.product.cpu.abi | tr -d '\r'; }
+
+# A debug APK built for all four ABIs is ~300MB and overflows the emulator's
+# /data; one matching the device is ~100MB. There is no upside to the other
+# three — the emulator can only run its own.
+cmd_build() {
+  need_device
+  local abi
+  abi="$(cmd_abi)"
+  [ -d "$ROOT/android" ] || die "no android/ — run: npx expo prebuild --platform android"
+  echo "building debug APK for $abi only (all-ABI is ~3x the size and cannot install)"
+  ( cd "$ROOT/android" && ./gradlew assembleDebug "-PreactNativeArchitectures=$abi" )
+  ls -lh "$ROOT/$APK"
+}
+
+# Native surface: a change to any of these means the installed APK is stale and
+# a rebuild is mandatory. Everything else ships over Metro, so an APK already on
+# the device is current by construction — reuse it and skip ~10 minutes.
+cmd_needs_build() {
+  local base="${1:-origin/main}" changed
+  changed="$(
+    { git -C "$ROOT" diff --name-only "$base"...HEAD 2>/dev/null || true
+      git -C "$ROOT" diff --name-only HEAD 2>/dev/null || true
+      git -C "$ROOT" ls-files --others --exclude-standard 2>/dev/null || true
+    } | sort -u | grep -E '^(package(-lock)?\.json|app\.json|eas\.json|patches/|android/|ios/|.*\.gradle|gradle\.properties)' || true
+  )"
+  if [ -n "$changed" ]; then
+    echo "REBUILD — native surface changed since $base:"
+    sed 's/^/  /' <<<"$changed"
+    return 0
+  fi
+  echo "REUSE — no native surface change since $base; serve this branch over Metro."
+  if [ -n "$S" ] && ! a shell pm list packages 2>/dev/null | grep -q "$PKG"; then
+    echo "  ...but $PKG is not installed on $S. Build once: mqa build && mqa install"
+    return 0
+  fi
+  return 1
+}
+
+# The dev client's floating Tools bubble captures taps near the header's
+# right-hand action even from coordinates outside its reported bounds, because
+# it lives in a separate window that uiautomator does not dump. Drag it to the
+# bottom of the screen for the session rather than hunting for a safe pixel.
+cmd_park() {
+  need_device
+  local h
+  h="$(a shell wm size | sed -n 's/.*: [0-9]*x\([0-9]*\).*/\1/p' | tr -d '\r')"
+  a shell input swipe 971 174 971 "$(( ${h:-2400} - 900 ))" 800
+  echo "parked the dev-client Tools bubble"
+}
+
+# --- scripted walks ----------------------------------------------------------
+# A walk driven as tap -> dump -> find, one tool call at a time, costs an order
+# of magnitude more than the same walk as a script: each round trip carries a
+# full UI hierarchy back. Write the scenario once, run it in one call, read one
+# output. `$MQA` and `mqa step` are what the script uses.
+cmd_walk() {
+  local script="${1:?usage: mqa walk <script.sh>}"
+  [ -f "$script" ] || die "no walk script at $script"
+  MQA="$HERE/mqa.sh" bash -euo pipefail "$script"
+}
+
+cmd_step() { printf '\n=== %s\n' "$*"; }
+
 # --- observation ------------------------------------------------------------
 cmd_shot() {
   need_device
@@ -237,13 +306,21 @@ usage() {
 mqa — drive the MoneyApp dev client on an Android emulator and read state back.
 
   boot | install | launch | reset      lifecycle
+  needs-build [base] | build | abi     build decision (default base: origin/main)
+  walk <script.sh> | step <label>      scripted scenarios
   ui | find <label> | shot [name]      observe
-  tap <label> | tapxy <x> <y>          interact
+  tap <label> | tapxy <x> <y> | park   interact
   type <text> | clear | key <code>     text entry
   back | ime-down                      navigation
   db "<sql>" | logs [n]                state
 
 env: MQA_SERIAL MQA_PORT MQA_PKG MQA_APK MQA_WORK
+
+Cheapest correct run, in order:
+  mqa needs-build && mqa build && mqa install   # exits 1 when a rebuild is not needed
+  MQA_PORT=8082 npx expo start --port 8082 &    # a worktree needs its own port
+  MQA_PORT=8082 mqa launch && mqa park
+  mqa walk scenarios.sh                          # one call, not one per tap
 EOF
 }
 
@@ -252,6 +329,12 @@ case "${1:-help}" in
   install)  cmd_install ;;
   launch)   cmd_launch ;;
   reset)    cmd_reset ;;
+  abi)      cmd_abi ;;
+  build)    cmd_build ;;
+  needs-build) cmd_needs_build "${2:-origin/main}" ;;
+  park)     cmd_park ;;
+  walk)     cmd_walk "${2:?walk script}" ;;
+  step)     shift; cmd_step "$@" ;;
   shot)     cmd_shot "${2:-shot}" ;;
   ui)       cmd_ui ;;
   find)     dump; locate "${2:?label}" ;;
