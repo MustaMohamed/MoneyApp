@@ -37,14 +37,25 @@ describe('toNewAccountInput — the MA-007 case table, against the mapping', () 
       );
     });
 
-    it.each(['5abc', '5.5.5', '0x10', '1e3', '1_000', '.5', '5.', '12,34', '', 'abc', '-3', 'Infinity', '٥'])(
-      'opening balance %p throws rather than persisting a wrong number',
-      (balance) => {
-        expect(() => toNewAccountInput(baseData({ balance }), { sortOrder: 0 })).toThrow(
-          AccountFormMappingError,
-        );
-      },
-    );
+    it.each([
+      '5abc',
+      '5.5.5',
+      '0x10',
+      '1e3',
+      '1_000',
+      '.5',
+      '5.',
+      '12,34',
+      '',
+      'abc',
+      '-3',
+      'Infinity',
+      '٥',
+    ])('opening balance %p throws rather than persisting a wrong number', (balance) => {
+      expect(() => toNewAccountInput(baseData({ balance }), { sortOrder: 0 })).toThrow(
+        AccountFormMappingError,
+      );
+    });
   });
 
   describe('credit_limit — same table, on a credit card', () => {
@@ -62,12 +73,22 @@ describe('toNewAccountInput — the MA-007 case table, against the mapping', () 
       expect(toNewAccountInput(cc(value), { sortOrder: 0 }).credit_limit).toBe(expected);
     });
 
-    it.each(['5abc', '5.5.5', '0x10', '1e3', '1_000', '.5', '5.', '12,34', 'abc', '-3', 'Infinity', '٥'])(
-      'credit limit %p → null, not a corrupted number',
-      (value) => {
-        expect(toNewAccountInput(cc(value), { sortOrder: 0 }).credit_limit).toBeNull();
-      },
-    );
+    it.each([
+      '5abc',
+      '5.5.5',
+      '0x10',
+      '1e3',
+      '1_000',
+      '.5',
+      '5.',
+      '12,34',
+      'abc',
+      '-3',
+      'Infinity',
+      '٥',
+    ])('credit limit %p → null, not a corrupted number', (value) => {
+      expect(toNewAccountInput(cc(value), { sortOrder: 0 }).credit_limit).toBeNull();
+    });
   });
 
   describe('minimum_payment — same table, on a credit card', () => {
@@ -85,12 +106,22 @@ describe('toNewAccountInput — the MA-007 case table, against the mapping', () 
       expect(toNewAccountInput(cc(value), { sortOrder: 0 }).minimum_payment).toBe(expected);
     });
 
-    it.each(['5abc', '5.5.5', '0x10', '1e3', '1_000', '.5', '5.', '12,34', 'abc', '-3', 'Infinity', '٥'])(
-      'min payment %p → null, not a corrupted number',
-      (value) => {
-        expect(toNewAccountInput(cc(value), { sortOrder: 0 }).minimum_payment).toBeNull();
-      },
-    );
+    it.each([
+      '5abc',
+      '5.5.5',
+      '0x10',
+      '1e3',
+      '1_000',
+      '.5',
+      '5.',
+      '12,34',
+      'abc',
+      '-3',
+      'Infinity',
+      '٥',
+    ])('min payment %p → null, not a corrupted number', (value) => {
+      expect(toNewAccountInput(cc(value), { sortOrder: 0 }).minimum_payment).toBeNull();
+    });
   });
 
   describe('apr — same table, on a credit card with interest tracking on', () => {
@@ -113,26 +144,36 @@ describe('toNewAccountInput — the MA-007 case table, against the mapping', () 
       expect(toNewAccountInput(cc(value), { sortOrder: 0 }).apr).toBe(expected);
     });
 
-    it.each(['5abc', '5.5.5', '0x10', '1e3', '1_000', '.5', '5.', '12,34', 'abc', '-3', 'Infinity', '٥'])(
-      'apr %p → null, not a corrupted number',
-      (value) => {
-        expect(toNewAccountInput(cc(value), { sortOrder: 0 }).apr).toBeNull();
-      },
-    );
+    it.each([
+      '5abc',
+      '5.5.5',
+      '0x10',
+      '1e3',
+      '1_000',
+      '.5',
+      '5.',
+      '12,34',
+      'abc',
+      '-3',
+      'Infinity',
+      '٥',
+    ])('apr %p → null, not a corrupted number', (value) => {
+      expect(toNewAccountInput(cc(value), { sortOrder: 0 }).apr).toBeNull();
+    });
   });
 });
 
 describe('toNewAccountInput — rounding, roundMoney half-even', () => {
   it('0.005 rounds down to the even cent on opening_balance', () => {
-    expect(toNewAccountInput(baseData({ balance: '0.005' }), { sortOrder: 0 }).opening_balance).toBe(
-      0,
-    );
+    expect(
+      toNewAccountInput(baseData({ balance: '0.005' }), { sortOrder: 0 }).opening_balance,
+    ).toBe(0);
   });
 
   it('0.015 rounds up to the even cent on opening_balance', () => {
-    expect(toNewAccountInput(baseData({ balance: '0.015' }), { sortOrder: 0 }).opening_balance).toBe(
-      0.02,
-    );
+    expect(
+      toNewAccountInput(baseData({ balance: '0.015' }), { sortOrder: 0 }).opening_balance,
+    ).toBe(0.02);
   });
 
   it('0.005 / 0.015 round the same way on credit_limit', () => {
@@ -199,12 +240,20 @@ describe('toNewAccountInput — credit vs non-credit', () => {
 
 describe('toNewAccountInput — blank vs explicit zero', () => {
   it('blank min_payment on a credit card → null', () => {
-    const data = baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', min_payment: '' });
+    const data = baseData({
+      selected_type: AccountType.CreditCard,
+      credit_limit: '1000',
+      min_payment: '',
+    });
     expect(toNewAccountInput(data, { sortOrder: 0 }).minimum_payment).toBeNull();
   });
 
   it('explicit zero min_payment on a credit card → 0', () => {
-    const data = baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', min_payment: '0' });
+    const data = baseData({
+      selected_type: AccountType.CreditCard,
+      credit_limit: '1000',
+      min_payment: '0',
+    });
     expect(toNewAccountInput(data, { sortOrder: 0 }).minimum_payment).toBe(0);
   });
 });
@@ -227,7 +276,8 @@ describe('toNewAccountInput — revolving_balance preserves the || 0 fallback', 
 });
 
 describe('toNewAccountInput — statement_due_day', () => {
-  const cc = (due_day: string) => baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', due_day });
+  const cc = (due_day: string) =>
+    baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', due_day });
 
   it("'15' → 15", () => {
     expect(toNewAccountInput(cc('15'), { sortOrder: 0 }).statement_due_day).toBe(15);
@@ -248,9 +298,9 @@ describe('toNewAccountInput — statement_due_day', () => {
 
 describe('toNewAccountInput — name and identity', () => {
   it('trims the name', () => {
-    expect(
-      toNewAccountInput(baseData({ name: '  CIB Savings  ' }), { sortOrder: 0 }).name,
-    ).toBe('CIB Savings');
+    expect(toNewAccountInput(baseData({ name: '  CIB Savings  ' }), { sortOrder: 0 }).name).toBe(
+      'CIB Savings',
+    );
   });
 
   it('sort_order is the passed sortOrder', () => {
