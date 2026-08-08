@@ -5,7 +5,6 @@ import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
-import { ColorSwatchPicker } from '@/components/ui/color_swatch_picker';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { FormSectionLabel } from '@/components/ui/form_section_label';
 import { Input } from '@/components/ui/input';
@@ -15,9 +14,10 @@ import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { CurrencySelector } from '@/modules/currency';
 
+import { AccountColorField } from '../../../components/account_form/account_color_field';
 import { TYPE_OPTIONS, TypePill } from '../../../components/account_type_pill';
 import { useAddAccountAnim } from './add_account.anim';
-import { ACCOUNT_COLORS, useAddAccountApp } from './add_account.hook';
+import { useAddAccountApp } from './add_account.hook';
 
 export default function AddAccountAppScreen() {
   const { form, handleSave, onBack } = useAddAccountApp();
@@ -104,12 +104,11 @@ export default function AddAccountAppScreen() {
 
         {/* Color picker */}
         <Box className="pt-1">
-          <FormSectionLabel>{Strings.o4SectionColor}</FormSectionLabel>
           <Controller
             control={control}
             name="selected_color"
             render={({ field: { value, onChange } }) => (
-              <ColorSwatchPicker colors={ACCOUNT_COLORS} value={value} onChange={onChange} />
+              <AccountColorField ownerId="accounts/add_account" value={value} onChange={onChange} />
             )}
           />
         </Box>
