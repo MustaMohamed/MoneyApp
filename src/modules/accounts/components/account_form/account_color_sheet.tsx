@@ -49,8 +49,15 @@ export function AccountColorSheet({ isOpen, onOpenChange, onConfirm }: AccountCo
   if (stagedColor !== undefined) lastStagedRef.current = stagedColor;
   const staged = isOpen ? stagedColor : lastStagedRef.current;
 
+  // Commit from the live store, not from `staged` — `staged` is a display
+  // value that deliberately survives close() so the grid does not visibly
+  // deselect during the dismiss animation (see the ref above). The footer
+  // stays mounted and touchable for the length of that animation (heroui
+  // only early-returns the Overlay on !isOpen), so a tap landing there must
+  // still be guarded by the store's own cleared state, or a discarded colour
+  // can be committed. Round 1 implementation review, defect D1.
   const handleConfirm = () => {
-    if (staged !== undefined) onConfirm(staged);
+    if (stagedColor !== undefined) onConfirm(stagedColor);
     onOpenChange(false);
   };
 
