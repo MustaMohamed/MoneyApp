@@ -143,7 +143,13 @@ describe('useAddAccount', () => {
     expect(mockSetStep).toHaveBeenCalledTimes(2);
     expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/more_accounts');
     expect(result.current.state.statusMessage).toBeFalsy();
-    expect(result.current.form.formState.errors.name).toBeUndefined();
+    // MA-008 T6: formState.errors is a vacuous read under renderHook — RHF
+    // only re-renders it once something has READ it during a render, and
+    // nothing does here. getFieldState reads the live field directly.
+    // Verified (2026-08-09): with D9's bypass removed, formState.errors.name
+    // stayed undefined while getFieldState('name').error reported
+    // "This name is already used" — the old assertion could not catch it.
+    expect(result.current.form.getFieldState('name').error).toBeUndefined();
   });
 
   it('?isAddingMore=true saves without writing a step', async () => {
