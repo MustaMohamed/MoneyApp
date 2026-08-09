@@ -47,7 +47,7 @@ Steps 4–8 run per task, in `tasks.md` order, one task at a time.
 **Step 9 does not end at the merge.** The moment I say a PR is merged, Sarah does all of this without being asked — a stale tree is how the next task gets planned against the wrong `main`:
 
 1. `git checkout main` and pull.
-2. Confirm the merge closed the task's issue, and **remove the now-stale `status:*` label** — closed is the done signal, so a leftover `status:awaiting-human` reads as still waiting. Nothing about status is written to the repo; the task file records only `branch:` and `pr:`.
+2. Confirm the merge closed the task's issue — `Closes #N` does it, and closed **is** the done signal. Leave the `status:*` label alone: `/status` treats a task issue with no label as a half-applied transition, and the label is inert once the issue is closed. No status is written to the repo; beyond the identifiers, the frontmatter carries only `branch:` and `pr:`.
 3. Delete the merged local branch and `git remote prune origin`.
 4. Remove the task's worktree if it had one, and `git worktree prune`.
 5. **`npm ci` if the merge moved `package-lock.json`** — otherwise `node_modules` silently belongs to neither branch, and every later verification runs against a tree that matches nothing.

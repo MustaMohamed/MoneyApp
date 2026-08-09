@@ -3,11 +3,11 @@
   "hooks": {
     "PostToolUse": [
       {
-        "matcher": "Agent|Task",
+        "matcher": "^(Agent|Task)$",
         "hooks": [
           {
             "type": "command",
-            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Reply contract (CLAUDE.md > Answering me). An agent just returned. Report the DELTA only: the verdict, what changed, and what needs doing. Do not restate the request, do not re-explain what you already told the user, do not narrate tool calls or re-summarise findings already reported. Small paragraph for context, bullets for detail, the ask said straight.\"}}'",
+            "command": "echo '{\"suppressOutput\":true,\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Reply contract (CLAUDE.md > Answering me). An agent just returned. Report the DELTA only: the verdict, what changed, and what needs doing. Do not restate the request, do not re-explain what you already told the user, do not narrate tool calls or re-summarise findings already reported. Keep the evidence \u2014 the measured number, the file:line, the verdict; cut the prose around it, not the fact. Small paragraph for context, bullets for detail, the ask said straight.\"}}'",
             "statusMessage": "Reply contract"
           }
         ]
