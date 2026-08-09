@@ -47,11 +47,14 @@ export const Strings = {
   o4AprLabel: 'Annual Percentage Rate (APR %)',
   o4AprPlaceholder: 'e.g. 2.99',
   o4Cta: 'Save Account',
+  // CurrencySelector's a11y label inside AccountForm (both Settings' and
+  // onboarding N2's hosts) — not base-currency copy, filed here with the
+  // rest of the account form's strings instead.
+  accountCurrencyA11y: 'Account currency',
 
   // Welcome — base currency
   n1CurrencyLabel: 'BASE CURRENCY',
   n1CurrencyNote: 'Change anytime in Settings.',
-  accountCurrencyA11y: 'Account currency',
 
   // Add Another?
   n3AccountSaved: 'Account saved',
