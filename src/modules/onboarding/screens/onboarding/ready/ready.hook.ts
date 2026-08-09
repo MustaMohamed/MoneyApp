@@ -20,11 +20,9 @@ export function useReady() {
   const setStep = useOnboardingStore.getState().setStep;
   const complete = useAsync(completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
-  const loadAccounts = useAccountStore.getState().loadAccounts;
   const backStatusMessage = useReadyTransitionState.useState.statusMessage();
   const busy = useReadyTransitionState.useState.busy();
 
-  useInit(loadAccounts);
   // Belt and braces for an entry path that does not go through the runner —
   // invalidate() already clears this on every successful exit, but a fresh
   // mount should never be able to show a message from a previous visit.

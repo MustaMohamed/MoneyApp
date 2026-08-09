@@ -77,5 +77,18 @@ export function useAccountForm({
     }
   };
 
-  return { form, submit: form.handleSubmit(onValid), state: { saving, errorMessage } };
+  const handleSubmit = form.handleSubmit(onValid);
+
+  const submit = async () => {
+    // Post-save checkpoint (MA-008). Once the row is on disk the draft has
+    // already passed validation once, and the schema has since been rebuilt
+    // from an accounts array that CONTAINS that row — re-validating fails
+    // errNameDuplicate against the account this form itself created, and the
+    // retry can never reach onSaved. Re-enter the guarded tail directly;
+    // onValid's `inserted` check is what keeps addAccount from running twice.
+    if (useAccountFormState.getState().inserted) return onValid(form.getValues());
+    return handleSubmit();
+  };
+
+  return { form, submit, state: { saving, errorMessage } };
 }

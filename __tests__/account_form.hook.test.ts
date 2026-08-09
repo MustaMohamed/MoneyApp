@@ -101,6 +101,35 @@ describe('useAccountForm', () => {
     expect(result.current.state.errorMessage).toBeUndefined();
   });
 
+  it('the retry does not re-validate against the row it just inserted', async () => {
+    // D9: addAccount republishing mockAccounts reproduces the real store's
+    // own loadAccounts() republication (account.store.ts:82-91), which
+    // rebuilds the schema from an accounts array that now contains the row
+    // this very submit() just wrote. A retry that re-validates against that
+    // schema fails errNameDuplicate against its own account and never
+    // reaches onSaved — this is the defect D9 exists to close.
+    mockAddAccount.mockImplementation(async () => {
+      mockAccounts = [...mockAccounts, { id: 'new', name: 'New Account' }];
+    });
+    const onSaved = jest
+      .fn()
+      .mockRejectedValueOnce(new Error('boom'))
+      .mockResolvedValueOnce(undefined);
+    const { result } = await renderHook(() => useAccountForm(makeOptions({ onSaved })));
+    await fillValidDraft(result);
+
+    await act(async () => {
+      await result.current.submit();
+    });
+    await act(async () => {
+      await result.current.submit();
+    });
+
+    expect(mockAddAccount).toHaveBeenCalledTimes(1);
+    expect(onSaved).toHaveBeenCalledTimes(2);
+    expect(result.current.state.errorMessage).toBeUndefined();
+  });
+
   it('a rejecting addAccount reports the error and stays retryable', async () => {
     mockAddAccount.mockRejectedValueOnce(new Error('db down'));
     const { result } = await renderHook(() => useAccountForm(makeOptions()));

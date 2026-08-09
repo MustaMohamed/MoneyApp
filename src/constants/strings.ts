@@ -26,7 +26,6 @@ export const Strings = {
   o4SectionName: 'ACCOUNT NAME',
   o4SectionCurrency: 'CURRENCY',
   o4SectionBalance: 'BALANCE',
-  o4SectionColor: 'COLOR — 12 PRESETS',
   o4SectionRevolving: 'REVOLVING BALANCE',
   o4SectionLimit: 'CREDIT LIMIT',
   o4SectionMinPayment: 'MIN. PAYMENT',

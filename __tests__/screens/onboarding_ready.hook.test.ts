@@ -106,10 +106,10 @@ describe('useReady', () => {
     expect(balanceRow?.value).toContain('5,200');
   });
 
-  it('loads accounts for restart directly on the ready step', async () => {
+  it('does not load the account list on mount', async () => {
     await renderHook(() => useReady());
 
-    expect(mockLoadAccounts).toHaveBeenCalledTimes(1);
+    expect(mockLoadAccounts).not.toHaveBeenCalled();
   });
 
   it('completing defaults to false', async () => {
