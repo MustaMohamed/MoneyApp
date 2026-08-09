@@ -83,7 +83,7 @@ focused field. Re-run `find` after every interaction rather than reusing an offs
 
 ## Running from a task worktree
 
-The nine-step workflow runs this twice on any task whose frontmatter says `verify: emulator`
+The ten-step workflow runs this twice on any task whose frontmatter says `verify: emulator`
 — `@dev` at step 6 as a self-check before committing, `@impl-reviewer` at step 7
 independently, and the reviewer's run is the one that counts. Both happen in the task
 worktree, which needs three things the worktree does not have by default.

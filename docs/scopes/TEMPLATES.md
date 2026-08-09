@@ -80,7 +80,7 @@ The index. Rewritten by @task-reviewer at step 3. **It carries no status**, so a
 | MA-043 | Category rollup query | #188 | feat/MA-043-category-rollup | — |
 ```
 
-**Status lives on the issue**, as exactly one `status:*` label: `status:todo` · `status:planning` · `status:ready` · `status:implementing` · `status:in-review` · `status:awaiting-human` · `status:blocked`. There is no `status:done` — **`done` is the issue being closed**, done by the merge itself through `Closes #N` in the PR body, so it cannot drift from reality even if the session dies.
+**Status lives on the issue**, as exactly one `status:*` label: `status:todo` · `status:planning` · `status:ready` · `status:implementing` · `status:in-review` · `status:quality-review` · `status:awaiting-human` · `status:blocked`. There is no `status:done` — **`done` is the issue being closed**, done by the merge itself through `Closes #N` in the PR body, so it cannot drift from reality even if the session dies.
 
 @sarah opens one issue per task at step 3, right after the list is ordered and before gate 2, so the user sees the board at the same moment they see the task list.
 
@@ -88,7 +88,7 @@ The index. Rewritten by @task-reviewer at step 3. **It carries no status**, so a
 
 The issue carries **the task definition and its status. Nothing else.** Summary, the metadata table (scope, milestone, verify, requires, branch, PR), a link to the task file, and the `status:*` label.
 
-**The plan, the three review verdicts, and every implementation note stay in `tasks/MA-nnn.md` on the task branch.** They are not copied to the issue, not summarised there, and not linked round-trip. Two reasons, and both bite immediately if ignored:
+**The plan, the four review verdicts, and every implementation note stay in `tasks/MA-nnn.md` on the task branch.** They are not copied to the issue, not summarised there, and not linked round-trip. Two reasons, and both bite immediately if ignored:
 
 - They are **reviewed with the code they describe.** A plan in an issue is a plan nobody diffs; a plan in the task file arrives in the same PR as the implementation it justifies, which is the only place a reviewer can check one against the other.
 - The task file is **versioned with the branch.** A verdict written at step 5 against the code as it stood then stays pinned to that commit. An issue comment floats free of the tree and silently starts describing code that has since changed.
@@ -97,7 +97,7 @@ The rule of thumb: if it would ever need to be read *as of a particular commit*,
 
 ## `tasks/MA-nnn.md`
 
-Written at step 2, appended to at steps 4, 5, 7, 8, and 9. One file carries the entire life of a task.
+Written at step 2, appended to at steps 4, 5, 7, 8, 9, and 10. One file carries the entire life of a task.
 
 ```markdown
 ---
@@ -125,8 +125,9 @@ and naming them here turns planning into transcription.
 ## Emulator verification   (steps 6 and 7, when verify: emulator)
 ## Implementation review   (step 7)
 ## PR review               (step 8)
-## Device QA               (step 9)
-## Outcome                 (step 9)
+## Quality review          (step 9)
+## Device QA               (step 10)
+## Outcome                 (step 10)
 ```
 
 `verify:` decides whether the emulator runs at all. **`emulator`** for anything that changes
@@ -139,7 +140,9 @@ counts. **`none`** where a unit test would already catch the failure. It costs a
 device QA checklist is unchanged, on real hardware, and typography, shadows, gesture feel and
 performance are still only visible there.
 
-**The three review sections accumulate rounds; they are never overwritten.**
+Step 9's `## Quality review` also names the `debt:*` issues @sarah opened from it. **The issues are the backlog; the task file holds the finding that produced them** — same commit-pinned reasoning as the plan and the verdicts, because a magnitude measured against this diff stops being true once the code moves.
+
+**The four review sections accumulate rounds; they are never overwritten.**
 
 ```markdown
 ## Implementation review
