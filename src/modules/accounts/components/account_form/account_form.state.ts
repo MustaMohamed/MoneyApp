@@ -19,6 +19,15 @@ interface AccountFormStateShape {
   saving: boolean;
   /** This form session has already written a row. Never insert a second one. */
   inserted: boolean;
+  /**
+   * onSaved ran to completion (MA-008 D10). Terminal: submit() returns early
+   * once this is true, because a completed session's host is already
+   * navigating away and re-running onSaved a second time double-fires it
+   * (two router.back() calls on Settings, a duplicate setStep+replace on
+   * N2). A DECLINED onSaved (see declineSave) does not set this, so the
+   * session stays retryable.
+   */
+  completed: boolean;
   errorMessage: string | undefined;
 }
 
@@ -27,13 +36,17 @@ export type AccountFormState = AccountFormStateShape & {
   beginSave: () => boolean;
   markInserted: () => void;
   failSave: (message: string) => void;
+  /** onSaved completed. Latches `completed` — see the field's own comment. */
   finishSave: () => void;
+  /** onSaved declined (returned false). Session stays retryable. */
+  declineSave: () => void;
   reset: () => void;
 };
 
 const INITIAL_STATE: AccountFormStateShape = {
   saving: false,
   inserted: false,
+  completed: false,
   errorMessage: undefined,
 };
 
@@ -52,7 +65,9 @@ export function createAccountFormState() {
 
       failSave: (message) => set({ saving: false, errorMessage: message }),
 
-      finishSave: () => set({ saving: false }),
+      finishSave: () => set({ saving: false, completed: true }),
+
+      declineSave: () => set({ saving: false }),
 
       reset: () => set(INITIAL_STATE),
     })),

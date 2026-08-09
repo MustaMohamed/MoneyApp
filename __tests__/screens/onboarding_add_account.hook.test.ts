@@ -263,4 +263,18 @@ describe('useAddAccount', () => {
     expect(mockSetStep).not.toHaveBeenCalledWith(OnboardingStep.N3);
     expect(mockReplace).not.toHaveBeenCalledWith('/(onboarding)/more_accounts');
   });
+
+  it('a re-tap after a completed save does not re-write the step or navigate twice (MA-008 D10, T2)', async () => {
+    republishOnAdd();
+    const { result } = await renderHook(() => useAddAccount());
+    await fillAndSubmit(result);
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(mockAddAccount).toHaveBeenCalledTimes(1);
+    expect(mockSetStep).toHaveBeenCalledTimes(1);
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+  });
 });

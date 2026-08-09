@@ -33,11 +33,14 @@ export function useAddAccount() {
     saveErrorMessage: Strings.n2SaveError,
     onSaved: async () => {
       // D4: a back that started inside the CTA's validation window is not
-      // covered by handleSave's pre-submit check. Return, do not throw —
-      // this is exactly today's isCurrent() -> `return undefined`: the row
-      // stays on disk, no step is written, nothing navigates, no error is
-      // shown, and resolveOnboardingStep heals the step on next launch.
-      if (useAddAccountTransitionState.getState().busy) return;
+      // covered by handleSave's pre-submit check. Return false — not throw,
+      // not void — this is exactly today's isCurrent() -> `return
+      // undefined`: the row stays on disk, no step is written, nothing
+      // navigates, no error is shown, and resolveOnboardingStep heals the
+      // step on next launch. Returning `false` (not void) tells
+      // useAccountForm this was a DECLINE, not a completion (D10), so the
+      // session stays retryable if the competing back transition then fails.
+      if (useAddAccountTransitionState.getState().busy) return false;
 
       // resolve AFTER the insert — useAccountForm calls onSaved only past
       // markInserted(), so accounts.length already includes the new row.
