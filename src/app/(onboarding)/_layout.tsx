@@ -7,7 +7,10 @@ import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store'
 
 export type OnboardingStackParams = {
   welcome: undefined;
-  add_account: { isAddingMore?: boolean };
+  // Expo Router params are strings on the wire. more_accounts.hook.ts:52-55
+  // passes the literal 'true' and nothing else ever navigates here with a
+  // param — so this is the type, and the reader compares with === 'true'.
+  add_account: { isAddingMore?: 'true' };
   more_accounts: undefined;
   ready: undefined;
 };
