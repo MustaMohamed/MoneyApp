@@ -51,6 +51,7 @@ export const Strings = {
   // Welcome — base currency
   n1CurrencyLabel: 'BASE CURRENCY',
   n1CurrencyNote: 'Change anytime in Settings.',
+  accountCurrencyA11y: 'Account currency',
 
   // Add Another?
   n3AccountSaved: 'Account saved',

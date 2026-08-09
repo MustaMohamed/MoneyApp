@@ -3,6 +3,7 @@ import React from 'react';
 import { SegmentedTabs } from '@/components/ui/tabs';
 import { CURRENCY_SEGMENTS } from '@/constants/currency';
 import { type Currency } from '@/constants/enums';
+import { Strings } from '@/constants/strings';
 
 export interface CurrencySelectorProps {
   value: Currency;
@@ -18,6 +19,7 @@ export function CurrencySelector({ value, onChange, isDisabled }: CurrencySelect
       onValueChange={onChange}
       variant="solid-gold"
       isDisabled={isDisabled}
+      accessibilityLabel={Strings.accountCurrencyA11y}
     />
   );
 }
