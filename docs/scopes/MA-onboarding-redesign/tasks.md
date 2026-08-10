@@ -25,7 +25,7 @@ Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes 
 | MA-006 | 32-colour bottom sheet replaces the swatch rows | [#208](https://github.com/MustaMohamed/MoneyApp/issues/208) | emulator | `feat/MA-006-color-sheet` | [#219](https://github.com/MustaMohamed/MoneyApp/pull/219) |
 | MA-007 | The shared account form, adopted by Settings | [#209](https://github.com/MustaMohamed/MoneyApp/issues/209) | emulator | `claude/ma-007-b313a5` | [#220](https://github.com/MustaMohamed/MoneyApp/pull/220) |
 | MA-008 | Onboarding adopts the shared account form | [#210](https://github.com/MustaMohamed/MoneyApp/issues/210) | emulator | `claude/task-ma-008-loq6nz` | [#223](https://github.com/MustaMohamed/MoneyApp/pull/223) |
-| MA-009 | Account form redesign: type grid, message rails, credit slot | [#211](https://github.com/MustaMohamed/MoneyApp/issues/211) | emulator | — | — |
+| MA-009 | Account form redesign: type grid, message rails, credit slot | [#211](https://github.com/MustaMohamed/MoneyApp/issues/211) | emulator | `feat/MA-009-account-form-redesign` | [#226](https://github.com/MustaMohamed/MoneyApp/pull/226) |
 
 ## M3 — The onboarding screens
 
