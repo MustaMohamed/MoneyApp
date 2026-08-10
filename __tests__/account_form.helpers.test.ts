@@ -16,7 +16,6 @@ const baseData = (overrides: Partial<AddAccountFormData> = {}): AddAccountFormDa
   interest_tracking: false,
   credit_limit: '',
   apr: '',
-  revolving_balance: '',
   min_payment: '',
   due_day: '',
   ...overrides,
@@ -206,7 +205,6 @@ describe('toNewAccountInput — credit vs non-credit', () => {
     const data = baseData({
       selected_type: AccountType.Bank,
       credit_limit: '5,000',
-      revolving_balance: '1,500',
       min_payment: '200',
       due_day: '15',
       apr: '24.99',
@@ -219,17 +217,16 @@ describe('toNewAccountInput — credit vs non-credit', () => {
     expect(result.apr).toBeNull();
   });
 
-  // interest_tracking is not one of the fields isCC gates — it is written
-  // unconditionally, unchanged from add_account.hook.ts:50-55 pre-MA-007 —
-  // because the UI never exposes its Switch outside CreditCardFields, so a
-  // Bank draft has no path to set it true today. Asserted here with the
-  // field forced true (baseData's default is already false, which the case
-  // above would let pass with no gate at all) so the assertion pins the
-  // unconditional write rather than restating the default. Widening the
-  // gate is MA-009's call, not this task's.
-  it('interest_tracking is written unconditionally, not gated by isCC', () => {
+  // interest_tracking now gates on isCC (spec.md:296 — "interest_tracking
+  // persists 0" on every non-credit type). MA-007 left this write ungated
+  // deliberately and named this task in its own comment; this test used to
+  // pin the ungated write and now pins the gate it was left for. Draft
+  // retention across a type switch (MA-009 plan decision 4) is exactly what
+  // makes a retained credit draft's interest_tracking=true reachable on a
+  // Bank save, so the gate has to hold here, not just in the UI.
+  it('interest_tracking is gated by isCC — a retained credit draft never leaks true onto a non-credit save', () => {
     const data = baseData({ selected_type: AccountType.Bank, interest_tracking: true });
-    expect(toNewAccountInput(data, { sortOrder: 0 }).interest_tracking).toBe(1);
+    expect(toNewAccountInput(data, { sortOrder: 0 }).interest_tracking).toBe(0);
   });
 
   it('AccountType.CreditCard persists every filled credit field', () => {
@@ -268,22 +265,87 @@ describe('toNewAccountInput — blank vs explicit zero', () => {
     });
     expect(toNewAccountInput(data, { sortOrder: 0 }).minimum_payment).toBe(0);
   });
+
+  it('explicit zero apr with interest tracking on → 0, not null', () => {
+    const data = baseData({
+      selected_type: AccountType.CreditCard,
+      credit_limit: '1000',
+      interest_tracking: true,
+      apr: '0',
+    });
+    expect(toNewAccountInput(data, { sortOrder: 0 }).apr).toBe(0);
+  });
 });
 
-describe('toNewAccountInput — revolving_balance preserves the || 0 fallback', () => {
-  const cc = (revolving_balance: string) =>
-    baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', revolving_balance });
-
-  it('unparseable → 0', () => {
-    expect(toNewAccountInput(cc('abc'), { sortOrder: 0 }).revolving_balance).toBe(0);
+// @layla's ruling, spec.md § "revolving_balance at creation — ruled": a pure
+// derivation from `type` alone, never a validated user input, never mirrored
+// from opening_balance. Part A is her table verbatim; Parts B and C
+// (confirmation tests over the unmodified transactions domain) live in
+// __tests__/transactions/card_revolving_seed.test.ts.
+describe('toNewAccountInput — revolving_balance, @layla\'s Part A', () => {
+  it.each([
+    ['A1 New bank account', AccountType.Bank, 5000, null],
+    ['A2 New wallet account', AccountType.SmartWallet, 0, null],
+    ['A3 New credit card, positive amount owed', AccountType.CreditCard, 8450, 0],
+    ['A4 New credit card, paid off at creation', AccountType.CreditCard, 0, 0],
+  ])('%s → %p', (_scenario, type, openingBalance, expected) => {
+    const data = baseData({
+      selected_type: type,
+      balance: String(openingBalance),
+      ...(type === AccountType.CreditCard ? { credit_limit: '1000' } : {}),
+    });
+    expect(toNewAccountInput(data, { sortOrder: 0 }).revolving_balance).toBe(expected);
   });
 
-  it('blank → null', () => {
-    expect(toNewAccountInput(cc(''), { sortOrder: 0 }).revolving_balance).toBeNull();
-  });
+  it.each(Object.values(AccountType))(
+    '%s → 0 for CreditCard, null for every other type (catches a sixth type on the wrong side)',
+    (type) => {
+      const data = baseData({
+        selected_type: type,
+        ...(type === AccountType.CreditCard ? { credit_limit: '1000' } : {}),
+      });
+      const expected = type === AccountType.CreditCard ? 0 : null;
+      expect(toNewAccountInput(data, { sortOrder: 0 }).revolving_balance).toBe(expected);
+    },
+  );
 
-  it('parseable, thousands-separated → the real number, not a truncated one', () => {
-    expect(toNewAccountInput(cc('1,500'), { sortOrder: 0 }).revolving_balance).toBe(1500);
+  // The assertion that fails if anyone re-derives revolving_balance from the
+  // balance — the outcome @layla explicitly rejected (spec.md:308).
+  it('is independent of opening_balance — same type, any balance, identical result', () => {
+    const results = ['0', '8450', '1,234,567.89'].map(
+      (balance) =>
+        toNewAccountInput(
+          baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', balance }),
+          { sortOrder: 0 },
+        ).revolving_balance,
+    );
+    expect(results).toEqual([0, 0, 0]);
+  });
+});
+
+// Decision 4's persistence half: every credit-only column, including
+// interest_tracking, must come back null/0 on a non-credit save even when a
+// retained credit draft still carries values in RHF (the validation half is
+// the schema's off-type gating test).
+describe('toNewAccountInput — off-type leakage, every credit column', () => {
+  it.each(
+    Object.values(AccountType).filter((type) => type !== AccountType.CreditCard),
+  )('%s with a full retained credit draft → every credit column absent', (type) => {
+    const data = baseData({
+      selected_type: type,
+      credit_limit: '50,000',
+      min_payment: '900',
+      due_day: '14',
+      apr: '24',
+      interest_tracking: true,
+    });
+    const result = toNewAccountInput(data, { sortOrder: 0 });
+    expect(result.credit_limit).toBeNull();
+    expect(result.minimum_payment).toBeNull();
+    expect(result.statement_due_day).toBeNull();
+    expect(result.apr).toBeNull();
+    expect(result.revolving_balance).toBeNull();
+    expect(result.interest_tracking).toBe(0);
   });
 });
 
@@ -349,7 +411,6 @@ describe('createAccountFormDefaults', () => {
     expect(defaults.balance).toBe('');
     expect(defaults.credit_limit).toBe('');
     expect(defaults.apr).toBe('');
-    expect(defaults.revolving_balance).toBe('');
     expect(defaults.min_payment).toBe('');
     expect(defaults.due_day).toBe('');
     expect(defaults.interest_tracking).toBe(false);

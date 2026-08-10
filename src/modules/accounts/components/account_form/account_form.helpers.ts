@@ -35,18 +35,6 @@ function optionalAmount(value: string | undefined): number | null {
   return parsed === undefined ? null : roundMoney(parsed);
 }
 
-/**
- * revolving_balance's own rule — preserves today's `parseFloat(...) || 0`
- * fallback: blank stays absent, but an unparseable non-blank value still
- * persists 0 rather than null. MA-009 deletes this field from the form, so
- * this divergence from optionalAmount is intentionally short-lived.
- */
-function legacyRevolving(value: string | undefined): number | null {
-  if (!value?.trim()) return null;
-  const parsed = parseNonNegativeDecimal(value);
-  return parsed === undefined ? 0 : roundMoney(parsed);
-}
-
 /** statement_due_day: blank, unparseable, or non-integer all fall back to null. */
 function optionalDay(value: string | undefined): number | null {
   if (!value?.trim()) return null;
@@ -65,7 +53,6 @@ export function createAccountFormDefaults(initialCurrency: Currency): AddAccount
     interest_tracking: false,
     credit_limit: '',
     apr: '',
-    revolving_balance: '',
     min_payment: '',
     due_day: '',
   };
@@ -83,10 +70,20 @@ export function toNewAccountInput(
     currency: data.currency,
     opening_balance: requiredAmount(data.balance, 'balance'),
     color: data.selected_color,
-    interest_tracking: data.interest_tracking ? 1 : 0,
+    // @layla's ruling, spec.md § "revolving_balance at creation — ruled":
+    // both branches are literals derived from type only, never from
+    // opening_balance. 0 for Credit Card keeps validateResultingCardBalances'
+    // corruption tripwire live on future edits/deletes; null for every other
+    // type means "never tracked". No file under src/modules/transactions/
+    // reads this at creation time.
+    revolving_balance: isCC ? 0 : null,
+    // spec.md:296 — credit-only fields persist null on every non-credit
+    // type, and interest_tracking specifically persists 0, not whatever the
+    // form happened to leave behind on a retained credit draft (MA-007 left
+    // this gate for this task by name).
+    interest_tracking: isCC && data.interest_tracking ? 1 : 0,
     sort_order: options.sortOrder,
     credit_limit: isCC ? optionalAmount(data.credit_limit) : null,
-    revolving_balance: isCC ? legacyRevolving(data.revolving_balance) : null,
     minimum_payment: isCC ? optionalAmount(data.min_payment) : null,
     statement_due_day: isCC ? optionalDay(data.due_day) : null,
     apr: isCC && data.interest_tracking ? optionalAmount(data.apr) : null,
