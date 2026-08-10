@@ -110,11 +110,16 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
                 color={isSelected ? Colors.dark.gold : CoreTokens.text2}
               />
             </View>
+            {/* text-foreground on both branches (impl review round 1, D4):
+                spec.md:122 requires full-strength for anything a user must
+                read, and the label is the only thing distinguishing a tile
+                from the other four — never a "genuinely redundant" label.
+                Selection reads from the gradient, glow, gold icon and
+                border, not from dimming the other four; hierarchy between
+                selected/unselected comes from weight, per decision 8. */}
             <Typography
               className={cn(
-                isSelected
-                  ? 'font-inter-semibold text-foreground'
-                  : 'font-inter text-content-secondary',
+                isSelected ? 'font-inter-semibold text-foreground' : 'font-inter text-foreground',
               )}
               style={{ fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.3) }}
               numberOfLines={1}
