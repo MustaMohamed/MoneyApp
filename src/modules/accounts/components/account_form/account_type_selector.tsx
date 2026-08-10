@@ -52,7 +52,19 @@ export function AccountTypeSelector({ form }: AccountTypeSelectorProps) {
             option ? (
               <AccountTypeTile key={option.type} option={option} />
             ) : (
-              <Box key={`pad-${cellIndex}`} style={{ flex: 1 }} />
+              // Yoga resolves `flexBasis: 0` against the *content* box, so a
+              // bare `flex: 1` pad cell shares the row's free space with the
+              // real tiles' padding + border stripped out — the pad ends up
+              // narrower and every tile after it wider (impl review round 1,
+              // D1, measured on device: 318/318/318 vs 334/334). Giving the
+              // pad the same box metrics as TILE_BOX_STYLE (minus the height,
+              // which a spacer doesn't need) makes it consume an identical
+              // content-box share, so all three columns in every row measure
+              // equal.
+              <Box
+                key={`pad-${cellIndex}`}
+                style={{ flex: 1, padding: Spacing.xs, borderWidth: 1, borderColor: 'transparent' }}
+              />
             ),
           )}
         </Box>
