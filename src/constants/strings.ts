@@ -45,6 +45,11 @@ export const Strings = {
   accountBalanceLabel: 'Opening balance',
   accountBalanceHelper: "Today's balance.",
   accountBalancePlaceholder: '0.00',
+  // The currency cell's visible field label (mockup C1 draws "Currency"
+  // repeatedly — mockup.html:1362,1422,1480,1531,1587,1674). Distinct from
+  // accountCurrencyA11y above, which stays the selector's own a11y label
+  // (impl review round 1, D7 — that key was double-booked as both).
+  accountCurrencyLabel: 'Currency',
   accountOwedLabel: 'Amount currently owed',
   accountOwedHelper: 'Enter 0 if the card is paid off.',
   accountColorLabel: 'Account colour',

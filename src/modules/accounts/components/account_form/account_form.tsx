@@ -121,7 +121,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
           <FieldMessageRail helper={balanceField.helper} error={errors.balance?.message} />
         </Box>
         <Box style={{ width: CURRENCY_CELL_WIDTH }}>
-          <FormLabelText label={Strings.accountCurrencyA11y} />
+          <FormLabelText label={Strings.accountCurrencyLabel} />
           {/* The fixed height belongs on this wrapper, not the whole
               column: SegmentedTabs' own rendered height does not exactly
               equal Size.fieldHeight, so centering it inside a
