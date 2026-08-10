@@ -1,20 +1,24 @@
 import React from 'react';
 import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
-import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
-import { FormErrorText } from '@/components/ui/form_error_text';
-import { FormSectionLabel } from '@/components/ui/form_section_label';
+import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Size, Spacing } from '@/constants/theme';
 import { CurrencySelector } from '@/modules/currency';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
-import { TYPE_OPTIONS, TypePill } from '../account_type_pill';
 import { AccountColorField } from './account_color_field';
-import { useAccountFormAnim } from './account_form.anim';
-import { CreditCardFields } from './credit_card_fields';
+import {
+  CURRENCY_CELL_WIDTH,
+  CURRENCY_SEGMENT_WIDTH,
+  resolveBalanceField,
+} from './account_form.geometry';
+import { AccountTypeSelector } from './account_type_selector';
+import { CreditCardSlot } from './credit_card_slot';
+import { FieldMessageRail } from './field_message_rail';
 
 export interface AccountFormProps {
   form: UseFormReturn<AddAccountFormData>;
@@ -29,10 +33,16 @@ export interface AccountFormProps {
 }
 
 /**
- * The account form's fields — moved verbatim from
- * screens/accounts/add_account/index.tsx:43-231. No header, no CTA, no
- * scroll container: the host owns all three, because onboarding's scroll
- * view lives inside OnboardingShell's viewport.
+ * The redesigned account form's fields (mockup § C, C1-C6). No header, no
+ * CTA, no scroll container: the host owns all three, because onboarding's
+ * scroll view lives inside OnboardingShell's viewport.
+ *
+ * Child order is unconditional top to bottom — the credit slot (plan
+ * decision 3) is the only node whose *content* varies with the selected
+ * type; every node above it is present and identically shaped for every
+ * type (the balance field is relabelled, never replaced), which is what
+ * makes the slot's origin stable across a type switch (S2's zero-shift
+ * claim, checked on the emulator by diffing `mqa find` bounds).
  */
 export function AccountForm({ form, ownerId }: AccountFormProps) {
   const { control } = form;
@@ -43,29 +53,20 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
   // re-rendering this subtree on a validation change and every field error
   // renders as invisible until an unrelated re-render happens to catch up.
   const { errors } = useFormState({ control });
-  const { ccEntering, ccExiting } = useAccountFormAnim();
   const selectedType = useWatch({ control, name: 'selected_type' });
   const selectedCurrency = useWatch({ control, name: 'currency' });
   const isCreditCard = selectedType === AccountType.CreditCard;
+  const balanceField = resolveBalanceField(selectedType);
 
   return (
     <>
-      {/* Account Type */}
-      <FormSectionLabel>{Strings.o4SectionType}</FormSectionLabel>
-      <Box style={{ flexDirection: 'row', flexWrap: 'wrap' }} className="gap-2">
-        {TYPE_OPTIONS.map((opt) => (
-          <TypePill
-            key={opt.type}
-            option={opt}
-            isSelected={selectedType === opt.type}
-            onSelect={() => form.setValue('selected_type', opt.type, { shouldValidate: true })}
-          />
-        ))}
-      </Box>
+      {/* Account type */}
+      <FormLabelText label={Strings.accountTypeLabel} />
+      <AccountTypeSelector form={form} />
 
-      {/* Account Name */}
+      {/* Account name */}
       <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionName}</FormSectionLabel>
+        <FormLabelText label={Strings.accountNameLabel} />
         <Controller
           control={control}
           name="name"
@@ -74,42 +75,59 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              placeholder={Strings.o4NamePlaceholder}
+              placeholder={Strings.accountNamePlaceholder}
               maxLength={30}
               isInvalid={!!errors.name}
             />
           )}
         />
-        <FormErrorText message={errors.name?.message} />
+        <FieldMessageRail helper={Strings.accountNameHelper} error={errors.name?.message} />
       </Box>
 
-      {/* Currency */}
-      <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionCurrency}</FormSectionLabel>
-        <CurrencySelector value={selectedCurrency} onChange={(c) => form.setValue('currency', c)} />
+      {/* Balance + currency row — flex 1.5 / 1 (spec.md:75) via CURRENCY_CELL_WIDTH */}
+      <Box className="pt-1" style={{ flexDirection: 'row', gap: Spacing.xs }}>
+        <Box style={{ flex: 1 }}>
+          <FormLabelText {...balanceField} numberOfLines={1} />
+          <Controller
+            control={control}
+            name="balance"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <Input
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={Strings.accountBalancePlaceholder}
+                keyboardType="decimal-pad"
+                isInvalid={!!errors.balance}
+                suffix={selectedCurrency}
+              />
+            )}
+          />
+          <FieldMessageRail helper={balanceField.helper} error={errors.balance?.message} />
+        </Box>
+        <Box
+          style={{ width: CURRENCY_CELL_WIDTH, height: Size.fieldHeight, justifyContent: 'center' }}
+        >
+          <FormLabelText label={Strings.accountCurrencyA11y} />
+          <Controller
+            control={control}
+            name="currency"
+            render={({ field: { value, onChange } }) => (
+              <CurrencySelector
+                value={value}
+                onChange={onChange}
+                segmentWidth={CURRENCY_SEGMENT_WIDTH}
+              />
+            )}
+          />
+          {/* Neither helper nor error — the rail still mounts, holding C1's
+              blank message row, which is what keeps the two-column row's
+              baselines level with the balance cell beside it. */}
+          <FieldMessageRail />
+        </Box>
       </Box>
 
-      {/* Balance */}
-      <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionBalance}</FormSectionLabel>
-        <Controller
-          control={control}
-          name="balance"
-          render={({ field: { value, onChange, onBlur } }) => (
-            <Input
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder={Strings.o4BalancePlaceholder}
-              keyboardType="decimal-pad"
-              isInvalid={!!errors.balance}
-            />
-          )}
-        />
-        <FormErrorText message={errors.balance?.message} />
-      </Box>
-
-      {/* Color picker */}
+      {/* Colour */}
       <Box className="pt-1">
         <Controller
           control={control}
@@ -118,14 +136,13 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
             <AccountColorField ownerId={ownerId} value={value} onChange={onChange} />
           )}
         />
+        <FieldMessageRail helper={Strings.accountColorHelper} />
       </Box>
 
-      {/* CC conditional fields */}
-      {isCreditCard && (
-        <Animated.View entering={ccEntering} exiting={ccExiting} className="pt-1">
-          <CreditCardFields form={form} />
-        </Animated.View>
-      )}
+      {/* Reserved credit slot — always mounted, decision 3 */}
+      <Box className="pt-1">
+        <CreditCardSlot form={form} isCreditCard={isCreditCard} />
+      </Box>
     </>
   );
 }
