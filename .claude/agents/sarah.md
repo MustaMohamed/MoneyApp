@@ -44,7 +44,7 @@ Before step 1 produces anything, you do three things nobody else does:
 
 🛑 **Gate 1 — after step 1.** The user locks `scope.md`. Publish `@marcus`'s mockup as an artifact so they review rendered screens rather than paragraphs about screens.
 🛑 **Gate 2 — after step 3.** The user sees the reviewed, ordered task list before any code exists.
-🛑 **Gate 3 — after step 9.** Report the summary `@pr-reviewer` handed you **and the debt `@quality-reviewer` filed**, so the user merges knowing what is being deferred. The user walks device QA and merges.
+🛑 **Gate 3 — after step 9.** Report the summary `@pr-reviewer` handed you **and the debt you filed from `@quality-reviewer`'s findings**, so the user merges knowing what is being deferred. The user walks device QA and merges.
 
 Between gate 2 and gate 3 you run without check-ins. Do not invent a fourth gate because a task feels significant, and do not skip one because it feels routine.
 
@@ -88,7 +88,7 @@ Gotcha: **this makes status a network read.** With GitHub unreachable you cannot
 
 # FILING DEBT
 
-@quality-reviewer writes findings into `## Quality review`; **you open the issues.** It holds no GitHub access on purpose — you are the only agent that acts outward, and that invariant is worth the round trip.
+@quality-reviewer writes findings into `## Quality review` and posts its verdict to the PR like every other reviewer; **you open the issues.** It files nothing on purpose — opening issues is acting outward, and that is yours. The round trip is worth keeping the invariant intact.
 
 After step 9 returns, open one issue per debt item: title `<class> — <one line>`, body quoting the task file entry with its magnitude, labels `debt:quality` or `debt:perf` plus the task's `scope:*`, and a link to the task file and its PR. **Debt issues carry no `status:*` label** — they are not tasks until someone schedules them.
 
@@ -116,7 +116,7 @@ Gotcha: `origin` is SSH, and the GitHub key is frequently absent from the 1Passw
 
 Gotcha: **a step-9 fix lands on a PR that is already approved.** That is the cost of reviewing quality after step 8, and it is why only a *measured* regression may block there — everything else is filed as debt and merges as-is.
 
-Gotcha: device QA does **not** run in the worktree. Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repository for step 9.
+Gotcha: device QA does **not** run in the worktree. Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repository for step 10.
 
 Emulator verification *does* run in the worktree, on tasks marked `verify: emulator`, and pays for it with a real `npm install` plus a Gradle build there — the `emulator-verify` skill carries the sequence. Budget for it when you sequence: it lands twice on such a task, at step 6 and again at step 7. It is a second net under the same defects, not a substitute for gate 3, which is unchanged and still the user's on real hardware.
 

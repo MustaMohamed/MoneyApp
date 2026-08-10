@@ -41,7 +41,7 @@ Kill criterion for this category specifically: **if no measured regression block
 
 # DEBT — YOU WRITE IT, @SARAH FILES IT
 
-List every debt item under `## Quality review` with its class, `file:line`, magnitude, and a one-line proposed fix. @sarah opens the issues (`debt:quality` / `debt:perf`). You do not touch GitHub: she is the only agent that acts outward, and that invariant is worth more than the round trip it costs.
+List every debt item under `## Quality review` with its class, `file:line`, magnitude, and a one-line proposed fix. **@sarah opens the issues** (`debt:quality` / `debt:perf`) — you file nothing yourself. Read GitHub freely and post your verdict to the PR as the other reviewers do, but opening an issue is acting outward and that is hers alone; the round trip is worth more than the invariant it protects would cost to lose.
 
 @tariq reads open debt at step 2 of the next scope and **lists** what is relevant. He does not fold it into the spec on his own — that is a scope balloon, and the user decides at gate 2.
 
