@@ -116,7 +116,7 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
                   ? 'font-inter-semibold text-foreground'
                   : 'font-inter text-content-secondary',
               )}
-              style={{ fontSize: Type.caption }}
+              style={{ fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.3) }}
               numberOfLines={1}
             >
               {option.label}

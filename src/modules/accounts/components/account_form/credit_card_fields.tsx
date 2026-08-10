@@ -112,7 +112,10 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                   {Strings.accountInterestLabel}
                 </Label.Text>
               </Label>
-              <Typography className="font-inter text-foreground" style={{ fontSize: Type.caption }}>
+              <Typography
+                className="font-inter text-foreground"
+                style={{ fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.35) }}
+              >
                 {Strings.accountInterestHelper}
               </Typography>
             </Box>

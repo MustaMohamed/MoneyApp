@@ -25,6 +25,21 @@ export const FIELD_MESSAGE_RAIL_STYLE = {
   paddingTop: 3,
 } as const;
 
+/**
+ * The rail's own text has to declare this explicitly — HeroUI `Typography`'s
+ * default `type="body"` carries a fixed 28pt unscaled `line-height`
+ * (`text.css:49-52`, `calc(var(--spacing) * 7)`), which survives an
+ * `style={{ fontSize }}` override because `style` only wins on the
+ * properties it sets. Left alone, the helper state (this line-height) and
+ * the error state (HeroUI `FieldError`'s own `--text-sm--line-height`, 20pt
+ * unscaled — field-error.css:6-7) render at different heights and the rail
+ * moves when the message swaps — measured on the emulator, not assumed.
+ * `20`, not `Size.fieldMessageTrack`, deliberately: FieldError's line-height
+ * is itself unscaled CSS, so matching it with another unscaled literal keeps
+ * the two states equal at every `ms()` scale, not just near 1.0.
+ */
+export const FIELD_MESSAGE_TEXT_LINE_HEIGHT = 20;
+
 /** 3-column, 5-tile, left-aligned account-type grid at 114 x 76 pt (spec.md:73,124). */
 export const ACCOUNT_TYPE_TILE_HEIGHT = ms(76);
 export const ACCOUNT_TYPE_GRID_COLUMNS = 3;

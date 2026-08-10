@@ -47,7 +47,7 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
             same shape as a field's helper-rail copy. */}
         <Typography
           className="font-inter text-foreground"
-          style={{ flex: 1, fontSize: Type.caption }}
+          style={{ flex: 1, fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.35) }}
         >
           {Strings.accountSlotHint}
         </Typography>
@@ -72,7 +72,12 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
         <MaterialCommunityIcons name="credit-card" size={Size.iconSm} color={Colors.dark.gold} />
         <Typography
           className="font-sora-bold"
-          style={{ flex: 1, fontSize: Type.body, color: Colors.dark.gold }}
+          style={{
+            flex: 1,
+            fontSize: Type.body,
+            lineHeight: Math.round(Type.body * 1.3),
+            color: Colors.dark.gold,
+          }}
         >
           {Strings.accountSlotTitle}
         </Typography>

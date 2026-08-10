@@ -110,7 +110,7 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
                   // (decision 8's own carve-out for redundant labels).
                   <Typography
                     className="font-sora text-content-secondary"
-                    style={{ fontSize: Type.meta }}
+                    style={{ fontSize: Type.meta, lineHeight: Math.round(Type.meta * 1.3) }}
                   >
                     {selectedCurrency}
                   </Typography>

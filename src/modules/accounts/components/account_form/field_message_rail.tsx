@@ -5,7 +5,7 @@ import { Box } from '@/components/ui/box';
 import { FormErrorText } from '@/components/ui/form_error_text';
 import { Type } from '@/constants/theme';
 
-import { FIELD_MESSAGE_RAIL_STYLE } from './account_form.geometry';
+import { FIELD_MESSAGE_RAIL_STYLE, FIELD_MESSAGE_TEXT_LINE_HEIGHT } from './account_form.geometry';
 
 export interface FieldMessageRailProps {
   helper?: string;
@@ -35,7 +35,10 @@ export function FieldMessageRail({ helper, error }: FieldMessageRailProps) {
         // read, not a genuinely redundant label (spec.md:122). No
         // numberOfLines: the rail is a floor, so long copy grows into the
         // scroll viewport instead of clipping (spec.md:45).
-        <Typography className="font-inter text-foreground" style={{ fontSize: Type.detail }}>
+        <Typography
+          className="font-inter text-foreground"
+          style={{ fontSize: Type.detail, lineHeight: FIELD_MESSAGE_TEXT_LINE_HEIGHT }}
+        >
           {helper}
         </Typography>
       ) : null}
