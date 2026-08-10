@@ -1,3 +1,4 @@
+import { Typography } from 'heroui-native';
 import React from 'react';
 import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
 
@@ -6,7 +7,7 @@ import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing } from '@/constants/theme';
+import { Size, Spacing, Type } from '@/constants/theme';
 import { CurrencySelector } from '@/modules/currency';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
@@ -99,27 +100,49 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
                 placeholder={Strings.accountBalancePlaceholder}
                 keyboardType="decimal-pad"
                 isInvalid={!!errors.balance}
-                suffix={selectedCurrency}
+                suffix={
+                  // A bare string throws "Text strings must be rendered
+                  // within a <Text> component" — InputGroup.Suffix does not
+                  // auto-wrap its children (confirmed on the emulator).
+                  // Muted, not full-strength: this echoes the currency
+                  // segment selected one cell over, so it is genuinely
+                  // redundant rather than something a user must read here
+                  // (decision 8's own carve-out for redundant labels).
+                  <Typography
+                    className="font-sora text-content-secondary"
+                    style={{ fontSize: Type.meta }}
+                  >
+                    {selectedCurrency}
+                  </Typography>
+                }
               />
             )}
           />
           <FieldMessageRail helper={balanceField.helper} error={errors.balance?.message} />
         </Box>
-        <Box
-          style={{ width: CURRENCY_CELL_WIDTH, height: Size.fieldHeight, justifyContent: 'center' }}
-        >
+        <Box style={{ width: CURRENCY_CELL_WIDTH }}>
           <FormLabelText label={Strings.accountCurrencyA11y} />
-          <Controller
-            control={control}
-            name="currency"
-            render={({ field: { value, onChange } }) => (
-              <CurrencySelector
-                value={value}
-                onChange={onChange}
-                segmentWidth={CURRENCY_SEGMENT_WIDTH}
-              />
-            )}
-          />
+          {/* The fixed height belongs on this wrapper, not the whole
+              column: SegmentedTabs' own rendered height does not exactly
+              equal Size.fieldHeight, so centering it inside a
+              Size.fieldHeight box is what lines the control up with the
+              balance Input beside it. Sizing the outer column itself to
+              Size.fieldHeight would compress the label+selector+rail stack
+              into 48pt and spill it into the row above (caught on the
+              emulator, not by a unit test). */}
+          <Box style={{ height: Size.fieldHeight, justifyContent: 'center' }}>
+            <Controller
+              control={control}
+              name="currency"
+              render={({ field: { value, onChange } }) => (
+                <CurrencySelector
+                  value={value}
+                  onChange={onChange}
+                  segmentWidth={CURRENCY_SEGMENT_WIDTH}
+                />
+              )}
+            />
+          </Box>
           {/* Neither helper nor error — the rail still mounts, holding C1's
               blank message row, which is what keeps the two-column row's
               baselines level with the balance cell beside it. */}
