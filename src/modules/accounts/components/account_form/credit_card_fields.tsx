@@ -1,128 +1,129 @@
-import { Switch, Typography } from 'heroui-native';
+import { ControlField, Label, Typography } from 'heroui-native';
 import React from 'react';
 import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
-import Animated from 'react-native-reanimated';
 
 import { Box } from '@/components/ui/box';
-import { FormErrorText } from '@/components/ui/form_error_text';
-import { FormSectionLabel } from '@/components/ui/form_section_label';
+import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import { Strings } from '@/constants/strings';
+import { Spacing, Type } from '@/constants/theme';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
-import { useCreditCardFieldsAnim } from './account_form.anim';
+import { FieldMessageRail } from './field_message_rail';
 
 export interface CreditCardFieldsProps {
   form: UseFormReturn<AddAccountFormData>;
 }
 
 /**
- * The credit-card-only block — moved verbatim from
- * screens/accounts/add_account/index.tsx:119-229. Its own file because
- * spec.md:448 reserves it and MA-009 rebuilds precisely this block; keeping
- * it separate means MA-009's diff does not touch account_form.tsx.
+ * The credit-card-only fields — CreditCardSlot's open-state body (mockup
+ * C5/C6). No entering animation on the APR reveal (MA-009 plan decision 11
+ * — the scope's three-animation motion budget has no room for it): it
+ * renders inside this same, already-mounted block, so the block only grows
+ * downward and the header/rails/CTA above it never move.
+ *
+ * The "Adds an APR field…" caption is plain `Typography` at
+ * `--foreground`, not HeroUI `Description` — decision 8 rules out
+ * `Description` for any helper copy in this task, because
+ * `description.css` paints `--color-muted` (2.36:1, decorative-only per
+ * spec.md:120), and this caption is something a user must read, not a
+ * genuinely redundant label.
  */
 export function CreditCardFields({ form }: CreditCardFieldsProps) {
   const { control } = form;
-  // useFormState, not form.formState — see account_form.tsx's comment; the
-  // same memoized-prop bailout applies here (MA-007 round 2, D1).
+  // useFormState, not form.formState — the same memoized-prop bailout
+  // documented on account_form.tsx applies here (MA-007 round 2, D1).
   const { errors } = useFormState({ control });
-  const { aprEntering, aprExiting } = useCreditCardFieldsAnim();
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
 
   return (
     <>
-      {/* Revolving Balance */}
-      <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionRevolving}</FormSectionLabel>
-        <Controller
-          control={control}
-          name="revolving_balance"
-          render={({ field: { value, onChange } }) => (
-            <Input
-              value={value}
-              onChangeText={onChange}
-              placeholder={Strings.o4RevolvingPlaceholder}
-              keyboardType="decimal-pad"
-            />
-          )}
-        />
+      <Box style={{ flexDirection: 'row', gap: Spacing.xs }}>
+        <Box style={{ flex: 1 }}>
+          <FormLabelText label={Strings.accountCreditLimitLabel} />
+          <Controller
+            control={control}
+            name="credit_limit"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <Input
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="decimal-pad"
+                isInvalid={!!errors.credit_limit}
+              />
+            )}
+          />
+          <FieldMessageRail
+            helper={Strings.accountCreditLimitHelper}
+            error={errors.credit_limit?.message}
+          />
+        </Box>
+        <Box style={{ flex: 1 }}>
+          <FormLabelText label={Strings.accountMinPaymentLabel} tag={Strings.fieldOptionalTag} />
+          <Controller
+            control={control}
+            name="min_payment"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <Input
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                keyboardType="decimal-pad"
+                isInvalid={!!errors.min_payment}
+              />
+            )}
+          />
+          <FieldMessageRail
+            helper={Strings.accountMinPaymentHelper}
+            error={errors.min_payment?.message}
+          />
+        </Box>
       </Box>
 
-      {/* Credit Limit */}
-      <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionLimit}</FormSectionLabel>
+      <Box style={{ width: '50%' }}>
+        <FormLabelText label={Strings.accountDueDayLabel} tag={Strings.fieldOptionalTag} />
         <Controller
           control={control}
-          name="credit_limit"
+          name="due_day"
           render={({ field: { value, onChange, onBlur } }) => (
             <Input
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
-              placeholder={Strings.o4CreditLimitPlaceholder}
-              keyboardType="decimal-pad"
-              isInvalid={!!errors.credit_limit}
-            />
-          )}
-        />
-        <FormErrorText message={errors.credit_limit?.message} />
-      </Box>
-
-      {/* Min Payment */}
-      <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionMinPayment}</FormSectionLabel>
-        <Controller
-          control={control}
-          name="min_payment"
-          render={({ field: { value, onChange } }) => (
-            <Input
-              value={value}
-              onChangeText={onChange}
-              placeholder={Strings.o4MinPaymentPlaceholder}
-              keyboardType="decimal-pad"
-            />
-          )}
-        />
-        <Typography className="text-muted font-inter mt-1 text-[11px]">
-          {Strings.o4MinPaymentHint}
-        </Typography>
-      </Box>
-
-      {/* Due Day */}
-      <Box className="pt-1">
-        <FormSectionLabel>{Strings.o4SectionDueDay}</FormSectionLabel>
-        <Controller
-          control={control}
-          name="due_day"
-          render={({ field: { value, onChange } }) => (
-            <Input
-              value={value}
-              onChangeText={onChange}
-              placeholder={Strings.o4DueDayPlaceholder}
+              placeholder={Strings.accountDueDayPlaceholder}
               keyboardType="number-pad"
               maxLength={2}
+              isInvalid={!!errors.due_day}
             />
           )}
         />
+        <FieldMessageRail helper={Strings.accountDueDayHelper} error={errors.due_day?.message} />
       </Box>
 
-      {/* Interest Tracking */}
-      <Box style={{ flexDirection: 'row' }} className="items-center justify-between py-3">
-        <Typography className="font-inter-semibold text-foreground text-[15px]">
-          {Strings.o4InterestLabel}
-        </Typography>
-        <Switch
-          isSelected={interestTracking}
-          onSelectedChange={(v) => form.setValue('interest_tracking', v)}
-          accessibilityLabel={Strings.o4InterestLabel}
-        />
-      </Box>
+      <Controller
+        control={control}
+        name="interest_tracking"
+        render={({ field: { value, onChange } }) => (
+          <ControlField isSelected={value} onSelectedChange={onChange}>
+            <Box style={{ flex: 1 }}>
+              <Label>
+                <Label.Text className="font-inter-semibold" style={{ fontSize: Type.meta }}>
+                  {Strings.accountInterestLabel}
+                </Label.Text>
+              </Label>
+              <Typography className="font-inter text-foreground" style={{ fontSize: Type.caption }}>
+                {Strings.accountInterestHelper}
+              </Typography>
+            </Box>
+            <ControlField.Indicator />
+          </ControlField>
+        )}
+      />
 
-      {/* APR (when interest tracking ON) */}
-      {interestTracking && (
-        <Animated.View entering={aprEntering} exiting={aprExiting} className="pt-1">
-          <FormSectionLabel>{Strings.o4SectionApr}</FormSectionLabel>
+      {interestTracking ? (
+        <Box>
+          <FormLabelText label={Strings.accountAprLabel} />
           <Controller
             control={control}
             name="apr"
@@ -131,18 +132,15 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
-                placeholder={Strings.o4AprPlaceholder}
+                placeholder={Strings.accountAprPlaceholder}
                 keyboardType="decimal-pad"
                 isInvalid={!!errors.apr}
               />
             )}
           />
-          <Typography className="text-muted font-inter mt-1 text-[11px]">
-            {Strings.o4AprHint}
-          </Typography>
-          <FormErrorText message={errors.apr?.message} />
-        </Animated.View>
-      )}
+          <FieldMessageRail helper={Strings.accountAprHelper} error={errors.apr?.message} />
+        </Box>
+      ) : null}
     </>
   );
 }
