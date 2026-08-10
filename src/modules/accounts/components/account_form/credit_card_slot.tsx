@@ -57,7 +57,13 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
 
   return (
     <Box
-      style={{ borderWidth: 1, borderRadius: Radius.md, overflow: 'hidden' }}
+      // borderStyle stated explicitly, not omitted: both branches return a
+      // Box at the same tree position, so React reuses one host View, and
+      // Android does not reset borderStyle when a style property is simply
+      // absent from the new object (impl review round 1, D2 — the open slot
+      // was inheriting the hint branch's dashed border on every reachable
+      // path, since Bank is the default type).
+      style={{ borderWidth: 1, borderStyle: 'solid', borderRadius: Radius.md, overflow: 'hidden' }}
       className="border-separator"
     >
       <Box
