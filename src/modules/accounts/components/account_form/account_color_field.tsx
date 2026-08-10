@@ -3,7 +3,7 @@ import { PressableFeedback, Typography } from 'heroui-native';
 import React from 'react';
 
 import { Box } from '@/components/ui/box';
-import { FormSectionLabel } from '@/components/ui/form_section_label';
+import { FormLabelText } from '@/components/ui/form_label_text';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing, TouchSize } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
@@ -32,7 +32,7 @@ export function AccountColorField({ ownerId, value, onChange }: AccountColorFiel
 
   return (
     <>
-      <FormSectionLabel>{Strings.accountColorSectionLabel}</FormSectionLabel>
+      <FormLabelText label={Strings.accountColorLabel} />
       <PressableFeedback
         testID="account-color-trigger"
         accessibilityRole="button"

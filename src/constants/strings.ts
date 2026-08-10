@@ -157,7 +157,6 @@ export const Strings = {
   accountColorGraphite: 'Graphite',
 
   // Account colour sheet — MA-006, mockup § D (D1, D2) and C1's trigger row
-  accountColorSectionLabel: 'ACCOUNT COLOUR',
   accountColorSheetTitle: 'Account colour',
   accountColorSheetCta: 'Use this colour',
   accountColorToneRich: 'Rich',
