@@ -188,10 +188,13 @@ describe('card_revolving_seed — @layla Part C — resolveDeleteDeltas / resolv
     }
     expect(caught).toBeInstanceOf(TransactionPolicyError);
     // Assert the codes array CONTAINS the revolving code, not array equality
-    // — validateResultingCardBalances can raise more than one issue.
-    expect((caught as TransactionPolicyError).issues.map((i) => i.code)).toContain(
-      'card_revolving_balance_would_be_negative',
-    );
+    // — validateResultingCardBalances can raise more than one issue. A type
+    // guard, not a cast, so the property access stays type-safe.
+    if (caught instanceof TransactionPolicyError) {
+      expect(caught.issues.map((i) => i.code)).toContain(
+        'card_revolving_balance_would_be_negative',
+      );
+    }
   });
 
   it('C2 — edit an existing payment on a legacy card, landing exactly on the zero boundary — no throw, resulting revolving 0', () => {
