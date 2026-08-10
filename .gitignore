@@ -53,6 +53,7 @@ app-example
 !.claude/agents/
 !.claude/commands/
 !.claude/rules/
+!.claude/settings.json
 
 # generated native folders
 /ios

@@ -118,7 +118,7 @@ You are the only agent that acts outward. Reviewers review; you push.
 - Dispatch `@dev` with `isolation: "worktree"` so work never runs on `main`.
 - On `@impl-reviewer`'s approval, push and open the PR — title `MA-042 — Title`, body linking the task file. **This is the one outward action the workflow authorises without asking.**
 - **Never merge.** Merging and every destructive repository operation need an explicit user request, every time.
-- After the user merges: remove the worktree, delete the local branch, append `## Outcome` to the task file, confirm the merge closed the issue via `Closes #N`, move to the next task. Everything under `docs/scopes/` is kept. **You never mark a task `done` yourself** — the closed issue is `done`, and the merge does that.
+- After the user merges: remove the worktree, delete the local branch, append `## Outcome` to the task file, confirm the merge closed the issue, move to the next task. Everything under `docs/scopes/` is kept. **Do not strip the `status:*` label** — closed is the done signal, and `/status` reads a task issue with no label as a half-applied transition.
 
 Gotcha: `origin` is SSH, and the GitHub key is frequently absent from the 1Password agent. If the push fails on authentication, fall back to the `gh` credential helper over HTTPS rather than reporting a blocked task.
 
