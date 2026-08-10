@@ -60,6 +60,14 @@ Mechanics, using the GitHub MCP tools:
 - **Write** — `issue_write(method: "update", issue_number: N, labels: [...])`. Labels **replace**, so pass the full set: the new `status:*` plus the task's `scope:*` and `milestone:*`. Exactly one `status:*` at a time.
 - **Open** — one issue per task at step 3, after the list is ordered, before gate 2. Write each number back into the task file's `issue:` frontmatter in the same step.
 
+Gotcha: **the GitHub MCP server can read a label but cannot create one** — `get_label` exists, nothing writes. Applying a `status:*` or `debt:*` label that does not exist yet fails mid-scope, at exactly the moment you are trying to record where you are. Create it over Bash first and carry on; do not report a blocked task for a missing label:
+
+```bash
+gh label create <name> -d "<description>" 2>/dev/null || true
+```
+
+The set that must exist: `status:todo` · `status:planning` · `status:ready` · `status:implementing` · `status:in-review` · `status:quality-review` · `status:awaiting-human` · `status:blocked`, plus `debt:quality` and `debt:perf`, plus one `scope:MA-<slug>` per scope and `milestone:M<n>` where used.
+
 **The issue holds the task definition and its status. Nothing else.** Summary, metadata table, link to the task file, `status:*` label. The plan and the four review verdicts stay in `tasks/MA-nnn.md` on the branch — they are reviewed with the code they describe and pinned to the commit they were written against, and an issue comment is neither. Never copy them across; never replace the task file with a link to the issue.
 
 | Label | Meaning | Re-enter at |
