@@ -108,7 +108,10 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
           <ControlField isSelected={value} onSelectedChange={onChange}>
             <Box style={{ flex: 1 }}>
               <Label>
-                <Label.Text className="font-inter-semibold" style={{ fontSize: Type.meta }}>
+                <Label.Text
+                  className="font-inter-semibold"
+                  style={{ fontSize: Type.meta, lineHeight: Math.round(Type.meta * 1.3) }}
+                >
                   {Strings.accountInterestLabel}
                 </Label.Text>
               </Label>
