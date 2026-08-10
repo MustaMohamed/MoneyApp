@@ -1,126 +1,83 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo } from 'react';
 
-import { AccountType, OnboardingStep } from '@/constants/enums';
+import { OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { AcctTokens } from '@/constants/theme_tokens';
+import { useAccountFormState } from '@/modules/accounts/components/account_form/account_form.state';
+import { useAccountForm } from '@/modules/accounts/components/account_form/use_account_form.hook';
 import { useAccountStore } from '@/modules/accounts/store/account.store';
+import {
+  ONBOARDING_STEP_HREF,
+  resolveOnboardingStep,
+} from '@/modules/onboarding/domain/onboarding_route';
 import { runOnboardingTransition } from '@/modules/onboarding/domain/onboarding_transition';
 import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store';
-import {
-  createAddAccountSchema,
-  type AddAccountFormData,
-} from '@/utils/schemas/add_account.schema';
 import { useInit } from '@/utils/use_init.hook';
-import { useZodForm } from '@/utils/use_zod_form.hook';
 
 import { useAddAccountTransitionState } from './add_account.state';
 
-// The 12 ACCOUNT_COLORS sourced from AcctTokens.*.rich values (spec §2.4).
-// Used by the color picker in index.tsx. Exported so the screen can render the row.
-export const ACCOUNT_COLORS = [
-  AcctTokens.midnight.rich, // #1B2B4B — default
-  AcctTokens.gold.rich, // #C9973A
-  AcctTokens.nile.rich, // #2D7D6E
-  AcctTokens.paprika.rich, // #C45C2A
-  AcctTokens.plum.rich, // #5A2D55
-  AcctTokens.lapis.rich, // #185FA5
-  AcctTokens.rose.rich, // #B8526D
-  AcctTokens.sand.rich, // #C9A876
-  AcctTokens.amethyst.rich, // #7B3F8C
-  AcctTokens.emerald.rich, // #4CAF82
-  AcctTokens.saffron.rich, // #D4830A
-  AcctTokens.steel.rich, // #4A6FA5
-] as const;
-
 export function useAddAccount() {
   const router = useRouter();
-  const { isAddingMore } = useLocalSearchParams<{ isAddingMore?: string }>();
-  const accounts = useAccountStore((s) => s.accounts);
-  const addAccount = useAccountStore.getState().addAccount;
-  const loadAccounts = useAccountStore.getState().loadAccounts;
+  const isAddingMore = useLocalSearchParams<{ isAddingMore?: string }>().isAddingMore === 'true';
   const baseCurrency = useOnboardingStore((s) => s.baseCurrency);
   const setStep = useOnboardingStore.getState().setStep;
-  const statusMessage = useAddAccountTransitionState.useState.statusMessage();
-  const busy = useAddAccountTransitionState.useState.busy();
+  const transitionStatusMessage = useAddAccountTransitionState.useState.statusMessage();
 
-  useInit(loadAccounts);
   // Belt and braces for an entry path that does not go through the runner —
   // invalidate() already clears this on every successful exit, but a fresh
   // mount (including the add-more re-entry via `replace`) should never be
   // able to show a message from a previous visit.
   useInit(() => useAddAccountTransitionState.getState().reset());
 
-  const schema = useMemo(() => createAddAccountSchema(accounts), [accounts]);
+  const { form, submit, state } = useAccountForm({
+    initialCurrency: baseCurrency,
+    saveErrorMessage: Strings.n2SaveError,
+    onSaved: async () => {
+      // D4: a back that started inside the CTA's validation window is not
+      // covered by handleSave's pre-submit check. Return false — not throw,
+      // not void — this is exactly today's isCurrent() -> `return
+      // undefined`: the row stays on disk, no step is written, nothing
+      // navigates, no error is shown, and resolveOnboardingStep heals the
+      // step on next launch. Returning `false` (not void) tells
+      // useAccountForm this was a DECLINE, not a completion (D10), so the
+      // session stays retryable if the competing back transition then fails.
+      if (useAddAccountTransitionState.getState().busy) return false;
 
-  const form = useZodForm(schema, {
-    mode: 'onSubmit',
-    reValidateMode: 'onChange',
-    defaultValues: {
-      name: '',
-      balance: '',
-      selected_type: AccountType.Bank,
-      selected_color: AcctTokens.midnight.rich,
-      currency: baseCurrency,
-      interest_tracking: false,
-      credit_limit: '',
-      apr: '',
-      revolving_balance: '',
-      min_payment: '',
-      due_day: '',
+      // resolve AFTER the insert — useAccountForm calls onSaved only past
+      // markInserted(), so accounts.length already includes the new row.
+      // Reading it earlier reproduces MA-005 Decision 2 row 2's hard loop.
+      const resolved = isAddingMore
+        ? OnboardingStep.N3
+        : resolveOnboardingStep(OnboardingStep.N3, useAccountStore.getState().accounts.length);
+
+      // Add-more: the persisted step never moved off N3, so there is nothing
+      // to write and only the route changes — identical to
+      // add_account.hook.ts:106 before this task.
+      if (!isAddingMore) await setStep(resolved);
+
+      // No catch: a rejecting setStep propagates to useAccountForm's catch,
+      // which calls failSave(Strings.n2SaveError) and leaves `inserted`
+      // latched. Persist-before-navigate is structural — the replace below
+      // is unreachable from a failed write.
+      useAddAccountTransitionState.getState().invalidate(); // MA-005 Decision 3
+      router.replace(ONBOARDING_STEP_HREF[resolved]);
     },
   });
 
-  const onSubmit = async (data: AddAccountFormData) => {
-    const session = useAddAccountTransitionState.getState().begin();
-    if (session === null) return;
-
-    const isCC = data.selected_type === AccountType.CreditCard;
-
-    await runOnboardingTransition({
-      session,
-      api: useAddAccountTransitionState.getState(),
-      navigate: (href) => router.replace(href),
-      desiredStep: OnboardingStep.N3,
-      readAccountCount: () => useAccountStore.getState().accounts.length,
-      persist: async (resolve, isCurrent) => {
-        await addAccount({
-          name: data.name.trim(),
-          type: data.selected_type,
-          currency: data.currency,
-          opening_balance: parseFloat(data.balance),
-          color: data.selected_color,
-          interest_tracking: data.interest_tracking ? 1 : 0,
-          sort_order: accounts.length,
-          credit_limit: isCC && data.credit_limit?.trim() ? parseFloat(data.credit_limit) : null,
-          revolving_balance:
-            isCC && data.revolving_balance?.trim() ? parseFloat(data.revolving_balance) || 0 : null,
-          minimum_payment: isCC && data.min_payment?.trim() ? parseFloat(data.min_payment) : null,
-          statement_due_day: isCC && data.due_day?.trim() ? parseInt(data.due_day, 10) : null,
-          apr: isCC && data.interest_tracking && data.apr?.trim() ? parseFloat(data.apr) : null,
-        });
-
-        // Truthy check on the raw param string, not `=== 'true'` — MA-008
-        // owns fixing this (`?isAddingMore=false` would take this branch
-        // too); this task keeps the tail's behaviour identical to today.
-        if (isAddingMore) return OnboardingStep.N3;
-
-        // Stale session: the account stays on disk, the step is not
-        // written. resolveOnboardingStep's row 5 heals it on next launch.
-        if (!isCurrent()) return undefined;
-
-        // accountCount must be read *after* the insert above resolves —
-        // reading it any earlier reproduces the first-account hard loop
-        // (MA-005 plan Decision 2 row 2).
-        const resolved = resolve();
-        await setStep(resolved);
-        return resolved;
-      },
-      errorMessage: Strings.n2SaveError,
-    });
+  const handleSave = async () => {
+    // D3: the back path's guard, checked before validation so nothing moves.
+    if (useAddAccountTransitionState.getState().busy) return;
+    // D2: mirror of ready.hook.ts:57-61 — every writer of the single status
+    // track clears it when its own attempt starts. beginSave() clears only
+    // the form's channel, and the merge below always prefers the transition
+    // channel, so without this a failed back stays pinned over a failed
+    // save. Safe: the early return above means no back transition is live.
+    useAddAccountTransitionState.getState().reset();
+    await submit();
   };
 
   const onBack = async () => {
+    // D3: spec.md:81 — back is inert during the write.
+    if (useAccountFormState.getState().saving) return;
     const session = useAddAccountTransitionState.getState().begin();
     if (session === null) return;
 
@@ -144,8 +101,8 @@ export function useAddAccount() {
 
   return {
     form,
-    handleSave: form.handleSubmit(onSubmit),
+    handleSave,
     onBack,
-    state: { statusMessage, busy },
+    state: { statusMessage: transitionStatusMessage || state.errorMessage, saving: state.saving },
   };
 }

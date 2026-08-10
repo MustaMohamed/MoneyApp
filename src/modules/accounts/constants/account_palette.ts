@@ -9,9 +9,10 @@ import { AcctTokens, CoreTokens } from '@/constants/theme_tokens';
  * Array order is the sheet's column order (mockup D1/D2): 16 rich entries in
  * AcctTokens declaration order, then the same 16 families in soft.
  *
- * Three older colour lists still exist and are NOT touched here — the two
- * ACCOUNT_COLORS arrays in the add-account hooks and AccountColors in
- * constants/theme.ts. Their consumers are rewritten in MA-006/007/008.
+ * One older colour list still exists and is NOT touched here — AccountColors
+ * in constants/theme.ts. The two ACCOUNT_COLORS arrays that used to live in
+ * the Settings and onboarding add-account hooks are gone as of MA-007/008;
+ * both hosts now render this palette through AccountColorField's sheet.
  */
 
 export type AccountColorFamily = keyof typeof AcctTokens;

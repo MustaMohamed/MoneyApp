@@ -18,6 +18,7 @@ jest.mock('@/modules/accounts/store/account.store', () => ({
 jest.mock('@/modules/onboarding/store/onboarding.store', () => ({ useOnboardingStore: jest.fn() }));
 
 const mockSetStep = jest.fn().mockResolvedValue(undefined);
+const mockLoadAccounts = jest.fn().mockResolvedValue(undefined);
 const mockReplace = jest.fn();
 
 const fakeAccounts = [
@@ -47,7 +48,7 @@ function setup(accounts = fakeAccounts) {
 
   attachMockSelectorStore(useAccountStore as unknown as jest.Mock, () => ({
     accounts,
-    loadAccounts: jest.fn().mockResolvedValue(undefined),
+    loadAccounts: mockLoadAccounts,
   }));
   const { useOnboardingStore } = require('@/modules/onboarding/store/onboarding.store');
   const storeState = {
@@ -69,6 +70,11 @@ describe('useMoreAccounts', () => {
 
   it('renders without throwing', async () => {
     await expect(renderHook(() => useMoreAccounts())).resolves.toBeDefined();
+  });
+
+  it('does not load the account list on mount', async () => {
+    await renderHook(() => useMoreAccounts());
+    expect(mockLoadAccounts).not.toHaveBeenCalled();
   });
 
   it('accounts reflects account store state', async () => {

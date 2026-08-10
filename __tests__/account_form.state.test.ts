@@ -70,7 +70,7 @@ describe('useAccountFormState', () => {
     expect(s.inserted).toBe(true);
   });
 
-  it('reset() returns all three fields to initial', () => {
+  it('reset() returns all four fields to initial', () => {
     useAccountFormState.getState().beginSave();
     useAccountFormState.getState().markInserted();
     useAccountFormState.getState().failSave('boom');
@@ -80,7 +80,25 @@ describe('useAccountFormState', () => {
     const s = useAccountFormState.getState();
     expect(s.saving).toBe(false);
     expect(s.inserted).toBe(false);
+    expect(s.completed).toBe(false);
     expect(s.errorMessage).toBeUndefined();
+  });
+
+  it('finishSave() completes the session, declineSave() does not (MA-008 D10, T4)', () => {
+    useAccountFormState.getState().beginSave();
+    useAccountFormState.getState().markInserted();
+    useAccountFormState.getState().finishSave();
+    expect(useAccountFormState.getState().completed).toBe(true);
+
+    useAccountFormState.getState().reset();
+
+    useAccountFormState.getState().beginSave();
+    useAccountFormState.getState().markInserted();
+    useAccountFormState.getState().declineSave();
+    const s = useAccountFormState.getState();
+    expect(s.saving).toBe(false);
+    expect(s.inserted).toBe(true);
+    expect(s.completed).toBe(false);
   });
 
   it('createAccountFormState() twice yields two independent stores', () => {

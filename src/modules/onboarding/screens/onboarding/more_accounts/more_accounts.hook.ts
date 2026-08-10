@@ -1,5 +1,5 @@
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef } from 'react';
+import { useRouter } from 'expo-router';
+import { useRef } from 'react';
 
 import { OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -13,19 +13,12 @@ import { useMoreAccountsTransitionState } from './more_accounts.state';
 export function useMoreAccounts() {
   const router = useRouter();
   const accounts = useAccountStore((s) => s.accounts);
-  const loadAccounts = useAccountStore.getState().loadAccounts;
   const setStep = useOnboardingStore.getState().setStep;
   const statusMessage = useMoreAccountsTransitionState.useState.statusMessage();
   const busy = useMoreAccountsTransitionState.useState.busy();
 
   const initialCountRef = useRef<number>(accounts.length);
   const initialCount = initialCountRef.current;
-
-  useFocusEffect(
-    useCallback(() => {
-      void loadAccounts();
-    }, [loadAccounts]),
-  );
 
   // Belt and braces for an entry path that does not go through the runner —
   // invalidate() already clears this on every successful exit, but a fresh

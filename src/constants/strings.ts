@@ -26,7 +26,6 @@ export const Strings = {
   o4SectionName: 'ACCOUNT NAME',
   o4SectionCurrency: 'CURRENCY',
   o4SectionBalance: 'BALANCE',
-  o4SectionColor: 'COLOR — 12 PRESETS',
   o4SectionRevolving: 'REVOLVING BALANCE',
   o4SectionLimit: 'CREDIT LIMIT',
   o4SectionMinPayment: 'MIN. PAYMENT',
@@ -48,6 +47,10 @@ export const Strings = {
   o4AprLabel: 'Annual Percentage Rate (APR %)',
   o4AprPlaceholder: 'e.g. 2.99',
   o4Cta: 'Save Account',
+  // CurrencySelector's a11y label inside AccountForm (both Settings' and
+  // onboarding N2's hosts) — not base-currency copy, filed here with the
+  // rest of the account form's strings instead.
+  accountCurrencyA11y: 'Account currency',
 
   // Welcome — base currency
   n1CurrencyLabel: 'BASE CURRENCY',
