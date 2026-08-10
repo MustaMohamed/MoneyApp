@@ -271,12 +271,9 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       expect(fieldErrors(cc({ min_payment: '' }))).toEqual({});
     });
 
-    it.each(['0', '32', '15.5', 'abc'])(
-      '#12 day %p → reject due_day / errDueDayRange',
-      (value) => {
-        expect(fieldErrors(cc({ due_day: value })).due_day).toBe(Strings.errDueDayRange);
-      },
-    );
+    it.each(['0', '32', '15.5', 'abc'])('#12 day %p → reject due_day / errDueDayRange', (value) => {
+      expect(fieldErrors(cc({ due_day: value })).due_day).toBe(Strings.errDueDayRange);
+    });
 
     it.each(['1', '31', '15'])('#13 day %p → accept', (value) => {
       expect(fieldErrors(cc({ due_day: value }))).toEqual({});
@@ -309,19 +306,22 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
 
   // Decision 4's trap: a stale credit draft must never block a non-credit save.
   describe('off-type gating — every credit rule opens on selected_type === CreditCard', () => {
-    it.each(NON_CREDIT_TYPES)('%s with every credit field invalid → accept, zero issues', (type) => {
-      const errs = fieldErrors(
-        baseData({
-          selected_type: type,
-          credit_limit: '',
-          min_payment: '9,000',
-          due_day: '99',
-          apr: 'abc',
-          interest_tracking: true,
-        }),
-      );
-      expect(errs).toEqual({});
-    });
+    it.each(NON_CREDIT_TYPES)(
+      '%s with every credit field invalid → accept, zero issues',
+      (type) => {
+        const errs = fieldErrors(
+          baseData({
+            selected_type: type,
+            credit_limit: '',
+            min_payment: '9,000',
+            due_day: '99',
+            apr: 'abc',
+            interest_tracking: true,
+          }),
+        );
+        expect(errs).toEqual({});
+      },
+    );
   });
 
   // The parser case table, applied to the three new credit amount fields plus
@@ -402,7 +402,11 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
       it.each(REJECTED_AMOUNTS)('%p (unparseable) → errDueDayRange', (value) => {
         expect(
           fieldErrors(
-            baseData({ selected_type: AccountType.CreditCard, credit_limit: '1000', due_day: value }),
+            baseData({
+              selected_type: AccountType.CreditCard,
+              credit_limit: '1000',
+              due_day: value,
+            }),
           ).due_day,
         ).toBe(Strings.errDueDayRange);
       });

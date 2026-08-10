@@ -282,7 +282,7 @@ describe('toNewAccountInput — blank vs explicit zero', () => {
 // from opening_balance. Part A is her table verbatim; Parts B and C
 // (confirmation tests over the unmodified transactions domain) live in
 // __tests__/transactions/card_revolving_seed.test.ts.
-describe('toNewAccountInput — revolving_balance, @layla\'s Part A', () => {
+describe("toNewAccountInput — revolving_balance, @layla's Part A", () => {
   it.each([
     ['A1 New bank account', AccountType.Bank, 5000, null],
     ['A2 New wallet account', AccountType.SmartWallet, 0, null],
@@ -328,25 +328,26 @@ describe('toNewAccountInput — revolving_balance, @layla\'s Part A', () => {
 // retained credit draft still carries values in RHF (the validation half is
 // the schema's off-type gating test).
 describe('toNewAccountInput — off-type leakage, every credit column', () => {
-  it.each(
-    Object.values(AccountType).filter((type) => type !== AccountType.CreditCard),
-  )('%s with a full retained credit draft → every credit column absent', (type) => {
-    const data = baseData({
-      selected_type: type,
-      credit_limit: '50,000',
-      min_payment: '900',
-      due_day: '14',
-      apr: '24',
-      interest_tracking: true,
-    });
-    const result = toNewAccountInput(data, { sortOrder: 0 });
-    expect(result.credit_limit).toBeNull();
-    expect(result.minimum_payment).toBeNull();
-    expect(result.statement_due_day).toBeNull();
-    expect(result.apr).toBeNull();
-    expect(result.revolving_balance).toBeNull();
-    expect(result.interest_tracking).toBe(0);
-  });
+  it.each(Object.values(AccountType).filter((type) => type !== AccountType.CreditCard))(
+    '%s with a full retained credit draft → every credit column absent',
+    (type) => {
+      const data = baseData({
+        selected_type: type,
+        credit_limit: '50,000',
+        min_payment: '900',
+        due_day: '14',
+        apr: '24',
+        interest_tracking: true,
+      });
+      const result = toNewAccountInput(data, { sortOrder: 0 });
+      expect(result.credit_limit).toBeNull();
+      expect(result.minimum_payment).toBeNull();
+      expect(result.statement_due_day).toBeNull();
+      expect(result.apr).toBeNull();
+      expect(result.revolving_balance).toBeNull();
+      expect(result.interest_tracking).toBe(0);
+    },
+  );
 });
 
 describe('toNewAccountInput — statement_due_day', () => {

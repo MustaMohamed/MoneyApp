@@ -206,7 +206,10 @@ describe('card_revolving_seed — @layla Part C — resolveDeleteDeltas / resolv
       toAmount: 100,
       minimumPaymentSnapshot: 0,
       revolvingBalanceDelta: -100,
-      destination: account('card', AccountType.CreditCard, { currentBalance: 0, revolvingBalance: 0 }),
+      destination: account('card', AccountType.CreditCard, {
+        currentBalance: 0,
+        revolvingBalance: 0,
+      }),
     });
     const newCommand = command({
       type: TransactionType.CCPayment,
@@ -214,7 +217,10 @@ describe('card_revolving_seed — @layla Part C — resolveDeleteDeltas / resolv
       egpAmount: 100,
       toAmount: 100,
       minimumPaymentSnapshot: 0,
-      destination: account('card', AccountType.CreditCard, { currentBalance: 0, revolvingBalance: 0 }),
+      destination: account('card', AccountType.CreditCard, {
+        currentBalance: 0,
+        revolvingBalance: 0,
+      }),
     });
 
     const effect = resolveUpdateEffect(oldCommand, newCommand);
