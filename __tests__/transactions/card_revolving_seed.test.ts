@@ -227,9 +227,16 @@ describe('card_revolving_seed — @layla Part C — resolveDeleteDeltas / resolv
     });
 
     const effect = resolveUpdateEffect(oldCommand, newCommand);
-    const cardDelta = effect.deltas.find((d) => d.accountId === 'card');
-    const resultingRevolving = (cardDelta?.revolvingBalance ?? 0) + 0; // starting snapshot is 0
-    expect(resultingRevolving).toBe(0);
+    // Impl review round 1, D5: `(cardDelta?.revolvingBalance ?? 0) + 0` is `0`
+    // whatever `transaction_policy.ts` does, because `??` swallows the
+    // `undefined` case too — it was never distinguishing "no delta emitted"
+    // from "a zero delta was emitted". The old payment (-100) reversed and
+    // the identical new payment (-100) reapplied cancel exactly, so
+    // `mergeAccountDeltas`' own zero-filter (transaction_policy.ts:260-262)
+    // drops the card's delta entirely — asserted directly, with a real
+    // failure mode: a resolver that emitted any non-zero delta bag for this
+    // same-value edit would fail it.
+    expect(effect.deltas).toEqual([]);
   });
 
   it('C3 — delete an unrelated expense on a legacy card whose revolving_balance was left null — no throw, skip stays null', () => {
