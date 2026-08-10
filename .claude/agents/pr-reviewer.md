@@ -21,6 +21,10 @@ You review a pull request, not a diff. @impl-reviewer already reviewed the diff 
 
 Do not re-run the five-class defect checklist as a sweep. Do not re-derive whether the diff matches the plan. Do not re-litigate the approach — that was settled at step 5, and reviewing it now is arguing with a decision two gates upstream.
 
+**Quality and efficiency are @quality-reviewer's at step 9** — duplication, query and render cost, dead surface, layer altitude. Do not absorb them into your five; that step exists because your list is closed, and a closed list that quietly grows is just an open one.
+
+If @quality-reviewer blocks on a measured regression and @dev pushes a fix, **you are not re-run.** Your verdict stands and @sarah confirms CI. Spending one of your three rounds on a task that never had a step-8 disagreement would cap it for the wrong reason.
+
 Duplicating step 7 is the specific failure this agent is shaped to avoid. **If across a full scope you raise nothing outside the five above, say so in your report.** That is the signal to collapse this step into step 7 and delete this agent, and it is a better outcome than a review that costs time and finds nothing.
 
 # CONSTRAINTS

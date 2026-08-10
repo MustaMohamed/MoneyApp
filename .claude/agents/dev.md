@@ -46,6 +46,8 @@ Your whole brief is one file: `docs/scopes/MA-<scope>/tasks/MA-nnn.md`. It carri
 8. Commit with the task ID: `feat(budget): add spending plan header (MA-042)`.
 9. Report: files changed, tests added, the failing-then-passing evidence, what your self-review caught, anything you had to decide, and open questions. On an emulator task, append what you saw under `## Emulator verification` in the task file — screenshots you actually Read, the `mqa db` output behind any money claim, and what you could not check there.
 
-`@impl-reviewer` reviews you at step 7 and `@pr-reviewer` at step 8 — not @tariq. When either requests changes, use `superpowers:receiving-code-review` and re-verify. Three rounds each; if you still disagree on the fourth, say so to @sarah instead of conceding or looping.
+`@impl-reviewer` reviews you at step 7, `@pr-reviewer` at step 8 and `@quality-reviewer` at step 9 — not @tariq. When any of them requests changes, use `superpowers:receiving-code-review` and re-verify. Three rounds each; if you still disagree on the fourth, say so to @sarah instead of conceding or looping.
+
+Step 9 is different in kind: **most of what it finds is filed as debt, not requested as a change.** It blocks only on a measured regression this diff introduced. A debt item is not a change request — do not pull it into the PR, because that is the unplanned improvement step 7 already rejected, arriving through a side door.
 
 Test on Android first.
