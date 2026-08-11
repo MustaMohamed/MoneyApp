@@ -5,7 +5,13 @@ import React from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { Colors, Radius, Size, Spacing, Type } from '@/constants/theme';
+import {
+  HERO_GRADIENT_COLORS,
+  HERO_GRADIENT_END,
+  HERO_GRADIENT_START,
+  heroGlowStyle,
+} from '@/components/ui/hero_gradient';
+import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
@@ -38,17 +44,14 @@ const TILE_BOX_STYLE: ViewStyle = {
   padding: Spacing.xs,
 };
 
-/** Corner glow — HeroShell's own formula (decision 7), composed locally. */
-const GLOW_STYLE: ViewStyle = {
-  position: 'absolute',
-  top: -ms(22),
-  right: -ms(22),
-  width: ms(74),
-  height: ms(74),
-  borderRadius: ms(37),
-  backgroundColor: Colors.dark.gold,
-  opacity: 0.18,
-};
+/**
+ * Corner glow — HeroShell's own formula (decision 7), now read from the
+ * module every hero-treatment consumer shares (debt:quality #228 / MA-009
+ * post-approval fix F3) instead of restating HeroShell's default colour and
+ * opacity as bare literals here. Computed once at module load, not per
+ * render.
+ */
+const GLOW_STYLE = heroGlowStyle({ size: ms(74), offset: ms(22) });
 
 /**
  * One tile in the 3-column, 5-tile account-type grid (mockup C1, 114x76).
@@ -80,9 +83,9 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
           {isSelected ? (
             <>
               <LinearGradient
-                colors={[Colors.shared.heroGrad1, Colors.shared.heroGrad2, Colors.shared.heroGrad3]}
-                start={{ x: 0.1, y: 0 }}
-                end={{ x: 0.9, y: 1 }}
+                colors={HERO_GRADIENT_COLORS}
+                start={HERO_GRADIENT_START}
+                end={HERO_GRADIENT_END}
                 style={StyleSheet.absoluteFill}
               />
               <View pointerEvents="none" style={GLOW_STYLE} />
@@ -116,12 +119,13 @@ export function AccountTypeTile({ option }: AccountTypeTileProps) {
                 from the other four — never a "genuinely redundant" label.
                 Selection reads from the gradient, glow, gold icon and
                 border, not from dimming the other four; hierarchy between
-                selected/unselected comes from weight, per decision 8. */}
+                selected/unselected comes from weight, per decision 8. cn()
+                now joins two real class fragments instead of resolving a
+                single already-computed string (MA-009 post-approval fix
+                F8, debt:quality #228's step-7 nit). */}
             <Typography
-              className={cn(
-                isSelected ? 'font-inter-semibold text-foreground' : 'font-inter text-foreground',
-              )}
-              style={{ fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.3) }}
+              className={cn('text-foreground', isSelected ? 'font-inter-semibold' : 'font-inter')}
+              style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
               numberOfLines={1}
             >
               {option.label}

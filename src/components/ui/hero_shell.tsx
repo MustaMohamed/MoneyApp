@@ -7,6 +7,15 @@ import Svg, { Defs, Path, Pattern, Rect } from 'react-native-svg';
 import { Colors } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
+import {
+  HERO_GLOW_DEFAULT_COLOR,
+  HERO_GLOW_DEFAULT_OPACITY,
+  HERO_GRADIENT_COLORS,
+  HERO_GRADIENT_END,
+  HERO_GRADIENT_START,
+  heroGlowStyle,
+} from './hero_gradient';
+
 type EnteringAnimation = React.ComponentProps<typeof Animated.View>['entering'];
 
 /**
@@ -65,8 +74,8 @@ const frameStyle: ViewStyle = {
 
 export function HeroShell({
   children,
-  glowColor = Colors.dark.gold,
-  glowOpacity = 0.18,
+  glowColor = HERO_GLOW_DEFAULT_COLOR,
+  glowOpacity = HERO_GLOW_DEFAULT_OPACITY,
   onPress,
   accessibilityLabel,
   style,
@@ -75,24 +84,20 @@ export function HeroShell({
   const card = (
     <Animated.View entering={entering} style={[frameStyle, style]}>
       <LinearGradient
-        colors={[Colors.shared.heroGrad1, Colors.shared.heroGrad2, Colors.shared.heroGrad3]}
-        start={{ x: 0.1, y: 0 }}
-        end={{ x: 0.9, y: 1 }}
+        colors={HERO_GRADIENT_COLORS}
+        start={HERO_GRADIENT_START}
+        end={HERO_GRADIENT_END}
         style={StyleSheet.absoluteFill}
       />
       <HeroGridTexture />
       <View
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          top: -ms(40),
-          right: -ms(40),
-          width: ms(160),
-          height: ms(160),
-          borderRadius: ms(80),
-          backgroundColor: glowColor,
+        style={heroGlowStyle({
+          size: ms(160),
+          offset: ms(40),
+          color: glowColor,
           opacity: glowOpacity,
-        }}
+        })}
       />
       {children}
     </Animated.View>
