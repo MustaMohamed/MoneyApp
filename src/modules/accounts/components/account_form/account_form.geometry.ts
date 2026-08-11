@@ -17,12 +17,14 @@ import type { TypeOption } from '../account_type_pill';
  * The message rail under every field — spec.md § "The zero-shift contract".
  * `minHeight`, never `height`: at accessibility font sizes the rail is a
  * floor, not a ceiling, and long copy grows into the scroll viewport instead
- * of clipping (spec.md:45). `paddingTop: 3` has no `ms()` token to route
- * through — MA-001 owns theme.ts and this task does not invent one.
+ * of clipping (spec.md:45). `paddingTop` is `Size.fieldRailTextInset`
+ * (theme.ts) — MA-009 post-approval fix F7 named the bare `3` this used to
+ * be; see that token's own comment for why routing it through `ms()` is
+ * visually a no-op.
  */
 export const FIELD_MESSAGE_RAIL_STYLE = {
   minHeight: Size.fieldMessageTrack,
-  paddingTop: 3,
+  paddingTop: Size.fieldRailTextInset,
 } as const;
 
 /**
@@ -46,22 +48,41 @@ export const ACCOUNT_TYPE_GRID_COLUMNS = 3;
 
 /**
  * The reserved credit slot's own minimum height — a composition of two
- * tokens MA-001 already shipped, not a sixth Size token. 48 + 16 = 64
- * against the mockup's 44 + 16 = 60; the +4 is Size.fieldHeight's own
- * ruling (spec.md § Geometry tokens) propagating here.
+ * tokens MA-001 already shipped, not a sixth Size token. **Consistently
+ * scaled**: both terms now go through `ms()`, whereas the original
+ * `Size.fieldHeight + Spacing.md` added an intentionally-unscaled 48 to an
+ * already-`ms()`-scaled 16, so "48 + 16 = 64" only held at scale 1.0 and
+ * silently diverged everywhere else (MA-009 post-approval fix F6). At scale
+ * 1.0 this is still exactly 48 + 16 = 64, against the mockup's 44 + 16 = 60
+ * (the +4 is Size.fieldHeight's own ruling, spec.md § Geometry tokens,
+ * propagating here); off scale 1.0 both terms now grow together instead of
+ * one term standing still while the other scales underneath it. Unlike
+ * `Size.fieldHeight` itself elsewhere, this value has no real HeroUI
+ * `Input` to pixel-match — it only has to roughly reserve "one field row
+ * plus a gap" for a placeholder — so scaling it with the rest of the
+ * form's geometry is the more consistent choice than inheriting
+ * `Size.fieldHeight`'s narrow, deliberately-unscaled exception.
  */
-export const CREDIT_SLOT_MIN_HEIGHT = Size.fieldHeight + Spacing.md;
+export const CREDIT_SLOT_MIN_HEIGHT = ms(Size.fieldHeight) + Spacing.md;
+
+/**
+ * Tabs.List's own chrome around its two segments — gap 4 + padding 3+3
+ * (tabs.css:10,14), unscaled CSS px straight from HeroUI's stylesheet.
+ * Deliberately NOT ms()-scaled, the same way `Size.fieldHeight` (theme.ts)
+ * is deliberately not — named, rather than left as a bare `+ 10` in
+ * `CURRENCY_CELL_WIDTH` below, so the intent carries in the name the way
+ * `Size.fieldHeight` already does (MA-009 post-approval fix F7).
+ */
+export const CURRENCY_TABS_LIST_CHROME = 10;
 
 /**
  * The currency control's compact geometry — decision 1. `segmentWidth` is
  * reachable exactly through SegmentedTabs' own prop; the cell has to be at
- * least as wide as the composed Tabs.List (2 segments + gap 4 + padding
- * 3+3 = 10). Those 10 points are unscaled CSS px straight from HeroUI's
- * stylesheet (tabs.css:10,14) — never routed through ms(), which is why this
- * adds a bare 10 and not ms(10).
+ * least as wide as the composed Tabs.List (2 segments + `CURRENCY_TABS_
+ * LIST_CHROME`).
  */
 export const CURRENCY_SEGMENT_WIDTH = ms(65);
-export const CURRENCY_CELL_WIDTH = 2 * CURRENCY_SEGMENT_WIDTH + 10;
+export const CURRENCY_CELL_WIDTH = 2 * CURRENCY_SEGMENT_WIDTH + CURRENCY_TABS_LIST_CHROME;
 
 /**
  * Chunks the five type options into rows of `columns`, padding the last row

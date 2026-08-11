@@ -61,6 +61,10 @@ export const Colors = {
     heroGrad1: '#1A2948',
     heroGrad2: '#223060',
     heroGrad3: '#192A4A',
+    // A named token for a colour with no theme meaning — routes a bare
+    // 'transparent' string literal through constants/theme.ts the way every
+    // other colour in this file already is (MA-009 post-approval fix F7).
+    transparent: 'transparent',
   },
 } as const;
 
@@ -207,6 +211,13 @@ export const Size = {
   // (heroui-native/src/styles/components/input.css:9 — spacing 0.25rem x 12).
   // Deliberately not ms()-scaled: see @sarah's ruling, note 5 below.
   fieldHeight: 48,
+  // FieldMessageRail's own paddingTop, nudging its text down from the box's
+  // top edge — not one of the five zero-shift tracks above (this pads
+  // *inside* a track, it doesn't set one). ms(3) rounds back to 3 at every
+  // scale this app clamps to ([0.85, 1.15] — Math.round(3 * 0.85) =
+  // Math.round(3 * 1.15) = 3), so routing the old bare `3` through ms()
+  // costs nothing visually (MA-009 post-approval fix F7).
+  fieldRailTextInset: ms(3),
 } as const;
 
 /**
