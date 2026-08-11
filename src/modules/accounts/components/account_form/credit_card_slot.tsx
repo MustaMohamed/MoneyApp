@@ -61,7 +61,7 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
             same shape as a field's helper-rail copy. */}
         <Typography
           className="font-inter text-foreground"
-          style={{ flex: 1, fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.35) }}
+          style={{ flex: 1, fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
         >
           {Strings.accountSlotHint}
         </Typography>
