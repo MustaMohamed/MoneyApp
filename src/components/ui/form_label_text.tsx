@@ -1,7 +1,7 @@
 import { Label, Typography } from 'heroui-native';
 import React from 'react';
 
-import { Spacing, Type } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 export interface FormLabelTextProps {
   label: string;
@@ -40,7 +40,7 @@ export function FormLabelText({ label, tag, numberOfLines }: FormLabelTextProps)
     <Label style={{ flexDirection: 'row', justifyContent: 'space-between', gap: Spacing.xs }}>
       <Label.Text
         className="font-inter-semibold"
-        style={{ fontSize: Type.detail, lineHeight: Math.round(Type.detail * 1.3), flexShrink: 1 }}
+        style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail), flexShrink: 1 }}
         numberOfLines={numberOfLines}
       >
         {label}
@@ -48,7 +48,7 @@ export function FormLabelText({ label, tag, numberOfLines }: FormLabelTextProps)
       {tag ? (
         <Typography
           className="font-inter text-content-secondary"
-          style={{ fontSize: Type.detail, lineHeight: Math.round(Type.detail * 1.3) }}
+          style={{ fontSize: Type.detail, lineHeight: lineHeightFor(Type.detail) }}
         >
           {tag}
         </Typography>

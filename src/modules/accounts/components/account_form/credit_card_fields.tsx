@@ -6,7 +6,7 @@ import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import { Strings } from '@/constants/strings';
-import { Spacing, Type } from '@/constants/theme';
+import { Spacing, Type, lineHeightFor } from '@/constants/theme';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
 import { FieldMessageRail } from './field_message_rail';
@@ -120,14 +120,14 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
               <Label>
                 <Label.Text
                   className="font-inter-semibold"
-                  style={{ fontSize: Type.meta, lineHeight: Math.round(Type.meta * 1.3) }}
+                  style={{ fontSize: Type.meta, lineHeight: lineHeightFor(Type.meta) }}
                 >
                   {Strings.accountInterestLabel}
                 </Label.Text>
               </Label>
               <Typography
                 className="font-inter text-foreground"
-                style={{ fontSize: Type.caption, lineHeight: Math.round(Type.caption * 1.35) }}
+                style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
               >
                 {Strings.accountInterestHelper}
               </Typography>

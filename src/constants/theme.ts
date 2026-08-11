@@ -103,6 +103,28 @@ export const Type = {
   display: msFont(42),
 } as const;
 
+/**
+ * Derived line-height for a `Type` font size token. HeroUI `Typography` /
+ * `Label.Text` keep their className's own line-height when a `style`
+ * override sets `fontSize` alone — `style` only wins on the properties it
+ * states — so every `fontSize` override anywhere in this codebase has to
+ * pair an explicit `lineHeight` or the two drift apart (MA-009 impl review
+ * D3: an 11px label-row mismatch from exactly this omission, found once the
+ * pairing was missed by hand). `1.3` is the ratio the account-form module
+ * had already converged on at 6 of its 8 hand-written sites before this
+ * helper existed; centralising it here is what stops a second multiplier
+ * (`* 1.35`, applied to the same `Type.caption` token in two other files)
+ * from drifting in beside it undetected (debt:quality #229 / MA-009
+ * post-approval fix F4). Not for `FieldMessageRail`'s own text, which pairs
+ * a deliberately *unscaled* 20 against HeroUI `FieldError`'s own unscaled
+ * CSS line-height (`account_form.geometry.ts`'s `FIELD_MESSAGE_TEXT_LINE_
+ * HEIGHT`) — this ratio would break that equality off scale 1.0.
+ */
+const TYPE_LINE_HEIGHT_RATIO = 1.3;
+export function lineHeightFor(fontSize: number): number {
+  return Math.round(fontSize * TYPE_LINE_HEIGHT_RATIO);
+}
+
 /** Tracking values for compact labels and eyebrow copy. */
 export const LetterSpacing = {
   eyebrow: ms(0.3),

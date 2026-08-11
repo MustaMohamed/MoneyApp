@@ -5,7 +5,7 @@ import type { UseFormReturn } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { Strings } from '@/constants/strings';
-import { Colors, Radius, Size, Spacing, Type } from '@/constants/theme';
+import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { CoreTokens } from '@/constants/theme_tokens';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
@@ -97,7 +97,7 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
           style={{
             flex: 1,
             fontSize: Type.body,
-            lineHeight: Math.round(Type.body * 1.3),
+            lineHeight: lineHeightFor(Type.body),
             color: Colors.dark.gold,
           }}
         >
