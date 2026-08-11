@@ -1,13 +1,12 @@
-import { Typography } from 'heroui-native';
 import React from 'react';
-import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
 import { Input } from '@/components/ui/input';
 import { AccountType } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { Size, Spacing, Type } from '@/constants/theme';
+import { Size, Spacing } from '@/constants/theme';
 import { CurrencySelector } from '@/modules/currency';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
@@ -18,6 +17,7 @@ import {
   resolveBalanceField,
 } from './account_form.geometry';
 import { AccountTypeSelector } from './account_type_selector';
+import { BalanceCurrencySuffix } from './balance_currency_suffix';
 import { CreditCardSlot } from './credit_card_slot';
 import { FieldMessageRail } from './field_message_rail';
 
@@ -47,15 +47,23 @@ export interface AccountFormProps {
  */
 export function AccountForm({ form, ownerId }: AccountFormProps) {
   const { control } = form;
-  // useFormState subscribes this component directly to formState changes.
-  // Reading `form.formState.errors` off the prop instead reads a stable
-  // useRef whose identity never changes — with the React Compiler on
-  // (app.json's experiments.reactCompiler), the host's cached element skips
-  // re-rendering this subtree on a validation change and every field error
-  // renders as invisible until an unrelated re-render happens to catch up.
-  const { errors } = useFormState({ control });
+  // Only `selected_type` is watched at this level — the balance label and
+  // the credit slot's content both derive from it, so this component has to
+  // re-render when it changes. Everything else that used to live here (a
+  // whole-form `useFormState({ control })` feeding every field's `errors`
+  // and `isInvalid`, plus `useWatch('currency')` for the balance suffix) was
+  // removed for debt:perf #227 / MA-009 quality review Q1: subscribing this
+  // component to either one re-rendered it — and everything under it,
+  // including the five-tile type grid, which reads neither — on every
+  // currency tap and every validation transition. Each `Controller` below
+  // now reads its own `fieldState.invalid` (react-hook-form's own narrowly-
+  // scoped per-field subscription — no extra hook call, `useController`
+  // already does this internally), each `FieldMessageRail` owns its own
+  // `useFormState({ control, name })`, and the balance suffix owns its own
+  // `useWatch('currency')` — the useFormState-not-form.formState invariant
+  // (still load-bearing under the React Compiler) now lives at every leaf
+  // instead of once at this root, narrower rather than gone.
   const selectedType = useWatch({ control, name: 'selected_type' });
-  const selectedCurrency = useWatch({ control, name: 'currency' });
   const isCreditCard = selectedType === AccountType.CreditCard;
   const balanceField = resolveBalanceField(selectedType);
 
@@ -71,18 +79,18 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
         <Controller
           control={control}
           name="name"
-          render={({ field: { value, onChange, onBlur } }) => (
+          render={({ field: { value, onChange, onBlur }, fieldState }) => (
             <Input
               value={value}
               onChangeText={onChange}
               onBlur={onBlur}
               placeholder={Strings.accountNamePlaceholder}
               maxLength={30}
-              isInvalid={!!errors.name}
+              isInvalid={fieldState.invalid}
             />
           )}
         />
-        <FieldMessageRail helper={Strings.accountNameHelper} error={errors.name?.message} />
+        <FieldMessageRail control={control} name="name" helper={Strings.accountNameHelper} />
       </Box>
 
       {/* Balance + currency row — flex 1.5 / 1 (spec.md:75) via CURRENCY_CELL_WIDTH */}
@@ -97,33 +105,19 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
           <Controller
             control={control}
             name="balance"
-            render={({ field: { value, onChange, onBlur } }) => (
+            render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 placeholder={Strings.accountBalancePlaceholder}
                 keyboardType="decimal-pad"
-                isInvalid={!!errors.balance}
-                suffix={
-                  // A bare string throws "Text strings must be rendered
-                  // within a <Text> component" — InputGroup.Suffix does not
-                  // auto-wrap its children (confirmed on the emulator).
-                  // Muted, not full-strength: this echoes the currency
-                  // segment selected one cell over, so it is genuinely
-                  // redundant rather than something a user must read here
-                  // (decision 8's own carve-out for redundant labels).
-                  <Typography
-                    className="font-sora text-content-secondary"
-                    style={{ fontSize: Type.meta, lineHeight: Math.round(Type.meta * 1.3) }}
-                  >
-                    {selectedCurrency}
-                  </Typography>
-                }
+                isInvalid={fieldState.invalid}
+                suffix={<BalanceCurrencySuffix control={control} />}
               />
             )}
           />
-          <FieldMessageRail helper={balanceField.helper} error={errors.balance?.message} />
+          <FieldMessageRail control={control} name="balance" helper={balanceField.helper} />
         </Box>
         <Box style={{ width: CURRENCY_CELL_WIDTH }}>
           <FormLabelText label={Strings.accountCurrencyLabel} />
@@ -148,10 +142,10 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
               )}
             />
           </Box>
-          {/* Neither helper nor error — the rail still mounts, holding C1's
-              blank message row, which is what keeps the two-column row's
-              baselines level with the balance cell beside it. */}
-          <FieldMessageRail />
+          {/* Neither helper nor an error that ever fires — the rail still
+              mounts, holding C1's blank message row, which is what keeps
+              the two-column row's baselines level. */}
+          <FieldMessageRail control={control} name="currency" />
         </Box>
       </Box>
 
@@ -164,7 +158,11 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
             <AccountColorField ownerId={ownerId} value={value} onChange={onChange} />
           )}
         />
-        <FieldMessageRail helper={Strings.accountColorHelper} />
+        <FieldMessageRail
+          control={control}
+          name="selected_color"
+          helper={Strings.accountColorHelper}
+        />
       </Box>
 
       {/* Reserved credit slot — always mounted, decision 3 */}

@@ -1,6 +1,6 @@
 import { ControlField, Label, Typography } from 'heroui-native';
 import React from 'react';
-import { Controller, useFormState, useWatch, type UseFormReturn } from 'react-hook-form';
+import { Controller, useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { FormLabelText } from '@/components/ui/form_label_text';
@@ -31,9 +31,12 @@ export interface CreditCardFieldsProps {
  */
 export function CreditCardFields({ form }: CreditCardFieldsProps) {
   const { control } = form;
-  // useFormState, not form.formState — the same memoized-prop bailout
-  // documented on account_form.tsx applies here (MA-007 round 2, D1).
-  const { errors } = useFormState({ control });
+  // Only interest_tracking is watched here — it decides whether the APR
+  // field mounts at all. Each Controller below reads its own
+  // `fieldState.invalid` and each FieldMessageRail owns its own
+  // `useFormState({ control, name })`, instead of this component threading
+  // a whole-form `errors` object down to every field (debt:perf #227 /
+  // MA-009 quality review Q1 — the same fix as account_form.tsx's).
   const interestTracking = useWatch({ control, name: 'interest_tracking' });
 
   return (
@@ -44,19 +47,20 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
           <Controller
             control={control}
             name="credit_limit"
-            render={({ field: { value, onChange, onBlur } }) => (
+            render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
-                isInvalid={!!errors.credit_limit}
+                isInvalid={fieldState.invalid}
               />
             )}
           />
           <FieldMessageRail
+            control={control}
+            name="credit_limit"
             helper={Strings.accountCreditLimitHelper}
-            error={errors.credit_limit?.message}
           />
         </Box>
         <Box style={{ flex: 1 }}>
@@ -64,19 +68,20 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
           <Controller
             control={control}
             name="min_payment"
-            render={({ field: { value, onChange, onBlur } }) => (
+            render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 keyboardType="decimal-pad"
-                isInvalid={!!errors.min_payment}
+                isInvalid={fieldState.invalid}
               />
             )}
           />
           <FieldMessageRail
+            control={control}
+            name="min_payment"
             helper={Strings.accountMinPaymentHelper}
-            error={errors.min_payment?.message}
           />
         </Box>
       </Box>
@@ -94,7 +99,7 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
           <Controller
             control={control}
             name="due_day"
-            render={({ field: { value, onChange, onBlur } }) => (
+            render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
                 onChangeText={onChange}
@@ -102,11 +107,11 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
                 placeholder={Strings.accountDueDayPlaceholder}
                 keyboardType="number-pad"
                 maxLength={2}
-                isInvalid={!!errors.due_day}
+                isInvalid={fieldState.invalid}
               />
             )}
           />
-          <FieldMessageRail helper={Strings.accountDueDayHelper} error={errors.due_day?.message} />
+          <FieldMessageRail control={control} name="due_day" helper={Strings.accountDueDayHelper} />
         </Box>
         <Box style={{ flex: 1 }} />
       </Box>
@@ -143,18 +148,18 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
           <Controller
             control={control}
             name="apr"
-            render={({ field: { value, onChange, onBlur } }) => (
+            render={({ field: { value, onChange, onBlur }, fieldState }) => (
               <Input
                 value={value}
                 onChangeText={onChange}
                 onBlur={onBlur}
                 placeholder={Strings.accountAprPlaceholder}
                 keyboardType="decimal-pad"
-                isInvalid={!!errors.apr}
+                isInvalid={fieldState.invalid}
               />
             )}
           />
-          <FieldMessageRail helper={Strings.accountAprHelper} error={errors.apr?.message} />
+          <FieldMessageRail control={control} name="apr" helper={Strings.accountAprHelper} />
         </Box>
       ) : null}
     </>
