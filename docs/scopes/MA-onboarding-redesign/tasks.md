@@ -31,7 +31,7 @@ Twelve tasks, three milestones. Reviewed and reordered at step 3. Order encodes 
 
 | ID | Title | Issue | Verify | Branch | PR |
 |---|---|---|---|---|---|
-| MA-010 | N1 Welcome | [#212](https://github.com/MustaMohamed/MoneyApp/issues/212) | emulator | — | — |
+| MA-010 | N1 Welcome | [#212](https://github.com/MustaMohamed/MoneyApp/issues/212) | emulator | `feat/MA-010-n1-welcome` | [#231](https://github.com/MustaMohamed/MoneyApp/pull/231) |
 | MA-011 | N3 Add more accounts | [#213](https://github.com/MustaMohamed/MoneyApp/issues/213) | emulator | — | — |
 | MA-012 | N4 Ready — the corrected starting net position | [#214](https://github.com/MustaMohamed/MoneyApp/issues/214) | emulator | — | — |
 
