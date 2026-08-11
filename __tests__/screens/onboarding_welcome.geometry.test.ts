@@ -1,7 +1,7 @@
 import { resolveDisplayHeadlineA11y } from '@/components/ui/display_headline.geometry';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
-import { TouchSize } from '@/constants/theme';
+import { Size, TouchSize } from '@/constants/theme';
 import {
   CURRENCY_OPTIONS,
   CURRENCY_ROW_MIN_HEIGHT,
@@ -37,8 +37,15 @@ describe('N1 currency row — the zero-shift contract', () => {
     // colour key appears, a future edit can change borderWidth beside it.
     expect(Object.keys(CURRENCY_ROW_STYLE)).not.toContain('borderColor');
     expect(Object.keys(CURRENCY_ROW_STYLE)).not.toContain('backgroundColor');
-    expect(CURRENCY_ROW_STYLE.borderWidth).toBe(1);
+    // Size.hairline, not a literal 1 — the same token the minHeight above is
+    // derived from, so the height cannot be computed from a border the row
+    // does not draw.
+    expect(CURRENCY_ROW_STYLE.borderWidth).toBe(Size.hairline);
     expect(CURRENCY_ROW_STYLE.minHeight).toBe(CURRENCY_ROW_MIN_HEIGHT);
+  });
+
+  it('is frozen, so the no-colour guarantee outlives module load', () => {
+    expect(Object.isFrozen(CURRENCY_ROW_STYLE)).toBe(true);
   });
 });
 

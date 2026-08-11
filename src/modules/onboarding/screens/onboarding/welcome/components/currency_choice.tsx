@@ -65,7 +65,7 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
                 CURRENCY_ROW_STYLE,
                 { borderColor: isSelected ? Colors.dark.gold : Colors.dark.border },
               ]}
-              className={cn(isSelected ? 'bg-accent/15' : 'bg-surface')}
+              className={isSelected ? 'bg-accent/15' : 'bg-surface'}
               accessibilityLabel={resolveCurrencyOptionA11y(option).accessibilityLabel}
             >
               <View
@@ -75,9 +75,9 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
                 // `--surface`). Matching the row would leave only the hairline
                 // describing the panel. Selected, the two deliberately converge
                 // on --accent-soft (mockup.html:460-463).
-                className={cn(
-                  isSelected ? 'border-accent bg-accent/15' : 'border-border bg-background',
-                )}
+                className={
+                  isSelected ? 'border-accent bg-accent/15' : 'border-border bg-background'
+                }
                 style={{
                   width: Size.shieldBox,
                   height: Size.shieldBox,

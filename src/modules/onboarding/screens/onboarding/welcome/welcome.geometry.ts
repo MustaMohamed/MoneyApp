@@ -3,6 +3,7 @@ import type { ViewStyle } from 'react-native';
 import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
 import { Radius, Size, Spacing, TouchSize } from '@/constants/theme';
+import { ms } from '@/utils/responsive';
 
 export type CurrencySymbol =
   | { kind: 'text'; text: string }
@@ -60,14 +61,29 @@ export const CURRENCY_ROW_MIN_HEIGHT = Math.max(
  * and the fill class in the render-prop branch, so the row is exactly as
  * tall selected as unselected.
  */
-export const CURRENCY_ROW_STYLE: ViewStyle = {
+// borderWidth is Size.hairline, the same token CURRENCY_ROW_MIN_HEIGHT
+// derives from above — not a literal 1. The two agree wherever ms(1) is 1, so
+// nothing differs as drawn today; they diverge the moment the token does, and
+// the height would then be computed from a border nobody draws.
+//
+// Frozen because the zero-shift contract is "carries no colour key, ever" and
+// this object is shared by reference between both rows: a single assignment
+// anywhere would move the geometry of both, and the suite only checks the
+// keys at module load.
+export const CURRENCY_ROW_STYLE: ViewStyle = Object.freeze({
   minHeight: CURRENCY_ROW_MIN_HEIGHT,
-  borderWidth: 1,
+  borderWidth: Size.hairline,
   borderRadius: Radius.md,
   padding: Spacing.sm,
   alignItems: 'center',
   gap: Spacing.sm,
-};
+});
 
-/** mockup.html:387, `.t-over { letter-spacing: 0.14em }`. */
-export const N1_EYEBROW_TRACKING_EM = 0.14;
+/**
+ * The body column's vertical rule — mockup.html:414, `.vr { width: 2px;
+ * border-radius: 1px }`. Named and ms()-scaled rather than inlined as bare
+ * numbers, so it grows with everything around it instead of thinning against
+ * the copy it anchors at larger scales.
+ */
+export const N1_BODY_RULE_WIDTH = ms(2);
+export const N1_BODY_RULE_RADIUS = ms(1);

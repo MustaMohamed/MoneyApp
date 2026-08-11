@@ -19,6 +19,20 @@ const RISE_DELAYS_MS = [0, 120, 240, 360] as const;
  * block and the trust row, all inside the content viewport; the footer is a
  * fixed track and does not enter.
  */
+/**
+ * The one builder chain, written once. `withInitialValues` is what pins the
+ * spec's 10pt lift instead of FadeInDown's own preset 25 — Reanimated reads
+ * the flat `translateY` key before it reads `transform[index]`
+ * (`defaultAnimations/Utils.ts:19-23`), so this shape is the supported one.
+ * Repeating the chain per block let three of its parameters drift
+ * independently; here a change reaches all four blocks or none.
+ */
+function rise(delayMs: number) {
+  return FadeInDown.duration(RISE_DURATION_MS)
+    .delay(delayMs)
+    .withInitialValues({ translateY: RISE_TRANSLATE_Y });
+}
+
 export function useWelcomeAnim() {
   const isFirstMount = useFirstMountEntering('welcome');
   const reduceMotion = useReducedMotion();
@@ -27,25 +41,9 @@ export function useWelcomeAnim() {
   const [headlineDelay, bodyDelay, currencyDelay, trustDelay] = RISE_DELAYS_MS;
 
   return {
-    headlineEntering: play
-      ? FadeInDown.duration(RISE_DURATION_MS)
-          .delay(headlineDelay)
-          .withInitialValues({ translateY: RISE_TRANSLATE_Y })
-      : undefined,
-    bodyEntering: play
-      ? FadeInDown.duration(RISE_DURATION_MS)
-          .delay(bodyDelay)
-          .withInitialValues({ translateY: RISE_TRANSLATE_Y })
-      : undefined,
-    currencyEntering: play
-      ? FadeInDown.duration(RISE_DURATION_MS)
-          .delay(currencyDelay)
-          .withInitialValues({ translateY: RISE_TRANSLATE_Y })
-      : undefined,
-    trustEntering: play
-      ? FadeInDown.duration(RISE_DURATION_MS)
-          .delay(trustDelay)
-          .withInitialValues({ translateY: RISE_TRANSLATE_Y })
-      : undefined,
+    headlineEntering: play ? rise(headlineDelay) : undefined,
+    bodyEntering: play ? rise(bodyDelay) : undefined,
+    currencyEntering: play ? rise(currencyDelay) : undefined,
+    trustEntering: play ? rise(trustDelay) : undefined,
   };
 }

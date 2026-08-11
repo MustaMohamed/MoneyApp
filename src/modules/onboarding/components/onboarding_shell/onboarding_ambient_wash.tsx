@@ -15,7 +15,7 @@ import { resolveAmbientWashGeometry } from './onboarding_shell.geometry';
  * reaches the status-bar strip with no horizontal seam, and hidden from
  * assistive tech — it carries no information a screen reader could use.
  */
-export function OnboardingAmbientWash() {
+export const OnboardingAmbientWash = React.memo(function OnboardingAmbientWash() {
   const { width, height } = useWindowDimensions();
   const { gold, teal } = resolveAmbientWashGeometry(width, height);
 
@@ -59,4 +59,4 @@ export function OnboardingAmbientWash() {
       <Rect x={0} y={0} width={width} height={height} fill="url(#ambient-wash-teal)" />
     </Svg>
   );
-}
+});

@@ -2,6 +2,7 @@ import { Typography } from 'heroui-native';
 import React from 'react';
 import { View } from 'react-native';
 
+import { Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 /**
@@ -10,11 +11,40 @@ import { ms } from '@/utils/responsive';
  * all draw them, so they live in the shell folder rather than the welcome
  * screen this task rewrites (MA-010 decision D8).
  */
-export function GoldRule() {
+export const GoldRule = React.memo(function GoldRule() {
   return (
     <View className="bg-accent" style={{ width: ms(34), height: ms(3), borderRadius: ms(2) }} />
   );
+});
+
+/** mockup.html:387, `.t-over { letter-spacing: 0.14em }`. */
+export const BROADSHEET_EYEBROW_TRACKING_EM = 0.14;
+
+export interface EyebrowProps {
+  label: string;
 }
+
+/**
+ * The third Broadsheet element, and the one D8 left behind in the welcome
+ * folder. `.t-over` opens the same `t-over → b-rule → b-headline` sequence on
+ * B1-B4 and again on F1-F9, so MA-012 draws it too — it belongs beside the
+ * rule and the numeral, not beside one consumer of them.
+ */
+export const Eyebrow = React.memo(function Eyebrow({ label }: EyebrowProps) {
+  return (
+    <Typography
+      className="text-accent font-inter-semibold"
+      style={{
+        fontSize: Type.overline,
+        lineHeight: lineHeightFor(Type.overline),
+        letterSpacing: Type.overline * BROADSHEET_EYEBROW_TRACKING_EM,
+        textTransform: 'uppercase',
+      }}
+    >
+      {label}
+    </Typography>
+  );
+});
 
 export interface GhostNumeralProps {
   value: string;
@@ -25,7 +55,7 @@ export interface GhostNumeralProps {
  * top-right corner (MA-010 decision D9), hidden from assistive tech since it
  * carries no information a screen reader could use.
  */
-export function GhostNumeral({ value }: GhostNumeralProps) {
+export const GhostNumeral = React.memo(function GhostNumeral({ value }: GhostNumeralProps) {
   return (
     <Typography
       className="text-foreground font-sora-extrabold"
@@ -45,4 +75,4 @@ export function GhostNumeral({ value }: GhostNumeralProps) {
       {value}
     </Typography>
   );
-}
+});

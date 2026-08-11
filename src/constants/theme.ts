@@ -218,7 +218,6 @@ export const Size = {
   progressThin: ms(3),
   progressDot: ms(4),
   checkCircle: ms(20),
-  illustration: ms(120),
   sheetHandle: { width: ms(36), height: ms(4) },
   dialogButton: ms(44),
   hairline: ms(1),

@@ -16,6 +16,7 @@ import { GhostNumeral } from '@/modules/onboarding/components/onboarding_shell/o
 import { CurrencyChoice } from './components/currency_choice';
 import { WelcomeHeadline } from './components/welcome_headline';
 import { useWelcomeAnim } from './welcome.anim';
+import { N1_BODY_RULE_RADIUS, N1_BODY_RULE_WIDTH } from './welcome.geometry';
 import { useWelcome } from './welcome.hook';
 
 export default function WelcomeScreen() {
@@ -66,7 +67,7 @@ export default function WelcomeScreen() {
               colors={[Colors.dark.border, Colors.shared.transparent]}
               start={{ x: 0, y: 0 }}
               end={{ x: 0, y: 1 }}
-              style={{ width: 2, borderRadius: 1 }}
+              style={{ width: N1_BODY_RULE_WIDTH, borderRadius: N1_BODY_RULE_RADIUS }}
             />
             <Typography
               className="text-foreground font-inter"

@@ -8,10 +8,11 @@ import {
   resolveDisplayHeadlineTextStyle,
 } from '@/components/ui/display_headline.geometry';
 import { Strings } from '@/constants/strings';
-import { Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { GoldRule } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
-
-import { N1_EYEBROW_TRACKING_EM } from '../welcome.geometry';
+import { Spacing, Type } from '@/constants/theme';
+import {
+  Eyebrow,
+  GoldRule,
+} from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 
 /**
  * Block 1 — eyebrow, gold rule, the two matched headline lines
@@ -36,17 +37,7 @@ export function WelcomeHeadline() {
 
   return (
     <View>
-      <Typography
-        className="text-accent font-inter-semibold"
-        style={{
-          fontSize: Type.overline,
-          lineHeight: lineHeightFor(Type.overline),
-          letterSpacing: Type.overline * N1_EYEBROW_TRACKING_EM,
-          textTransform: 'uppercase',
-        }}
-      >
-        {Strings.n1Eyebrow}
-      </Typography>
+      <Eyebrow label={Strings.n1Eyebrow} />
       <View style={{ marginTop: Spacing.xs }}>
         <GoldRule />
       </View>
