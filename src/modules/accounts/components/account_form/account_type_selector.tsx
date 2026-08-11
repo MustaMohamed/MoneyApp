@@ -4,7 +4,7 @@ import { useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { Box } from '@/components/ui/box';
 import { Strings } from '@/constants/strings';
-import { Spacing } from '@/constants/theme';
+import { Colors, Spacing } from '@/constants/theme';
 
 import type { AddAccountFormData } from '../../utils/add_account.schema';
 import { TYPE_OPTIONS } from '../account_type_pill';
@@ -14,6 +14,13 @@ import { AccountTypeTile } from './account_type_tile';
 export interface AccountTypeSelectorProps {
   form: UseFormReturn<AddAccountFormData>;
 }
+
+// Computed once at module load, not per render: TYPE_OPTIONS and
+// ACCOUNT_TYPE_GRID_COLUMNS are both module-level constants, so re-running
+// chunkTypeOptions on every render recomputed the same two rows on every
+// keystroke, error transition and tile tap for no reason (debt:perf #227
+// rider / MA-009 quality review Q1).
+const TYPE_OPTION_ROWS = chunkTypeOptions(TYPE_OPTIONS, ACCOUNT_TYPE_GRID_COLUMNS);
 
 /**
  * The 3-column, 5-tile account-type grid (mockup C1). Rows of three via
@@ -28,7 +35,6 @@ export interface AccountTypeSelectorProps {
 export function AccountTypeSelector({ form }: AccountTypeSelectorProps) {
   const { control } = form;
   const selectedType = useWatch({ control, name: 'selected_type' });
-  const rows = chunkTypeOptions(TYPE_OPTIONS, ACCOUNT_TYPE_GRID_COLUMNS);
 
   return (
     <RadioGroup
@@ -46,7 +52,7 @@ export function AccountTypeSelector({ form }: AccountTypeSelectorProps) {
       accessibilityLabel={Strings.accountTypeLabel}
       style={{ gap: Spacing.xs }}
     >
-      {rows.map((row, rowIndex) => (
+      {TYPE_OPTION_ROWS.map((row, rowIndex) => (
         <Box key={rowIndex} style={{ flexDirection: 'row', gap: Spacing.xs }}>
           {row.map((option, cellIndex) =>
             option ? (
@@ -63,7 +69,12 @@ export function AccountTypeSelector({ form }: AccountTypeSelectorProps) {
               // equal.
               <Box
                 key={`pad-${cellIndex}`}
-                style={{ flex: 1, padding: Spacing.xs, borderWidth: 1, borderColor: 'transparent' }}
+                style={{
+                  flex: 1,
+                  padding: Spacing.xs,
+                  borderWidth: 1,
+                  borderColor: Colors.shared.transparent,
+                }}
               />
             ),
           )}
