@@ -45,17 +45,18 @@ Task IDs are **globally sequential** across `docs/scopes/**` — next is the hig
 - **Split** a task whose implementation would cross more than one `src/modules/` boundary, or would leave a screen referencing a store field, migration, or repository method that does not exist yet.
 - **Merge** two tasks that would always be reviewed together, that share a migration, or where one exists only to make the other compile.
 - **Never subdivide to make a diff look small.** That trades one review gate for three and breaks independence.
+- **Split on projected churn.** The measured record: tasks at ≤ ~2,000 changed lines produced 0–2 defects each; the one at 4,140 produced 14 and the scope's only post-gate escapes (MA-009). Past roughly two thousand projected changed lines, find the seam — by consumer, by screen, by layer — even when the task would merge cleanly alone.
 - Past twelve tasks, say the scope is too large and name the seam. Twelve tasks is twelve device-QA-and-merge sittings of the user's time.
 
 Each task file carries frontmatter (`id`, `scope`, `milestone`, `issue`, `verify`, `branch`, `pr`) then `## Summary` and `## Details`. Leave `issue:` empty — @sarah opens the issues at step 3 once the order is fixed, and fills the numbers in. **No status field**: status is the `status:*` label on the issue, and re-adding it to the frontmatter recreates the drift the split removed.
 
-**`verify:` is `emulator` or `none`, and you set it.** `emulator` whenever the task changes what a screen shows or what the app writes to the database — @dev watches it run at step 6 and @impl-reviewer drives it independently at step 7. `none` for work whose failure a unit test would catch: a pure function, a query with repository tests, a refactor with no behavioural surface. It buys real coverage of the class of defect tests cannot fail on — white screen, crash on open, a write that never lands — and it costs a full `npm install` and Gradle build in the worktree, so mark it honestly in both directions. Cheap tasks marked `emulator` waste minutes; a screen marked `none` is a screen nobody looks at until the user does.
+**`verify:` is `emulator` or `none`, and you set it.** `emulator` whenever the task changes what a screen shows or what the app writes to the database; `none` for work whose failure a unit test would catch: a pure function, a query with repository tests, a refactor with no behavioural surface. The emulator itself is suspended at steps 6–7 — the flag's consequence today is that **gate 3 carries the walk**, so a `verify: emulator` task's plan must produce an executable device checklist rather than an emulator recipe. Mark it honestly in both directions: a screen marked `none` is a screen nobody looks at until the user does, and a pure-function task marked `emulator` puts noise on the user's device-QA sitting.
 
 **`Details` carries no technical decisions.** Behaviour and outcome only. The moment you name the hook, the store field, the column type, or the file path, you have pre-empted step 4 and turned planning into transcription. `@task-reviewer` will send it back.
 
 ## Step 4 — the plan, appended to the task file
 
-One task at a time, the first at `todo`. Research the codebase and, where the task depends on third-party behaviour, the web.
+One plan per dispatch — @sarah names the task; normally the first at `todo`, or, when she is pre-planning during a wait, the first whose dependencies are all closed issues. Research the codebase and, where the task depends on third-party behaviour, the web.
 
 Use `superpowers:writing-plans` for the **structure**, but it defaults to creating a file in `docs/superpowers/plans/` — do not let it. The plan is appended to `docs/scopes/MA-<scope>/tasks/MA-nnn.md` under `## Plan`. One task, one file, whole history in it; a plan written anywhere else is a plan @dev and @plan-reviewer will not find.
 
@@ -64,6 +65,6 @@ Two parts, in this order:
 1. **Summary** — high-level bullets: what will be implemented, in plain language.
 2. **Detail** — executable or it isn't a plan: ordered steps, the files each touches, the tests that prove it, the verification command, and explicit non-goals.
 
-On a `verify: emulator` task the plan also names **what the emulator run must show**: which screens to open, which flow to walk, and the `mqa db` query that settles whether the write actually landed. Leave that unstated and both runs default to the happy path, which is the one already working.
+On a `verify: emulator` task the plan also names **what the gate-3 walk must show**: which screens to open, which flow to walk, and what observation settles whether the write actually landed. Leave that unstated and the walk defaults to the happy path, which is the one already working.
 
 Verify every claim before you write it down. `@plan-reviewer` opens every path you cite, and a plan built on a symbol renamed three weeks ago reads perfectly and fails immediately.

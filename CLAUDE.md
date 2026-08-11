@@ -2,7 +2,7 @@
 
 React Native (Expo) personal finance app — local-only, no bank connections.
 
-Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (drive the app on the emulator yourself), `moneyapp-expert-panel` (inline personas).
+Path-scoped rules in `.claude/rules/` load automatically when working with matching files: `database.md` (queries, migrations, repositories), `ui.md` (all `.tsx`, styling, HeroUI, sheets), `state.md` (stores, state, hooks), `money.md` (domain resolvers, rounding, formatting), `tests.md` (everything in `__tests__/`), `review.md` (the five recurring defect classes, all of `src/**`). Project skills: `heroui-native` (UI catalog + patterns), `money-rules` (financial contracts), `moneyapp-testing` (test patterns), `device-qa` (QA matrices), `emulator-verify` (suspended — kept for the future re-introduction of device verification), `moneyapp-expert-panel` (inline personas).
 
 Rules and agent files cite audit findings by ID (`H11`, `M33`, `L2`, …). They resolve in [docs/superpowers/reviews/2026-07-29-full-technical-audit.md](docs/superpowers/reviews/2026-07-29-full-technical-audit.md); remediation is tracked in [docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md](docs/superpowers/plans/2026-07-30-audit-remediation-backlog.md).
 
@@ -33,13 +33,20 @@ Everything for a scope lives in `docs/scopes/MA-<slug>/` — see [TEMPLATES.md](
 | 3 | Task review and ordering | `@task-reviewer` | corrected, ordered `tasks.md` |
 | 4 | Plan | `@tariq` | `## Plan` in the task file |
 | 5 | Plan review | `@plan-reviewer` | `## Plan review` |
-| 6 | Implement, self-review, verify on emulator, commit | `@dev` | commits in an isolated worktree |
-| 7 | Local review + independent emulator run, then push and open PR with `Closes #N` | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
-| 8 | PR review | `@pr-reviewer` | `## PR review` |
+| 6 | Implement, self-review, commit | `@dev` | commits in an isolated worktree |
+| 7 | Local review (built-in `code-review`, high effort), then push and open PR with `Closes #N` | `@impl-reviewer`, then `@sarah` | `## Implementation review` |
+| 8 | PR review (built-in `review` on the PR, high effort) | `@pr-reviewer` | `## PR review` |
 | 9 | Quality and efficiency review | `@quality-reviewer` | `## Quality review`, `debt:*` issues |
 | 10 | Device QA and merge, then sync and clean | the user merges · `@sarah` cleans | merged PR, issue closed, local tree clean |
 
-Steps 4–9 run per task, in `tasks.md` order, one task at a time.
+Steps 4–9 run per task, in `tasks.md` order. **Both code-review gates open with the harness's built-in review skill at high effort** — step 7 runs `code-review` over the branch diff, step 8 runs `review` over the PR. The skill is each reviewer's first pass, never a replacement for its own closed rubric; skill findings outside a reviewer's rubric route to the reviewer who owns them.
+
+**Parallelism** — the run record says the gates are fast and the waits are long (median step 8: 12 minutes; gate waits run to 10 hours):
+
+- **Steps 8 and 9 run concurrently** once the PR is open. Disjoint rubrics; each writes only its own pre-existing section of the task file. If both request changes, `@dev` gets one combined fix round; each reviewer re-checks only its own findings.
+- **Pre-plan during waits.** While a task sits at step 6 or `awaiting-human`, Sarah may run steps 4–5 of the next task **iff every dependency's issue is closed** — never against anything still in flight. If `main` moves before its step 6 starts, `@plan-reviewer` re-verifies the plan's claims against the new `main` (a read, not a round).
+- **At most two tasks in flight across steps 4–9**, in separate worktrees, only when their dependency rows are disjoint. Merges and gate 3 stay strictly one at a time.
+- **Long checks run in the background.** The CI parity chain starts in the background at the top of step 6's self-review and step 7's read; the verdict still waits for its real output.
 
 🛑 **Gate 1** after step 1 — the user locks `scope.md`, mockup published as an artifact.
 🛑 **Gate 2** after step 3 — the user sees the ordered task list before any code exists.
@@ -63,11 +70,11 @@ Gotcha: **a step-9 fix lands on a PR step 8 already approved.** That is the pric
 
 Gotcha: **status is now a network read.** With no GitHub reachable, a scope cannot resume — the task file no longer answers "where was I". That is the price of killing the drift that a status column kept producing, and it is the right trade because the state that matters is on GitHub anyway (branch, PR, merge). Never re-add a status field to the frontmatter or a Status column to `tasks.md` as a "cache"; two sources of truth is the thing being deleted here.
 
-**Emulator verification** runs on tasks whose frontmatter says `verify: emulator` — anything changing what a screen shows or what the app writes. `@dev` watches it run at step 6, `@impl-reviewer` drives it independently at step 7, and the `emulator-verify` skill carries the mechanics. It is a second net under the same defects: **gate 3 is unchanged**, on real hardware, and typography, shadows, gesture feel and performance are visible nowhere else.
+**Emulator verification is suspended** — steps 6 and 7 run no emulator, pending a different mechanism. `verify: emulator` still marks the tasks whose failure a unit test cannot catch (anything changing what a screen shows or what the app writes); its consequence now is that **gate 3 carries the walk**: `@dev` writes the device-only rows into `## Device QA` at step 6, and `@impl-reviewer` verifies the checklist is *executable* — numbered steps, real screen names, forced-failure recipes that exist. MA-008 spent three step-8 rounds learning that when nothing runs, the checklist is the gate artifact. The `emulator-verify` skill stays on disk for the replacement; nothing dispatches it.
 
-Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repo for step 10. Emulator verification *does* run there, and pays with a real `npm install`; give the worktree its own Metro port, because `adb reverse` is global per device and sharing 8081 silently serves the primary repo's bundle.
+Gotcha: **device QA does not run in the worktree.** Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repo for step 10.
 
-**A Gradle build is not part of that price by default.** Ask `mqa needs-build` — only a native-surface change rebuilds, most task diffs are JS-only, and the branch under test reaches the device over Metro either way. Run the parity chain *before* building, so steps 6 and 7 share one APK instead of each making their own. And scope the walk: **if a unit test can assert it, the emulator must not.** All of this is in the `emulator-verify` skill, with the measurement behind it.
+**Scope the gate-3 walk.** If a unit test can assert it, the device walk must not repeat it — the walk exists for what only a device shows: typography, shadows, gesture feel, performance, and the `verify: emulator` behaviours deferred from steps 6–7. The `device-qa` skill assembles the checklist.
 
 ## Team
 

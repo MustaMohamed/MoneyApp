@@ -97,7 +97,7 @@ The rule of thumb: if it would ever need to be read *as of a particular commit*,
 
 ## `tasks/MA-nnn.md`
 
-Written at step 2, appended to at steps 4, 5, 7, 8, 9, and 10. One file carries the entire life of a task.
+Written at step 2, appended to at steps 4, 5, 6, 7, 8, 9, and 10. One file carries the entire life of a task.
 
 ```markdown
 ---
@@ -105,7 +105,7 @@ id: MA-042
 scope: MA-budget-v2
 milestone: M2
 issue: 187                # status of record — the issue's status:* label
-verify: emulator          # emulator | none
+verify: emulator          # emulator | none — emulator = device-only surface, walked at gate 3
 branch:
 pr:
 ---
@@ -122,23 +122,24 @@ and naming them here turns planning into transcription.
 
 ## Plan                    (step 4, edited at step 5)
 ## Plan review             (step 5)
-## Emulator verification   (steps 6 and 7, when verify: emulator)
 ## Implementation review   (step 7)
 ## PR review               (step 8)
 ## Quality review          (step 9)
-## Device QA               (step 10)
+## Device QA               (rows written at step 6 when verify: emulator, walked at step 10)
 ## Outcome                 (step 10)
 ```
 
-`verify:` decides whether the emulator runs at all. **`emulator`** for anything that changes
-what a screen shows or what the app writes to the database — @dev watches it run before
-committing, @impl-reviewer drives it independently at step 7 and that run is the one that
-counts. **`none`** where a unit test would already catch the failure. It costs a real
-`npm install` and a Gradle build in the worktree, so the flag is a real call, not a formality.
+`verify:` names the tasks whose failure a unit test cannot catch: **`emulator`** for anything
+that changes what a screen shows or what the app writes to the database, **`none`** where a
+unit test already catches the failure. The in-workflow emulator run is **suspended**, pending
+a different mechanism — the flag's consequence is that gate 3 carries the walk. @dev writes
+the device-only rows into `## Device QA` at step 6; @impl-reviewer verifies at step 7 that
+every row is executable — numbered steps, real screen names, forced-failure recipes that
+exist. When nothing runs before the user does, **the checklist is the gate artifact**
+(MA-008's three step-8 rounds are the receipt).
 
-**Neither run discharges gate 3.** The emulator is a second net under the same defects; your
-device QA checklist is unchanged, on real hardware, and typography, shadows, gesture feel and
-performance are still only visible there.
+**Neither flag value discharges gate 3.** Device QA is unchanged, on real hardware —
+typography, shadows, gesture feel and performance are visible nowhere else.
 
 Step 9's `## Quality review` also names the `debt:*` issues @sarah opened from it. **The issues are the backlog; the task file holds the finding that produced them** — same commit-pinned reasoning as the plan and the verdicts, because a magnitude measured against this diff stops being true once the code moves.
 

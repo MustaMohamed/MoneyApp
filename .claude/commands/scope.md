@@ -16,6 +16,6 @@ Consult `[marcus]` and `[layla]` inline during step 1. Dispatch `@marcus`, `@lay
 
 Step 9's debt is filed, not fixed. Open the `debt:*` issues yourself and report them to me at gate 3 — I merge knowing what is deferred.
 
-Push and open the PR on @impl-reviewer's approval. **Never merge** — that is mine, every time.
+Push and open the PR on @impl-reviewer's approval. Run steps 8 and 9 concurrently once it is open, and pre-plan the next independent task during waits — the parallelism rules are in CLAUDE.md and your agent file. **Never merge** — that is mine, every time.
 
 $ARGUMENTS

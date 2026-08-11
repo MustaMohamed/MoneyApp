@@ -31,6 +31,7 @@ CLAUDE.md carries the structure, conventions, and business rules. On top of it, 
 - **Never widen scope.** Narrow edits that follow the patterns already in that module. Preserve the user's work; no drive-by cleanup.
 - **New dependencies and native changes are not yours to make.** They are critical triggers; report and stop.
 - Layla's test-case table is a mandatory set of unit tests, not a suggestion.
+- **A plan line conditional on an observation you cannot make does not execute.** "Fix X if Y is observed" with Y unobservable means the fix does not land — record why instead. Landing it anyway disarms whatever the condition protected; this workflow has shipped exactly that defect (MA-006 D1).
 
 # HOW YOU WORK
 
@@ -41,10 +42,10 @@ Your whole brief is one file: `docs/scopes/MA-<scope>/tasks/MA-nnn.md`. It carri
 3. For a bug, `superpowers:systematic-debugging` first: root cause before any fix.
 4. **Prove it.** `npm test` green is necessary and not sufficient — the evidence is a test that fails without your change. Write it, watch it fail against the old behaviour, then make it pass. Do not cite `npm run test:coverage`: it reports 100% over a stale slice of the tree and says nothing about `src/modules/**`.
 5. **Self-review before you commit.** Not optional, and not a re-read — go through the diff against three things: the plan (every step done, nothing beyond it), the task `Details` (does this produce that outcome), and `.claude/rules/review.md` (all five classes). Fix what you find, including the error paths and the edge cases you skipped while making it work. Every defect you catch here is one that does not cost two review rounds.
-6. **If the task frontmatter says `verify: emulator`, watch it run before you commit.** Load the `emulator-verify` skill and follow its worktree section — real `npm install`, a Gradle debug build, and Metro on a private port, because sharing 8081 with the primary repo silently loads that bundle instead of yours. Open the screens you changed, walk the flow the task describes, and check `mqa db` agrees with what the UI claims. You are looking for what tests cannot fail on: a white screen, a crash on open, a field that never receives focus, a write that never lands. Fix what you find; this is a self-check, not a verdict.
-7. Run `superpowers:verification-before-completion`, then the CI parity chain in CLAUDE.md. **In that order — the chain ends in `expo prebuild --no-install`, which regenerates `android/` and deletes the APK you just verified.** Harmless once step 6 is done; costly if you reverse them.
+6. **If the task frontmatter says `verify: emulator`, the emulator does not run — gate 3 inherits the walk.** Write the device-only rows into the task file under `## Device QA`: a numbered step for each behaviour your change adds that no unit test asserts, with real screen names and forced-failure recipes that actually fire. @impl-reviewer checks the checklist is executable; an unwalkable row is a defect.
+7. Run `superpowers:verification-before-completion`, then the CI parity chain in CLAUDE.md. **Start the chain in the background as soon as the diff is final and finish your self-review while it runs** — a self-review fix re-runs it from the top, and the commit waits for the chain's real output, never your prediction of it.
 8. Commit with the task ID: `feat(budget): add spending plan header (MA-042)`.
-9. Report: files changed, tests added, the failing-then-passing evidence, what your self-review caught, anything you had to decide, and open questions. On an emulator task, append what you saw under `## Emulator verification` in the task file — screenshots you actually Read, the `mqa db` output behind any money claim, and what you could not check there.
+9. Report: files changed, tests added, the failing-then-passing evidence, what your self-review caught, anything you had to decide, and open questions.
 
 `@impl-reviewer` reviews you at step 7, `@pr-reviewer` at step 8 and `@quality-reviewer` at step 9 — not @tariq. When any of them requests changes, use `superpowers:receiving-code-review` and re-verify. Three rounds each; if you still disagree on the fourth, say so to @sarah instead of conceding or looping.
 

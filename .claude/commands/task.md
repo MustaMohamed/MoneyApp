@@ -8,9 +8,9 @@ The argument names a task (`MA-nnn`), optionally with its scope (`MA-<slug> MA-n
 
 **Check dependencies before anything else.** `tasks.md` § *Dependencies* lists what this task requires. Every one must be `done` — **read that from its issue being closed**, not from the task file, which no longer claims a status. If one is open, **stop and tell me which** — the order encodes real dependencies and building on a half-built base is how a task gets planned against something that does not exist yet. If a dependency is merged but `main` has moved since, rebase first.
 
-**Re-enter at the step the task's issue label maps to**, so an interrupted task resumes instead of restarting: `status:todo`/`status:planning` → step 4 · `status:ready` → step 6 · `status:implementing` → finish step 6 · `status:in-review` → step 7 or 8, whichever has no verdict yet · `status:quality-review` → step 9 · `status:awaiting-human` → it is already at its PR, tell me · *issue closed* → it is done, say so and stop · `status:blocked` → report the blocker, do not work around it.
+**Re-enter at the step the task's issue label maps to**, so an interrupted task resumes instead of restarting: `status:todo`/`status:planning` → step 4 · `status:ready` → step 6 · `status:implementing` → finish step 6 · `status:in-review` → step 7 if it lacks a verdict, else steps 8+9 (concurrent), whichever lack verdicts · `status:quality-review` → step 9 · `status:awaiting-human` → it is already at its PR, tell me · *issue closed* → it is done, say so and stop · `status:blocked` → report the blocker, do not work around it.
 
-**Stop at the PR.** Push and open it on @impl-reviewer's approval, run steps 8 and 9, file the debt, then stop. **Do not roll on to the next task** — that is what `/scope` is for. **Never merge**; that is mine, every time.
+**Stop at the PR.** Push and open it on @impl-reviewer's approval, run steps 8 and 9 **concurrently**, file the debt, then stop. **Do not roll on to the next task** — that is what `/scope` is for. **Never merge**; that is mine, every time.
 
 The task branch carries its own task file, so the plan, all four review verdicts and the code land as one PR. Cut it from current `main`, named `feat/MA-nnn-slug`.
 

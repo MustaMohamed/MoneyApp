@@ -25,12 +25,16 @@ Step 1 and the gates are interactive, so they run in the **main thread** through
 | 4 | Plan | `@tariq` | `## Plan` in the task file |
 | 5 | Plan review | `@plan-reviewer` | `## Plan review` |
 | 6 | Implement, self-review, commit | `@dev` | commits on a task branch |
-| 7 | Local review | `@impl-reviewer` | `## Implementation review` |
-| 8 | PR review | `@pr-reviewer` | `## PR review` |
+| 7 | Local review (built-in `code-review`, high effort) | `@impl-reviewer` | `## Implementation review` |
+| 8 | PR review (built-in `review`, high effort) | `@pr-reviewer` | `## PR review` |
 | 9 | Quality and efficiency review | `@quality-reviewer` | `## Quality review`, debt issues |
 | 10 | Device QA and merge | the user | merged PR |
 
-Everything lives under `docs/scopes/MA-<scope>/`. Steps 4 through 9 run per task, in `tasks.md` order, one task at a time.
+Everything lives under `docs/scopes/MA-<scope>/`. Steps 4 through 9 run per task in `tasks.md` order — and you pipeline where the dependency table proves it safe:
+
+- **Steps 8 and 9 run concurrently.** Dispatch `@pr-reviewer` and `@quality-reviewer` in one message once the PR is open. Disjoint rubrics; each writes only its own pre-existing section of the task file. Collect both verdicts; if both request changes, dispatch `@dev` once with the union, then each reviewer re-checks only its own findings.
+- **Pre-plan the next task during a wait.** While a task sits at step 6 or `awaiting-human`, run steps 4–5 of the next task whose dependencies are **all closed issues** — never one that depends on anything still open. If `main` moves before its step 6 starts, have `@plan-reviewer` re-verify the plan's claims against the new `main` (a read, not a round).
+- **At most two tasks in flight across steps 4–9**, in separate worktrees, only when their dependency rows are disjoint. Merges and gate 3 stay one at a time — the user walks one PR per sitting.
 
 # STARTING A SCOPE
 
@@ -76,8 +80,8 @@ The set that must exist: `status:todo` · `status:planning` · `status:ready` ·
 | `status:planning` | plan being written or reviewed | 4 |
 | `status:ready` | plan approved, awaiting implementation | 6 |
 | `status:implementing` | code being written or locally reviewed | 6 |
-| `status:in-review` | PR open, `@pr-reviewer` working | 8 |
-| `status:quality-review` | PR approved, `@quality-reviewer` working | 9 |
+| `status:in-review` | PR open, steps 8 and 9 working concurrently | 8+9, whichever lack a verdict |
+| `status:quality-review` | step 8 approved, step 9 still open | 9 |
 | `status:awaiting-human` | PR approved, needs device QA and merge | 10 |
 | *issue closed* | `done` — merged | — |
 | `status:blocked` | retry cap hit or critical trigger fired | stop and report |
@@ -106,6 +110,8 @@ They are read at step 2 of the next scope: @tariq **lists** the debt relevant to
 
 Three rounds maximum at each of steps 5, 7, 8, and 9. On the fourth, set the task `blocked`, stop, and report what the reviewer keeps rejecting and what the author keeps producing. A silent loop burns more of the user's money than an honest stop.
 
+When steps 8 and 9 ran concurrently and both requested changes, `@dev` gets **one** combined fix round; each reviewer then re-checks only its own findings, and that re-check is that reviewer's next round.
+
 **A step-9 block does not spend step 8's budget.** When @quality-reviewer blocks on a measured regression, @dev fixes and pushes, **you confirm CI came back green**, and @quality-reviewer re-checks in its round 2. @pr-reviewer is not re-run — its verdict stands. Re-running it would burn one of its three rounds on a task that never had a step-8 disagreement, and a task blocking at 8 for that reason is a defect in the workflow, not in the code.
 
 **Count the rounds off disk, never from memory.** Each reviewer appends `### Round N — <verdict>` under its section rather than overwriting, so the round you are on is the number of entries already there. A cap you hold only in context resets to zero the moment a session is interrupted — which is exactly when a stuck task is looping.
@@ -116,7 +122,7 @@ You are the only agent that acts outward. Reviewers review; you push.
 
 - Cut each task branch from current `main`: `feat/MA-042-short-slug`, using the existing type prefixes (`feat`, `refactor`, `fix`, `perf`).
 - Dispatch `@dev` with `isolation: "worktree"` so work never runs on `main`.
-- On `@impl-reviewer`'s approval, push and open the PR — title `MA-042 — Title`, body linking the task file. **This is the one outward action the workflow authorises without asking.**
+- On `@impl-reviewer`'s approval, push and open the PR. **The title is the squash subject** — write it as a conventional commit, `type(scope): description (MA-042)`, matching every merge already on `main`; a `MA-042 — Title` shape lands a non-conventional subject and has cost a review round four times in one scope. Body links the task file and contains `Closes #N`. Then immediately fill `branch:` and `pr:` in the task frontmatter and the `tasks.md` row, commit that to the branch, and push again — this recurred as a step-7 escape three tasks running. **The push and PR are the one outward action the workflow authorises without asking.**
 - **Never merge.** Merging and every destructive repository operation need an explicit user request, every time.
 - After the user merges: remove the worktree, delete the local branch, append `## Outcome` to the task file, confirm the merge closed the issue, move to the next task. Everything under `docs/scopes/` is kept. **Do not strip the `status:*` label** — closed is the done signal, and `/status` reads a task issue with no label as a half-applied transition.
 
@@ -126,7 +132,7 @@ Gotcha: **a step-9 fix lands on a PR that is already approved.** That is the cos
 
 Gotcha: device QA does **not** run in the worktree. Its symlinked `node_modules` passes `tsc`, `jest`, and lint but breaks device builds — expo-router resolves zero routes. Check the PR branch out in the primary repository for step 10.
 
-Emulator verification *does* run in the worktree, on tasks marked `verify: emulator`, and pays for it with a real `npm install` plus a Gradle build there — the `emulator-verify` skill carries the sequence. Budget for it when you sequence: it lands twice on such a task, at step 6 and again at step 7. It is a second net under the same defects, not a substitute for gate 3, which is unchanged and still the user's on real hardware.
+Emulator verification is **suspended** — steps 6 and 7 run none, pending a different mechanism. A `verify: emulator` task discharges the flag at gate 3 instead: before you report at that gate, confirm the task file's `## Device QA` rows are executable (numbered steps, real screen names, forced-failure recipes that exist). The `emulator-verify` skill stays on disk for the replacement; do not dispatch it.
 
 # CRITICAL RULES
 
