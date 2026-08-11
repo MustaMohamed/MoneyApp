@@ -15,7 +15,7 @@ Written for agents that will never see this conversation. Every section present;
 5. **Contracts** — API endpoints, function signatures, events; generated-contract implications.
 6. **Error paths** — what fails, what the user sees, what gets logged.
 7. **Non-goals** — what a reasonable implementer might build but must not.
-8. **Test surface** — what gets automated tests per the repo's conventions, what is manual.
+8. **Test surface** — what gets automated tests per the repo's conventions, what is manual. **Full cycles are integration tests, never emulator walks:** any end-to-end behavior (store → repository → SQLite) is proven in Jest against a real database per the `moneyapp-testing` skill. The emulator's only job is the UI — declare here whether the ticket has UI surface and **which screens**; that list is what P6's UI render pass walks. No UI-component render tests (repo policy): design conformance is checked on the emulator, logic in Jest.
 
 ## task.md — the human checklist
 

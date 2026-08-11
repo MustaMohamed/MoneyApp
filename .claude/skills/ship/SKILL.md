@@ -25,7 +25,7 @@ Load `references/phase-<n>-*.md` when entering a phase. Do not run a phase from 
 | 3 | Mode pick | Conductor | Direct: proceed. Chunk: ledger seeded. Split: sub-issues created on GitHub |
 | 4 | Plan | Subagent (cold planner) | Skeleton plan complete (+ chunk boundaries in chunk mode) |
 | 5 | Plan review | Subagent — single, or 3-lens panel when `est_loc` > ~400 | Approve, or fix loop (single: ≤2 cycles; panel: one consolidated revision + one re-check) |
-| 6 | Implement | Subagent (composed specialist — built per the phase-6 recipe, never a `.claude/agents/` persona) | Verification battery green, committed, not pushed |
+| 6 | Implement | Subagent (composed specialist — built per the phase-6 recipe, never a `.claude/agents/` persona) | Verification battery green (+ UI render pass when the spec declares UI screens), committed, not pushed |
 | 7 | Review battery | Conductor pushes + `gh pr create`, then parallel lenses + built-in `code-review`, CI alongside | All lens reports in |
 | 8 | Triage + fix | Conductor (ledger; deep mode: + finding verifier) → implementer → conductor pushes | Consolidated fixes on the PR |
 | 9 | Delta re-check | One fresh re-checker, delta-scoped, effort `medium` | Approve (P8↔P9 cap: 2 cycles) |

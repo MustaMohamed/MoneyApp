@@ -11,6 +11,7 @@ Give the human a compact readiness summary — not a recap comment posted to the
 - **If any commit landed after the last re-check, say so here explicitly** — never present an unreviewed head as reviewed; the human can demand another re-check before merging.
 - **CI status — re-read it now**: `gh pr checks <pr-url-from-state.md>`. P8 triage read it at triage entry, but fix commits have landed since — this is the final read before the human merges, and it must be green or explained. Red checks route through P8 triage before presenting.
 - Any danger-surface flags from the quality lens (SQLite migrations, secure-store/auth surfaces, route files under `src/app/`, native config, money paths) so the human merges with eyes open.
+- **UI tickets:** the P6 render-pass evidence (screenshots per screen state) — plus the standing caveat that fonts, shadows, gesture feel, and performance are visible only on real hardware; the emulator pass is design-conformance evidence, not device QA.
 - Accepted trade-offs: unfixed `note`s and every ledger adjudication that shaped this PR — written into the PR description too, so the next reviewer stops rediscovering them.
 - Open disputes: none, or the both-sides summary awaiting their call.
 
