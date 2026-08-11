@@ -92,4 +92,16 @@ describe('display headline — the plain-text sibling line (MA-010 decision D3)'
     const text = resolveDisplayHeadlineTextStyle(42, 1);
     expect(text.lineHeight).toBe(svg.boxHeight + svg.topInset);
   });
+
+  // Both sides of the assertion above derive from DISPLAY_HEADLINE_LINE_HEIGHT,
+  // so it pins that the two lines share one box but not what that box measures.
+  // These literals are the arithmetic itself: round(42 * 1.05) and, above the
+  // ceiling, round(42 * 1.3 * 1.05). Without them, changing the constant moves
+  // the shipped line height with nothing red.
+  it('measures round(fontSize x 1.05) in dp, clamped at the ceiling', () => {
+    expect(resolveDisplayHeadlineTextStyle(42, 1).lineHeight).toBe(44);
+    expect(resolveDisplayHeadlineTextStyle(42, 2, DISPLAY_HEADLINE_MAX_FONT_SCALE).lineHeight).toBe(
+      57,
+    );
+  });
 });

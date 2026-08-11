@@ -93,7 +93,7 @@ export function resolveDisplayHeadlineTextStyle(
   const g = resolveDisplayHeadlineGeometry(scaledFontSize, fontScale, maxFontScale);
   return {
     fontSize: g.fontSize,
-    lineHeight: g.boxHeight + g.topInset,
+    lineHeight: Math.round(g.fontSize * DISPLAY_HEADLINE_LINE_HEIGHT),
     letterSpacing: g.letterSpacing,
   };
 }
