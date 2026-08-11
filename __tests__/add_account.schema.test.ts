@@ -72,6 +72,12 @@ const ACCEPTED_AMOUNTS: Array<[string, number]> = [
   ['5,000', 5000],
   ['  7  ', 7],
 ];
+// apr's own accepted sweep, distinct from ACCEPTED_AMOUNTS above: apr is now
+// bounded 0-100 inclusive (spec.md § "Financial Logic — APR bound — ruled"),
+// so '5,000' (which parses to 5000) is no longer an accepted apr value even
+// though it still is for credit_limit and min_payment, which have no upper
+// bound.
+const APR_ACCEPTED_AMOUNTS: Array<[string, number]> = [['  7  ', 7]];
 
 describe('createAddAccountSchema — add_account Zod schema', () => {
   describe('name', () => {
@@ -302,6 +308,52 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
     it('#18 interest off, apr abc → accept — the rule only exists while tracking is on', () => {
       expect(fieldErrors(cc({ interest_tracking: false, apr: 'abc' }))).toEqual({});
     });
+
+    // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
+    // R1-R9 (#19-#27), continuing this table's numbering.
+    it('R1 (#19) apr 0, interest on → accept — a real 0% promotional-rate state, confirms existing behaviour', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '0' }))).toEqual({});
+    });
+
+    it('R2 (#20) apr 100, interest on → accept — upper boundary, inclusive', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '100' }))).toEqual({});
+    });
+
+    it('R3 (#21) apr 100.00, interest on → accept — boundary restated with explicit decimals, parses to the same 100', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '100.00' }))).toEqual({});
+    });
+
+    it('R4 (#22) apr 100.01, interest on → reject apr / errAprRange — just above the boundary', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '100.01' })).apr).toBe(
+        Strings.errAprRange,
+      );
+    });
+
+    it('R5 (#23) apr 150, interest on → reject apr / errAprRange — comfortably above', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '150' })).apr).toBe(
+        Strings.errAprRange,
+      );
+    });
+
+    it('R6 (#24) apr 9999, interest on → reject apr / errAprRange — the reported gap, previously saved', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '9999' })).apr).toBe(
+        Strings.errAprRange,
+      );
+    });
+
+    it('R7 (#25) apr 43.5, interest on → accept — ordinary mid-range card rate, well inside the bound', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '43.5' }))).toEqual({});
+    });
+
+    it('R8 (#26) apr -1, interest on → reject apr / errAmountInvalid — negative fails the parse step before the range check ever runs', () => {
+      expect(fieldErrors(cc({ interest_tracking: true, apr: '-1' })).apr).toBe(
+        Strings.errAmountInvalid,
+      );
+    });
+
+    it('R9 (#27) apr 9999, interest off → accept — the off-gate wins, same as every other credit rule', () => {
+      expect(fieldErrors(cc({ interest_tracking: false, apr: '9999' }))).toEqual({});
+    });
   });
 
   // Decision 4's trap: a stale credit draft must never block a non-credit save.
@@ -384,7 +436,7 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
         ).toBe(Strings.errAmountInvalid);
       });
 
-      it.each(ACCEPTED_AMOUNTS)('%p → accepted', (value) => {
+      it.each(APR_ACCEPTED_AMOUNTS)('%p → accepted', (value) => {
         expect(
           fieldErrors(
             baseData({
@@ -395,6 +447,22 @@ describe('createAddAccountSchema — add_account Zod schema', () => {
             }),
           ).apr,
         ).toBeUndefined();
+      });
+
+      it('"5,000" parses but is above the 0-100 bound → errAprRange, not accepted', () => {
+        // The one member of the generic ACCEPTED_AMOUNTS sweep that apr no
+        // longer accepts, now that it is bounded — proves the bound applies
+        // even to well-formed numbers, not only to the reported 9999 case.
+        expect(
+          fieldErrors(
+            baseData({
+              selected_type: AccountType.CreditCard,
+              credit_limit: '1000',
+              interest_tracking: true,
+              apr: '5,000',
+            }),
+          ).apr,
+        ).toBe(Strings.errAprRange);
       });
     });
 

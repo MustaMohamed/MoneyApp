@@ -95,12 +95,28 @@ export function createAddAccountSchema(accounts: Account[]) {
         }
       }
 
+      // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
+      // Same three-branch shape as credit_limit above (required → parses →
+      // bounded), not due_day's combined single condition: the upper-bound
+      // failure is a distinct, more specific message than "not a number at
+      // all", and a negative value is already filtered out one branch
+      // earlier by parseNonNegativeDecimal, so the range check only ever
+      // sees a value that has already parsed as >= 0.
       if (data.interest_tracking) {
         const aprRaw = data.apr?.trim();
         if (!aprRaw) {
           ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRequired });
-        } else if (parseNonNegativeDecimal(aprRaw) === undefined) {
-          ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAmountInvalid });
+        } else {
+          const parsedApr = parseNonNegativeDecimal(aprRaw);
+          if (parsedApr === undefined) {
+            ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAmountInvalid });
+          } else if (parsedApr > 100) {
+            // 0 is explicitly valid — a 0% promotional-rate card is a real
+            // state, not "no rate entered" (ruled, not the credit_limit
+            // shape). 100 is a sanity ceiling calibrated for a high-rate
+            // market, not a claimed market maximum.
+            ctx.addIssue({ code: 'custom', path: ['apr'], message: Strings.errAprRange });
+          }
         }
       }
     });

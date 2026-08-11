@@ -118,6 +118,10 @@ export const Strings = {
   errBalanceInvalid: 'Please enter a valid amount',
   errCreditLimitRequired: 'Credit limit is required for credit cards',
   errAprRequired: "Please enter your card's APR",
+  // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
+  // Same voice as errDueDayRange/errCreditLimitPositive: short, imperative,
+  // states the accepted range, no exclamation, trailing period.
+  errAprRange: 'Enter a rate from 0 to 100.',
   errAccountSaveFailed: "Couldn't save that account. Tap Save Account to try again.",
 
   // Generic Zod error map fallbacks
