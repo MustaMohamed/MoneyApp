@@ -20,11 +20,14 @@ export interface DisplayHeadlineProps {
   /** One line. Callers break lines by rendering two elements, per the mockup. */
   children: string;
   style?: StyleProp<ViewStyle>;
+  /** See DISPLAY_HEADLINE_MAX_FONT_SCALE (MA-010 decision D2). Omitted keeps
+   * today's uncapped behaviour. */
+  maxFontScale?: number;
 }
 
-export function DisplayHeadline({ children, style }: DisplayHeadlineProps) {
+export function DisplayHeadline({ children, style, maxFontScale }: DisplayHeadlineProps) {
   const { fontScale } = useWindowDimensions();
-  const g = resolveDisplayHeadlineGeometry(Type.display, fontScale);
+  const g = resolveDisplayHeadlineGeometry(Type.display, fontScale, maxFontScale);
   const a11y = resolveDisplayHeadlineA11y(children);
 
   return (

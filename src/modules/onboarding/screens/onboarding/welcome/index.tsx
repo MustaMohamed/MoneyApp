@@ -1,86 +1,123 @@
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Typography } from 'heroui-native';
 import React from 'react';
+import { View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { GeoIllustration } from '@/components/geo_illustration';
-import { Box } from '@/components/ui/box';
 import { Button } from '@/components/ui/button';
 import { ScreenScroll } from '@/components/ui/screen';
-import { SegmentedTabs } from '@/components/ui/tabs';
-import { Text } from '@/components/ui/text';
-import { Currency } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
+import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
 import { OnboardingShell } from '@/modules/onboarding/components/onboarding_shell';
+import { OnboardingAmbientWash } from '@/modules/onboarding/components/onboarding_shell/onboarding_ambient_wash';
+import { GhostNumeral } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 
+import { CurrencyChoice } from './components/currency_choice';
+import { WelcomeHeadline } from './components/welcome_headline';
 import { useWelcomeAnim } from './welcome.anim';
 import { useWelcome } from './welcome.hook';
 
 export default function WelcomeScreen() {
   const { state, setSelected, onContinue } = useWelcome();
-  const { illustrationEntering, headlineEntering, pillsEntering, ctaEntering } = useWelcomeAnim();
+  const { headlineEntering, bodyEntering, currencyEntering, trustEntering } = useWelcomeAnim();
 
   return (
     <OnboardingShell
       step={1}
       footnote={Strings.n1Footnote}
       statusMessage={state.statusMessage}
+      background={<OnboardingAmbientWash />}
       cta={
-        <Animated.View entering={ctaEntering}>
-          <Button
-            variant="primary"
-            label={Strings.o1Cta}
-            onPress={() => {
-              // onContinue catches its own failure inside
-              // runOnboardingTransition and resolves; void discards no
-              // rejection.
-              void onContinue();
-            }}
-            isDisabled={state.busy}
-            isLoading={state.busy}
-            loadingLabel={Strings.n1CtaBusy}
-          />
-        </Animated.View>
+        <Button
+          variant="primary"
+          label={Strings.n1Cta}
+          loadingLabel={Strings.n1CtaBusy}
+          isDisabled={state.busy}
+          isLoading={state.busy}
+          onPress={() => {
+            // onContinue catches its own failure inside
+            // runOnboardingTransition and resolves; void discards no
+            // rejection.
+            void onContinue();
+          }}
+        />
       }
     >
-      <ScreenScroll>
-        <Box style={{ flex: 1 }} className="items-center justify-center gap-6 px-4">
-          <Animated.View entering={illustrationEntering}>
-            <GeoIllustration />
+      <>
+        <GhostNumeral value={Strings.n1GhostNumeral} />
+        <ScreenScroll
+          contentContainerStyle={{ paddingHorizontal: Spacing.md, paddingBottom: Spacing.lg }}
+        >
+          <Animated.View entering={headlineEntering}>
+            <WelcomeHeadline />
           </Animated.View>
 
-          <Animated.View entering={headlineEntering} className="items-center gap-1">
-            <Text variant="hero" className="font-sora-extrabold text-center">
-              {Strings.o1Headline}
-            </Text>
-            <Text variant="body" className="text-muted mt-1 text-center">
-              {Strings.o1Subtext}
-            </Text>
-          </Animated.View>
-
-          <Text variant="hint" className="mt-4 self-start">
-            {Strings.n1CurrencyLabel}
-          </Text>
-
-          <Animated.View entering={pillsEntering} style={{ width: '100%' }}>
-            <SegmentedTabs<Currency>
-              segments={[
-                { value: Currency.EGP, label: Currency.EGP },
-                { value: Currency.USD, label: Currency.USD },
-              ]}
-              value={state.selected}
-              onValueChange={setSelected}
-              variant="solid-gold"
-              listClassName="w-full"
-              accessibilityLabel={Strings.n1CurrencyLabel}
+          <Animated.View
+            entering={bodyEntering}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'stretch',
+              gap: Spacing.sm,
+              marginTop: Spacing.sm,
+            }}
+          >
+            <LinearGradient
+              colors={[Colors.dark.border, Colors.shared.transparent]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 0, y: 1 }}
+              style={{ width: 2, borderRadius: 1 }}
             />
+            <Typography
+              className="text-foreground font-inter"
+              style={{ flex: 1, fontSize: Type.body, lineHeight: lineHeightFor(Type.body) }}
+            >
+              {Strings.n1Body}
+            </Typography>
           </Animated.View>
 
-          <Box className="bg-surface mt-3 w-full rounded-[10px] px-4 py-3">
-            <Text variant="caption" className="text-muted">
-              {Strings.n1CurrencyNote}
-            </Text>
-          </Box>
-        </Box>
-      </ScreenScroll>
+          <Animated.View entering={currencyEntering} style={{ marginTop: Spacing.lg }}>
+            <CurrencyChoice selected={state.selected} onSelect={setSelected} />
+          </Animated.View>
+
+          <Animated.View
+            entering={trustEntering}
+            className="border-separator bg-surface"
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: Spacing.sm,
+              borderWidth: 1,
+              borderRadius: Radius.md,
+              padding: Spacing.sm,
+              marginTop: Spacing.lg,
+            }}
+          >
+            <View
+              className="bg-accent/15"
+              style={{
+                width: Size.securityIconBox,
+                height: Size.securityIconBox,
+                borderRadius: Radius.sm,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <MaterialCommunityIcons
+                name="lock-outline"
+                size={Size.iconMd}
+                color={Colors.dark.gold}
+              />
+            </View>
+            <Typography
+              className="text-foreground font-inter"
+              style={{ flex: 1, fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
+            >
+              {Strings.n1Trust}
+            </Typography>
+          </Animated.View>
+        </ScreenScroll>
+      </>
     </OnboardingShell>
   );
 }

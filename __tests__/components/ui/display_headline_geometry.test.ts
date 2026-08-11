@@ -1,7 +1,9 @@
 import {
   DISPLAY_HEADLINE_LINE_HEIGHT,
+  DISPLAY_HEADLINE_MAX_FONT_SCALE,
   resolveDisplayHeadlineA11y,
   resolveDisplayHeadlineGeometry,
+  resolveDisplayHeadlineTextStyle,
 } from '@/components/ui/display_headline.geometry';
 
 describe('display headline geometry', () => {
@@ -50,5 +52,44 @@ describe('display headline geometry', () => {
     // The drawing must not surface a second node carrying the same string.
     expect(a11y.graphic.importantForAccessibility).toBe('no-hide-descendants');
     expect(a11y.graphic.accessibilityElementsHidden).toBe(true);
+  });
+});
+
+describe('display headline — accessibility ceiling (MA-010 decision D2)', () => {
+  it('is unchanged for callers that pass no ceiling', () => {
+    expect(resolveDisplayHeadlineGeometry(42, 2)).toEqual(
+      resolveDisplayHeadlineGeometry(42, 2, undefined),
+    );
+    expect(resolveDisplayHeadlineGeometry(42, 2).fontSize).toBeCloseTo(84, 5);
+  });
+
+  it.each([1.3, 1.5, 2])('freezes at the ceiling above font scale %s', (fontScale) => {
+    expect(resolveDisplayHeadlineGeometry(42, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE)).toEqual(
+      resolveDisplayHeadlineGeometry(42, DISPLAY_HEADLINE_MAX_FONT_SCALE),
+    );
+  });
+
+  it.each([0.85, 1, 1.15])('still scales below the ceiling at %s', (fontScale) => {
+    expect(
+      resolveDisplayHeadlineGeometry(42, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE).fontSize,
+    ).toBeCloseTo(42 * fontScale, 5);
+  });
+});
+
+describe('display headline — the plain-text sibling line (MA-010 decision D3)', () => {
+  it.each([0.85, 1, 1.15, 1.3, 2])(
+    'draws at exactly the SVG line size at scale %s',
+    (fontScale) => {
+      const svg = resolveDisplayHeadlineGeometry(42, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE);
+      const text = resolveDisplayHeadlineTextStyle(42, fontScale, DISPLAY_HEADLINE_MAX_FONT_SCALE);
+      expect(text.fontSize).toBe(svg.fontSize);
+      expect(text.letterSpacing).toBe(svg.letterSpacing);
+    },
+  );
+
+  it('occupies the same 1.05 line box the SVG line occupies after its inset', () => {
+    const svg = resolveDisplayHeadlineGeometry(42, 1);
+    const text = resolveDisplayHeadlineTextStyle(42, 1);
+    expect(text.lineHeight).toBe(svg.boxHeight + svg.topInset);
   });
 });

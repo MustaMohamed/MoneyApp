@@ -17,6 +17,17 @@ export const DISPLAY_HEADLINE_LINE_HEIGHT = 1.05;
 /** Mockup § B, `.b-headline { letter-spacing: -0.01em }`. */
 export const DISPLAY_HEADLINE_TRACKING_EM = -0.01;
 
+/**
+ * MA-002 open question 5 / MA-010 decision D2. Above this scale the headline
+ * stops growing while the rest of the screen keeps scaling to the app's
+ * accessibility ceiling (2.0) — the headline is an SVG text node, so it can
+ * neither wrap nor reflow, and MA-002 measured it clipping horizontally at
+ * 2.0. Freezing loses proportional size against body copy above this scale;
+ * it does not lose any words. This is the top of the app's gated range
+ * (0.85-1.3), not the OS ceiling.
+ */
+export const DISPLAY_HEADLINE_MAX_FONT_SCALE = 1.3;
+
 export interface DisplayHeadlineGeometry {
   /** Drawn size in dp, already multiplied by the OS font scale. */
   fontSize: number;
@@ -33,8 +44,13 @@ export interface DisplayHeadlineGeometry {
 export function resolveDisplayHeadlineGeometry(
   scaledFontSize: number,
   fontScale: number,
+  /** Optional ceiling — see DISPLAY_HEADLINE_MAX_FONT_SCALE. Omitted (the
+   * two-argument form every existing caller uses) means no clamp at all. */
+  maxFontScale?: number,
 ): DisplayHeadlineGeometry {
-  const fontSize = scaledFontSize * fontScale;
+  const clampedFontScale =
+    maxFontScale === undefined ? fontScale : Math.min(fontScale, maxFontScale);
+  const fontSize = scaledFontSize * clampedFontScale;
   // boxHeight is derived FROM baselineY, never independently. Rounding the two
   // up separately makes (boxHeight - baselineY) a difference of two ceils, which
   // can land below fontSize * SORA_DESCENT_EM and clip the tail of "Finally" —
@@ -48,6 +64,37 @@ export function resolveDisplayHeadlineGeometry(
     baselineY,
     letterSpacing: fontSize * DISPLAY_HEADLINE_TRACKING_EM,
     topInset: Math.round(fontSize * DISPLAY_HEADLINE_LINE_HEIGHT) - boxHeight,
+  };
+}
+
+export interface DisplayHeadlineTextStyle {
+  fontSize: number;
+  lineHeight: number;
+  letterSpacing: number;
+}
+
+/**
+ * MA-002 open question 5 / MA-010 decision D3. `DisplayHeadline` draws with
+ * `react-native-svg`, which has no dynamic-type support, so it multiplies by
+ * `fontScale` linearly — RN's own text scaling on Android 14+ is non-linear,
+ * so an ordinary `Text` at the same nominal size lands 5.52 dp away at
+ * `fontScale` 1.3. N1 puts a plain-text line directly above the SVG line, so
+ * this resolver shares the SVG resolver's exact arithmetic (same clamp, same
+ * multiply) instead of letting the platform scale the two lines
+ * independently. Pair with `allowFontScaling={false}` on the consuming
+ * `Text`/`Typography` — otherwise the OS applies its own non-linear scaling
+ * on top of this already-scaled value.
+ */
+export function resolveDisplayHeadlineTextStyle(
+  scaledFontSize: number,
+  fontScale: number,
+  maxFontScale?: number,
+): DisplayHeadlineTextStyle {
+  const g = resolveDisplayHeadlineGeometry(scaledFontSize, fontScale, maxFontScale);
+  return {
+    fontSize: g.fontSize,
+    lineHeight: g.boxHeight + g.topInset,
+    letterSpacing: g.letterSpacing,
   };
 }
 
