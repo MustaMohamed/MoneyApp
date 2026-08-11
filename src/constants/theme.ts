@@ -61,6 +61,10 @@ export const Colors = {
     heroGrad1: '#1A2948',
     heroGrad2: '#223060',
     heroGrad3: '#192A4A',
+    // A named token for a colour with no theme meaning — routes a bare
+    // 'transparent' string literal through constants/theme.ts the way every
+    // other colour in this file already is (MA-009 post-approval fix F7).
+    transparent: 'transparent',
   },
 } as const;
 
@@ -98,6 +102,28 @@ export const Type = {
   /** N1 headline — mockup § B, `.b-headline`, 42px. */
   display: msFont(42),
 } as const;
+
+/**
+ * Derived line-height for a `Type` font size token. HeroUI `Typography` /
+ * `Label.Text` keep their className's own line-height when a `style`
+ * override sets `fontSize` alone — `style` only wins on the properties it
+ * states — so every `fontSize` override anywhere in this codebase has to
+ * pair an explicit `lineHeight` or the two drift apart (MA-009 impl review
+ * D3: an 11px label-row mismatch from exactly this omission, found once the
+ * pairing was missed by hand). `1.3` is the ratio the account-form module
+ * had already converged on at 6 of its 8 hand-written sites before this
+ * helper existed; centralising it here is what stops a second multiplier
+ * (`* 1.35`, applied to the same `Type.caption` token in two other files)
+ * from drifting in beside it undetected (debt:quality #229 / MA-009
+ * post-approval fix F4). Not for `FieldMessageRail`'s own text, which pairs
+ * a deliberately *unscaled* 20 against HeroUI `FieldError`'s own unscaled
+ * CSS line-height (`account_form.geometry.ts`'s `FIELD_MESSAGE_TEXT_LINE_
+ * HEIGHT`) — this ratio would break that equality off scale 1.0.
+ */
+const TYPE_LINE_HEIGHT_RATIO = 1.3;
+export function lineHeightFor(fontSize: number): number {
+  return Math.round(fontSize * TYPE_LINE_HEIGHT_RATIO);
+}
 
 /** Tracking values for compact labels and eyebrow copy. */
 export const LetterSpacing = {
@@ -207,6 +233,13 @@ export const Size = {
   // (heroui-native/src/styles/components/input.css:9 — spacing 0.25rem x 12).
   // Deliberately not ms()-scaled: see @sarah's ruling, note 5 below.
   fieldHeight: 48,
+  // FieldMessageRail's own paddingTop, nudging its text down from the box's
+  // top edge — not one of the five zero-shift tracks above (this pads
+  // *inside* a track, it doesn't set one). ms(3) rounds back to 3 at every
+  // scale this app clamps to ([0.85, 1.15] — Math.round(3 * 0.85) =
+  // Math.round(3 * 1.15) = 3), so routing the old bare `3` through ms()
+  // costs nothing visually (MA-009 post-approval fix F7).
+  fieldRailTextInset: ms(3),
 } as const;
 
 /**

@@ -9,9 +9,20 @@ export interface CurrencySelectorProps {
   value: Currency;
   onChange: (currency: Currency) => void;
   isDisabled?: boolean;
+  /**
+   * Fixed width per segment — MA-009's compact currency cell next to the
+   * balance field (decision 1). Omitted by every other consumer, which
+   * keeps today's full-width two-segment control.
+   */
+  segmentWidth?: number;
 }
 
-export function CurrencySelector({ value, onChange, isDisabled }: CurrencySelectorProps) {
+export function CurrencySelector({
+  value,
+  onChange,
+  isDisabled,
+  segmentWidth,
+}: CurrencySelectorProps) {
   return (
     <SegmentedTabs<Currency>
       segments={CURRENCY_SEGMENTS}
@@ -19,6 +30,7 @@ export function CurrencySelector({ value, onChange, isDisabled }: CurrencySelect
       onValueChange={onChange}
       variant="solid-gold"
       isDisabled={isDisabled}
+      segmentWidth={segmentWidth}
       accessibilityLabel={Strings.accountCurrencyA11y}
     />
   );

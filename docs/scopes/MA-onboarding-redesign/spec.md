@@ -292,7 +292,7 @@ From `locked-design-2026-07-23.md` §§ *Credit-card fields* / *Financial and Da
 | Minimum payment | Optional. Blank → `null`; explicit `0` → `0`. **Cannot exceed the amount currently owed** |
 | Due day | Optional integer 1–31 inclusive |
 | Track interest | Boolean → `interest_tracking` 0/1 |
-| APR | Required and non-negative **only while interest tracking is on**, rounded to 2 dp; otherwise persists `null` |
+| APR | Required, **0–100 inclusive** (percentage points — `24.5` means 24.5%, never a fraction), **only while interest tracking is on**, rounded to 2 dp; otherwise persists `null`. Bound ruled below |
 | All credit-only fields on non-credit types | Persist `null`; `interest_tracking` persists `0`. `null`, never `undefined` |
 
 **`parseFloat` is the current implementation and it is wrong.** `src/modules/onboarding/screens/onboarding/add_account/add_account.hook.ts:70` and `src/modules/accounts/screens/accounts/add_account/add_account.hook.ts:63` both use `parseFloat(data.balance)`, which is worse than "rejects thousands separators" — it **silently corrupts**. Measured, not assumed: `5abc` → 5, **`5,000` → 5**, `5,000.50` → 5, `1e3` → 1000, `0x10` → 0, `5.5.5` → 5.5, `  7  ` → 7. Every one of those passes `Number.isFinite(n) && n >= 0` and persists. Business rule 6 writes `current_balance = opening_balance`, so a user entering `5,000` starts with a balance of 5 — a 1000× error, silent, on the first number the app ever stores for them. Only `''` and `Infinity` are actually rejected. The schema's `balance` refinement (`src/modules/accounts/utils/add_account.schema.ts:12-19`) uses `parseFloat` too, so `5abc` passes validation *and* persists as 5. The shared mapper and the schema both move to `parseNonNegativeDecimal`.
@@ -349,6 +349,53 @@ No rounding decision applies to either branch — both are literals, not values 
 | C3 | Delete an unrelated expense on a **legacy** card whose `revolving_balance` was left `null` under the old direct-entry form (never tracked) | `resolveDeleteDeltas` | `null` | undo a stored `0` delta (non-`cc_payment` deltas are always `0`) | `null` | none — the skip is correct, the quantity was never tracked |
 
 Case C1 is the one that proves the guard still protects the ledger. Case C2 is the one that proves it does not false-positive on a legitimate edit. Case B1/B2 together are the one that answers the question this ruling turned on: **seeding `0` does not block a legitimate first payment, and behaves identically to `null` everywhere it could matter.**
+
+**APR bound — ruled.** The current schema (`add_account.schema.ts:98-105`) accepts any non-negative decimal once `interest_tracking` is on — `0` and `9999` both save. Every sibling credit field is bounded (`credit_limit` > 0, `due_day` 1–31, `min_payment` ≤ balance); APR is the one gap, and the spec text this task shipped from ("required only while interest tracking is on") never stated a range. Ruled here because it wasn't decided anywhere else, not because the code is wrong to have asked.
+
+**Rule:**
+
+```text
+APR is required and must satisfy 0 ≤ apr ≤ 100 (percentage points) while interest_tracking is on.
+apr is stored as the percentage number itself — 24.5 persists as 24.5, meaning 24.5% — never as a
+fraction (0.245) and never scaled by 100 a second time. Rounded to 2 dp (roundMoney, half-even)
+before persistence, same as every other credit amount field in this table.
+```
+
+1. **`0` is valid, and wins over the "the switch is a statement of intent" reading.** Turning `interest_tracking` on says "track this card's rate," not "this card currently accrues a nonzero amount" — 0% introductory/promotional periods are a real card state, and a user tracking a card that is genuinely at 0% today needs to represent that without lying to the form. Sibling behaviour agrees: `credit_limit` is forced `> 0` because a credit card with a 0 limit has no real referent, but `min_payment` and `balance` both accept explicit `0` for "paid off" (rule row above, and spec.md:292/9's existing accept case). APR-at-0-while-tracking-on is the same shape as those, not the `credit_limit` shape. Rejecting `0` would force a user with a real 0% card into fabricating a nonzero rate to get past validation — that is the "misleads into false confidence" failure this app is built to avoid, not the thing avoiding it. **This is a confirmation of existing behaviour, not a change** — `parseNonNegativeDecimal` already accepts `0`, and the existing test suite already asserts it (`add_account.schema.test.ts:298`, "#17 interest on, apr 0 → accept").
+
+2. **Upper bound: 100, inclusive.** This app has no market-data feed and no tax logic (CLAUDE.md constraints) — the bound cannot be sourced from a live rate table, so it is a sanity ceiling against fat-finger and garbage entry, not a claim about the exact maximum rate any Egyptian issuer will ever publish. Calibration: Egypt's disclosed consumer-credit rates run high relative to the US/EU intuition that would suggest a ~30% cap (CBE policy rates have run in the mid-to-high 20s in recent years, and bank-disclosed credit-card rates — commonly quoted as a monthly flat rate of roughly 2.5–3.5%, higher on cash-advance and fee-loaded products — translate to nominal annual figures realistically topping out somewhere in the 40–60% range). **100 gives roughly 1.5–2× headroom above that realistic ceiling** — generous enough that no genuine EGP card gets rejected — while still catching the reported bug case (`9999`) and any entry with a stray extra digit or misplaced decimal (`150`, `999`). This is a domain judgment calibrated to a high-rate market, not a verified published maximum; flagging that explicitly rather than presenting it as sourced fact. If product research later surfaces a real card exceeding 100% APR, this bound is the line to revisit, not the validation shape.
+
+3. **Percentage, not a fraction — confirmed against the column and every current consumer.** `accounts.apr` is a bare nullable `REAL` (`001_create_accounts.ts:18`), written and read as-is (`accounts.ts:68,84`) with no scaling in either direction. There is currently **no downstream consumer that computes with `apr`** — grep across `src/` turns up only the schema, the form field, the entity type, and the migration; no interest-accrual or projection code exists yet. So there is no live contract to violate today, but the storage convention has to be fixed now so that whichever task ships interest calculation later reads it correctly: **divide by 100 to get the decimal rate, do not divide again.** The form's own placeholder (`accountAprPlaceholder: 'e.g. 24.5'`) and helper (`'Yearly rate on your card.'`) already assume this reading. **Gap flagged, not invented:** no methodology (simple vs. compounding, monthly vs. annualized) exists anywhere in this codebase for actually computing interest from `apr` — that is a separate ruling for whenever an interest-calculation feature is scoped; this ruling only fixes what the stored number *means*, not how it will someday be used.
+
+4. **Where the new check sits.** Same three-branch shape as `credit_limit` (required → parses → bounded), not the combined single-condition shape `due_day` uses — the upper-bound failure is a distinct, more specific message from "not a number at all," and negative values are already filtered out one branch earlier by `parseNonNegativeDecimal`, so the range check only ever sees a value that has already parsed as ≥ 0.
+
+**Error copy.** New key, same voice as `errDueDayRange` (`'Enter a day from 1 to 31.'`) and `errCreditLimitPositive` (`'Enter a limit greater than zero.'`) — short, imperative, states the accepted range, no exclamation, trailing period:
+
+```text
+errAprRange: 'Enter a rate from 0 to 100.'
+```
+
+Add it beside `errAprRequired` in `src/constants/strings.ts` (`strings.ts:129`). No change to `errAprRequired` or `errAmountInvalid` — both keep their existing meaning and firing order ahead of this new check.
+
+**Error case.** Throws (as a Zod issue on `apr`, same mechanism as every sibling rule in this block) when: `apr` is blank while `interest_tracking` is on (`errAprRequired`, unchanged); `apr` does not parse as a non-negative decimal (`errAmountInvalid`, unchanged); `apr` parses but is `> 100` (`errAprRange`, new). Does **not** throw when `interest_tracking` is off, regardless of what `apr` contains — unchanged, same off-type gate every credit rule in this block shares (spec.md:296, MA-009 plan decision 4).
+
+#### Executable table — `test.each` shape
+
+Columns: `#` · `apr` (raw string) · `interest_tracking` · expected `errors.apr` · note. Baseline is the existing `cc()` fixture in `add_account.schema.test.ts` (`selected_type: CreditCard`, `credit_limit: '50000'`); rows R1–R9 extend the existing "credit card fields — the MA-009 accept/reject table" describe block, continuing its numbering from #18.
+
+| # | apr | interest_tracking | expected `errors.apr` | note |
+|---|---|---|---|---|
+| R1 (#19) | `'0'` | `true` | `undefined` (accept) | zero APR is a real state — promotional/introductory period; confirms existing behaviour, not new |
+| R2 (#20) | `'100'` | `true` | `undefined` (accept) | upper boundary, inclusive |
+| R3 (#21) | `'100.00'` | `true` | `undefined` (accept) | boundary restated with explicit decimals — parses to the same `100` |
+| R4 (#22) | `'100.01'` | `true` | `Strings.errAprRange` | just above the boundary |
+| R5 (#23) | `'150'` | `true` | `Strings.errAprRange` | comfortably above |
+| R6 (#24) | `'9999'` | `true` | `Strings.errAprRange` | the reported gap — must now reject, previously saved |
+| R7 (#25) | `'43.5'` | `true` | `undefined` (accept) | ordinary mid-range card rate, well inside the bound |
+| R8 (#26) | `'-1'` | `true` | `Strings.errAmountInvalid` | negative fails the parse step before the range check ever runs — unchanged, proves the two checks don't collide |
+| R9 (#27) | `'9999'` | `false` | `undefined` (accept) | the off-gate gate wins — rule only applies while tracking is on, same as every other credit rule (spec.md:296); proves the new bound doesn't leak out from under it |
+
+No currency-direction rows apply here — APR is a dimensionless percentage, not a money amount, so EGP/USD conversion does not touch it. R8 covers negative; R2/R4 cover the boundary on both sides; R1 covers zero; R6 is the original bug report reproduced as a regression test.
 
 **Unchanged:** `current_balance = opening_balance` at creation (business rule 6, implemented at `src/modules/accounts/repositories/account.repository.ts:61`). Credit-card accounts remain liabilities (business rule 7). Base currency is independent of each account's native currency, and adding an account never changes it.
 

@@ -21,36 +21,55 @@ export const Strings = {
   o1Cta: 'Get Started',
 
   // Add Account
-  o4Subtitle: 'Start by adding one account — you can add more next.',
-  o4SectionType: 'ACCOUNT TYPE',
   o4SectionName: 'ACCOUNT NAME',
-  o4SectionCurrency: 'CURRENCY',
-  o4SectionBalance: 'BALANCE',
-  o4SectionRevolving: 'REVOLVING BALANCE',
-  o4SectionLimit: 'CREDIT LIMIT',
-  o4SectionMinPayment: 'MIN. PAYMENT',
-  o4SectionDueDay: 'DUE DAY',
-  o4SectionApr: 'APR (%)',
-  o4NameLabel: 'Account Name',
-  o4NamePlaceholder: 'e.g. CIB Savings',
-  o4BalanceLabel: 'Opening Balance',
-  o4BalancePlaceholder: '0',
-  o4ColorLabel: 'Color',
-  o4CreditLimitLabel: 'Credit Limit',
-  o4CreditLimitPlaceholder: '0',
-  o4RevolvingLabel: 'Revolving Balance',
-  o4RevolvingPlaceholder: '0',
-  o4MinPaymentLabel: 'Minimum Payment',
-  o4DueDayLabel: 'Statement Due Day',
-  o4DueDayPlaceholder: 'e.g. 15',
-  o4InterestLabel: 'Track Interest',
-  o4AprLabel: 'Annual Percentage Rate (APR %)',
-  o4AprPlaceholder: 'e.g. 2.99',
-  o4Cta: 'Save Account',
   // CurrencySelector's a11y label inside AccountForm (both Settings' and
   // onboarding N2's hosts) — not base-currency copy, filed here with the
   // rest of the account form's strings instead.
   accountCurrencyA11y: 'Account currency',
+
+  // Account form — MA-009, mockup § C (C1-C6). Shared by both entry points —
+  // Settings' Add Account screen renders every one of these too.
+  accountTypeLabel: 'Account type',
+  accountNameLabel: 'Account name',
+  accountNameHelper: 'Must be different from your other account names.',
+  accountNamePlaceholder: 'e.g. CIB Current',
+  accountBalanceLabel: 'Opening balance',
+  accountBalanceHelper: "Today's balance.",
+  accountBalancePlaceholder: '0.00',
+  // The currency cell's visible field label (mockup C1 draws "Currency"
+  // repeatedly — mockup.html:1362,1422,1480,1531,1587,1674). Distinct from
+  // accountCurrencyA11y above, which stays the selector's own a11y label
+  // (impl review round 1, D7 — that key was double-booked as both).
+  accountCurrencyLabel: 'Currency',
+  accountOwedLabel: 'Amount currently owed',
+  accountOwedHelper: 'Enter 0 if the card is paid off.',
+  accountColorLabel: 'Account colour',
+  accountColorHelper: "Used for this account's dot everywhere in the app.",
+  accountSlotHint:
+    'Pick Credit Card above and four more fields open here — limit, minimum payment, due day, interest.',
+  accountSlotTitle: 'Card details',
+  accountSlotChip: '4 fields',
+  accountCreditLimitLabel: 'Credit limit',
+  accountCreditLimitHelper: 'Required.',
+  accountMinPaymentLabel: 'Minimum payment',
+  accountMinPaymentHelper: "Can't exceed what you owe.",
+  accountDueDayLabel: 'Due day',
+  accountDueDayHelper: 'Day of the month.',
+  accountDueDayPlaceholder: '1–31',
+  accountInterestLabel: 'Track interest',
+  accountInterestHelper: 'Adds an APR field so MoneyApp can estimate interest.',
+  accountAprLabel: 'APR',
+  accountAprHelper: 'Yearly rate on your card.',
+  accountAprPlaceholder: 'e.g. 24.5',
+  fieldOptionalTag: 'optional',
+  errCreditLimitPositive: 'Enter a limit greater than zero.',
+  errMinPaymentExceedsOwed: 'More than you owe.',
+  errDueDayRange: 'Enter a day from 1 to 31.',
+  errAmountInvalid: 'Numbers only.',
+  errNameDuplicateNamed: (name: string) => `You already have an account called "${name}".`,
+  // N2's CTA — spec.md:81, mockup C1-C6. Settings keeps its own u4Cta
+  // ('Save Account'); "and continue" means nothing there.
+  n2Cta: 'Save and continue',
 
   // Welcome — base currency
   n1CurrencyLabel: 'BASE CURRENCY',
@@ -92,12 +111,6 @@ export const Strings = {
   // rather than one key per screen, since the failure mode is identical.
   onboardingBackSaveError: "Couldn't go back. Tap the back arrow to try again.",
 
-  // Credit-card field hints
-  o4MinPaymentHint: 'Copy from your latest statement. Leave blank if your card is new.',
-  o4AprHint:
-    'Annual rate — usually 25–40% on Egyptian credit cards. Find it on your cardholder agreement or in your bank app under "Rates".',
-  o4MinPaymentPlaceholder: 'From your statement',
-
   // O4 validation errors
   errNameRequired: 'Account name is required',
   errNameTooLong: 'Name must be 30 characters or less',
@@ -105,6 +118,10 @@ export const Strings = {
   errBalanceInvalid: 'Please enter a valid amount',
   errCreditLimitRequired: 'Credit limit is required for credit cards',
   errAprRequired: "Please enter your card's APR",
+  // APR bound — ruled, spec.md § "Financial Logic — APR bound — ruled".
+  // Same voice as errDueDayRange/errCreditLimitPositive: short, imperative,
+  // states the accepted range, no exclamation, trailing period.
+  errAprRange: 'Enter a rate from 0 to 100.',
   errAccountSaveFailed: "Couldn't save that account. Tap Save Account to try again.",
 
   // Generic Zod error map fallbacks
@@ -140,7 +157,6 @@ export const Strings = {
   accountColorGraphite: 'Graphite',
 
   // Account colour sheet — MA-006, mockup § D (D1, D2) and C1's trigger row
-  accountColorSectionLabel: 'ACCOUNT COLOUR',
   accountColorSheetTitle: 'Account colour',
   accountColorSheetCta: 'Use this colour',
   accountColorToneRich: 'Rich',

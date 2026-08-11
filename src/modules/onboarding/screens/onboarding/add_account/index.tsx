@@ -29,7 +29,7 @@ export default function AddAccountScreen() {
         <Animated.View style={btnAnim}>
           <Button
             variant="primary"
-            label={Strings.o4Cta}
+            label={Strings.n2Cta}
             onPress={() => {
               triggerBtnPress();
               void handleSave();
