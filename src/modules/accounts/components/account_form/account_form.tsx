@@ -88,7 +88,12 @@ export function AccountForm({ form, ownerId }: AccountFormProps) {
       {/* Balance + currency row — flex 1.5 / 1 (spec.md:75) via CURRENCY_CELL_WIDTH */}
       <Box className="pt-1" style={{ flexDirection: 'row', gap: Spacing.xs }}>
         <Box style={{ flex: 1 }}>
-          <FormLabelText {...balanceField} numberOfLines={1} />
+          {/* `label` named, never `{...balanceField}`: the model also carries
+              `helper`, which belongs to the rail below and which JSX spread
+              would pass here silently — TypeScript does not excess-check
+              spread attributes, so the day FormLabelText gains a `helper`
+              prop the copy starts rendering twice with no call-site edit. */}
+          <FormLabelText label={balanceField.label} numberOfLines={1} />
           <Controller
             control={control}
             name="balance"

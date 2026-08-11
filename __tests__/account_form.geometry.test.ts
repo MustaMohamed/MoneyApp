@@ -50,11 +50,17 @@ describe('chunkTypeOptions', () => {
     for (const row of rows) expect(row).toHaveLength(3);
   });
 
-  it('the chunking input never depends on selection — grid position cannot move on selection', () => {
-    // chunkTypeOptions takes no "selected" argument at all; calling it twice
-    // with the same options produces the identical shape regardless of any
-    // selection state elsewhere in the form.
-    expect(chunkTypeOptions(TYPE_OPTIONS, 3)).toEqual(chunkTypeOptions(TYPE_OPTIONS, 3));
+  it('pads a full final row, not just the 5-into-3 remainder the grid ships', () => {
+    // The shipped case leaves a remainder of 2. This covers the other two
+    // remainders, which the padding loop handles on different iteration
+    // counts: exactly one short, and a row that needs no padding at all.
+    expect(chunkTypeOptions(TYPE_OPTIONS.slice(0, 4), 3)).toEqual([
+      [TYPE_OPTIONS[0], TYPE_OPTIONS[1], TYPE_OPTIONS[2]],
+      [TYPE_OPTIONS[3], null, null],
+    ]);
+    expect(chunkTypeOptions(TYPE_OPTIONS.slice(0, 3), 3)).toEqual([
+      [TYPE_OPTIONS[0], TYPE_OPTIONS[1], TYPE_OPTIONS[2]],
+    ]);
   });
 });
 
@@ -78,11 +84,14 @@ describe('resolveBalanceField', () => {
 });
 
 describe('geometry relationships', () => {
-  it('CURRENCY_CELL_WIDTH is at least the composed Tabs.List width (2 segments + gap 4 + padding 6)', () => {
-    // Stated as a relationship, not a restatement of the definition — a
-    // toBe(2 * CURRENCY_SEGMENT_WIDTH + 10) would be a tautology with no
-    // failure mode (.claude/rules/tests.md).
-    expect(CURRENCY_CELL_WIDTH).toBeGreaterThanOrEqual(2 * CURRENCY_SEGMENT_WIDTH + 10);
+  it('a currency segment stays tappable at the compact width', () => {
+    // The assertion the old one meant to make. Comparing CURRENCY_CELL_WIDTH
+    // to `2 * CURRENCY_SEGMENT_WIDTH + 10` only restated its own definition
+    // one line away, so it could not fail for the reason it named. What can
+    // actually go wrong is squeezing the segment to buy the balance field
+    // more room until the tap target breaches the floor.
+    expect(CURRENCY_SEGMENT_WIDTH).toBeGreaterThanOrEqual(TouchSize.min);
+    expect(CURRENCY_CELL_WIDTH).toBeGreaterThan(2 * CURRENCY_SEGMENT_WIDTH);
   });
 
   it('ACCOUNT_TYPE_TILE_HEIGHT never breaches the touch-target floor', () => {

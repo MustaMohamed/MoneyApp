@@ -81,24 +81,34 @@ export function CreditCardFields({ form }: CreditCardFieldsProps) {
         </Box>
       </Box>
 
-      <Box style={{ width: '50%' }}>
-        <FormLabelText label={Strings.accountDueDayLabel} tag={Strings.fieldOptionalTag} />
-        <Controller
-          control={control}
-          name="due_day"
-          render={({ field: { value, onChange, onBlur } }) => (
-            <Input
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              placeholder={Strings.accountDueDayPlaceholder}
-              keyboardType="number-pad"
-              maxLength={2}
-              isInvalid={!!errors.due_day}
-            />
-          )}
-        />
-        <FieldMessageRail helper={Strings.accountDueDayHelper} error={errors.due_day?.message} />
+      {/* Half width, but the same half the row above uses: two `flex: 1`
+          cells share `W - gap`, so a bare `width: '50%'` is `gap/2` wider
+          than the credit-limit column and its right edge overhangs it. The
+          empty second cell reproduces the row's own arithmetic instead of
+          approximating it. No box metrics on the pad (unlike the type
+          grid's) — neither cell here carries padding or a border, so both
+          resolve `flexBasis: 0` against the same content box. */}
+      <Box style={{ flexDirection: 'row', gap: Spacing.xs }}>
+        <Box style={{ flex: 1 }}>
+          <FormLabelText label={Strings.accountDueDayLabel} tag={Strings.fieldOptionalTag} />
+          <Controller
+            control={control}
+            name="due_day"
+            render={({ field: { value, onChange, onBlur } }) => (
+              <Input
+                value={value}
+                onChangeText={onChange}
+                onBlur={onBlur}
+                placeholder={Strings.accountDueDayPlaceholder}
+                keyboardType="number-pad"
+                maxLength={2}
+                isInvalid={!!errors.due_day}
+              />
+            )}
+          />
+          <FieldMessageRail helper={Strings.accountDueDayHelper} error={errors.due_day?.message} />
+        </Box>
+        <Box style={{ flex: 1 }} />
       </Box>
 
       <Controller
