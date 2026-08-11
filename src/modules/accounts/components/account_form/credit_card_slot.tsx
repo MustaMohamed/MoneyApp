@@ -28,6 +28,20 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
   if (!isCreditCard) {
     return (
       <Box
+        // Distinct `key` per branch (MA-009 post-approval fix F5): both
+        // branches return a Box at the same tree position, so without one
+        // React reuses a single host View and only updates its style in
+        // place — the exact mechanism behind D2's dashed-border leak
+        // (Android does not reset a style property that is simply absent
+        // from the new object). A `key` per branch makes React unmount the
+        // old host view and mount a fresh one on every type switch instead,
+        // so no property from either branch — not just borderStyle, the one
+        // D2 caught — can ever carry over onto the other. Invisible to the
+        // user: every *child* in both branches was already fully remounted
+        // on a type switch (the two branches render structurally different
+        // content), this only extends the same discipline to the outer
+        // wrapper.
+        key="hint"
         style={{
           minHeight: CREDIT_SLOT_MIN_HEIGHT,
           borderWidth: 1,
@@ -57,6 +71,8 @@ export function CreditCardSlot({ form, isCreditCard }: CreditCardSlotProps) {
 
   return (
     <Box
+      // See the hint branch's comment above — the same distinct-key fix.
+      key="credit"
       // borderStyle stated explicitly, not omitted: both branches return a
       // Box at the same tree position, so React reuses one host View, and
       // Android does not reset borderStyle when a style property is simply
