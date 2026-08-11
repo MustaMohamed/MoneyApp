@@ -48,22 +48,23 @@ export const ACCOUNT_TYPE_GRID_COLUMNS = 3;
 
 /**
  * The reserved credit slot's own minimum height — a composition of two
- * tokens MA-001 already shipped, not a sixth Size token. **Consistently
- * scaled**: both terms now go through `ms()`, whereas the original
- * `Size.fieldHeight + Spacing.md` added an intentionally-unscaled 48 to an
- * already-`ms()`-scaled 16, so "48 + 16 = 64" only held at scale 1.0 and
- * silently diverged everywhere else (MA-009 post-approval fix F6). At scale
- * 1.0 this is still exactly 48 + 16 = 64, against the mockup's 44 + 16 = 60
- * (the +4 is Size.fieldHeight's own ruling, spec.md § Geometry tokens,
- * propagating here); off scale 1.0 both terms now grow together instead of
- * one term standing still while the other scales underneath it. Unlike
- * `Size.fieldHeight` itself elsewhere, this value has no real HeroUI
- * `Input` to pixel-match — it only has to roughly reserve "one field row
- * plus a gap" for a placeholder — so scaling it with the rest of the
- * form's geometry is the more consistent choice than inheriting
- * `Size.fieldHeight`'s narrow, deliberately-unscaled exception.
+ * tokens MA-001 already shipped, not a sixth Size token. Against the
+ * mockup's 44 + 16 = 60; the +4 is Size.fieldHeight's own ruling (spec.md §
+ * Geometry tokens) propagating here.
+ *
+ * **The mixed scaling here is correct, and was briefly "fixed" into a bug.**
+ * Post-approval F6 read `Size.fieldHeight + Spacing.md` as an accidental mix
+ * of an unscaled 48 with a scaled 16 and wrapped the first term in `ms()`.
+ * Implementation review round 3 measured the real HeroUI `Input` on device
+ * at **126px = 48.0dp exactly**, so the unscaled 48 *is* the field-row
+ * height at every scale — the formula was never "two tokens that should
+ * match", it was "a real field row, whose height is an unscaled CSS
+ * constant, plus a scaled gap", and it is exact everywhere. `ms()` on that
+ * term introduced the divergence it claimed to remove: the slot rendered at
+ * 67.8dp where the field row it reserves space for stayed at 48. Reverted.
+ * Do not "make this consistent" again without measuring the Input first.
  */
-export const CREDIT_SLOT_MIN_HEIGHT = ms(Size.fieldHeight) + Spacing.md;
+export const CREDIT_SLOT_MIN_HEIGHT = Size.fieldHeight + Spacing.md;
 
 /**
  * Tabs.List's own chrome around its two segments — gap 4 + padding 3+3
