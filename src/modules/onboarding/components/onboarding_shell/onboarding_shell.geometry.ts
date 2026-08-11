@@ -91,3 +91,43 @@ export function resolveStatusTrack(footnote: string, message?: string): StatusTr
     a11y: { accessibilityLiveRegion: 'polite' },
   };
 }
+
+/**
+ * N1's two-hue ambient wash — mockup.html:428-433 (`.aurora`), a two-stop
+ * `radial-gradient` pair on the shell's own background. Transcribed as
+ * fractions of the viewport (not the 390pt reference) plus two ms()-scaled
+ * radius pairs, so the wash sits in the same place on every phone width.
+ */
+export const AMBIENT_WASH_GOLD_CX_FRACTION = 0.1; // mockup.html:428, "10%"
+export const AMBIENT_WASH_GOLD_CY_FRACTION = -0.06; // mockup.html:428, "-6%"
+export const AMBIENT_WASH_TEAL_CX_FRACTION = 1.02; // mockup.html:429, "102%"
+export const AMBIENT_WASH_TEAL_CY_FRACTION = 0.34; // mockup.html:429, "34%"
+
+export interface AmbientWashStop {
+  cx: number;
+  cy: number;
+  rx: number;
+  ry: number;
+}
+
+export interface AmbientWashGeometry {
+  gold: AmbientWashStop;
+  teal: AmbientWashStop;
+}
+
+export function resolveAmbientWashGeometry(width: number, height: number): AmbientWashGeometry {
+  return {
+    gold: {
+      cx: width * AMBIENT_WASH_GOLD_CX_FRACTION,
+      cy: height * AMBIENT_WASH_GOLD_CY_FRACTION,
+      rx: ms(470), // mockup.html:428, "470px"
+      ry: ms(320), // mockup.html:428, "320px"
+    },
+    teal: {
+      cx: width * AMBIENT_WASH_TEAL_CX_FRACTION,
+      cy: height * AMBIENT_WASH_TEAL_CY_FRACTION,
+      rx: ms(420), // mockup.html:429, "420px"
+      ry: ms(340), // mockup.html:429, "340px"
+    },
+  };
+}

@@ -4,10 +4,12 @@ import {
   ONBOARDING_SHELL_TRACKS,
   ONBOARDING_TOTAL_STEPS,
   STATUS_TRACK_LINE_HEIGHT,
+  resolveAmbientWashGeometry,
   resolveProgressRail,
   resolveStatusTrack,
   type OnboardingStepIndex,
 } from '@/modules/onboarding/components/onboarding_shell/onboarding_shell.geometry';
+import { ms } from '@/utils/responsive';
 
 describe('onboarding shell geometry', () => {
   // What this test proves and does not: it binds ONBOARDING_SHELL_TRACKS to
@@ -88,5 +90,27 @@ describe('resolveStatusTrack', () => {
     ],
   ])('%s', (_name, footnote, message, expected) => {
     expect(resolveStatusTrack(footnote, message)).toEqual(expected);
+  });
+});
+
+describe('ambient wash geometry — mockup.html:428-433 (.aurora)', () => {
+  it('places the gold ellipse above the top-left corner', () => {
+    const { gold } = resolveAmbientWashGeometry(390, 844);
+    expect(gold.cx).toBeCloseTo(39, 5); // 10% of width
+    expect(gold.cy).toBeCloseTo(-50.64, 5); // -6% of height — deliberately off-canvas
+    expect(gold.rx).toBe(ms(470));
+    expect(gold.ry).toBe(ms(320));
+  });
+
+  it('places the teal ellipse just off the right edge', () => {
+    const { teal } = resolveAmbientWashGeometry(390, 844);
+    expect(teal.cx).toBeCloseTo(397.8, 5); // 102% of width
+    expect(teal.cy).toBeCloseTo(286.96, 5); // 34% of height
+  });
+
+  it('tracks the viewport rather than the 390pt reference', () => {
+    const wide = resolveAmbientWashGeometry(430, 932);
+    expect(wide.gold.cx).toBeCloseTo(43, 5);
+    expect(wide.teal.cx).toBeCloseTo(438.6, 5);
   });
 });

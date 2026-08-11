@@ -15,11 +15,6 @@ export const Strings = {
   categoriesLoadRetry: 'Retry',
   currencySaveError: 'Could not save rate. Try again.',
 
-  // O1 Welcome
-  o1Headline: 'Your money.\nFinally clear.',
-  o1Subtext: 'Track everything. Plan with confidence.\nNo bank access needed.',
-  o1Cta: 'Get Started',
-
   // Add Account
   o4SectionName: 'ACCOUNT NAME',
   // CurrencySelector's a11y label inside AccountForm (both Settings' and
@@ -71,9 +66,22 @@ export const Strings = {
   // ('Save Account'); "and continue" means nothing there.
   n2Cta: 'Save and continue',
 
-  // Welcome — base currency
-  n1CurrencyLabel: 'BASE CURRENCY',
-  n1CurrencyNote: 'Change anytime in Settings.',
+  // N1 Welcome — Broadsheet composition, mockup § B (B1-B5). Every value
+  // transcribed verbatim from mockup.html; the line number is the source.
+  n1GhostNumeral: '01', // mockup.html:1035
+  n1Eyebrow: 'Private by design', // mockup.html:1037
+  n1HeadlineLine1: 'Your money.', // mockup.html:1039
+  n1HeadlineLine2: 'Finally clear.', // mockup.html:1041
+  n1Body:
+    "Everything you enter stays on this phone. No sign-in, no bank connection, nothing uploaded — so setup is three short steps and then you're in.", // mockup.html:1048-1049
+  n1CurrencyQuestion: 'Which currency do you think in?', // mockup.html:1054
+  n1CurrencyEgpLabel: 'Egyptian Pound', // mockup.html:1058
+  n1CurrencyEgpConsequence: 'Every total in the app is shown in EGP.', // mockup.html:1059
+  n1CurrencyUsdLabel: 'US Dollar', // mockup.html:1066
+  n1CurrencyUsdConsequence: 'Totals convert to USD using the rate you save.', // mockup.html:1067
+  n1CurrencyEgpSymbol: 'E£', // mockup.html:1056
+  n1Trust: 'Your data never leaves this device. There is no cloud account to create.', // mockup.html:1075
+  n1Cta: 'Continue', // mockup.html:1080
 
   // Add Another?
   n3AccountSaved: 'Account saved',

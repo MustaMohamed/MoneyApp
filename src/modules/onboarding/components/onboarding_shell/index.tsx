@@ -2,6 +2,7 @@ import React, { type ReactNode } from 'react';
 import { View } from 'react-native';
 
 import { Screen } from '@/components/ui/screen';
+import { Colors } from '@/constants/theme';
 
 import { OnboardingFooter } from './onboarding_footer';
 import { OnboardingHeader } from './onboarding_header';
@@ -19,6 +20,9 @@ export interface OnboardingShellProps {
   statusMessage?: string;
   cta: ReactNode;
   children: ReactNode;
+  /** N1's ambient wash. Rendered as a sibling behind Screen, not inside it —
+   * see MA-010 decision D4. Omitted on every other route. */
+  background?: ReactNode;
 }
 
 /**
@@ -29,6 +33,16 @@ export interface OnboardingShellProps {
  * `cta` is a node rather than a prop bundle so each route keeps the
  * Animated.View it wraps its button in today, and later motion work can
  * change that wrapper without touching the shell.
+ *
+ * `background` is hoisted one level above `Screen` rather than rendered
+ * inside it (MA-010 decision D4): RN positions an absolutely-positioned
+ * child against its parent's *padding box*, and `Screen` applies the
+ * safe-area insets as padding, so a wash mounted inside it would start below
+ * the status-bar inset and leave a visible seam under Android's edge-to-edge.
+ * The host View here carries `bg-background` instead (`Screen` bakes that
+ * class into its own `className` — screen.tsx:48 — so it is not passed down),
+ * and `Screen` itself goes transparent via `style`, which wins over
+ * `className` in RN (the mechanism account_type_tile.tsx:29-33 documents).
  */
 export function OnboardingShell({
   step,
@@ -38,13 +52,17 @@ export function OnboardingShell({
   statusMessage,
   cta,
   children,
+  background,
 }: OnboardingShellProps) {
   return (
-    <Screen>
-      <OnboardingHeader title={title} onBack={onBack} />
-      <OnboardingProgressRail step={step} />
-      <View style={{ flex: 1 }}>{children}</View>
-      <OnboardingFooter footnote={footnote} message={statusMessage} cta={cta} />
-    </Screen>
+    <View style={{ flex: 1 }} className="bg-background">
+      {background}
+      <Screen style={{ backgroundColor: Colors.shared.transparent }}>
+        <OnboardingHeader title={title} onBack={onBack} />
+        <OnboardingProgressRail step={step} />
+        <View style={{ flex: 1 }}>{children}</View>
+        <OnboardingFooter footnote={footnote} message={statusMessage} cta={cta} />
+      </Screen>
+    </View>
   );
 }
