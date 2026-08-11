@@ -69,8 +69,14 @@ export function CurrencyChoice({ selected, onSelect }: CurrencyChoiceProps) {
               accessibilityLabel={resolveCurrencyOptionA11y(option).accessibilityLabel}
             >
               <View
+                // Unselected fill is bg-background, not bg-surface: the chip is
+                // drawn a step darker than the row it sits in (mockup.html:457,
+                // `.opt-sym { background: var(--background) }` against `.opt`'s
+                // `--surface`). Matching the row would leave only the hairline
+                // describing the panel. Selected, the two deliberately converge
+                // on --accent-soft (mockup.html:460-463).
                 className={cn(
-                  isSelected ? 'border-accent bg-accent/15' : 'border-border bg-surface',
+                  isSelected ? 'border-accent bg-accent/15' : 'border-border bg-background',
                 )}
                 style={{
                   width: Size.shieldBox,
