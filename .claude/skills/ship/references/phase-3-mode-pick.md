@@ -8,7 +8,7 @@
 
 | Mode | When | Executes as |
 |---|---|---|
-| **Direct** | `est_loc` ≤ ~200 (excl. comments/docs/generated) — or chunking would yield one chunk | phases 4–10 once |
+| **Direct** | `est_loc` ≤ ~200 (excl. comments, docs, generated files) — or chunking would yield one chunk | phases 4–10 once |
 | **Chunk** | `est_loc` > ~200, K ≥ 2 chunks, human said yes | virtual chunks in `task.md`; phases 6–10 per chunk (`chunk-single` variant: one branch, one PR at the final chunk) |
 | **Split** | any split criterion below holds | GitHub sub-issues; phases 4–10 per slice; each slice re-enters this picker |
 
