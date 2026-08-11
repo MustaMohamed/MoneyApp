@@ -9,7 +9,7 @@ Give the human a compact readiness summary — not a recap comment posted to the
 - PR link + one-line outcome (from `task.md`'s goal; chunk mode: the chunk's ledger row).
 - Battery verdict line: per-lens verdicts + finding counts, triage outcome (fixed / closed-by-ledger / FP-verified / refuted-by-verifier / trade-off / deferred with issue number / amended), re-check verdict, cycles used.
 - **If any commit landed after the last re-check, say so here explicitly** — never present an unreviewed head as reviewed; the human can demand another re-check before merging.
-- **CI status — actually read it now**: `gh pr checks <pr-url-from-state.md>`. No earlier phase reads CI (P7 only triggers it), so this is the one place a red check gets caught before the human merges. Red checks route through P8 triage before presenting.
+- **CI status — re-read it now**: `gh pr checks <pr-url-from-state.md>`. P8 triage read it at triage entry, but fix commits have landed since — this is the final read before the human merges, and it must be green or explained. Red checks route through P8 triage before presenting.
 - Any danger-surface flags from the quality lens (SQLite migrations, secure-store/auth surfaces, route files under `src/app/`, native config, money paths) so the human merges with eyes open.
 - Accepted trade-offs: unfixed `note`s and every ledger adjudication that shaped this PR — written into the PR description too, so the next reviewer stops rediscovering them.
 - Open disputes: none, or the both-sides summary awaiting their call.
@@ -18,7 +18,7 @@ Then wait. **The human merges — never the conductor**, regardless of how green
 
 **`chunk-single`, non-final chunk:** there is no PR and no merge — the chunk ends when its micro battery is green and triage is clean (P9 as needed); loop directly to the next chunk at P6. `gh pr create`, the full battery, and this phase run once, at the final chunk.
 
-**Chunk mode, non-final chunk:** present the compact form (PR link, micro-battery verdicts, CI, dark-until-wired symbols this chunk adds). After the human merges: verify the merge (step 1 below), update the chunk ledger row + `state.md`, tear down **this chunk's** implementation + review worktrees and branch, then start the next **dependent** chunk whose prerequisites are now all merged at P6 — disjoint chunks never waited for this merge and may already be running (Hard rule 9). Artifacts and the issue's status label are untouched until the final chunk.
+**Chunk mode, non-final chunk:** present the compact form (PR link, micro-battery verdicts, CI, dark-until-wired symbols this chunk adds) — and **batch the visit**: every other chunk PR that is also merge-ready goes in the same summary, one compact block each, so one human visit merges several chunks instead of one wait per chunk. After the human merges: verify the merge (step 1 below), update the chunk ledger row + `state.md`, tear down **this chunk's** implementation + review worktrees and branch, then start the next **dependent** chunk whose prerequisites are now all merged at P6 — disjoint chunks never waited for this merge and may already be running (Hard rule 9). Artifacts and the issue's status label are untouched until the final chunk.
 
 ## After the merge (verify, then clean — artifacts deleted LAST, nothing written after)
 

@@ -153,7 +153,7 @@ Runs concurrently — always take these overlaps:
 - **P1 scouts:** up to 4 read-only discovery agents (codebase map, prior art, history, danger surfaces).
 - **P5 panel** (`est_loc` > ~400): three lenses at once; one consolidated revision, one re-check.
 - **P7 battery:** all lenses + built-in `code-review` dispatched in one message; CI runs alongside.
-- **Chunk mode:** disjoint chunks in parallel worktrees; a merge pending on one chunk never blocks another. Dependent tail chunks wait for their prerequisites' merges or fold into the final PR.
+- **Chunk mode:** disjoint chunks in parallel worktrees; a merge pending on one chunk never blocks another. Dependent tail chunks wait for their prerequisites' merges or fold into the final PR. Merge-ready chunk PRs are presented to the human **together** — one visit merges several.
 - **Split mode:** after the walking-skeleton slice merges, independent slices run in parallel worktrees.
 - **Conductor journaling** overlaps any running agent (dispatch first, journal second).
 
@@ -171,8 +171,14 @@ git -C /Users/musta/Code/projects/practice/MoneyApp fetch origin            # ne
 git -C /Users/musta/Code/projects/practice/MoneyApp worktree add .claude/worktrees/MA-XXX -b feat/MA-XXX-<slug> origin/main
 # Bootstrap gotcha in a fresh worktree: it has NO node_modules — the battery won't install them
 # itself, and a symlinked node_modules passes tsc/jest/lint but breaks expo prebuild and device
-# builds (expo-router resolves zero routes). Run a real install:
-(cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX && npm ci)
+# builds (expo-router resolves zero routes). It needs a REAL tree — but usually not a real
+# install: when the lockfile matches the primary checkout, APFS-clone its node_modules
+# (copy-on-write: the whole tree as real files — 58k files in ~10s measured, vs minutes for
+# npm ci — and no extra disk until files diverge). Lockfile moved, or clone fails → npm ci.
+cd /Users/musta/Code/projects/practice/MoneyApp/.claude/worktrees/MA-XXX
+cmp -s package-lock.json ../../../package-lock.json \
+  && cp -c -R ../../../node_modules node_modules \
+  || npm ci
 
 # Chunk mode: one worktree per in-flight chunk, same recipe:
 #   .claude/worktrees/MA-XXX-c<N> -b feat/MA-XXX-c<N>-<slug> origin/main
