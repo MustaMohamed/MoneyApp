@@ -21,16 +21,7 @@ export const Strings = {
   o1Cta: 'Get Started',
 
   // Add Account
-  o4Subtitle: 'Start by adding one account — you can add more next.',
   o4SectionName: 'ACCOUNT NAME',
-  o4NameLabel: 'Account Name',
-  o4BalanceLabel: 'Opening Balance',
-  o4ColorLabel: 'Color',
-  o4CreditLimitLabel: 'Credit Limit',
-  o4RevolvingLabel: 'Revolving Balance',
-  o4MinPaymentLabel: 'Minimum Payment',
-  o4DueDayLabel: 'Statement Due Day',
-  o4AprLabel: 'Annual Percentage Rate (APR %)',
   // CurrencySelector's a11y label inside AccountForm (both Settings' and
   // onboarding N2's hosts) — not base-currency copy, filed here with the
   // rest of the account form's strings instead.
