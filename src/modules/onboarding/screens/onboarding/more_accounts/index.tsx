@@ -42,8 +42,8 @@ export default function MoreAccountsScreen() {
   const { introEntering, listEntering } = useMoreAccountsAnim();
 
   const onBackPress = () => {
-    // onBack catches its own failure inside runOnboardingTransition and
-    // resolves; void discards no rejection.
+    // onBack and handleContinue below both catch their own failure inside
+    // runOnboardingTransition and resolve; void discards no rejection.
     void onBack();
   };
 
@@ -64,7 +64,12 @@ export default function MoreAccountsScreen() {
         footnote={Strings.n3EmptyFootnote}
         statusMessage={state.statusMessage}
         cta={
-          <Button variant="primary" label={Strings.n3EmptyCta} onPress={handleAddFirstAccount} />
+          <Button
+            variant="primary"
+            label={Strings.n3EmptyCta}
+            onPress={handleAddFirstAccount}
+            isDisabled={state.busy}
+          />
         }
       >
         <EmptyState variant="onboardingAccounts" />
@@ -84,8 +89,6 @@ export default function MoreAccountsScreen() {
           variant="primary"
           label={Strings.n3Cta}
           onPress={() => {
-            // handleContinue catches its own failure inside
-            // runOnboardingTransition and resolves; void discards no rejection.
             void handleContinue();
           }}
           isDisabled={state.busy}
@@ -158,18 +161,15 @@ export default function MoreAccountsScreen() {
               </Typography>
             </View>
 
-            {/* The Surface trap (§5.2), and every CI check passes either way.
-                ListGroup is Surface-based, and `.surface__root` resolves to
-                `p-4 rounded-3xl shadow-surface overflow-hidden` with no border,
-                ever. `p-0` is NOT redundant with `.list-group__root`'s own
-                `padding: 0`: components/index.css imports list-group.css at :20
-                and surface.css at :33, so Surface's padding is declared after
-                at equal specificity and the cascade may win — a 16pt inset that
-                pulls every row off the border. `shadow-none` does not beat the
-                custom --shadow-surface token; the style-level kill does, and it
-                is load-bearing because app.json sets userInterfaceStyle
-                "automatic" while HeroUI zeroes --surface-shadow under the dark
-                variant only. */}
+            {/* The Surface trap (§5.2), invisible to every CI check. ListGroup
+                is Surface-based and `.surface__root` resolves to `p-4
+                rounded-3xl shadow-surface overflow-hidden` with no border,
+                ever — so the border, the radius and `p-0` are each required.
+                `shadow-none` loses to the custom --shadow-surface token; the
+                `elevation`/`shadowOpacity` pair below does not beat it either,
+                because uniwind keys that token as `boxShadow`, a separate RN
+                pipeline (measured on device). Kept for consistency with the
+                other Surface call sites (debt:quality #246). */}
             <ListGroup
               className="border-separator p-0"
               style={{
