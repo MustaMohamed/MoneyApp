@@ -87,7 +87,12 @@ export const Strings = {
   // value transcribed verbatim from mockup.html; the line number is the source.
   n3GhostNumeral: '03', // mockup.html:2010
   n3SuccessChip: 'First account saved', // mockup.html:2012
-  n3Headline: 'Anything else\nto add?', // mockup.html:2014
+  // Two keys, not one carrying a '\n' (spec §5.6, amended after c1's review):
+  // a baked break cannot reflow at large font scale or on a narrow device.
+  // MA-010 ships the same Broadsheet headline as a matched pair, composed in
+  // welcome_headline.tsx.
+  n3HeadlineLine1: 'Anything else', // mockup.html:2014
+  n3HeadlineLine2: 'to add?', // mockup.html:2014
   n3Body:
     'Cash in your wallet, a second bank, a credit card. Or skip — one account is enough to start.', // mockup.html:2015
   n3ListLabel: 'Your accounts', // mockup.html:2019
