@@ -25,13 +25,24 @@ describe('N3 row geometry — the truncation contract (S3)', () => {
     expect(N3_ROW_STYLE.minHeight).toBe(N3_ROW_MIN_HEIGHT);
   });
 
-  it('carries no fixed height, so a truncated name cannot change the row', () => {
-    expect(Object.keys(N3_ROW_STYLE)).not.toContain('height');
-  });
-
-  it('carries no colour key — the group paints the fill, the row is transparent', () => {
-    expect(Object.keys(N3_ROW_STYLE)).not.toContain('backgroundColor');
-    expect(Object.keys(N3_ROW_STYLE)).not.toContain('borderColor');
+  it('carries exactly these keys — nothing added, nothing dropped', () => {
+    // One exact assertion rather than three `not.toContain`s, because absence
+    // was only half of what spec §8 asked for. This pins, in one place:
+    //   - no `height` — S3, truncation must not be able to change the row;
+    //   - no `backgroundColor` / `borderColor` — §5.3, the group paints the
+    //     fill and the row is transparent;
+    //   - and the five layout keys *present*, which is the constant's own
+    //     docstring reason for stating them. `style` beats `className` in RN,
+    //     so dropping one silently half-overrides `.list-group__item` — the
+    //     TILE_BOX_STYLE trap, invisible to every gate except the emulator.
+    expect(Object.keys(N3_ROW_STYLE).sort()).toEqual([
+      'alignItems',
+      'flexDirection',
+      'gap',
+      'minHeight',
+      'paddingHorizontal',
+      'paddingVertical',
+    ]);
   });
 
   it('is frozen, so one stray assignment cannot move every row at once', () => {
