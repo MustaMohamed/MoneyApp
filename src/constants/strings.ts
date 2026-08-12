@@ -104,10 +104,6 @@ export const Strings = {
   n3EmptyFootnote: 'Your currency choice was saved.', // mockup.html:2101
   n3EmptyCta: 'Add your first account', // mockup.html:2102
 
-  // Add Another?
-  n3AccountSaved: 'Account saved',
-  n3AddMoreSubtitle: 'Want to add another? You can add credit cards, cash wallets, and more.',
-
   // N-shell — MA-004. Mockup § A (A1-A3) and the per-route frames B1/C1/E1/F1.
   onboardingStepOf: (step: number) => `Step ${step} of 4`,
   onboardingProgressA11y: (step: number, name: string) => `Step ${step} of 4, ${name}`,
@@ -198,12 +194,6 @@ export const Strings = {
   accountColorSwatchA11y: (family: string, tone: string) => `${family}, ${tone.toLowerCase()}`,
   accountColorTriggerA11y: (family: string, tone: string) =>
     `Account colour: ${family}, ${tone.toLowerCase()}`,
-
-  // More Accounts
-  o5Subtitle: 'Got other accounts? Add them now — or skip and do it later.',
-  o5AddAnother: 'Add another account',
-  o5SettingsHint: 'You can always add more from Settings',
-  o5Cta: "I'm done",
 
   // Ready
   o6Title: "You're all set!",
