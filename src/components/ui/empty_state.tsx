@@ -17,7 +17,8 @@ export type EmptyStateVariant =
   | 'filtered'
   | 'categories'
   | 'goals'
-  | 'budget';
+  | 'budget'
+  | 'onboardingAccounts';
 
 export interface EmptyStateProps {
   variant: EmptyStateVariant;
@@ -90,6 +91,20 @@ const VARIANT_CONFIG: Record<
     headline: Strings.emptyBudgetTitle,
     description: Strings.emptyBudgetSub,
     ctaLabel: Strings.emptyBudgetCta,
+    clearLabel: null,
+  },
+  // N3's honest dead end — mockup § E, frame E3. `ctaLabel: null` is
+  // load-bearing: E3's action is Strings.n3EmptyCta in OnboardingShell's
+  // footer slot, and a second button inside the content area would be two
+  // CTAs on one screen. The icon circle stays this component's own ms(80)
+  // with an ms(40) glyph where the mockup's `.empty .ei` is 56/40 — a
+  // recorded deviation, because N3 gets one variant here, not a re-cut of
+  // the shared geometry.
+  onboardingAccounts: {
+    icon: 'database-alert-outline', // mockup.html:2095
+    headline: Strings.n3EmptyTitle,
+    description: Strings.n3EmptyBody,
+    ctaLabel: null,
     clearLabel: null,
   },
 };

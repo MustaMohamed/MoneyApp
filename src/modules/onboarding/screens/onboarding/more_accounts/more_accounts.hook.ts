@@ -48,6 +48,22 @@ export function useMoreAccounts() {
     });
   };
 
+  // E3's CTA — the zero-account dead end. Deliberately not handleAddAnother:
+  // no isAddingMore param, because add_account.hook.ts compares === 'true' and
+  // an absent param takes the first-account branch, which is the correct one
+  // when no account exists; and no setStep, because nothing on N3 may write a
+  // step outside handleContinue/onBack (S14, S15).
+  const handleAddFirstAccount = () => {
+    const state = useMoreAccountsTransitionState.getState();
+    // E3 keeps the header and its back chevron (S14), so a transition can be
+    // in flight when this is tapped — the same D1 re-entry gate as above.
+    if (state.busy) return;
+    // Decision 3's invariant: invalidate() immediately before every navigate.
+    state.invalidate();
+
+    router.replace('/(onboarding)/add_account');
+  };
+
   // Renamed from handleDone → handleContinue (spec §2.5); navigates to N4 (was O6)
   const handleContinue = async () => {
     const session = useMoreAccountsTransitionState.getState().begin();
@@ -91,6 +107,7 @@ export function useMoreAccounts() {
     accounts,
     initialCount,
     handleAddAnother,
+    handleAddFirstAccount,
     handleContinue,
     onBack,
     state: { statusMessage, busy },
