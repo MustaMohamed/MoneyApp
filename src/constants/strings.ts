@@ -83,6 +83,22 @@ export const Strings = {
   n1Trust: 'Your data never leaves this device. There is no cloud account to create.', // mockup.html:1075
   n1Cta: 'Continue', // mockup.html:1080
 
+  // N3 Add more accounts — Broadsheet composition, mockup § E (E1-E5). Every
+  // value transcribed verbatim from mockup.html; the line number is the source.
+  n3GhostNumeral: '03', // mockup.html:2010
+  n3SuccessChip: 'First account saved', // mockup.html:2012
+  n3Headline: 'Anything else\nto add?', // mockup.html:2014
+  n3Body:
+    'Cash in your wallet, a second bank, a credit card. Or skip — one account is enough to start.', // mockup.html:2015
+  n3ListLabel: 'Your accounts', // mockup.html:2019
+  n3AddAnother: 'Add another account', // mockup.html:2038
+  n3Cta: 'Review setup', // mockup.html:2043
+  n3EmptyTitle: 'No accounts yet', // mockup.html:2096
+  n3EmptyBody:
+    'Something interrupted setup before your first account was saved. Nothing was lost — start it again.', // mockup.html:2097
+  n3EmptyFootnote: 'Your currency choice was saved.', // mockup.html:2101
+  n3EmptyCta: 'Add your first account', // mockup.html:2102
+
   // Add Another?
   n3AccountSaved: 'Account saved',
   n3AddMoreSubtitle: 'Want to add another? You can add credit cards, cash wallets, and more.',

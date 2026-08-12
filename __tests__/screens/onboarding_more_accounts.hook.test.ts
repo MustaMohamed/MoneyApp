@@ -9,7 +9,6 @@ import { attachMockSelectorStore } from '@/test_helpers/mock_zustand_selectors';
 
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({ replace: jest.fn() })),
-  useFocusEffect: jest.fn(),
 }));
 jest.mock('@/modules/accounts/store/account.store', () => ({
   EMPTY_ACCOUNTS: [],
@@ -133,6 +132,50 @@ describe('useMoreAccounts', () => {
     // Tap "+ Add another account" while the N3 -> N4 step write is still in flight.
     await act(async () => {
       result.current.handleAddAnother();
+    });
+
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveSetStep(OnboardingStep.N4);
+      await continuePromise;
+    });
+
+    // Only the in-flight transition's own navigate lands, exactly once.
+    expect(mockReplace.mock.calls).toEqual([['/(onboarding)/ready']]);
+  });
+
+  it('handleAddFirstAccount replaces to add_account with no params and writes no step', async () => {
+    const { result } = await renderHook(() => useMoreAccounts());
+    await act(() => {
+      result.current.handleAddFirstAccount();
+    });
+    // The bare string, not an object with params: add_account.hook.ts compares
+    // isAddingMore === 'true', and E3 means no account exists yet, so the
+    // first-account branch is the correct one (S14).
+    expect(mockReplace).toHaveBeenCalledWith('/(onboarding)/add_account');
+    expect(mockSetStep).not.toHaveBeenCalled();
+  });
+
+  it('handleAddFirstAccount is inert while handleContinue is in flight — no navigate, no double-navigate on completion', async () => {
+    let resolveSetStep!: (value: OnboardingStep) => void;
+    mockSetStep.mockImplementationOnce(
+      () =>
+        new Promise<OnboardingStep>((resolve) => {
+          resolveSetStep = resolve;
+        }),
+    );
+    const { result } = await renderHook(() => useMoreAccounts());
+
+    let continuePromise!: Promise<void>;
+    await act(async () => {
+      continuePromise = result.current.handleContinue();
+    });
+
+    // E3 keeps the header and its back chevron, so a transition can be in
+    // flight when this CTA is tapped (D1).
+    await act(async () => {
+      result.current.handleAddFirstAccount();
     });
 
     expect(mockReplace).not.toHaveBeenCalled();
