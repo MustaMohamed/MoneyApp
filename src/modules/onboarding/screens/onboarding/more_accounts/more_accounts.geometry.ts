@@ -9,6 +9,7 @@ import {
   findAccountColor,
 } from '@/modules/accounts/constants/account_palette';
 import type { Account } from '@/modules/accounts/entities/account.entity';
+import { BROADSHEET_HEADLINE_TRACKING_EM } from '@/modules/onboarding/components/onboarding_shell/onboarding_broadsheet';
 import { formatAmount } from '@/utils/format_amount';
 import { ms } from '@/utils/responsive';
 
@@ -37,7 +38,7 @@ export const N3_ROW_MIN_HEIGHT = Size.budgetCategoryRowHeight;
  * `style` beats `className` in RN and a half-overridden layout is the
  * `TILE_BOX_STYLE` trap (`account_type_tile.tsx:14-19`).
  */
-export const N3_ROW_STYLE: ViewStyle = Object.freeze({
+export const N3_ROW_STYLE: Readonly<ViewStyle> = Object.freeze({
   minHeight: N3_ROW_MIN_HEIGHT,
   paddingHorizontal: Spacing.md,
   paddingVertical: Spacing.sm,
@@ -55,8 +56,13 @@ export const N3_ROW_TYPE_GLYPH = ms(13);
 /** mockup.html:2014, the headline's inline `line-height: 1.12`. */
 export const N3_HEADLINE_LINE_HEIGHT_RATIO = 1.12;
 
-/** mockup.html:411, `.b-headline { letter-spacing: -0.01em }`. */
-export const N3_HEADLINE_TRACKING_EM = -0.01;
+/**
+ * mockup.html:411, `.b-headline { letter-spacing: -0.01em }` — repointed at the
+ * shell constant now that N4 is the third Broadsheet screen (issue #241, the
+ * half its disposition allows). Same value, same exported name, so N3's suite
+ * and `index.tsx` are untouched.
+ */
+export const N3_HEADLINE_TRACKING_EM = BROADSHEET_HEADLINE_TRACKING_EM;
 
 /**
  * The row's type label — mockup.html:624, `.lrow .ty`. Lives beside the
