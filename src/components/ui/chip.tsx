@@ -1,18 +1,18 @@
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Chip, cn } from 'heroui-native';
 import React from 'react';
-import { View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 
 import { Colors, Radius, Size, Spacing, Type, lineHeightFor } from '@/constants/theme';
-import { GoldTokens } from '@/constants/theme_tokens';
+import { CoreTokens, GoldTokens } from '@/constants/theme_tokens';
 import { ms } from '@/utils/responsive';
 
 /**
  * `chip.tsx` is the home for HeroUI `Chip`-derived wrappers. It is named after
  * the underlying primitive rather than its current export so a non-selectable
  * `Chip` re-export can live here too. It exports `SelectablePill` (the
- * selectable gold-tint pill) and `SuccessChip` (the static confirmation
- * badge).
+ * selectable gold-tint pill), `SuccessChip` (the static confirmation badge)
+ * and `HeroPill` (N4's static hero-card pill).
  */
 
 export interface SelectablePillProps {
@@ -160,6 +160,94 @@ export function SuccessChip({ label, accessibilityLabel }: SuccessChipProps): Re
         className="font-inter-semibold"
         style={{ fontSize: Type.caption, lineHeight: lineHeightFor(Type.caption) }}
       >
+        {label}
+      </Chip.Label>
+    </Chip>
+  );
+}
+
+/** mockup.html:702, `.hero-pill svg { width: 11px }`. */
+const HERO_PILL_GLYPH = ms(11);
+
+/**
+ * The pill's own composed height — mockup.html:697-699, `.hero-pill`'s 4pt
+ * padding pair plus one caption line box. It gets its own name rather than
+ * borrowing `Size.summaryPillTrack`: the track is the ROW's height and the two
+ * are only equal while the row is one line, which is a decision the row owns.
+ * `onboarding_ready.geometry.test.ts` asserts the FIT between them, never an
+ * equality, so a two-line track would not silently drag the pill with it.
+ */
+export const HERO_PILL_HEIGHT = Spacing.xxs * 2 + lineHeightFor(Type.caption);
+
+/**
+ * mockup.html:696-701, `.hero-pill`. Frozen for the reason `N3_ROW_STYLE` is:
+ * shared by reference across every pill on the card, so one stray assignment
+ * would move all of them and a suite reading keys at module load would not
+ * notice.
+ *
+ * The explicit `height` is load-bearing, not decorative. `.hero-pill` names no
+ * height, and the row it sits in is a zero-slack fixed track with `overflow:
+ * hidden`; a HeroUI `Chip` root carries its own box, which is exactly why
+ * `SuccessChip` above has to pin `Size.compactChipHeight`. Unpinned, every pill
+ * clips and no unit test sees it. `paddingVertical` stays alongside it because
+ * it is the mockup's own declaration and the term `HERO_PILL_HEIGHT` is
+ * composed from — the two state the same box, they do not disagree.
+ *
+ * Recorded deviation: `.hero-pill`'s `inset 0 1px 0 rgba(255,255,255,.07)`
+ * highlight is not ported. `boxShadow` has zero style uses anywhere in `src/`,
+ * and the shipped dashboard hero card omits the same inset on the same element.
+ */
+export const HERO_PILL_STYLE: Readonly<ViewStyle> = Object.freeze({
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: Spacing.xxs,
+  paddingHorizontal: Spacing.xs,
+  paddingVertical: Spacing.xxs,
+  borderRadius: Radius.pill,
+  backgroundColor: Colors.dark.overlayWhite7,
+  height: HERO_PILL_HEIGHT,
+});
+
+/** mockup.html:699, `.hero-pill` at `var(--type-caption)`. */
+export const HERO_PILL_TEXT_STYLE: Readonly<TextStyle> = Object.freeze({
+  fontSize: Type.caption,
+  lineHeight: lineHeightFor(Type.caption),
+});
+
+export interface HeroPillProps {
+  /** Visible label text. */
+  label: string;
+  /** Leading glyph — the pill kind decides it, so the caller passes it. */
+  glyph: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
+}
+
+/**
+ * N4's hero-card pill — mockup.html:696-702, `.hero-pill`.
+ *
+ * `variant="secondary" color="default"` is the neutral combination
+ * `SelectablePill` above already ships on the installed HeroUI Native, with its
+ * appearance driven entirely by `className` and `style`. Geometry and fill go
+ * in `style` rather than `className` because `Chip` forwards `style` to its
+ * Pressable as `[chipStyleSheet.root, style]` and therefore wins over the
+ * size-variant classes — the mechanism `SuccessChip`'s docstring records.
+ * `animation="disable-all"` matches `SelectablePill`'s call for pills with no
+ * press feedback; this one is static.
+ *
+ * The label carries `text-foreground` rather than inheriting the variant's own
+ * `--color-default-soft-foreground`: mockup.html:699 paints `.hero-pill` in
+ * `--foreground`, and unlike `SuccessChip` — whose whole reason for choosing
+ * soft/success is that variant's fill and label colour — this pill overrides
+ * the variant's fill anyway. The glyph takes the same value through
+ * `CoreTokens.text1`, which `--foreground` resolves to.
+ *
+ * Purely presentational: no `onPress`, and no `accessibilityRole`, so it never
+ * announces as a button.
+ */
+export function HeroPill({ label, glyph }: HeroPillProps): React.ReactElement {
+  return (
+    <Chip variant="secondary" color="default" animation="disable-all" style={HERO_PILL_STYLE}>
+      <MaterialCommunityIcons name={glyph} size={HERO_PILL_GLYPH} color={CoreTokens.text1} />
+      <Chip.Label className="text-foreground font-inter" style={HERO_PILL_TEXT_STYLE}>
         {label}
       </Chip.Label>
     </Chip>
