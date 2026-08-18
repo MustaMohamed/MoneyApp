@@ -7,9 +7,11 @@ import { useOnboardingStore } from '@/modules/onboarding/store/onboarding.store'
 
 export type OnboardingStackParams = {
   welcome: undefined;
-  // Expo Router params are strings on the wire. more_accounts.hook.ts:52-55
-  // passes the literal 'true' and nothing else ever navigates here with a
-  // param — so this is the type, and the reader compares with === 'true'.
+  // Expo Router params are strings on the wire. more_accounts.hook.ts's
+  // handleAddAnother passes the literal 'true' and nothing else ever
+  // navigates here with a param — so this is the type, and the reader
+  // compares with === 'true'. Cited by name, not line: this said :52-55,
+  // which was right at MA-005 and has been wrong since MA-008 moved it.
   add_account: { isAddingMore?: 'true' };
   more_accounts: undefined;
   ready: undefined;

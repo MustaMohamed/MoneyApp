@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import { useRef } from 'react';
 
 import { OnboardingStep } from '@/constants/enums';
 import { Strings } from '@/constants/strings';
@@ -16,9 +15,6 @@ export function useMoreAccounts() {
   const setStep = useOnboardingStore.getState().setStep;
   const statusMessage = useMoreAccountsTransitionState.useState.statusMessage();
   const busy = useMoreAccountsTransitionState.useState.busy();
-
-  const initialCountRef = useRef<number>(accounts.length);
-  const initialCount = initialCountRef.current;
 
   // Belt and braces for an entry path that does not go through the runner —
   // invalidate() already clears this on every successful exit, but a fresh
@@ -105,7 +101,6 @@ export function useMoreAccounts() {
 
   return {
     accounts,
-    initialCount,
     handleAddAnother,
     handleAddFirstAccount,
     handleContinue,

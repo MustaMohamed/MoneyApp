@@ -87,7 +87,12 @@ export const Strings = {
   // value transcribed verbatim from mockup.html; the line number is the source.
   n3GhostNumeral: '03', // mockup.html:2010
   n3SuccessChip: 'First account saved', // mockup.html:2012
-  n3Headline: 'Anything else\nto add?', // mockup.html:2014
+  // Two keys, not one carrying a '\n' (spec §5.6, amended after c1's review):
+  // a baked break cannot reflow at large font scale or on a narrow device.
+  // MA-010 ships the same Broadsheet headline as a matched pair, composed in
+  // welcome_headline.tsx.
+  n3HeadlineLine1: 'Anything else', // mockup.html:2014
+  n3HeadlineLine2: 'to add?', // mockup.html:2014
   n3Body:
     'Cash in your wallet, a second bank, a credit card. Or skip — one account is enough to start.', // mockup.html:2015
   n3ListLabel: 'Your accounts', // mockup.html:2019
@@ -98,10 +103,6 @@ export const Strings = {
     'Something interrupted setup before your first account was saved. Nothing was lost — start it again.', // mockup.html:2097
   n3EmptyFootnote: 'Your currency choice was saved.', // mockup.html:2101
   n3EmptyCta: 'Add your first account', // mockup.html:2102
-
-  // Add Another?
-  n3AccountSaved: 'Account saved',
-  n3AddMoreSubtitle: 'Want to add another? You can add credit cards, cash wallets, and more.',
 
   // N-shell — MA-004. Mockup § A (A1-A3) and the per-route frames B1/C1/E1/F1.
   onboardingStepOf: (step: number) => `Step ${step} of 4`,
@@ -193,12 +194,6 @@ export const Strings = {
   accountColorSwatchA11y: (family: string, tone: string) => `${family}, ${tone.toLowerCase()}`,
   accountColorTriggerA11y: (family: string, tone: string) =>
     `Account colour: ${family}, ${tone.toLowerCase()}`,
-
-  // More Accounts
-  o5Subtitle: 'Got other accounts? Add them now — or skip and do it later.',
-  o5AddAnother: 'Add another account',
-  o5SettingsHint: 'You can always add more from Settings',
-  o5Cta: "I'm done",
 
   // Ready
   o6Title: "You're all set!",
