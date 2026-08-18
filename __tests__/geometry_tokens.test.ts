@@ -1,4 +1,4 @@
-import { Size, Spacing, TouchSize, Type } from '@/constants/theme';
+import { Size, Spacing, TouchSize, Type, lineHeightFor } from '@/constants/theme';
 import { ms } from '@/utils/responsive';
 
 /**
@@ -16,10 +16,11 @@ import { ms } from '@/utils/responsive';
  * not 34 — a bare `toBe(34)` fails here and on every device except a 390pt one.
  */
 describe('zero-shift geometry tokens', () => {
-  it('locks the five authored base values', () => {
+  it('locks the seven authored base values', () => {
     expect(Size.fieldMessageTrack).toBe(ms(20)); // field message rail
     expect(Size.summaryValueSlot).toBe(ms(52)); // N4 value slot
     expect(Size.summaryCaptionSlot).toBe(ms(34)); // N4 caption slot
+    expect(Size.summaryPillTrack).toBe(ms(24)); // N4 pill row, one line
     expect(Size.statusTrack).toBe(ms(34)); // footer status track
     // fieldHeight is deliberately NOT ms()-wrapped — see the test below.
     expect(Size.fieldHeight).toBe(48); // field height, unscaled
@@ -41,6 +42,32 @@ describe('zero-shift geometry tokens', () => {
     // token was ms(44) the second one was false on every phone under 390pt.
     expect(Size.fieldHeight).toBe(48);
     expect(Size.fieldHeight).toBeGreaterThanOrEqual(TouchSize.min);
+  });
+
+  it('the N4 pill row holds one padded caption line', () => {
+    // The pill's own composed height — 4pt padding top and bottom plus one
+    // caption line box (mockup.html:697-699) — against the track it sits in
+    // (mockup.html:695 + the 194pt composition at mockup.html:2298-2310, whose
+    // missing 24 term this token names). The row is `height` + `overflow:
+    // hidden` with no slack, so this is what stops the pill's type or padding
+    // growing without the track growing with it.
+    //
+    // Each ms()/msFont() rounds independently, so this is a fit check, never an
+    // equality — the same caveat the progress-rail check below carries. Under
+    // jest-expo the Dimensions mock is 750pt, scale clamps to 1.15, and the
+    // composition lands exactly ON the track (5 + 5 + 18 = 28 = ms(24)). It
+    // does NOT hold everywhere: swept across 320-500pt at pixel ratios
+    // 2/2.625/3/3.5 the composed height overshoots the track by 1 at 63
+    // combinations (440pt @2.625: track 27, composed 28), which jest never
+    // sees. Those pills clip by a point inside an `overflow: hidden` row —
+    // accepted, and on the device-QA walk.
+    //
+    // Because the jest-side margin is zero, a TYPE_LINE_HEIGHT_RATIO bump reds
+    // THIS assertion rather than the geometry it guards. The correct response
+    // is to grow Size.summaryPillTrack with it, not to relax the check.
+    expect(Spacing.xxs * 2 + lineHeightFor(Type.caption)).toBeLessThanOrEqual(
+      Size.summaryPillTrack,
+    );
   });
 
   it('the progress rail holds its bar and one label line', () => {
