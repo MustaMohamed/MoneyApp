@@ -10,7 +10,8 @@
   about what they render, the four consuming surfaces in
   `src/modules/dashboard/screens/dashboard/components/` — `hero_card.tsx`, `stat_cards.tsx`,
   `net_worth_breakdown_sheet.tsx`, `total_balance_strip.tsx` — with their copy in
-  `src/constants/strings.ts`
+  `src/constants/strings.ts`; and, since the P8 cycle-2 fence lift (§4), `account_card.tsx` and the
+  `account_carousel.tsx` that passes provenance to it
 
 `2026-08-18-starting-net-position.md` §5 listed four points on which the dashboard's
 `computeNetWorth` diverged from N4's `resolveStartingNetPosition` and named #249 as the owner of
@@ -115,11 +116,20 @@ needs a verified rate always, because the conversion is the whole point of it �
 
 Until chunk 2, `hero_card.tsx:164` keyed that line on `rate > 0`, and `INITIAL_STATE.rate` is `50`,
 so every user who had never fetched a rate read a confident `~ N USD` computed from the placeholder.
-`hero_card.tsx:205-207` now keys it on the field being absent
+`hero_card.tsx:224-226` now keys it on the field being absent
 (`netWorth.kind === 'amount' && netWorth.assetsUsd !== undefined`), which `rate > 0` could never
 express, and `net_worth_breakdown_sheet.tsx:163-165` re-keyed the same way.
 
-The breakdown sheet renders the refusal **only** on that outcome and does not render its body.
+The hero does not open the breakdown sheet at all on that outcome: `hero_card.tsx` hands `HeroShell`
+no `onPress` when `netWorth.kind === 'rate-needed'`, so the card loses its button role with its press
+handler. A sheet that cannot honestly show a breakdown should not open. Rendering only the sheet's
+EGP-only rows was the alternative considered and rejected — a refusal fires only when at least one
+non-archived account is foreign, so those rows would be a partial total over an incomplete account
+set, which spec §7 prohibits by name.
+
+The breakdown sheet still renders the refusal **only** on that outcome and does not render its body.
+With the sheet unreachable that suppression is a second guard rather than the primary one, and it
+stays: the sheet's `netWorth` prop is public and nothing in its own file makes the state impossible.
 `computeLiquidityBreakdown` and `computeLiabilitiesBreakdown` still carry the same PROVENANCE defect
 `computeNetWorth` had; left rendering, the sheet would refuse its headline and then print
 `100 × 50 = 5000 EGP` underneath it. Suppressing the body closes that incoherence without touching
@@ -131,15 +141,48 @@ render: at 9.51 USD and rate 40.01 the sheet showed section header 381, the card
 total-debt footer 380 for one account. This diff introduced that disagreement, so this diff closes it
 (spec §3b, amended and user-approved at P8). Rounding only — nothing else about either helper moves.
 
-The pre-#165 install population that lands on a permanent false refusal is **accepted**, unchanged
-from `2026-08-18-starting-net-position.md` §3. Those installs hydrate a real, user-entered rate
-alongside a null marker and stay refused until the user re-saves a rate. **Do not loosen the gate to
-make them show a number** — loosening it re-admits the unverified `50`, which is the entire thing the
-gate exists to keep off the screen. The remedy is a backfill migration, filed separately.
+**The pre-#165 population does not hydrate a rate at all, and no permanently-refused state is
+reachable.** This ADR and `2026-08-18-starting-net-position.md` §3 both described those installs as
+hydrating "a real, user-entered rate alongside a null marker" and staying refused until the user
+re-saves. That mechanism does not exist, and it was enumerated rather than argued (P8 cycle 2,
+finding A):
 
-This ticket's guarantee is scoped to `computeNetWorth`'s consumers. It is not "the dashboard never
-shows an unverified-rate number", which stays false while #257 is open: `account_card.tsx:140`
-converts a USD card balance at the raw rate and `hero_card.tsx:223` prints the rate itself.
+- `usd_rate`, `usd_rate_fetched_at`, `usd_rate_manual_override` and `usd_rate_updated_at` were all
+  introduced by the SAME commit, `3e5c9fb` (#165), which is also the commit that created
+  `currency.store.ts`. Nothing wrote `usd_rate` before it (`git log -S`, whole history). So a
+  genuinely pre-#165 install has NO rate row: `parsePersistedRate` returns `undefined`, `loadRate`
+  publishes `rate: 50` with `isManualOverride: false` and `rate_updated_at: null`, and Settings shows
+  the placeholder in its manual field rather than a rate the user recognises.
+- `isManualOverride: false` is what matters, because it is the ONLY thing that makes
+  `shouldRefreshRate` return false indefinitely. With it false and `lastFetched` null,
+  `refreshRateIfStale` fetches on the next mount of `(app)/_layout.tsx`, which writes the marker.
+  The refusal is one online app-open long, not permanent.
+- Every writer of `usd_rate_manual_override = 'true'` writes `usd_rate_updated_at` in the SAME
+  `INSERT OR REPLACE ... VALUES (…),(…),(…)` statement (`setSettings`), so "manual override without a
+  marker" — the one combination the background refresh cannot repair — is not reachable. Before
+  `8074711` (#167) those were three independent `repo.set` calls under `Promise.all`, where an
+  interrupted write could leave it; that window closed with the batch, and nothing deletes
+  `app_settings` rows.
+
+So no gate change and no backfill migration is needed for this population, and none is written here.
+**Do not loosen the gate anyway** — loosening it re-admits the unverified `50`, which is the entire
+thing the gate exists to keep off the screen. `2026-08-18-starting-net-position.md` §3 still carries
+the superseded mechanism; it is another ticket's accepted ADR and is deliberately not edited from
+here.
+
+This ticket's guarantee was scoped to `computeNetWorth`'s consumers, and the two sites that kept
+"the dashboard never shows an unverified-rate number" false were fenced to #257: `account_card.tsx`
+converted a USD balance at the raw rate, and `hero_card.tsx` printed the rate itself one line under
+the refusal. **The user lifted that fence at P8 cycle 2 ("fix all to the end"), and both are closed
+here**, because each contradicted a refusal rendered on the same screen — `$100` as `5,000 EGP`
+beneath "Exchange rate needed" on the accounts tab, and `1 USD = 50.00 EGP` beneath it on the hero.
+
+Provenance is decided once, in `dashboard.hook.ts`, by the same `isRateUsable` call that feeds
+`computeNetWorth`, and passed down to the account cards as a boolean. It is never re-derived at a
+display layer as `rate > 0`: `INITIAL_STATE.rate` is 50, so that check calls the placeholder usable.
+Only the converted "In EGP" row is gated; the native-currency rows need no rate. #257's remaining
+concerns at that line are untouched, as are `computeLiquidityBreakdown` and
+`computeLiabilitiesBreakdown` (#259).
 
 ### What chunk 2 settled that the above does not already say
 
@@ -156,6 +199,17 @@ reaches `domain/` past `src/modules/accounts/index.ts:1`, which declares the mod
 "store, UI components, shared types only", and this diff takes that bypass from 2 deep imports to 8.
 Widening the barrel is audit M2's work (effort L, unscheduled) — no import here changes for it.
 
+**The supported-currency vocabulary is a single encoding too, and it is own-property only.**
+`assertSupportedCurrency`, its `CURRENCY_LOOKUP` and their 11-line comment were byte-identical in
+`account_aggregation.ts` and `starting_net_position.ts`, differing only in the thrown class. The
+lookup and the membership test now live once as `isSupportedCurrency`; each domain keeps its own
+two-line throw, because spec §6 requires the thrown TYPE to name its domain and four test files
+assert `StartingNetPositionError` by name. The test is `Object.hasOwn`, not an index read: the old
+`CURRENCY_LOOKUP[currency] !== undefined` resolved through the prototype chain, so `constructor`,
+`toString` and every other `Object.prototype` member answered "supported" and was summed as base
+currency. Unreachable behind migration 001's `CHECK(currency IN ('EGP','USD'))`, and one word to
+close.
+
 **`isRateUsable` is the single encoding of the gate, adopted at both call sites in the same chunk.**
 Shipping a shared predicate and leaving N4's inline copy beside it would reproduce, for the rate,
 precisely the defect this ticket removes for the sign — so the swap at `resolveStartingNetPosition`
@@ -167,7 +221,7 @@ the ORDER is not what defends that, and an earlier draft of this section claimed
 `countForeignAccounts` filters `is_archived` itself (`account_aggregation.ts:123-125`), so handing it
 the unfiltered array returns the identical count and every row stays green. The two filters are
 defence in depth, and `resolveStartingNetPosition` composes exactly the same pair
-(`starting_net_position.ts:127-132`); neither is redundant to delete.
+(`starting_net_position.ts:120-125`); neither is redundant to delete.
 
 The regression signal for the inline filter is `__tests__/accounts/account_aggregation.test.ts`'s
 "never counts an archived account", and it is the only one: deleting that predicate alone leaves the
