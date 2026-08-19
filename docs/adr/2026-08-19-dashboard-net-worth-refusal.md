@@ -13,9 +13,10 @@
 reconciling them. This is that reconciliation. It changes money-handling behaviour and reverses a
 contract a test recorded, so the decisions are here rather than in a commit message.
 
-The work ships in two chunks. Chunk 1 is the sign, the rounding and the archived filter, behind an
-unchanged return shape. Chunk 2 is the refusal and the type change. Sections 1 to 3 and 5 are chunk 1;
-section 4 is written against chunk 2 and marked as such.
+The work shipped in two chunks, both merged. Chunk 1 is the sign, the rounding and the archived
+filter, behind an unchanged return shape; chunk 2 is the refusal, the type change and the four
+surfaces. Sections 1 to 3 and 5 are chunk 1's decisions, section 4 is chunk 2's. The split is kept
+recorded here because section 3 is an argument *about* it.
 
 ## 1. Which of the four divergences this closes, and how
 
@@ -95,10 +96,7 @@ The new number is the better one — rounded arithmetic is what this ADR exists 
 false is the claim of invisibility, and that claim was the argument for chunk 1 skipping emulator
 verification.
 
-## 4. The refusal contract (implemented by chunk 2)
-
-This section is normative present tense about code that is not in the tree yet. Chunk 2 implements
-every sentence of it; the `accepted` status above is on the decision, not on shipped behaviour.
+## 4. The refusal contract
 
 A stored rate counts as usable only when `rateUpdatedAt !== null` **and** `rate` is finite **and**
 `rate > 0` — character for character the gate N4 already applies, stated once in the accounts domain so
@@ -134,6 +132,26 @@ gate exists to keep off the screen. The remedy is a backfill migration, filed se
 This ticket's guarantee is scoped to `computeNetWorth`'s consumers. It is not "the dashboard never
 shows an unverified-rate number", which stays false while #257 is open: `account_card.tsx:139`
 converts a USD card balance at the raw rate and `hero_card.tsx:180` prints the rate itself.
+
+### What chunk 2 settled that the above does not already say
+
+**`countForeignAccounts` moved into the accounts domain, and is NOT re-exported from onboarding.**
+The gate needs a foreign count, so `computeNetWorth` consumes it, and re-exporting it from
+`starting_net_position.ts` would let the dashboard reach it *through* the onboarding domain — the one
+direction the hoist exists to forbid, for exactly the reason that file's own comment already gives
+about the sign resolver. Its two onboarding importers were repointed at the accounts path instead. It
+cannot call `selectActiveAccounts`, which stays in onboarding and has no dashboard consumer, so it
+filters `is_archived` inline; behaviour is identical and the archived case is its regression signal.
+
+**`isRateUsable` is the single encoding of the gate, adopted at both call sites in the same chunk.**
+Shipping a shared predicate and leaving N4's inline copy beside it would reproduce, for the rate,
+precisely the defect this ticket removes for the sign — so the swap at `resolveStartingNetPosition`
+is part of the same diff rather than a follow-up. The gate now cannot drift the way the sign rule did.
+
+**The archived filter runs before the foreign count, not just before the arithmetic.** An archived
+USD wallet on an otherwise-EGP portfolio must not force a refusal on a portfolio with nothing left to
+convert. That ordering is asserted by a table row that is the only one able to tell — every other row
+stays green if the count is hoisted above the filter.
 
 ## 5. The reversed contract
 
