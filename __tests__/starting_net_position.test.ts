@@ -294,4 +294,21 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
       }),
     ).toThrow(StartingNetPositionError);
   });
+
+  // The guard used to ask `CURRENCY_LOOKUP[currency] !== undefined`, which
+  // resolves through the prototype chain: `toString` is a member of
+  // `Object.prototype`, so a row carrying it passed the guard and was summed as
+  // if it were base currency. Still the DOMAIN'S OWN error type after the
+  // predicate was hoisted — that is what spec §6 requires and what this
+  // assertion pins.
+  it('throws on an Object.prototype member masquerading as a currency', () => {
+    expect(() =>
+      resolveStartingNetPosition({
+        accounts: [bank(1000, 'toString' as unknown as Currency)],
+        baseCurrency: Currency.EGP,
+        rate: 48.6,
+        rateUpdatedAt: RATE_VERIFIED_AT,
+      }),
+    ).toThrow(StartingNetPositionError);
+  });
 });

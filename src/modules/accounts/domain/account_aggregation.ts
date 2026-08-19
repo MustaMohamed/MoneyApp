@@ -1,4 +1,4 @@
-import { CURRENCY_CONFIG, type CurrencyMeta } from '@/constants/currency';
+import { CURRENCY_CONFIG } from '@/constants/currency';
 import { AccountType, Currency } from '@/constants/enums';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 
@@ -138,17 +138,28 @@ export class AccountAggregationError extends Error {
 // added to the enum is a TYPE ERROR there, while a local array compiles
 // unchanged and throws on real rows.
 //
-// Seen here as a lookup that can MISS. Its index type promises a hit for
-// anything the compiler already believes is a `Currency`, and that promise does
-// not hold: these values arrive from SQLite rows mapped without validation, and
-// an unsupported code is a schema violation upstream (migration 001 has
-// `CHECK(currency IN ('EGP','USD'))`), not a state to degrade into. Nothing
-// catches the throw — the app has no error boundary — and that is a recorded
-// known gap rather than this ticket's to fix (spec §6).
-const CURRENCY_LOOKUP: Readonly<Record<string, CurrencyMeta | undefined>> = CURRENCY_CONFIG;
+// Seen here as a membership question that can MISS. The record's index type
+// promises a hit for anything the compiler already believes is a `Currency`,
+// and that promise does not hold: these values arrive from SQLite rows mapped
+// without validation, and an unsupported code is a schema violation upstream
+// (migration 001 has `CHECK(currency IN ('EGP','USD'))`), not a state to
+// degrade into. Nothing catches the throw — the app has no error boundary —
+// and that is a recorded known gap rather than this ticket's to fix (spec §6).
+//
+// `Object.hasOwn`, not `CURRENCY_CONFIG[currency] !== undefined`: an index read
+// resolves through the PROTOTYPE CHAIN, so `constructor`, `toString` and every
+// other `Object.prototype` member answered "supported" under the old check.
+//
+// This predicate is the single encoding of the vocabulary, shared with
+// `starting_net_position.ts`. What is deliberately NOT shared is the assertion:
+// spec §6 requires the thrown TYPE to name its own domain, so each domain wraps
+// this predicate in its own two-line throw. Only the error class differs.
+export function isSupportedCurrency(currency: Currency): boolean {
+  return Object.hasOwn(CURRENCY_CONFIG, currency);
+}
 
 export function assertSupportedCurrency(currency: Currency): void {
-  if (CURRENCY_LOOKUP[currency] === undefined) {
+  if (!isSupportedCurrency(currency)) {
     throw new AccountAggregationError(`Unsupported currency: ${currency}`);
   }
 }

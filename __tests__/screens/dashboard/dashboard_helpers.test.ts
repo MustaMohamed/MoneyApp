@@ -382,6 +382,25 @@ describe('computeNetWorth', () => {
         }),
       ).toThrow(AccountAggregationError);
     });
+
+    // The guard used to ask `CURRENCY_LOOKUP[currency] !== undefined`, which
+    // resolves through the prototype chain: `constructor` is a member of
+    // `Object.prototype`, so a row carrying it passed the guard and was summed
+    // as an EGP balance.
+    it('throws on an Object.prototype member masquerading as a currency', () => {
+      expect(() =>
+        computeNetWorth({
+          accounts: [
+            makeAccount({
+              currency: 'constructor' as unknown as Currency,
+              current_balance: 1000,
+            }),
+          ],
+          rate: 48.6,
+          rateUpdatedAt: VERIFIED,
+        }),
+      ).toThrow(AccountAggregationError);
+    });
   });
 });
 

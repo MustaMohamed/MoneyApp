@@ -1,7 +1,10 @@
 import { AccountType, Currency } from '@/constants/enums';
 import {
+  AccountAggregationError,
+  assertSupportedCurrency,
   countForeignAccounts,
   isRateUsable,
+  isSupportedCurrency,
   normalizeNegativeZero,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
@@ -36,7 +39,7 @@ describe('normalizeNegativeZero', () => {
 });
 
 // A `Record<AccountType, …>` rather than a hand-written array of rows, for the
-// reason `starting_net_position.ts:46-56` states about `CURRENCY_CONFIG`: a
+// reason `isSupportedCurrency` below states about `CURRENCY_CONFIG`: a
 // member added to the enum must be a TYPE ERROR, not a runtime surprise. An
 // array compiles unchanged when a sixth `AccountType` appears, leaves this table
 // green, and lets the new member sign +1 in both `computeNetWorth` and
@@ -107,6 +110,39 @@ describe('countForeignAccounts', () => {
     // the `selectActiveAccounts` call this function could not bring with it.
     expect(countForeignAccounts([bank(1000), archived(wal(500, Currency.USD))], Currency.EGP)).toBe(
       0,
+    );
+  });
+});
+
+describe('isSupportedCurrency — the one encoding of the supported vocabulary', () => {
+  it('accepts every configured code', () => {
+    expect(isSupportedCurrency(Currency.EGP)).toBe(true);
+    expect(isSupportedCurrency(Currency.USD)).toBe(true);
+  });
+
+  it('rejects a code the schema should never have allowed', () => {
+    expect(isSupportedCurrency('GBP' as unknown as Currency)).toBe(false);
+  });
+
+  // The prototype-chain hole. `CURRENCY_CONFIG[currency] !== undefined` answers
+  // "supported" for every `Object.prototype` member, so a row carrying
+  // `constructor` walked past the guard and into the conversion below it.
+  it.each(['constructor', 'toString', 'valueOf', 'hasOwnProperty'])(
+    'rejects the Object.prototype member %s',
+    (member) => {
+      expect(isSupportedCurrency(member as unknown as Currency)).toBe(false);
+    },
+  );
+});
+
+describe('assertSupportedCurrency — the accounts domain throws its own type', () => {
+  it('lets a configured code through', () => {
+    expect(() => assertSupportedCurrency(Currency.USD)).not.toThrow();
+  });
+
+  it('throws AccountAggregationError on an Object.prototype member', () => {
+    expect(() => assertSupportedCurrency('constructor' as unknown as Currency)).toThrow(
+      AccountAggregationError,
     );
   });
 });

@@ -1,8 +1,8 @@
-import { CURRENCY_CONFIG, type CurrencyMeta } from '@/constants/currency';
 import { Currency } from '@/constants/enums';
 import {
   countForeignAccounts,
   isRateUsable,
+  isSupportedCurrency,
   normalizeNegativeZero,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
@@ -43,20 +43,13 @@ export class StartingNetPositionError extends Error {
   }
 }
 
-// The supported vocabulary is `CURRENCY_CONFIG` itself, never a hand-kept copy
-// of the same codes: it is a `Record<Currency, CurrencyMeta>`, so a member
-// added to the enum is a TYPE ERROR there, while a local array compiles
-// unchanged and throws on real rows.
-//
-// Seen here as a lookup that can MISS. Its index type promises a hit for
-// anything the compiler already believes is a `Currency`, and that promise does
-// not hold: these values arrive from SQLite rows mapped without validation, and
-// an unsupported code is a schema violation upstream, not a state to degrade
-// into.
-const CURRENCY_LOOKUP: Readonly<Record<string, CurrencyMeta | undefined>> = CURRENCY_CONFIG;
-
+// The vocabulary and the prototype-safe membership test live once, in
+// `account_aggregation.ts` — this file used to carry a byte-identical copy of
+// both. What stays here is the error CLASS: spec §6 requires the thrown type to
+// name its own domain, so N4's refusal reads `StartingNetPositionError` while
+// the dashboard's reads `AccountAggregationError`.
 function assertSupportedCurrency(currency: Currency): void {
-  if (CURRENCY_LOOKUP[currency] === undefined) {
+  if (!isSupportedCurrency(currency)) {
     throw new StartingNetPositionError(`Unsupported currency: ${currency}`);
   }
 }
