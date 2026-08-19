@@ -21,8 +21,14 @@ export function useReady() {
   const setStep = useOnboardingStore.getState().setStep;
   const complete = useAsync(completeOnboarding);
   const accounts = useAccountStore((s) => s.accounts);
-  const { rate, rateUpdatedAt } = useCurrencyStore(
-    useShallow((s) => ({ rate: s.rate, rateUpdatedAt: s.rate_updated_at })),
+  const { rate, rateUpdatedAt, isManualOverride } = useCurrencyStore(
+    useShallow((s) => ({
+      rate: s.rate,
+      rateUpdatedAt: s.rate_updated_at,
+      // The second provenance source `isRateUsable` accepts. A manual rate
+      // saved before the marker existed carries this and nothing else.
+      isManualOverride: s.isManualOverride,
+    })),
   );
   const backStatusMessage = useReadyTransitionState.useState.statusMessage();
   const busy = useReadyTransitionState.useState.busy();
@@ -38,14 +44,15 @@ export function useReady() {
   // loading branch and no early return above the animation hook (issue #247's
   // shape).
   //
-  // Memoised on the four inputs it actually reads, so the re-renders this screen
+  // Memoised on the five inputs it actually reads, so the re-renders this screen
   // takes for reasons of its own — `busy`, `completing`, the status track — do
   // not re-run the resolver over the account list. The deps ARE the whole input
   // object; adding a field to `StartingNetPositionInput` without adding it here
   // is a stale summary.
   const summary = useMemo(
-    () => selectReadySummaryState({ accounts, baseCurrency, rate, rateUpdatedAt }),
-    [accounts, baseCurrency, rate, rateUpdatedAt],
+    () =>
+      selectReadySummaryState({ accounts, baseCurrency, rate, rateUpdatedAt, isManualOverride }),
+    [accounts, baseCurrency, isManualOverride, rate, rateUpdatedAt],
   );
 
   const handleComplete = async () => {

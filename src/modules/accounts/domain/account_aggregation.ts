@@ -82,34 +82,87 @@ export type DashboardNetWorth =
 export type DashboardNetWorthAmount = Extract<DashboardNetWorth, { kind: 'amount' }>;
 
 /**
+ * Everything `isRateUsable` reads, as one shape.
+ *
+ * It is an interface both resolver inputs EXTEND rather than three fields each
+ * declares, so a provenance source added later cannot reach one resolver and
+ * not the other. That is the same argument the predicate itself makes, one level
+ * up: a positional signature let this gate gain a source with every existing
+ * caller still compiling, which is how a caller keeps answering `false` in
+ * silence.
+ */
+export interface RateProvenance {
+  rate: number;
+  /**
+   * DB-mapped nullable setting (`usd_rate_updated_at`); null means no
+   * verification marker was ever written for this rate.
+   */
+  rateUpdatedAt: string | null;
+  /**
+   * `usd_rate_manual_override === 'true'` — the user typed this rate into
+   * Settings themselves. Not DB-mapped as a nullable, so `boolean`, not
+   * `boolean | null`.
+   */
+  isManualOverride: boolean;
+}
+
+/**
  * A single object parameter rather than positional arguments, matching
  * `StartingNetPositionInput` so the two resolvers read alike. There is no
  * `baseCurrency` field: EGP base is `computeNetWorth`'s documented precondition
  * and must not become a parameter (spec §2a).
  */
-export interface NetWorthInput {
+export interface NetWorthInput extends RateProvenance {
   /** May contain archived rows — the resolver filters them itself. */
   accounts: Account[];
-  rate: number;
-  /** DB-mapped nullable setting (`usd_rate_updated_at`); null means unverified. */
-  rateUpdatedAt: string | null;
 }
 
 /**
  * The rate-provenance gate, stated once so the dashboard and N4 cannot drift.
  *
- * `useCurrencyStore`'s `INITIAL_STATE.rate` is `50` — an unverified guess that
- * must never reach a screen (ADR 2026-08-18 §2), and it is greater than zero, so
- * a bare `rate > 0` check opens the gate on it. The marker is what separates a
- * stored rate a user or a fetch actually verified from that placeholder.
+ * A rate is usable when it is finite and positive AND the app can say where it
+ * came from. There are exactly two answers to that second question, and either
+ * one is sufficient:
  *
- * Do NOT loosen this to make pre-#165 installs show a number (ADR 2026-08-18
- * §3): loosening it re-admits the unverified 50, which is the entire thing the
- * gate exists to keep off the screen. The remedy for that population is a
- * backfill migration, filed separately.
+ * - `rateUpdatedAt !== null` — a marker recording WHEN this rate was written by
+ *   a fetch or a manual save.
+ * - `isManualOverride` — the flag recording THAT the user typed it. It is
+ *   written by `setManualRate` and by nothing else; `fetchRate` writes `false`.
+ *
+ * The override flag is provenance in its own right, not a weaker proxy for the
+ * marker. `INITIAL_STATE.isManualOverride` is `false`, so the unverified `50`
+ * this gate exists to keep off the screen (ADR 2026-08-18 §2) is refused by the
+ * widened predicate exactly as it was by the narrow one — the regression test
+ * for that claim hydrates the real store over an empty repository rather than
+ * copying the constant.
+ *
+ * Accepting it is what reaches the population `2026-08-18-starting-net-position.md`
+ * §3 describes and this file's earlier comment proposed a backfill migration
+ * for. `currency.store.ts` shipped in #23 writing `usd_rate` and
+ * `usd_rate_manual_override` with no `usd_rate_updated_at`; the marker arrives
+ * in #85. An install that saved a manual rate inside that window carries the
+ * flag and no marker, and `shouldRefreshRate` returns false on its first line
+ * for a manual override — so no background fetch ever writes the missing marker
+ * and the refusal is permanent. The fetched half of the same window repairs
+ * itself on the next online app-open, which is why the flag is the whole
+ * remedy. See ADR 2026-08-19 §4.
+ *
+ * A backfill would have to invent a verification time for a rate whose real one
+ * is unknown — the substitution ADR 2026-08-18 §2 forbids. Reading the flag
+ * that is already there invents nothing.
+ *
+ * `loadRate` publishes `isManualOverride` as `rate !== undefined && manualStr
+ * === 'true'`, so the flag cannot outlive a rate that failed to parse: an
+ * install with a corrupt `usd_rate` row falls back to the placeholder with the
+ * flag OFF and is refused. The one input this admits that the marker would not
+ * is a user who typed 50 themselves — their number, deliberately entered, and
+ * indistinguishable from the placeholder only by value.
+ *
+ * Still do NOT loosen this to `rate > 0`: that admits the placeholder, and no
+ * install's data is improved by it.
  */
-export function isRateUsable(rate: number, rateUpdatedAt: string | null): boolean {
-  return rateUpdatedAt !== null && Number.isFinite(rate) && rate > 0;
+export function isRateUsable({ rate, rateUpdatedAt, isManualOverride }: RateProvenance): boolean {
+  return (rateUpdatedAt !== null || isManualOverride) && Number.isFinite(rate) && rate > 0;
 }
 
 /**

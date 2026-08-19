@@ -60,7 +60,9 @@ const makePayment = (overrides: Partial<CommitmentPayment> = {}): CommitmentPaym
 });
 
 // Time is an input, never `new Date()`. The gate reads only whether this marker
-// is null — a non-null value means the stored rate was actually verified.
+// is null — a non-null value means a fetch or a manual save actually wrote this
+// rate. The other provenance source, `isManualOverride`, is false on every row
+// of the table below and has its own describe further down.
 const VERIFIED = '2026-08-18T09:00:00.000Z';
 
 function amount(outcome: DashboardNetWorth): Extract<DashboardNetWorth, { kind: 'amount' }> {
@@ -355,8 +357,19 @@ describe('computeNetWorth', () => {
   // `toStrictEqual`, not `toEqual`: an ABSENT `assetsUsd` key must not be
   // silently equal to an explicit `undefined` one, because the union declares
   // both USD fields as present-and-possibly-undefined.
+  //
+  // Every row in this table is a NON-override rate, stated here once rather than
+  // on each row: the table enumerates the arithmetic and the refusal, and
+  // the provenance disjunction `isRateUsable` owns — marker OR override — has
+  // its own four-row table in `__tests__/accounts/account_aggregation.test.ts`
+  // plus the two resolver-level rows in the describe below this one. Hardcoding
+  // `false` here is what keeps the null-marker rows above meaningful: with
+  // `true` they would all state amounts and the refusal rows would go green for
+  // the wrong reason.
   it.each(NET_WORTH_ROWS)('$case', ({ accounts, rate, rateUpdatedAt, expected }) => {
-    expect(computeNetWorth({ accounts, rate, rateUpdatedAt })).toStrictEqual(expected);
+    expect(
+      computeNetWorth({ accounts, rate, rateUpdatedAt, isManualOverride: false }),
+    ).toStrictEqual(expected);
   });
 
   // RETIRED here: `it('returns netWorthUsd=0 when rate=0 to avoid division by
@@ -379,6 +392,7 @@ describe('computeNetWorth', () => {
           accounts: [makeAccount({ currency: unsupported, current_balance: 1000 })],
           rate: 48.6,
           rateUpdatedAt: VERIFIED,
+          isManualOverride: false,
         }),
       ).toThrow(AccountAggregationError);
     });
@@ -398,9 +412,45 @@ describe('computeNetWorth', () => {
           ],
           rate: 48.6,
           rateUpdatedAt: VERIFIED,
+          isManualOverride: false,
         }),
       ).toThrow(AccountAggregationError);
     });
+  });
+});
+
+describe('computeNetWorth — a manual rate carrying no marker', () => {
+  // The pre-#85 manual user, at the resolver that decides what the dashboard
+  // shows: they saved 48 themselves, `usd_rate_manual_override` is 'true', and
+  // no `usd_rate_updated_at` row was ever written because that key did not exist
+  // yet. `shouldRefreshRate` returns false for an override, so nothing repairs
+  // it — the refusal is permanent, and Settings shows them their own 48 the
+  // whole time (ADR 2026-08-19 §4).
+  const accounts: Account[] = [
+    makeAccount({ current_balance: 1000 }),
+    makeAccount({ type: AccountType.Bank, currency: Currency.USD, current_balance: 100 }),
+  ];
+
+  it('states the total, because the user supplied the rate', () => {
+    expect(
+      computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: true }),
+    ).toStrictEqual({
+      kind: 'amount',
+      assetsEgp: 5800,
+      liabilitiesEgp: 0,
+      netWorthEgp: 5800,
+      assetsUsd: 120.83,
+      netWorthUsd: 120.83,
+    });
+  });
+
+  it('refuses the identical rate when nothing says where it came from', () => {
+    // The same 48, the same accounts, override false. This is the row that keeps
+    // the widening honest: what changed the answer above is the provenance, not
+    // the number.
+    expect(
+      computeNetWorth({ accounts, rate: 48, rateUpdatedAt: null, isManualOverride: false }),
+    ).toStrictEqual({ kind: 'rate-needed', foreignCount: 1 });
   });
 });
 
@@ -421,7 +471,14 @@ describe('computeNetWorth — negative zero', () => {
     makeAccount({ type: AccountType.CreditCard, current_balance: 0.2 }),
   ];
   const result = () =>
-    amount(computeNetWorth({ accounts: negativeZeroAccounts, rate: 50, rateUpdatedAt: VERIFIED }));
+    amount(
+      computeNetWorth({
+        accounts: negativeZeroAccounts,
+        rate: 50,
+        rateUpdatedAt: VERIFIED,
+        isManualOverride: false,
+      }),
+    );
 
   it('normalises netWorthEgp to +0', () => {
     expect(Object.is(result().netWorthEgp, 0)).toBe(true);
@@ -696,7 +753,7 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     ];
 
     const { liabilitiesEgp } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED }),
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const rows = computeLiabilitiesBreakdown(accounts, RATE);
     // `net_worth_breakdown_sheet.tsx:143` — the footer is a raw reduce over the
@@ -720,7 +777,7 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     ];
 
     const { assetsEgp } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED }),
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const { liquidEgp, liquidAccounts } = computeLiquidityBreakdown(accounts, RATE);
 
@@ -744,7 +801,7 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalWallet);
 
     const { assetsEgp } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED }),
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const { liquidEgp } = computeLiquidityBreakdown(accounts, RATE);
 
@@ -757,7 +814,7 @@ describe('the breakdown sheet renders ONE number per account (MA-013)', () => {
     const accounts = tenAt5Piastres(AccountType.PhysicalSavings);
 
     const { assetsEgp } = amount(
-      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED }),
+      computeNetWorth({ accounts, rate: RATE, rateUpdatedAt: VERIFIED, isManualOverride: false }),
     );
     const { reserveEgp } = computeLiquidityBreakdown(accounts, RATE);
 

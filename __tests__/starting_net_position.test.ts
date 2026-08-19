@@ -183,9 +183,18 @@ const RESOLVER_ROWS: readonly ResolverRow[] = [
 ];
 
 describe('resolveStartingNetPosition — the scope spec table, all 16 rows', () => {
+  // Every row is a NON-override rate — see the same note on `computeNetWorth`'s
+  // table. The override half of the gate is asserted in the
+  // "a manual rate carrying no marker" describe.
   it.each(RESOLVER_ROWS)('$case', ({ accounts, base, rate, rateUpdatedAt, expected }) => {
     expect(
-      resolveStartingNetPosition({ accounts, baseCurrency: base, rate, rateUpdatedAt }),
+      resolveStartingNetPosition({
+        accounts,
+        baseCurrency: base,
+        rate,
+        rateUpdatedAt,
+        isManualOverride: false,
+      }),
     ).toStrictEqual(expected);
   });
 });
@@ -205,8 +214,40 @@ describe('resolveStartingNetPosition — round-then-sum, with a fixture that can
         baseCurrency: Currency.EGP,
         rate: 2,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toStrictEqual({ kind: 'amount', value: 2 });
+  });
+});
+
+describe('resolveStartingNetPosition — a manual rate carrying no marker', () => {
+  // N4 shares `isRateUsable` with the dashboard, so it shares this: the user who
+  // saved a rate before `usd_rate_updated_at` existed (#23 to #85) carries the
+  // override flag and no marker, and no background fetch will ever write one.
+  const accounts = [bank(1000), wal(100, Currency.USD)];
+
+  it('states the position, because the user supplied the rate', () => {
+    expect(
+      resolveStartingNetPosition({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 48,
+        rateUpdatedAt: null,
+        isManualOverride: true,
+      }),
+    ).toStrictEqual({ kind: 'amount', value: 5800 });
+  });
+
+  it('refuses the identical rate when nothing says where it came from', () => {
+    expect(
+      resolveStartingNetPosition({
+        accounts,
+        baseCurrency: Currency.EGP,
+        rate: 48,
+        rateUpdatedAt: null,
+        isManualOverride: false,
+      }),
+    ).toStrictEqual({ kind: 'rate-needed', foreignCount: 1 });
   });
 });
 
@@ -221,6 +262,7 @@ describe('resolveStartingNetPosition — negative zero (spec §1.1)', () => {
     baseCurrency: Currency.EGP,
     rate: 50,
     rateUpdatedAt: null,
+    isManualOverride: false,
   };
 
   it('normalises the resolver value to +0', () => {
@@ -265,6 +307,7 @@ describe('resolveStartingNetPosition — archived rows the SQL filter would not 
         baseCurrency: Currency.EGP,
         rate: 50,
         rateUpdatedAt: null,
+        isManualOverride: false,
       }),
     ).toStrictEqual({ kind: 'amount', value: 1000 });
   });
@@ -280,6 +323,7 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
         baseCurrency: Currency.EGP,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });
@@ -291,6 +335,7 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
         baseCurrency: unsupported,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });
@@ -308,6 +353,7 @@ describe('resolveStartingNetPosition — currencies outside EGP | USD throw', ()
         baseCurrency: Currency.EGP,
         rate: 48.6,
         rateUpdatedAt: RATE_VERIFIED_AT,
+        isManualOverride: false,
       }),
     ).toThrow(StartingNetPositionError);
   });

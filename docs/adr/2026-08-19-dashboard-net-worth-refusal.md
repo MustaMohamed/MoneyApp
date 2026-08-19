@@ -103,15 +103,18 @@ verification.
 
 ## 4. The refusal contract
 
-A stored rate counts as usable only when `rateUpdatedAt !== null` **and** `rate` is finite **and**
-`rate > 0` — character for character the gate N4 already applies, stated once in the accounts domain so
-the two cannot drift. Conversion is required only when at least one non-archived account is foreign.
+A stored rate counts as usable only when `rate` is finite **and** `rate > 0` **and** the app can say
+where the number came from. Provenance has two sufficient sources, and either alone opens the gate:
+`rateUpdatedAt !== null`, the marker recording *when* a fetch or a manual save wrote the rate, or
+`isManualOverride`, the flag recording *that* the user typed it. The predicate is stated once in the
+accounts domain, so the dashboard and N4 cannot drift; the disjunction and the population it exists
+for are argued below. Conversion is required only when at least one non-archived account is foreign.
 Required and unusable is the refusal outcome, `{ kind: 'rate-needed', foreignCount }`, a union member
 with no numeric field, so a formatter structurally cannot be handed a value that does not exist.
 
 Whether the app can state an EGP total and whether it can state the `~USD` equivalent are two
 questions with two answers. The EGP total needs a rate only when something is foreign. The `~USD` line
-needs a verified rate always, because the conversion is the whole point of it — so on the amount path
+needs a usable rate always, because the conversion is the whole point of it — so on the amount path
 `assetsUsd` and `netWorthUsd` are `undefined` exactly when the rate is unusable.
 
 Until chunk 2, `hero_card.tsx:164` keyed that line on `rate > 0`, and `INITIAL_STATE.rate` is `50`,
@@ -141,34 +144,67 @@ render: at 9.51 USD and rate 40.01 the sheet showed section header 381, the card
 total-debt footer 380 for one account. This diff introduced that disagreement, so this diff closes it
 (spec §3b, amended and user-approved at P8). Rounding only — nothing else about either helper moves.
 
-**The pre-#165 population does not hydrate a rate at all, and no permanently-refused state is
-reachable.** This ADR and `2026-08-18-starting-net-position.md` §3 both described those installs as
-hydrating "a real, user-entered rate alongside a null marker" and staying refused until the user
-re-saves. That mechanism does not exist, and it was enumerated rather than argued (P8 cycle 2,
-finding A):
+**A permanently-refused population exists, and this diff reaches it by widening the gate rather than
+by migrating data.** An earlier draft of this section said the opposite — that all four `usd_rate*`
+keys arrived in one commit, that "manual override without a marker" was unreachable, and that
+`2026-08-18-starting-net-position.md` §3 was superseded. Every part of that was wrong. It rested on
+`git log -S` run inside a **shallow clone**, which reports the shallow boundary as the origin of
+everything older than it; section 7 records the trap. §3 of the prior ADR stands, is not superseded,
+and is not edited from here.
 
-- `usd_rate`, `usd_rate_fetched_at`, `usd_rate_manual_override` and `usd_rate_updated_at` were all
-  introduced by the SAME commit, `3e5c9fb` (#165), which is also the commit that created
-  `currency.store.ts`. Nothing wrote `usd_rate` before it (`git log -S`, whole history). So a
-  genuinely pre-#165 install has NO rate row: `parsePersistedRate` returns `undefined`, `loadRate`
-  publishes `rate: 50` with `isManualOverride: false` and `rate_updated_at: null`, and Settings shows
-  the placeholder in its manual field rather than a rate the user recognises.
-- `isManualOverride: false` is what matters, because it is the ONLY thing that makes
-  `shouldRefreshRate` return false indefinitely. With it false and `lastFetched` null,
-  `refreshRateIfStale` fetches on the next mount of `(app)/_layout.tsx`, which writes the marker.
-  The refusal is one online app-open long, not permanent.
-- Every writer of `usd_rate_manual_override = 'true'` writes `usd_rate_updated_at` in the SAME
-  `INSERT OR REPLACE ... VALUES (…),(…),(…)` statement (`setSettings`), so "manual override without a
-  marker" — the one combination the background refresh cannot repair — is not reachable. Before
-  `8074711` (#167) those were three independent `repo.set` calls under `Promise.all`, where an
-  interrupted write could leave it; that window closed with the batch, and nothing deletes
-  `app_settings` rows.
+The window is real and it is narrow:
 
-So no gate change and no backfill migration is needed for this population, and none is written here.
-**Do not loosen the gate anyway** — loosening it re-admits the unverified `50`, which is the entire
-thing the gate exists to keep off the screen. `2026-08-18-starting-net-position.md` §3 still carries
-the superseded mechanism; it is another ticket's accepted ADR and is deliberately not edited from
-here.
+- `currency.store.ts` shipped in **#23** (2026-05-01) writing `usd_rate`, `usd_rate_fetched_at` and
+  `usd_rate_manual_override`. There was no `usd_rate_updated_at` key at all.
+- The marker first appears in **#85** (2026-05-19), with no backfill.
+
+For those 18 days, using the manual-rate feature exactly as designed durably wrote
+`usd_rate_manual_override = 'true'` beside a rate and no marker. (The prior ADR dates the marker's
+arrival to #165 rather than #85. The two numbers disagree; the population is the same under either,
+and this repository cannot settle the question — again, section 7.)
+
+That population splits, and only one half repairs itself:
+
+- **Fetched, no marker.** `isManualOverride` is false, so `shouldRefreshRate` returns true on a stale
+  or absent `lastFetched` and the next online app-open writes the marker. Refused for one launch.
+- **Manual, no marker.** `shouldRefreshRate` returns `false` on its **first line** for an override, so
+  no background fetch ever runs and nothing writes the marker. Under the narrow gate this user's
+  dashboard refused **permanently**, while Settings showed them their own rate in the manual field
+  with the override badge lit. `__tests__/currency.store.test.ts`'s `does not fetch a manual override`
+  had that mechanism recorded and green the whole time.
+
+**The remedy is to read the provenance already stored, not to invent the provenance that is missing.**
+The marker records *when* a rate was verified; the override flag records *that* the user set it.
+Either is evidence the number is not the placeholder, so `isRateUsable` accepts either. A backfill
+migration would have to stamp a verification time onto a rate whose real one is genuinely unknown —
+the substitution `2026-08-18-starting-net-position.md` §2 forbids by name — and would rewrite user
+data to work around a predicate. No migration is written, and the prior ADR's "the remedy is a
+backfill migration, filed separately" is answered by this diff instead.
+
+**The widening does not loosen the gate against what it exists to stop.** `INITIAL_STATE` is
+`rate: 50, rate_updated_at: null, isManualOverride: false`, so the unverified placeholder is refused
+by the widened predicate exactly as it was by the narrow one, and an override carrying `0`, `NaN` or
+`Infinity` is still refused on the number. Nor can the flag outlive its rate: `loadRate` publishes
+`isManualOverride` as `rate !== undefined && manualStr === 'true'`, so an install whose `usd_rate` row
+fails to parse falls back to the placeholder with the flag OFF. The single input this admits that the
+marker would not is a user who typed `50` themselves — their number, deliberately entered, and
+indistinguishable from the placeholder by value alone. Both directions are measured rather than
+asserted, by mutating the predicate and recording what dies:
+
+| Mutation | Assertions that fail |
+|---|---|
+| Narrow it back to `rateUpdatedAt !== null && …` | 5 — the gate's override row, `computeNetWorth`'s and `resolveStartingNetPosition`'s "states the total", the store-hydration row, and `useDashboard`'s. Nothing else in 2706 moves. |
+| Drop provenance entirely, `Number.isFinite(rate) && rate > 0` | 17 — every refusal row in both resolver tables, N4's pill and frame rows, the hook's two provenance tests, and the fresh-install row that hydrates the real store. |
+
+The second row is the one that matters for the fear this widening raises. `INITIAL_STATE` is not
+copied into a fixture to prove it: `__tests__/currency.store.test.ts` builds the real store over an
+empty repository and asks the real predicate, before and after `loadRate`.
+
+`isRateUsable` now takes one `RateProvenance` object rather than two positional arguments, and both
+`NetWorthInput` and `StartingNetPositionInput` **extend** that interface. That is not cosmetic: it is
+what made every caller a compile error rather than a silent `false`, which is exactly how a
+provenance source reaches one resolver and not the other. `dashboard.hook.ts` and N4's `ready.hook.ts`
+each select the flag from the currency store alongside the marker.
 
 This ticket's guarantee was scoped to `computeNetWorth`'s consumers, and the two sites that kept
 "the dashboard never shows an unverified-rate number" false were fenced to #257: `account_card.tsx`
@@ -263,3 +299,24 @@ Both were measured against the shipped `roundMoney` rather than asserted from me
   can never fail. Each `-0` site needs its own fixture, per the prior ADR §4, and array order is part
   of the contract: a body that grouped or sorted rows first, or that derived `netWorthEgp` as
   `assetsEgp − liabilitiesEgp`, would make both rows tautologies.
+
+## 7. This repository is a shallow clone, and `git log` lies past its boundary
+
+The verification environment for this ticket is a shallow clone.
+`git rev-parse --is-shallow-repository` returns `true`, `.git/shallow` contains the single commit
+`3e5c9fb`, and `git log --oneline | wc -l` counts 66 on this branch. Everything before that boundary
+is absent, not merely unlisted.
+
+`git log -S`, `git log --follow` and `git log -- <path>` do not report that. They terminate at the
+boundary and attribute what they cannot see to the boundary commit — so **every** `usd_rate*` key
+looks introduced by `3e5c9fb`, and `currency.store.ts` looks created by it. Both are false, and both
+were stated as findings in a review of this diff, which then closed a real user-data defect as
+unreachable on that basis.
+
+Rules that follow, for anyone verifying here:
+
+- A history claim is not evidence in this environment. `git fetch --unshallow` first, or answer from
+  artifacts that live in the tree — migrations, ADRs, tests, PR numbers in commit messages.
+- "No commit introduced X before Y" and "no user can have this data" are the two conclusions this
+  trap produces, and they are the two that damage users when wrong. Neither may rest on a log read
+  here.

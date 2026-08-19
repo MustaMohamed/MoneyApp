@@ -6,13 +6,15 @@ import {
   isRateUsable,
   isSupportedCurrency,
   normalizeNegativeZero,
+  type RateProvenance,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
 import { makeTestAccount } from '@/test_helpers/transaction';
 
 // Time is an input, never `new Date()`. The gate reads only whether this marker
-// is null — a non-null value means the stored rate was actually verified.
+// is null — a non-null value means a fetch or a manual save actually wrote this
+// rate. It is one of two provenance sources; `isManualOverride` is the other.
 const RATE_VERIFIED_AT = '2026-08-01T09:00:00.000Z';
 
 const bank = (openingBalance: number, currency: Currency = Currency.EGP): Account =>
@@ -58,31 +60,64 @@ describe('resolveAccountAggregationSign — the one site that owns the credit-ca
   });
 });
 
+interface RateUsableRow {
+  case: string;
+  provenance: RateProvenance;
+  expected: boolean;
+}
+
+// All four provenance combinations, then the numeric cases along BOTH provenance
+// paths. The second half is what stops the widened gate from becoming
+// "an override skips the validation": an override carrying NaN is still refused.
+const RATE_USABLE_ROWS: readonly RateUsableRow[] = [
+  {
+    // The fresh install. `INITIAL_STATE` is `rate: 50, rate_updated_at: null,
+    // isManualOverride: false` — 50 > 0, so a bare `rate > 0` check calls the
+    // placeholder usable, and accepting the override flag must not. That the
+    // constant really is that triple is asserted against the store itself in
+    // `__tests__/currency.store.test.ts`, not copied here.
+    case: 'no marker and no override — the unverified placeholder',
+    provenance: { rate: 50, rateUpdatedAt: null, isManualOverride: false },
+    expected: false,
+  },
+  {
+    case: 'a marker and no override — a fetched rate',
+    provenance: { rate: 48.6, rateUpdatedAt: RATE_VERIFIED_AT, isManualOverride: false },
+    expected: true,
+  },
+  {
+    // The population ADR 2026-08-19 §4 describes: `currency.store.ts` shipped in
+    // #23 writing the rate and the override flag with no marker, which arrived
+    // in #85. `shouldRefreshRate` returns false on its first line for an
+    // override, so no background fetch ever backfills the marker — refused
+    // forever under the narrow gate, and the user's own rate sits in Settings
+    // the whole time.
+    case: 'an override with no marker — a manual rate saved before the marker existed',
+    provenance: { rate: 48, rateUpdatedAt: null, isManualOverride: true },
+    expected: true,
+  },
+  {
+    case: 'both — a manual rate saved since #85',
+    provenance: { rate: 48, rateUpdatedAt: RATE_VERIFIED_AT, isManualOverride: true },
+    expected: true,
+  },
+  ...([0, -1, NaN, Infinity] as const).flatMap((rate) => [
+    {
+      case: `a marked rate of ${String(rate)} — provenance known, number unusable`,
+      provenance: { rate, rateUpdatedAt: RATE_VERIFIED_AT, isManualOverride: false },
+      expected: false,
+    },
+    {
+      case: `an overridden rate of ${String(rate)} — the override does not skip the number`,
+      provenance: { rate, rateUpdatedAt: null, isManualOverride: true },
+      expected: false,
+    },
+  ]),
+];
+
 describe('isRateUsable — the one site that owns the rate-provenance gate', () => {
-  it('refuses a rate whose marker was never set, however plausible the number', () => {
-    // `INITIAL_STATE.rate` is 50 and 50 > 0, so a bare `rate > 0` check opens
-    // the gate on the placeholder. The marker is the whole point.
-    expect(isRateUsable(50, null)).toBe(false);
-  });
-
-  it('refuses a zero rate', () => {
-    expect(isRateUsable(0, RATE_VERIFIED_AT)).toBe(false);
-  });
-
-  it('refuses a negative rate', () => {
-    expect(isRateUsable(-1, RATE_VERIFIED_AT)).toBe(false);
-  });
-
-  it('refuses NaN', () => {
-    expect(isRateUsable(NaN, RATE_VERIFIED_AT)).toBe(false);
-  });
-
-  it('refuses Infinity', () => {
-    expect(isRateUsable(Infinity, RATE_VERIFIED_AT)).toBe(false);
-  });
-
-  it('accepts a finite positive rate carrying a marker', () => {
-    expect(isRateUsable(48.6, RATE_VERIFIED_AT)).toBe(true);
+  it.each(RATE_USABLE_ROWS)('$case → $expected', ({ provenance, expected }) => {
+    expect(isRateUsable(provenance)).toBe(expected);
   });
 });
 

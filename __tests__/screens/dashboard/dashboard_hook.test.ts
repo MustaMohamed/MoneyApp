@@ -492,6 +492,25 @@ describe('useDashboard', () => {
     expect(unverified.result.current.state.isRateUsable).toBe(false);
   });
 
+  it('publishes a manual rate that predates the marker as usable', async () => {
+    // The pre-#85 manual user reaching the screen: they typed a rate into
+    // Settings, `usd_rate_manual_override` is 'true', and `usd_rate_updated_at`
+    // never existed to be written. Under the narrow gate this dashboard refused
+    // forever while Settings showed them their own rate with the override badge
+    // on.
+    //
+    // The fixture rate is the same 50 the test two above refuses, and that is
+    // the point of the pair: identical rate, identical null marker, and the ONLY
+    // difference is the flag saying the user supplied it.
+    currencyState.rate_updated_at = null;
+    currencyState.isManualOverride = true;
+
+    const { result } = await renderHook(() => useDashboard());
+
+    expect(result.current.state.isRateUsable).toBe(true);
+    expect(amountNetWorth(result.current.state.netWorth).assetsEgp).toBe(5000);
+  });
+
   it('retains Dashboard navigation and UI actions', async () => {
     const { result } = await renderHook(() => useDashboard());
 

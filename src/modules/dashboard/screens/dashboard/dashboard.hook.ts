@@ -63,9 +63,12 @@ export function useDashboard() {
   const { rate, isManualOverride, rateUpdatedAt } = useCurrencyStore(
     useShallow((state) => ({
       rate: state.rate,
+      // Both provenance fields feed `isRateUsable`, which accepts EITHER: the
+      // rate alone cannot tell a verified value from the placeholder, since
+      // `INITIAL_STATE.rate` is 50. `isManualOverride` was already selected here
+      // for `hero_card.tsx`'s manual badge; the gate is its second reader, not a
+      // new subscription.
       isManualOverride: state.isManualOverride,
-      // `computeNetWorth` refuses without this marker. `INITIAL_STATE.rate` is
-      // 50, so the rate alone cannot tell a verified value from the placeholder.
       rateUpdatedAt: state.rate_updated_at,
     })),
   );
@@ -148,8 +151,8 @@ export function useDashboard() {
   const previousYearMonth = matchingSnapshot?.previousYearMonth ?? shiftYearMonth(yearMonth, -1);
 
   const netWorth = useMemo(
-    () => computeNetWorth({ accounts, rate, rateUpdatedAt }),
-    [accounts, rate, rateUpdatedAt],
+    () => computeNetWorth({ accounts, rate, rateUpdatedAt, isManualOverride }),
+    [accounts, isManualOverride, rate, rateUpdatedAt],
   );
   // Decided ONCE, here, and passed down to every surface that converts. The
   // account cards used to answer this question for themselves — their "In EGP"
@@ -157,7 +160,7 @@ export function useDashboard() {
   // render `5,000 EGP` under a strip refusing to state a total. Re-deriving
   // provenance as `rate > 0` at a display layer is the defect class #255 exists
   // to remove: `INITIAL_STATE.rate` is 50.
-  const rateUsable = isRateUsable(rate, rateUpdatedAt);
+  const rateUsable = isRateUsable({ rate, rateUpdatedAt, isManualOverride });
   const liquidity = useMemo(() => computeLiquidityBreakdown(accounts, rate), [accounts, rate]);
   const liabilities = useMemo(() => computeLiabilitiesBreakdown(accounts, rate), [accounts, rate]);
   const groupedAccounts = useMemo(() => groupAccountsByType(accounts), [accounts]);

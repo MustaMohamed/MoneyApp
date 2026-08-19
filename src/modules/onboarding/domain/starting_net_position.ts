@@ -4,6 +4,7 @@ import {
   isRateUsable,
   isSupportedCurrency,
   normalizeNegativeZero,
+  type RateProvenance,
   resolveAccountAggregationSign,
 } from '@/modules/accounts/domain/account_aggregation';
 import type { Account } from '@/modules/accounts/entities/account.entity';
@@ -26,13 +27,10 @@ export type StartingNetPosition =
   | { kind: 'amount'; value: number }
   | { kind: 'rate-needed'; foreignCount: number };
 
-export interface StartingNetPositionInput {
+export interface StartingNetPositionInput extends RateProvenance {
   /** May contain archived rows — this resolver filters them itself. */
   accounts: readonly Account[];
   baseCurrency: Currency;
-  rate: number;
-  /** DB-mapped nullable column (`usd_rate_updated_at`); null means unverified. */
-  rateUpdatedAt: string | null;
 }
 
 /** Shape mirrors `TransactionAmountError` — thrown type, never message text. */
@@ -108,13 +106,15 @@ function convertToBaseCurrency(
  * makes the two balance columns equal at creation, so the swap away from
  * `current_balance` is invisible during onboarding).
  *
- * A rate counts as usable when `rateUpdatedAt !== null` and `rate` is finite and
- * positive; it is required only when at least one account is foreign. Required
- * and unusable is the refusal outcome — never a substituted rate, a zero, a
- * partial total, or a direct sum of unlike currencies.
+ * A rate counts as usable when it is finite and positive and its provenance is
+ * known — a verification marker OR the user's own manual-override flag, the
+ * disjunction `isRateUsable` owns for N4 and the dashboard alike. It is required
+ * only when at least one account is foreign. Required and unusable is the
+ * refusal outcome — never a substituted rate, a zero, a partial total, or a
+ * direct sum of unlike currencies.
  */
 export function resolveStartingNetPosition(input: StartingNetPositionInput): StartingNetPosition {
-  const { accounts, baseCurrency, rate, rateUpdatedAt } = input;
+  const { accounts, baseCurrency, rate } = input;
 
   assertSupportedCurrency(baseCurrency);
   const activeAccounts = selectActiveAccounts(accounts);
@@ -123,7 +123,8 @@ export function resolveStartingNetPosition(input: StartingNetPositionInput): Sta
   }
 
   const foreignCount = countForeignAccounts(activeAccounts, baseCurrency);
-  const rateUsable = isRateUsable(rate, rateUpdatedAt);
+  // `input` itself, not a re-assembled literal — see `computeNetWorth`.
+  const rateUsable = isRateUsable(input);
   if (foreignCount >= 1 && !rateUsable) {
     return { kind: 'rate-needed', foreignCount };
   }

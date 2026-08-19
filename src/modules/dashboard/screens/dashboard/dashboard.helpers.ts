@@ -42,10 +42,12 @@ import { roundMoney } from '@/utils/money';
  * M12's other half, the archive-confirmation copy that contradicts the current
  * behaviour, is untouched by #255.
  *
- * A rate counts as usable only when it carries a verification marker AND is
- * finite AND positive (`isRateUsable`); it is REQUIRED only when at least one
- * non-archived account is foreign. Required and unusable is the `rate-needed`
- * outcome — never a substituted rate, a zero, or a partial total.
+ * A rate counts as usable only when it is finite AND positive AND its
+ * provenance is known — a verification marker or the user's own manual-override
+ * flag (`isRateUsable`, which owns that disjunction for this function and N4
+ * alike). It is REQUIRED only when at least one non-archived account is
+ * foreign. Required and unusable is the `rate-needed` outcome — never a
+ * substituted rate, a zero, or a partial total.
  *
  * Whether the EGP total can be stated and whether the `~USD` equivalent can be
  * stated are two questions with two answers. The EGP total needs a rate only
@@ -55,7 +57,7 @@ import { roundMoney } from '@/utils/money';
  * unusable.
  */
 export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
-  const { accounts, rate, rateUpdatedAt } = input;
+  const { accounts, rate } = input;
 
   // Archived rows are dropped BEFORE every other step, the foreign count
   // included: an archived USD wallet must not force a refusal on a portfolio
@@ -68,7 +70,9 @@ export function computeNetWorth(input: NetWorthInput): DashboardNetWorth {
   // `Currency.EGP` is named here rather than taken as a parameter: EGP base is
   // this function's documented precondition (above), not a choice.
   const foreignCount = countForeignAccounts(activeAccounts, Currency.EGP);
-  const rateUsable = isRateUsable(rate, rateUpdatedAt);
+  // `input` itself, not a re-assembled literal: `NetWorthInput` extends
+  // `RateProvenance`, so a provenance field added there cannot be dropped here.
+  const rateUsable = isRateUsable(input);
   if (foreignCount >= 1 && !rateUsable) {
     return { kind: 'rate-needed', foreignCount };
   }
